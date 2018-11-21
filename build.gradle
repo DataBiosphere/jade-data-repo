@@ -1,14 +1,102 @@
-group 'org.broadinstitute'
-version '0.1'
+import io.swagger.codegen.config.CodegenConfigurator
+import io.swagger.codegen.DefaultGenerator
+
+buildscript {
+    ext {
+        springBootVersion = '2.0.5.RELEASE'
+    }
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
+        classpath('io.swagger:swagger-codegen:2.3.1')
+    }
+}
+
 
 apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'org.springframework.boot'
+apply plugin: 'io.spring.dependency-management'
 
+group 'bio.terra'
+version '0.1'
 sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
 }
 
-dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+configurations {
+    generatedCompile
 }
+
+dependencies {
+    compile 'org.springframework.boot:spring-boot-starter-web'
+    compile 'io.springfox:springfox-swagger2:2.7.0'
+    compile 'io.springfox:springfox-swagger-ui:2.7.0'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    generatedCompile 'org.springframework.boot:spring-boot-starter-web'
+    generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
+    generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
+}
+
+def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'
+def openapiTargetFolder = 'src/generated/java'
+
+task generateApi {
+    inputs.file("$projectDir/$openapiSourceFile")
+    outputs.dir("$projectDir/$openapiTargetFolder")
+    doLast{
+        def config = new CodegenConfigurator()
+        config.setInputSpec("file:///$projectDir/$openapiSourceFile")
+        config.setOutputDir("$projectDir")
+        config.setLang('spring')
+        config.setAdditionalProperties([
+                'interfaceOnly' : 'true',
+                'useTags'       : 'true',
+                'library'       : 'spring-boot',
+                'dateLibrary'   : 'java8',
+                'apiPackage'    : 'bio.terra.controller',
+                'modelPackage'  : 'bio.terra.model',
+                'invokerPackage': 'bio.terra',
+                'sourceFolder'  : openapiTargetFolder
+        ])
+        new DefaultGenerator().opts(config.toClientOptInput()).generate()
+    }
+}
+
+clean.doFirst {
+    delete("${projectDir}/$openapiTargetFolder")
+}
+
+sourceSets {
+    generated {
+        compileClasspath = configurations.generatedCompile
+    }
+    main {
+        compileClasspath += generated.output
+        runtimeClasspath += generated.output
+    }
+    test {
+        compileClasspath += generated.output
+        runtimeClasspath += generated.output
+    }
+}
+
+bootRun {
+    classpath += sourceSets.generated.output
+}
+
+jar {
+    from sourceSets.generated.output
+}
+
+compileGeneratedJava.dependsOn generateApi
+classes.dependsOn generatedClasses
+compileJava.dependsOn compileGeneratedJava
+ideaModule.dependsOn generateApi

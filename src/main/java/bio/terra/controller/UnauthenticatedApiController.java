@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2018-11-21T14:51:14.798-05:00")
 
 @Controller
 public class UnauthenticatedApiController implements UnauthenticatedApi {

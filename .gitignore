@@ -30,6 +30,12 @@ hs_err_pid*
 
 # build results
 out/
+build/
+
+# generated source files
+src/generated/
+.swagger-codegen/
+.swagger-codegen-ignore
 
 # gradle files
 .gradle/

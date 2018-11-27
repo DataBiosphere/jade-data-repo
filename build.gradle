@@ -124,8 +124,18 @@ jar {
     from sourceSets.generated.output
 }
 
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+// was ${project.group} here, can we make a bio.terra org in docker hub?
 docker {
-    name "${project.group}/${bootJar.baseName}"
+    name "jhert/${bootJar.baseName}:${getGitHash()}"
     copySpec.from(tasks.unpack.outputs).into("dependency")
     buildArgs(['DEPENDENCY': "dependency"])
 }

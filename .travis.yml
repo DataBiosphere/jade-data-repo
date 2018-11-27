@@ -9,5 +9,14 @@ cache:
 language: java
 
 jdk:
-  - oraclejdk8
-  - openjdk8
+- oraclejdk8
+- openjdk8
+
+services:
+- docker
+
+deploy:
+  provider: script
+  script: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin && ./gradlew dockerPush
+  on:
+    branch: docker

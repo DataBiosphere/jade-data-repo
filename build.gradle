@@ -27,10 +27,15 @@ buildscript {
     }
 }
 
+plugins {
+  id "com.palantir.docker" version "0.20.1"
+}
+
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: 'com.palantir.docker'
 
 group 'bio.terra'
 version '0.1'
@@ -87,6 +92,12 @@ task generateApi {
     }
 }
 
+task unpack(type: Copy) {
+    dependsOn bootJar
+    from(zipTree(tasks.bootJar.outputs.files.singleFile))
+    into("build/dependency")
+}
+
 clean.doFirst {
     delete("${projectDir}/$openapiTargetFolder")
 }
@@ -111,6 +122,12 @@ bootRun {
 
 jar {
     from sourceSets.generated.output
+}
+
+docker {
+    name "${project.group}/${bootJar.baseName}"
+    copySpec.from(tasks.unpack.outputs).into("dependency")
+    buildArgs(['DEPENDENCY': "dependency"])
 }
 
 compileGeneratedJava.dependsOn generateApi

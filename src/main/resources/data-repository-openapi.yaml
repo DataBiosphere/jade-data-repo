@@ -97,7 +97,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/ModelDataset'
+              $ref: '#/definitions/DatasetModel'
 
   ## Search Interface
   '/api/search/v1/dataset':
@@ -111,14 +111,14 @@ paths:
         - in: body
           name: search
           schema:
-            $ref: '#/definitions/ModelDatasetSearch'
+            $ref: '#/definitions/DatasetSearchModel'
       responses:
         200:
           description: List of dataset ids
           schema:
             type: array
             items:
-              $ref: '#/definitions/ModelUniqueId'
+              $ref: '#/definitions/UniqueIdModel'
 
   ## Model Interface
 
@@ -132,12 +132,12 @@ paths:
         - in: body
           name: study
           schema:
-            $ref: '#/definitions/ModelStudy'
+            $ref: '#/definitions/StudyModel'
       responses:
         201:
           description: Created study
           schema:
-            $ref: '#/definitions/ModelUniqueId'
+            $ref: '#/definitions/UniqueIdModel'
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:
@@ -156,12 +156,12 @@ paths:
           name: dataset
           description: Dataset to create
           schema:
-            $ref: '#/definitions/ModelDataset'
+            $ref: '#/definitions/DatasetModel'
       responses:
         201:
           description: Created dataset id
           schema:
-            $ref: '#/definitions/ModelUniqueId'
+            $ref: '#/definitions/UniqueIdModel'
         400:
           description: Bad request - duplicate name, invalid name, badly formed
         403:
@@ -182,7 +182,7 @@ paths:
         - ingest
       parameters:
         - $ref: '#/parameters/Id'
-        - name: ModelIngest
+        - name: IngestModel
           in: body
           schema:
             type: object
@@ -191,7 +191,7 @@ paths:
               - path
             properties:
               table:
-                $ref: '#/definitions/ModelIdentifierName'
+                $ref: '#/definitions/IdentifierNameModel'
               path:
                 type: string
                 description: URL for object in the ingest bucket
@@ -225,7 +225,7 @@ definitions:
 
   ## Identifiers ##
 
-  ModelDatasetName:
+  DatasetNameModel:
     description: |
       BigQuery dataset name. Used for study and dataset names. The pattern enforces dataset naming rules
       except it disallows a leading underscore and leaves 24 chars unused. That lets us use a leading underscore and a prefix
@@ -235,7 +235,7 @@ definitions:
     minLength: 1
     maxLength: 1000
 
-  ModelIdentifierName:
+  IdentifierNameModel:
     description: |
       Table, column, and relationship names follow this patter. It enforces BigQuery naming rules except
       it disallows a leading underscore so we avoid collisions with any extra columns the DR adds. For table names,
@@ -245,22 +245,22 @@ definitions:
     minLength: 1
     maxLength: 128
 
-  ModelUniqueId:
+  UniqueIdModel:
     description: |
       Unique identifier for a study, dataset, etc.
     type: string
 
   ## Study ##
 
-  ModelStudy:
+  StudyModel:
     description: |
       Complete description of a study.
     type: object
     properties:
       id:
-        $ref: '#/definitions/ModelUniqueId'
+        $ref: '#/definitions/UniqueIdModel'
       name:
-        $ref: '#/definitions/ModelDatasetName'
+        $ref: '#/definitions/DatasetNameModel'
       description:
         type: string
         description: Description of the study
@@ -268,11 +268,11 @@ definitions:
         type: string
         description: Id of the auto-generated default passthru dataset
       schema:
-        $ref: '#/definitions/ModelDataModel'
+        $ref: '#/definitions/DataModelModel'
 
   ## Schema Definitions ##
 
-  ModelColumn:
+  ColumnModel:
     description: one column of a table
     type: object
     required:
@@ -281,7 +281,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
 
       ## TODO: Use an enumeration for the datatype. We will probably want to support some kind of extended datatyping
       ## to process references to UCSC and/or UChicago schema parts. Whatever GA4GH standardizes.
@@ -289,7 +289,7 @@ definitions:
       datatype:
         type: string
 
-  ModelTable:
+  TableModel:
     description: one table in a schema
     type: object
     required:
@@ -298,14 +298,14 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
 
       columns:
         type: array
         items:
-          $ref: '#/definitions/ModelColumn'
+          $ref: '#/definitions/ColumnModel'
 
-  ModelRelationshipTerm:
+  RelationshipTermModel:
     description: Describes a table, columns and cardinality for a relationship
     type: object
     required:
@@ -315,7 +315,7 @@ definitions:
       
     properties:
       table:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
         
       column_list:
         type: array
@@ -331,7 +331,7 @@ definitions:
           - one_or_many
           - zero_or_many
 
-  ModelRelationship:
+  RelationshipModel:
     description: |
       One relationship between two tables. Captures a specific relationship between two tables. By naming the
       relationships, we can define assets. It should allow us to use the cardinality of the relationships to form
@@ -343,13 +343,13 @@ definitions:
       - to
     properties:
       name:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       from:
-        $ref: '#/definitions/ModelRelationshipTerm'
+        $ref: '#/definitions/RelationshipTermModel'
       to:
-        $ref: '#/definitions/ModelRelationshipTerm'
+        $ref: '#/definitions/RelationshipTermModel'
 
-  ModelAssetTable:
+  AssetTableModel:
     description: |
       Used in the asset definition to describe a table that is included in the asset. This is used to define
       the view of the asset table in the dataset. Columns can be an empty list - a table might be present
@@ -362,15 +362,15 @@ definitions:
       - columns
     properties:
       name:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       is_root:
         type: boolean
       columns:
         type: array
         items:
-          $ref: '#/definitions/ModelIdentifierName'
+          $ref: '#/definitions/IdentifierNameModel'
 
-  ModelAsset:
+  AssetModel:
     description: One asset in the data model. The table list identifies the tables in the asset.
           The list of relationships provides the instructions for how to connect the tables.
           Asset tables have to be connected in a relationship hierarchy. So there cannot be
@@ -380,17 +380,17 @@ definitions:
       - follow
     properties:
       name:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       tables:
         type: array
         items:
-          $ref: '#/definitions/ModelAssetTable'
+          $ref: '#/definitions/AssetTableModel'
       follow:
         type: array
         items:
-          $ref: '#/definitions/ModelIdentifierName'
+          $ref: '#/definitions/IdentifierNameModel'
 
-  ModelDataModel:
+  DataModelModel:
     description: data model definition
     type: object
     required:
@@ -399,19 +399,19 @@ definitions:
       tables:
         type: array
         items:
-          $ref: '#/definitions/ModelTable'
+          $ref: '#/definitions/TableModel'
       relationships:
         type: array
         items:
-          $ref: '#/definitions/ModelRelationship'
+          $ref: '#/definitions/RelationshipModel'
       assets:
         type: array
         items:
-          $ref: '#/definitions/ModelAsset'
+          $ref: '#/definitions/AssetModel'
 
   ## Dataset Definitions ##
 
-  ModelDataset:
+  DatasetModel:
     description: |
       complete dataset
       Schema is the shape of the resulting dataset: the table names and columns in the
@@ -429,24 +429,24 @@ definitions:
       - source
     properties:
       id:
-        $ref: '#/definitions/ModelUniqueId'
+        $ref: '#/definitions/UniqueIdModel'
       name:
-        $ref: '#/definitions/ModelDatasetName'
+        $ref: '#/definitions/DatasetNameModel'
       description:
         type: string
         description: Description of the dataset
       data_handling:
-        $ref: '#/definitions/ModelDatasetHandling'
+        $ref: '#/definitions/DatasetHandlingModel'
       tables:
         type: array
         items:
-          $ref: '#/definitions/ModelTable'
+          $ref: '#/definitions/TableModel'
       source:
         type: array
         items:
-          $ref: '#/definitions/ModelDatasetSource'
+          $ref: '#/definitions/DatasetSourceModel'
 
-  ModelDatasetHandling:
+  DatasetHandlingModel:
     description: |
       We provide two modes for datasets. Immutable datasets do not change regardless of additions of new rows.
       Passthru datasets do not filter on the rows; default datastes are passthru.
@@ -455,7 +455,7 @@ definitions:
       - immutable
       - passthru
 
-  ModelDatasetSource:
+  DatasetSourceModel:
     description: |
       The datasource identifies the study from which to source the data and how to map that data into the
       dataset schema. If the dataset is immutable, then you must provide the asset of the study to use and the set
@@ -467,9 +467,9 @@ definitions:
       - mapping
     properties:
       study:
-        $ref: '#/definitions/ModelDatasetName'
+        $ref: '#/definitions/DatasetNameModel'
       asset:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       rows:
         type: array
         items:
@@ -477,9 +477,9 @@ definitions:
       mapping:
         type: array
         items:
-          $ref: '#/definitions/ModelDatasetMapping'
+          $ref: '#/definitions/DatasetMappingModel'
 
-  ModelDatasetMapping:
+  DatasetMappingModel:
     description: |
       Mapping of asset table and columns to target dataset table and columns. The from_table is a table
       in the asset. The to_table has to be the name of a table in the dataset schema. And, perhaps
@@ -494,28 +494,28 @@ definitions:
       - column_map
     properties:
       from_table:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       to_table:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       column_map:
         type: array
         items:
-          $ref: '#/definitions/ModelDatasetMapColumns'
+          $ref: '#/definitions/DatasetMapColumnsModel'
 
-  ModelDatasetMapColumns:
+  DatasetMapColumnsModel:
     description: column to column mapping
     required:
       - from_column
       - to_column
     properties:
       from_column:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
       to_column:
-        $ref: '#/definitions/ModelIdentifierName'
+        $ref: '#/definitions/IdentifierNameModel'
 
   ## Search ##
 
-  ModelDatasetSearch:
+  DatasetSearchModel:
     description: |
       Eventually we will figure out how search works. This is totally a placeholder
     type: object

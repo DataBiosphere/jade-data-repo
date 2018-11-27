@@ -50,7 +50,7 @@ public class SwaggerDocumentationConfig {
     }
 
     @Bean
-    public Docket customImplementation(){
+    public Docket customImplementation() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .select()
                     .apis(RequestHandlerSelectors.basePackage("bio.terra.controller"))

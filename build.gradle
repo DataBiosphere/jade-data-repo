@@ -1,3 +1,16 @@
+/*
+ * Data Repository Building Notes
+ *
+ * USING SWAGGER-CODEGEN
+ * We use swagger-codegen to generate our model classes and controller interfaces with default methods.
+ * The swagger YAML file is the primary implementation and documentation of the Data Repository API.
+ *
+ * The gradle technique for running codegen as part of the build is written up here:
+ *   https://blog.jcore.com/2017/05/22/automatically-generating-api-using-swagger-and-gradle/
+ * It relies on the behavior of the Java plugin, described here:
+ *   https://docs.gradle.org/current/userguide/java_plugin.html#sec:java_source_sets
+ */
+
 import io.swagger.codegen.config.CodegenConfigurator
 import io.swagger.codegen.DefaultGenerator
 
@@ -13,7 +26,6 @@ buildscript {
         classpath('io.swagger:swagger-codegen:2.3.1')
     }
 }
-
 
 apply plugin: 'java'
 apply plugin: 'idea'
@@ -50,18 +62,22 @@ def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'
 def openapiTargetFolder = 'src/generated/java'
 
 task generateApi {
+    // specify the task inputs and outputs so gradle knows what to rebuild based on what has changed
     inputs.file("$projectDir/$openapiSourceFile")
     outputs.dir("$projectDir/$openapiTargetFolder")
-    doLast{
+    doLast {
         def config = new CodegenConfigurator()
         config.setInputSpec("file:///$projectDir/$openapiSourceFile")
         config.setOutputDir("$projectDir")
         config.setLang('spring')
+        // These properties are not well documented. The only way I've found to figure them out is to
+        // locally install the swagger-codegen tool and invoke it to get the specific help for the
+        // spring boot options.
         config.setAdditionalProperties([
-                'interfaceOnly' : 'true',
-                'useTags'       : 'true',
-                'library'       : 'spring-boot',
-                'dateLibrary'   : 'java8',
+                'interfaceOnly' : 'true',                  // only generate the model and API interfaces
+                'useTags'       : 'true',                  // organize the swagger ui page by tags
+                'library'       : 'spring-boot',           // do spring-boot code generation
+                'dateLibrary'   : 'java8',                 // do java8 code generation
                 'apiPackage'    : 'bio.terra.controller',
                 'modelPackage'  : 'bio.terra.model',
                 'invokerPackage': 'bio.terra',

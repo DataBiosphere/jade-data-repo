@@ -20,3 +20,11 @@ This version defaults to starting postgres server version 11. To change to versi
 ### Clear the database
 
 `psql -f db/truncate-tables datarepo drmanager`
+
+
+### Gradle commands
+
+By default the liquibase updates will be applied during build.
+
+To only update the database, run `./gradlew update`
+To remove all database tables and clear liquibase history, run `./gradlew dropAll`

@@ -160,5 +160,6 @@ docker {
 
 compileGeneratedJava.dependsOn generateApi
 classes.dependsOn generatedClasses
+compileJava.dependsOn update
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn generateApi

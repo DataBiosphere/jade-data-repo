@@ -24,7 +24,5 @@ This version defaults to starting postgres server version 11. To change to versi
 
 ### Gradle commands
 
-By default the liquibase updates will be applied during build.
-
-To only update the database, run `./gradlew update`
+To run database updates (this is not done automatically), run `./gradlew update`
 To remove all database tables and clear liquibase history, run `./gradlew dropAll`

@@ -1,1 +1,1 @@
-TRUNCATE study dataset;
+TRUNCATE study, dataset;

@@ -14,9 +14,9 @@ This version defaults to starting postgres server version 11. To change to versi
 
 ### Create the jadedb and user
 
-`pslq -f db/create-jade-db`
+`psql -f db/create-jade-db`
 
 
 ### Clear the database
 
-`pslq -f db/truncate-tables jadedb jade`
+`psql -f db/truncate-tables jadedb jade`

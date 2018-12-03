@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <Match>
+        <Package name="~org\.antlr.*"/>
+    </Match>
+    <Match>
+        <Package name="~org\.wso2\.siddhi\.plugins\.idea\.grammar.*"/>
+    </Match>
+    <Match>
+        <Class name="org.wso2.siddhi.plugins.idea.runconfig.ui.SiddhiApplicationSettingsEditor"/>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="org.wso2.siddhi.plugins.idea.runconfig.ui.SiddhiRemoteSettingsEditor"/>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+    </Match>
+    <Match>
+        <Class name="org.wso2.siddhi.plugins.idea.util.SiddhiUtil"/>
+        <Method name="isWorkspaceFile" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+    </Match>
+    <Match>
+        <Class name="org.wso2.siddhi.plugins.idea.SiddhiASTFactory"/>
+        <Method name="createLeaf" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+    </Match>
+    <Match>
+        <Class name="org.wso2.siddhi.plugins.idea.SiddhiASTFactory"/>
+        <Method name="createComposite" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+    </Match>
+    <Match>
+        <Class name="org.wso2.siddhi.plugins.idea.SiddhiIcons"/>
+        <Field name="ICON" />
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+    </Match>
+</FindBugsFilter>

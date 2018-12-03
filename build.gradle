@@ -38,6 +38,7 @@ apply plugin: 'io.spring.dependency-management'
 apply plugin: 'com.palantir.docker'
 
 apply plugin: 'checkstyle'
+apply plugin: 'findbugs'
 
 group 'bio.terra'
 version '0.1'

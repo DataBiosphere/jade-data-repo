@@ -133,9 +133,9 @@ liquibase {
     activities {
         main {
             changeLogFile 'src/main/resources/db/changelog.xml'
-            url 'jdbc:postgresql://127.0.0.1:5432/jadedb'
-            username 'jade'
-            password 'jadepasswd'
+            url 'jdbc:postgresql://127.0.0.1:5432/datarepo'
+            username 'drmanager'
+            password 'drpasswd'
             logLevel 'debug'
         }
         runList = 'main'

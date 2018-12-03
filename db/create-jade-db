@@ -1,3 +1,0 @@
-CREATE USER jade WITH PASSWORD 'jadepasswd';
-CREATE DATABASE jadedb;
-GRANT ALL PRIVILEGES ON DATABASE jadedb to jade;

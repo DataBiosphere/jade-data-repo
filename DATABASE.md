@@ -12,11 +12,11 @@ This version defaults to starting postgres server version 11. To change to versi
 5. Start the server
 
 
-### Create the jadedb and user
+### Create the data repo db and user
 
-`psql -f db/create-jade-db`
+`psql -f db/create-data-repo-db`
 
 
 ### Clear the database
 
-`psql -f db/truncate-tables jadedb jade`
+`psql -f db/truncate-tables datarepo drmanager`

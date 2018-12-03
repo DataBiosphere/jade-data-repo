@@ -1,0 +1,3 @@
+CREATE USER drmanager WITH PASSWORD 'drpasswd';
+CREATE DATABASE datarepo;
+GRANT ALL PRIVILEGES ON DATABASE datarepo to drmanager;

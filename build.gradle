@@ -37,6 +37,8 @@ apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
 apply plugin: 'com.palantir.docker'
 
+apply plugin: 'checkstyle'
+
 group 'bio.terra'
 version '0.1'
 sourceCompatibility = 1.8
@@ -44,7 +46,6 @@ sourceCompatibility = 1.8
 repositories {
     mavenCentral()
 }
-
 
 configurations {
     generatedCompile
@@ -113,6 +114,11 @@ sourceSets {
     test {
         compileClasspath += generated.output
         runtimeClasspath += generated.output
+    }
+    checkstyle {
+        toolVersion '7.8.1'
+        checkstyleGenerated.enabled = false // Don't check generated code
+        configFile file("config/checkstyle/checkstyle.xml")
     }
 }
 

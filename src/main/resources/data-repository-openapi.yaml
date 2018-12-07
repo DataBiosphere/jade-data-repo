@@ -188,7 +188,7 @@ paths:
         400:
           description: Bad request - dataset id does not exist, invalid id, badly formed
         403:
-          description: No permission to see datasets
+          description: No permission to see dataset
 
     delete: ## delete
       description: delete a dataset by id
@@ -207,7 +207,7 @@ paths:
         400:
           description: Bad request - invalid id, badly formed ## assuming invalid means cannot exist--not _does not_ exist
         403:
-          description: No permission to delete datasets
+          description: No permission to delete dataset
         409:
           description: Dataset in use?
 

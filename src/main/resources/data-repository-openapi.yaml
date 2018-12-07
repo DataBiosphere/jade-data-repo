@@ -167,6 +167,51 @@ paths:
         403:
           description: No permission to create datasets
 
+
+  '/api/custody/v1/dataset/{id}':
+    get:  ## retrieve
+      description: Retrieve a dataset by id
+      operationId: retrieveDataset
+      tags:
+      - custody
+      parameters:
+      - in: body
+        name: dataset
+        description: Id of dataset to retrieve
+        schema:
+          $ref: '#/definitions/UniqueIdModel'
+      responses:
+        200:
+          description: Dataset
+          schema:
+            $ref: '#/definitions/DatasetModel'
+        400:
+          description: Bad request - dataset id does not exist, invalid id, badly formed
+        403:
+          description: No permission to see datasets
+
+    delete: ## delete
+      description: delete a dataset by id
+      operationId: deleteDataset
+      tags:
+      - custody
+      parameters:
+      - in: body
+        name: dataset
+        description: Id of dataset to delete
+        schema:
+          $ref: '#/definitions/UniqueIdModel'
+      responses:
+        204:
+          description: Dataset deleted successfully (or already did not exist)
+        400:
+          description: Bad request - invalid id, badly formed ## assuming invalid means cannot exist--not _does not_ exist
+        403:
+          description: No permission to delete datasets
+        409:
+          description: Dataset in use?
+
+
   ## Ingest Interface
 
   '/api/ingest/v1/{id}':

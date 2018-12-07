@@ -39,6 +39,8 @@ apply plugin: 'com.palantir.docker'
 
 apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
+apply plugin: 'jacoco'
+
 
 tasks.withType(FindBugs) {
     reports {
@@ -47,6 +49,28 @@ tasks.withType(FindBugs) {
         html.stylesheet resources.text.fromFile('config/findbugs/plain.xsl')
     }
 }
+
+tasks.withType(JacocoReport) {
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                counter = 'BRANCH'
+                value = 'COVEREDRATIO'
+                minimum = 0.2
+            }
+        }
+    }
+}
+check.dependsOn jacocoTestCoverageVerification
+
 
 group 'bio.terra'
 version '0.1'
@@ -135,6 +159,9 @@ sourceSets {
         excludeFilter = file("config/findbugs/excludeFilter.xml")
         reportsDir = file("$project.buildDir/reports/findbugs")
         effort = "max"
+    }
+    jacoco {
+        toolVersion '0.8.2'
     }
 }
 

@@ -1,13 +1,14 @@
 package bio.terra.stairway;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class TestStepCreateFile implements Step {
-    String filename;
-    String text;
+    private String filename;
+    private String text;
 
     public TestStepCreateFile(String filename, String text) {
         this.filename = filename;
@@ -22,9 +23,9 @@ public class TestStepCreateFile implements Step {
         try {
             Path filepath = Paths.get(filename);
             Files.createFile(filepath);
-            Files.write(filepath, text.getBytes());
-            return StepResult.stepResultSuccess;
-        } catch (Exception ex) {
+            Files.write(filepath, text.getBytes("UTF-8"));
+            return StepResult.getStepResultSuccess();
+        } catch (IOException | RuntimeException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         }
 
@@ -38,6 +39,6 @@ public class TestStepCreateFile implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                     new IllegalArgumentException("Failed to delete File " + filename));
         }
-        return StepResult.stepResultSuccess;
+        return StepResult.getStepResultSuccess();
     }
 }

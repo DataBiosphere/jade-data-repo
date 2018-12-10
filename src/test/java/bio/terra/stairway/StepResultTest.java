@@ -8,12 +8,12 @@ import java.util.Optional;
 import static org.hamcrest.CoreMatchers.is;
 
 public class StepResultTest {
-    static String bad = "bad bad bad";
+    private static String bad = "bad bad bad";
 
 
     @Test
     public void testStepResultSuccess() {
-        StepResult result = StepResult.stepResultSuccess;
+        StepResult result = StepResult.getStepResultSuccess();
         Assert.assertThat(result.getStepStatus(), is(StepStatus.STEP_RESULT_SUCCESS));
         Optional<Throwable> throwable = result.getThrowable();
         Assert.assertFalse(throwable.isPresent());

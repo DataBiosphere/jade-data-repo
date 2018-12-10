@@ -23,7 +23,7 @@ public class FlightContext {
         this.workingMap = new SafeHashMap();
         this.stepIndex = 0;
         this.direction = FlightDirection.FORWARD;
-        this.result = StepResult.stepResultSuccess;
+        this.result = StepResult.getStepResultSuccess();
     }
 
     public FlightContext flightId(String flightId) {

@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class RetryTest {
-    ExecutorService executorService;
+    private ExecutorService executorService;
 
     @Before
     public void setup() {

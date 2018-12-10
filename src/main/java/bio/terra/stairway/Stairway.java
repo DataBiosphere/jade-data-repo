@@ -27,9 +27,23 @@ import java.util.concurrent.FutureTask;
 public class Stairway {
     // For each task we start, we make a task context. It lets us look up the results
 
-    class TaskContext {
-        FutureTask<FlightResult> futureResult;
-        Flight flight;
+    static class TaskContext {
+        private FutureTask<FlightResult> futureResult;
+        private Flight flight;
+
+        TaskContext(FutureTask<FlightResult> futureResult, Flight flight) {
+            this.futureResult = futureResult;
+            this.flight = flight;
+        }
+
+        FutureTask<FlightResult> getFutureResult() {
+            return futureResult;
+        }
+
+        Flight getFlight() {
+            return flight;
+        }
+
     }
     private Map<String, TaskContext> taskContextMap;
 
@@ -65,11 +79,8 @@ public class Stairway {
         // TODO: write flight to database in submitted state
 
         // Build the task context to keep track of the running task
-        TaskContext taskContext = new TaskContext();
-        taskContext.flight = flight;
-        taskContext.futureResult = new FutureTask<>(flight);
-
-        threadPool.execute(taskContext.futureResult);
+        TaskContext taskContext = new TaskContext(new FutureTask<FlightResult>(flight), flight);
+        threadPool.execute(taskContext.getFutureResult());
 
         // Now that it is in the pool, hook it into the map so other calls can resolve it.
         taskContextMap.put(flight.context().getFlightId(), taskContext);
@@ -80,7 +91,7 @@ public class Stairway {
     // Tests if flight is done
     public boolean isDone(String flightId) {
         TaskContext taskContext = lookupFlight(flightId);
-        return taskContext.futureResult.isDone();
+        return taskContext.getFutureResult().isDone();
     }
 
     /**
@@ -93,7 +104,7 @@ public class Stairway {
         TaskContext taskContext = lookupFlight(flightId);
 
         try {
-            FlightResult result = taskContext.futureResult.get();
+            FlightResult result = taskContext.getFutureResult().get();
             return result;
 
         } catch (InterruptedException ex) {
@@ -160,7 +171,10 @@ public class Stairway {
             Constructor constructor = flightClass.getConstructor(SafeHashMap.class);
             Flight flight = (Flight)constructor.newInstance(inputParameters);
             return flight;
-        } catch (InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException ex) {
+        } catch (InvocationTargetException |
+                NoSuchMethodException |
+                InstantiationException |
+                IllegalAccessException ex) {
             throw new MakeFlightException("Failed to make a flight from class '" + flightClass + "'", ex);
         }
     }
@@ -179,10 +193,12 @@ public class Stairway {
                 return makeFlight(flightClass, inputMap);
             }
             // Error case
-            throw new MakeFlightException("Failed to make a flight from class name '" + className + "' - it is not a subclass of Flight");
+            throw new MakeFlightException("Failed to make a flight from class name '" + className +
+                    "' - it is not a subclass of Flight");
 
         } catch (ClassNotFoundException ex) {
-            throw new MakeFlightException("Failed to make a flight from class name '" + className + "'", ex);
+            throw new MakeFlightException("Failed to make a flight from class name '" + className +
+                    "'", ex);
         }
     }
 

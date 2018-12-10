@@ -14,7 +14,7 @@ public interface Step {
      * @param context The sequencer context
      * @returns step result
      */
-     StepResult doStep(FlightContext context);
+    StepResult doStep(FlightContext context);
 
     /**
      * Called by the sequencer when running "backward" on the failure/rollback path

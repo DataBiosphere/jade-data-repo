@@ -19,9 +19,9 @@ import java.util.concurrent.Callable;
  *  for handling this?
  */
 public class Flight implements Callable<FlightResult> {
-    class StepRetry {
-        Step step;
-        RetryRule retryRule;
+    static class StepRetry {
+        private Step step;
+        private RetryRule retryRule;
 
         StepRetry(Step step, RetryRule retryRule) {
             this.step = step;
@@ -43,7 +43,7 @@ public class Flight implements Callable<FlightResult> {
 
     // Used by subclasses to build the step list with default no-retry rule
     protected void addStep(Step step) {
-        steps.add(new StepRetry(step, RetryRuleNone.retryRuleNone));
+        steps.add(new StepRetry(step, RetryRuleNone.getRetryRuleNone()));
     }
 
     // Used by subclasses to build the step list with a retry rule
@@ -148,7 +148,7 @@ public class Flight implements Callable<FlightResult> {
 
     private StepRetry getCurrentStep() {
         int stepIndex = flightContext.getStepIndex();
-        if (stepIndex < 0|| stepIndex >= steps.size()) {
+        if (stepIndex < 0 || stepIndex >= steps.size()) {
             throw new StairwayExecutionException("Invalid step index: " + stepIndex);
         }
 

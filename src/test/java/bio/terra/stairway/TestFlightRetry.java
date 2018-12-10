@@ -21,7 +21,10 @@ public class TestFlightRetry extends Flight {
             Long initialIntervalSeconds = inputParameters.get("initialIntervalSeconds", Long.class);
             Long maxIntervalSeconds = inputParameters.get("maxIntervalSeconds", Long.class);
             Long maxOperationTimeSeconds = inputParameters.get("maxOperationTimeSeconds", Long.class);
-            retryRule = new RetryRuleExponentialBackoff(initialIntervalSeconds, maxIntervalSeconds, maxOperationTimeSeconds);
+            retryRule = new RetryRuleExponentialBackoff(
+                    initialIntervalSeconds,
+                    maxIntervalSeconds,
+                    maxOperationTimeSeconds);
         } else {
             throw new IllegalArgumentException("Invalid inputParameter retryType");
         }

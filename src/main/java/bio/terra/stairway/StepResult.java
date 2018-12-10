@@ -6,13 +6,13 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import java.util.Optional;
 
 public class StepResult {
-    StepStatus stepStatus;
-    Optional<Throwable> throwable;
+    private StepStatus stepStatus;
+    private Optional<Throwable> throwable;
 
     // Static version of success result
-    static public StepResult stepResultSuccess;
-    static {
-        stepResultSuccess = new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+    private static StepResult stepResultSuccess = new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+    public static StepResult getStepResultSuccess() {
+        return stepResultSuccess;
     }
 
     public StepResult(StepStatus stepStatus, Throwable throwable) {

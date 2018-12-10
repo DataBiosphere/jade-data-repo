@@ -1,9 +1,9 @@
 package bio.terra.stairway;
 
 public class RetryRuleNone implements RetryRule {
-    static RetryRuleNone retryRuleNone;
-    static {
-        retryRuleNone = new RetryRuleNone();
+    private static RetryRuleNone retryRuleNoneSingleton = new RetryRuleNone();
+    public static RetryRuleNone getRetryRuleNone() {
+        return retryRuleNoneSingleton;
     }
 
     @Override

@@ -9,8 +9,8 @@ import java.util.Optional;
 import static org.hamcrest.CoreMatchers.is;
 
 public class FlightResultTest {
-    static String bad = "bad bad bad";
-    FlightResult result;
+    private static String bad = "bad bad bad";
+    private FlightResult result;
 
     @Before
     public void setup() {

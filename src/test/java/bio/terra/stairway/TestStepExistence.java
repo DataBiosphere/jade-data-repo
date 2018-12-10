@@ -3,7 +3,7 @@ package bio.terra.stairway;
 import java.io.File;
 
 public class TestStepExistence implements Step {
-    String filename;
+    private String filename;
 
     public TestStepExistence(String filename) {
         this.filename = filename;
@@ -21,12 +21,12 @@ public class TestStepExistence implements Step {
         }
 
         System.out.println("File " + filename + " does not exist");
-        return StepResult.stepResultSuccess;
+        return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
         // Nothing to UNDO, since the DO has only implicit persistent results
-        return StepResult.stepResultSuccess;
+        return StepResult.getStepResultSuccess();
     }
 }

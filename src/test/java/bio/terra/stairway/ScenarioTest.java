@@ -13,7 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ScenarioTest {
-    ExecutorService executorService;
+    private ExecutorService executorService;
 
     @Before
     public void setup() {
@@ -39,7 +39,7 @@ public class ScenarioTest {
 
         // Test for done
         boolean done = stairway.isDone(flightId);
-        System.out.println("Flight done: "+ done);
+        System.out.println("Flight done: " + done);
 
         // Wait for done
         FlightResult result = stairway.getResult(flightId);
@@ -74,7 +74,7 @@ public class ScenarioTest {
 
         // Test for done
         boolean done = stairway.isDone(flightId);
-        System.out.println("Flight done: "+ done);
+        System.out.println("Flight done: " + done);
 
         // Wait for done
         FlightResult result = stairway.getResult(flightId);

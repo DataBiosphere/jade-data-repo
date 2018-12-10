@@ -18,7 +18,9 @@ public class RetryRuleExponentialBackoff implements RetryRule {
      * @param maxIntervalSeconds - maximum interval to ever sleep
      * @param maxOperationTimeSeconds - maximum amount of time to allow for the operation
      */
-    public RetryRuleExponentialBackoff(long initialIntervalSeconds, long maxIntervalSeconds, long maxOperationTimeSeconds) {
+    public RetryRuleExponentialBackoff(long initialIntervalSeconds,
+                                       long maxIntervalSeconds,
+                                       long maxOperationTimeSeconds) {
         this.initialIntervalSeconds = initialIntervalSeconds;
         this.maxIntervalSeconds = maxIntervalSeconds;
         this.maxOperationTimeSeconds = maxOperationTimeSeconds;

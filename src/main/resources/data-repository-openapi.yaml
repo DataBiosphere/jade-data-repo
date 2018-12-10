@@ -99,6 +99,26 @@ paths:
             items:
               $ref: '#/definitions/DatasetModel'
 
+  '/api/access/v1/study':
+    get:
+      description: |
+        Returns a list of all of the studies the caller has access to
+      operationId: enumerateStudies
+      tags:
+      - access
+      parameters:
+      - in: query
+        name: containing
+        type: string
+        description: return only studies with name or description containing the string
+      responses:
+        200:
+          description: List of studies
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/StudyModel'
+
   ## Search Interface
   '/api/search/v1/dataset':
     get:
@@ -142,6 +162,49 @@ paths:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:
           description: No permission to create studies
+
+  '/api/custody/v1/study/{id}':
+    get:  ## retrieve
+        description: Retrieve a study by id
+        operationId: retrieveStudy
+        tags:
+        - model
+        parameters:
+        - in: body
+          name: study
+          description: Id of study to retrieve
+          schema:
+            $ref: '#/definitions/UniqueIdModel'
+        responses:
+          200:
+            description: Created study
+            schema:
+              $ref: '#/definitions/StudyModel'
+          400:
+            description: Bad request - duplicate name, invalid name, badly formed schema
+          403:
+            description: No permission to see study
+
+    delete: ## delete
+      description: Delete a study by id
+      operationId: deleteStudy
+      tags:
+      - custody
+      parameters:
+      - in: body
+        name: study
+        description: Id of study to delete
+        schema:
+          $ref: '#/definitions/UniqueIdModel'
+      responses:
+        204:
+          description: Study deleted successfully (or already did not exist)
+        400:
+          description: Bad request - invalid id, badly formed ## assuming invalid means cannot exist--not _does not_ exist
+        403:
+          description: No permission to delete study
+        409:
+          description: Study in use by at least one dataset # TODO or do datasets get deleted too if study they are based on is deleted?
 
   ## Custody Interface
 

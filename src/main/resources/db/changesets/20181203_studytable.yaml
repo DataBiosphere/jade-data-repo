@@ -1,0 +1,109 @@
+databaseChangeLog:
+  - changeSet:
+      id: study_init
+      author: jhert
+      changes:
+        - createTable:
+            tableName: study
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(1000)
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: table_def
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(128)
+                  constraints:
+                        nullable: false
+
+        - createTable:
+            tableName: column_def
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: table_id
+                  type: int
+              - column:
+                  name: name
+                  type: varchar(256)
+              - column:
+                  name: type
+                  type: varchar(128)
+
+        - createTable:
+            tableName: relationship
+            columns:
+            - column:
+                name: id
+                type: int
+                autoIncrement: true
+                constraints:
+                  primaryKey: true
+                  nullable: false
+            - column:
+                name: name
+                type: varchar(256)
+            - column:
+                name: from_cardinality
+                type: varchar(32)
+            - column:
+                name: to_cardinality
+                type: varchar(32)
+            - column:
+                name: from_column
+                type: int
+            - column:
+                name: to_column
+                type: int
+
+        - createTable:
+            tableName: dataset
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: study_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    references:
+                      tableName: study
+                      columnName: id
+              - column:
+                  name: name
+                  type: varchar(1000)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: sam_resource_id
+                  type: varchar(1000)
+                  constraints:
+                    nullable: false

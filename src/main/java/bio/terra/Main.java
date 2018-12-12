@@ -24,7 +24,7 @@ public class Main implements CommandLineRunner {
         new SpringApplication(Main.class).run(args);
     }
 
-    class ExitException extends RuntimeException implements ExitCodeGenerator {
+    static class ExitException extends RuntimeException implements ExitCodeGenerator {
         private static final long serialVersionUID = 1L;
 
         @Override

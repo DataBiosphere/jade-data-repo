@@ -12,17 +12,16 @@ import java.util.concurrent.Executors;
 
 public class RetryTest {
     private ExecutorService executorService;
+    private Stairway stairway;
 
     @Before
     public void setup() {
         executorService = Executors.newFixedThreadPool(2);
+        Stairway stairway = new Stairway(executorService);
     }
 
     @Test
     public void fixedSuccessTest() {
-        // Create a stairway
-        Stairway stairway = new Stairway(executorService, null, "simple", true);
-
         // Fixed interval where maxCount > failCount should succeed
         SafeHashMap inputParameters = new SafeHashMap();
         inputParameters.put("retryType", "fixed");
@@ -40,9 +39,6 @@ public class RetryTest {
 
     @Test
     public void fixedFailureTest() {
-        // Create a stairway
-        Stairway stairway = new Stairway(executorService, null, "simple", true);
-
         // Fixed interval where maxCount =< failCount should fail
         int intervalSeconds = 2;
         int maxCount = 3;
@@ -70,8 +66,6 @@ public class RetryTest {
 
     @Test
     public void exponentialSuccessTest() {
-        Stairway stairway = new Stairway(executorService, null, "simple", true);
-
         // Exponential with generous limits
         SafeHashMap inputParameters = new SafeHashMap();
         inputParameters.put("retryType", "exponential");
@@ -90,8 +84,6 @@ public class RetryTest {
 
     @Test
     public void exponentialOpTimeFailureTest() {
-        Stairway stairway = new Stairway(executorService, null, "simple", true);
-
         // Should fail by running out of operation time
         // Should go 2 + 4 + 8 + 16 - well over 10
         SafeHashMap inputParameters = new SafeHashMap();
@@ -110,8 +102,6 @@ public class RetryTest {
 
     @Test
     public void exponentialMaxIntervalSuccessTest() {
-        Stairway stairway = new Stairway(executorService, null, "simple", true);
-
         // Should succeed in 4 tries. The time should be capped by
         // the maxInterval of 4. That is,
         // 2 + 4 + 4 + 4 = 14 should be less than 2 + 4 + 8 + 16 = 30

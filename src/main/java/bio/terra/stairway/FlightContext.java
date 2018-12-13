@@ -9,6 +9,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  */
 public class FlightContext {
     private String flightId; // unique id for the flight
+    private String flightClassName; // class name of the flight; sufficient for recreating the flight object
     private SafeHashMap inputParameters; // allows for reconstructing the flight; set unmodifiable
     private SafeHashMap workingMap; // open-ended state used by the steps
     private int stepIndex; // what step we are on
@@ -71,7 +72,6 @@ public class FlightContext {
         this.direction = direction;
         return this;
     }
-
 
 
     @Override

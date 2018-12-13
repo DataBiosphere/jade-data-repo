@@ -16,7 +16,7 @@ public class StairwayTest {
     @Before
     public void setup() {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
-        stairway = new Stairway(executorService, null, "test", true);
+        stairway = new Stairway(executorService);
         safeHashMap = new SafeHashMap();
     }
 

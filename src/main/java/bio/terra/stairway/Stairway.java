@@ -49,14 +49,21 @@ public class Stairway {
 
     private ExecutorService threadPool;
     private DataSource dataSource;
+    private String schemaName;
     private String nameStem;
+    private Database database;
 
-    public Stairway(ExecutorService threadPool, DataSource dataSource, String nameStem, boolean forceCleanStart) {
+    public Stairway(ExecutorService threadPool) {
+        this(threadPool, null, null, null, true);
+    }
+
+    public Stairway(ExecutorService threadPool, DataSource dataSource, String schemaName, String nameStem, boolean forceCleanStart) {
         this.threadPool = threadPool;
         this.dataSource = dataSource;
+        this.schemaName = schemaName;
         this.nameStem = nameStem;
         this.taskContextMap = new HashMap<>();
-        startup(forceCleanStart);
+        this.database = configureDatabase(dataSource, schemaName, nameStem, forceCleanStart);
     }
 
     /**
@@ -140,17 +147,17 @@ public class Stairway {
     }
 
     /**
-     * Initialize the sequencer
      *
-     * This creates the sequencer tables, if necessary. If forceCleanStart is set, then
-     * it ensures that the sequencer tables are emptied. That is useful if you have backed up
-     * the database
-     *
-
      *
      */
-    private void startup(boolean forceCleanStart) {
-        // TODO: implement database clean or recovery
+    private Database configureDatabase(DataSource dataSource, String schemaName, String nameStem, boolean forceCleanStart) {
+        Database db = new Database(dataSource, schemaName, nameStem, forceCleanStart);
+
+        if (forceCleanStart) {
+            // TODO: implement database clean or recovery
+        }
+
+        return db;
     }
 
 

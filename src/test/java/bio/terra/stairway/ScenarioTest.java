@@ -14,17 +14,16 @@ import java.util.concurrent.Executors;
 
 public class ScenarioTest {
     private ExecutorService executorService;
+    private Stairway stairway;
 
     @Before
     public void setup() {
         executorService = Executors.newFixedThreadPool(2);
+        Stairway stairway = new Stairway(executorService);
     }
 
     @Test
     public void simpleTest() {
-        // Create a stairway
-        Stairway stairway = new Stairway(executorService, null, "simple", true);
-
         // Generate a unique filename
         String filename = makeFilename();
         System.out.println("Filename: " + filename);
@@ -58,9 +57,6 @@ public class ScenarioTest {
 
     @Test
     public void testFileExists() throws Exception {
-        // Create a stairway
-        Stairway stairway = new Stairway(executorService, null, "exists", true);
-
         // Generate a filename and create the file
         String filename = makeExistingFile();
 
@@ -97,9 +93,6 @@ public class ScenarioTest {
         //  - step 2 create random file
         //  - step 3 file exists pre-created file (will fail)
         //  - step 4 create pre-created file (should not get here)
-
-        // Create a stairway
-        Stairway stairway = new Stairway(executorService, null, "undo", true);
 
         // Generate a filename and create the file
         String existingFilename = makeExistingFile();

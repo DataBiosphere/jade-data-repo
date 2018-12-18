@@ -199,8 +199,8 @@ public class Database {
 
             statement.executeUpdate(
                     "CREATE TABLE " + flightVersionTableName +
-                            "(version varchar(50)," +
-                            " create_time timestamp)");
+                            "(version VARCHAR(50)," +
+                            " create_time TIMESTAMP)");
 
             statement.executeUpdate(
                     "INSERT INTO " + flightVersionTableName +
@@ -208,7 +208,7 @@ public class Database {
 
             statement.executeUpdate(
                     "CREATE TABLE " + flightTableName +
-                            "(flightid CHAR(36) PRIMARY KEY," +
+                            "(flightid VARCHAR(36) PRIMARY KEY," +
                             " submit_time TIMESTAMP NOT NULL," +
                             " class_name TEXT NOT NULL," +
                             " input_parameters JSONB," +
@@ -219,7 +219,7 @@ public class Database {
 
             statement.executeUpdate(
                     "CREATE TABLE " + flightLogTableName +
-                            "(flightid CHAR(36)," +
+                            "(flightid VARCHAR(36)," +
                             " log_time TIMESTAMP NOT NULL," +
                             " working_parameters JSONB NOT NULL," +
                             " step_index INTEGER NOT NULL," +
@@ -353,25 +353,26 @@ public class Database {
                         "SELECT working_parameters, step_index, doing, succeeded, error_message" +
                                 " FROM (SELECT *, MAX(log_time) OVER (PARTITION BY flightid) AS max_log_time" +
                                 " FROM " + flightLogTableName + " WHERE flightid = '" +
-                                flightContext.getFlightId() + "')" +
+                                flightContext.getFlightId() + "') AS S" +
                                 " WHERE log_time = max_log_time");
-                if (!rs.next()) {
-                    throw new DatabaseOperationException("Failed to flight log for flight " +
-                            flightContext.getFlightId());
-                }
-                StepResult stepResult;
-                if (rs.getBoolean("succeeded")) {
-                    stepResult = StepResult.getStepResultSuccess();
-                } else {
-                    stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                            new FlightException(rs.getString("error_message")));
-                }
+                // There may not be any log entries for a given flight. That happens if we fail after
+                // submit and before the first step. The defaults for flight context are correct for that
+                // case, so there is nothing left to do here.
+                if (rs.next()) {
+                    StepResult stepResult;
+                    if (rs.getBoolean("succeeded")) {
+                        stepResult = StepResult.getStepResultSuccess();
+                    } else {
+                        stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                                new FlightException(rs.getString("error_message")));
+                    }
 
-                flightContext.getWorkingMap().fromJson(rs.getString("working_parameters"));
+                    flightContext.getWorkingMap().fromJson(rs.getString("working_parameters"));
 
-                flightContext.stepIndex(rs.getInt("step_index"))
-                        .doing(rs.getBoolean("doing"))
-                        .result(stepResult);
+                    flightContext.stepIndex(rs.getInt("step_index"))
+                            .doing(rs.getBoolean("doing"))
+                            .result(stepResult);
+                }
             }
 
         } catch (SQLException ex) {

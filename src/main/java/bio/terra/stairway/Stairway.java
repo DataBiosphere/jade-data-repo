@@ -151,7 +151,7 @@ public class Stairway {
      *
      */
     private Database configureDatabase(DataSource dataSource, String schemaName, String nameStem, boolean forceCleanStart) {
-        Database db = new Database(dataSource, schemaName, nameStem, forceCleanStart);
+        Database db = new Database(dataSource, forceCleanStart, schemaName, nameStem);
 
         if (forceCleanStart) {
             // TODO: implement database clean or recovery

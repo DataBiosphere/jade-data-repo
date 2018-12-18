@@ -13,7 +13,7 @@ public class FlightContext {
     private SafeHashMap inputParameters; // allows for reconstructing the flight; set unmodifiable
     private SafeHashMap workingMap; // open-ended state used by the steps
     private int stepIndex; // what step we are on
-    private FlightDirection direction; // what direction we are going
+    private boolean doing; // true - executing do's; false - executing undo's
     private StepResult result; // current status
 
 
@@ -23,7 +23,7 @@ public class FlightContext {
         this.inputParameters.setImmutable();
         this.workingMap = new SafeHashMap();
         this.stepIndex = 0;
-        this.direction = FlightDirection.FORWARD;
+        this.doing = true;
         this.result = StepResult.getStepResultSuccess();
     }
 
@@ -34,6 +34,15 @@ public class FlightContext {
 
     public String getFlightId() {
         return flightId;
+    }
+
+    public String getFlightClassName() {
+        return flightClassName;
+    }
+
+    public FlightContext flightClassName(String flightClassName) {
+        this.flightClassName = flightClassName;
+        return this;
     }
 
     public SafeHashMap getInputParameters() {
@@ -64,24 +73,33 @@ public class FlightContext {
         this.stepIndex--;
     }
 
-    public FlightDirection getDirection() {
-        return direction;
+    public boolean isDoing() {
+        return doing;
     }
 
-    public FlightContext direction(FlightDirection direction) {
-        this.direction = direction;
+    public FlightContext doing(boolean doing) {
+        this.doing = doing;
         return this;
     }
 
+    public StepResult getResult() {
+        return result;
+    }
+
+    public FlightContext result(StepResult result) {
+        this.result = result;
+        return this;
+    }
 
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("flightId", flightId)
+                .append("flightClassName", flightClassName)
                 .append("inputParameters", inputParameters)
                 .append("workingMap", workingMap)
                 .append("stepIndex", stepIndex)
-                .append("direction", direction)
+                .append("doing", doing)
                 .append("result", result)
                 .toString();
     }

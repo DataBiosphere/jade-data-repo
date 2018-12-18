@@ -1,8 +1,13 @@
 package bio.terra.stairway;
 
+import bio.terra.stairway.exception.DatabaseOperationException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -14,6 +19,7 @@ import java.util.Map;
  */
 public class SafeHashMap {
     private Map<String, Object> map;
+    private ObjectMapper objectMapper;
 
     public SafeHashMap() {
         map = new HashMap<>();
@@ -32,20 +38,20 @@ public class SafeHashMap {
      *
      * @param key - key to lookup in the hash map
      * @param type - class requested
-     * @return null if not found or incorrect type; the value cast to the right type otherwise.
+     * @return null if not found
+     * @throws ClassCastException if found, not castable to the requested type
      */
     public <T> T get(String key, Class<T> type) {
-        // TODO: REVIEWERS this seemed more clever at first than it turns out. It might be better to skip
-        // this logic and just do the cast like (T) value. That would throw an exception
-        // if the object is not an instance of the type T. It is really less about safety
-        // and more about centralizing where we have to override an unchecked cast.
         Object value = map.get(key);
-        if (value != null) {
-            if (type.isInstance(value)) {
-                return type.cast(value);
-            }
+        if (value == null) {
+            return null;
         }
-        return null;
+
+        if (type.isInstance(value)) {
+            return type.cast(value);
+        }
+        throw new ClassCastException("Found value '" + value.toString() +
+                "' is not an instance of type " + type.getName());
     }
 
     public void put(String key, Object value) {
@@ -55,10 +61,38 @@ public class SafeHashMap {
     // TODO: Add other methods as they are needed
 
 
+    public String toJson() {
+        try {
+            return getObjectMapper().writeValueAsString(map);
+        } catch (JsonProcessingException ex) {
+            throw new DatabaseOperationException("Failed to convert map to json string", ex);
+        }
+    }
+
+    public void fromJson(String json) {
+        try {
+            map = getObjectMapper().readValue(json, new TypeReference<Map<String, Object>>() {});
+        } catch (IOException ex) {
+            throw new DatabaseOperationException("Failed to convert json string to map", ex);
+        }
+    }
+
+    /**
+     * Build object mapper on use, since we only need it for cases where the safe map is being read to
+     * or written from the database.
+     */
+    private ObjectMapper getObjectMapper() {
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+        }
+        return objectMapper;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("map", map)
                 .toString();
     }
+
 }

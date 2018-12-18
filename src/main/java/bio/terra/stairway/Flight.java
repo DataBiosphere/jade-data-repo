@@ -59,7 +59,7 @@ public class Flight implements Callable<FlightResult> {
             }
 
             // Run it backward performing the undos
-            context().direction(FlightDirection.BACKWARD);
+            context().doing(false);
 
             // TODO: I *think* we need to record the direction change in the database
 
@@ -125,7 +125,7 @@ public class Flight implements Callable<FlightResult> {
         // Retry loop
         do {
             // Do or undo based on direction we are headed
-            if (flightContext.getDirection() == FlightDirection.FORWARD) {
+            if (flightContext.isDoing()) {
                 result = currentStep.step.doStep(flightContext);
             } else {
                 result = currentStep.step.undoStep(flightContext);

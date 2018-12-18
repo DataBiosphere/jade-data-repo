@@ -1,6 +1,8 @@
 package bio.terra.stairway;
 
+import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
+import bio.terra.stairway.exception.FlightException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -144,11 +146,12 @@ public class Database {
         }
     }
 
+    // Database accessors - package scoped so unit tests can use them
     boolean versionTableExists(Statement statement) throws SQLException {
         String query = "SELECT COUNT(*) AS version_table_count" +
                 " FROM information_schema.tables WHERE table_schema = '" +
                 (schemaName == null ? "public" : schemaName) +
-                "' AND table_name = '" + flightVersionTableName + "'";
+                "' AND table_name = '" + FLIGHT_VERSION_TABLE + "'";
 
         ResultSet rs = statement.executeQuery(query);
         if (rs.next()) {
@@ -178,9 +181,6 @@ public class Database {
     }
 
 
-
-
-
     /**
      * Create the schema and store its version number
      */
@@ -192,6 +192,10 @@ public class Database {
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
             connection.setAutoCommit(false);
+
+            if (schemaName != null) {
+                statement.executeUpdate("CREATE SCHEMA IF NOT EXISTS " + schemaName);
+            }
 
             statement.executeUpdate(
                     "CREATE TABLE " + flightVersionTableName +
@@ -206,7 +210,8 @@ public class Database {
                     "CREATE TABLE " + flightTableName +
                             "(flightid CHAR(36) PRIMARY KEY," +
                             " submit_time TIMESTAMP NOT NULL," +
-                            " input_paramters JSONB," +
+                            " class_name TEXT NOT NULL," +
+                            " input_parameters JSONB," +
                             " completed_time TIMESTAMP," +
                             " output_parameters JSONB," +
                             " succeeded BOOLEAN," +
@@ -216,7 +221,7 @@ public class Database {
                     "CREATE TABLE " + flightLogTableName +
                             "(flightid CHAR(36)," +
                             " log_time TIMESTAMP NOT NULL," +
-                            " working_paramters JSONB NOT NULL," +
+                            " working_parameters JSONB NOT NULL," +
                             " step_index INTEGER NOT NULL," +
                             " doing BOOLEAN NOT NULL," + // true = forward; false = backward
                             " succeeded BOOLEAN," + // null = not done; true = success; false = failure
@@ -240,6 +245,19 @@ public class Database {
             return;
         }
 
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+
+            statement.executeUpdate(
+                    "INSERT INTO " + flightTableName +
+                            "(flightId, submit_time, class_name, input_parameters) VALUES ('" +
+                            flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
+                            flightContext.getFlightClassName() + "', '" +
+                            flightContext.getInputParameters().toJson() + "')");
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to create database tables", ex);
+        }
     }
 
     /**
@@ -248,6 +266,23 @@ public class Database {
     public void step(FlightContext flightContext) {
         if (isDatabaseDisabled()) {
             return;
+        }
+
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+
+            statement.executeUpdate(
+                    "INSERT INTO " + flightLogTableName +
+                            "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message) VALUES ('" +
+                            flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
+                            flightContext.getWorkingMap().toJson() + "'," +
+                            flightContext.getStepIndex() + "," +
+                            boolString(flightContext.isDoing()) + "," +
+                            boolString(flightContext.getResult().isSuccess()) + ", '" +
+                            flightContext.getResult().getErrorMessage() + "')");
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to log step", ex);
         }
 
     }
@@ -260,6 +295,28 @@ public class Database {
             return;
         }
 
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+            connection.setAutoCommit(false);
+
+            statement.executeUpdate(
+                    "UPDATE " + flightTableName +
+                            " SET completed_time = CURRENT_TIMESTAMP," +
+                            " output_parameters = '" + flightContext.getWorkingMap().toJson() +
+                            "', succeeded = " + boolString(flightContext.getResult().isSuccess()) +
+                            ", error_message = '" + flightContext.getResult().getErrorMessage() +
+                            "' WHERE flightid = '" + flightContext.getFlightId() + "'");
+
+            statement.executeUpdate(
+                    "DELETE FROM " + flightLogTableName +
+                            " WHERE flightid = '" + flightContext.getFlightId() + "'");
+
+            connection.commit();
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to complete flight", ex);
+        }
+
     }
 
     /**
@@ -270,9 +327,64 @@ public class Database {
             return new LinkedList<>();
         }
 
-        // TODO: implement this...
-        return new LinkedList<>();
+        List<FlightContext> flightList = new LinkedList<>();
+
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+
+            ResultSet rs = statement.executeQuery("SELECT flightid, class_name, input_parameters" +
+                    " FROM " + flightTableName +
+                    " WHERE succeeded IS NULL");
+            while (rs.next()) {
+                SafeHashMap inputParameters = new SafeHashMap();
+                inputParameters.fromJson(rs.getString("input_parameters"));
+
+                FlightContext flightContext = new FlightContext(inputParameters)
+                        .flightId(rs.getString("flightid"))
+                        .flightClassName(rs.getString("class_name"));
+                flightList.add(flightContext);
+            }
+
+            // Loop through the linked list making a query for each flight. This may not be the most efficient.
+            // My reasoning is that the code is more obvious to understand and this is not
+            // a performance-critical part of the processing; it happens once at startup.
+            for (FlightContext flightContext : flightList) {
+                rs = statement.executeQuery(
+                        "SELECT working_parameters, step_index, doing, succeeded, error_message" +
+                                " FROM (SELECT *, MAX(log_time) OVER (PARTITION BY flightid) AS max_log_time" +
+                                " FROM " + flightLogTableName + " WHERE flightid = '" +
+                                flightContext.getFlightId() + "')" +
+                                " WHERE log_time = max_log_time");
+                if (!rs.next()) {
+                    throw new DatabaseOperationException("Failed to flight log for flight " +
+                            flightContext.getFlightId());
+                }
+                StepResult stepResult;
+                if (rs.getBoolean("succeeded")) {
+                    stepResult = StepResult.getStepResultSuccess();
+                } else {
+                    stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                            new FlightException(rs.getString("error_message")));
+                }
+
+                flightContext.getWorkingMap().fromJson(rs.getString("working_parameters"));
+
+                flightContext.stepIndex(rs.getInt("step_index"))
+                        .doing(rs.getBoolean("doing"))
+                        .result(stepResult);
+            }
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get incomplete flight list", ex);
+        }
+
+        return flightList;
     }
+
+    private String boolString(boolean value) {
+        return (value ? "true" : "false");
+    }
+
 
     // NOTE: getters are package scoped so that unit tests can access them. They are not intended for
     // general use.
@@ -295,6 +407,7 @@ public class Database {
     String getSchemaVersion() {
         return schemaVersion;
     }
+
 
     @Override
     public String toString() {

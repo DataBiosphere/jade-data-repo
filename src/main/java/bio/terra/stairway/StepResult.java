@@ -37,6 +37,17 @@ public class StepResult {
         return (stepStatus == StepStatus.STEP_RESULT_SUCCESS);
     }
 
+    /**
+     * Extract the error message from the throwable. If there is no throwable,
+     * then return an empty string.
+     */
+    public String getErrorMessage() {
+        if (getThrowable().isPresent()) {
+            return getThrowable().get().toString();
+        }
+        return "";
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)

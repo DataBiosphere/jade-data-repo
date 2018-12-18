@@ -82,6 +82,41 @@ public class DatabaseCreateTest {
         return database;
     }
 
+    @Test
+    public void createWithSchemaTest() throws Exception {
+        // Start clean
+        Database database = createDatabaseWithSchema(true);
+        String createtime = getCreateTime(database);
+
+        database = createDatabaseWithSchema(false);
+
+        // Dirty start should not overwrite the database
+        String createtime2 = getCreateTime(database);
+        Assert.assertThat(createtime2, is(equalTo(createtime)));
+
+        database = createDatabaseWithSchema(true);
+
+        // Clean start should overwrite the database
+        String createtime3 = getCreateTime(database);
+        Assert.assertThat(createtime3, not(equalTo(createtime)));
+    }
+
+    private Database createDatabaseWithSchema(boolean forceCleanStart) {
+        String testSchema = "stairwaytest";
+
+        Database database = new DatabaseBuilder()
+                .dataSource(dataSource)
+                .schemaName(testSchema)
+                .forceCleanStart(forceCleanStart)
+                .build();
+        Assert.assertThat(database.getFlightLogTableName(),
+                is(equalTo(testSchema + '.' + Database.FLIGHT_LOG_TABLE)));
+        Assert.assertThat(database.getFlightTableName(),
+                is(equalTo(testSchema + '.' + Database.FLIGHT_TABLE)));
+        Assert.assertThat(database.getFlightVersionTableName(),
+                is(equalTo(testSchema + '.' + Database.FLIGHT_VERSION_TABLE)));
+        return database;
+    }
 
     private String getCreateTime(Database database) throws Exception {
         try (Connection connection = dataSource.getConnection();

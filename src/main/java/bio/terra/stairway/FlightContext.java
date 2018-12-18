@@ -65,12 +65,27 @@ public class FlightContext {
         return this;
     }
 
-    public void incrStepIndex() {
-        this.stepIndex++;
-    }
+    /**
+     * Set the step index to the next step. If we are doing, then we progress forwards.
+     * If we are undoing, we progress backwards. In either case, we see if we are at the
+     * end (or the beginning) and indicate that with the return value.
+     *
+     * @return true if we have incremented to a valid step; false if there are no more valid steps
+     * in this direction.
+     */
+    public boolean nextStepIndex(int stepListSize) {
+        if (isDoing()) {
+            // forwards
+            stepIndex++;
+            return (stepIndex < stepListSize);
+        }
 
-    public void decrStepIndex() {
-        this.stepIndex--;
+        // backwards
+        if (stepIndex > 0) {
+            this.stepIndex--;
+            return true;
+        }
+        return false;
     }
 
     public boolean isDoing() {

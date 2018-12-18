@@ -30,6 +30,7 @@ public class Flight implements Callable<FlightResult> {
     }
 
     private List<StepRetry> steps;
+    private Database database;
     private FlightContext flightContext;
 
     public Flight(SafeHashMap inputParameters) {
@@ -39,6 +40,14 @@ public class Flight implements Callable<FlightResult> {
 
     public FlightContext context() {
         return flightContext;
+    }
+
+    void setFlightContext(FlightContext flightContext) {
+        this.flightContext = flightContext;
+    }
+
+    void setDatabase(Database database) {
+        this.database = database;
     }
 
     // Used by subclasses to build the step list with default no-retry rule
@@ -51,68 +60,70 @@ public class Flight implements Callable<FlightResult> {
         steps.add(new StepRetry(step, retryRule));
     }
 
+    /**
+     * Call may be called for a flight that has been interrupted and is being recovered
+     * so we may be headed either direction.
+     */
     public FlightResult call() {
         try {
-            StepResult doResult = runForward();
-            if (doResult.isSuccess()) {
-                return new FlightResult(doResult, context().getWorkingMap());
+            if (context().isDoing()) {
+                StepResult doResult = runSteps();
+                if (doResult.isSuccess()) {
+                    return new FlightResult(doResult, context().getWorkingMap());
+                }
+
+                // Remember the failure from the do; that is what we want to return
+                context().result(doResult);
+                context().doing(false);
+
+                // Record the step failure and direction change in the database
+                database.step(context());
             }
 
-            // Run it backward performing the undos
-            context().doing(false);
-
-            // TODO: I *think* we need to record the direction change in the database
-
-            StepResult undoResult = runBackward();
+            StepResult undoResult = runSteps();
             if (undoResult.isSuccess()) {
                 // Return the error from the doResult - that is why we failed
-                return new FlightResult(doResult, context().getWorkingMap());
+                return new FlightResult(context().getResult(), context().getWorkingMap());
             }
+
+            // Record the undo failure
+            database.step(context());
 
             // Dismal failure - undo failed!
             return FlightResult.flightResultFatal(
                     new StairwayExecutionException("Dismal failure: " + undoResult.getThrowable().toString(),
-                            doResult.getThrowable().orElse(null)));
+                            context().getResult().getThrowable().orElse(null)));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             return FlightResult.flightResultFatal(ex);
         }
     }
 
-    private StepResult runForward() throws InterruptedException {
+    /**
+     * run the steps in sequence, either forward or backward, until either we
+     * complete successfully or we encounter an error.
+     * Note that this only records the step in the database if there is success.
+     * Otherwise, it returns out and lets the outer logic setup the failure state
+     * before recording it into the database.
+     *
+     * @return StepResult recording the success or failure of the most recent step
+     * @throws InterruptedException
+     */
+    private StepResult runSteps() throws InterruptedException {
         while (true) {
-            // Do the current step
             StepResult result = stepWithRetry();
 
-            // TODO: write state to database
-
+            // Exit if we hit a failure (result shows failed)
             if (!result.isSuccess()) {
                 return result;
             }
 
-            flightContext.incrStepIndex();
-            if (flightContext.getStepIndex() >= steps.size()) {
+            database.step(context());
+
+            // Exit if we have no more steps to (un)do (result show success)
+            if (!flightContext.nextStepIndex(steps.size())) {
                 return result;
             }
-        }
-    }
-
-    private StepResult runBackward() throws InterruptedException {
-        while (true) {
-            // Undo the current step
-            StepResult result = stepWithRetry();
-
-            // TODO: write state to database
-
-            if (!result.isSuccess()) {
-                return result;
-            }
-
-            if (flightContext.getStepIndex() == 0) {
-                return result;
-            }
-
-            flightContext.decrStepIndex();
         }
     }
 

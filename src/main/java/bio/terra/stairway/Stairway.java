@@ -3,14 +3,13 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
@@ -45,7 +44,8 @@ public class Stairway {
         }
 
     }
-    private Map<String, TaskContext> taskContextMap;
+
+    private ConcurrentHashMap<String, TaskContext> taskContextMap;
 
     private ExecutorService threadPool;
     private DataSource dataSource;
@@ -57,13 +57,27 @@ public class Stairway {
         this(threadPool, null, null, null, true);
     }
 
+    /**
+     *
+     * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
+     * @param dataSource optional - if null, no database operations are performed.
+     *                   That is enforced in the {@link Database} class.
+     * @param schemaName optional - if null, no schema is created/used.
+     * @param nameStem optional - if null, no table prefix is used. Otherwise tables are named like
+     *                 nameStem + '_' + tableName
+     * @param forceCleanStart true will drop any existing stairway database tables and recreate them from scratch.
+     *                        false will validate the schema version matches, and recovery any incomplete flights.
+     */
     public Stairway(ExecutorService threadPool, DataSource dataSource, String schemaName, String nameStem, boolean forceCleanStart) {
         this.threadPool = threadPool;
         this.dataSource = dataSource;
         this.schemaName = schemaName;
         this.nameStem = nameStem;
-        this.taskContextMap = new HashMap<>();
-        this.database = configureDatabase(dataSource, schemaName, nameStem, forceCleanStart);
+        this.taskContextMap = new ConcurrentHashMap<>();
+        this.database = new Database(dataSource, forceCleanStart, schemaName, nameStem);
+        if (!forceCleanStart) {
+            recoverFlights();
+        }
     }
 
     /**
@@ -83,15 +97,9 @@ public class Stairway {
         // confusion with small integers that might be accidentally valid.
         flight.context().flightId(UUID.randomUUID().toString());
 
-        // TODO: write flight to database in submitted state
+        database.submit(flight.context());
 
-        // Build the task context to keep track of the running task
-        TaskContext taskContext = new TaskContext(new FutureTask<FlightResult>(flight), flight);
-        threadPool.execute(taskContext.getFutureResult());
-
-        // Now that it is in the pool, hook it into the map so other calls can resolve it.
-        taskContextMap.put(flight.context().getFlightId(), taskContext);
-
+        launchFlight(flight);
         return flight.context().getFlightId();
     }
 
@@ -102,7 +110,9 @@ public class Stairway {
     }
 
     /**
-     * Wait for a flight to complete and return the results
+     * Wait for a flight to complete and return the results. Once the results have been
+     * returned, the flight is removed from the taskContextMap and marked complete in
+     * the database.
      *
      * @param flightId
      * @return FlightResult object with status, possible exception, and result parameters
@@ -112,6 +122,8 @@ public class Stairway {
 
         try {
             FlightResult result = taskContext.getFutureResult().get();
+            taskContextMap.remove(flightId);
+            database.complete(taskContext.flight.context());
             return result;
 
         } catch (InterruptedException ex) {
@@ -120,21 +132,6 @@ public class Stairway {
             return FlightResult.flightResultFatal(ex);
         } catch (ExecutionException ex) {
             return FlightResult.flightResultFatal(ex);
-        }
-    }
-
-    /**
-     * Release the results - the caller is done with this flight.
-     * Release of a flightId that does not exist is not an error.
-     */
-    // TODO: REVIEWERS: is separating getResult and release a good idea?
-    // The idea of release is to be able to provide the results after a failure/recovery.
-    // And explicitly say I am done, allowing cleanup of the database table and the in-memory
-    // List of flights. OTOH, I'm not sure we want to clean up the database.
-    public void release(String flightId) {
-        TaskContext taskContext = taskContextMap.get(flightId);
-        if (taskContext != null) {
-            taskContextMap.remove(flightId);
         }
     }
 
@@ -147,19 +144,38 @@ public class Stairway {
     }
 
     /**
-     *
-     *
+     * Find any incomplete flights and recover them. We overwrite the flight context with the recovered
+     * flight context. The normal constructor path needs to give the input parameters to the flight
+     * subclass. This is a case where we don't really want to have the Flight object set up its own context.
+     * It is simpler to override it than to make a separate code path for this recovery case.
      */
-    private Database configureDatabase(DataSource dataSource, String schemaName, String nameStem, boolean forceCleanStart) {
-        Database db = new Database(dataSource, forceCleanStart, schemaName, nameStem);
-
-        if (forceCleanStart) {
-            // TODO: implement database clean or recovery
+    private void recoverFlights() {
+        List<FlightContext> flightList = database.recover();
+        for (FlightContext flightContext : flightList) {
+            Flight flight = makeFlightFromName(flightContext.getFlightClassName(), flightContext.getInputParameters());
+            flight.setFlightContext(flightContext);
+            launchFlight(flight);
         }
-
-        return db;
     }
 
+    /**
+     * Build the task context to keep track of the running flight.
+     * Once it is launched, hook it into the {@link #taskContextMap} so other
+     * calls can resolve it.
+     *
+     * @param flight
+     */
+    private void launchFlight(Flight flight) {
+        // Give the flight the database object so it can properly record its steps
+        flight.setDatabase(database);
+
+        // Build the task context to keep track of the running task
+        TaskContext taskContext = new TaskContext(new FutureTask<FlightResult>(flight), flight);
+        threadPool.execute(taskContext.getFutureResult());
+
+        // Now that it is in the pool, hook it into the map so other calls can resolve it.
+        taskContextMap.put(flight.context().getFlightId(), taskContext);
+    }
 
     /**
      *  Create a Flight instance given the class name of the derived class of Flight
@@ -211,11 +227,13 @@ public class Stairway {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
+        return new ToStringBuilder(this)
                 .append("taskContextMap", taskContextMap)
                 .append("threadPool", threadPool)
                 .append("dataSource", dataSource)
+                .append("schemaName", schemaName)
                 .append("nameStem", nameStem)
+                .append("database", database)
                 .toString();
     }
 }

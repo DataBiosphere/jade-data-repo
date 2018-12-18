@@ -151,7 +151,8 @@ public class Database {
         String query = "SELECT COUNT(*) AS version_table_count" +
                 " FROM information_schema.tables WHERE table_schema = '" +
                 (schemaName == null ? "public" : schemaName) +
-                "' AND table_name = '" + FLIGHT_VERSION_TABLE + "'";
+                "' AND table_name = '" +
+                (nameStem == null ? "" : nameStem + '_') + FLIGHT_VERSION_TABLE + "'";
 
         ResultSet rs = statement.executeQuery(query);
         if (rs.next()) {
@@ -289,6 +290,7 @@ public class Database {
 
     /**
      * Record completion of a flight and remove the data from the log
+     * This is idempotent; repeated execution will work properly.
      */
     public void complete(FlightContext flightContext) {
         if (isDatabaseDisabled()) {
@@ -299,14 +301,18 @@ public class Database {
              Statement statement = connection.createStatement()) {
             connection.setAutoCommit(false);
 
+            // Make the update idempotent; that is, only do it if it has not already been done by
+            // including the "succeeded IS NULL" predicate.
             statement.executeUpdate(
                     "UPDATE " + flightTableName +
                             " SET completed_time = CURRENT_TIMESTAMP," +
                             " output_parameters = '" + flightContext.getWorkingMap().toJson() +
                             "', succeeded = " + boolString(flightContext.getResult().isSuccess()) +
                             ", error_message = '" + flightContext.getResult().getErrorMessage() +
-                            "' WHERE flightid = '" + flightContext.getFlightId() + "'");
+                            "' WHERE flightid = '" + flightContext.getFlightId() +
+                            "' AND succeeded IS NULL");
 
+            // The delete is harmless if it has been done before. We just won't find anything.
             statement.executeUpdate(
                     "DELETE FROM " + flightLogTableName +
                             " WHERE flightid = '" + flightContext.getFlightId() + "'");

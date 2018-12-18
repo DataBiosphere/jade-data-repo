@@ -103,18 +103,21 @@ public class DatabaseCreateTest {
 
     private Database createDatabaseWithSchema(boolean forceCleanStart) {
         String testSchema = "stairwaytest";
+        String stem = "prefix";
+        String namePrefix = testSchema + '.' + stem + '_';
 
         Database database = new DatabaseBuilder()
                 .dataSource(dataSource)
                 .schemaName(testSchema)
+                .nameStem(stem)
                 .forceCleanStart(forceCleanStart)
                 .build();
         Assert.assertThat(database.getFlightLogTableName(),
-                is(equalTo(testSchema + '.' + Database.FLIGHT_LOG_TABLE)));
+                is(equalTo(namePrefix + Database.FLIGHT_LOG_TABLE)));
         Assert.assertThat(database.getFlightTableName(),
-                is(equalTo(testSchema + '.' + Database.FLIGHT_TABLE)));
+                is(equalTo(namePrefix + Database.FLIGHT_TABLE)));
         Assert.assertThat(database.getFlightVersionTableName(),
-                is(equalTo(testSchema + '.' + Database.FLIGHT_VERSION_TABLE)));
+                is(equalTo(namePrefix + Database.FLIGHT_VERSION_TABLE)));
         return database;
     }
 

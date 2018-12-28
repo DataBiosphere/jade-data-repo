@@ -144,15 +144,19 @@ public class Stairway {
     }
 
     /**
-     * Find any incomplete flights and recover them. We overwrite the flight context with the recovered
-     * flight context. The normal constructor path needs to give the input parameters to the flight
-     * subclass. This is a case where we don't really want to have the Flight object set up its own context.
-     * It is simpler to override it than to make a separate code path for this recovery case.
+     * Find any incomplete flights and recover them. We overwrite the flight context of this flight
+     * with the recovered flight context. The normal constructor path needs to give the input parameters
+     * to the flight subclass. This is a case where we don't really want to have the Flight object set up
+     * its own context. It is simpler to override it than to make a separate code path for this recovery case.
+     *
+     * The flightlog records the last operation performed; so we need to set the execution point to the next
+     * step index.
      */
     private void recoverFlights() {
         List<FlightContext> flightList = database.recover();
         for (FlightContext flightContext : flightList) {
             Flight flight = makeFlightFromName(flightContext.getFlightClassName(), flightContext.getInputParameters());
+            flightContext.nextStepIndex();
             flight.setFlightContext(flightContext);
             launchFlight(flight);
         }

@@ -31,7 +31,7 @@ import java.util.List;
  * When the constructor completes, the database is ready for use. Note that recovery
  * is not part of construction. It just makes sure that the database is ready.
  *
- * If no dataSource is specified, then database support is disabled. The entrypoints all work,
+ * If dataSource is null, then database support is disabled. The entrypoints all work,
  * but no database operations are performed.
  */
 public class Database {

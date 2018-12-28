@@ -73,20 +73,22 @@ public class FlightContext {
      * @return true if we have incremented to a valid step; false if there are no more valid steps
      * in this direction.
      */
-    public boolean nextStepIndex(int stepListSize) {
+    public void nextStepIndex() {
         if (isDoing()) {
-            // forwards
             stepIndex++;
-            return (stepIndex < stepListSize);
+        } else {
+            stepIndex--;
         }
-
-        // backwards
-        if (stepIndex > 0) {
-            this.stepIndex--;
-            return true;
-        }
-        return false;
     }
+
+    public boolean haveStepToDo(int stepListSize) {
+        if (isDoing()) {
+            return (stepIndex < stepListSize);
+        } else {
+            return (stepIndex >= 0);
+        }
+    }
+
 
     public boolean isDoing() {
         return doing;

@@ -34,7 +34,7 @@ public class Flight implements Callable<FlightResult> {
     private FlightContext flightContext;
 
     public Flight(SafeHashMap inputParameters) {
-        flightContext = new FlightContext(inputParameters);
+        flightContext = new FlightContext(inputParameters).flightClassName(this.getClass().getName());
         steps = new LinkedList<>();
     }
 
@@ -110,8 +110,11 @@ public class Flight implements Callable<FlightResult> {
      * @throws InterruptedException
      */
     private StepResult runSteps() throws InterruptedException {
-        while (true) {
-            StepResult result = stepWithRetry();
+        // Initialize with current result, in case we are all done already
+        StepResult result = context().getResult();
+
+        while (context().haveStepToDo(steps.size())) {
+            result = stepWithRetry();
 
             // Exit if we hit a failure (result shows failed)
             if (!result.isSuccess()) {
@@ -120,11 +123,9 @@ public class Flight implements Callable<FlightResult> {
 
             database.step(context());
 
-            // Exit if we have no more steps to (un)do (result show success)
-            if (!flightContext.nextStepIndex(steps.size())) {
-                return result;
-            }
+            flightContext.nextStepIndex();
         }
+        return result;
     }
 
     private StepResult stepWithRetry() throws InterruptedException {

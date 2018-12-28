@@ -23,11 +23,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
-// TODO: Tests
-// - idempotency of complete
-// - scenario tests with the database
-// -- success, successful undo, interrupted doing, interrupted undoing
-
 @TestPropertySource(locations = "file://${HOME}/drmetadata_test.properties")
 @RunWith(SpringRunner.class)
 @SpringBootTest

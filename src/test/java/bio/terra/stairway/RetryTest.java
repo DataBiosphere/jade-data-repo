@@ -17,7 +17,7 @@ public class RetryTest {
     @Before
     public void setup() {
         executorService = Executors.newFixedThreadPool(2);
-        Stairway stairway = new Stairway(executorService);
+        stairway = new Stairway(executorService);
     }
 
     @Test
@@ -33,8 +33,6 @@ public class RetryTest {
         FlightResult result = stairway.getResult(flightId);
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
-
-        stairway.release(flightId);
     }
 
     @Test
@@ -61,7 +59,6 @@ public class RetryTest {
         Assert.assertTrue(endTime.isAfter(startRange));
         Assert.assertTrue(endTime.isBefore(endRange));
         Assert.assertFalse(result.isSuccess());
-        stairway.release(flightId);
     }
 
     @Test
@@ -79,7 +76,6 @@ public class RetryTest {
 
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
-        stairway.release(flightId);
     }
 
     @Test
@@ -97,7 +93,6 @@ public class RetryTest {
         FlightResult result = stairway.getResult(flightId);
 
         Assert.assertFalse(result.isSuccess());
-        stairway.release(flightId);
     }
 
     @Test
@@ -124,7 +119,6 @@ public class RetryTest {
 
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
-        stairway.release(flightId);
     }
 
 }

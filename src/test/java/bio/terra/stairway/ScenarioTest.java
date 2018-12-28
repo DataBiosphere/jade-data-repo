@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 
+import bio.terra.stairway.exception.FlightNotFoundException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,6 +13,8 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.hamcrest.CoreMatchers.containsString;
+
 public class ScenarioTest {
     private ExecutorService executorService;
     private Stairway stairway;
@@ -19,7 +22,7 @@ public class ScenarioTest {
     @Before
     public void setup() {
         executorService = Executors.newFixedThreadPool(2);
-        Stairway stairway = new Stairway(executorService);
+        stairway = new Stairway(executorService);
     }
 
     @Test
@@ -45,14 +48,12 @@ public class ScenarioTest {
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
 
-        // Should be idempotent
-        FlightResult result2 = stairway.getResult(flightId);
-        Assert.assertTrue(result2.isSuccess());
-        Assert.assertFalse(result2.getThrowable().isPresent());
-
-        // Both should run without error
-        stairway.release(flightId);
-        stairway.release(flightId);
+        // Should be released
+        try {
+            FlightResult result2 = stairway.getResult(flightId);
+        } catch (FlightNotFoundException ex) {
+            Assert.assertThat(ex.getMessage(), containsString(flightId));
+        }
     }
 
     @Test
@@ -80,8 +81,6 @@ public class ScenarioTest {
         Assert.assertTrue(throwable.isPresent());
         // The exception is thrown by TestStepExistence
         Assert.assertTrue(throwable.get() instanceof IllegalArgumentException);
-
-        stairway.release(flightId);
     }
 
     @Test
@@ -123,8 +122,6 @@ public class ScenarioTest {
         // We expect the existent filename to still be there
         file = new File(existingFilename);
         Assert.assertTrue(file.exists());
-
-        stairway.release(flightId);
     }
 
     private String makeExistingFile() throws Exception {

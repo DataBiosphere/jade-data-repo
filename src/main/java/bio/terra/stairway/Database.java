@@ -36,8 +36,8 @@ import java.util.List;
  * but no database operations are performed.
  */
 @SuppressFBWarnings(
-        value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",
-        justification="The current state is low risk since we own all of the input values. Still," +
+        value = "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",
+        justification = "The current state is low risk since we own all of the input values. Still," +
         " it would be best practice to fix it.")
 
 public class Database {
@@ -195,7 +195,8 @@ public class Database {
     }
 
     String readDatabaseSchemaCreateTime(Statement statement) throws SQLException {
-        try (ResultSet rs = statement.executeQuery("SELECT create_time::text AS createtime FROM " + flightVersionTableName)) {
+        try (ResultSet rs = statement.executeQuery(
+                "SELECT create_time::text AS createtime FROM " + flightVersionTableName)) {
             if (rs.next()) {
                 return rs.getString("createtime");
             }

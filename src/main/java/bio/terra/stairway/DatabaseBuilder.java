@@ -6,10 +6,10 @@ import javax.sql.DataSource;
  * Builder pattern implementation for Database object.
  */
 public class DatabaseBuilder {
-    private DataSource dataSource = null;
-    private boolean forceCleanStart = false;
-    private String schemaName = null;
-    private String nameStem = null;
+    private DataSource dataSource;
+    private boolean forceCleanStart;
+    private String schemaName;
+    private String nameStem;
 
     public DatabaseBuilder dataSource(DataSource dataSource) {
         this.dataSource = dataSource;

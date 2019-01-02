@@ -76,9 +76,9 @@ public class DatabaseCreateTest {
                 .dataSource(dataSource)
                 .forceCleanStart(forceCleanStart)
                 .build();
-        Assert.assertThat(database.getFlightLogTableName(), is(equalTo(Database.FLIGHT_LOG_TABLE)));
-        Assert.assertThat(database.getFlightTableName(), is(equalTo(Database.FLIGHT_TABLE)));
-        Assert.assertThat(database.getFlightVersionTableName(), is(equalTo(Database.FLIGHT_VERSION_TABLE)));
+        Assert.assertThat(database.getFlightLogTableName(), is(equalTo(Database.getFlightLogTable())));
+        Assert.assertThat(database.getFlightTableName(), is(equalTo(Database.getFlightTable())));
+        Assert.assertThat(database.getFlightVersionTableName(), is(equalTo(Database.getFlightVersionTable())));
         return database;
     }
 
@@ -113,11 +113,11 @@ public class DatabaseCreateTest {
                 .forceCleanStart(forceCleanStart)
                 .build();
         Assert.assertThat(database.getFlightLogTableName(),
-                is(equalTo(namePrefix + Database.FLIGHT_LOG_TABLE)));
+                is(equalTo(namePrefix + Database.getFlightLogTable())));
         Assert.assertThat(database.getFlightTableName(),
-                is(equalTo(namePrefix + Database.FLIGHT_TABLE)));
+                is(equalTo(namePrefix + Database.getFlightTable())));
         Assert.assertThat(database.getFlightVersionTableName(),
-                is(equalTo(namePrefix + Database.FLIGHT_VERSION_TABLE)));
+                is(equalTo(namePrefix + Database.getFlightVersionTable())));
         return database;
     }
 

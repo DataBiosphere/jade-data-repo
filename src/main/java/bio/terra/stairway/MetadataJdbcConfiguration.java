@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @EnableConfigurationProperties
-@ConfigurationProperties(prefix="metadata-jdbc")
+@ConfigurationProperties(prefix = "metadata-jdbc")
 public class MetadataJdbcConfiguration {
     private String uri;
     private String user;

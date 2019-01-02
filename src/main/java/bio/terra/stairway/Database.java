@@ -3,6 +3,7 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -34,13 +35,33 @@ import java.util.List;
  * If dataSource is null, then database support is disabled. The entrypoints all work,
  * but no database operations are performed.
  */
-public class Database {
-    // Note: these are package accessible for the unit tests
-    static String FLIGHT_SCHEMA_VERSION = "0.1.0";
-    static String FLIGHT_VERSION_TABLE = "flightversion";
-    static String FLIGHT_TABLE = "flight";
-    static String FLIGHT_LOG_TABLE = "flightlog";
+@SuppressFBWarnings(
+        value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",
+        justification="The current state is low risk since we own all of the input values. Still," +
+        " it would be best practice to fix it.")
 
+public class Database {
+    private static String FLIGHT_SCHEMA_VERSION = "0.1.0";
+    private static String FLIGHT_VERSION_TABLE = "flightversion";
+    private static String FLIGHT_TABLE = "flight";
+    private static String FLIGHT_LOG_TABLE = "flightlog";
+
+    // Getters are package scoped for unit tests
+    static String getFlightSchemaVersion() {
+        return FLIGHT_SCHEMA_VERSION;
+    }
+
+    static String getFlightVersionTable() {
+        return FLIGHT_VERSION_TABLE;
+    }
+
+    static String getFlightTable() {
+        return FLIGHT_TABLE;
+    }
+
+    static String getFlightLogTable() {
+        return FLIGHT_LOG_TABLE;
+    }
 
     private DataSource dataSource; // may be null, indicating database support is disabled
     private boolean forceCleanStart;
@@ -154,33 +175,33 @@ public class Database {
                 "' AND table_name = '" +
                 (nameStem == null ? "" : nameStem + '_') + FLIGHT_VERSION_TABLE + "'";
 
-        ResultSet rs = statement.executeQuery(query);
-        if (rs.next()) {
-            int tableCount = rs.getInt("version_table_count");
-            return (tableCount == 1);
-        } else {
-            throw new DatabaseSetupException("Invalid result from information_schema query");
+        try (ResultSet rs = statement.executeQuery(query)) {
+            if (rs.next()) {
+                int tableCount = rs.getInt("version_table_count");
+                return (tableCount == 1);
+            } else {
+                throw new DatabaseSetupException("Invalid result from information_schema query");
+            }
         }
     }
 
     String readDatabaseSchemaVersion(Statement statement) throws SQLException {
-        String version;
-        ResultSet rs = statement.executeQuery("SELECT version FROM " + flightVersionTableName);
-        if (rs.next()) {
-            return rs.getString("version");
+        try (ResultSet rs = statement.executeQuery("SELECT version FROM " + flightVersionTableName)) {
+            if (rs.next()) {
+                return rs.getString("version");
+            }
+            throw new DatabaseSetupException("Schema version not found");
         }
-        throw new DatabaseSetupException("Schema version not found");
     }
 
     String readDatabaseSchemaCreateTime(Statement statement) throws SQLException {
-        String version;
-        ResultSet rs = statement.executeQuery("SELECT create_time::text AS createtime FROM " + flightVersionTableName);
-        if (rs.next()) {
-            return rs.getString("createtime");
+        try (ResultSet rs = statement.executeQuery("SELECT create_time::text AS createtime FROM " + flightVersionTableName)) {
+            if (rs.next()) {
+                return rs.getString("createtime");
+            }
+            throw new DatabaseSetupException("Schema create time not found");
         }
-        throw new DatabaseSetupException("Schema create time not found");
     }
-
 
     /**
      * Create the schema and store its version number
@@ -274,7 +295,8 @@ public class Database {
 
             statement.executeUpdate(
                     "INSERT INTO " + flightLogTableName +
-                            "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message) VALUES ('" +
+                            "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message)" +
+                            " VALUES ('" +
                             flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
                             flightContext.getWorkingMap().toJson() + "'," +
                             flightContext.getStepIndex() + "," +
@@ -336,48 +358,52 @@ public class Database {
         List<FlightContext> flightList = new LinkedList<>();
 
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+             Statement statement = connection.createStatement();
+             ) {
 
-            ResultSet rs = statement.executeQuery("SELECT flightid, class_name, input_parameters" +
+            try (ResultSet rs = statement.executeQuery("SELECT flightid, class_name, input_parameters" +
                     " FROM " + flightTableName +
-                    " WHERE succeeded IS NULL");
-            while (rs.next()) {
-                SafeHashMap inputParameters = new SafeHashMap();
-                inputParameters.fromJson(rs.getString("input_parameters"));
+                    " WHERE succeeded IS NULL")) {
+                while (rs.next()) {
+                    SafeHashMap inputParameters = new SafeHashMap();
+                    inputParameters.fromJson(rs.getString("input_parameters"));
 
-                FlightContext flightContext = new FlightContext(inputParameters)
-                        .flightId(rs.getString("flightid"))
-                        .flightClassName(rs.getString("class_name"));
-                flightList.add(flightContext);
+                    FlightContext flightContext = new FlightContext(inputParameters)
+                            .flightId(rs.getString("flightid"))
+                            .flightClassName(rs.getString("class_name"));
+                    flightList.add(flightContext);
+                }
             }
 
             // Loop through the linked list making a query for each flight. This may not be the most efficient.
             // My reasoning is that the code is more obvious to understand and this is not
             // a performance-critical part of the processing; it happens once at startup.
             for (FlightContext flightContext : flightList) {
-                rs = statement.executeQuery(
+                try (ResultSet rsflight = statement.executeQuery(
                         "SELECT working_parameters, step_index, doing, succeeded, error_message" +
                                 " FROM (SELECT *, MAX(log_time) OVER (PARTITION BY flightid) AS max_log_time" +
                                 " FROM " + flightLogTableName + " WHERE flightid = '" +
                                 flightContext.getFlightId() + "') AS S" +
-                                " WHERE log_time = max_log_time");
-                // There may not be any log entries for a given flight. That happens if we fail after
-                // submit and before the first step. The defaults for flight context are correct for that
-                // case, so there is nothing left to do here.
-                if (rs.next()) {
-                    StepResult stepResult;
-                    if (rs.getBoolean("succeeded")) {
-                        stepResult = StepResult.getStepResultSuccess();
-                    } else {
-                        stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                                new FlightException(rs.getString("error_message")));
+                                " WHERE log_time = max_log_time")) {
+
+                    // There may not be any log entries for a given flight. That happens if we fail after
+                    // submit and before the first step. The defaults for flight context are correct for that
+                    // case, so there is nothing left to do here.
+                    if (rsflight.next()) {
+                        StepResult stepResult;
+                        if (rsflight.getBoolean("succeeded")) {
+                            stepResult = StepResult.getStepResultSuccess();
+                        } else {
+                            stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                                    new FlightException(rsflight.getString("error_message")));
+                        }
+
+                        flightContext.getWorkingMap().fromJson(rsflight.getString("working_parameters"));
+
+                        flightContext.stepIndex(rsflight.getInt("step_index"))
+                                .doing(rsflight.getBoolean("doing"))
+                                .result(stepResult);
                     }
-
-                    flightContext.getWorkingMap().fromJson(rs.getString("working_parameters"));
-
-                    flightContext.stepIndex(rs.getInt("step_index"))
-                            .doing(rs.getBoolean("doing"))
-                            .result(stepResult);
                 }
             }
 

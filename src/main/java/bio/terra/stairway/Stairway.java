@@ -68,7 +68,11 @@ public class Stairway {
      * @param forceCleanStart true will drop any existing stairway database tables and recreate them from scratch.
      *                        false will validate the schema version matches, and recovery any incomplete flights.
      */
-    public Stairway(ExecutorService threadPool, DataSource dataSource, String schemaName, String nameStem, boolean forceCleanStart) {
+    public Stairway(ExecutorService threadPool,
+                    DataSource dataSource,
+                    String schemaName,
+                    String nameStem,
+                    boolean forceCleanStart) {
         this.threadPool = threadPool;
         this.dataSource = dataSource;
         this.schemaName = schemaName;

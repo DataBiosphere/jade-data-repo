@@ -170,6 +170,18 @@ docker {
     buildArgs(['DEPENDENCY': "dependency"])
 }
 
+// Configure test logging to stun - these settings mean that we get sufficient debug data when tests fail
+// during travis run.
+test {
+    testLogging {
+        outputs.upToDateWhen {false}
+        showStandardStreams = true
+        showStackTraces = true
+        showCauses = true
+        exceptionFormat = "full"
+    }
+}
+
 compileGeneratedJava.dependsOn generateApi
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava

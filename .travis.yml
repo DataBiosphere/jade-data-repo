@@ -28,6 +28,3 @@ deploy:
   script: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin && ./gradlew dockerPush
   on:
     branch: develop
-
-script:
-  - ./gradlew check --scan -s

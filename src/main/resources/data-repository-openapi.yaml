@@ -77,20 +77,13 @@ paths:
         500:
           description: service is broken
 
-  ## Access Interface
+  ## Repository Interface
 
-  '/api/access/v1/dataset':
-    get:
+  '/api/repository/v1/datasets':
+    get:  ## enumerate
       description: |
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
-      tags:
-        - access
-      parameters:
-        - in: query
-          name: containing
-          type: string
-          description: return only datasets with name or description containing the string
       responses:
         200:
           description: List of datasets
@@ -98,6 +91,88 @@ paths:
             type: array
             items:
               $ref: '#/definitions/DatasetModel'
+
+  '/api/repository/v1/datasets/{id}':
+    get:  ## retrieve
+      description: Retrieve a dataset by id
+      operationId: retrieveDataset
+      parameters:
+        - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Dataset
+          schema:
+            $ref: '#/definitions/DatasetModel'
+        400:
+          description: Bad request - dataset id does not exist, invalid id, badly formed
+        403:
+          description: No permission to see dataset
+        404:
+          description: Not found - either you can't see the dataset at all or it doesn't exist
+
+    delete: ## delete
+      description: Delete a dataset by id
+      operationId: deleteDataset
+      parameters:
+        - $ref: '#/parameters/Id'
+      responses:
+        204:
+          description: Dataset deleted successfully
+        400:
+          description: Bad request - invalid id, badly formed
+        403:
+          description: No permission to delete dataset
+        404:
+          description: Not found - either you can't see the dataset at all or it doesn't exist to delete
+        409:
+          description: Dataset in use?
+
+  '/api/repository/v1/studies':
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the studies the caller has access to
+      operationId: enumerateStudies
+      responses:
+        200:
+          description: List of studies
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/StudyModel'
+
+  '/api/repository/v1/studies/{id}':
+    get:  ## retrieve
+      description: Retrieve a study by id
+      operationId: retrieveStudy
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Study
+          schema:
+            $ref: '#/definitions/StudyModel'
+        400:
+          description: Bad request - study id does not exist, invalid id, badly formed
+        403:
+          description: No permission to see study
+        404:
+          description: Not found - either you can't see the study at all or it doesn't exist
+
+    delete: ## delete
+      description: Delete a study by id
+      operationId: deleteStudy
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        204:
+          description: Study deleted successfully (or already did not exist)
+        400:
+          description: Bad request - invalid id, badly formed ## assuming invalid means cannot exist--not _does not_ exist
+        403:
+          description: No permission to delete study
+        409:
+          description: Study in use by at least one dataset
+
 
   ## Search Interface
   '/api/search/v1/dataset':
@@ -119,53 +194,6 @@ paths:
             type: array
             items:
               $ref: '#/definitions/UniqueIdModel'
-
-  ## Model Interface
-
-  '/api/model/v1/study':
-    post:
-      description: Create a new study
-      operationId: createStudy
-      tags:
-        - model
-      parameters:
-        - in: body
-          name: study
-          schema:
-            $ref: '#/definitions/StudyModel'
-      responses:
-        201:
-          description: Created study
-          schema:
-            $ref: '#/definitions/UniqueIdModel'
-        400:
-          description: Bad request - duplicate name, invalid name, badly formed schema
-        403:
-          description: No permission to create studies
-
-  ## Custody Interface
-
-  '/api/custody/v1/dataset':
-    post:
-      description: Create a new dataset
-      operationId: createDataset
-      tags:
-        - custody
-      parameters:
-        - in: body
-          name: dataset
-          description: Dataset to create
-          schema:
-            $ref: '#/definitions/DatasetModel'
-      responses:
-        201:
-          description: Created dataset id
-          schema:
-            $ref: '#/definitions/UniqueIdModel'
-        400:
-          description: Bad request - duplicate name, invalid name, badly formed
-        403:
-          description: No permission to create datasets
 
   ## Ingest Interface
 

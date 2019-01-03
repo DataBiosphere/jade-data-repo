@@ -50,7 +50,7 @@ public class ScenarioTest {
 
         // Should be released
         try {
-            FlightResult result2 = stairway.getResult(flightId);
+            stairway.getResult(flightId);
         } catch (FlightNotFoundException ex) {
             Assert.assertThat(ex.getMessage(), containsString(flightId));
         }

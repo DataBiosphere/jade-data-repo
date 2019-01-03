@@ -27,16 +27,16 @@ import static org.hamcrest.CoreMatchers.is;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class DatabaseOperationsTest {
-    PoolingDataSource<PoolableConnection> dataSource;
+    private PoolingDataSource<PoolableConnection> dataSource;
 
     @Autowired
-    MetadataJdbcConfiguration jdbcConfiguration;
+    private MetadataJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
         Properties props = new Properties();
-        props.setProperty("user",jdbcConfiguration.getUser());
-        props.setProperty("password",jdbcConfiguration.getPassword());
+        props.setProperty("user", jdbcConfiguration.getUser());
+        props.setProperty("password", jdbcConfiguration.getPassword());
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);
 
@@ -53,9 +53,9 @@ public class DatabaseOperationsTest {
 
     @Test
     public void basicsTest() throws Exception {
-        Integer intValue = new Integer(22);
+        Integer intValue = Integer.valueOf(22);
         String strValue = "testing 1 2 3";
-        Double dubValue = new Double(3.1415);
+        Double dubValue = new Double(Math.PI);
         String errString = "Something bad happened";
 
         Database database = createDatabase(true);
@@ -79,7 +79,7 @@ public class DatabaseOperationsTest {
         Assert.assertThat(recoveredFlight.getFlightClassName(), is(equalTo(flightContext.getFlightClassName())));
         Assert.assertThat(recoveredFlight.getStepIndex(), is(equalTo(0)));
         Assert.assertThat(recoveredFlight.isDoing(), is(true));
-        Assert.assertThat(recoveredFlight.getResult().isSuccess(), is (true));
+        Assert.assertThat(recoveredFlight.getResult().isSuccess(), is(true));
 
         SafeHashMap recoveredInputs = recoveredFlight.getInputParameters();
         Assert.assertThat(recoveredInputs.get("fkey", Double.class), is(equalTo(dubValue)));

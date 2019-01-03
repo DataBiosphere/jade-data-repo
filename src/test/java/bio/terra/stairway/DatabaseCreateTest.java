@@ -28,16 +28,16 @@ import static org.hamcrest.CoreMatchers.not;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class DatabaseCreateTest {
-    PoolingDataSource<PoolableConnection> dataSource;
+    private PoolingDataSource<PoolableConnection> dataSource;
 
     @Autowired
-    MetadataJdbcConfiguration jdbcConfiguration;
+    private MetadataJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
         Properties props = new Properties();
-        props.setProperty("user",jdbcConfiguration.getUser());
-        props.setProperty("password",jdbcConfiguration.getPassword());
+        props.setProperty("user", jdbcConfiguration.getUser());
+        props.setProperty("password", jdbcConfiguration.getPassword());
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);
 

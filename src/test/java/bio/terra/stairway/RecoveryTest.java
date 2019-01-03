@@ -62,17 +62,17 @@ import static org.hamcrest.Matchers.equalTo;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class RecoveryTest {
-    PoolingDataSource<PoolableConnection> dataSource;
-    ExecutorService executorService;
+    private PoolingDataSource<PoolableConnection> dataSource;
+    private ExecutorService executorService;
 
     @Autowired
-    MetadataJdbcConfiguration jdbcConfiguration;
+    private MetadataJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
         Properties props = new Properties();
-        props.setProperty("user",jdbcConfiguration.getUser());
-        props.setProperty("password",jdbcConfiguration.getPassword());
+        props.setProperty("user", jdbcConfiguration.getUser());
+        props.setProperty("password", jdbcConfiguration.getPassword());
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);
 

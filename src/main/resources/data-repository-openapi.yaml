@@ -90,7 +90,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/DatasetModel'
+              $ref: '#/definitions/DatasetSummary'
 
     post:
       description: Create a new dataset
@@ -100,16 +100,19 @@ paths:
         name: dataset
         description: Dataset to create
         schema:
-          $ref: '#/definitions/DatasetModel'
+          $ref: '#/definitions/DatasetRequest'
       responses:
         201:
-          description: Created dataset id
+          description: Created dataset summary
           schema:
-            $ref: '#/definitions/UniqueIdModel'
+            $ref: '#/definitions/DatasetSummary'
         400:
-          description: Bad request - duplicate name, invalid name, badly formed
+          description: Bad request - invalid name, badly formed
         403:
           description: No permission to create datasets
+        409:
+          description: Dataset with this name already exists
+
 
   '/api/repository/v1/datasets/{id}':
     get:  ## retrieve
@@ -157,7 +160,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/StudyModel'
+              $ref: '#/definitions/StudySummary'
 
     post:
       description: Create a new study
@@ -165,13 +168,14 @@ paths:
       parameters:
       - in: body
         name: study
+        description: Study to create
         schema:
-          $ref: '#/definitions/StudyModel'
+          $ref: '#/definitions/StudyRequest'
       responses:
         201:
-          description: Created study
+          description: Created study summary
           schema:
-            $ref: '#/definitions/UniqueIdModel'
+            $ref: '#/definitions/StudySummary'
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:
@@ -324,6 +328,41 @@ definitions:
     properties:
       id:
         $ref: '#/definitions/UniqueIdModel'
+      name:
+        $ref: '#/definitions/DatasetNameModel'
+      description:
+        type: string
+        description: Description of the study
+      default_dataset_id:
+        type: string
+        description: Id of the auto-generated default passthru dataset
+      custodians:
+        type: string
+        description: list of custodian (emails?)
+      owner:
+        type: string
+        description: owner (email?)
+      schema:
+        $ref: '#/definitions/DataModelModel'
+
+  StudySummary:
+    description: |
+      Summary description of a study.
+    type: object
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdModel'
+      name:
+        $ref: '#/definitions/DatasetNameModel'
+      description:
+        type: string
+        description: Description of the study
+
+  StudyRequest:
+    description: |
+      Complete description of a study without the id (used to create a study)
+    type: object
+    properties:
       name:
         $ref: '#/definitions/DatasetNameModel'
       description:
@@ -511,10 +550,61 @@ definitions:
         items:
           $ref: '#/definitions/DatasetSourceModel'
 
+  DatasetRequest:
+    description: |
+      complete dataset save the dataset id, for dataset creation
+      Schema is the shape of the resulting dataset: the table names and columns in the
+      tables. The datatypes are derived from the underlying data.
+      DatasetData provides the rows from the asset that are to be included in the
+      dataset. DatasetMapping instructs how to map columns from tables on the columns
+      in the dataset schema.
+      data_handling: immutable means we get explicit list of rows to show
+      passthru means we don't filter rows and take whatever is there
+    type: object
+    required:
+    - name
+    - schema
+    - data
+    - source
+    properties:
+      name:
+        $ref: '#/definitions/DatasetNameModel'
+      description:
+        type: string
+        description: Description of the dataset
+      data_handling:
+        $ref: '#/definitions/DatasetHandlingModel'
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/TableModel'
+      source:
+        type: array
+        items:
+          $ref: '#/definitions/DatasetSourceModel'
+
+  DatasetSummary:
+    description: |
+      summary of dataset
+    type: object
+    required:
+    - name
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdModel'
+      name:
+        $ref: '#/definitions/DatasetNameModel'
+      description:
+        type: string
+        description: Description of the dataset
+      num_assets:
+        type: string
+        description: Count of assets in the dataset # TODO where is this coming from though?
+
   DatasetHandlingModel:
     description: |
       We provide two modes for datasets. Immutable datasets do not change regardless of additions of new rows.
-      Passthru datasets do not filter on the rows; default datastes are passthru.
+      Passthru datasets do not filter on the rows; default datasets are passthru.
     type: string
     enum:
       - immutable

@@ -92,6 +92,25 @@ paths:
             items:
               $ref: '#/definitions/DatasetModel'
 
+    post:
+      description: Create a new dataset
+      operationId: createDataset
+      parameters:
+      - in: body
+        name: dataset
+        description: Dataset to create
+        schema:
+          $ref: '#/definitions/DatasetModel'
+      responses:
+        201:
+          description: Created dataset id
+          schema:
+            $ref: '#/definitions/UniqueIdModel'
+        400:
+          description: Bad request - duplicate name, invalid name, badly formed
+        403:
+          description: No permission to create datasets
+
   '/api/repository/v1/datasets/{id}':
     get:  ## retrieve
       description: Retrieve a dataset by id
@@ -139,6 +158,24 @@ paths:
             type: array
             items:
               $ref: '#/definitions/StudyModel'
+
+    post:
+      description: Create a new study
+      operationId: createStudy
+      parameters:
+      - in: body
+        name: study
+        schema:
+          $ref: '#/definitions/StudyModel'
+      responses:
+        201:
+          description: Created study
+          schema:
+            $ref: '#/definitions/UniqueIdModel'
+        400:
+          description: Bad request - duplicate name, invalid name, badly formed schema
+        403:
+          description: No permission to create studies
 
   '/api/repository/v1/studies/{id}':
     get:  ## retrieve

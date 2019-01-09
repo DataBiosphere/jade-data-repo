@@ -14,11 +14,13 @@ info:
      * /api    - is the authenticated and authorized Data Repository API
 
     The overall API (/api) supports several different interfaces:
-     * Access - accessing data from the repository
+     * Repository - a general and default interface for initial setup
      * Search - finding data in the repository
+     * Ingest - loading data into the repository
+
+     * Access - accessing data from the repository
      * Model - managing data models used in studies
      * Custody - managing studies, datasets, and access permissions
-     * Ingest - loading data into the repository
 
     The API endpoints are organized by interface. Each interface is separately versioned.
 
@@ -84,6 +86,8 @@ paths:
       description: |
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
+      tags:
+      - repository
       responses:
         200:
           description: List of datasets
@@ -95,6 +99,8 @@ paths:
     post:
       description: Create a new dataset
       operationId: createDataset
+      tags:
+      - repository
       parameters:
       - in: body
         name: dataset
@@ -118,6 +124,8 @@ paths:
     get:  ## retrieve
       description: Retrieve a dataset by id
       operationId: retrieveDataset
+      tags:
+      - repository
       parameters:
         - $ref: '#/parameters/Id'
       responses:
@@ -135,6 +143,8 @@ paths:
     delete: ## delete
       description: Delete a dataset by id
       operationId: deleteDataset
+      tags:
+      - repository
       parameters:
         - $ref: '#/parameters/Id'
       responses:
@@ -154,6 +164,8 @@ paths:
       description: |
         Returns a list of all of the studies the caller has access to
       operationId: enumerateStudies
+      tags:
+      - repository
       responses:
         200:
           description: List of studies
@@ -165,6 +177,8 @@ paths:
     post:
       description: Create a new study
       operationId: createStudy
+      tags:
+      - repository
       parameters:
       - in: body
         name: study
@@ -185,6 +199,8 @@ paths:
     get:  ## retrieve
       description: Retrieve a study by id
       operationId: retrieveStudy
+      tags:
+      - repository
       parameters:
       - $ref: '#/parameters/Id'
       responses:
@@ -202,6 +218,8 @@ paths:
     delete: ## delete
       description: Delete a study by id
       operationId: deleteStudy
+      tags:
+      - repository
       parameters:
       - $ref: '#/parameters/Id'
       responses:

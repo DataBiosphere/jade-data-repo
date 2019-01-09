@@ -126,11 +126,11 @@ paths:
           schema:
             $ref: '#/definitions/DatasetModel'
         400:
-          description: Bad request - dataset id does not exist, invalid id, badly formed
+          description: Bad request - invalid id, badly formed
         403:
           description: No permission to see dataset
         404:
-          description: Not found - either you can't see the dataset at all or it doesn't exist
+          description: Not found - dataset id does not exist
 
     delete: ## delete
       description: Delete a dataset by id
@@ -145,7 +145,7 @@ paths:
         403:
           description: No permission to delete dataset
         404:
-          description: Not found - either you can't see the dataset at all or it doesn't exist to delete
+          description: Not found - dataset id does not exist
         409:
           description: Dataset in use?
 
@@ -193,11 +193,11 @@ paths:
           schema:
             $ref: '#/definitions/StudyModel'
         400:
-          description: Bad request - study id does not exist, invalid id, badly formed
+          description: Bad request - invalid id, badly formed
         403:
           description: No permission to see study
         404:
-          description: Not found - either you can't see the study at all or it doesn't exist
+          description: Not found - study id does not exist
 
     delete: ## delete
       description: Delete a study by id
@@ -206,11 +206,13 @@ paths:
       - $ref: '#/parameters/Id'
       responses:
         204:
-          description: Study deleted successfully (or already did not exist)
+          description: Study deleted successfully
         400:
-          description: Bad request - invalid id, badly formed ## assuming invalid means cannot exist--not _does not_ exist
+          description: Bad request - invalid id, badly formed
         403:
           description: No permission to delete study
+        404:
+          description: Not found - study id does not exist
         409:
           description: Study in use by at least one dataset
 

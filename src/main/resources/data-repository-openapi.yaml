@@ -323,7 +323,7 @@ definitions:
 
   StudyModel:
     description: |
-      Complete description of a study.
+      Complete definition of a study.
     type: object
     properties:
       id:
@@ -347,7 +347,7 @@ definitions:
 
   StudySummary:
     description: |
-      Summary description of a study.
+      Summary of a study.
     type: object
     properties:
       id:
@@ -360,7 +360,7 @@ definitions:
 
   StudyRequest:
     description: |
-      Complete description of a study without the id (used to create a study)
+      Complete definition of a study without the id (used to create a study)
     type: object
     properties:
       name:
@@ -562,10 +562,10 @@ definitions:
       passthru means we don't filter rows and take whatever is there
     type: object
     required:
-    - name
-    - schema
-    - data
-    - source
+      - name
+      - schema
+      - data
+      - source
     properties:
       name:
         $ref: '#/definitions/DatasetNameModel'
@@ -597,9 +597,6 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-      num_assets:
-        type: string
-        description: Count of assets in the dataset # TODO where is this coming from though?
 
   DatasetHandlingModel:
     description: |

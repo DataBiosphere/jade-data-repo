@@ -15,12 +15,13 @@ info:
 
     The overall API (/api) supports several different interfaces:
      * Repository - a general and default interface for initial setup
-     * Search - finding data in the repository
      * Ingest - loading data into the repository
 
+     ## To be discussed and added at a later date
      * Access - accessing data from the repository
-     * Model - managing data models used in studies
      * Custody - managing studies, datasets, and access permissions
+     * Model - managing data models used in studies
+     * Search - finding data in the repository
 
     The API endpoints are organized by interface. Each interface is separately versioned.
 
@@ -234,27 +235,6 @@ paths:
         409:
           description: Study in use by at least one dataset
 
-
-  ## Search Interface
-  '/api/search/v1/dataset':
-    get:
-      description: |
-        Given a search query in the body, returns a list of matching dataset ids
-      operationId: datasetSearch
-      tags:
-        - search
-      parameters:
-        - in: body
-          name: search
-          schema:
-            $ref: '#/definitions/DatasetSearchModel'
-      responses:
-        200:
-          description: List of dataset ids
-          schema:
-            type: array
-            items:
-              $ref: '#/definitions/UniqueIdModel'
 
   ## Ingest Interface
 
@@ -687,21 +667,4 @@ definitions:
         $ref: '#/definitions/IdentifierNameModel'
       to_column:
         $ref: '#/definitions/IdentifierNameModel'
-
-  ## Search ##
-
-  DatasetSearchModel:
-    description: |
-      Eventually we will figure out how search works. This is totally a placeholder
-    type: object
-    required:
-      - method
-      - expr
-    properties:
-      method:
-        type: string
-        description: search method like text, facet, ontological, etc.
-      expr:
-        type: string
-        description: search expression
 

@@ -17,12 +17,6 @@ info:
      * Repository - a general and default interface for initial setup
      * Ingest - loading data into the repository
 
-     ## To be discussed and added at a later date
-     * Access - accessing data from the repository
-     * Custody - managing studies, datasets, and access permissions
-     * Model - managing data models used in studies
-     * Search - finding data in the repository
-
     The API endpoints are organized by interface. Each interface is separately versioned.
 
     ## Notes on Naming

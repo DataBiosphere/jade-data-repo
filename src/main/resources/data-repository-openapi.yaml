@@ -526,8 +526,6 @@ definitions:
       DatasetData provides the rows from the asset that are to be included in the
       dataset. DatasetMapping instructs how to map columns from tables on the columns
       in the dataset schema.
-      data_handling: immutable means we get explicit list of rows to show
-      passthru means we don't filter rows and take whatever is there
     type: object
     required:
       - name
@@ -542,8 +540,6 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-      data_handling:
-        $ref: '#/definitions/DatasetHandlingModel'
       tables:
         type: array
         items:
@@ -561,8 +557,6 @@ definitions:
       DatasetData provides the rows from the asset that are to be included in the
       dataset. DatasetMapping instructs how to map columns from tables on the columns
       in the dataset schema.
-      data_handling: immutable means we get explicit list of rows to show
-      passthru means we don't filter rows and take whatever is there
     type: object
     required:
       - name
@@ -575,8 +569,6 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-      data_handling:
-        $ref: '#/definitions/DatasetHandlingModel'
       tables:
         type: array
         items:
@@ -600,15 +592,6 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-
-  DatasetHandlingModel:
-    description: |
-      We provide two modes for datasets. Immutable datasets do not change regardless of additions of new rows.
-      Passthru datasets do not filter on the rows; default datasets are passthru.
-    type: string
-    enum:
-      - immutable
-      - passthru
 
   DatasetSourceModel:
     description: |

@@ -237,6 +237,42 @@ paths:
         409:
           description: Study in use by at least one dataset
 
+  '/api/repository/v1/jobs':
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the jobs the caller has access to
+      operationId: enumerateJobs
+      tags:
+      - repository
+      responses:
+        200:
+          description: List of jobs
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/JobModel'
+
+  '/api/repository/v1/jobs/{id}':
+    get:  ## retrieve
+      description: Retrieve a job's status by id
+      operationId: retrieveJob
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Job status
+          schema:
+            $ref: '#/definitions/JobModel'
+        303:
+          description: Redirect for object successful creation
+        400:
+          description: Bad request - invalid id, badly formed
+        403:
+          description: No permission to see job
+        404:
+          description: Not found - job id does not exist
 
   ## Ingest Interface
 

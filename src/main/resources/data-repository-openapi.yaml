@@ -103,10 +103,11 @@ paths:
         schema:
           $ref: '#/definitions/DatasetRequest'
       responses:
-        201:
-          description: Created dataset summary
-          schema:
-            $ref: '#/definitions/DatasetSummary'
+        202: # kicks off a create dataset job
+          description: Dataset creation job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
         400:
           description: Bad request - invalid name, badly formed
         403:
@@ -143,8 +144,11 @@ paths:
       parameters:
         - $ref: '#/parameters/Id'
       responses:
-        204:
-          description: Dataset deleted successfully
+        202: # kicks off a delete dataset job
+          description: Dataset deletion job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
         400:
           description: Bad request - invalid id, badly formed
         403:
@@ -181,10 +185,11 @@ paths:
         schema:
           $ref: '#/definitions/StudyRequest'
       responses:
-        201:
-          description: Created study summary
-          schema:
-            $ref: '#/definitions/StudySummary'
+        202: # kicks off a create study job
+          description: Study creation job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:
@@ -218,8 +223,11 @@ paths:
       parameters:
       - $ref: '#/parameters/Id'
       responses:
-        204:
-          description: Study deleted successfully
+        202: # kicks off a delete study job
+          description: Study deletion job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
         400:
           description: Bad request - invalid id, badly formed
         403:
@@ -240,7 +248,7 @@ paths:
         the bucket exactly matches the column sequence of the table
         AND that it has a header row
         AND that it is tab separated.
-      operationId: syncIngest    
+      operationId: syncIngest
       tags:
         - ingest
       parameters:
@@ -263,7 +271,7 @@ paths:
         200:
           description: OK
         400:
-          description: Bad request - 
+          description: Bad request -
           ## TODO: add a general error return - maybe use ErrorReport from SAM?
         403:
           description: No permission to access study; or no permission to access path
@@ -410,11 +418,11 @@ definitions:
       - table
       - column_list
       - cardinality
-      
+
     properties:
       table:
         $ref: '#/definitions/IdentifierNameModel'
-        
+
       column_list:
         type: array
         items:
@@ -659,3 +667,24 @@ definitions:
       to_column:
         $ref: '#/definitions/IdentifierNameModel'
 
+  JobModel:
+    description: |
+      status of job
+    type: object
+    required:
+    - id
+    - status
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdModel'
+      status:
+        description: status of job
+        type: string
+        enum:
+          - pending
+          - running
+          - succeeded
+          - failed
+      description:
+        type: string
+        description: Description of the job's flight

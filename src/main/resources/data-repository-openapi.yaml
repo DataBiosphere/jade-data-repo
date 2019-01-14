@@ -339,11 +339,12 @@ definitions:
         type: string
         description: Id of the auto-generated default passthru dataset
       custodians:
-        type: string
-        description: list of custodian (emails?)
+        type: array
+          items: string
+        description: Emails of users and groups who should have custodian access to this study
       owner:
         type: string
-        description: owner (email?)
+        description: Email of study owner
       schema:
         $ref: '#/definitions/DataModelModel'
 

@@ -4,8 +4,8 @@ public class TestStepIncrement implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        SafeHashMap inputs = context.getInputParameters();
-        SafeHashMap workingMap = context.getWorkingMap();
+        FlightMap inputs = context.getInputParameters();
+        FlightMap workingMap = context.getWorkingMap();
 
 
         Integer value = workingMap.get("value", Integer.class);
@@ -24,7 +24,7 @@ public class TestStepIncrement implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        SafeHashMap workingMap = context.getWorkingMap();
+        FlightMap workingMap = context.getWorkingMap();
         Integer value = workingMap.get("value", Integer.class);
         System.out.println("TestStepIncrement - undo - start value is: " + value);
 

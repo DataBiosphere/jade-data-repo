@@ -2,7 +2,7 @@ package bio.terra.stairway;
 
 public class TestFlightUndo extends Flight {
 
-    public TestFlightUndo(SafeHashMap inputParameters) {
+    public TestFlightUndo(FlightMap inputParameters) {
         super(inputParameters);
 
         // Pull out our parameters and feed them in to the step classes.

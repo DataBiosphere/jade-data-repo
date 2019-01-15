@@ -18,6 +18,8 @@ public class MetadataJdbcConfiguration {
         return uri;
     }
 
+    // NOTE: even though the setters appear unused, the Spring infrastructure uses them to populate
+    // the properties.
     public void setUri(String uri) {
         this.uri = uri;
     }

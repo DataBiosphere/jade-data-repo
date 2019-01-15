@@ -7,9 +7,9 @@ public class FlightTest {
 
     @Test(expected = StairwayExecutionException.class)
     public void testInvalidStepIndex() {
-        SafeHashMap sham = new SafeHashMap();
+        FlightMap sham = new FlightMap();
         Flight flight = new Flight(sham);
-        flight.context().stepIndex(-5);
+        flight.context().setStepIndex(-5);
         flight.call();
     }
 

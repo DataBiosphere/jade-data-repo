@@ -23,7 +23,7 @@ public class RetryTest {
     @Test
     public void fixedSuccessTest() {
         // Fixed interval where maxCount > failCount should succeed
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "fixed");
         inputParameters.put("failCount", Integer.valueOf(2));
         inputParameters.put("intervalSeconds", Integer.valueOf(2));
@@ -41,7 +41,7 @@ public class RetryTest {
         int intervalSeconds = 2;
         int maxCount = 3;
 
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "fixed");
         inputParameters.put("failCount", Integer.valueOf(100));
         inputParameters.put("intervalSeconds", Integer.valueOf(intervalSeconds));
@@ -64,7 +64,7 @@ public class RetryTest {
     @Test
     public void exponentialSuccessTest() {
         // Exponential with generous limits
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "exponential");
         inputParameters.put("failCount", Integer.valueOf(2));
         inputParameters.put("initialIntervalSeconds", Long.valueOf(1));
@@ -82,7 +82,7 @@ public class RetryTest {
     public void exponentialOpTimeFailureTest() {
         // Should fail by running out of operation time
         // Should go 2 + 4 + 8 + 16 - well over 10
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "exponential");
         inputParameters.put("failCount", Integer.valueOf(4));
         inputParameters.put("initialIntervalSeconds", Long.valueOf(2));
@@ -100,7 +100,7 @@ public class RetryTest {
         // Should succeed in 4 tries. The time should be capped by
         // the maxInterval of 4. That is,
         // 2 + 4 + 4 + 4 = 14 should be less than 2 + 4 + 8 + 16 = 30
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "exponential");
         inputParameters.put("failCount", Integer.valueOf(4));
         inputParameters.put("initialIntervalSeconds", Long.valueOf(2));

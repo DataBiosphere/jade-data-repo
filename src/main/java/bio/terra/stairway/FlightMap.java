@@ -13,22 +13,22 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * SafeHashMap wraps a HashMap<String, Object>
+ * FlightMap wraps a HashMap<String, Object>
  * It provides a subset of the HashMap methods. It localizes code that casts from Object to
  * the target type. It provides a way to set the map to be immutable.
  */
-public class SafeHashMap {
+public class FlightMap {
     private Map<String, Object> map;
     private ObjectMapper objectMapper;
 
-    public SafeHashMap() {
+    public FlightMap() {
         map = new HashMap<>();
     }
 
     /**
      * Convert the map to an unmodifiable form.
      */
-    public void setImmutable() {
+    public void makeImmutable() {
         map = Collections.unmodifiableMap(map);
     }
 
@@ -58,9 +58,6 @@ public class SafeHashMap {
         map.put(key, value);
     }
 
-    // TODO: Add other methods as they are needed
-
-
     public String toJson() {
         try {
             return getObjectMapper().writeValueAsString(map);
@@ -78,7 +75,7 @@ public class SafeHashMap {
     }
 
     /**
-     * Build object mapper on use, since we only need it for cases where the safe map is being read to
+     * Build object mapper on use, since we only need it for cases where the map is being read to
      * or written from the database.
      */
     private ObjectMapper getObjectMapper() {

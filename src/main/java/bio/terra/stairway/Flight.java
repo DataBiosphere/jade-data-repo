@@ -33,8 +33,8 @@ public class Flight implements Callable<FlightResult> {
     private Database database;
     private FlightContext flightContext;
 
-    public Flight(SafeHashMap inputParameters) {
-        flightContext = new FlightContext(inputParameters).flightClassName(this.getClass().getName());
+    public Flight(FlightMap inputParameters) {
+        flightContext = new FlightContext(inputParameters, this.getClass().getName());
         steps = new LinkedList<>();
     }
 
@@ -42,12 +42,12 @@ public class Flight implements Callable<FlightResult> {
         return flightContext;
     }
 
-    void setFlightContext(FlightContext flightContext) {
-        this.flightContext = flightContext;
+    public void setDatabase(Database database) {
+        this.database = database;
     }
 
-    void setDatabase(Database database) {
-        this.database = database;
+    public void setFlightContext(FlightContext flightContext) {
+        this.flightContext = flightContext;
     }
 
     // Used by subclasses to build the step list with default no-retry rule
@@ -66,6 +66,8 @@ public class Flight implements Callable<FlightResult> {
      */
     public FlightResult call() {
         try {
+            // Part 1 - running forward (doing). We either succeed or we record the failure and
+            // fall through to running backward (undoing)
             if (context().isDoing()) {
                 StepResult doResult = runSteps();
                 if (doResult.isSuccess()) {
@@ -73,19 +75,23 @@ public class Flight implements Callable<FlightResult> {
                 }
 
                 // Remember the failure from the do; that is what we want to return
-                context().result(doResult);
-                context().doing(false);
+                // after undo completes
+                context().setResult(doResult);
+                context().setDoing(false);
 
                 // Record the step failure and direction change in the database
                 database.step(context());
             }
 
+            // Part 2 - running backwards. We either succeed and return the original failure
+            // status or we have a 'dismal failure'
             StepResult undoResult = runSteps();
             if (undoResult.isSuccess()) {
                 // Return the error from the doResult - that is why we failed
                 return new FlightResult(context().getResult(), context().getWorkingMap());
             }
 
+            // Part 3 - dismal failure
             // Record the undo failure
             database.step(context());
 
@@ -123,7 +129,7 @@ public class Flight implements Callable<FlightResult> {
 
             database.step(context());
 
-            flightContext.nextStepIndex();
+            context().nextStepIndex();
         }
         return result;
     }
@@ -137,10 +143,10 @@ public class Flight implements Callable<FlightResult> {
         // Retry loop
         do {
             // Do or undo based on direction we are headed
-            if (flightContext.isDoing()) {
-                result = currentStep.step.doStep(flightContext);
+            if (context().isDoing()) {
+                result = currentStep.step.doStep(context());
             } else {
-                result = currentStep.step.undoStep(flightContext);
+                result = currentStep.step.undoStep(context());
 
             }
             switch (result.getStepStatus()) {
@@ -159,7 +165,7 @@ public class Flight implements Callable<FlightResult> {
     }
 
     private StepRetry getCurrentStep() {
-        int stepIndex = flightContext.getStepIndex();
+        int stepIndex = context().getStepIndex();
         if (stepIndex < 0 || stepIndex >= steps.size()) {
             throw new StairwayExecutionException("Invalid step index: " + stepIndex);
         }

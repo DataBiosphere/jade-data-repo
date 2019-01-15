@@ -47,10 +47,6 @@ public class Database {
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
     // Getters are package scoped for unit tests
-    static String getFlightSchemaVersion() {
-        return FLIGHT_SCHEMA_VERSION;
-    }
-
     static String getFlightVersionTable() {
         return FLIGHT_VERSION_TABLE;
     }
@@ -65,44 +61,21 @@ public class Database {
 
     private DataSource dataSource; // may be null, indicating database support is disabled
     private boolean forceCleanStart;
-    private String schemaName;  // may be null
-    private String nameStem;    // may be null
 
     // State used and computed as part of starting up the database.
     // Once the Database object is constructed, these are not changed.
-    private String flightTableName;
-    private String flightLogTableName;
-    private String flightVersionTableName;
     private boolean schemaExists;  // true if the schema exists in the database
     private String schemaVersion;  // version of the schema, if it exists
 
     public Database(DataSource dataSource,
-                    boolean forceCleanStart,
-                    String schemaName,
-                    String nameStem) {
+                    boolean forceCleanStart) {
 
         this.dataSource = dataSource;
         this.forceCleanStart = forceCleanStart;
-        this.schemaName = schemaName;
-        this.nameStem = nameStem;
 
         if (isDatabaseDisabled()) {
             return;
         }
-
-        // Compute the table names
-        String namePrefix;
-        if (schemaName == null) {
-            namePrefix = "";
-        } else {
-            namePrefix = schemaName + '.';
-        }
-        if (nameStem != null) {
-            namePrefix = namePrefix + nameStem + '_';
-        }
-        this.flightVersionTableName = namePrefix + FLIGHT_VERSION_TABLE;
-        this.flightTableName = namePrefix + FLIGHT_TABLE;
-        this.flightLogTableName = namePrefix + FLIGHT_LOG_TABLE;
 
         // Configure the database
         if (forceCleanStart) {
@@ -120,14 +93,15 @@ public class Database {
      * If tables exist, drop them and re-create them with the version in this code.
      */
     private void startClean() {
+        final String sqlDropTables = "DROP TABLE IF EXISTS " +
+                FLIGHT_VERSION_TABLE + "," +
+                FLIGHT_TABLE + "," +
+                FLIGHT_LOG_TABLE;
+
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
 
-            statement.executeUpdate(
-                    "DROP TABLE IF EXISTS " +
-                            flightVersionTableName + "," +
-                            flightTableName + "," +
-                            flightLogTableName);
+            statement.executeUpdate(sqlDropTables);
 
         } catch (SQLException ex) {
             throw new DatabaseSetupException("Failed to create database tables", ex);
@@ -154,7 +128,7 @@ public class Database {
             }
 
             // Schema exists. Pull out the schema version.
-            // TODO: make this more subtle. For now if the version doesn't exactly
+            // TODO: this will get factored out and we will use liquibase
             // match we barf.
             schemaVersion = readDatabaseSchemaVersion(statement);
             if (!StringUtils.equals(schemaVersion, FLIGHT_SCHEMA_VERSION)) {
@@ -170,10 +144,9 @@ public class Database {
     // Database accessors - package scoped so unit tests can use them
     boolean versionTableExists(Statement statement) throws SQLException {
         String query = "SELECT COUNT(*) AS version_table_count" +
-                " FROM information_schema.tables WHERE table_schema = '" +
-                (schemaName == null ? "public" : schemaName) +
-                "' AND table_name = '" +
-                (nameStem == null ? "" : nameStem + '_') + FLIGHT_VERSION_TABLE + "'";
+                " FROM information_schema.tables" +
+                " WHERE table_schema = 'public' AND table_name = '" +
+                FLIGHT_VERSION_TABLE + "'";
 
         try (ResultSet rs = statement.executeQuery(query)) {
             if (rs.next()) {
@@ -186,7 +159,7 @@ public class Database {
     }
 
     String readDatabaseSchemaVersion(Statement statement) throws SQLException {
-        try (ResultSet rs = statement.executeQuery("SELECT version FROM " + flightVersionTableName)) {
+        try (ResultSet rs = statement.executeQuery("SELECT version FROM " + FLIGHT_VERSION_TABLE)) {
             if (rs.next()) {
                 return rs.getString("version");
             }
@@ -196,7 +169,7 @@ public class Database {
 
     String readDatabaseSchemaCreateTime(Statement statement) throws SQLException {
         try (ResultSet rs = statement.executeQuery(
-                "SELECT create_time::text AS createtime FROM " + flightVersionTableName)) {
+                "SELECT create_time::text AS createtime FROM " + FLIGHT_VERSION_TABLE)) {
             if (rs.next()) {
                 return rs.getString("createtime");
             }
@@ -216,21 +189,17 @@ public class Database {
              Statement statement = connection.createStatement()) {
             connection.setAutoCommit(false);
 
-            if (schemaName != null) {
-                statement.executeUpdate("CREATE SCHEMA IF NOT EXISTS " + schemaName);
-            }
-
             statement.executeUpdate(
-                    "CREATE TABLE " + flightVersionTableName +
+                    "CREATE TABLE " + FLIGHT_VERSION_TABLE +
                             "(version VARCHAR(50)," +
                             " create_time TIMESTAMP)");
 
             statement.executeUpdate(
-                    "INSERT INTO " + flightVersionTableName +
+                    "INSERT INTO " + FLIGHT_VERSION_TABLE +
                             " VALUES('" + FLIGHT_SCHEMA_VERSION + "', CURRENT_TIMESTAMP)");
 
             statement.executeUpdate(
-                    "CREATE TABLE " + flightTableName +
+                    "CREATE TABLE " + FLIGHT_TABLE +
                             "(flightid VARCHAR(36) PRIMARY KEY," +
                             " submit_time TIMESTAMP NOT NULL," +
                             " class_name TEXT NOT NULL," +
@@ -241,7 +210,7 @@ public class Database {
                             " error_message TEXT)");
 
             statement.executeUpdate(
-                    "CREATE TABLE " + flightLogTableName +
+                    "CREATE TABLE " + FLIGHT_LOG_TABLE +
                             "(flightid VARCHAR(36)," +
                             " log_time TIMESTAMP NOT NULL," +
                             " working_parameters JSONB NOT NULL," +
@@ -272,7 +241,7 @@ public class Database {
              Statement statement = connection.createStatement()) {
 
             statement.executeUpdate(
-                    "INSERT INTO " + flightTableName +
+                    "INSERT INTO " + FLIGHT_TABLE +
                             "(flightId, submit_time, class_name, input_parameters) VALUES ('" +
                             flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
                             flightContext.getFlightClassName() + "', '" +
@@ -295,7 +264,7 @@ public class Database {
              Statement statement = connection.createStatement()) {
 
             statement.executeUpdate(
-                    "INSERT INTO " + flightLogTableName +
+                    "INSERT INTO " + FLIGHT_LOG_TABLE +
                             "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message)" +
                             " VALUES ('" +
                             flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
@@ -327,7 +296,7 @@ public class Database {
             // Make the update idempotent; that is, only do it if it has not already been done by
             // including the "succeeded IS NULL" predicate.
             statement.executeUpdate(
-                    "UPDATE " + flightTableName +
+                    "UPDATE " + FLIGHT_TABLE +
                             " SET completed_time = CURRENT_TIMESTAMP," +
                             " output_parameters = '" + flightContext.getWorkingMap().toJson() +
                             "', succeeded = " + boolString(flightContext.getResult().isSuccess()) +
@@ -337,7 +306,7 @@ public class Database {
 
             // The delete is harmless if it has been done before. We just won't find anything.
             statement.executeUpdate(
-                    "DELETE FROM " + flightLogTableName +
+                    "DELETE FROM " + FLIGHT_LOG_TABLE +
                             " WHERE flightid = '" + flightContext.getFlightId() + "'");
 
             connection.commit();
@@ -363,15 +332,15 @@ public class Database {
              ) {
 
             try (ResultSet rs = statement.executeQuery("SELECT flightid, class_name, input_parameters" +
-                    " FROM " + flightTableName +
+                    " FROM " + FLIGHT_TABLE +
                     " WHERE succeeded IS NULL")) {
                 while (rs.next()) {
-                    SafeHashMap inputParameters = new SafeHashMap();
+                    FlightMap inputParameters = new FlightMap();
                     inputParameters.fromJson(rs.getString("input_parameters"));
 
-                    FlightContext flightContext = new FlightContext(inputParameters)
-                            .flightId(rs.getString("flightid"))
-                            .flightClassName(rs.getString("class_name"));
+                    FlightContext flightContext = new FlightContext(inputParameters,
+                            rs.getString("class_name"));
+                    flightContext.setFlightId(rs.getString("flightid"));
                     flightList.add(flightContext);
                 }
             }
@@ -380,12 +349,14 @@ public class Database {
             // My reasoning is that the code is more obvious to understand and this is not
             // a performance-critical part of the processing; it happens once at startup.
             for (FlightContext flightContext : flightList) {
-                try (ResultSet rsflight = statement.executeQuery(
+                String sqlFlight =
                         "SELECT working_parameters, step_index, doing, succeeded, error_message" +
-                                " FROM (SELECT *, MAX(log_time) OVER (PARTITION BY flightid) AS max_log_time" +
-                                " FROM " + flightLogTableName + " WHERE flightid = '" +
-                                flightContext.getFlightId() + "') AS S" +
-                                " WHERE log_time = max_log_time")) {
+                                " FROM " + FLIGHT_LOG_TABLE +
+                                " WHERE flightid = '" + flightContext.getFlightId() + "' AND log_time = " +
+                                " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = '" +
+                                flightContext.getFlightId() + "')";
+
+                try (ResultSet rsflight = statement.executeQuery(sqlFlight)) {
 
                     // There may not be any log entries for a given flight. That happens if we fail after
                     // submit and before the first step. The defaults for flight context are correct for that
@@ -401,9 +372,9 @@ public class Database {
 
                         flightContext.getWorkingMap().fromJson(rsflight.getString("working_parameters"));
 
-                        flightContext.stepIndex(rsflight.getInt("step_index"))
-                                .doing(rsflight.getBoolean("doing"))
-                                .result(stepResult);
+                        flightContext.setStepIndex(rsflight.getInt("step_index"));
+                        flightContext.setDoing(rsflight.getBoolean("doing"));
+                        flightContext.setResult(stepResult);
                     }
                 }
             }
@@ -419,40 +390,11 @@ public class Database {
         return (value ? "true" : "false");
     }
 
-
-    // NOTE: getters are package scoped so that unit tests can access them. They are not intended for
-    // general use.
-    String getFlightTableName() {
-        return flightTableName;
-    }
-
-    String getFlightLogTableName() {
-        return flightLogTableName;
-    }
-
-    String getFlightVersionTableName() {
-        return flightVersionTableName;
-    }
-
-    boolean isSchemaExists() {
-        return schemaExists;
-    }
-
-    String getSchemaVersion() {
-        return schemaVersion;
-    }
-
-
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("dataSource", dataSource)
                 .append("forceCleanStart", forceCleanStart)
-                .append("schemaName", schemaName)
-                .append("nameStem", nameStem)
-                .append("flightTableName", flightTableName)
-                .append("flightLogTableName", flightLogTableName)
-                .append("flightVersionTableName", flightVersionTableName)
                 .append("schemaExists", schemaExists)
                 .append("schemaVersion", schemaVersion)
                 .toString();

@@ -2,7 +2,7 @@ package bio.terra.stairway;
 
 public class TestFlightRecovery extends Flight {
 
-    public TestFlightRecovery(SafeHashMap inputParameters) {
+    public TestFlightRecovery(FlightMap inputParameters) {
         super(inputParameters);
 
         // Step 1 - increment

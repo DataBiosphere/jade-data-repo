@@ -10,21 +10,21 @@ import java.util.Optional;
 public class FlightResult {
     private boolean success;
     private Optional<Throwable> throwable;
-    private SafeHashMap resultMap;
+    private FlightMap resultMap;
 
 
-    FlightResult(StepResult stepResult, SafeHashMap workingMap) {
+    FlightResult(StepResult stepResult, FlightMap workingMap) {
         this.success = (stepResult.getStepStatus() == StepStatus.STEP_RESULT_SUCCESS);
         this.throwable = stepResult.getThrowable();
         this.resultMap = workingMap;
-        this.resultMap.setImmutable();
+        this.resultMap.makeImmutable();
     }
 
     // Make a failed fatal flight result with an exception
     public static FlightResult flightResultFatal(Exception ex) {
         return new FlightResult(
                 new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex),
-                new SafeHashMap());
+                new FlightMap());
     }
 
     public boolean isSuccess() {
@@ -35,7 +35,7 @@ public class FlightResult {
         return throwable;
     }
 
-    public SafeHashMap getResultMap() {
+    public FlightMap getResultMap() {
         return resultMap;
     }
 

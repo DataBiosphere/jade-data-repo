@@ -4,7 +4,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class TestFlightRetry extends Flight {
 
-    public TestFlightRetry(SafeHashMap inputParameters) {
+    public TestFlightRetry(FlightMap inputParameters) {
         super(inputParameters);
 
         RetryRule retryRule;

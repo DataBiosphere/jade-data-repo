@@ -60,14 +60,13 @@ public class DatabaseOperationsTest {
 
         Database database = createDatabase(true);
 
-        SafeHashMap inputs = new SafeHashMap();
+        FlightMap inputs = new FlightMap();
         inputs.put("ikey", intValue);
         inputs.put("skey", strValue);
         inputs.put("fkey", dubValue);
 
-        FlightContext flightContext = new FlightContext(inputs)
-                .flightId("aaa111")
-                .flightClassName("notArealClass");
+        FlightContext flightContext = new FlightContext(inputs, "notArealClass");
+        flightContext.setFlightId("aaa111");
 
         database.submit(flightContext);
 
@@ -81,20 +80,21 @@ public class DatabaseOperationsTest {
         Assert.assertThat(recoveredFlight.isDoing(), is(true));
         Assert.assertThat(recoveredFlight.getResult().isSuccess(), is(true));
 
-        SafeHashMap recoveredInputs = recoveredFlight.getInputParameters();
+        FlightMap recoveredInputs = recoveredFlight.getInputParameters();
         Assert.assertThat(recoveredInputs.get("fkey", Double.class), is(equalTo(dubValue)));
         Assert.assertThat(recoveredInputs.get("skey", String.class), is(equalTo(strValue)));
         Assert.assertThat(recoveredInputs.get("ikey", Integer.class), is(equalTo(intValue)));
 
-        flightContext.stepIndex(1);
+        flightContext.setStepIndex(1);
         database.step(flightContext);
 
         Thread.sleep(1000);
 
-        flightContext.doing(false);
-        flightContext.result(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+        flightContext.setDoing(false);
+        flightContext.setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                 new IllegalArgumentException(errString)));
-        flightContext.stepIndex(2).doing(false);
+        flightContext.setStepIndex(2);
+        flightContext.setDoing(false);
         flightContext.getWorkingMap().put("wfkey", dubValue);
         flightContext.getWorkingMap().put("wikey", intValue);
         flightContext.getWorkingMap().put("wskey", strValue);
@@ -109,7 +109,7 @@ public class DatabaseOperationsTest {
         Assert.assertThat(recoveredFlight.getResult().isSuccess(), is(false));
         Assert.assertThat(recoveredFlight.getResult().getThrowable().get().toString(), containsString(errString));
 
-        SafeHashMap recoveredWork = recoveredFlight.getWorkingMap();
+        FlightMap recoveredWork = recoveredFlight.getWorkingMap();
         Assert.assertThat(recoveredWork.get("wfkey", Double.class), is(equalTo(dubValue)));
         Assert.assertThat(recoveredWork.get("wskey", String.class), is(equalTo(strValue)));
         Assert.assertThat(recoveredWork.get("wikey", Integer.class), is(equalTo(intValue)));
@@ -121,14 +121,7 @@ public class DatabaseOperationsTest {
     }
 
     private Database createDatabase(boolean forceCleanStart) {
-        Database database = new DatabaseBuilder()
-                .dataSource(dataSource)
-                .forceCleanStart(forceCleanStart)
-                .build();
-        return database;
+        return new Database(dataSource, forceCleanStart);
     }
-
-
-
 
 }

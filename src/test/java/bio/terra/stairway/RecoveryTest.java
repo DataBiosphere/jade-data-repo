@@ -92,9 +92,9 @@ public class RecoveryTest {
     @Test
     public void successTest() throws Exception {
         // Start with a clean and shiny database environment.
-        Stairway stairway1 = new Stairway(executorService, dataSource, null, null, true);
+        Stairway stairway1 = new Stairway(executorService, dataSource, true);
 
-        SafeHashMap inputs = new SafeHashMap();
+        FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(0);
         inputs.put("initialValue", initialValue);
 
@@ -112,7 +112,7 @@ public class RecoveryTest {
 
         // Simulate a restart with a new thread pool and stairway. Set control so this one does not sleep
         TestStopController.setControl(1);
-        Stairway stairway2 = new Stairway(executorService, dataSource, null, null, false);
+        Stairway stairway2 = new Stairway(executorService, dataSource, false);
 
         // Wait for recovery to complete
         FlightResult result = stairway2.getResult(flightId);
@@ -124,9 +124,9 @@ public class RecoveryTest {
     @Test
     public void undoTest() throws Exception {
         // Start with a clean and shiny database environment.
-        Stairway stairway1 = new Stairway(executorService, dataSource, null, null, true);
+        Stairway stairway1 = new Stairway(executorService, dataSource, true);
 
-        SafeHashMap inputs = new SafeHashMap();
+        FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(2);
         inputs.put("initialValue", initialValue);
 
@@ -145,7 +145,7 @@ public class RecoveryTest {
 
         // Simulate a restart with a new thread pool and stairway. Reset control so this one does not sleep
         TestStopController.setControl(1);
-        Stairway stairway2 = new Stairway(executorService, dataSource, null, null, false);
+        Stairway stairway2 = new Stairway(executorService, dataSource, false);
 
         // Wait for recovery to complete
         FlightResult result = stairway2.getResult(flightId);

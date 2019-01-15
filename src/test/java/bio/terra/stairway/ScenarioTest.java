@@ -32,7 +32,7 @@ public class ScenarioTest {
         System.out.println("Filename: " + filename);
 
         // Submit the test flight
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("filename", filename);
         inputParameters.put("text", "testing 1 2 3");
 
@@ -62,7 +62,7 @@ public class ScenarioTest {
         String filename = makeExistingFile();
 
         // Submit the test flight
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("filename", filename);
         inputParameters.put("text", "testing 1 2 3");
 
@@ -100,7 +100,7 @@ public class ScenarioTest {
         String filename = makeFilename();
 
         // Submit the test flight
-        SafeHashMap inputParameters = new SafeHashMap();
+        FlightMap inputParameters = new FlightMap();
         inputParameters.put("filename", filename);
         inputParameters.put("existingFilename", existingFilename);
         inputParameters.put("text", "testing 1 2 3");

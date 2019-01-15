@@ -2,7 +2,7 @@ package bio.terra.stairway;
 
 public class TestFlightRecoveryUndo extends Flight {
 
-    public TestFlightRecoveryUndo(SafeHashMap inputParameters) {
+    public TestFlightRecoveryUndo(FlightMap inputParameters) {
         super(inputParameters);
 
         // Step 0 - increment

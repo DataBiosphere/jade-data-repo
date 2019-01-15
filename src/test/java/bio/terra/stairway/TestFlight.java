@@ -2,7 +2,7 @@ package bio.terra.stairway;
 
 public class TestFlight extends Flight {
 
-    public TestFlight(SafeHashMap inputParameters) {
+    public TestFlight(FlightMap inputParameters) {
         super(inputParameters);
 
         // Pull out our parameters and feed them in to the step classes.

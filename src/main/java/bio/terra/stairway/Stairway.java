@@ -3,6 +3,7 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Constructor;
@@ -19,9 +20,7 @@ import java.util.concurrent.FutureTask;
  * with inputs that allow the caller to specify the thread pool, the database source, and the
  * table name stem to use.
  *
- * Each Stairway runs, logs, and recovers independently. The table name stem allows the
- * Stairway to have its backing store in a database that is used by other things in the application.
- * Also, one database can be used to hold the backing store for more than one Stairway.
+ * Each Stairway runs, logs, and recovers independently.
  */
 public class Stairway {
     // For each task we start, we make a task context. It lets us look up the results
@@ -46,15 +45,12 @@ public class Stairway {
     }
 
     private ConcurrentHashMap<String, TaskContext> taskContextMap;
-
     private ExecutorService threadPool;
     private DataSource dataSource;
-    private String schemaName;
-    private String nameStem;
     private Database database;
 
     public Stairway(ExecutorService threadPool) {
-        this(threadPool, null, null, null, true);
+        this(threadPool, null, true);
     }
 
     /**
@@ -62,23 +58,16 @@ public class Stairway {
      * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
      * @param dataSource optional - if null, no database operations are performed.
      *                   That is enforced in the {@link Database} class.
-     * @param schemaName optional - if null, no schema is created/used.
-     * @param nameStem optional - if null, no table prefix is used. Otherwise tables are named like
-     *                 nameStem + '_' + tableName
      * @param forceCleanStart true will drop any existing stairway database tables and recreate them from scratch.
      *                        false will validate the schema version matches, and recovery any incomplete flights.
      */
     public Stairway(ExecutorService threadPool,
                     DataSource dataSource,
-                    String schemaName,
-                    String nameStem,
                     boolean forceCleanStart) {
         this.threadPool = threadPool;
         this.dataSource = dataSource;
-        this.schemaName = schemaName;
-        this.nameStem = nameStem;
         this.taskContextMap = new ConcurrentHashMap<>();
-        this.database = new Database(dataSource, forceCleanStart, schemaName, nameStem);
+        this.database = new Database(dataSource, forceCleanStart);
         if (!forceCleanStart) {
             recoverFlights();
         }
@@ -91,7 +80,7 @@ public class Stairway {
      * @param inputParameters key-value map of parameters to the flight
      * @return unique flight id of the submitted flight
      */
-    public String submit(Class<? extends Flight> flightClass, SafeHashMap inputParameters) {
+    public String submit(Class<? extends Flight> flightClass, FlightMap inputParameters) {
         if (flightClass == null || inputParameters == null) {
             throw new MakeFlightException("Must supply non-null flightClass and inputParameters to submit");
         }
@@ -99,7 +88,7 @@ public class Stairway {
 
         // Generate the sequence id as a UUID. We have no dependency on database id generation and no
         // confusion with small integers that might be accidentally valid.
-        flight.context().flightId(UUID.randomUUID().toString());
+        flight.context().setFlightId(UUID.randomUUID().toString());
 
         database.submit(flight.context());
 
@@ -195,11 +184,11 @@ public class Stairway {
      * @param inputParameters key-value map of parameters to the flight
      * @return flight object suitable for submitting for execution
      */
-    private Flight makeFlight(Class<? extends Flight> flightClass, SafeHashMap inputParameters) {
+    private Flight makeFlight(Class<? extends Flight> flightClass, FlightMap inputParameters) {
         try {
             // Find the flightClass constructor that takes the input parameter map and
             // use it to make the flight.
-            Constructor constructor = flightClass.getConstructor(SafeHashMap.class);
+            Constructor constructor = flightClass.getConstructor(FlightMap.class);
             Flight flight = (Flight)constructor.newInstance(inputParameters);
             return flight;
         } catch (InvocationTargetException |
@@ -216,7 +205,7 @@ public class Stairway {
      *
      * We use the class name to store and retrieve from the database when we recover.
      */
-    private Flight makeFlightFromName(String className, SafeHashMap inputMap) {
+    private Flight makeFlightFromName(String className, FlightMap inputMap) {
         try {
             Class<?> someClass = Class.forName(className);
             if (Flight.class.isAssignableFrom(someClass)) {
@@ -235,12 +224,10 @@ public class Stairway {
 
     @Override
     public String toString() {
-        return new ToStringBuilder(this)
+        return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("taskContextMap", taskContextMap)
                 .append("threadPool", threadPool)
                 .append("dataSource", dataSource)
-                .append("schemaName", schemaName)
-                .append("nameStem", nameStem)
                 .append("database", database)
                 .toString();
     }

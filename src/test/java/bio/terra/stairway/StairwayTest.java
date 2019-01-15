@@ -11,18 +11,18 @@ import java.util.concurrent.Executors;
 // Stairway class tests - mostly validating error conditions
 public class StairwayTest {
     private Stairway stairway;
-    private SafeHashMap safeHashMap;
+    private FlightMap flightMap;
 
     @Before
     public void setup() {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         stairway = new Stairway(executorService);
-        safeHashMap = new SafeHashMap();
+        flightMap = new FlightMap();
     }
 
     @Test(expected = MakeFlightException.class)
     public void testNullFlightClass() {
-        stairway.submit(null, safeHashMap);
+        stairway.submit(null, flightMap);
     }
 
     @Test(expected = MakeFlightException.class)

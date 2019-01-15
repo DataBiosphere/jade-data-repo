@@ -72,53 +72,7 @@ public class DatabaseCreateTest {
     }
 
     private Database createDatabase(boolean forceCleanStart) {
-        Database database = new DatabaseBuilder()
-                .dataSource(dataSource)
-                .forceCleanStart(forceCleanStart)
-                .build();
-        Assert.assertThat(database.getFlightLogTableName(), is(equalTo(Database.getFlightLogTable())));
-        Assert.assertThat(database.getFlightTableName(), is(equalTo(Database.getFlightTable())));
-        Assert.assertThat(database.getFlightVersionTableName(), is(equalTo(Database.getFlightVersionTable())));
-        return database;
-    }
-
-    @Test
-    public void createWithSchemaTest() throws Exception {
-        // Start clean
-        Database database = createDatabaseWithSchema(true);
-        String createtime = getCreateTime(database);
-
-        database = createDatabaseWithSchema(false);
-
-        // Dirty start should not overwrite the database
-        String createtime2 = getCreateTime(database);
-        Assert.assertThat(createtime2, is(equalTo(createtime)));
-
-        database = createDatabaseWithSchema(true);
-
-        // Clean start should overwrite the database
-        String createtime3 = getCreateTime(database);
-        Assert.assertThat(createtime3, not(equalTo(createtime)));
-    }
-
-    private Database createDatabaseWithSchema(boolean forceCleanStart) {
-        String testSchema = "stairwaytest";
-        String stem = "prefix";
-        String namePrefix = testSchema + '.' + stem + '_';
-
-        Database database = new DatabaseBuilder()
-                .dataSource(dataSource)
-                .schemaName(testSchema)
-                .nameStem(stem)
-                .forceCleanStart(forceCleanStart)
-                .build();
-        Assert.assertThat(database.getFlightLogTableName(),
-                is(equalTo(namePrefix + Database.getFlightLogTable())));
-        Assert.assertThat(database.getFlightTableName(),
-                is(equalTo(namePrefix + Database.getFlightTable())));
-        Assert.assertThat(database.getFlightVersionTableName(),
-                is(equalTo(namePrefix + Database.getFlightVersionTable())));
-        return database;
+        return new Database(dataSource, forceCleanStart);
     }
 
     private String getCreateTime(Database database) throws Exception {

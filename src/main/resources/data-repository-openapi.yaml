@@ -376,7 +376,8 @@ definitions:
         description: Id of the auto-generated default passthru dataset
       custodians:
         type: array
-          items: string
+        items:
+          type: string
         description: Emails of users and groups who should have custodian access to this study
       owner:
         type: string

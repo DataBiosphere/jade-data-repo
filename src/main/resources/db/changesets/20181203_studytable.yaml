@@ -8,45 +8,62 @@ databaseChangeLog:
             columns:
               - column:
                   name: id
-                  type: UUID
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
                   constraints:
                     primaryKey: true
                     nullable: false
               - column:
                   name: name
-                  type: varchar(1000)
+                  type: varchar(1024)
                   constraints:
                     nullable: false
+              - column:
+                  name: description
+                  type: varchar(2048)
+                  constraints:
+                    nullable: true
 
         - createTable:
-            tableName: table_def
+            tableName: study_table
             columns:
               - column:
                   name: id
-                  type: int
-                  autoIncrement: true
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
                   constraints:
                     primaryKey: true
                     nullable: false
+              - column:
+                  name: study_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_table_study
+                    references: study(id)
               - column:
                   name: name
                   type: varchar(128)
                   constraints:
-                        nullable: false
+                    nullable: false
 
         - createTable:
-            tableName: column_def
+            tableName: study_column
             columns:
               - column:
                   name: id
-                  type: int
-                  autoIncrement: true
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
                   constraints:
                     primaryKey: true
                     nullable: false
               - column:
                   name: table_id
-                  type: int
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_column_study_table
+                    references: study_table(id)
               - column:
                   name: name
                   type: varchar(256)
@@ -55,55 +72,137 @@ databaseChangeLog:
                   type: varchar(128)
 
         - createTable:
-            tableName: relationship
-            columns:
-            - column:
-                name: id
-                type: int
-                autoIncrement: true
-                constraints:
-                  primaryKey: true
-                  nullable: false
-            - column:
-                name: name
-                type: varchar(256)
-            - column:
-                name: from_cardinality
-                type: varchar(32)
-            - column:
-                name: to_cardinality
-                type: varchar(32)
-            - column:
-                name: from_column
-                type: int
-            - column:
-                name: to_column
-                type: int
-
-        - createTable:
-            tableName: dataset
+            tableName: study_relationship
             columns:
               - column:
                   name: id
-                  type: UUID
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(256)
+              - column:
+                  name: from_cardinality
+                  type: varchar(32)
+              - column:
+                  name: to_cardinality
+                  type: varchar(32)
+              - column:
+                  name: from_column
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_relationship_study_column_from
+                    references: study_column(id)
+              - column:
+                  name: to_column
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_relationship_study_column_to
+                    references: study_column(id)
+
+        - createTable:
+            tableName: asset_specification
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
                   constraints:
                     primaryKey: true
                     nullable: false
               - column:
                   name: study_id
-                  type: UUID
+                  type: ${uuid_type}
                   constraints:
                     nullable: false
-                    references:
-                      tableName: study
-                      columnName: id
+                    foreignKeyName: fk_asset_specification_study
+                    references: study(id)
               - column:
                   name: name
-                  type: varchar(1000)
+                  type: varchar(256)
+
+        - createTable:
+            tableName: asset_table
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
                   constraints:
+                    primaryKey: true
                     nullable: false
               - column:
-                  name: sam_resource_id
-                  type: varchar(1000)
+                  name: asset_id
+                  type: ${uuid_type}
                   constraints:
                     nullable: false
+                    foreignKeyName: fk_asset_table_asset_specification
+                    references: asset_specification(id)
+              - column:
+                  name: table_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_table_study_table
+                    references: study_table(id)
+              - column:
+                  name: is_root
+                  type: boolean
+
+        - createTable:
+            tableName: asset_column
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: asset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_column_asset_specification
+                    references: asset_specification(id)
+              - column:
+                  name: column_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_column_study_column
+                    references: study_column(id)
+              - column:
+                  name: destination_name
+                  type: varchar(256)
+
+        - createTable:
+            tableName: asset_relationship
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: asset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_relationship_asset_specification
+                    references: asset_specification(id)
+              - column:
+                  name: relationship_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_relationship_study_relationship
+                    references: study_relationship(id)

@@ -15,9 +15,10 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: name
-                  type: varchar(1024)
+                  type: varchar(63)
                   constraints:
                     nullable: false
+                    unique: true
               - column:
                   name: description
                   type: varchar(2048)
@@ -43,7 +44,7 @@ databaseChangeLog:
                     references: study(id)
               - column:
                   name: name
-                  type: varchar(128)
+                  type: varchar(63)
                   constraints:
                     nullable: false
 
@@ -66,10 +67,10 @@ databaseChangeLog:
                     references: study_table(id)
               - column:
                   name: name
-                  type: varchar(256)
+                  type: varchar(63)
               - column:
                   name: type
-                  type: varchar(128)
+                  type: varchar(127)
 
         - createTable:
             tableName: study_relationship
@@ -83,7 +84,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: name
-                  type: varchar(256)
+                  type: varchar(63)
               - column:
                   name: from_cardinality
                   type: varchar(32)
@@ -124,35 +125,14 @@ databaseChangeLog:
                     references: study(id)
               - column:
                   name: name
-                  type: varchar(256)
-
-        - createTable:
-            tableName: asset_table
-            columns:
+                  type: varchar(63)
               - column:
-                  name: id
-                  type: ${uuid_type}
-                  defaultValueComputed: ${uuid_function}
-                  constraints:
-                    primaryKey: true
-                    nullable: false
-              - column:
-                  name: asset_id
+                  name: root_table_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_asset_table_asset_specification
-                    references: asset_specification(id)
-              - column:
-                  name: table_id
-                  type: ${uuid_type}
-                  constraints:
-                    nullable: false
-                    foreignKeyName: fk_asset_table_study_table
+                    foreignKeyName: fk_asset_specification_study_table
                     references: study_table(id)
-              - column:
-                  name: is_root
-                  type: boolean
 
         - createTable:
             tableName: asset_column
@@ -172,15 +152,12 @@ databaseChangeLog:
                     foreignKeyName: fk_asset_column_asset_specification
                     references: asset_specification(id)
               - column:
-                  name: column_id
+                  name: study_column_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
                     foreignKeyName: fk_asset_column_study_column
                     references: study_column(id)
-              - column:
-                  name: destination_name
-                  type: varchar(256)
 
         - createTable:
             tableName: asset_relationship

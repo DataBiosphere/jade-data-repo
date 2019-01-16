@@ -12,8 +12,16 @@ jdk:
   - oraclejdk8
   - openjdk8
 
+addons:
+  postgresql: "9.6"
+
 services:
-- docker
+  - docker
+  - postgresql
+
+before_script:
+  - cp config/application.properties ~/drmetadata_test.properties
+  - psql -c 'create database drmanager' -U postgres
 
 deploy:
   provider: script

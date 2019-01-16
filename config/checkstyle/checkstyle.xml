@@ -19,7 +19,7 @@ page at http://checkstyle.sourceforge.net/config.html -->
         <!-- Formatting -->
         <module name="Indentation">
             <property name="basicOffset" value="4" />
-            <property name="caseIndent" value="0" />
+            <property name="caseIndent" value="4" />
         </module>
         <module name="LineLength">
             <property name="max" value="120" />
@@ -66,7 +66,7 @@ page at http://checkstyle.sourceforge.net/config.html -->
         <module name="SimplifyBooleanExpression" />
         <module name="SimplifyBooleanReturn" />
         <module name="StringLiteralEquality" />
-        <module name="IllegalCatch" />
+<!--        <module name="IllegalCatch" />  This prevents general-purpose catches in test. Disabling for now. -->
         <module name="IllegalThrows" />
         <module name="ExplicitInitialization" /> <!-- May as well let Java do what its going to do -->
         <module name="DefaultComesLast" />

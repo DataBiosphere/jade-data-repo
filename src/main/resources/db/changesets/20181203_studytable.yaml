@@ -15,7 +15,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: name
-                  type: varchar(63)
+                  type: ${identifier_type}
                   constraints:
                     nullable: false
                     unique: true
@@ -44,7 +44,7 @@ databaseChangeLog:
                     references: study(id)
               - column:
                   name: name
-                  type: varchar(63)
+                  type: ${identifier_type}
                   constraints:
                     nullable: false
 
@@ -67,7 +67,7 @@ databaseChangeLog:
                     references: study_table(id)
               - column:
                   name: name
-                  type: varchar(63)
+                  type: ${identifier_type}
               - column:
                   name: type
                   type: varchar(127)
@@ -84,7 +84,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: name
-                  type: varchar(63)
+                  type: ${identifier_type}
               - column:
                   name: from_cardinality
                   type: varchar(32)
@@ -125,7 +125,7 @@ databaseChangeLog:
                     references: study(id)
               - column:
                   name: name
-                  type: varchar(63)
+                  type: ${identifier_type}
               - column:
                   name: root_table_id
                   type: ${uuid_type}

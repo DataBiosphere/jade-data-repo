@@ -3,13 +3,13 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -35,11 +35,6 @@ import java.util.List;
  * If dataSource is null, then database support is disabled. The entrypoints all work,
  * but no database operations are performed.
  */
-@SuppressFBWarnings(
-        value = "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE",
-        justification = "The current state is low risk since we own all of the input values. Still," +
-        " it would be best practice to fix it.")
-
 public class Database {
     private static String FLIGHT_SCHEMA_VERSION = "0.1.0";
     private static String FLIGHT_VERSION_TABLE = "flightversion";
@@ -143,12 +138,12 @@ public class Database {
 
     // Database accessors - package scoped so unit tests can use them
     boolean versionTableExists(Statement statement) throws SQLException {
-        String query = "SELECT COUNT(*) AS version_table_count" +
+        final String sqlInfoSchemaLookup = "SELECT COUNT(*) AS version_table_count" +
                 " FROM information_schema.tables" +
                 " WHERE table_schema = 'public' AND table_name = '" +
                 FLIGHT_VERSION_TABLE + "'";
 
-        try (ResultSet rs = statement.executeQuery(query)) {
+        try (ResultSet rs = statement.executeQuery(sqlInfoSchemaLookup)) {
             if (rs.next()) {
                 int tableCount = rs.getInt("version_table_count");
                 return (tableCount == 1);
@@ -203,9 +198,9 @@ public class Database {
                             "(flightid VARCHAR(36) PRIMARY KEY," +
                             " submit_time TIMESTAMP NOT NULL," +
                             " class_name TEXT NOT NULL," +
-                            " input_parameters JSONB," +
+                            " input_parameters TEXT," +
                             " completed_time TIMESTAMP," +
-                            " output_parameters JSONB," +
+                            " output_parameters TEXT," +
                             " succeeded BOOLEAN," +
                             " error_message TEXT)");
 
@@ -213,7 +208,7 @@ public class Database {
                     "CREATE TABLE " + FLIGHT_LOG_TABLE +
                             "(flightid VARCHAR(36)," +
                             " log_time TIMESTAMP NOT NULL," +
-                            " working_parameters JSONB NOT NULL," +
+                            " working_parameters TEXT NOT NULL," +
                             " step_index INTEGER NOT NULL," +
                             " doing BOOLEAN NOT NULL," + // true = forward; false = backward
                             " succeeded BOOLEAN," + // null = not done; true = success; false = failure
@@ -237,15 +232,17 @@ public class Database {
             return;
         }
 
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+        final String sqlInsertFlight =
+                "INSERT INTO " + FLIGHT_TABLE +
+                        "(flightId, submit_time, class_name, input_parameters) VALUES (?, CURRENT_TIMESTAMP, ?, ?)";
 
-            statement.executeUpdate(
-                    "INSERT INTO " + FLIGHT_TABLE +
-                            "(flightId, submit_time, class_name, input_parameters) VALUES ('" +
-                            flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
-                            flightContext.getFlightClassName() + "', '" +
-                            flightContext.getInputParameters().toJson() + "')");
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sqlInsertFlight)) {
+
+            statement.setString(1, flightContext.getFlightId());
+            statement.setString(2, flightContext.getFlightClassName());
+            statement.setString(3, flightContext.getInputParameters().toJson());
+            statement.executeUpdate();
 
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to create database tables", ex);
@@ -260,19 +257,22 @@ public class Database {
             return;
         }
 
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+        final String sqlInsertFlightLog =
+                "INSERT INTO " + FLIGHT_LOG_TABLE +
+                        "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message)" +
+                        " VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
 
-            statement.executeUpdate(
-                    "INSERT INTO " + FLIGHT_LOG_TABLE +
-                            "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message)" +
-                            " VALUES ('" +
-                            flightContext.getFlightId() + "', CURRENT_TIMESTAMP, '" +
-                            flightContext.getWorkingMap().toJson() + "'," +
-                            flightContext.getStepIndex() + "," +
-                            boolString(flightContext.isDoing()) + "," +
-                            boolString(flightContext.getResult().isSuccess()) + ", '" +
-                            flightContext.getResult().getErrorMessage() + "')");
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sqlInsertFlightLog)) {
+
+            statement.setString(1, flightContext.getFlightId());
+            statement.setString(2, flightContext.getWorkingMap().toJson());
+            statement.setInt(3, flightContext.getStepIndex());
+            statement.setBoolean(4, flightContext.isDoing());
+            statement.setBoolean(5, flightContext.getResult().isSuccess());
+            statement.setString(6, flightContext.getResult().getErrorMessage());
+
+            statement.executeUpdate();
 
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to log step", ex);
@@ -289,25 +289,32 @@ public class Database {
             return;
         }
 
+        // Make the update idempotent; that is, only do it if it has not already been done by
+        // including the "succeeded IS NULL" predicate.
+        final String sqlUpdateFlight =
+                "UPDATE " + FLIGHT_TABLE +
+                        " SET completed_time = CURRENT_TIMESTAMP," +
+                        " output_parameters = ?, succeeded = ?, error_message = ?" +
+                        " WHERE flightid = ? AND succeeded IS NULL";
+
+
+        // The delete is harmless if it has been done before. We just won't find anything.
+        final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = ?";
+
+
         try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
+             PreparedStatement statement = connection.prepareStatement(sqlUpdateFlight);
+             PreparedStatement deleteStatement = connection.prepareStatement(sqlDeleteFlightLog)) {
             connection.setAutoCommit(false);
 
-            // Make the update idempotent; that is, only do it if it has not already been done by
-            // including the "succeeded IS NULL" predicate.
-            statement.executeUpdate(
-                    "UPDATE " + FLIGHT_TABLE +
-                            " SET completed_time = CURRENT_TIMESTAMP," +
-                            " output_parameters = '" + flightContext.getWorkingMap().toJson() +
-                            "', succeeded = " + boolString(flightContext.getResult().isSuccess()) +
-                            ", error_message = '" + flightContext.getResult().getErrorMessage() +
-                            "' WHERE flightid = '" + flightContext.getFlightId() +
-                            "' AND succeeded IS NULL");
+            statement.setString(1, flightContext.getWorkingMap().toJson());
+            statement.setBoolean(2, flightContext.getResult().isSuccess());
+            statement.setString(3, flightContext.getResult().getErrorMessage());
+            statement.setString(4, flightContext.getFlightId());
+            statement.executeUpdate();
 
-            // The delete is harmless if it has been done before. We just won't find anything.
-            statement.executeUpdate(
-                    "DELETE FROM " + FLIGHT_LOG_TABLE +
-                            " WHERE flightid = '" + flightContext.getFlightId() + "'");
+            deleteStatement.setString(1, flightContext.getFlightId());
+            statement.executeUpdate();
 
             connection.commit();
 
@@ -327,13 +334,21 @@ public class Database {
 
         List<FlightContext> flightList = new LinkedList<>();
 
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement();
-             ) {
+        final String sqlActiveFlights = "SELECT flightid, class_name, input_parameters" +
+                " FROM " + FLIGHT_TABLE +
+                " WHERE succeeded IS NULL";
 
-            try (ResultSet rs = statement.executeQuery("SELECT flightid, class_name, input_parameters" +
-                    " FROM " + FLIGHT_TABLE +
-                    " WHERE succeeded IS NULL")) {
+        final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing, succeeded, error_message" +
+                " FROM " + FLIGHT_LOG_TABLE +
+                " WHERE flightid = ? AND log_time = " +
+                " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = ?)";
+
+
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement activeFlightsStatement = connection.prepareStatement(sqlActiveFlights);
+             PreparedStatement lastFlightLogStatement = connection.prepareStatement(sqlLastFlightLog)) {
+
+            try (ResultSet rs = activeFlightsStatement.executeQuery()) {
                 while (rs.next()) {
                     FlightMap inputParameters = new FlightMap();
                     inputParameters.fromJson(rs.getString("input_parameters"));
@@ -349,14 +364,11 @@ public class Database {
             // My reasoning is that the code is more obvious to understand and this is not
             // a performance-critical part of the processing; it happens once at startup.
             for (FlightContext flightContext : flightList) {
-                String sqlFlight =
-                        "SELECT working_parameters, step_index, doing, succeeded, error_message" +
-                                " FROM " + FLIGHT_LOG_TABLE +
-                                " WHERE flightid = '" + flightContext.getFlightId() + "' AND log_time = " +
-                                " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = '" +
-                                flightContext.getFlightId() + "')";
 
-                try (ResultSet rsflight = statement.executeQuery(sqlFlight)) {
+                lastFlightLogStatement.setString(1, flightContext.getFlightId());
+                lastFlightLogStatement.setString(2, flightContext.getFlightId());
+
+                try (ResultSet rsflight = lastFlightLogStatement.executeQuery()) {
 
                     // There may not be any log entries for a given flight. That happens if we fail after
                     // submit and before the first step. The defaults for flight context are correct for that
@@ -384,10 +396,6 @@ public class Database {
         }
 
         return flightList;
-    }
-
-    private String boolString(boolean value) {
-        return (value ? "true" : "false");
     }
 
     @Override

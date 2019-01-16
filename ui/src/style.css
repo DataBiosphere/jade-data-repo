@@ -1,0 +1,105 @@
+@import "fonts/Montserrat.css";
+
+body, input, textarea, select, button {
+  font-family: "Montserrat", sans-serif;
+  font-variant-numeric: tabular-nums;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background-color: #e5e5e5;
+  margin: 0;
+  font-size: 14px;
+  overflow: hidden;
+  position: absolute;
+  width: 100%;
+  min-width: 1200px;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+a {
+  color: unset;
+  text-decoration: unset;
+}
+
+#root {
+  overflow: auto;
+  height: 100%;
+  position: relative;
+  z-index: 0;
+}
+
+#root.overlayOpen {
+  overflow: hidden;
+}
+
+#root.overlayOpen.overHeight {
+  overflow-y: scroll;
+}
+
+.table-row:not(:hover) .hover-only {
+  visibility: hidden;
+}
+
+.focus-style:focus {
+  /* Note: using CSS and !important here because react-interactive focus style wasn't applying on autofocus */
+  border: 1px solid #2691d0 !important;
+  outline: none !important;
+}
+
+/* Overrides for toast notifications library (react-notifications-component) */
+.notification-default {
+  background-color: #51719c;
+  border-left: 8px solid #224f83;
+}
+
+.notification-success {
+  background-color: #97d1b0;
+  border-left: 8px solid #7dc69c;
+}
+
+.notification-danger {
+  background-color: #d24e39;
+  border-left: 8px solid #c72314;
+}
+
+.notification-info {
+  background-color: #5aa6da;
+  border-left: 8px solid #2691d0;
+}
+
+.notification-warning {
+  background-color: #e69b59;
+  border-left: 8px solid #e08334;
+}
+
+.notification-awesome {
+  background-color: #a180a9;
+  border-left: 8px solid #8a6194;
+}
+
+.notification-item, .notification-item-root, .notification-message, .notification-title {
+  font-family: unset;
+}
+
+/* Styles for content rendered by marked (also used by react-simplemde-editor) */
+.rendered-markdown-container a, .simplemde-container .editor-preview a {
+  color: #2691d0;
+}
+
+.rendered-markdown-container a:hover, .simplemde-container .editor-preview a:hover {
+  color: #5aa6da;
+}

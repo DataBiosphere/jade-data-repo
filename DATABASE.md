@@ -20,3 +20,12 @@ This version defaults to starting postgres server version 11. To change to versi
 ### Clear the database
 
 `psql -f db/truncate-tables datarepo drmanager`
+
+### Activate extensions
+
+`psql -c 'CREATE EXTENSION pgcrypto;' datarepo drmanager`
+
+### Gradle commands
+
+To run database updates (this is not done automatically), run `./gradlew update`
+To remove all database tables and clear liquibase history, run `./gradlew dropAll`

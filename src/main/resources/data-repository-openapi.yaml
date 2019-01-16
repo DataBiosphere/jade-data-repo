@@ -13,14 +13,13 @@ info:
      * /status - provides the operational status of the service
      * /api    - is the authenticated and authorized Data Repository API
 
-    The overall API (/api) supports several different interfaces:
+    The overall API (/api) currently supports one interface:
      * Repository - a general and default interface for initial setup
-     * Ingest - loading data into the repository
 
     The API endpoints are organized by interface. Each interface is separately versioned.
 
     ## Notes on Naming
-    All of the reference items are prefixed with "Model". Those names are used as the class names in the generated Java code.
+    All of the reference items are suffixed with "Model". Those names are used as the class names in the generated Java code.
     It is helpful to distinguish these model classes from other related classes, like the DAO classes and the operation classes.
 
     ## Editing and debugging
@@ -89,7 +88,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/DatasetSummary'
+              $ref: '#/definitions/DatasetSummaryModel'
 
     post:
       description: Create a new dataset
@@ -101,7 +100,7 @@ paths:
         name: dataset
         description: Dataset to create
         schema:
-          $ref: '#/definitions/DatasetRequest'
+          $ref: '#/definitions/DatasetRequestModel'
       responses:
         202: # kicks off a create dataset job
           description: Dataset creation job started & url for polling is in the response header
@@ -171,7 +170,7 @@ paths:
           schema:
             type: array
             items:
-              $ref: '#/definitions/StudySummary'
+              $ref: '#/definitions/StudySummaryModel'
 
     post:
       description: Create a new study
@@ -183,7 +182,7 @@ paths:
         name: study
         description: Study to create
         schema:
-          $ref: '#/definitions/StudyRequest'
+          $ref: '#/definitions/StudyRequestModel'
       responses:
         202: # kicks off a create study job
           description: Study creation job started & url for polling is in the response header
@@ -274,45 +273,6 @@ paths:
         404:
           description: Not found - job id does not exist
 
-  ## Ingest Interface
-
-  '/api/ingest/v1/{id}':
-    post:
-      description: |
-        Ingest some data into a study synchronously.
-        This is very incomplete, but enough for a demo. We simply assume that the data in
-        the bucket exactly matches the column sequence of the table
-        AND that it has a header row
-        AND that it is tab separated.
-      operationId: syncIngest
-      tags:
-        - ingest
-      parameters:
-        - $ref: '#/parameters/Id'
-        - name: IngestModel
-          in: body
-          schema:
-            type: object
-            required:
-              - table
-              - path
-            properties:
-              table:
-                $ref: '#/definitions/IdentifierNameModel'
-              path:
-                type: string
-                description: URL for object in the ingest bucket
-
-      responses:
-        200:
-          description: OK
-        400:
-          description: Bad request -
-          ## TODO: add a general error return - maybe use ErrorReport from SAM?
-        403:
-          description: No permission to access study; or no permission to access path
-        404:
-          description: Not found - either you can't see the study at all or it doesn't exist
 
 ##########################################################################################
 # PARAMETERS
@@ -332,30 +292,27 @@ definitions:
 
   ## Identifiers ##
 
-  DatasetNameModel:
+  ObjectName:
     description: |
       BigQuery dataset name. Used for study and dataset names. The pattern enforces dataset naming rules
       except it disallows a leading underscore and leaves 24 chars unused. That lets us use a leading underscore and a prefix
       for DR-owned datasets and avoid name collisions. We may have to revisit the pattern this when supporting non-BigQuery databases.
-    type: string
-    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$'
-    minLength: 1
-    maxLength: 1000
 
-  IdentifierNameModel:
-    description: |
-      Table, column, and relationship names follow this patter. It enforces BigQuery naming rules except
+      Table, column, and relationship names follow this pattern. It enforces BigQuery naming rules except
       it disallows a leading underscore so we avoid collisions with any extra columns the DR adds. For table names,
       this is shorter than what BigQuery allows.
     type: string
-    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$'
+    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$' ## ideally this will support any unicode string
     minLength: 1
     maxLength: 128
 
-  UniqueIdModel:
+  UniqueId:
     description: |
       Unique identifier for a study, dataset, etc.
     type: string
+    pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
+
+
 
   ## Study ##
 
@@ -365,9 +322,9 @@ definitions:
     type: object
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueId'
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the study
@@ -385,26 +342,26 @@ definitions:
       schema:
         $ref: '#/definitions/DataModelModel'
 
-  StudySummary:
+  StudySummaryModel:
     description: |
       Summary of a study.
     type: object
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueId'
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the study
 
-  StudyRequest:
+  StudyRequestModel:
     description: |
       Complete definition of a study without the id (used to create a study)
     type: object
     properties:
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the study
@@ -425,7 +382,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
 
       ## TODO: Use an enumeration for the datatype. We will probably want to support some kind of extended datatyping
       ## to process references to UCSC and/or UChicago schema parts. Whatever GA4GH standardizes.
@@ -442,7 +399,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
 
       columns:
         type: array
@@ -459,7 +416,7 @@ definitions:
 
     properties:
       table:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
 
       column_list:
         type: array
@@ -487,7 +444,7 @@ definitions:
       - to
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       from:
         $ref: '#/definitions/RelationshipTermModel'
       to:
@@ -506,13 +463,13 @@ definitions:
       - columns
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       is_root:
         type: boolean
       columns:
         type: array
         items:
-          $ref: '#/definitions/IdentifierNameModel'
+          $ref: '#/definitions/ObjectName'
 
   AssetModel:
     description: One asset in the data model. The table list identifies the tables in the asset.
@@ -524,7 +481,7 @@ definitions:
       - follow
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       tables:
         type: array
         items:
@@ -532,7 +489,7 @@ definitions:
       follow:
         type: array
         items:
-          $ref: '#/definitions/IdentifierNameModel'
+          $ref: '#/definitions/ObjectName'
 
   DataModelModel:
     description: data model definition
@@ -571,9 +528,9 @@ definitions:
       - source
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueId'
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the dataset
@@ -586,7 +543,7 @@ definitions:
         items:
           $ref: '#/definitions/DatasetSourceModel'
 
-  DatasetRequest:
+  DatasetRequestModel:
     description: |
       complete dataset save the dataset id, for dataset creation
       Schema is the shape of the resulting dataset: the table names and columns in the
@@ -602,7 +559,7 @@ definitions:
       - source
     properties:
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the dataset
@@ -615,7 +572,7 @@ definitions:
         items:
           $ref: '#/definitions/DatasetSourceModel'
 
-  DatasetSummary:
+  DatasetSummaryModel:
     description: |
       summary of dataset
     type: object
@@ -623,9 +580,9 @@ definitions:
     - name
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueId'
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the dataset
@@ -642,9 +599,9 @@ definitions:
       - mapping
     properties:
       study:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectName'
       asset:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       rows:
         type: array
         items:
@@ -669,9 +626,9 @@ definitions:
       - column_map
     properties:
       from_table:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       to_table:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       column_map:
         type: array
         items:
@@ -684,9 +641,9 @@ definitions:
       - to_column
     properties:
       from_column:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
       to_column:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectName'
 
   JobModel:
     description: |
@@ -697,7 +654,7 @@ definitions:
     - status
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueId'
       status:
         description: status of job
         type: string

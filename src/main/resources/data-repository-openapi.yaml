@@ -107,6 +107,7 @@ paths:
           headers:
             location:
               description: url for the job poller
+              type: string
         400:
           description: Bad request - invalid name, badly formed
         403:
@@ -325,7 +326,7 @@ definitions:
       id:
         $ref: '#/definitions/UniqueIdProperty'
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the study

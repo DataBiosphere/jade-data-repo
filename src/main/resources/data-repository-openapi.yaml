@@ -13,17 +13,13 @@ info:
      * /status - provides the operational status of the service
      * /api    - is the authenticated and authorized Data Repository API
 
-    The overall API (/api) supports several different interfaces:
-     * Access - accessing data from the repository
-     * Search - finding data in the repository
-     * Model - managing data models used in studies
-     * Custody - managing studies, datasets, and access permissions
-     * Ingest - loading data into the repository
+    The overall API (/api) currently supports one interface:
+     * Repository - a general and default interface for initial setup
 
     The API endpoints are organized by interface. Each interface is separately versioned.
 
     ## Notes on Naming
-    All of the reference items are prefixed with "Model". Those names are used as the class names in the generated Java code.
+    All of the reference items are suffixed with "Model". Those names are used as the class names in the generated Java code.
     It is helpful to distinguish these model classes from other related classes, like the DAO classes and the operation classes.
 
     ## Editing and debugging
@@ -77,135 +73,207 @@ paths:
         500:
           description: service is broken
 
-  ## Access Interface
+  ## Repository Interface
 
-  '/api/access/v1/dataset':
-    get:
+  '/api/repository/v1/datasets':
+    get:  ## enumerate
       description: |
         Returns a list of all of the datasets the caller has access to
       operationId: enumerateDatasets
       tags:
-        - access
-      parameters:
-        - in: query
-          name: containing
-          type: string
-          description: return only datasets with name or description containing the string
+      - repository
       responses:
         200:
           description: List of datasets
           schema:
             type: array
             items:
-              $ref: '#/definitions/DatasetModel'
+              $ref: '#/definitions/DatasetSummaryModel'
 
-  ## Search Interface
-  '/api/search/v1/dataset':
-    get:
-      description: |
-        Given a search query in the body, returns a list of matching dataset ids
-      operationId: datasetSearch
+    post:
+      description: Create a new dataset
+      operationId: createDataset
       tags:
-        - search
+      - repository
       parameters:
-        - in: body
-          name: search
-          schema:
-            $ref: '#/definitions/DatasetSearchModel'
+      - in: body
+        name: dataset
+        description: Dataset to create
+        schema:
+          $ref: '#/definitions/DatasetRequestModel'
+      responses:
+        202: # kicks off a create dataset job
+          description: Dataset creation job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
+              type: string
+        400:
+          description: Bad request - invalid name, badly formed
+        403:
+          description: No permission to create datasets
+        409:
+          description: Dataset with this name already exists
+
+
+  '/api/repository/v1/datasets/{id}':
+    get:  ## retrieve
+      description: Retrieve a dataset by id
+      operationId: retrieveDataset
+      tags:
+      - repository
+      parameters:
+        - $ref: '#/parameters/Id'
       responses:
         200:
-          description: List of dataset ids
+          description: Dataset
+          schema:
+            $ref: '#/definitions/DatasetModel'
+        400:
+          description: Bad request - invalid id, badly formed
+        403:
+          description: No permission to see dataset
+        404:
+          description: Not found - dataset id does not exist
+
+    delete: ## delete
+      description: Delete a dataset by id
+      operationId: deleteDataset
+      tags:
+      - repository
+      parameters:
+        - $ref: '#/parameters/Id'
+      responses:
+        202: # kicks off a delete dataset job
+          description: Dataset deletion job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
+        400:
+          description: Bad request - invalid id, badly formed
+        403:
+          description: No permission to delete dataset
+        404:
+          description: Not found - dataset id does not exist
+        409:
+          description: Dataset in use?
+
+  '/api/repository/v1/studies':
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the studies the caller has access to
+      operationId: enumerateStudies
+      tags:
+      - repository
+      responses:
+        200:
+          description: List of studies
           schema:
             type: array
             items:
-              $ref: '#/definitions/UniqueIdModel'
+              $ref: '#/definitions/StudySummaryModel'
 
-  ## Model Interface
-
-  '/api/model/v1/study':
     post:
       description: Create a new study
       operationId: createStudy
       tags:
-        - model
+      - repository
       parameters:
-        - in: body
-          name: study
-          schema:
-            $ref: '#/definitions/StudyModel'
+      - in: body
+        name: study
+        description: Study to create
+        schema:
+          $ref: '#/definitions/StudyRequestModel'
       responses:
-        201:
-          description: Created study
-          schema:
-            $ref: '#/definitions/UniqueIdModel'
+        202: # kicks off a create study job
+          description: Study creation job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:
           description: No permission to create studies
 
-  ## Custody Interface
-
-  '/api/custody/v1/dataset':
-    post:
-      description: Create a new dataset
-      operationId: createDataset
+  '/api/repository/v1/studies/{id}':
+    get:  ## retrieve
+      description: Retrieve a study by id
+      operationId: retrieveStudy
       tags:
-        - custody
+      - repository
       parameters:
-        - in: body
-          name: dataset
-          description: Dataset to create
-          schema:
-            $ref: '#/definitions/DatasetModel'
-      responses:
-        201:
-          description: Created dataset id
-          schema:
-            $ref: '#/definitions/UniqueIdModel'
-        400:
-          description: Bad request - duplicate name, invalid name, badly formed
-        403:
-          description: No permission to create datasets
-
-  ## Ingest Interface
-
-  '/api/ingest/v1/{id}':
-    post:
-      description: |
-        Ingest some data into a study synchronously.
-        This is very incomplete, but enough for a demo. We simply assume that the data in
-        the bucket exactly matches the column sequence of the table
-        AND that it has a header row
-        AND that it is tab separated.
-      operationId: syncIngest    
-      tags:
-        - ingest
-      parameters:
-        - $ref: '#/parameters/Id'
-        - name: IngestModel
-          in: body
-          schema:
-            type: object
-            required:
-              - table
-              - path
-            properties:
-              table:
-                $ref: '#/definitions/IdentifierNameModel'
-              path:
-                type: string
-                description: URL for object in the ingest bucket
-
+      - $ref: '#/parameters/Id'
       responses:
         200:
-          description: OK
+          description: Study
+          schema:
+            $ref: '#/definitions/StudyModel'
         400:
-          description: Bad request - 
-          ## TODO: add a general error return - maybe use ErrorReport from SAM?
+          description: Bad request - invalid id, badly formed
         403:
-          description: No permission to access study; or no permission to access path
+          description: No permission to see study
         404:
-          description: Not found - either you can't see the study at all or it doesn't exist
+          description: Not found - study id does not exist
+
+    delete: ## delete
+      description: Delete a study by id
+      operationId: deleteStudy
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        202: # kicks off a delete study job
+          description: Study deletion job started & url for polling is in the response header
+          headers:
+            location:
+              description: url for the job poller
+        400:
+          description: Bad request - invalid id, badly formed
+        403:
+          description: No permission to delete study
+        404:
+          description: Not found - study id does not exist
+        409:
+          description: Study in use by at least one dataset
+
+  '/api/repository/v1/jobs':
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the jobs the caller has access to
+      operationId: enumerateJobs
+      tags:
+      - repository
+      responses:
+        200:
+          description: List of jobs
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/JobModel'
+
+  '/api/repository/v1/jobs/{id}':
+    get:  ## retrieve
+      description: Retrieve a job's status by id
+      operationId: retrieveJob
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Job status
+          schema:
+            $ref: '#/definitions/JobModel'
+        303:
+          description: Redirect for object successful creation
+        400:
+          description: Bad request - invalid id, badly formed
+        403:
+          description: No permission to see job
+        404:
+          description: Not found - job id does not exist
+
 
 ##########################################################################################
 # PARAMETERS
@@ -225,50 +293,87 @@ definitions:
 
   ## Identifiers ##
 
-  DatasetNameModel:
+  ObjectNameProperty:
     description: |
-      BigQuery dataset name. Used for study and dataset names. The pattern enforces dataset naming rules
-      except it disallows a leading underscore and leaves 24 chars unused. That lets us use a leading underscore and a prefix
-      for DR-owned datasets and avoid name collisions. We may have to revisit the pattern this when supporting non-BigQuery databases.
+      Table, column, and relationship names follow this pattern. This should be used for the name of any object in the
+      system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
+      any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
     type: string
-    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$'
+    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$' ## TODO this will support any unicode string
     minLength: 1
-    maxLength: 1000
+    maxLength: 63
 
-  IdentifierNameModel:
-    description: |
-      Table, column, and relationship names follow this patter. It enforces BigQuery naming rules except
-      it disallows a leading underscore so we avoid collisions with any extra columns the DR adds. For table names,
-      this is shorter than what BigQuery allows.
-    type: string
-    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$'
-    minLength: 1
-    maxLength: 128
-
-  UniqueIdModel:
+  UniqueIdProperty:
     description: |
       Unique identifier for a study, dataset, etc.
     type: string
+    pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
+
+
 
   ## Study ##
 
   StudyModel:
     description: |
-      Complete description of a study.
+      Complete definition of a study.
     type: object
+    required:
+    - id
+    - name
+    - schema
+    - createdDate
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueIdProperty'
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the study
-      default_dataset_id:
+      defaultDatasetId:
         type: string
         description: Id of the auto-generated default passthru dataset
       schema:
-        $ref: '#/definitions/DataModelModel'
+        $ref: '#/definitions/StudySpecificationModel'
+      createdDate:
+        type: string
+        description: Date the study was created
+
+  StudySummaryModel:
+    description: |
+      Summary of a study.
+    type: object
+    required:
+    - id
+    - name
+    - createdDate
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+      name:
+        $ref: '#/definitions/ObjectNameProperty'
+      description:
+        type: string
+        description: Description of the study
+      createdDate:
+        type: string
+        description: Date the study was created
+
+  StudyRequestModel:
+    description: |
+      Complete definition of a study without the id (used to create a study)
+    type: object
+    required:
+    - name
+    - schema
+    properties:
+      name:
+        $ref: '#/definitions/ObjectNameProperty'
+      description:
+        type: string
+        description: Description of the study
+      schema:
+        $ref: '#/definitions/StudySpecificationModel'
 
   ## Schema Definitions ##
 
@@ -281,7 +386,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
 
       ## TODO: Use an enumeration for the datatype. We will probably want to support some kind of extended datatyping
       ## to process references to UCSC and/or UChicago schema parts. Whatever GA4GH standardizes.
@@ -298,7 +403,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
 
       columns:
         type: array
@@ -310,18 +415,15 @@ definitions:
     type: object
     required:
       - table
-      - column_list
+      - columnList
       - cardinality
-      
     properties:
       table:
-        $ref: '#/definitions/IdentifierNameModel'
-        
-      column_list:
+        $ref: '#/definitions/ObjectNameProperty'
+      columnList:
         type: array
         items:
           type: string
-
       cardinality:
         type: string
         enum:
@@ -343,7 +445,7 @@ definitions:
       - to
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       from:
         $ref: '#/definitions/RelationshipTermModel'
       to:
@@ -352,9 +454,8 @@ definitions:
   AssetTableModel:
     description: |
       Used in the asset definition to describe a table that is included in the asset. This is used to define
-      the view of the asset table in the dataset. Columns can be an empty list - a table might be present
-      simply to connect between other tables. Columns can contain a single string that is '*' indicating that
-      all columns should be included.
+      the view of the asset table in the dataset. Columns can be an empty array indicating that all columns
+      should be included.
     type: object
     required:
       - name
@@ -362,13 +463,13 @@ definitions:
       - columns
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       is_root:
         type: boolean
       columns:
         type: array
         items:
-          $ref: '#/definitions/IdentifierNameModel'
+          $ref: '#/definitions/ObjectNameProperty'
 
   AssetModel:
     description: One asset in the data model. The table list identifies the tables in the asset.
@@ -380,7 +481,7 @@ definitions:
       - follow
     properties:
       name:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       tables:
         type: array
         items:
@@ -388,9 +489,9 @@ definitions:
       follow:
         type: array
         items:
-          $ref: '#/definitions/IdentifierNameModel'
+          $ref: '#/definitions/ObjectNameProperty'
 
-  DataModelModel:
+  StudySpecificationModel:
     description: data model definition
     type: object
     required:
@@ -419,24 +520,52 @@ definitions:
       DatasetData provides the rows from the asset that are to be included in the
       dataset. DatasetMapping instructs how to map columns from tables on the columns
       in the dataset schema.
-      data_handling: immutable means we get explicit list of rows to show
-      passthru means we don't filter rows and take whatever is there
     type: object
     required:
+      - id
       - name
-      - schema
-      - data
+      - tables
       - source
+      - createdDate
     properties:
       id:
-        $ref: '#/definitions/UniqueIdModel'
+        $ref: '#/definitions/UniqueIdProperty'
       name:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the dataset
-      data_handling:
-        $ref: '#/definitions/DatasetHandlingModel'
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/TableModel'
+      source:
+        type: array
+        items:
+          $ref: '#/definitions/DatasetSourceModel'
+      createdDate:
+        type: string
+        description: Date the dataset was created
+
+  DatasetRequestModel:
+    description: |
+      complete dataset save the dataset id, for dataset creation
+      Schema is the shape of the resulting dataset: the table names and columns in the
+      tables. The datatypes are derived from the underlying data.
+      DatasetData provides the rows from the asset that are to be included in the
+      dataset. DatasetMapping instructs how to map columns from tables on the columns
+      in the dataset schema.
+    type: object
+    required:
+      - name
+      - tables
+      - source
+    properties:
+      name:
+        $ref: '#/definitions/ObjectNameProperty'
+      description:
+        type: string
+        description: Description of the dataset
       tables:
         type: array
         items:
@@ -446,14 +575,24 @@ definitions:
         items:
           $ref: '#/definitions/DatasetSourceModel'
 
-  DatasetHandlingModel:
+  DatasetSummaryModel:
     description: |
-      We provide two modes for datasets. Immutable datasets do not change regardless of additions of new rows.
-      Passthru datasets do not filter on the rows; default datastes are passthru.
-    type: string
-    enum:
-      - immutable
-      - passthru
+      summary of dataset
+    type: object
+    required:
+    - name
+    - createdDate
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+      name:
+        $ref: '#/definitions/ObjectNameProperty'
+      description:
+        type: string
+        description: Description of the dataset
+      createdDate:
+        type: string
+        description: Date the dataset was created
 
   DatasetSourceModel:
     description: |
@@ -467,9 +606,9 @@ definitions:
       - mapping
     properties:
       study:
-        $ref: '#/definitions/DatasetNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       asset:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       rows:
         type: array
         items:
@@ -494,9 +633,9 @@ definitions:
       - column_map
     properties:
       from_table:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       to_table:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       column_map:
         type: array
         items:
@@ -509,24 +648,28 @@ definitions:
       - to_column
     properties:
       from_column:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
       to_column:
-        $ref: '#/definitions/IdentifierNameModel'
+        $ref: '#/definitions/ObjectNameProperty'
 
-  ## Search ##
-
-  DatasetSearchModel:
+  JobModel:
     description: |
-      Eventually we will figure out how search works. This is totally a placeholder
+      status of job
     type: object
     required:
-      - method
-      - expr
+    - id
+    - status
     properties:
-      method:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+      status:
+        description: status of job
         type: string
-        description: search method like text, facet, ontological, etc.
-      expr:
+        enum:
+          - pending
+          - running
+          - succeeded
+          - failed
+      description:
         type: string
-        description: search expression
-
+        description: Description of the job's flight

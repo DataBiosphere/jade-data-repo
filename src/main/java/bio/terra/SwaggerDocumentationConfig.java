@@ -26,15 +26,11 @@ public class SwaggerDocumentationConfig {
                          "documentation and a live UI for submitting REST requests\n" +
                          " * /status - provides the operational status of the service\n" +
                          " * /api    - is the authenticated and authorized Data Repository API\n\n" +
-                         "The overall API (/api) supports several different interfaces:\n" +
-                         " * Access - accessing data from the repository\n" +
-                         " * Search - finding data in the repository\n" +
-                         " * Model - managing data models used in studies\n" +
-                         " * Custody - managing studies, datasets, and access permissions\n" +
-                         " * Ingest - loading data into the repository\n\n" +
+                         "The overall API (/api) currently supports one interface:\n" +
+                         " * Repository - a general and default interface for initial setup\n" +
                          "The API endpoints are organized by interface. Each interface is separately versioned.\n" +
                          "## Notes on Naming\n" +
-                         "All of the reference items are prefixed with \"Model\"." +
+                         "All of the reference items are suffixed with \"Model\"." +
                          "Those names are used as the class names in the generated Java code." +
                          "It is helpful to distinguish these model classes from other related classes," +
                          "like the DAO classes and the operation classes.\n\n" +

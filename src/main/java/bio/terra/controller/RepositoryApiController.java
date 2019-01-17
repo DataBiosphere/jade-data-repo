@@ -7,14 +7,14 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
 @Controller
-public class AccessApiController implements AccessApi {
+public class RepositoryApiController implements RepositoryApi {
 
     private final ObjectMapper objectMapper;
 
     private final HttpServletRequest request;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public AccessApiController(ObjectMapper objectMapper, HttpServletRequest request) {
+    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request) {
         this.objectMapper = objectMapper;
         this.request = request;
     }

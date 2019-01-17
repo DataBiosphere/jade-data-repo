@@ -333,6 +333,9 @@ definitions:
         description: Id of the auto-generated default passthru dataset
       schema:
         $ref: '#/definitions/DataModelModel'
+      createdDate:
+        type: string
+        description: Date the study was created
 
   StudySummaryModel:
     description: |
@@ -534,6 +537,9 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/DatasetSourceModel'
+      createdDate:
+        type: string
+        description: Date the dataset was created
 
   DatasetRequestModel:
     description: |

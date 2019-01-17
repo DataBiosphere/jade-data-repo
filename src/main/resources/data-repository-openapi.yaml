@@ -292,21 +292,17 @@ definitions:
 
   ## Identifiers ##
 
-  ObjectName:
+  ObjectNameProperty:
     description: |
-      BigQuery dataset name. Used for study and dataset names. The pattern enforces dataset naming rules
-      except it disallows a leading underscore and leaves 24 chars unused. That lets us use a leading underscore and a prefix
-      for DR-owned datasets and avoid name collisions. We may have to revisit the pattern this when supporting non-BigQuery databases.
-
-      Table, column, and relationship names follow this pattern. It enforces BigQuery naming rules except
-      it disallows a leading underscore so we avoid collisions with any extra columns the DR adds. For table names,
-      this is shorter than what BigQuery allows.
+      Table, column, and relationship names follow this pattern. This should be used for the name of any object in the
+      system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
+      any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
     type: string
-    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$' ## ideally this will support any unicode string
+    pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$' ## TODO this will support any unicode string
     minLength: 1
     maxLength: 63
 
-  UniqueId:
+  UniqueIdProperty:
     description: |
       Unique identifier for a study, dataset, etc.
     type: string
@@ -320,23 +316,24 @@ definitions:
     description: |
       Complete definition of a study.
     type: object
-    required: ## should createdDate or defaultDatasetId be req too?
+    required:
     - id
     - name
     - schema
+    - createdDate
     properties:
       id:
-        $ref: '#/definitions/UniqueId'
+        $ref: '#/definitions/UniqueIdProperty'
       name:
         $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the study
-      default_dataset_id:
+      defaultDatasetId:
         type: string
         description: Id of the auto-generated default passthru dataset
       schema:
-        $ref: '#/definitions/DataModelModel'
+        $ref: '#/definitions/StudySpecificationModel'
       createdDate:
         type: string
         description: Date the study was created
@@ -348,14 +345,18 @@ definitions:
     required:
     - id
     - name
+    - createdDate
     properties:
       id:
-        $ref: '#/definitions/UniqueId'
+        $ref: '#/definitions/UniqueIdProperty'
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the study
+      createdDate:
+        type: string
+        description: Date the study was created
 
   StudyRequestModel:
     description: |
@@ -366,12 +367,12 @@ definitions:
     - schema
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the study
       schema:
-        $ref: '#/definitions/DataModelModel'
+        $ref: '#/definitions/StudySpecificationModel'
 
   ## Schema Definitions ##
 
@@ -384,7 +385,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
 
       ## TODO: Use an enumeration for the datatype. We will probably want to support some kind of extended datatyping
       ## to process references to UCSC and/or UChicago schema parts. Whatever GA4GH standardizes.
@@ -401,7 +402,7 @@ definitions:
 
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
 
       columns:
         type: array
@@ -413,18 +414,13 @@ definitions:
     type: object
     required:
       - table
-      - column_list
+      - column
       - cardinality
-
     properties:
       table:
-        $ref: '#/definitions/ObjectName'
-
-      column_list:
-        type: array
-        items:
-          type: string
-
+        $ref: '#/definitions/ObjectNameProperty'
+      column:
+        type: string
       cardinality:
         type: string
         enum:
@@ -446,7 +442,7 @@ definitions:
       - to
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       from:
         $ref: '#/definitions/RelationshipTermModel'
       to:
@@ -455,9 +451,8 @@ definitions:
   AssetTableModel:
     description: |
       Used in the asset definition to describe a table that is included in the asset. This is used to define
-      the view of the asset table in the dataset. Columns can be an empty list - a table might be present
-      simply to connect between other tables. Columns can contain a single string that is '*' indicating that
-      all columns should be included.
+      the view of the asset table in the dataset. Columns can be an empty array indicating that all columns
+      should be included.
     type: object
     required:
       - name
@@ -465,13 +460,13 @@ definitions:
       - columns
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       is_root:
         type: boolean
       columns:
         type: array
         items:
-          $ref: '#/definitions/ObjectName'
+          $ref: '#/definitions/ObjectNameProperty'
 
   AssetModel:
     description: One asset in the data model. The table list identifies the tables in the asset.
@@ -483,7 +478,7 @@ definitions:
       - follow
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       tables:
         type: array
         items:
@@ -491,9 +486,9 @@ definitions:
       follow:
         type: array
         items:
-          $ref: '#/definitions/ObjectName'
+          $ref: '#/definitions/ObjectNameProperty'
 
-  DataModelModel:
+  StudySpecificationModel:
     description: data model definition
     type: object
     required:
@@ -526,13 +521,14 @@ definitions:
     required:
       - id
       - name
-      - source
       - tables
+      - source
+      - createdDate
     properties:
       id:
-        $ref: '#/definitions/UniqueId'
+        $ref: '#/definitions/UniqueIdProperty'
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the dataset
@@ -563,7 +559,7 @@ definitions:
       - source
     properties:
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the dataset
@@ -582,14 +578,18 @@ definitions:
     type: object
     required:
     - name
+    - createdDate
     properties:
       id:
-        $ref: '#/definitions/UniqueId'
+        $ref: '#/definitions/UniqueIdProperty'
       name:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
         description: Description of the dataset
+      createdDate:
+        type: string
+        description: Date the dataset was created
 
   DatasetSourceModel:
     description: |
@@ -603,9 +603,9 @@ definitions:
       - mapping
     properties:
       study:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       asset:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       rows:
         type: array
         items:
@@ -630,9 +630,9 @@ definitions:
       - column_map
     properties:
       from_table:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       to_table:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       column_map:
         type: array
         items:
@@ -645,9 +645,9 @@ definitions:
       - to_column
     properties:
       from_column:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
       to_column:
-        $ref: '#/definitions/ObjectName'
+        $ref: '#/definitions/ObjectNameProperty'
 
   JobModel:
     description: |
@@ -658,7 +658,7 @@ definitions:
     - status
     properties:
       id:
-        $ref: '#/definitions/UniqueId'
+        $ref: '#/definitions/UniqueIdProperty'
       status:
         description: status of job
         type: string

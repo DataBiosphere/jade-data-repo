@@ -415,13 +415,15 @@ definitions:
     type: object
     required:
       - table
-      - column
+      - columnList
       - cardinality
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
-      column:
-        type: string
+      columnList:
+        type: array
+        items:
+          type: string
       cardinality:
         type: string
         enum:

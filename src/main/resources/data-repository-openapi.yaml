@@ -304,7 +304,7 @@ definitions:
     type: string
     pattern: '^[a-zA-Z0-9][_a-zA-Z0-9]*$' ## ideally this will support any unicode string
     minLength: 1
-    maxLength: 128
+    maxLength: 63
 
   UniqueId:
     description: |

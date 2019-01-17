@@ -21,9 +21,7 @@ the code base. For simple addition of fields in a structure or new endpoints, th
 
 
 In the rare case of wanting to have swagger-codegen create a controller class,
-run:
-`swagger-codegen generate -i src/main/resources/data-repository-openapi.yaml -l spring` 
-Then in order to clean and build, remove changes created by the generation to the file:
-`src/main/resources/application.properties`
-and remove the newly created (for the generation of the controllers) dir:
-`src/main/java/io/`
+in a directory other than a git cloned workspace, run:
+`swagger-codegen generate -i path/to/data-repository-openapi.yaml -l spring` 
+
+Then copy the files you want into the source tree

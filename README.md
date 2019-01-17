@@ -19,5 +19,11 @@ Clearly, you can make breaking changes to the API and will have to do the approp
 the code base. For simple addition of fields in a structure or new endpoints, the build will continue to run clean.
 
 
-Generate code from the swagger-codegen yml file
+
+In the rare case of wanting to have swagger-codegen create a controller class,
+run:
 `swagger-codegen generate -i src/main/resources/data-repository-openapi.yaml -l spring` 
+Then in order to clean and build, remove changes created by the generation to the file:
+`src/main/resources/application.properties`
+and remove the newly created (for the generation of the controllers) dir:
+`src/main/java/io/`

@@ -9,7 +9,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -234,15 +233,17 @@ public class Database {
 
         final String sqlInsertFlight =
                 "INSERT INTO " + FLIGHT_TABLE +
-                        "(flightId, submit_time, class_name, input_parameters) VALUES (?, CURRENT_TIMESTAMP, ?, ?)";
+                        " (flightId, submit_time, class_name, input_parameters)" +
+                        "VALUES (:flightid, CURRENT_TIMESTAMP, :class_name, :inputs)";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlInsertFlight)) {
+             NamedParameterPreparedStatement statement =
+                     new NamedParameterPreparedStatement(connection, sqlInsertFlight)) {
 
-            statement.setString(1, flightContext.getFlightId());
-            statement.setString(2, flightContext.getFlightClassName());
-            statement.setString(3, flightContext.getInputParameters().toJson());
-            statement.executeUpdate();
+            statement.setString("flightid", flightContext.getFlightId());
+            statement.setString("class_name", flightContext.getFlightClassName());
+            statement.setString("inputs", flightContext.getInputParameters().toJson());
+            statement.getPreparedStatement().executeUpdate();
 
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to create database tables", ex);
@@ -260,19 +261,21 @@ public class Database {
         final String sqlInsertFlightLog =
                 "INSERT INTO " + FLIGHT_LOG_TABLE +
                         "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message)" +
-                        " VALUES (?, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?)";
+                        " VALUES (:flightid, CURRENT_TIMESTAMP, :working_map," +
+                        " :step_index, :doing, :succeeded, :error_message)";
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlInsertFlightLog)) {
+             NamedParameterPreparedStatement statement =
+                     new NamedParameterPreparedStatement(connection, sqlInsertFlightLog)) {
 
-            statement.setString(1, flightContext.getFlightId());
-            statement.setString(2, flightContext.getWorkingMap().toJson());
-            statement.setInt(3, flightContext.getStepIndex());
-            statement.setBoolean(4, flightContext.isDoing());
-            statement.setBoolean(5, flightContext.getResult().isSuccess());
-            statement.setString(6, flightContext.getResult().getErrorMessage());
+            statement.setString("flightid", flightContext.getFlightId());
+            statement.setString("working_map", flightContext.getWorkingMap().toJson());
+            statement.setInt("step_index", flightContext.getStepIndex());
+            statement.setBoolean("doing", flightContext.isDoing());
+            statement.setBoolean("succeeded", flightContext.getResult().isSuccess());
+            statement.setString("error_message", flightContext.getResult().getErrorMessage());
 
-            statement.executeUpdate();
+            statement.getPreparedStatement().executeUpdate();
 
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to log step", ex);
@@ -294,27 +297,32 @@ public class Database {
         final String sqlUpdateFlight =
                 "UPDATE " + FLIGHT_TABLE +
                         " SET completed_time = CURRENT_TIMESTAMP," +
-                        " output_parameters = ?, succeeded = ?, error_message = ?" +
-                        " WHERE flightid = ? AND succeeded IS NULL";
+                        " output_parameters = :output_parameters," +
+                        " succeeded = :succeeded," +
+                        " error_message = :error_message" +
+                        " WHERE flightid = :flightid AND succeeded IS NULL";
 
 
         // The delete is harmless if it has been done before. We just won't find anything.
-        final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = ?";
+        final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid";
 
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sqlUpdateFlight);
-             PreparedStatement deleteStatement = connection.prepareStatement(sqlDeleteFlightLog)) {
+             NamedParameterPreparedStatement statement =
+                     new NamedParameterPreparedStatement(connection, sqlUpdateFlight);
+             NamedParameterPreparedStatement deleteStatement =
+                     new NamedParameterPreparedStatement(connection, sqlDeleteFlightLog)) {
+
             connection.setAutoCommit(false);
 
-            statement.setString(1, flightContext.getWorkingMap().toJson());
-            statement.setBoolean(2, flightContext.getResult().isSuccess());
-            statement.setString(3, flightContext.getResult().getErrorMessage());
-            statement.setString(4, flightContext.getFlightId());
-            statement.executeUpdate();
+            statement.setString("output_parameters", flightContext.getWorkingMap().toJson());
+            statement.setBoolean("succeeded", flightContext.getResult().isSuccess());
+            statement.setString("error_message", flightContext.getResult().getErrorMessage());
+            statement.setString("flightid", flightContext.getFlightId());
+            statement.getPreparedStatement().executeUpdate();
 
-            deleteStatement.setString(1, flightContext.getFlightId());
-            statement.executeUpdate();
+            deleteStatement.setString("flightid", flightContext.getFlightId());
+            statement.getPreparedStatement().executeUpdate();
 
             connection.commit();
 
@@ -340,15 +348,17 @@ public class Database {
 
         final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing, succeeded, error_message" +
                 " FROM " + FLIGHT_LOG_TABLE +
-                " WHERE flightid = ? AND log_time = " +
-                " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = ?)";
+                " WHERE flightid = :flightid AND log_time = " +
+                " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid2)";
 
 
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement activeFlightsStatement = connection.prepareStatement(sqlActiveFlights);
-             PreparedStatement lastFlightLogStatement = connection.prepareStatement(sqlLastFlightLog)) {
+             NamedParameterPreparedStatement activeFlightsStatement =
+                     new NamedParameterPreparedStatement(connection, sqlActiveFlights);
+             NamedParameterPreparedStatement lastFlightLogStatement =
+                     new NamedParameterPreparedStatement(connection, sqlLastFlightLog)) {
 
-            try (ResultSet rs = activeFlightsStatement.executeQuery()) {
+            try (ResultSet rs = activeFlightsStatement.getPreparedStatement().executeQuery()) {
                 while (rs.next()) {
                     FlightMap inputParameters = new FlightMap();
                     inputParameters.fromJson(rs.getString("input_parameters"));
@@ -365,10 +375,10 @@ public class Database {
             // a performance-critical part of the processing; it happens once at startup.
             for (FlightContext flightContext : flightList) {
 
-                lastFlightLogStatement.setString(1, flightContext.getFlightId());
-                lastFlightLogStatement.setString(2, flightContext.getFlightId());
+                lastFlightLogStatement.setString("flightid", flightContext.getFlightId());
+                lastFlightLogStatement.setString("flightid2", flightContext.getFlightId());
 
-                try (ResultSet rsflight = lastFlightLogStatement.executeQuery()) {
+                try (ResultSet rsflight = lastFlightLogStatement.getPreparedStatement().executeQuery()) {
 
                     // There may not be any log entries for a given flight. That happens if we fail after
                     // submit and before the first step. The defaults for flight context are correct for that

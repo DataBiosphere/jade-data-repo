@@ -331,14 +331,6 @@ definitions:
       default_dataset_id:
         type: string
         description: Id of the auto-generated default passthru dataset
-      custodians:
-        type: array
-        items:
-          type: string
-        description: Emails of users and groups who should have custodian access to this study
-      owner:
-        type: string
-        description: Email of study owner
       schema:
         $ref: '#/definitions/DataModelModel'
 

@@ -517,9 +517,8 @@ definitions:
       in the dataset schema.
     type: object
     required:
+      - id
       - name
-      - schema
-      - data
       - source
     properties:
       id:
@@ -552,8 +551,7 @@ definitions:
     type: object
     required:
       - name
-      - schema
-      - data
+      - tables
       - source
     properties:
       name:

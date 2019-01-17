@@ -320,6 +320,10 @@ definitions:
     description: |
       Complete definition of a study.
     type: object
+    required: ## should createdDate or defaultDatasetId be req too?
+    - id
+    - name
+    - schema
     properties:
       id:
         $ref: '#/definitions/UniqueId'
@@ -341,6 +345,9 @@ definitions:
     description: |
       Summary of a study.
     type: object
+    required:
+    - id
+    - name
     properties:
       id:
         $ref: '#/definitions/UniqueId'
@@ -354,15 +361,15 @@ definitions:
     description: |
       Complete definition of a study without the id (used to create a study)
     type: object
+    required:
+    - name
+    - schema
     properties:
       name:
         $ref: '#/definitions/ObjectName'
       description:
         type: string
         description: Description of the study
-      default_dataset_id:
-        type: string
-        description: Id of the auto-generated default passthru dataset
       schema:
         $ref: '#/definitions/DataModelModel'
 
@@ -520,6 +527,7 @@ definitions:
       - id
       - name
       - source
+      - tables
     properties:
       id:
         $ref: '#/definitions/UniqueId'

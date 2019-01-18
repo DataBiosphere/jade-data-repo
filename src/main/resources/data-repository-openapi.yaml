@@ -106,8 +106,8 @@ paths:
           description: Dataset creation job started & url for polling is in the response header
           headers:
             location:
-              description: url for the job poller
               type: string
+              description: url for the job poller
         400:
           description: Bad request - invalid name, badly formed
         403:
@@ -148,6 +148,7 @@ paths:
           description: Dataset deletion job started & url for polling is in the response header
           headers:
             location:
+              type: string
               description: url for the job poller
         400:
           description: Bad request - invalid id, badly formed
@@ -189,6 +190,7 @@ paths:
           description: Study creation job started & url for polling is in the response header
           headers:
             location:
+              type: string
               description: url for the job poller
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
@@ -227,6 +229,7 @@ paths:
           description: Study deletion job started & url for polling is in the response header
           headers:
             location:
+              type: string
               description: url for the job poller
         400:
           description: Bad request - invalid id, badly formed

@@ -11,21 +11,33 @@ This version defaults to starting postgres server version 11. To change to versi
 4. Select + and choose version 9.6
 5. Start the server
 
+## Setting up the database
+You'll want to follow all the steps below and stop once you have updated to the latest migration.
 
 ### Create the data repo db and user
 
-`psql -f db/create-data-repo-db`
-
-
-### Clear the database
-
-`psql -f db/truncate-tables datarepo drmanager`
+    psql -f db/create-data-repo-db
 
 ### Activate extensions
 
-`psql -c 'CREATE EXTENSION pgcrypto;' datarepo drmanager`
+    psql -c 'CREATE EXTENSION pgcrypto;' datarepo drmanager
 
-### Gradle commands
+## Migrations
 
-To run database updates (this is not done automatically), run `./gradlew update`
-To remove all database tables and clear liquibase history, run `./gradlew dropAll`
+### Updating to the latest migration
+To run database updates (this is not done automatically), run:
+
+    ./gradlew update
+
+### Rolling back to a specific migration id
+
+    ./gradlew rollback -PliquibaseCommandValue="study_init"
+
+### Reset everything
+To remove all database tables and clear liquibase history, run:
+
+    ./gradlew dropAll
+
+### Clear the database
+
+    psql -f db/truncate-tables datarepo drmanager

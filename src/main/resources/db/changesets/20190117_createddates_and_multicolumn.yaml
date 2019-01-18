@@ -1,0 +1,66 @@
+databaseChangeLog:
+  - changeSet:
+      id: created_dates
+      tagDatabase:
+        tag: created_dates
+      author: jhert
+      changes:
+        - addColumn:
+            tableName: study
+            columns:
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - addColumn:
+            tableName: asset_specification
+            columns:
+            - column:
+                name: created_date
+                type: timestamptz
+                defaultValueComputed: now()
+                constraints:
+                  nullable: false
+
+        - dropColumn:
+            tableName: study_relationship
+            columnName: from_column
+
+        - dropColumn:
+            tableName: study_relationship
+            columnName: to_column
+
+        - createTable:
+            tableName: study_relationship_column
+            columns:
+            - column:
+                name: id
+                type: ${uuid_type}
+                defaultValueComputed: ${uuid_function}
+                constraints:
+                  primaryKey: true
+                  nullable: false
+            - column:
+                name: relationship_id
+                type: ${uuid_type}
+                constraints:
+                  nullable: false
+                  foreignKeyName: fk_study_relationship_column_study_relationship
+                  references: study_relationship(id)
+            - column:
+                name: from_column
+                type: ${uuid_type}
+                constraints:
+                  nullable: false
+                  foreignKeyName: fk_study_relationship_column_study_column_from
+                  references: study_column(id)
+            - column:
+                name: to_column
+                type: ${uuid_type}
+                constraints:
+                  nullable: false
+                  foreignKeyName: fk_study_relationship_column_study_column_to
+                  references: study_column(id)

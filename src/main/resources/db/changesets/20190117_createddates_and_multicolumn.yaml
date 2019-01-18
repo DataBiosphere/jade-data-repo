@@ -44,6 +44,9 @@ databaseChangeLog:
                   primaryKey: true
                   nullable: false
             - column:
+                name: sequence_num
+                type: integer
+            - column:
                 name: relationship_id
                 type: ${uuid_type}
                 constraints:

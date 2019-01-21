@@ -186,12 +186,10 @@ paths:
         schema:
           $ref: '#/definitions/StudyRequestModel'
       responses:
-        202: # kicks off a create study job
-          description: Study creation job started & url for polling is in the response header
-          headers:
-            location:
-              type: string
-              description: url for the job poller
+        201:
+          description: Study created successfully and a summary is returned
+          schema:
+            $ref: '#/definitions/StudySummaryModel'
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:

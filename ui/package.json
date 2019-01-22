@@ -7,7 +7,6 @@
     "@webcomponents/custom-elements": "^1.2.1",
     "animate.css": "^3.7.0",
     "clipboard-polyfill": "^2.7.0",
-    "express": "^4.16.4",
     "file-saver": "^2.0.0",
     "filesize": "^3.6.1",
     "history": "^4.7.2",
@@ -42,9 +41,9 @@
     "validate.js": "^0.12.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
+    "start": "react-app-rewired start",
+    "build": "react-app-rewired build",
+    "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {

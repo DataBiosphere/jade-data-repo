@@ -45,7 +45,6 @@ databaseChangeLog:
                   name: flightid
                   type: varchar(36)
                   constraints:
-                    primaryKey: true
                     nullable: false
               - column:
                   name: log_time
@@ -75,3 +74,7 @@ databaseChangeLog:
               - column:
                   name: error_message
                   type: text
+        - addPrimaryKey:
+            tableName: flightlog
+            columnNames: flightid, log_time
+            constraintName: pk_flightlog

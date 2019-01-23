@@ -26,7 +26,8 @@ public class Migrate {
     private StairwayJdbcConfiguration stairwayJdbcConfiguration;
 
     @Autowired
-    public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration, StairwayJdbcConfiguration stairwayJdbcConfiguration) {
+    public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
+                   StairwayJdbcConfiguration stairwayJdbcConfiguration) {
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
     }

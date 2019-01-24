@@ -1,5 +1,5 @@
 -- create both datarepo and stairway databases
-CREATE USER drmanager WITH PASSWORD 'drpasswd';
+CREATE USER drmanager WITH SUPERUSER PASSWORD 'drpasswd';
 CREATE DATABASE datarepo;
 GRANT ALL PRIVILEGES ON DATABASE datarepo to drmanager;
 CREATE DATABASE stairway;

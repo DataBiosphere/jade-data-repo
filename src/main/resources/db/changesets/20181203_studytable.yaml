@@ -3,6 +3,10 @@ databaseChangeLog:
       id: study_init
       author: jhert
       changes:
+        - sql:
+            comment: For postgresql, enable the extension that provides the uuid function
+            dbms: postgresql
+            sql: create extension if not exists pgcrypto
         - createTable:
             tableName: study
             columns:

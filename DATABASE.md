@@ -16,16 +16,27 @@ This version defaults to starting postgres server version 11. To change to versi
 
 `psql -f db/create-data-repo-db`
 
-
 ### Clear the database
 
 `psql -f db/truncate-tables datarepo drmanager`
 
-### Activate extensions
+### Migrations
 
-`psql -c 'CREATE EXTENSION pgcrypto;' datarepo drmanager`
+Database updates are done automatically when the service starts, so you don't have to do anything
+special to perform the migration. Simply running the new version is sufficient.
 
 ### Gradle commands
 
-To run database updates (this is not done automatically), run `./gradlew update`
+There are many Liquibase commands available via the Gradle plug-in. These are not run as
+part of the build, but are handy during development:
+
 To remove all database tables and clear liquibase history, run `./gradlew dropAll`
+To perform an upgrade to your current schema, run  `./gradlew update`
+
+### Controlling database connection information
+
+The connection information for the datarepo and stairway databases is stored in the
+gradle.properties file. During the build, those properties are substituted into the
+application.properties file. You can override the properties in gradle.properties by
+creating your own gradle.properties file in the directory referred to by the env var
+GRADLE_USER_HOME.

@@ -42,7 +42,6 @@ apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
 apply plugin: 'jacoco'
 
-
 tasks.withType(FindBugs) {
     reports {
         xml.enabled false
@@ -146,6 +145,12 @@ task unpack(type: Copy) {
     into("build/dependency")
 }
 
+processResources {
+    filesMatching("**/application.properties") {
+        expand(project.properties)
+    }
+}
+
 clean.doFirst {
     delete("${projectDir}/$openapiTargetFolder")
 }
@@ -189,14 +194,20 @@ jar {
 
 liquibase {
     activities {
-        main {
-            changeLogFile 'src/main/resources/db/changelog.xml'
-            url 'jdbc:postgresql://127.0.0.1:5432/datarepo'
-            username 'drmanager'
-            password 'drpasswd'
+        datarepo {
+            changeLogFile ${applicationProperties['db.datarepo.changesetFile']}
+            url ${applicationProperties['db.datarepo.uri']}
+            username ${applicationProperties['db.datarepo.username']}
+            password ${applicationProperties['db.datarepo.password']}
             logLevel 'debug'
         }
-        runList = 'main'
+        stairway {
+            changeLogFile ${applicationProperties['db.stairway.changesetFile']}
+            url ${applicationProperties['db.stairway.uri']}
+            username ${applicationProperties['db.stairway.username']}
+            password ${applicationProperties['db.stairway.password']}
+            logLevel 'debug'
+        }
     }
 }
 

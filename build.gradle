@@ -195,17 +195,17 @@ jar {
 liquibase {
     activities {
         datarepo {
-            changeLogFile ${applicationProperties['db.datarepo.changesetFile']}
-            url ${applicationProperties['db.datarepo.uri']}
-            username ${applicationProperties['db.datarepo.username']}
-            password ${applicationProperties['db.datarepo.password']}
+            changeLogFile project.ext.dbDatarepoChangesetFile
+            url project.ext.dbDatarepoUri
+            username project.ext.dbDatarepoUsername
+            password project.ext.dbDatarepoPassword
             logLevel 'debug'
         }
         stairway {
-            changeLogFile ${applicationProperties['db.stairway.changesetFile']}
-            url ${applicationProperties['db.stairway.uri']}
-            username ${applicationProperties['db.stairway.username']}
-            password ${applicationProperties['db.stairway.password']}
+            changeLogFile project.ext.dbStairwayChangesetFile
+            url project.ext.dbStairwayUri
+            username project.ext.dbStairwayUsername
+            password project.ext.dbStairwayPassword
             logLevel 'debug'
         }
     }

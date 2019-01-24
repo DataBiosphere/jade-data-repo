@@ -32,14 +32,20 @@ public class Flight implements Callable<FlightResult> {
     private List<StepRetry> steps;
     private Database database;
     private FlightContext flightContext;
+    private Object applicationContext;
 
-    public Flight(FlightMap inputParameters) {
+    public Flight(FlightMap inputParameters, Object applicationContext) {
         flightContext = new FlightContext(inputParameters, this.getClass().getName());
+        this.applicationContext = applicationContext;
         steps = new LinkedList<>();
     }
 
     public FlightContext context() {
         return flightContext;
+    }
+
+    public Object getApplicationContext() {
+        return applicationContext;
     }
 
     public void setDatabase(Database database) {

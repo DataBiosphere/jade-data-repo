@@ -48,9 +48,10 @@ public class Stairway {
     private ExecutorService threadPool;
     private DataSource dataSource;
     private Database database;
+    private Object applicationContext;
 
     public Stairway(ExecutorService threadPool) {
-        this(threadPool, null, true);
+        this(threadPool, null, true, null);
     }
 
     /**
@@ -63,9 +64,11 @@ public class Stairway {
      */
     public Stairway(ExecutorService threadPool,
                     DataSource dataSource,
-                    boolean forceCleanStart) {
+                    boolean forceCleanStart,
+                    Object applicationContext) {
         this.threadPool = threadPool;
         this.dataSource = dataSource;
+        this.applicationContext = applicationContext;
         this.taskContextMap = new ConcurrentHashMap<>();
         this.database = new Database(dataSource, forceCleanStart);
         if (!forceCleanStart) {
@@ -188,8 +191,8 @@ public class Stairway {
         try {
             // Find the flightClass constructor that takes the input parameter map and
             // use it to make the flight.
-            Constructor constructor = flightClass.getConstructor(FlightMap.class);
-            Flight flight = (Flight)constructor.newInstance(inputParameters);
+            Constructor constructor = flightClass.getConstructor(FlightMap.class, Object.class);
+            Flight flight = (Flight)constructor.newInstance(inputParameters, applicationContext);
             return flight;
         } catch (InvocationTargetException |
                 NoSuchMethodException |
@@ -229,6 +232,7 @@ public class Stairway {
                 .append("threadPool", threadPool)
                 .append("dataSource", dataSource)
                 .append("database", database)
+                .append("applicationContext", applicationContext)
                 .toString();
     }
 }

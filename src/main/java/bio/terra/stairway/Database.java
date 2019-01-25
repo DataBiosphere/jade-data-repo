@@ -3,7 +3,6 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightException;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -17,9 +16,10 @@ import java.util.List;
 
 /**
  * The general layout of the database is:
- *  version - records the version number of the schema
  *  flight table - records the flight, its inputs, and its outputs if any
  *  flight log - records the steps of a running flight for recovery
+ * This code assumes that the database is created and matches this codes schema
+ * expectations. If not, we will crash and burn.
  *
  * May want to split this into an interface and an implementation. This implementation
  * assumes Postgres.
@@ -35,31 +35,11 @@ import java.util.List;
  * but no database operations are performed.
  */
 public class Database {
-    private static String FLIGHT_SCHEMA_VERSION = "0.1.0";
-    private static String FLIGHT_VERSION_TABLE = "flightversion";
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
-    // Getters are package scoped for unit tests
-    static String getFlightVersionTable() {
-        return FLIGHT_VERSION_TABLE;
-    }
-
-    static String getFlightTable() {
-        return FLIGHT_TABLE;
-    }
-
-    static String getFlightLogTable() {
-        return FLIGHT_LOG_TABLE;
-    }
-
     private DataSource dataSource; // may be null, indicating database support is disabled
     private boolean forceCleanStart;
-
-    // State used and computed as part of starting up the database.
-    // Once the Database object is constructed, these are not changed.
-    private boolean schemaExists;  // true if the schema exists in the database
-    private String schemaVersion;  // version of the schema, if it exists
 
     public Database(DataSource dataSource,
                     boolean forceCleanStart) {
@@ -71,11 +51,9 @@ public class Database {
             return;
         }
 
-        // Configure the database
+        // Clean up if need be
         if (forceCleanStart) {
             startClean();
-        } else {
-            startDirty();
         }
     }
 
@@ -84,142 +62,20 @@ public class Database {
     }
 
     /**
-     * If tables exist, drop them and re-create them with the version in this code.
+     * Truncate the tables
      */
     private void startClean() {
-        final String sqlDropTables = "DROP TABLE IF EXISTS " +
-                FLIGHT_VERSION_TABLE + "," +
+        final String sqlTruncateTables = "TRUNCATE TABLE " +
                 FLIGHT_TABLE + "," +
                 FLIGHT_LOG_TABLE;
 
         try (Connection connection = dataSource.getConnection();
              Statement statement = connection.createStatement()) {
 
-            statement.executeUpdate(sqlDropTables);
+            statement.executeUpdate(sqlTruncateTables);
 
         } catch (SQLException ex) {
-            throw new DatabaseSetupException("Failed to create database tables", ex);
-        }
-
-        // Create the schema from scratch
-        create();
-    }
-
-    /**
-     * If tables exist, read the schema version. Throw if the version is incompatible.
-     * If tables do not exist, create them.
-     * NOTE: this method does not (and cannot) initiate recovery. That is a separate
-     * operation driven from the Staircase class.
-     */
-    private void startDirty() {
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
-
-            schemaExists = versionTableExists(statement);
-            if (!schemaExists) {
-                create();
-                return;
-            }
-
-            // Schema exists. Pull out the schema version.
-            // TODO: this will get factored out and we will use liquibase
-            // match we barf.
-            schemaVersion = readDatabaseSchemaVersion(statement);
-            if (!StringUtils.equals(schemaVersion, FLIGHT_SCHEMA_VERSION)) {
-                throw new DatabaseSetupException("Database schema version " + schemaVersion +
-                        "is incompatible with software schema version " + FLIGHT_SCHEMA_VERSION);
-            }
-
-        } catch (SQLException ex) {
-            throw new DatabaseSetupException("Failed to get schema version state", ex);
-        }
-    }
-
-    // Database accessors - package scoped so unit tests can use them
-    boolean versionTableExists(Statement statement) throws SQLException {
-        final String sqlInfoSchemaLookup = "SELECT COUNT(*) AS version_table_count" +
-                " FROM information_schema.tables" +
-                " WHERE table_schema = 'public' AND table_name = '" +
-                FLIGHT_VERSION_TABLE + "'";
-
-        try (ResultSet rs = statement.executeQuery(sqlInfoSchemaLookup)) {
-            if (rs.next()) {
-                int tableCount = rs.getInt("version_table_count");
-                return (tableCount == 1);
-            } else {
-                throw new DatabaseSetupException("Invalid result from information_schema query");
-            }
-        }
-    }
-
-    String readDatabaseSchemaVersion(Statement statement) throws SQLException {
-        try (ResultSet rs = statement.executeQuery("SELECT version FROM " + FLIGHT_VERSION_TABLE)) {
-            if (rs.next()) {
-                return rs.getString("version");
-            }
-            throw new DatabaseSetupException("Schema version not found");
-        }
-    }
-
-    String readDatabaseSchemaCreateTime(Statement statement) throws SQLException {
-        try (ResultSet rs = statement.executeQuery(
-                "SELECT create_time::text AS createtime FROM " + FLIGHT_VERSION_TABLE)) {
-            if (rs.next()) {
-                return rs.getString("createtime");
-            }
-            throw new DatabaseSetupException("Schema create time not found");
-        }
-    }
-
-    /**
-     * Create the schema and store its version number
-     */
-    private void create() {
-        if (isDatabaseDisabled()) {
-            return;
-        }
-
-        try (Connection connection = dataSource.getConnection();
-             Statement statement = connection.createStatement()) {
-            connection.setAutoCommit(false);
-
-            statement.executeUpdate(
-                    "CREATE TABLE " + FLIGHT_VERSION_TABLE +
-                            "(version VARCHAR(50)," +
-                            " create_time TIMESTAMP)");
-
-            statement.executeUpdate(
-                    "INSERT INTO " + FLIGHT_VERSION_TABLE +
-                            " VALUES('" + FLIGHT_SCHEMA_VERSION + "', CURRENT_TIMESTAMP)");
-
-            statement.executeUpdate(
-                    "CREATE TABLE " + FLIGHT_TABLE +
-                            "(flightid VARCHAR(36) PRIMARY KEY," +
-                            " submit_time TIMESTAMP NOT NULL," +
-                            " class_name TEXT NOT NULL," +
-                            " input_parameters TEXT," +
-                            " completed_time TIMESTAMP," +
-                            " output_parameters TEXT," +
-                            " succeeded BOOLEAN," +
-                            " error_message TEXT)");
-
-            statement.executeUpdate(
-                    "CREATE TABLE " + FLIGHT_LOG_TABLE +
-                            "(flightid VARCHAR(36)," +
-                            " log_time TIMESTAMP NOT NULL," +
-                            " working_parameters TEXT NOT NULL," +
-                            " step_index INTEGER NOT NULL," +
-                            " doing BOOLEAN NOT NULL," + // true = forward; false = backward
-                            " succeeded BOOLEAN," + // null = not done; true = success; false = failure
-                            " error_message TEXT)"); // failure reason(s)
-
-            connection.commit();
-
-            schemaExists = true;
-            schemaVersion = FLIGHT_SCHEMA_VERSION;
-
-        } catch (SQLException ex) {
-            throw new DatabaseSetupException("Failed to create database tables", ex);
+            throw new DatabaseSetupException("Failed to truncate database tables", ex);
         }
     }
 
@@ -413,8 +269,6 @@ public class Database {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("dataSource", dataSource)
                 .append("forceCleanStart", forceCleanStart)
-                .append("schemaExists", schemaExists)
-                .append("schemaVersion", schemaVersion)
                 .toString();
     }
 }

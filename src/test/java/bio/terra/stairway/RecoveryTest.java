@@ -1,5 +1,6 @@
 package bio.terra.stairway;
 
+import bio.terra.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightException;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
@@ -14,7 +15,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Optional;
@@ -58,7 +58,6 @@ import static org.hamcrest.Matchers.equalTo;
  * set the stop controller from 0 and trigger undo. Then the TestStepStop will sleep on the undo
  * path simulating a failure in that direction.
  */
-@TestPropertySource(locations = "file://${HOME}/drmetadata_test.properties")
 @RunWith(SpringRunner.class)
 @SpringBootTest
 public class RecoveryTest {
@@ -66,12 +65,12 @@ public class RecoveryTest {
     private ExecutorService executorService;
 
     @Autowired
-    private MetadataJdbcConfiguration jdbcConfiguration;
+    private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
         Properties props = new Properties();
-        props.setProperty("user", jdbcConfiguration.getUser());
+        props.setProperty("user", jdbcConfiguration.getUsername());
         props.setProperty("password", jdbcConfiguration.getPassword());
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);

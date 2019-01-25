@@ -20,8 +20,7 @@ services:
   - postgresql
 
 before_script:
-  - cp config/application.properties ~/drmetadata_test.properties
-  - psql -c 'create database drmanager' -U postgres
+  - psql -U postgres -f db/create-data-repo-db
 
 deploy:
   provider: script

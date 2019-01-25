@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Repository
@@ -25,6 +26,18 @@ public class StudyDAO implements MetaDao<Study> {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    //TODO: find a better home for this, temporary fix for findBugs
+    UUID getIdKey(KeyHolder keyHolder) {
+        Map<String, Object> keys = keyHolder.getKeys();
+        if (keys != null) {
+            Object id = keys.get("id");
+            if (id != null) {
+                return (UUID)id;
+            }
+        }
+        return null;
+    }
+
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public void create(Study study) {
@@ -34,7 +47,7 @@ public class StudyDAO implements MetaDao<Study> {
         params.addValue("description", study.getDescription());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID studyId = (UUID)keyHolder.getKeys().get("id");
+        UUID studyId = getIdKey(keyHolder);
         createTables(studyId, study.getTables());
     }
 
@@ -46,7 +59,7 @@ public class StudyDAO implements MetaDao<Study> {
         for (StudyTable table : tables) {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sql, params, keyHolder);
-            UUID tableId = (UUID)keyHolder.getKeys().get("id");
+            UUID tableId = getIdKey(keyHolder);
             createColumns(tableId, table.getColumns());
         }
     }

@@ -33,6 +33,9 @@ part of the build, but are handy during development:
 To remove all database tables and clear liquibase history, run `./gradlew dropAll`
 To perform an upgrade to your current schema, run  `./gradlew update`
 
+You can operate on one database or the other by specifying the parameter `runList`. For example, to
+just drop tables from stairway, you would run `./gradlew dropAll -PrunList=stairway`
+
 ### Controlling database connection information
 
 The connection information for the datarepo and stairway databases is stored in the

@@ -1,0 +1,26 @@
+databaseChangeLog:
+  - changeSet:
+      id: created_dates
+      tagDatabase:
+        tag: created_dates
+      author: jhert
+      changes:
+        - addColumn:
+            tableName: study
+            columns:
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
+
+        - addColumn:
+            tableName: asset_specification
+            columns:
+            - column:
+                name: created_date
+                type: timestamptz
+                defaultValueComputed: now()
+                constraints:
+                  nullable: false

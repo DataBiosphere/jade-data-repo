@@ -7,6 +7,7 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.service.AsyncService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightResult;
+import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -16,8 +17,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {

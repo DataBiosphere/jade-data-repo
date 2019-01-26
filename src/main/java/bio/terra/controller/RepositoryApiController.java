@@ -1,10 +1,10 @@
 package bio.terra.controller;
 
-import bio.terra.dao.StudyDAO;
 import bio.terra.flight.StudyCreateFlight;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.AsyncService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightResult;
 import bio.terra.stairway.Stairway;
@@ -17,21 +17,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
-    private final StudyDAO studyDAO;
+    private final AsyncService asyncService;
 
     @Autowired
-    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, StudyDAO studyDAO) {
+    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, AsyncService asyncService) {
         this.objectMapper = objectMapper;
         this.request = request;
-        this.studyDAO = studyDAO;
+        this.asyncService = asyncService;
     }
 
     @Override
@@ -46,13 +44,9 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<StudySummaryModel> createStudy(@RequestBody StudyRequestModel studyRequest) {
-        // TODO: move to stairway service
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        Stairway stairway = new Stairway(executorService);
-
+        Stairway stairway = asyncService.getStairway();
         FlightMap flightMap = new FlightMap();
         flightMap.put("study", new Study(studyRequest));
-        flightMap.put("studyDAO", studyDAO);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         FlightResult result = stairway.getResult(flightId);
         if (result.isSuccess()) {

@@ -10,12 +10,17 @@ import bio.terra.stairway.StepResult;
 
 public class CreateStudyMetadataStep implements Step {
 
+    private StudyDAO studyDAO;
+
+    public CreateStudyMetadataStep(StudyDAO studyDAO) {
+        this.studyDAO = studyDAO;
+    }
+
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         FlightMap inputParameters = context.getInputParameters();
         Study study = inputParameters.get("study", Study.class);
-        StudyDAO studyDAO = inputParameters.get("studyDAO", StudyDAO.class);
         studyDAO.create(study);
         // TODO: get the id back, fetch the Study by ID and return a summary
         StudySummaryModel studySummary = new StudySummaryModel()

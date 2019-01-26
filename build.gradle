@@ -97,6 +97,7 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.6.1'         // For upgrade
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
+    compileOnly "org.springframework.boot:spring-boot-configuration-processor"
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.6.1'
     liquibaseRuntime 'org.postgresql:postgresql:42.2.5'

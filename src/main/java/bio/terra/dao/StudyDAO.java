@@ -1,5 +1,6 @@
 package bio.terra.dao;
 
+import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
@@ -22,8 +23,8 @@ public class StudyDAO implements MetaDao<Study> {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public StudyDAO(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public StudyDAO(DataRepoJdbcConfiguration jdbcConfiguration) {
+        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
     //TODO: find a better home for this, temporary fix for findBugs

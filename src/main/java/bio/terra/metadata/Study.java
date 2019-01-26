@@ -41,8 +41,8 @@ public class Study {
         return id;
     }
 
-    public String setId() {
-        return this.id;
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getName() {

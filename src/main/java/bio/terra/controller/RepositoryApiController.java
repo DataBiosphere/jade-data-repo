@@ -1,7 +1,6 @@
 package bio.terra.controller;
 
 import bio.terra.flight.StudyCreateFlight;
-import bio.terra.metadata.Study;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.AsyncService;

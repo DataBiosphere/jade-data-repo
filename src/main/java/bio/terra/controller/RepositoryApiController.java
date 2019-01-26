@@ -46,7 +46,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<StudySummaryModel> createStudy(@RequestBody StudyRequestModel studyRequest) {
         Stairway stairway = asyncService.getStairway();
         FlightMap flightMap = new FlightMap();
-        flightMap.put("study", new Study(studyRequest));
+        flightMap.put("study", studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         FlightResult result = stairway.getResult(flightId);
         if (result.isSuccess()) {
@@ -54,13 +54,14 @@ public class RepositoryApiController implements RepositoryApi {
             StudySummaryModel studySummary = resultMap.get("summary", StudySummaryModel.class);
             return new ResponseEntity<>(studySummary, HttpStatus.OK);
         } else {
-            Optional<Throwable> throwable = result.getThrowable();
-            if (throwable.isPresent()) {
-                //....
-                Throwable throwableThing = throwable.get();
-                throwableThing.printStackTrace();
+            Optional<Throwable> optThrowable = result.getThrowable();
+            String message = "There was an issue creating the study, but no error message was provided.";
+            if (optThrowable.isPresent()) {
+                Throwable throwable = optThrowable.get();
+                throwable.printStackTrace();
+                message = throwable.getMessage();
             }
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new RuntimeException(message);
         }
     }
 }

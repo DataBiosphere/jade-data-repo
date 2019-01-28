@@ -20,14 +20,19 @@ public class Study {
     // TODO: remove setters, aim to be immutable
 
     public Study(StudyRequestModel studyRequest) {
-        this.name = studyRequest.getName();
-        this.description = studyRequest.getDescription();
-        this.tables = new ArrayList<>();
+        this(studyRequest.getName(), studyRequest.getDescription(), new ArrayList<>());
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         for (TableModel tableModel : studySpecification.getTables()) {
             tables.add(new StudyTable(tableModel));
         }
+    }
+
+    // Constructor for building studies in unit tests.
+    public Study(String name, String description, List<StudyTable> tables) {
+        this.name = name;
+        this.description = description;
+        this.tables = tables;
     }
 
     public StudySummaryModel toSummary() {

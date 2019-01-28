@@ -1,10 +1,12 @@
 package bio.terra.stairway;
 
 
+import bio.terra.category.StairwayUnit;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -15,6 +17,7 @@ import java.util.concurrent.Executors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 
+@Category(StairwayUnit.class)
 public class ScenarioTest {
     private ExecutorService executorService;
     private Stairway stairway;

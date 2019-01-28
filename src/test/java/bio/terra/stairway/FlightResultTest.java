@@ -1,13 +1,16 @@
 package bio.terra.stairway;
 
+import bio.terra.category.StairwayUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 
+@Category(StairwayUnit.class)
 public class FlightResultTest {
     private static String bad = "bad bad bad";
     private FlightResult result;

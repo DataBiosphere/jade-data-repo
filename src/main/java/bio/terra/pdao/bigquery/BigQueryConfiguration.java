@@ -34,7 +34,7 @@ public class BigQueryConfiguration {
     }
 
     @Bean
-    public String getRowIdColumnDatatype() {
+    public String rowIdColumnDatatype() {
         return rowIdColumnDatatype;
     }
 

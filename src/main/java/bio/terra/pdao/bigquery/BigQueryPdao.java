@@ -52,6 +52,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void createStudy(Study study) {
+        if (studyExists(study.getName())) {
+            deleteStudy(study);
+        }
+
         createContainer(study.getName());
         for (StudyTable table : study.getTables()) {
             createTable(study.getName(), table);

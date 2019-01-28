@@ -1,35 +1,35 @@
 package bio.terra.metadata;
 
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySpecificationModel;
-import bio.terra.model.StudySummaryModel;
-import bio.terra.model.TableModel;
+import bio.terra.model.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Study {
 
-    private String id;
+    private UUID id;
     private String name;
     private String description;
 
-    private List<StudyTable> tables;
-    //private List<Relationship> relationships;
+    // should Map be concurrent?
+    private Map<String, StudyTable> tables;
+    private Map<String, Relationship> relationships;
     //private List<AssetSpecification> assetSpecifications;
     // TODO: remove setters, aim to be immutable
 
     public Study(StudyRequestModel studyRequest) {
-        this(studyRequest.getName(), studyRequest.getDescription(), new ArrayList<>());
+        this(studyRequest.getName(), studyRequest.getDescription(), new HashMap<>());
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         for (TableModel tableModel : studySpecification.getTables()) {
-            tables.add(new StudyTable(tableModel));
+            tables.put(tableModel.getName(), new StudyTable(tableModel));
+        }
+        for (RelationshipModel relationship : studySpecification.getRelationships()) {
+            relationships.put(relationship.getName(), new Relationship(relationship, tables));
         }
     }
 
     // Constructor for building studies in unit tests.
-    public Study(String name, String description, List<StudyTable> tables) {
+    public Study(String name, String description, Map<String, StudyTable> tables) {
         this.name = name;
         this.description = description;
         this.tables = tables;
@@ -37,41 +37,31 @@ public class Study {
 
     public StudySummaryModel toSummary() {
         return new StudySummaryModel()
-                .id(this.id)
+                .id(this.id.toString())
                 .name(this.name)
                 .description(this.description);
     }
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public void setId(UUID id) { this.id = id; }
 
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public Map<String, StudyTable> getTables() {
+        return Collections.unmodifiableMap(tables);
     }
 
-    public List<StudyTable> getTables() {
-        return tables;
-    }
-
-    public void setTables(List<StudyTable> tables) {
-        this.tables = tables;
+    public Map<String, Relationship> getRelationships() {
+        return Collections.unmodifiableMap(relationships);
     }
 
 }

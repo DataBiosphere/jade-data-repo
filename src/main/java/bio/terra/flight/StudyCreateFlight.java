@@ -1,6 +1,6 @@
 package bio.terra.flight;
 
-import bio.terra.dao.StudyDAO;
+import bio.terra.dao.StudyDao;
 import bio.terra.flight.step.CreateStudyMetadataStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -13,8 +13,8 @@ public class StudyCreateFlight extends Flight {
     public StudyCreateFlight(FlightMap inputParameters, Object applicationContext) {
         super(inputParameters, applicationContext);
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        StudyDAO studyDAO = (StudyDAO)appContext.getBean("studyDAO");
-        addStep(new CreateStudyMetadataStep(studyDAO));
+        StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
+        addStep(new CreateStudyMetadataStep(studyDao));
     }
 
 }

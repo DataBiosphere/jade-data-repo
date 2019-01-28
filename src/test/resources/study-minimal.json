@@ -39,16 +39,12 @@
         "name": "participant_sample",
         "from": {
           "table": "participant",
-          "columnList": [
-            "id"
-          ],
+          "column": "id",
           "cardinality": "one"
         },
         "to": {
           "table": "sample",
-          "columnList": [
-            "participant_id"
-          ],
+          "column": "participant_id",
           "cardinality": "many"
         }
       }

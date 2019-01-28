@@ -3,6 +3,7 @@ package bio.terra.controller;
 import bio.terra.model.*;
 import bio.terra.service.AsyncService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.io.IOUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,6 +15,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -86,17 +88,30 @@ public class StudyTest {
         minimalStudySummary = new StudySummaryModel()
                 .name("Minimal")
                 .description("This is a sample study definition");
-    }
-
-    @Test
-    public void testMinimalCreate() throws Exception {
         when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
                 .thenReturn("job-id");
         when(asyncService.waitForJob(eq("job-id"), eq(StudySummaryModel.class)))
                 .thenReturn(minimalStudySummary);
+    }
+
+    @Test
+    public void testMinimalCreate() throws Exception {
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudyRequest)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.name").value("Minimal"))
+                .andExpect(jsonPath("$.description")
+                        .value("This is a sample study definition"));
+    }
+
+    @Test
+    public void testMinimalJsonCreate() throws Exception {
+        ClassLoader classLoader = getClass().getClassLoader();
+        String studyJSON = IOUtils.toString(classLoader.getResourceAsStream("study-minimal.json"));
+        mvc.perform(post("/api/repository/v1/studies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(studyJSON))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Minimal"))
                 .andExpect(jsonPath("$.description")

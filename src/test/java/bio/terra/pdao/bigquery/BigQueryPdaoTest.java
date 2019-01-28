@@ -28,12 +28,12 @@ import static org.hamcrest.Matchers.equalTo;
 public class BigQueryPdaoTest {
 
     @Autowired
-    BigQueryPdao bigQueryPdao;
+    private BigQueryPdao bigQueryPdao;
 
     @Test
     public void basicTest() throws Exception {
         // Contrive a study object with a unique name
-        String studyName = StringUtils.remove(UUID.randomUUID().toString(), '-');
+        String studyName = "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
         Study study = makeStudy(studyName);
 
         boolean exists = bigQueryPdao.studyExists(studyName);
@@ -68,10 +68,10 @@ public class BigQueryPdaoTest {
         StudyTable table1 = new StudyTable("table1", tableList1);
 
         List<StudyTableColumn> tableList2 = new ArrayList<>();
-        tableList1.add(col4);
-        tableList1.add(col3);
-        tableList1.add(col2);
-        tableList1.add(col1);
+        tableList2.add(col4);
+        tableList2.add(col3);
+        tableList2.add(col2);
+        tableList2.add(col1);
         StudyTable table2 = new StudyTable("table2", tableList2);
 
         List<StudyTable> tables = new ArrayList<>();
@@ -81,6 +81,5 @@ public class BigQueryPdaoTest {
         Study study = new Study(studyName, "this is a test study", tables);
         return study;
     }
-
 
 }

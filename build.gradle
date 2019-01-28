@@ -148,12 +148,6 @@ task unpack(type: Copy) {
     into("build/dependency")
 }
 
-processResources {
-    filesMatching("**/application.properties") {
-        expand(project.properties)
-    }
-}
-
 clean.doFirst {
     delete("${projectDir}/$openapiTargetFolder")
 }

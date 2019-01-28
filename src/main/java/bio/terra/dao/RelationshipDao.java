@@ -1,5 +1,6 @@
 package bio.terra.dao;
 
+import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Relationship;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
@@ -26,8 +27,8 @@ public class RelationshipDao extends MetaDao<Relationship> {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public RelationshipDao(NamedParameterJdbcTemplate jdbcTemplate) {
-        this.jdbcTemplate = jdbcTemplate;
+    public RelationshipDao(DataRepoJdbcConfiguration jdbcConfiguration) {
+        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
     void createStudyRelationships(Study study) {

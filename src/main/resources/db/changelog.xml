@@ -11,4 +11,5 @@
     <property name="identifier_type" value="varchar(63)"/>
 
     <include file="changesets/20181203_studytable.yaml" relativeToChangelogFile="true"/>
+    <include file="changesets/20190117_createddates.yaml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

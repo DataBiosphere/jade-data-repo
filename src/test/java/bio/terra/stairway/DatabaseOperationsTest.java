@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
+import bio.terra.configuration.StairwayJdbcConfiguration;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp2.PoolableConnection;
@@ -15,7 +16,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
@@ -25,7 +25,6 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
-@TestPropertySource(locations = "file://${HOME}/drmetadata_test.properties")
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Category(StairwayUnit.class)
@@ -33,12 +32,12 @@ public class DatabaseOperationsTest {
     private PoolingDataSource<PoolableConnection> dataSource;
 
     @Autowired
-    private MetadataJdbcConfiguration jdbcConfiguration;
+    private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
         Properties props = new Properties();
-        props.setProperty("user", jdbcConfiguration.getUser());
+        props.setProperty("user", jdbcConfiguration.getUsername());
         props.setProperty("password", jdbcConfiguration.getPassword());
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);

@@ -1,10 +1,9 @@
 package bio.terra.controller;
 
-import bio.terra.dao.StudyDAO;
 import bio.terra.flight.StudyCreateFlight;
-import bio.terra.metadata.Study;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.AsyncService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightResult;
 import bio.terra.stairway.Stairway;
@@ -17,21 +16,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
-    private final StudyDAO studyDAO;
+    private final AsyncService asyncService;
 
     @Autowired
-    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, StudyDAO studyDAO) {
+    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, AsyncService asyncService) {
         this.objectMapper = objectMapper;
         this.request = request;
-        this.studyDAO = studyDAO;
+        this.asyncService = asyncService;
     }
 
     @Override
@@ -46,13 +43,9 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<StudySummaryModel> createStudy(@RequestBody StudyRequestModel studyRequest) {
-        // TODO: move to stairway service
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        Stairway stairway = new Stairway(executorService);
-
+        Stairway stairway = asyncService.getStairway();
         FlightMap flightMap = new FlightMap();
-        flightMap.put("study", new Study(studyRequest));
-        flightMap.put("studyDAO", studyDAO);
+        flightMap.put("study", studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         FlightResult result = stairway.getResult(flightId);
         if (result.isSuccess()) {
@@ -60,13 +53,14 @@ public class RepositoryApiController implements RepositoryApi {
             StudySummaryModel studySummary = resultMap.get("summary", StudySummaryModel.class);
             return new ResponseEntity<>(studySummary, HttpStatus.OK);
         } else {
-            Optional<Throwable> throwable = result.getThrowable();
-            if (throwable.isPresent()) {
-                //....
-                Throwable throwableThing = throwable.get();
-                throwableThing.printStackTrace();
+            Optional<Throwable> optThrowable = result.getThrowable();
+            String message = "There was an issue creating the study, but no error message was provided.";
+            if (optThrowable.isPresent()) {
+                Throwable throwable = optThrowable.get();
+                throwable.printStackTrace();
+                message = throwable.getMessage();
             }
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            throw new RuntimeException(message);
         }
     }
 }

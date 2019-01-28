@@ -42,7 +42,6 @@ apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
 apply plugin: 'jacoco'
 
-
 tasks.withType(FindBugs) {
     reports {
         xml.enabled false
@@ -86,9 +85,8 @@ configurations {
 }
 
 dependencies {
-
+    // TODO: Unpack the "starter" and include just what we use
     compile 'org.springframework.boot:spring-boot-starter-web'
-    compile 'org.springframework.boot:spring-boot-starter-jdbc'
     compile 'org.springframework:spring-jdbc'
     compile 'io.springfox:springfox-swagger2:2.7.0'
     compile 'io.springfox:springfox-swagger-ui:2.7.0'
@@ -97,7 +95,7 @@ dependencies {
     compile 'org.postgresql:postgresql:42.2.5'           // Postgres jdbc driver
     compile 'com.google.cloud:google-cloud-bigquery:1.49.0'
     compile 'com.google.cloud:google-cloud-storage:1.49.0'
-
+    compile 'org.liquibase:liquibase-core:3.6.1'         // For upgrade
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
@@ -150,6 +148,12 @@ task unpack(type: Copy) {
     into("build/dependency")
 }
 
+processResources {
+    filesMatching("**/application.properties") {
+        expand(project.properties)
+    }
+}
+
 clean.doFirst {
     delete("${projectDir}/$openapiTargetFolder")
 }
@@ -193,14 +197,20 @@ jar {
 
 liquibase {
     activities {
-        main {
-            changeLogFile 'src/main/resources/db/changelog.xml'
-            url 'jdbc:postgresql://127.0.0.1:5432/datarepo'
-            username 'drmanager'
-            password 'drpasswd'
+        datarepo {
+            changeLogFile project.ext.dbDatarepoChangesetFile
+            url project.ext.dbDatarepoUri
+            username project.ext.dbDatarepoUsername
+            password project.ext.dbDatarepoPassword
             logLevel 'debug'
         }
-        runList = 'main'
+        stairway {
+            changeLogFile project.ext.dbStairwayChangesetFile
+            url project.ext.dbStairwayUri
+            username project.ext.dbStairwayUsername
+            password project.ext.dbStairwayPassword
+            logLevel 'debug'
+        }
     }
 }
 

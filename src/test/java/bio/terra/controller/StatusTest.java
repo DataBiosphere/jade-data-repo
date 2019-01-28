@@ -27,7 +27,6 @@ public class StatusTest {
     @Test
     public void testStatusOK() throws Exception {
         this.mvc.perform(get("/status")).andExpect(status().isOk());
-
     }
 
 }

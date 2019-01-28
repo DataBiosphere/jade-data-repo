@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
+import bio.terra.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightException;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
@@ -16,7 +17,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Optional;
@@ -60,7 +60,6 @@ import static org.hamcrest.Matchers.equalTo;
  * set the stop controller from 0 and trigger undo. Then the TestStepStop will sleep on the undo
  * path simulating a failure in that direction.
  */
-@TestPropertySource(locations = "file://${HOME}/drmetadata_test.properties")
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Category(StairwayUnit.class)
@@ -69,12 +68,12 @@ public class RecoveryTest {
     private ExecutorService executorService;
 
     @Autowired
-    private MetadataJdbcConfiguration jdbcConfiguration;
+    private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
         Properties props = new Properties();
-        props.setProperty("user", jdbcConfiguration.getUser());
+        props.setProperty("user", jdbcConfiguration.getUsername());
         props.setProperty("password", jdbcConfiguration.getPassword());
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);
@@ -95,7 +94,7 @@ public class RecoveryTest {
     @Test
     public void successTest() throws Exception {
         // Start with a clean and shiny database environment.
-        Stairway stairway1 = new Stairway(executorService, dataSource, true);
+        Stairway stairway1 = new Stairway(executorService, dataSource, true, null);
 
         FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(0);
@@ -115,7 +114,7 @@ public class RecoveryTest {
 
         // Simulate a restart with a new thread pool and stairway. Set control so this one does not sleep
         TestStopController.setControl(1);
-        Stairway stairway2 = new Stairway(executorService, dataSource, false);
+        Stairway stairway2 = new Stairway(executorService, dataSource, false, null);
 
         // Wait for recovery to complete
         FlightResult result = stairway2.getResult(flightId);
@@ -127,7 +126,7 @@ public class RecoveryTest {
     @Test
     public void undoTest() throws Exception {
         // Start with a clean and shiny database environment.
-        Stairway stairway1 = new Stairway(executorService, dataSource, true);
+        Stairway stairway1 = new Stairway(executorService, dataSource, true, null);
 
         FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(2);
@@ -148,7 +147,7 @@ public class RecoveryTest {
 
         // Simulate a restart with a new thread pool and stairway. Reset control so this one does not sleep
         TestStopController.setControl(1);
-        Stairway stairway2 = new Stairway(executorService, dataSource, false);
+        Stairway stairway2 = new Stairway(executorService, dataSource, false, null);
 
         // Wait for recovery to complete
         FlightResult result = stairway2.getResult(flightId);

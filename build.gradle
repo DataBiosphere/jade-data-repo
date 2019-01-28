@@ -85,10 +85,8 @@ configurations {
 }
 
 dependencies {
-    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-
+    // TODO: Unpack the "starter" and include just what we use
     compile 'org.springframework.boot:spring-boot-starter-web'
-    compile 'org.springframework.boot:spring-boot-starter-jdbc'
     compile 'org.springframework:spring-jdbc'
     compile 'io.springfox:springfox-swagger2:2.7.0'
     compile 'io.springfox:springfox-swagger-ui:2.7.0'

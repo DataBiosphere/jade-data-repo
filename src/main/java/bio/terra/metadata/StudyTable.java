@@ -19,6 +19,12 @@ public class StudyTable {
         }
     }
 
+    // Constructor for assembling test studies. Maybe useful for DAO.
+    public StudyTable(String name, List<StudyTableColumn> studyTableColumns) {
+        this.name = name;
+        this.columns = studyTableColumns;
+    }
+
     public String getName() {
         return name;
     }

@@ -23,7 +23,11 @@ public class Main implements CommandLineRunner {
     }
 
     public static void main(String[] args) throws Exception {
-        new SpringApplication(Main.class).run(args);
+        SpringApplication theApp = new SpringApplication(Main.class);
+        // Initially, Jade runs only with bigquery, so we set the profile here.
+        // ITFOT, we can parameterize the profile to include the appropriate pdao implementation.
+        theApp.setAdditionalProfiles("bigquery");
+        theApp.run(args);
     }
 
     static class ExitException extends RuntimeException implements ExitCodeGenerator {

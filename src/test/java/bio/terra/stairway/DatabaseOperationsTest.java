@@ -1,5 +1,6 @@
 package bio.terra.stairway;
 
+import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
@@ -11,6 +12,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,6 +27,7 @@ import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@Category(StairwayUnit.class)
 public class DatabaseOperationsTest {
     private PoolingDataSource<PoolableConnection> dataSource;
 

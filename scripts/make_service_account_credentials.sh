@@ -26,7 +26,7 @@ cat > $outfile <<EOF
   "type": "service_account",
   "project_id": "broad-jade-dev",
   "private_key_id": "7ec01cc1fb49293f082dc6eee2fa4f0479e2f305",
-  "private_key": "-----BEGIN PRIVATE KEY-----\n$SERVICE_ACCOUNT_PK\n-----END PRIVATE KEY-----\n",
+  "private_key": "$SERVICE_ACCOUNT_PK",
   "client_email": "travis-access@broad-jade-dev.iam.gserviceaccount.com",
   "client_id": "102180013040579229956",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",

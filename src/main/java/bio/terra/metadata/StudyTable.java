@@ -20,7 +20,7 @@ public class StudyTable {
     }
 
     // Constructor for assembling test studies. Maybe useful for DAO.
-    public StudyTable(String name, List<StudyTableColumn> studyTableColumns) {
+    public StudyTable(String name, Map<String, StudyTableColumn> studyTableColumns) {
         this.name = name;
         this.columns = studyTableColumns;
     }
@@ -29,19 +29,13 @@ public class StudyTable {
         return name;
     }
 
-//    public void setName(String name) {
-//        this.name = name;
-//    }
-
-    // determine whether we need this method
-    public Map<String, StudyTableColumn> getColumns() {
-        return Collections.unmodifiableMap(columns);
+    public Collection<StudyTableColumn> getColumns() {
+        return Collections.unmodifiableCollection(columns.values());
     }
 
-//    public void setColumns(List<StudyTableColumn> columns) {
-//        this.columns = columns;
-//    }
-
+    Map<String, StudyTableColumn> getColumnsMap() {
+        return Collections.unmodifiableMap(columns);
+    }
 
     public void setId(UUID tableId) { this.id = tableId; }
 }

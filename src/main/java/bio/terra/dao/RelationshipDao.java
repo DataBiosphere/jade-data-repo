@@ -27,11 +27,11 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
 
     void createStudyRelationships(Study study) {
         for (StudyRelationship rel : study.getRelationships().values()) {
-            create(rel, study.getTables());
+            create(rel);
         }
     }
 
-    public void create(StudyRelationship studyRelationship, Map<String, StudyTable> tables) {
+    public void create(StudyRelationship studyRelationship) {
         String sql = "INSERT INTO study_relationship (name, from_cardinality, to_cardinality, from_column, to_column) " +
                 "VALUES (:name, :from_cardinality, :to_cardinality, :from_column, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource();

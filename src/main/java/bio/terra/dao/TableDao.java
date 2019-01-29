@@ -29,12 +29,12 @@ public class TableDao extends MetaDao<StudyTable> {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", study.getId());
         KeyHolder keyHolder = new GeneratedKeyHolder();
-        for (StudyTable table : study.getTables().values()) {
+        for (StudyTable table : study.getTables()) {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sql, params, keyHolder);
             UUID tableId = getIdKey(keyHolder);
             table.setId(tableId);
-            createStudyColumns(tableId, table.getColumns().values());
+            createStudyColumns(tableId, table.getColumns());
         }
     }
 

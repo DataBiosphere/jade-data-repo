@@ -24,7 +24,7 @@ public class StudyRelationship {
     }
 
     protected StudyTableColumn getColumn(RelationshipTermModel relTerm, Map<String, StudyTable> tables) {
-        return tables.get(relTerm.getTable()).getColumns().get(relTerm.getColumn());
+        return tables.get(relTerm.getTable()).getColumnsMap().get(relTerm.getColumn());
     }
 
     public UUID getId() {

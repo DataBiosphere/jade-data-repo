@@ -12,7 +12,7 @@ public class Study {
 
     // should Map be concurrent?
     private Map<String, StudyTable> tables;
-    private Map<String, Relationship> relationships;
+    private Map<String, StudyRelationship> relationships;
     //private List<AssetSpecification> assetSpecifications;
     // TODO: remove setters, aim to be immutable
 
@@ -24,7 +24,7 @@ public class Study {
             tables.put(tableModel.getName(), new StudyTable(tableModel));
         }
         for (RelationshipModel relationship : studySpecification.getRelationships()) {
-            relationships.put(relationship.getName(), new Relationship(relationship, tables));
+            relationships.put(relationship.getName(), new StudyRelationship(relationship, tables));
         }
     }
 
@@ -56,11 +56,11 @@ public class Study {
         return description;
     }
 
-    public Map<String, StudyTable> getTables() {
-        return Collections.unmodifiableMap(tables);
+    public Collection<StudyTable> getTables() {
+        return Collections.unmodifiableCollection(tables.values());
     }
 
-    public Map<String, Relationship> getRelationships() {
+    public Map<String, StudyRelationship> getRelationships() {
         return Collections.unmodifiableMap(relationships);
     }
 

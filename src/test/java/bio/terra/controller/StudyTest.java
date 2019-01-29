@@ -1,8 +1,9 @@
 package bio.terra.controller;
 
+import bio.terra.controller.exception.ApiException;
+import bio.terra.flight.StudyCreateFlight;
 import bio.terra.model.*;
-import bio.terra.service.AsyncException;
-import bio.terra.service.AsyncService;
+import bio.terra.stairway.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -32,7 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class StudyTest {
 
     @MockBean
-    private AsyncService asyncService;
+    private Stairway stairway;
 
     @Autowired
     private MockMvc mvc;
@@ -92,10 +93,12 @@ public class StudyTest {
 
     @Test
     public void testMinimalCreate() throws Exception {
-        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
-                .thenReturn("job-id");
-        when(asyncService.waitForJob(eq("job-id"), eq(StudySummaryModel.class)))
-                .thenReturn(minimalStudySummary);
+        FlightMap resultMap = new FlightMap();
+        resultMap.put("response", minimalStudySummary);
+        when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
+                .thenReturn("test-flight-id");
+        when(stairway.getResult(eq("test-flight-id")))
+                .thenReturn(new FlightResult(StepResult.getStepResultSuccess(), resultMap));
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudyRequest)))
@@ -107,10 +110,12 @@ public class StudyTest {
 
     @Test
     public void testMinimalJsonCreate() throws Exception {
-        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
-                .thenReturn("job-id");
-        when(asyncService.waitForJob(eq("job-id"), eq(StudySummaryModel.class)))
-                .thenReturn(minimalStudySummary);
+        FlightMap resultMap = new FlightMap();
+        resultMap.put("response", minimalStudySummary);
+        when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
+                .thenReturn("test-flight-id");
+        when(stairway.getResult(eq("test-flight-id")))
+                .thenReturn(new FlightResult(StepResult.getStepResultSuccess(), resultMap));
         ClassLoader classLoader = getClass().getClassLoader();
         String studyJSON = IOUtils.toString(classLoader.getResourceAsStream("study-minimal.json"));
         mvc.perform(post("/api/repository/v1/studies")
@@ -132,8 +137,8 @@ public class StudyTest {
 
     @Test
     public void testFlightError() throws Exception {
-        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
-                .thenThrow(AsyncException.class);
+        when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
+                .thenThrow(ApiException.class);
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudyRequest)))

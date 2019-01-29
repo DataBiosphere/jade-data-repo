@@ -1,8 +1,11 @@
 package bio.terra.controller;
 
+import bio.terra.controller.exception.ApiException;
+import bio.terra.flight.StudyCreateFlight;
 import bio.terra.model.*;
-import bio.terra.service.AsyncException;
-import bio.terra.service.AsyncService;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.FlightResult;
+import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,16 +22,14 @@ import java.util.Optional;
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
-    private final ObjectMapper objectMapper;
-    private final HttpServletRequest request;
-    private final AsyncService asyncService;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
-    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, AsyncService asyncService) {
-        this.objectMapper = objectMapper;
-        this.request = request;
-        this.asyncService = asyncService;
-    }
+    private HttpServletRequest request;
+
+    @Autowired
+    private Stairway stairway;
 
     @Override
     public Optional<ObjectMapper> getObjectMapper() {
@@ -40,8 +41,8 @@ public class RepositoryApiController implements RepositoryApi {
         return Optional.ofNullable(request);
     }
 
-    @ExceptionHandler(AsyncException.class)
-    public ResponseEntity<ErrorModel> handleAsyncException(AsyncException ex) {
+    @ExceptionHandler(ApiException.class)
+    public ResponseEntity<ErrorModel> handleAsyncException(ApiException ex) {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -63,8 +64,28 @@ public class RepositoryApiController implements RepositoryApi {
                 seenColumnNames.add(columnName);
             }
         }
-        String jobId = asyncService.submitJob("create-study", studyRequest);
-        StudySummaryModel studySummary = asyncService.waitForJob(jobId, StudySummaryModel.class);
+        FlightMap flightMap = new FlightMap();
+        flightMap.put("request", studyRequest);
+        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
+        StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+    }
+
+    public <T> T getResponse(String flightId, Class<T> resultClass) {
+        FlightResult result = stairway.getResult(flightId);
+        if (result.isSuccess()) {
+            FlightMap resultMap = result.getResultMap();
+            return resultMap.get("response", resultClass);
+        } else {
+            String message = "Could not complete flight";
+            Optional<Throwable> optThrowable = result.getThrowable();
+            if (optThrowable.isPresent()) {
+                Throwable throwable = optThrowable.get();
+                throwable.printStackTrace();
+                message = throwable.getMessage();
+                throw new ApiException(message, throwable);
+            }
+            throw new ApiException(message);
+        }
     }
 }

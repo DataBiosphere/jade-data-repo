@@ -3,10 +3,7 @@ package bio.terra.pdao.bigquery;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
-<<<<<<< HEAD
-=======
 import bio.terra.pdao.PdaoException;
->>>>>>> 8ba882c23642904276a9e2224816601155182328
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Dataset;

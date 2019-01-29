@@ -6,7 +6,7 @@ import bio.terra.model.RelationshipTermModel;
 import java.util.Map;
 import java.util.UUID;
 
-public class Relationship {
+public class StudyRelationship {
 
     private UUID id;
     private String name;
@@ -15,7 +15,7 @@ public class Relationship {
     private StudyTableColumn to;
     private RelationshipTermModel.CardinalityEnum toCardinality;
 
-    public Relationship(RelationshipModel relationshipModel, Map<String, StudyTable> tables) {
+    public StudyRelationship(RelationshipModel relationshipModel, Map<String, StudyTable> tables) {
         name = relationshipModel.getName();
         from = getColumn(relationshipModel.getFrom(), tables);
         fromCardinality = relationshipModel.getFrom().getCardinality();

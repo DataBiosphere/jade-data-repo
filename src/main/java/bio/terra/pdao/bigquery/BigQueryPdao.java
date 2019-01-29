@@ -3,6 +3,7 @@ package bio.terra.pdao.bigquery;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
+import bio.terra.pdao.PdaoException;
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.Dataset;
@@ -45,26 +46,39 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public boolean studyExists(String name) {
-        DatasetId datasetId = DatasetId.of(projectId, name);
-        Dataset dataset = bigQuery.getDataset(datasetId);
-        return (dataset != null);
+        try {
+            DatasetId datasetId = DatasetId.of(projectId, name);
+            Dataset dataset = bigQuery.getDataset(datasetId);
+            return (dataset != null);
+        } catch (Exception ex) {
+            throw new PdaoException("studyExists failed", ex);
+        }
     }
 
     @Override
     public void createStudy(Study study) {
-        if (studyExists(study.getName())) {
-            deleteStudy(study);
+        try {
+            if (studyExists(study.getName())) {
+                deleteStudy(study);
+            }
+
+            createContainer(study.getName());
+            for (StudyTable table : study.getTables()) {
+                createTable(study.getName(), table);
+            }
+        } catch (Exception ex) {
+            throw new PdaoException("createStudy failed", ex);
         }
 
-        createContainer(study.getName());
-        for (StudyTable table : study.getTables()) {
-            createTable(study.getName(), table);
-        }
     }
 
     @Override
     public boolean deleteStudy(Study study) {
-        return deleteContainer(study.getName());
+        try {
+            return deleteContainer(study.getName());
+        } catch (Exception ex) {
+            throw new PdaoException("deleteStudy failed", ex);
+        }
     }
 
     private void createContainer(String name) {

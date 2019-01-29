@@ -21,14 +21,14 @@ public class CreateStudyMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get("study", StudyRequestModel.class);
+        StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
         Study study = new Study(studyRequest);
         studyDAO.create(study);
         // TODO: get the id back, fetch the Study by ID and return a summary
         StudySummaryModel studySummary = new StudySummaryModel()
                 .name(study.getName())
                 .description(study.getDescription());
-        workingMap.put("summary", studySummary);
+        workingMap.put("response", studySummary);
         return StepResult.getStepResultSuccess();
     }
 

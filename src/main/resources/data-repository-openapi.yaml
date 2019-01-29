@@ -416,15 +416,13 @@ definitions:
     type: object
     required:
       - table
-      - columnList
+      - column
       - cardinality
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
-      columnList:
-        type: array
-        items:
-          type: string
+      column:
+        type: string
       cardinality:
         type: string
         enum:
@@ -674,3 +672,11 @@ definitions:
       description:
         type: string
         description: Description of the job's flight
+
+  ErrorModel:
+    description: |
+      representation of an error that occurred while processing a request
+    type: object
+    properties:
+      message:
+        type: string

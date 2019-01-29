@@ -1,20 +1,19 @@
 package bio.terra.controller;
 
-import bio.terra.flight.StudyCreateFlight;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.*;
+import bio.terra.service.AsyncException;
 import bio.terra.service.AsyncService;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightResult;
-import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
+import java.util.HashSet;
 import java.util.Optional;
 
 @Controller
@@ -41,26 +40,31 @@ public class RepositoryApiController implements RepositoryApi {
         return Optional.ofNullable(request);
     }
 
-    @Override
-    public ResponseEntity<StudySummaryModel> createStudy(@RequestBody StudyRequestModel studyRequest) {
-        Stairway stairway = asyncService.getStairway();
-        FlightMap flightMap = new FlightMap();
-        flightMap.put("study", studyRequest);
-        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
-        FlightResult result = stairway.getResult(flightId);
-        if (result.isSuccess()) {
-            FlightMap resultMap = result.getResultMap();
-            StudySummaryModel studySummary = resultMap.get("summary", StudySummaryModel.class);
-            return new ResponseEntity<>(studySummary, HttpStatus.OK);
-        } else {
-            Optional<Throwable> optThrowable = result.getThrowable();
-            String message = "There was an issue creating the study, but no error message was provided.";
-            if (optThrowable.isPresent()) {
-                Throwable throwable = optThrowable.get();
-                throwable.printStackTrace();
-                message = throwable.getMessage();
+    @ExceptionHandler(AsyncException.class)
+    public ResponseEntity<ErrorModel> handleAsyncException(AsyncException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+        // TODO: validation should happen at some point, either at job submission or when the @Valid annotation is used
+        HashSet<String> seenTableNames = new HashSet<>();
+        for (TableModel table : studyRequest.getSchema().getTables()) {
+            String tableName = table.getName();
+            if (seenTableNames.contains(tableName)) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
             }
-            throw new RuntimeException(message);
+            seenTableNames.add(tableName);
+            HashSet<String> seenColumnNames = new HashSet<>();
+            for (ColumnModel column : table.getColumns()) {
+                String columnName = column.getName();
+                if (seenColumnNames.contains(columnName)) {
+                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                }
+                seenColumnNames.add(columnName);
+            }
         }
+        String jobId = asyncService.submitJob("create-study", studyRequest);
+        StudySummaryModel studySummary = asyncService.waitForJob(jobId, StudySummaryModel.class);
+        return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
     }
 }

@@ -5,6 +5,7 @@ import bio.terra.metadata.Study;
 /**
  * In the long term, we want to make the primary data store be pluggable, supporting different implementations.
  * This interface documents what that pluggable interface might look like. Of course, we never know until we
+ * build another one.
  *
  * We use the term "container" for the object that contains a set of tables. In BigQuery, this would be a
  * BigQuery dataset. In Postgresql, it would probably be a schema.
@@ -19,12 +20,12 @@ import bio.terra.metadata.Study;
  *     </ol>
  *     <li>undo</li>
  *     <ol>
- *     <li>deleteStudy - called on undo; does not fail if the study has already been deleted</li>
+ *         <li>deleteStudy - called on undo; does not fail if the study has already been deleted</li>
  *     </ol>
  * </ul>
  *
- * REVIEWERS: Is it worth catching underlying implementation exceptions and packaging them into a PDAO exception?
- * Seems of marginal value to me, but has a nice aesthetic.
+ * All implementation-specific exceptions should be caught by the implementation and wrapped
+ * in PdaoException.
  */
 public interface PrimaryDataAccess {
 

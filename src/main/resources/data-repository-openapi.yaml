@@ -672,3 +672,11 @@ definitions:
       description:
         type: string
         description: Description of the job's flight
+
+  ErrorModel:
+    description: |
+      representation of an error that occurred while processing a request
+    type: object
+    properties:
+      message:
+        type: string

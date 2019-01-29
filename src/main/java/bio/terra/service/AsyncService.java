@@ -16,27 +16,16 @@ import java.util.concurrent.Executors;
 public class AsyncService {
 
     private Stairway stairway;
-    private AsyncContext asyncContext;
     private HashMap<String, Class> jobFlights;
 
     @Autowired
     public AsyncService(AsyncContext asyncContext) {
-        this.asyncContext = asyncContext;
-
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         // TODO: datasource should be wired, and forceCleanStart should be true for local+dev, false o/w
         stairway = new Stairway(executorService, null, false, asyncContext);
 
         jobFlights = new HashMap<>();
         jobFlights.put("create-study", StudyCreateFlight.class);
-    }
-
-    public Stairway getStairway() {
-        return stairway;
-    }
-
-    public AsyncContext getAsyncContext() {
-        return asyncContext;
     }
 
     public String submitJob(String jobName, Object inputParams) {
@@ -49,7 +38,7 @@ public class AsyncService {
         return flightId;
     }
 
-    public <T> T waitForJob(String jobId, Class<? extends T> resultClass) {
+    public <T> T waitForJob(String jobId, Class<? extends T> resultClass) throws AsyncException {
         FlightResult result = stairway.getResult(jobId);
         if (result.isSuccess()) {
             FlightMap resultMap = result.getResultMap();
@@ -60,9 +49,9 @@ public class AsyncService {
             if (optThrowable.isPresent()) {
                 Throwable throwable = optThrowable.get();
                 throwable.printStackTrace();
-                message = throwable.getMessage();
+                throw new AsyncException(message, throwable);
             }
-            throw new RuntimeException(message);
+            throw new AsyncException(message);
         }
     }
 }

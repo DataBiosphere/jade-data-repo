@@ -1,6 +1,7 @@
 package bio.terra.controller;
 
 import bio.terra.model.*;
+import bio.terra.service.AsyncException;
 import bio.terra.service.AsyncService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
@@ -15,7 +16,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.List;
 
@@ -88,14 +88,14 @@ public class StudyTest {
         minimalStudySummary = new StudySummaryModel()
                 .name("Minimal")
                 .description("This is a sample study definition");
-        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
-                .thenReturn("job-id");
-        when(asyncService.waitForJob(eq("job-id"), eq(StudySummaryModel.class)))
-                .thenReturn(minimalStudySummary);
     }
 
     @Test
     public void testMinimalCreate() throws Exception {
+        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
+                .thenReturn("job-id");
+        when(asyncService.waitForJob(eq("job-id"), eq(StudySummaryModel.class)))
+                .thenReturn(minimalStudySummary);
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudyRequest)))
@@ -107,6 +107,10 @@ public class StudyTest {
 
     @Test
     public void testMinimalJsonCreate() throws Exception {
+        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
+                .thenReturn("job-id");
+        when(asyncService.waitForJob(eq("job-id"), eq(StudySummaryModel.class)))
+                .thenReturn(minimalStudySummary);
         ClassLoader classLoader = getClass().getClassLoader();
         String studyJSON = IOUtils.toString(classLoader.getResourceAsStream("study-minimal.json"));
         mvc.perform(post("/api/repository/v1/studies")
@@ -126,14 +130,43 @@ public class StudyTest {
                 .andExpect(status().is4xxClientError());
     }
 
-    // test posting study-minimal.json is okay
-    // test objectMapper to string == minimal study json
-    //
-    // structural
-    //    table names are distinct and valid
-    //    column names within a table are distinct and valid
-    //
-    // requires db
-    //   duplicate study name test
+    @Test
+    public void testFlightError() throws Exception {
+        when(asyncService.submitJob(eq("create-study"), isA(StudyRequestModel.class)))
+                .thenThrow(AsyncException.class);
+        mvc.perform(post("/api/repository/v1/studies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(minimalStudyRequest)))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    public void testDuplicateTableNames() throws Exception {
+        List<ColumnModel> columns = Arrays.asList(new ColumnModel().name("id").datatype("string"));
+        minimalStudyRequest.getSchema().tables(Arrays.asList(
+                new TableModel()
+                        .name("duplicate")
+                        .columns(columns),
+                new TableModel()
+                        .name("duplicate")
+                        .columns(columns)));
+        mvc.perform(post("/api/repository/v1/studies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(minimalStudyRequest)))
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    public void testDuplicateColumnNames() throws Exception {
+        List<ColumnModel> columns = Arrays.asList(
+                new ColumnModel().name("id").datatype("string"),
+                new ColumnModel().name("id").datatype("string"));
+        minimalStudyRequest.getSchema().tables(Arrays.asList(
+                new TableModel().name("table").columns(columns)));
+        mvc.perform(post("/api/repository/v1/studies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(minimalStudyRequest)))
+                .andExpect(status().is4xxClientError());
+    }
 
 }

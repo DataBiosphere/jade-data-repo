@@ -19,17 +19,14 @@ import java.util.UUID;
 public class StudyDao extends MetaDao<Study> {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final TableDao tableDao;
+    private final RelationshipDao relationshipDao;
 
     @Autowired
-    private TableDao tableDao;
-
-    @Autowired
-    private RelationshipDao relationshipDao;
-
-
-    @Autowired
-    public StudyDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+    public StudyDao(NamedParameterJdbcTemplate jdbcTemplate, TableDao tableDao, RelationshipDao relationshipDao) {
+        this.jdbcTemplate = jdbcTemplate;
+        this.tableDao = tableDao;
+        this.relationshipDao = relationshipDao;
     }
 
 

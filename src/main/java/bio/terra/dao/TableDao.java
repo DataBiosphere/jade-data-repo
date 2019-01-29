@@ -20,11 +20,12 @@ public class TableDao extends MetaDao<StudyTable> {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public TableDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+    public TableDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
-    void createStudyTables(Study study) {
+    // part of a transaction propagated from StudyDao
+    public void createStudyTables(Study study) {
         String sql = "INSERT INTO study_table (name, study_id) VALUES (:name, :study_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", study.getId());
@@ -38,7 +39,7 @@ public class TableDao extends MetaDao<StudyTable> {
         }
     }
 
-    void createStudyColumns(UUID tableId, Collection<StudyTableColumn> columns) {
+    protected void createStudyColumns(UUID tableId, Collection<StudyTableColumn> columns) {
         String sql = "INSERT INTO study_column (table_id, name, type) VALUES (:table_id, :name, :type)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("table_id", tableId);

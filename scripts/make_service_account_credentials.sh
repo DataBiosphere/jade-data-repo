@@ -21,12 +21,28 @@ if [ -z "$SERVICE_ACCOUNT_PK" ]; then
     exit 1
 fi
 
+# The SERVICE_ACCOUNT_PK is the private key with prefix, suffix, and newlines removed.
+# We add those back in here and then generate the result file
+pk="-----BEGIN PRIVATE KEY-----\n"
+p=0
+l=64
+str=$SERVICE_ACCOUNT_PK
+while : ; do
+    ss=${str:p:l}
+    if [ -z "$ss" ]; then
+        break
+    fi
+    pk="$pk$ss\n"
+    p=$((p+l))
+done
+pk="$pk-----END PRIVATE KEY-----\n"
+
 cat > $outfile <<EOF
 {
   "type": "service_account",
   "project_id": "broad-jade-dev",
   "private_key_id": "7ec01cc1fb49293f082dc6eee2fa4f0479e2f305",
-  "private_key": "$SERVICE_ACCOUNT_PK",
+  "private_key": "$pk",
   "client_email": "travis-access@broad-jade-dev.iam.gserviceaccount.com",
   "client_id": "102180013040579229956",
   "auth_uri": "https://accounts.google.com/o/oauth2/auth",

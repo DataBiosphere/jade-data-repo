@@ -21,6 +21,12 @@ services:
 
 before_script:
   - psql -U postgres -f db/create-data-repo-db
+  - scripts/make_service_account_credentials.sh /tmp/sacreds.json
+  - export GOOGLE_APPLICATION_CREDENTIALS=/tmp/sacreds.json
+
+script:
+  - ./gradlew check
+  - ./gradlew testConnected
 
 deploy:
   provider: script

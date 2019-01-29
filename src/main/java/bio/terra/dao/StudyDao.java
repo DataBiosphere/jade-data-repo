@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -38,7 +39,7 @@ public class StudyDao extends MetaDao<Study> {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("name", study.getName());
         params.addValue("description", study.getDescription());
-        params.addValue("created_date", Instant.now());
+        params.addValue("created_date", new Timestamp(Instant.now().toEpochMilli()));
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID studyId = getIdKey(keyHolder);

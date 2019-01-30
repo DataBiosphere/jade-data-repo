@@ -29,21 +29,17 @@ public class StudyTable {
         this.columns = studyTableColumns;
     }
 
-    public String getName() {
-        return name;
-    }
+    public String getName() { return name; }
+
+    public UUID getId() { return id; }
+
+    public void setId(UUID tableId) { this.id = tableId; }
 
     public Collection<StudyTableColumn> getColumns() {
         return Collections.unmodifiableCollection(columns.values());
     }
 
-    Map<String, StudyTableColumn> getColumnsMap() {
+    protected Map<String, StudyTableColumn> getColumnsMap() {
         return Collections.unmodifiableMap(columns);
     }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID tableId) { this.id = tableId; }
 }

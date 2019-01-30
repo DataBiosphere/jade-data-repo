@@ -20,12 +20,14 @@ public class StudyDao extends MetaDao<Study> {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final TableDao tableDao;
     private final RelationshipDao relationshipDao;
+    private final AssetDao assetDao;
 
     @Autowired
-    public StudyDao(NamedParameterJdbcTemplate jdbcTemplate, TableDao tableDao, RelationshipDao relationshipDao) {
+    public StudyDao(NamedParameterJdbcTemplate jdbcTemplate, TableDao tableDao, RelationshipDao relationshipDao, AssetDao assetDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
+        this.assetDao = assetDao;
     }
 
 
@@ -42,6 +44,7 @@ public class StudyDao extends MetaDao<Study> {
         study.setId(studyId);
         tableDao.createStudyTables(study);
         relationshipDao.createStudyRelationships(study);
+        assetDao.createAssets(study);
         return studyId;
     }
 

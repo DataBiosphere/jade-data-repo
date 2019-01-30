@@ -1,6 +1,5 @@
 package bio.terra.dao;
 
-import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +17,8 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public RelationshipDao(DataRepoJdbcConfiguration jdbcConfiguration) {
-        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+    public RelationshipDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     // part of a transaction propagated from StudyDao

@@ -1,6 +1,5 @@
 package bio.terra.dao;
 
-import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;

@@ -17,7 +17,7 @@ public class Study {
     // TODO: remove setters, aim to be immutable
 
     public Study(StudyRequestModel studyRequest) {
-        this(studyRequest.getName(), studyRequest.getDescription(), new HashMap<>());
+        this(studyRequest.getName(), studyRequest.getDescription(), new HashMap<>(), new HashMap<>());
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         for (TableModel tableModel : studySpecification.getTables()) {
@@ -29,10 +29,12 @@ public class Study {
     }
 
     // Constructor for building studies in unit tests.
-    public Study(String name, String description, Map<String, StudyTable> tables) {
+    public Study(String name, String description, Map<String, StudyTable> tables,
+                 Map<String, StudyRelationship> relationships) {
         this.name = name;
         this.description = description;
         this.tables = tables;
+        this.relationships = relationships;
     }
 
     public StudySummaryModel toSummary() {

@@ -1,17 +1,12 @@
 package bio.terra.flight.step;
 
-import bio.terra.dao.RelationshipDao;
-import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-
-import java.util.UUID;
 
 public class CreateStudyPrimaryDataStep implements Step {
 

@@ -48,4 +48,12 @@ public class Migrate {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);
         }
     }
+
+    public StairwayJdbcConfiguration getStairwayJdbcConfiguration() {
+        return stairwayJdbcConfiguration;
+    }
+
+    public DataRepoJdbcConfiguration getDataRepoJdbcConfiguration() {
+        return dataRepoJdbcConfiguration;
+    }
 }

@@ -17,7 +17,7 @@ public class ApplicationConfiguration {
     public Stairway getStairway(StairwayJdbcConfiguration jdbcConfiguration, ApplicationContext applicationContext) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         DataSource dataSource = jdbcConfiguration.getDataSource();
-        return new Stairway(executorService, dataSource, false, applicationContext);
+        return new Stairway(executorService, dataSource, true, applicationContext);
     }
 
     @Bean("jdbcTemplate")

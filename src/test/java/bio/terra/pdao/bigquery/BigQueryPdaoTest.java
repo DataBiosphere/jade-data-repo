@@ -14,8 +14,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -62,21 +62,21 @@ public class BigQueryPdaoTest {
         StudyTableColumn col3 = new StudyTableColumn("col3", "string");
         StudyTableColumn col4 = new StudyTableColumn("col4", "string");
 
-        List<StudyTableColumn> tableList1 = new ArrayList<>();
-        tableList1.add(col1);
-        tableList1.add(col2);
-        StudyTable table1 = new StudyTable("table1", tableList1);
+        Map<String, StudyTableColumn> tableMap1 = new HashMap<>();
+        tableMap1.put(col1.getName(), col1);
+        tableMap1.put(col2.getName(), col2);
+        StudyTable table1 = new StudyTable("table1", tableMap1);
 
-        List<StudyTableColumn> tableList2 = new ArrayList<>();
-        tableList2.add(col4);
-        tableList2.add(col3);
-        tableList2.add(col2);
-        tableList2.add(col1);
-        StudyTable table2 = new StudyTable("table2", tableList2);
+        Map<String, StudyTableColumn> tableMap2 = new HashMap<>();
+        tableMap2.put(col4.getName(), col4);
+        tableMap2.put(col3.getName(), col3);
+        tableMap2.put(col2.getName(), col2);
+        tableMap2.put(col1.getName(), col1);
+        StudyTable table2 = new StudyTable("table2", tableMap2);
 
-        List<StudyTable> tables = new ArrayList<>();
-        tables.add(table1);
-        tables.add(table2);
+        Map<String, StudyTable> tables = new HashMap<>();
+        tables.put(table1.getName(), table1);
+        tables.put(table2.getName(), table2);
 
         Study study = new Study(studyName, "this is a test study", tables);
         return study;

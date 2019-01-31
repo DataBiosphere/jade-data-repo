@@ -46,9 +46,14 @@ page at http://checkstyle.sourceforge.net/config.html -->
             <!-- Put a comment in it if you need one explaining why -->
             <property name="option" value="text" />
         </module>
-        <module name="LeftCurly">
+        <!-- This is preventing us from being able to keep small functions on one line:
+
+        void setName(String name) { this.name = name; }
+
+        -->
+        <!--module name="LeftCurly">
             <property name="maxLineLength" value="120" />
-        </module>
+        </module-->
         <module name="RightCurly" />
         <module name="AvoidNestedBlocks">
             <property name="allowInSwitchCase" value="true" />

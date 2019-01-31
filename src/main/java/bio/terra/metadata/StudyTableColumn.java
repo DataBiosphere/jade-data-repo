@@ -2,9 +2,12 @@ package bio.terra.metadata;
 
 import bio.terra.model.ColumnModel;
 
+import java.util.UUID;
+
 public class StudyTableColumn {
     private String name;
     private String type;
+    private UUID id;
 
     public StudyTableColumn(String name, String type) {
         this.name = name;
@@ -28,7 +31,9 @@ public class StudyTableColumn {
         return type;
     }
 
-    public void setType(String type) {
-        this.type = type;
+    public UUID getId() { return id; }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 }

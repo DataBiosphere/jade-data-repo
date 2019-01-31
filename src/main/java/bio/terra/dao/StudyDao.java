@@ -23,7 +23,10 @@ public class StudyDao extends MetaDao<Study> {
     private final AssetDao assetDao;
 
     @Autowired
-    public StudyDao(NamedParameterJdbcTemplate jdbcTemplate, TableDao tableDao, RelationshipDao relationshipDao, AssetDao assetDao) {
+    public StudyDao(NamedParameterJdbcTemplate jdbcTemplate,
+                    TableDao tableDao,
+                    RelationshipDao relationshipDao,
+                    AssetDao assetDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;

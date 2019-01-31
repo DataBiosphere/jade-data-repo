@@ -22,7 +22,7 @@ public class Study {
             tables.put(tableModel.getName(), new StudyTable(tableModel)));
         studySpecification.getRelationships().forEach(relationship ->
             relationships.put(relationship.getName(), new StudyRelationship(relationship, tables)));
-        studySpecification.getAssets().forEach (asset ->
+        studySpecification.getAssets().forEach(asset ->
             assetSpecifications.put(asset.getName(), new AssetSpecification(asset, tables, relationships)));
     }
 

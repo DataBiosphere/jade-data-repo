@@ -35,7 +35,7 @@ public class AssetDao extends MetaDao<AssetModel> {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", study.getId());
         params.addValue("name", assetSpecification.getName());
-         params.addValue("root_table_id", assetSpecification.getRootTable().getId());
+        params.addValue("root_table_id", assetSpecification.getRootTable().getId());
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID assetSpecId = getIdKey(keyHolder);
@@ -65,7 +65,7 @@ public class AssetDao extends MetaDao<AssetModel> {
                     "VALUES (:asset_id, :relationship_id)";
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("asset_id", assetSpec.getId());
-            params.addValue("study_column_id", assetRel.getStudyRelationship().getId());
+            params.addValue("relationship_id", assetRel.getStudyRelationship().getId());
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(sql, params, keyHolder);
             UUID assetRelId = getIdKey(keyHolder);

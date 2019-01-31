@@ -3,7 +3,6 @@ package bio.terra.metadata;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 
-import javax.annotation.concurrent.Immutable;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -11,11 +10,13 @@ public class AssetSpecification {
     private UUID id;
     private String name;
     private StudyTable rootTable;
-    private List<StudyTable> includedTables;
+    private List<StudyTable> includedTables = new ArrayList<>();
     private List<AssetColumn> assetColumns;
     private List<AssetRelationship> assetRelationships;
 
-    public AssetSpecification(AssetModel assetModel, Map<String, StudyTable> tables, Map<String, StudyRelationship> relationships) {
+    public AssetSpecification(AssetModel assetModel,
+                              Map<String, StudyTable> tables,
+                              Map<String, StudyRelationship> relationships) {
         name = assetModel.getName();
         processAssetTables(assetModel.getTables(), tables);
         processAssetRelationships(assetModel.getFollow(), relationships);
@@ -24,7 +25,8 @@ public class AssetSpecification {
     private void processAssetTables(List<AssetTableModel> assetTables, Map<String, StudyTable> tables) {
         assetTables.forEach(tblMod -> {
             StudyTable studyTable = tables.get(tblMod.getName());
-            if (tblMod.isIsRoot()) { rootTable = studyTable; }
+            // TODO fix this so it defaults to false
+            if (tblMod.isIsRoot() != null && tblMod.isIsRoot()) { rootTable = studyTable; }
             includedTables.add(studyTable);
             assetColumns = Collections.unmodifiableList(studyTable.getColumnsMap().entrySet()
                     .stream()
@@ -34,7 +36,8 @@ public class AssetSpecification {
         });
     }
 
-    private void processAssetRelationships(List<String> assetRelationshipNames, Map<String, StudyRelationship> relationships) {
+    private void processAssetRelationships(List<String> assetRelationshipNames,
+                                           Map<String, StudyRelationship> relationships) {
         assetRelationships = Collections.unmodifiableList(relationships.entrySet()
                 .stream()
                 .filter(map -> assetRelationshipNames.contains(map.getKey()))

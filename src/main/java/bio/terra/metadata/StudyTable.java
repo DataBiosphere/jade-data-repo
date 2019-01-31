@@ -41,5 +41,9 @@ public class StudyTable {
         return Collections.unmodifiableMap(columns);
     }
 
+    public UUID getId() {
+        return id;
+    }
+
     public void setId(UUID tableId) { this.id = tableId; }
 }

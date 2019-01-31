@@ -1,6 +1,5 @@
 package bio.terra.flight.step;
 
-import bio.terra.dao.RelationshipDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyRequestModel;
@@ -15,7 +14,6 @@ import java.util.UUID;
 public class CreateStudyMetadataStep implements Step {
 
     private StudyDao studyDAO;
-    private RelationshipDao relationshipDao;
 
     public CreateStudyMetadataStep(StudyDao studyDAO) {
         this.studyDAO = studyDAO;

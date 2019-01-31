@@ -10,14 +10,11 @@ public class Study {
     private String name;
     private String description;
 
-    // should Map be concurrent?
-    private Map<String, StudyTable> tables;
-    private Map<String, StudyRelationship> relationships;
-    //private List<AssetSpecification> assetSpecifications;
-    // TODO: remove setters, aim to be immutable
+    private Map<String, StudyTable> tables = new HashMap<>();
+    private Map<String, StudyRelationship> relationships = new HashMap<>();
 
     public Study(StudyRequestModel studyRequest) {
-        this(studyRequest.getName(), studyRequest.getDescription(), new HashMap<>());
+        this(studyRequest.getName(), studyRequest.getDescription());
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         for (TableModel tableModel : studySpecification.getTables()) {
@@ -28,10 +25,14 @@ public class Study {
         }
     }
 
-    // Constructor for building studies in unit tests.
-    public Study(String name, String description, Map<String, StudyTable> tables) {
+    public Study(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+
+    // Constructor for building studies in unit tests.
+    public Study(String name, String description, Map<String, StudyTable> tables) {
+        this(name, description);
         this.tables = tables;
     }
 

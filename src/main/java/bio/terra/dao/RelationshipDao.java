@@ -3,7 +3,6 @@ package bio.terra.dao;
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTableColumn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -36,8 +35,6 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
                 "(:name, :from_cardinality, :to_cardinality, :from_column, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("name", studyRelationship.getName());
-        StudyTableColumn from = studyRelationship.getFrom();
-        StudyTableColumn to = studyRelationship.getTo();
         params.addValue("from_cardinality", studyRelationship.getFromCardinality().toString());
         params.addValue("to_cardinality", studyRelationship.getToCardinality().toString());
         params.addValue("from_column", studyRelationship.getFrom().getId());

@@ -10,29 +10,30 @@ public class Study {
     private String name;
     private String description;
 
-    // should Map be concurrent?
-    private Map<String, StudyTable> tables;
-    private Map<String, StudyRelationship> relationships;
-    //private List<AssetSpecification> assetSpecifications;
-    // TODO: remove setters, aim to be immutable
+    private Map<String, StudyTable> tables = new HashMap<>();
+    private Map<String, StudyRelationship> relationships = new HashMap<>();
+    private Map<String, AssetSpecification> assetSpecifications = new HashMap<>();
 
     public Study(StudyRequestModel studyRequest) {
-        this(studyRequest.getName(), studyRequest.getDescription(), new HashMap<>(), new HashMap<>());
+        this(studyRequest.getName(), studyRequest.getDescription());
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
-        for (TableModel tableModel : studySpecification.getTables()) {
-            tables.put(tableModel.getName(), new StudyTable(tableModel));
-        }
-        for (RelationshipModel relationship : studySpecification.getRelationships()) {
-            relationships.put(relationship.getName(), new StudyRelationship(relationship, tables));
-        }
+        studySpecification.getTables().forEach(tableModel ->
+            tables.put(tableModel.getName(), new StudyTable(tableModel)));
+        studySpecification.getRelationships().forEach(relationship ->
+            relationships.put(relationship.getName(), new StudyRelationship(relationship, tables)));
+        studySpecification.getAssets().forEach(asset ->
+            assetSpecifications.put(asset.getName(), new AssetSpecification(asset, tables, relationships)));
+    }
+
+    public Study(String name, String description) {
+        this.name = name;
+        this.description = description;
     }
 
     // Constructor for building studies in unit tests.
-    public Study(String name, String description, Map<String, StudyTable> tables,
-                 Map<String, StudyRelationship> relationships) {
-        this.name = name;
-        this.description = description;
+    public Study(String name, String description, Map<String, StudyTable> tables) {
+        this(name, description);
         this.tables = tables;
         this.relationships = relationships;
     }
@@ -66,4 +67,7 @@ public class Study {
         return Collections.unmodifiableMap(relationships);
     }
 
+    public Map<String, AssetSpecification> getAssetSpecifications() {
+        return Collections.unmodifiableMap(assetSpecifications);
+    }
 }

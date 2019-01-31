@@ -13,7 +13,7 @@ import java.util.concurrent.Executors;
 @Configuration
 public class ApplicationConfiguration {
 
-    @Bean
+    @Bean("stairway")
     public Stairway getStairway(StairwayJdbcConfiguration jdbcConfiguration, ApplicationContext applicationContext) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         DataSource dataSource = jdbcConfiguration.getDataSource();

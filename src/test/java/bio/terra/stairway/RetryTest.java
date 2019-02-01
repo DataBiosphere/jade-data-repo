@@ -1,9 +1,11 @@
 package bio.terra.stairway;
 
 
+import bio.terra.category.StairwayUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -13,6 +15,7 @@ import java.util.concurrent.Executors;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 
+@Category(StairwayUnit.class)
 public class RetryTest {
     private ExecutorService executorService;
     private Stairway stairway;

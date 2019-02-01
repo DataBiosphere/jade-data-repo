@@ -1,7 +1,7 @@
 package bio.terra.stairway;
 
-final class Data {
-    private Data() {
+final class TestUtil {
+    private TestUtil() {
     }
 
     static final Integer intValue = Integer.valueOf(22);
@@ -15,4 +15,13 @@ final class Data {
     static final String wikey = "wikey";
     static final String wskey = "wskey";
     static final String wfkey = "wfkey";
+
+    // debug output control (until we have logging configured)
+    static final boolean debugOutput = false;
+
+    static void debugWrite(String msg) {
+        if (debugOutput) {
+            System.out.println(msg);
+        }
+    }
 }

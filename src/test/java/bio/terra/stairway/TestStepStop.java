@@ -2,6 +2,8 @@ package bio.terra.stairway;
 
 import java.util.concurrent.TimeUnit;
 
+import static bio.terra.stairway.TestUtil.debugWrite;
+
 public class TestStepStop implements Step {
 
     @Override
@@ -16,7 +18,7 @@ public class TestStepStop implements Step {
 
     private StepResult sleepStop() {
         if (TestStopController.getControl() == 0) {
-            System.out.println("TestStepStop stopping");
+            debugWrite("TestStepStop stopping");
             try {
                 TimeUnit.HOURS.sleep(1);
             } catch (InterruptedException ex) {
@@ -24,7 +26,7 @@ public class TestStepStop implements Step {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL);
             }
         }
-        System.out.println("TestStepStop did not stop");
+        debugWrite("TestStepStop did not stop");
         return StepResult.getStepResultSuccess();
     }
 }

@@ -8,14 +8,14 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
-import static bio.terra.stairway.Data.dubValue;
-import static bio.terra.stairway.Data.errString;
-import static bio.terra.stairway.Data.fkey;
-import static bio.terra.stairway.Data.flightId;
-import static bio.terra.stairway.Data.ikey;
-import static bio.terra.stairway.Data.intValue;
-import static bio.terra.stairway.Data.skey;
-import static bio.terra.stairway.Data.strValue;
+import static bio.terra.stairway.TestUtil.dubValue;
+import static bio.terra.stairway.TestUtil.errString;
+import static bio.terra.stairway.TestUtil.fkey;
+import static bio.terra.stairway.TestUtil.flightId;
+import static bio.terra.stairway.TestUtil.ikey;
+import static bio.terra.stairway.TestUtil.intValue;
+import static bio.terra.stairway.TestUtil.skey;
+import static bio.terra.stairway.TestUtil.strValue;
 import static org.hamcrest.CoreMatchers.is;
 
 public class FlightStateTest {

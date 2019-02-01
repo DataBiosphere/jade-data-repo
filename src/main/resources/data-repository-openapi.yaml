@@ -186,12 +186,10 @@ paths:
         schema:
           $ref: '#/definitions/StudyRequestModel'
       responses:
-        202: # kicks off a create study job
-          description: Study creation job started & url for polling is in the response header
-          headers:
-            location:
-              type: string
-              description: url for the job poller
+        201:
+          description: Study created successfully and a summary is returned
+          schema:
+            $ref: '#/definitions/StudySummaryModel'
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
         403:
@@ -418,15 +416,13 @@ definitions:
     type: object
     required:
       - table
-      - columnList
+      - column
       - cardinality
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
-      columnList:
-        type: array
-        items:
-          type: string
+      column:
+        type: string
       cardinality:
         type: string
         enum:
@@ -676,3 +672,11 @@ definitions:
       description:
         type: string
         description: Description of the job's flight
+
+  ErrorModel:
+    description: |
+      representation of an error that occurred while processing a request
+    type: object
+    properties:
+      message:
+        type: string

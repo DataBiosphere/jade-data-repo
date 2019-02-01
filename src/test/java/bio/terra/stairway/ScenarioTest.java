@@ -1,10 +1,12 @@
 package bio.terra.stairway;
 
 
+import bio.terra.category.StairwayUnit;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -12,9 +14,11 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static bio.terra.stairway.TestUtil.debugWrite;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
+@Category(StairwayUnit.class)
 public class ScenarioTest {
     private ExecutorService executorService;
     private Stairway stairway;
@@ -29,7 +33,7 @@ public class ScenarioTest {
     public void simpleTest() {
         // Generate a unique filename
         String filename = makeFilename();
-        System.out.println("Filename: " + filename);
+        debugWrite("Filename: " + filename);
 
         // Submit the test flight
         FlightMap inputParameters = new FlightMap();
@@ -37,11 +41,11 @@ public class ScenarioTest {
         inputParameters.put("text", "testing 1 2 3");
 
         String flightId = stairway.submit(TestFlight.class, inputParameters);
-        System.out.println("Submitted flight id: " + flightId);
+        debugWrite("Submitted flight id: " + flightId);
 
         // Test for done
         boolean done = stairway.isDone(flightId);
-        System.out.println("Flight done: " + done);
+        debugWrite("Flight done: " + done);
 
         // Wait for done
         stairway.waitForFlight(flightId);
@@ -129,7 +133,7 @@ public class ScenarioTest {
         PrintWriter writer = new PrintWriter(existingFilename, "UTF-8");
         writer.println("abcd");
         writer.close();
-        System.out.println("Existing Filename: " + existingFilename);
+        debugWrite("Existing Filename: " + existingFilename);
         return existingFilename;
     }
 

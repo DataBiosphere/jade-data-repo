@@ -17,7 +17,6 @@ public class TestStepCreateFile implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        System.out.println("TestStepCreateFile");
         // We assume the file does not exist, since that was checked in the previous step
         // The createFile will fail if the file exists.
         try {

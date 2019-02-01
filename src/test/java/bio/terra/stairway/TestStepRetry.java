@@ -1,8 +1,8 @@
 package bio.terra.stairway;
 
-public class TestStepRetry implements Step {
-    static final boolean debugOutput = false;
+import static bio.terra.stairway.TestUtil.debugWrite;
 
+public class TestStepRetry implements Step {
     private int timesToFail;
     private int timesFailed;
 
@@ -27,12 +27,6 @@ public class TestStepRetry implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         return StepResult.getStepResultSuccess();
-    }
-
-    private void debugWrite(String msg) {
-        if (debugOutput) {
-            System.out.println(msg);
-        }
     }
 
 }

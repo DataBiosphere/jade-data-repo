@@ -1,5 +1,6 @@
 package bio.terra.stairway;
 
+import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
@@ -11,6 +12,7 @@ import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,23 +21,24 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.List;
 import java.util.Properties;
 
-import static bio.terra.stairway.Data.dubValue;
-import static bio.terra.stairway.Data.errString;
-import static bio.terra.stairway.Data.fkey;
-import static bio.terra.stairway.Data.flightId;
-import static bio.terra.stairway.Data.ikey;
-import static bio.terra.stairway.Data.intValue;
-import static bio.terra.stairway.Data.skey;
-import static bio.terra.stairway.Data.strValue;
-import static bio.terra.stairway.Data.wfkey;
-import static bio.terra.stairway.Data.wikey;
-import static bio.terra.stairway.Data.wskey;
+import static bio.terra.stairway.TestUtil.dubValue;
+import static bio.terra.stairway.TestUtil.errString;
+import static bio.terra.stairway.TestUtil.fkey;
+import static bio.terra.stairway.TestUtil.flightId;
+import static bio.terra.stairway.TestUtil.ikey;
+import static bio.terra.stairway.TestUtil.intValue;
+import static bio.terra.stairway.TestUtil.skey;
+import static bio.terra.stairway.TestUtil.strValue;
+import static bio.terra.stairway.TestUtil.wfkey;
+import static bio.terra.stairway.TestUtil.wikey;
+import static bio.terra.stairway.TestUtil.wskey;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@Category(StairwayUnit.class)
 public class DatabaseOperationsTest {
     private PoolingDataSource<PoolableConnection> dataSource;
 

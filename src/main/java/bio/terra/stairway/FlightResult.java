@@ -13,7 +13,7 @@ public class FlightResult {
     private FlightMap resultMap;
 
 
-    FlightResult(StepResult stepResult, FlightMap workingMap) {
+    public FlightResult(StepResult stepResult, FlightMap workingMap) {
         this.success = (stepResult.getStepStatus() == StepStatus.STEP_RESULT_SUCCESS);
         this.throwable = stepResult.getThrowable();
         this.resultMap = workingMap;

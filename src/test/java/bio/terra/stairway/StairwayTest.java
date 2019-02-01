@@ -1,14 +1,17 @@
 package bio.terra.stairway;
 
+import bio.terra.category.StairwayUnit;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 // Stairway class tests - mostly validating error conditions
+@Category(StairwayUnit.class)
 public class StairwayTest {
     private Stairway stairway;
     private FlightMap flightMap;

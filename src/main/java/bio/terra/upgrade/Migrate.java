@@ -48,4 +48,16 @@ public class Migrate {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);
         }
     }
+
+    // Some modules require db migrations to run before they access the database. By having those modules receive their
+    // JDBC configurations from this component, it will guarantee that migrations are run before they attempt to use
+    // the configuration to connect to the database and start performing operations. This probably won't be a permanent
+    // fix but it will help us along. See DR-127
+    public StairwayJdbcConfiguration getStairwayJdbcConfiguration() {
+        return stairwayJdbcConfiguration;
+    }
+
+    public DataRepoJdbcConfiguration getDataRepoJdbcConfiguration() {
+        return dataRepoJdbcConfiguration;
+    }
 }

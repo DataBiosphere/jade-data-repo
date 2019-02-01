@@ -30,7 +30,7 @@ public class RetryTest {
         inputParameters.put("maxCount", Integer.valueOf(4));
 
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
     }
@@ -51,7 +51,7 @@ public class RetryTest {
         // and not too long... whatever that is. How about (maxCount+1 * intervalSeconds
         LocalDateTime startTime = LocalDateTime.now();
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
         LocalDateTime endTime = LocalDateTime.now();
 
         LocalDateTime startRange = startTime.plus(Duration.ofSeconds(maxCount * intervalSeconds));
@@ -72,7 +72,7 @@ public class RetryTest {
         inputParameters.put("maxOperationTimeSeconds", Long.valueOf(100));
 
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
 
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
@@ -90,7 +90,7 @@ public class RetryTest {
         inputParameters.put("maxOperationTimeSeconds", Long.valueOf(10));
 
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
 
         Assert.assertFalse(result.isSuccess());
     }
@@ -109,7 +109,7 @@ public class RetryTest {
 
         LocalDateTime startTime = LocalDateTime.now();
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
         LocalDateTime endTime = LocalDateTime.now();
 
         LocalDateTime startRange = startTime.plus(Duration.ofSeconds(14));

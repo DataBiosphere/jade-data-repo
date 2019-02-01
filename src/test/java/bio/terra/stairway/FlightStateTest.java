@@ -8,13 +8,13 @@ import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
 
-public class FlightResultTest {
+public class FlightStateTest {
     private static String bad = "bad bad bad";
-    private FlightResult result;
+    private FlightState result;
 
     @Before
     public void setup() {
-        result = FlightResult.flightResultFatal(new IllegalArgumentException(bad));
+        result = FlightState.flightResultFatal(new IllegalArgumentException(bad));
     }
 
     @Test

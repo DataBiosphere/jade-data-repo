@@ -114,7 +114,7 @@ public class RecoveryTest {
         Stairway stairway2 = new Stairway(executorService, dataSource, false, null);
 
         // Wait for recovery to complete
-        FlightResult result = stairway2.getResult(flightId);
+        FlightState result = stairway2.getResult(flightId);
         Assert.assertThat(result.isSuccess(), is(equalTo(true)));
         Integer value = result.getResultMap().get("value", Integer.class);
         Assert.assertThat(value, is(equalTo(2)));
@@ -147,7 +147,7 @@ public class RecoveryTest {
         Stairway stairway2 = new Stairway(executorService, dataSource, false, null);
 
         // Wait for recovery to complete
-        FlightResult result = stairway2.getResult(flightId);
+        FlightState result = stairway2.getResult(flightId);
         Assert.assertThat(result.isSuccess(), is(equalTo(false)));
         Optional<Throwable> throwable = result.getThrowable();
         Assert.assertTrue(throwable.isPresent());

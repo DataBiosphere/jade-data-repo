@@ -32,8 +32,9 @@ databaseChangeLog:
                   name: output_parameters
                   type: text
               - column:
-                  name: succeeded
-                  type: boolean
+                  name: status
+                  type: text
+                  remarks: contains FlightStatus enum values
               - column:
                   name: error_message
                   type: text

@@ -44,7 +44,7 @@ public class ScenarioTest {
         System.out.println("Flight done: " + done);
 
         // Wait for done
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
         Assert.assertTrue(result.isSuccess());
         Assert.assertFalse(result.getThrowable().isPresent());
 
@@ -74,7 +74,7 @@ public class ScenarioTest {
         System.out.println("Flight done: " + done);
 
         // Wait for done
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
         System.out.println("Flight result: " + result);
         Assert.assertFalse(result.isSuccess());
         Optional<Throwable> throwable = result.getThrowable();
@@ -108,7 +108,7 @@ public class ScenarioTest {
         String flightId = stairway.submit(TestFlightUndo.class, inputParameters);
 
         // Wait for done
-        FlightResult result = stairway.getResult(flightId);
+        FlightState result = stairway.getResult(flightId);
         Assert.assertFalse(result.isSuccess());
         Optional<Throwable> throwable = result.getThrowable();
         Assert.assertTrue(throwable.isPresent());

@@ -1,5 +1,6 @@
 package bio.terra.stairway;
 
+import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -21,27 +22,35 @@ import java.util.concurrent.FutureTask;
  * table name stem to use.
  *
  * Each Stairway runs, logs, and recovers independently.
+ *
+ * There are two techniques you can use to wait for a flight. One is polling by calling getFlightState. That
+ * reads the flight state from the stairway database so will report correct state for as long as the flight
+ * lives in the database. (Since we haven't implemented pruning, that means forever.) If you poll in this way,
+ * then you must explicitly call releaseFlight() so that the in-memory resources for the flight are freed.
+ *
+ * The other technique is to poll the flight future using the isDone() method or block waiting for the
+ * flight to complete using the waitForFlight() method. In this case, the in-memory resources are freed
+ * when either method detects that the flight is done.
  */
 public class Stairway {
     // For each task we start, we make a task context. It lets us look up the results
 
     static class TaskContext {
-        private FutureTask<FlightResult> futureResult;
+        private FutureTask<FlightState> futureResult;
         private Flight flight;
 
-        TaskContext(FutureTask<FlightResult> futureResult, Flight flight) {
+        TaskContext(FutureTask<FlightState> futureResult, Flight flight) {
             this.futureResult = futureResult;
             this.flight = flight;
         }
 
-        FutureTask<FlightResult> getFutureResult() {
+        FutureTask<FlightState> getFutureResult() {
             return futureResult;
         }
 
         Flight getFlight() {
             return flight;
         }
-
     }
 
     private ConcurrentHashMap<String, TaskContext> taskContextMap;
@@ -102,32 +111,69 @@ public class Stairway {
     // Tests if flight is done
     public boolean isDone(String flightId) {
         TaskContext taskContext = lookupFlight(flightId);
-        return taskContext.getFutureResult().isDone();
+        boolean done = taskContext.getFutureResult().isDone();
+        if (done) {
+            taskContextMap.remove(flightId);
+        }
+
+        return done;
     }
 
     /**
-     * Wait for a flight to complete and return the results. Once the results have been
-     * returned, the flight is removed from the taskContextMap and marked complete in
-     * the database.
+     * Wait for a flight to complete. When it completes, the flight is removed from the taskContextMap.
      *
      * @param flightId
-     * @return FlightResult object with status, possible exception, and result parameters
      */
-    public FlightResult getResult(String flightId) {
+    public void waitForFlight(String flightId) {
         TaskContext taskContext = lookupFlight(flightId);
 
         try {
-            FlightResult result = taskContext.getFutureResult().get();
+            taskContext.getFutureResult().get();
             taskContextMap.remove(flightId);
-            database.complete(taskContext.flight.context());
-            return result;
-
         } catch (InterruptedException ex) {
             // Someone is shutting down the application
             Thread.currentThread().interrupt();
-            return FlightResult.flightResultFatal(ex);
+            throw new FlightException("Stairway was interrupted");
         } catch (ExecutionException ex) {
-            return FlightResult.flightResultFatal(ex);
+            throw new FlightException("Unexpected flight exception", ex);
+        }
+    }
+
+    /**
+     * Get the state of a specific flight
+     *
+     * @param flightId
+     * @return FlightState
+     */
+    public FlightState getFlightState(String flightId) {
+        return database.getFlightState(flightId);
+    }
+
+    /**
+     * Enumerate flights - returns a range of flights ordered by submit time.
+     * Note that there can be "jitter" in the paging through flights, if new flights
+     * are submitted.
+     *
+     * @param offset
+     * @param limit
+     * @return List of FlightState
+     */
+    public List<FlightState> getFlights(int offset, int limit) {
+        return database.getFlights(offset, limit);
+    }
+
+    /**
+     * Remove the task context for a completed flight. If the flight is not complete or does not
+     * exist, the code simply returns.
+     *
+     * @param flightId
+     */
+    public void releaseFlight(String flightId) {
+        TaskContext taskContext = taskContextMap.get(flightId);
+        if (taskContext != null) {
+            if (taskContext.getFutureResult().isDone()) {
+                taskContextMap.remove(flightId);
+            }
         }
     }
 
@@ -170,7 +216,7 @@ public class Stairway {
         flight.setDatabase(database);
 
         // Build the task context to keep track of the running task
-        TaskContext taskContext = new TaskContext(new FutureTask<FlightResult>(flight), flight);
+        TaskContext taskContext = new TaskContext(new FutureTask<FlightState>(flight), flight);
         threadPool.execute(taskContext.getFutureResult());
 
         // Now that it is in the pool, hook it into the map so other calls can resolve it.

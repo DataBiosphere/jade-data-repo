@@ -18,7 +18,7 @@ import java.util.concurrent.Callable;
  *  ISSUE: handling InterruptedException - is there anything that the Flight level should do
  *  for handling this?
  */
-public class Flight implements Callable<FlightResult> {
+public class Flight implements Callable<FlightState> {
     static class StepRetry {
         private Step step;
         private RetryRule retryRule;
@@ -70,14 +70,24 @@ public class Flight implements Callable<FlightResult> {
      * Call may be called for a flight that has been interrupted and is being recovered
      * so we may be headed either direction.
      */
-    public FlightResult call() {
+    public FlightState call() {
+        FlightStatus flightStatus = fly();
+        context().setFlightStatus(flightStatus);
+        database.complete(context());
+        return database.getFlightState(context().getFlightId());
+    }
+
+    /**
+     * Perform the flight, until we do all steps, undo to the beginning, or declare a dismal failure.
+     */
+    private FlightStatus fly() {
         try {
             // Part 1 - running forward (doing). We either succeed or we record the failure and
             // fall through to running backward (undoing)
             if (context().isDoing()) {
                 StepResult doResult = runSteps();
                 if (doResult.isSuccess()) {
-                    return new FlightResult(doResult, context().getWorkingMap());
+                    return FlightStatus.SUCCESS;
                 }
 
                 // Remember the failure from the do; that is what we want to return
@@ -94,7 +104,7 @@ public class Flight implements Callable<FlightResult> {
             StepResult undoResult = runSteps();
             if (undoResult.isSuccess()) {
                 // Return the error from the doResult - that is why we failed
-                return new FlightResult(context().getResult(), context().getWorkingMap());
+                return FlightStatus.ERROR;
             }
 
             // Part 3 - dismal failure
@@ -102,13 +112,14 @@ public class Flight implements Callable<FlightResult> {
             database.step(context());
 
             // Dismal failure - undo failed!
-            return FlightResult.flightResultFatal(
-                    new StairwayExecutionException("Dismal failure: " + undoResult.getThrowable().toString(),
-                            context().getResult().getThrowable().orElse(null)));
+            context().setResult(undoResult);
+
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            return FlightResult.flightResultFatal(ex);
+            context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
         }
+
+        return FlightStatus.FATAL;
     }
 
     /**

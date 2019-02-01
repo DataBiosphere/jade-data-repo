@@ -239,7 +239,7 @@ paths:
           description: Study in use by at least one dataset
 
   '/api/repository/v1/jobs':
-    get:  ## enumerate
+    get:  ## enumerate --- will need to add paging
       description: |
         Returns a list of all of the jobs the caller has access to
       operationId: enumerateJobs
@@ -263,17 +263,38 @@ paths:
       - $ref: '#/parameters/Id'
       responses:
         200:
-          description: Job status
-          schema:
-            $ref: '#/definitions/JobModel'
+          description: Job is incomplete
         303:
           description: Redirect for object successful creation
+          headers:
+            location:
+              type: string
+              description: url for the job result
         400:
           description: Bad request - invalid id, badly formed
         403:
           description: No permission to see job
         404:
           description: Not found - job id does not exist
+
+
+  '/api/repository/v1/jobs/{id}/result':
+    get:  ## retrieve
+      description: Retrieve a job's result by id
+      operationId: retrieveJobResult
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        303:
+          description: Success
+          schema:
+            $ref: '#/definitions/JobModel'
+        400:
+          description: Failed
+        500:
+          description: Failed
 
 
 ##########################################################################################
@@ -641,7 +662,7 @@ definitions:
           $ref: '#/definitions/DatasetMapColumnsModel'
 
   DatasetMapColumnsModel:
-    description: column to column mapping
+    description: Column to column mapping
     required:
       - from_column
       - to_column
@@ -653,25 +674,31 @@ definitions:
 
   JobModel:
     description: |
-      status of job
+      Status of job
     type: object
     required:
     - id
     - status
+    - submitted
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
+      description:
+        type: string
+        description: Description of the job's flight # from description flight input parameter
       status:
-        description: status of job
+        description: Status of job
         type: string
         enum:
-          - pending
           - running
           - succeeded
           - failed
-      description:
+      submitted:
         type: string
-        description: Description of the job's flight
+        description: Timestamp when the flight was created
+      completed:
+        type: string
+        description: Timestamp when the flight was completed; not present if not complete
 
   ErrorModel:
     description: |

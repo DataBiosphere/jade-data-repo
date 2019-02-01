@@ -11,7 +11,7 @@ public class AssetSpecification {
     private String name;
     private StudyTable rootTable;
     private List<StudyTable> includedTables = new ArrayList<>();
-    private List<AssetColumn> assetColumns;
+    private List<AssetColumn> assetColumns = new ArrayList<>();
     private List<AssetRelationship> assetRelationships;
 
     public AssetSpecification(AssetModel assetModel,
@@ -28,11 +28,11 @@ public class AssetSpecification {
             // TODO fix this so it defaults to false
             if (tblMod.isIsRoot() != null && tblMod.isIsRoot()) { rootTable = studyTable; }
             includedTables.add(studyTable);
-            assetColumns = Collections.unmodifiableList(studyTable.getColumnsMap().entrySet()
+            assetColumns.addAll(Collections.unmodifiableList(studyTable.getColumnsMap().entrySet()
                     .stream()
-                    .filter(map -> tblMod.getColumns().contains(map.getKey()))
+                    .filter(entryToFilter -> tblMod.getColumns().contains(entryToFilter.getKey()))
                     .map(entry -> new AssetColumn(entry.getValue()))
-                    .collect(Collectors.toList()));
+                    .collect(Collectors.toList())));
         });
     }
 

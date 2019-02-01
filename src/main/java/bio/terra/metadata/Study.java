@@ -35,7 +35,6 @@ public class Study {
     public Study(String name, String description, Map<String, StudyTable> tables) {
         this(name, description);
         this.tables = tables;
-        this.relationships = relationships;
     }
 
     public StudySummaryModel toSummary() {

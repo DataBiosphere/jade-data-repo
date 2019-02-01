@@ -23,9 +23,9 @@ import java.util.Optional;
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
-    final private ObjectMapper objectMapper;
-    final private HttpServletRequest request;
-    final private Stairway stairway;
+    private final ObjectMapper objectMapper;
+    private final HttpServletRequest request;
+    private final Stairway stairway;
 
     @Autowired
     public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, Stairway stairway) {

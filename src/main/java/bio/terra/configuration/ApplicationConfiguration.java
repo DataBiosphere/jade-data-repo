@@ -19,6 +19,9 @@ public class ApplicationConfiguration {
         StairwayJdbcConfiguration jdbcConfiguration = migrate.getStairwayJdbcConfiguration();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         DataSource dataSource = jdbcConfiguration.getDataSource();
+        // TODO: this magic "true" here is forcing clean starts from stairway. I find it useful now at this stage,
+        // but think we should drive it from configuration based on environment (always do it locally and in dev, not
+        // in staging or prod).
         return new Stairway(executorService, dataSource, true, applicationContext);
     }
 

@@ -1,4 +1,4 @@
-package bio.terra.flight.step;
+package bio.terra.flight.study.create;
 
 import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;

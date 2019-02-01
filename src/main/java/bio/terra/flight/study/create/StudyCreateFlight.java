@@ -1,14 +1,10 @@
-package bio.terra.flight;
+package bio.terra.flight.study.create;
 
 import bio.terra.dao.StudyDao;
-import bio.terra.flight.step.CreateStudyMetadataStep;
-import bio.terra.flight.step.CreateStudyPrimaryDataStep;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
-
-// TODO: group steps and flights together
 
 public class StudyCreateFlight extends Flight {
 

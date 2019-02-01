@@ -1,4 +1,4 @@
-package bio.terra.flight.step;
+package bio.terra.flight.study.create;
 
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyRequestModel;
@@ -16,17 +16,21 @@ public class CreateStudyPrimaryDataStep implements Step {
         this.bigQueryPdao = bigQueryPdao;
     }
 
-    @Override
-    public StepResult doStep(FlightContext context) {
+    Study getStudy(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
-        Study newStudy = new Study(studyRequest);
-        bigQueryPdao.createStudy(newStudy);
+        return new Study(studyRequest);
+    }
+
+    @Override
+    public StepResult doStep(FlightContext context) {
+        bigQueryPdao.createStudy(getStudy(context));
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        bigQueryPdao.deleteStudy(getStudy(context));
         return StepResult.getStepResultSuccess();
     }
 }

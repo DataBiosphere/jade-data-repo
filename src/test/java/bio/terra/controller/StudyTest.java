@@ -1,7 +1,7 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ApiException;
-import bio.terra.flight.StudyCreateFlight;
+import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.model.*;
 import bio.terra.stairway.*;
 import com.fasterxml.jackson.databind.ObjectMapper;

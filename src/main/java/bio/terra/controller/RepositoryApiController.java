@@ -1,7 +1,8 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ApiException;
-import bio.terra.flight.StudyCreateFlight;
+import bio.terra.controller.exception.ValidationException;
+import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.model.*;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightResult;
@@ -22,14 +23,16 @@ import java.util.Optional;
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    final private ObjectMapper objectMapper;
+    final private HttpServletRequest request;
+    final private Stairway stairway;
 
     @Autowired
-    private HttpServletRequest request;
-
-    @Autowired
-    private Stairway stairway;
+    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, Stairway stairway) {
+        this.objectMapper = objectMapper;
+        this.request = request;
+        this.stairway = stairway;
+    }
 
     @Override
     public Optional<ObjectMapper> getObjectMapper() {
@@ -46,24 +49,45 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ErrorModel> handleValidationException(ValidationException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        // TODO: validation should happen at some point, either at job submission or when the @Valid annotation is used
         HashSet<String> seenTableNames = new HashSet<>();
         for (TableModel table : studyRequest.getSchema().getTables()) {
             String tableName = table.getName();
             if (seenTableNames.contains(tableName)) {
-                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                throw new ValidationException("table names must be unique");
             }
             seenTableNames.add(tableName);
             HashSet<String> seenColumnNames = new HashSet<>();
             for (ColumnModel column : table.getColumns()) {
                 String columnName = column.getName();
                 if (seenColumnNames.contains(columnName)) {
-                    return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+                    throw new ValidationException("column names must be unique within a table");
                 }
                 seenColumnNames.add(columnName);
             }
         }
+        boolean thereIsARootTable = false;
+        for (AssetModel assetModel : studyRequest.getSchema().getAssets()) {
+            // TODO: assert that there is at least one asset
+            // TODO: assert that all strings in assetModel.getFollow() match relationships
+            // TODO: assert that all asset names are unique
+            // TODO: assert that all asset tables reference real tables
+            // TODO: assert that all asset table columns reference real table columns
+            for (AssetTableModel atm : assetModel.getTables()) {
+                if (atm.isIsRoot() != null && atm.isIsRoot()) {
+                    thereIsARootTable = true;
+                }
+            }
+        }
+        if (!thereIsARootTable) {
+            throw new ValidationException("there is no root table in the asset specification");
+        }
+        // there has to be a root asset table
         FlightMap flightMap = new FlightMap();
         flightMap.put("request", studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);

@@ -27,9 +27,4 @@ public class ApplicationConfiguration {
         return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
-    @Bean("jdbcTemplate")
-    public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(DataRepoJdbcConfiguration jdbcConfiguration) {
-        return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-    }
-
 }

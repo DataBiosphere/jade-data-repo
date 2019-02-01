@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.equalTo;
+
 public class RetryTest {
     private ExecutorService executorService;
     private Stairway stairway;
@@ -30,9 +33,10 @@ public class RetryTest {
         inputParameters.put("maxCount", Integer.valueOf(4));
 
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightState result = stairway.getResult(flightId);
-        Assert.assertTrue(result.isSuccess());
-        Assert.assertFalse(result.getThrowable().isPresent());
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
+        Assert.assertFalse(result.getErrorMessage().isPresent());
     }
 
     @Test
@@ -51,14 +55,15 @@ public class RetryTest {
         // and not too long... whatever that is. How about (maxCount+1 * intervalSeconds
         LocalDateTime startTime = LocalDateTime.now();
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightState result = stairway.getResult(flightId);
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
         LocalDateTime endTime = LocalDateTime.now();
 
         LocalDateTime startRange = startTime.plus(Duration.ofSeconds(maxCount * intervalSeconds));
         LocalDateTime endRange = startTime.plus(Duration.ofSeconds((maxCount + 1) * intervalSeconds));
         Assert.assertTrue(endTime.isAfter(startRange));
         Assert.assertTrue(endTime.isBefore(endRange));
-        Assert.assertFalse(result.isSuccess());
+        Assert.assertThat(result.getFlightStatus(), is(FlightStatus.ERROR));
     }
 
     @Test
@@ -72,10 +77,10 @@ public class RetryTest {
         inputParameters.put("maxOperationTimeSeconds", Long.valueOf(100));
 
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightState result = stairway.getResult(flightId);
-
-        Assert.assertTrue(result.isSuccess());
-        Assert.assertFalse(result.getThrowable().isPresent());
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
+        Assert.assertFalse(result.getErrorMessage().isPresent());
     }
 
     @Test
@@ -90,9 +95,11 @@ public class RetryTest {
         inputParameters.put("maxOperationTimeSeconds", Long.valueOf(10));
 
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightState result = stairway.getResult(flightId);
 
-        Assert.assertFalse(result.isSuccess());
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.ERROR)));
+        Assert.assertTrue(result.getErrorMessage().isPresent());
     }
 
     @Test
@@ -109,7 +116,8 @@ public class RetryTest {
 
         LocalDateTime startTime = LocalDateTime.now();
         String flightId = stairway.submit(TestFlightRetry.class, inputParameters);
-        FlightState result = stairway.getResult(flightId);
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
         LocalDateTime endTime = LocalDateTime.now();
 
         LocalDateTime startRange = startTime.plus(Duration.ofSeconds(14));
@@ -117,8 +125,8 @@ public class RetryTest {
         Assert.assertTrue(endTime.isAfter(startRange));
         Assert.assertTrue(endTime.isBefore(endRange));
 
-        Assert.assertTrue(result.isSuccess());
-        Assert.assertFalse(result.getThrowable().isPresent());
+        Assert.assertThat(result.getFlightStatus(), is(FlightStatus.SUCCESS));
+        Assert.assertFalse(result.getErrorMessage().isPresent());
     }
 
 }

@@ -3,6 +3,7 @@ package bio.terra.stairway;
 import java.io.File;
 
 public class TestStepExistence implements Step {
+    private static final boolean debugOutput = false;
     private String filename;
 
     public TestStepExistence(String filename) {
@@ -11,16 +12,16 @@ public class TestStepExistence implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        System.out.println("TestStepExistence");
+        debugWrite("TestStepExistence");
         File file = new File(filename);
 
         if (file.exists()) {
-            System.out.println("File " + filename + " already exists");
+            debugWrite("File " + filename + " already exists");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                     new IllegalArgumentException("File " + filename + " already exists."));
         }
 
-        System.out.println("File " + filename + " does not exist");
+        debugWrite("File " + filename + " does not exist");
         return StepResult.getStepResultSuccess();
     }
 
@@ -29,4 +30,11 @@ public class TestStepExistence implements Step {
         // Nothing to UNDO, since the DO has only implicit persistent results
         return StepResult.getStepResultSuccess();
     }
+
+    private void debugWrite(String msg) {
+        if (debugOutput) {
+            System.out.println(msg);
+        }
+    }
+
 }

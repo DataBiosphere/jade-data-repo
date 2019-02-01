@@ -41,14 +41,17 @@ public class FlightState {
 
     public void setInputParameters(FlightMap inputParameters) {
         this.inputParameters = inputParameters;
+        this.inputParameters.makeImmutable();
     }
 
     public Timestamp getSubmitted() {
-        return submitted;
+        // Return an immutable copy of the timestamp - just for findbugs
+        return new Timestamp(submitted.getTime());
     }
 
     public void setSubmitted(Timestamp submitted) {
-        this.submitted = submitted;
+        // Make our own copy of the incoming object
+        this.submitted = new Timestamp(submitted.getTime());
     }
 
     public Optional<Timestamp> getCompleted() {
@@ -64,6 +67,9 @@ public class FlightState {
     }
 
     public void setResultMap(Optional<FlightMap> resultMap) {
+        if (resultMap.isPresent()) {
+            resultMap.get().makeImmutable();
+        }
         this.resultMap = resultMap;
     }
 

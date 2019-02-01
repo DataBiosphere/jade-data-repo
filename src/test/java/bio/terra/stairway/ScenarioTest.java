@@ -8,12 +8,12 @@ import org.junit.Test;
 
 import java.io.File;
 import java.io.PrintWriter;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.is;
 
 public class ScenarioTest {
     private ExecutorService executorService;
@@ -44,13 +44,14 @@ public class ScenarioTest {
         System.out.println("Flight done: " + done);
 
         // Wait for done
-        FlightState result = stairway.getResult(flightId);
-        Assert.assertTrue(result.isSuccess());
-        Assert.assertFalse(result.getThrowable().isPresent());
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(FlightStatus.SUCCESS));
+        Assert.assertFalse(result.getErrorMessage().isPresent());
 
         // Should be released
         try {
-            stairway.getResult(flightId);
+            stairway.waitForFlight(flightId);
         } catch (FlightNotFoundException ex) {
             Assert.assertThat(ex.getMessage(), containsString(flightId));
         }
@@ -67,20 +68,19 @@ public class ScenarioTest {
         inputParameters.put("text", "testing 1 2 3");
 
         String flightId = stairway.submit(TestFlight.class, inputParameters);
-        System.out.println("Submitted flight id: " + flightId);
 
-        // Test for done
-        boolean done = stairway.isDone(flightId);
-        System.out.println("Flight done: " + done);
+        // Poll waiting for done
+        while (!stairway.isDone(flightId)) {
+            Thread.sleep(1000);
+        }
 
-        // Wait for done
-        FlightState result = stairway.getResult(flightId);
-        System.out.println("Flight result: " + result);
-        Assert.assertFalse(result.isSuccess());
-        Optional<Throwable> throwable = result.getThrowable();
-        Assert.assertTrue(throwable.isPresent());
-        // The exception is thrown by TestStepExistence
-        Assert.assertTrue(throwable.get() instanceof IllegalArgumentException);
+        // Handle results
+        FlightState result = stairway.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(FlightStatus.ERROR));
+        Assert.assertTrue(result.getErrorMessage().isPresent());
+
+        // The error text thrown by TestStepExistence
+        Assert.assertThat(result.getErrorMessage().get(), containsString("already exists"));
     }
 
     @Test
@@ -108,12 +108,11 @@ public class ScenarioTest {
         String flightId = stairway.submit(TestFlightUndo.class, inputParameters);
 
         // Wait for done
-        FlightState result = stairway.getResult(flightId);
-        Assert.assertFalse(result.isSuccess());
-        Optional<Throwable> throwable = result.getThrowable();
-        Assert.assertTrue(throwable.isPresent());
-        // The exception is thrown by TestStepExistence
-        Assert.assertTrue(throwable.get() instanceof IllegalArgumentException);
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(FlightStatus.ERROR));
+        Assert.assertTrue(result.getErrorMessage().isPresent());
+        Assert.assertThat(result.getErrorMessage().get(), containsString("already exists"));
 
         // We expect the non-existent filename to have been deleted
         File file = new File(filename);

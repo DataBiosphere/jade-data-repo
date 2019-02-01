@@ -142,7 +142,7 @@ public class Database {
     }
 
     /**
-     * Record completion of a flight and remove the data from the log
+     * Record completion of a flight and the data from the log
      * This is idempotent; repeated execution will work properly.
      */
     public void complete(FlightContext flightContext) {
@@ -161,7 +161,6 @@ public class Database {
 
         // The delete is harmless if it has been done before. We just won't find anything.
         final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid";
-
 
         try (Connection connection = dataSource.getConnection();
              NamedParameterPreparedStatement statement =
@@ -338,17 +337,24 @@ public class Database {
             inputParameters.fromJson(rs.getString("input_parameters"));
             flightState.setInputParameters(inputParameters);
 
-            // Flight data that may be present depending on the state
-            flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time")));
-            flightState.setErrorMessage(Optional.ofNullable(rs.getString("error_message")));
 
-            String outputParamsJson = rs.getString("output_parameters");
-            if (outputParamsJson == null) {
+            // Only populate the optional fields if the flight is done; that is, not RUNNING
+            if (flightState.getFlightStatus() == FlightStatus.RUNNING) {
+                flightState.setCompleted(Optional.empty());
+                flightState.setErrorMessage(Optional.empty());
                 flightState.setResultMap(Optional.empty());
             } else {
-                FlightMap outputParameters = new FlightMap();
-                outputParameters.fromJson(outputParamsJson);
-                flightState.setResultMap(Optional.of(outputParameters));
+                // If the optional flight data is present, then we fill it in
+                flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time")));
+                flightState.setErrorMessage(Optional.ofNullable(rs.getString("error_message")));
+                String outputParamsJson = rs.getString("output_parameters");
+                if (outputParamsJson == null) {
+                    flightState.setResultMap(Optional.empty());
+                } else {
+                    FlightMap outputParameters = new FlightMap();
+                    outputParameters.fromJson(outputParamsJson);
+                    flightState.setResultMap(Optional.of(outputParameters));
+                }
             }
 
             flightStateList.add(flightState);

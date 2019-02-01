@@ -10,7 +10,6 @@ import static org.hamcrest.CoreMatchers.is;
 public class StepResultTest {
     private static String bad = "bad bad bad";
 
-
     @Test
     public void testStepResultSuccess() {
         StepResult result = StepResult.getStepResultSuccess();

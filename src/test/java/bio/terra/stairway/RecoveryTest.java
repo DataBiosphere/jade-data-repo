@@ -1,7 +1,6 @@
 package bio.terra.stairway;
 
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import bio.terra.stairway.exception.FlightException;
 import org.apache.commons.dbcp2.ConnectionFactory;
 import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp2.PoolableConnection;
@@ -17,7 +16,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Optional;
 import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -114,9 +112,11 @@ public class RecoveryTest {
         Stairway stairway2 = new Stairway(executorService, dataSource, false, null);
 
         // Wait for recovery to complete
-        FlightState result = stairway2.getResult(flightId);
-        Assert.assertThat(result.isSuccess(), is(equalTo(true)));
-        Integer value = result.getResultMap().get("value", Integer.class);
+        stairway2.waitForFlight(flightId);
+        FlightState result = stairway2.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
+        Assert.assertTrue(result.getResultMap().isPresent());
+        Integer value = result.getResultMap().get().get("value", Integer.class);
         Assert.assertThat(value, is(equalTo(2)));
     }
 
@@ -147,15 +147,15 @@ public class RecoveryTest {
         Stairway stairway2 = new Stairway(executorService, dataSource, false, null);
 
         // Wait for recovery to complete
-        FlightState result = stairway2.getResult(flightId);
-        Assert.assertThat(result.isSuccess(), is(equalTo(false)));
-        Optional<Throwable> throwable = result.getThrowable();
-        Assert.assertTrue(throwable.isPresent());
+        stairway2.waitForFlight(flightId);
+        FlightState result = stairway2.getFlightState(flightId);
+        Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.ERROR)));
+        Assert.assertTrue(result.getErrorMessage().isPresent());
         // The exception is thrown by TestStepTriggerUndo
-        Assert.assertTrue(throwable.get() instanceof FlightException);
-        Assert.assertThat(throwable.get().getMessage(), is(containsString("TestStepTriggerUndo")));
+        Assert.assertThat(result.getErrorMessage().get(), is(containsString("TestStepTriggerUndo")));
 
-        Integer value = result.getResultMap().get("value", Integer.class);
+        Assert.assertTrue(result.getResultMap().isPresent());
+        Integer value = result.getResultMap().get().get("value", Integer.class);
         Assert.assertThat(value, is(equalTo(2)));
     }
 

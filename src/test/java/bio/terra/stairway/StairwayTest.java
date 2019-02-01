@@ -37,7 +37,7 @@ public class StairwayTest {
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadFlightGetResult() {
-        stairway.getResult("abcdefg");
+        stairway.getFlightState("abcdefg");
     }
 
 }

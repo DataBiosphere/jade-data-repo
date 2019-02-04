@@ -329,7 +329,7 @@ public interface RepositoryApi {
             notes = "Retrieve a job's status by id",
             tags = { "repository", })
     @ApiResponses(value = {
-        @ApiResponse(code = 200, message = "Job is incomplete"),
+        @ApiResponse(code = 200, message = "Job status", response = JobModel.class),
         @ApiResponse(code = 303, message = "Redirect for object successful creation"),
         @ApiResponse(code = 400, message = "Bad request - invalid id, badly formed"),
         @ApiResponse(code = 403, message = "No permission to see job"),
@@ -352,8 +352,7 @@ public interface RepositoryApi {
             nickname = "retrieveJobResult",
             notes = "Retrieve a job's result by id",
             tags = { "repository", })
-    @ApiResponses(value = {
-        @ApiResponse(code = 303, message = "Success", response = JobModel.class),
+    @ApiResponses(value = { // TODO add multiple success returned model options
         @ApiResponse(code = 400, message = "Failed"),
         @ApiResponse(code = 500, message = "Failed") })
     @RequestMapping(value = "/api/repository/v1/jobs/{id}/result",

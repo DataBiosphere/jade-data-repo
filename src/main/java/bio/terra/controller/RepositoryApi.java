@@ -13,28 +13,29 @@ import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.swagger.annotations.*;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import javax.validation.constraints.*;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen", date = "2019-02-04T13:19:47.200-05:00")
+@javax.annotation.Generated(
+        value = "io.swagger.codegen.languages.SpringCodegen",
+        date = "2019-02-04T13:19:47.200-05:00")
 
 @Api(value = "Repository", description = "the Repository API")
 public interface RepositoryApi {
@@ -53,252 +54,378 @@ public interface RepositoryApi {
         return getRequest().map(r -> r.getHeader("Accept"));
     }
 
-    @ApiOperation(value = "", nickname = "createDataset", notes = "Create a new dataset", tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(value = "", nickname = "createDataset", notes = "Create a new dataset", tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 202, message = "Dataset creation job started & url for polling is in the response header"),
         @ApiResponse(code = 400, message = "Bad request - invalid name, badly formed"),
         @ApiResponse(code = 403, message = "No permission to create datasets"),
         @ApiResponse(code = 409, message = "Dataset with this name already exists") })
     @RequestMapping(value = "/api/repository/v1/datasets",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.POST)
-    default ResponseEntity<Void> createDataset(@ApiParam(value = "Dataset to create"  )  @Valid @RequestBody DatasetRequestModel dataset) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
-        } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+    default ResponseEntity<Void> createDataset(
+            @ApiParam(value = "Dataset to create")
+            @Valid
+            @RequestBody DatasetRequestModel dataset) {
+        if (!getObjectMapper().isPresent() || !getAcceptHeader().isPresent()) {
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface" +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "createStudy", notes = "Create a new study", response = StudySummaryModel.class, tags={ "repository", })
-    @ApiResponses(value = { 
-        @ApiResponse(code = 201, message = "Study created successfully and a summary is returned", response = StudySummaryModel.class),
+    @ApiOperation(value = "", nickname = "createStudy", notes = "Create a new study",
+            response = StudySummaryModel.class, tags = { "repository", })
+    @ApiResponses(value = {
+        @ApiResponse(code = 201, message = "Study created successfully and a summary is returned",
+                response = StudySummaryModel.class),
         @ApiResponse(code = 400, message = "Bad request - duplicate name, invalid name, badly formed schema"),
-        @ApiResponse(code = 403, message = "No permission to create studies") })
+        @ApiResponse(code = 403, message = "No permission to create studies")})
     @RequestMapping(value = "/api/repository/v1/studies",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.POST)
-    default ResponseEntity<StudySummaryModel> createStudy(@ApiParam(value = "Study to create"  )  @Valid @RequestBody StudyRequestModel study) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
+    default ResponseEntity<StudySummaryModel> createStudy(
+            @ApiParam(value = "Study to create")  @Valid @RequestBody StudyRequestModel study) {
+        if (getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
             if (getAcceptHeader().get().contains("application/json")) {
                 try {
-                    return new ResponseEntity<>(getObjectMapper().get().readValue("{  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { }}", StudySummaryModel.class), HttpStatus.NOT_IMPLEMENTED);
+                    return new ResponseEntity<>(getObjectMapper().get().readValue(
+                            "{  \"createdDate\" : \"createdDate\",  \"name\" : { }, " +
+                                    "\"description\" : \"description\",  \"id\" : { }}",
+                            StudySummaryModel.class),
+                            HttpStatus.NOT_IMPLEMENTED);
                 } catch (IOException e) {
                     log.error("Couldn't serialize response for content type application/json", e);
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface" +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "deleteDataset", notes = "Delete a dataset by id", tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(value = "", nickname = "deleteDataset", notes = "Delete a dataset by id", tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 202, message = "Dataset deletion job started & url for polling is in the response header"),
         @ApiResponse(code = 400, message = "Bad request - invalid id, badly formed"),
         @ApiResponse(code = 403, message = "No permission to delete dataset"),
         @ApiResponse(code = 404, message = "Not found - dataset id does not exist"),
-        @ApiResponse(code = 409, message = "Dataset in use?") })
+        @ApiResponse(code = 409, message = "Dataset in use?")})
     @RequestMapping(value = "/api/repository/v1/datasets/{id}",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.DELETE)
-    default ResponseEntity<Void> deleteDataset(@ApiParam(value = "A study or dataset id",required=true) @PathVariable("id") String id) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
-        } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+    default ResponseEntity<Void> deleteDataset(
+            @ApiParam(value = "A study or dataset id", required = true) @PathVariable("id") String id) {
+        if (!getObjectMapper().isPresent() || !getAcceptHeader().isPresent()) {
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "deleteStudy", notes = "Delete a study by id", tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(value = "", nickname = "deleteStudy", notes = "Delete a study by id", tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 202, message = "Study deletion job started & url for polling is in the response header"),
         @ApiResponse(code = 400, message = "Bad request - invalid id, badly formed"),
         @ApiResponse(code = 403, message = "No permission to delete study"),
         @ApiResponse(code = 404, message = "Not found - study id does not exist"),
-        @ApiResponse(code = 409, message = "Study in use by at least one dataset") })
+        @ApiResponse(code = 409, message = "Study in use by at least one dataset")})
     @RequestMapping(value = "/api/repository/v1/studies/{id}",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.DELETE)
-    default ResponseEntity<Void> deleteStudy(@ApiParam(value = "A study or dataset id",required=true) @PathVariable("id") String id) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
-        } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+    default ResponseEntity<Void> deleteStudy(
+            @ApiParam(value = "A study or dataset id", required = true) @PathVariable("id") String id) {
+        if (!getObjectMapper().isPresent() || !getAcceptHeader().isPresent()) {
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface" +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "enumerateDatasets", notes = "Returns a list of all of the datasets the caller has access to ", response = DatasetSummaryModel.class, responseContainer = "List", tags={ "repository", })
-    @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "List of datasets", response = DatasetSummaryModel.class, responseContainer = "List") })
+    @ApiOperation(value = "", nickname = "enumerateDatasets",
+            notes = "Returns a list of all of the datasets the caller has access to ",
+            response = DatasetSummaryModel.class, responseContainer = "List", tags = { "repository", })
+    @ApiResponses(value = {
+        @ApiResponse(
+                code = 200,
+                message = "List of datasets",
+                response = DatasetSummaryModel.class,
+                responseContainer = "List")})
     @RequestMapping(value = "/api/repository/v1/datasets",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
     default ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets() {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
+        if (getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
             if (getAcceptHeader().get().contains("application/json")) {
                 try {
-                    return new ResponseEntity<>(getObjectMapper().get().readValue("[ {  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { }}, {  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { }} ]", List.class), HttpStatus.NOT_IMPLEMENTED);
+                    return new ResponseEntity<>(getObjectMapper().get().readValue(
+                            "[ {  \"createdDate\" : \"createdDate\",  \"name\" : { }, " +
+                                    " \"description\" : \"description\", " +
+                                    " \"id\" : { }}, {  \"createdDate\" : \"createdDate\", " +
+                                    " \"name\" : { },  \"description\" : \"description\", " +
+                                    " \"id\" : { }} ]", List.class), HttpStatus.NOT_IMPLEMENTED);
                 } catch (IOException e) {
                     log.error("Couldn't serialize response for content type application/json", e);
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "enumerateJobs", notes = "Returns a list of all of the jobs the caller has access to ", response = JobModel.class, responseContainer = "List", tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(value = "", nickname = "enumerateJobs",
+            notes = "Returns a list of all of the jobs the caller has access to ",
+            response = JobModel.class, responseContainer = "List", tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 200, message = "List of jobs", response = JobModel.class, responseContainer = "List") })
     @RequestMapping(value = "/api/repository/v1/jobs",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    default ResponseEntity<List<JobModel>> enumerateJobs(@ApiParam(value = "The number of items to skip before starting to collect the result set.") @Valid @RequestParam(value = "offset", required = false) Integer offset,@ApiParam(value = "The numbers of items to return.") @Valid @RequestParam(value = "limit", required = false) Integer limit) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
+    default ResponseEntity<List<JobModel>> enumerateJobs(
+            @ApiParam(value = "The number of items to skip before starting to collect the result set.")
+            @Valid
+            @RequestParam(value = "offset", required = false) Integer offset,
+                                                         @ApiParam(value = "The numbers of items to return.")
+                                                         @Valid
+                                                         @RequestParam(value = "limit", required = false)
+                                                                 Integer limit) {
+        if (getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
             if (getAcceptHeader().get().contains("application/json")) {
                 try {
-                    return new ResponseEntity<>(getObjectMapper().get().readValue("[ {  \"submitted\" : \"submitted\",  \"description\" : \"description\",  \"id\" : { },  \"completed\" : \"completed\",  \"status\" : \"running\"}, {  \"submitted\" : \"submitted\",  \"description\" : \"description\",  \"id\" : { },  \"completed\" : \"completed\",  \"status\" : \"running\"} ]", List.class), HttpStatus.NOT_IMPLEMENTED);
+                    return new ResponseEntity<>(getObjectMapper().get().readValue(
+                            "[ {  \"submitted\" : \"submitted\", " +
+                            " \"description\" : \"description\",  \"id\" : { },  \"completed\" : \"completed\", " +
+                            " \"status\" : \"running\"}, {  \"submitted\" : \"submitted\", " +
+                            " \"description\" : \"description\",  \"id\" : { },  \"completed\" : \"completed\", " +
+                            " \"status\" : \"running\"} ]", List.class), HttpStatus.NOT_IMPLEMENTED);
                 } catch (IOException e) {
                     log.error("Couldn't serialize response for content type application/json", e);
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "enumerateStudies", notes = "Returns a list of all of the studies the caller has access to ", response = StudySummaryModel.class, responseContainer = "List", tags={ "repository", })
-    @ApiResponses(value = { 
-        @ApiResponse(code = 200, message = "List of studies", response = StudySummaryModel.class, responseContainer = "List") })
+    @ApiOperation(value = "", nickname = "enumerateStudies", notes = "Returns a list of all of the studies " +
+            "the caller has access to ",
+            response = StudySummaryModel.class,
+            responseContainer = "List",
+            tags = { "repository", })
+    @ApiResponses(value = {
+        @ApiResponse(code = 200,
+                message = "List of studies",
+                response = StudySummaryModel.class,
+                responseContainer = "List") })
     @RequestMapping(value = "/api/repository/v1/studies",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
     default ResponseEntity<List<StudySummaryModel>> enumerateStudies() {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
+        if (getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
             if (getAcceptHeader().get().contains("application/json")) {
                 try {
-                    return new ResponseEntity<>(getObjectMapper().get().readValue("[ {  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { }}, {  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { }} ]", List.class), HttpStatus.NOT_IMPLEMENTED);
+                    return new ResponseEntity<>(getObjectMapper().get().readValue(
+                            "[ {  \"createdDate\" : \"createdDate\",  \"name\" : { },  " +
+                                    "\"description\" : \"description\",  \"id\" : { }}, " +
+                                    "{  \"createdDate\" : \"createdDate\",  \"name\" : { },  " +
+                                    "\"description\" : \"description\",  \"id\" : { }} ]",
+                            List.class), HttpStatus.NOT_IMPLEMENTED);
                 } catch (IOException e) {
                     log.error("Couldn't serialize response for content type application/json", e);
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "retrieveDataset", notes = "Retrieve a dataset by id", response = DatasetModel.class, tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(
+            value = "",
+            nickname = "retrieveDataset",
+            notes = "Retrieve a dataset by id",
+            response = DatasetModel.class,
+            tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 200, message = "Dataset", response = DatasetModel.class),
         @ApiResponse(code = 400, message = "Bad request - invalid id, badly formed"),
         @ApiResponse(code = 403, message = "No permission to see dataset"),
         @ApiResponse(code = 404, message = "Not found - dataset id does not exist") })
     @RequestMapping(value = "/api/repository/v1/datasets/{id}",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    default ResponseEntity<DatasetModel> retrieveDataset(@ApiParam(value = "A study or dataset id",required=true) @PathVariable("id") String id) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
+    default ResponseEntity<DatasetModel> retrieveDataset(
+            @ApiParam(value = "A study or dataset id", required = true) @PathVariable("id") String id) {
+        if (getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
             if (getAcceptHeader().get().contains("application/json")) {
                 try {
-                    return new ResponseEntity<>(getObjectMapper().get().readValue("{  \"tables\" : [ {    \"columns\" : [ {      \"datatype\" : \"datatype\",      \"name\" : null    }, {      \"datatype\" : \"datatype\",      \"name\" : null    } ],    \"name\" : null  }, {    \"columns\" : [ {      \"datatype\" : \"datatype\",      \"name\" : null    }, {      \"datatype\" : \"datatype\",      \"name\" : null    } ],    \"name\" : null  } ],  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { },  \"source\" : [ {    \"study\" : null,    \"mapping\" : [ {      \"to_table\" : null,      \"column_map\" : [ {        \"from_column\" : null,        \"to_column\" : null      }, {        \"from_column\" : null,        \"to_column\" : null      } ],      \"from_table\" : null    }, {      \"to_table\" : null,      \"column_map\" : [ {        \"from_column\" : null,        \"to_column\" : null      }, {        \"from_column\" : null,        \"to_column\" : null      } ],      \"from_table\" : null    } ],    \"asset\" : null,    \"rows\" : [ \"rows\", \"rows\" ]  }, {    \"study\" : null,    \"mapping\" : [ {      \"to_table\" : null,      \"column_map\" : [ {        \"from_column\" : null,        \"to_column\" : null      }, {        \"from_column\" : null,        \"to_column\" : null      } ],      \"from_table\" : null    }, {      \"to_table\" : null,      \"column_map\" : [ {        \"from_column\" : null,        \"to_column\" : null      }, {        \"from_column\" : null,        \"to_column\" : null      } ],      \"from_table\" : null    } ],    \"asset\" : null,    \"rows\" : [ \"rows\", \"rows\" ]  } ]}", DatasetModel.class), HttpStatus.NOT_IMPLEMENTED);
+                    return new ResponseEntity<>(getObjectMapper().get().readValue(
+                            "{  \"tables\" : [ {    \"columns\" : [ {      \"datatype\" : \"datatype\",      " +
+                                    "\"name\" : null    }, {      \"datatype\" : \"datatype\",      " +
+                                    "\"name\" : null    } ],    \"name\" : null  }, {    \"columns\" : [ {      " +
+                                    "\"datatype\" : \"datatype\",      \"name\" : null    }, {      " +
+                                    "\"datatype\" : \"datatype\",      \"name\" : null    } ],    " +
+                                    "\"name\" : null  } ],  \"createdDate\" : \"createdDate\",  \"name\" : { },  " +
+                                    "\"description\" : \"description\",  \"id\" : { },  \"source\" : [ {    " +
+                                    "\"study\" : null,    \"mapping\" : [ {      \"to_table\" : null,      " +
+                                    "\"column_map\" : [ {        \"from_column\" : null,        " +
+                                    "\"to_column\" : null      }, {        \"from_column\" : null,        " +
+                                    "\"to_column\" : null      } ],      \"from_table\" : null    }, {      " +
+                                    "\"to_table\" : null,      \"column_map\" : [ {        " +
+                                    "\"from_column\" : null,        \"to_column\" : null      }, {        " +
+                                    "\"from_column\" : null,        \"to_column\" : null      } ],      " +
+                                    "\"from_table\" : null    } ],    \"asset\" : null,    \"rows\" : " +
+                                    "[ \"rows\", \"rows\" ]  }, {    \"study\" : null,    \"mapping\" : [ {      " +
+                                    "\"to_table\" : null,      \"column_map\" : [ {        " +
+                                    "\"from_column\" : null,        \"to_column\" : null      }, {       " +
+                                    " \"from_column\" : null,        \"to_column\" : null      } ],      " +
+                                    "\"from_table\" : null    }, {      \"to_table\" : null,      \"column_map\" : " +
+                                    "[ {        \"from_column\" : null,        \"to_column\" : null      }, {        " +
+                                    "\"from_column\" : null,        \"to_column\" : null      } ],      " +
+                                    "\"from_table\" : null    } ],    \"asset\" : null,    " +
+                                    "\"rows\" : [ \"rows\", \"rows\" ]  } ]}",
+                            DatasetModel.class), HttpStatus.NOT_IMPLEMENTED);
                 } catch (IOException e) {
                     log.error("Couldn't serialize response for content type application/json", e);
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "retrieveJob", notes = "Retrieve a job's status by id", tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(
+            value = "",
+            nickname = "retrieveJob",
+            notes = "Retrieve a job's status by id",
+            tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 200, message = "Job is incomplete"),
         @ApiResponse(code = 303, message = "Redirect for object successful creation"),
         @ApiResponse(code = 400, message = "Bad request - invalid id, badly formed"),
         @ApiResponse(code = 403, message = "No permission to see job"),
         @ApiResponse(code = 404, message = "Not found - job id does not exist") })
     @RequestMapping(value = "/api/repository/v1/jobs/{id}",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    default ResponseEntity<Void> retrieveJob(@ApiParam(value = "A study or dataset id",required=true) @PathVariable("id") String id) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
-        } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+    default ResponseEntity<Void> retrieveJob(
+            @ApiParam(value = "A study or dataset id", required = true) @PathVariable("id") String id) {
+        if (!getObjectMapper().isPresent() || !getAcceptHeader().isPresent()) {
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
-
-    @ApiOperation(value = "", nickname = "retrieveJobResult", notes = "Retrieve a job's result by id", tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(
+            value = "",
+            nickname = "retrieveJobResult",
+            notes = "Retrieve a job's result by id",
+            tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 303, message = "Success", response = JobModel.class),
         @ApiResponse(code = 400, message = "Failed"),
         @ApiResponse(code = 500, message = "Failed") })
     @RequestMapping(value = "/api/repository/v1/jobs/{id}/result",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    default ResponseEntity<Void> retrieveJobResult(@ApiParam(value = "A study or dataset id",required=true) @PathVariable("id") String id) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
-        } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+    default ResponseEntity<Void> retrieveJobResult(
+            @ApiParam(value = "A study or dataset id", required = true)
+            @PathVariable("id") String id) {
+        if (!getObjectMapper().isPresent() || !getAcceptHeader().isPresent()) {
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
 
-    @ApiOperation(value = "", nickname = "retrieveStudy", notes = "Retrieve a study by id", response = StudyModel.class, tags={ "repository", })
-    @ApiResponses(value = { 
+    @ApiOperation(value = "", nickname = "retrieveStudy", notes = "Retrieve a study by id",
+            response = StudyModel.class, tags = { "repository", })
+    @ApiResponses(value = {
         @ApiResponse(code = 200, message = "Study", response = StudyModel.class),
         @ApiResponse(code = 400, message = "Bad request - invalid id, badly formed"),
         @ApiResponse(code = 403, message = "No permission to see study"),
         @ApiResponse(code = 404, message = "Not found - study id does not exist") })
     @RequestMapping(value = "/api/repository/v1/studies/{id}",
-        produces = { "application/json" }, 
+        produces = { "application/json" },
         consumes = { "application/json" },
         method = RequestMethod.GET)
-    default ResponseEntity<StudyModel> retrieveStudy(@ApiParam(value = "A study or dataset id",required=true) @PathVariable("id") String id) {
-        if(getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
+    default ResponseEntity<StudyModel> retrieveStudy(
+            @ApiParam(value = "A study or dataset id", required = true) @PathVariable("id") String id) {
+        if (getObjectMapper().isPresent() && getAcceptHeader().isPresent()) {
             if (getAcceptHeader().get().contains("application/json")) {
                 try {
-                    return new ResponseEntity<>(getObjectMapper().get().readValue("{  \"schema\" : {    \"relationships\" : [ {      \"name\" : null,      \"from\" : {        \"column\" : \"column\",        \"table\" : null,        \"cardinality\" : \"one\"      },      \"to\" : {        \"column\" : \"column\",        \"table\" : null,        \"cardinality\" : \"one\"      }    }, {      \"name\" : null,      \"from\" : {        \"column\" : \"column\",        \"table\" : null,        \"cardinality\" : \"one\"      },      \"to\" : {        \"column\" : \"column\",        \"table\" : null,        \"cardinality\" : \"one\"      }    } ],    \"tables\" : [ {      \"columns\" : [ {        \"datatype\" : \"datatype\",        \"name\" : null      }, {        \"datatype\" : \"datatype\",        \"name\" : null      } ],      \"name\" : null    }, {      \"columns\" : [ {        \"datatype\" : \"datatype\",        \"name\" : null      }, {        \"datatype\" : \"datatype\",        \"name\" : null      } ],      \"name\" : null    } ],    \"assets\" : [ {      \"tables\" : [ {        \"columns\" : [ null, null ],        \"name\" : null,        \"is_root\" : true      }, {        \"columns\" : [ null, null ],        \"name\" : null,        \"is_root\" : true      } ],      \"name\" : null,      \"follow\" : [ null, null ]    }, {      \"tables\" : [ {        \"columns\" : [ null, null ],        \"name\" : null,        \"is_root\" : true      }, {        \"columns\" : [ null, null ],        \"name\" : null,        \"is_root\" : true      } ],      \"name\" : null,      \"follow\" : [ null, null ]    } ]  },  \"createdDate\" : \"createdDate\",  \"name\" : { },  \"description\" : \"description\",  \"id\" : { },  \"defaultDatasetId\" : \"defaultDatasetId\"}", StudyModel.class), HttpStatus.NOT_IMPLEMENTED);
+                    return new ResponseEntity<>(getObjectMapper().get().readValue(
+                            "{  \"schema\" : {    \"relationships\" : [ {      \"name\" : null,      " +
+                                    "\"from\" : {        \"column\" : \"column\",        \"table\" : null,        " +
+                                    "\"cardinality\" : \"one\"      },      \"to\" : {        " +
+                                    "\"column\" : \"column\",        \"table\" : null,        " +
+                                    "\"cardinality\" : \"one\"      }    }, {      \"name\" : null,      " +
+                                    "\"from\" : {        \"column\" : \"column\",        \"table\" : null,        " +
+                                    "\"cardinality\" : \"one\"      },      \"to\" : {        " +
+                                    "\"column\" : \"column\",        \"table\" : null,        " +
+                                    "\"cardinality\" : \"one\"      }    } ],    \"tables\" : [ {      " +
+                                    "\"columns\" : [ {        \"datatype\" : \"datatype\",        " +
+                                    "\"name\" : null      }, {        \"datatype\" : \"datatype\",        " +
+                                    "\"name\" : null      } ],      \"name\" : null    }, {      " +
+                                    "\"columns\" : [ {        \"datatype\" : \"datatype\",        " +
+                                    "\"name\" : null      }, {        " +
+                                    "\"datatype\" : \"datatype\",        \"name\" : null      } ],      " +
+                                    "\"name\" : null    } ],    \"assets\" : [ {      \"tables\" : [ {        " +
+                                    "\"columns\" : [ null, null ],        \"name\" : null,        " +
+                                    "\"is_root\" : true      }, {        \"columns\" : [ null, null ],        " +
+                                    "]\"name\" : null,        \"is_root\" : true      } ],      " +
+                                    "\"name\" : null,      \"follow\" : [ null, null ]    }, {      " +
+                                    "\"tables\" : [ {        \"columns\" : [ null, null ],        " +
+                                    "\"name\" : null,        \"is_root\" : true      }, {        " +
+                                    "\"columns\" : [ null, null ],        \"name\" : null,        " +
+                                    "\"is_root\" : true      } ],      \"name\" : null,      " +
+                                    "\"follow\" : [ null, null ]    } ]  }, " +
+                                    "\"createdDate\" : \"createdDate\",  \"name\" : { },  " +
+                                    "\"description\" : \"description\",  \"id\" : { }, " +
+                                    "\"defaultDatasetId\" : \"defaultDatasetId\"}",
+                            StudyModel.class), HttpStatus.NOT_IMPLEMENTED);
                 } catch (IOException e) {
                     log.error("Couldn't serialize response for content type application/json", e);
                     return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
                 }
             }
         } else {
-            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface so no example is generated");
+            log.warn("ObjectMapper or HttpServletRequest not configured in default RepositoryApi interface " +
+                    "so no example is generated");
         }
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
-
 }

@@ -13,9 +13,14 @@
 what the following rules do, please see the checkstyle configuration
 page at http://checkstyle.sourceforge.net/config.html -->
 
+
 <module name="Checker">
+    <module name="SuppressWarningsFilter" />
+    <module name="SuppressionCommentFilter">
+    </module>
     <module name="TreeWalker">
         <module name="SuppressWarningsHolder" />
+        <module name="FileContentsHolder"/>
         <!-- Formatting -->
         <module name="Indentation">
             <property name="basicOffset" value="4" />

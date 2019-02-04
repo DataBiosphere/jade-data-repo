@@ -276,6 +276,10 @@ paths:
           description: Job status
           schema:
             $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
         303:
           description: Redirect for object successful creation
           headers:
@@ -299,10 +303,9 @@ paths:
       parameters:
       - $ref: '#/parameters/Id'
       responses: ## successful responses return the type of model specified by the job
-        400:
-          description: Failed
-        500:
-          description: Failed
+        default:
+          schema:
+            type: object
 
 ##########################################################################################
 # PARAMETERS

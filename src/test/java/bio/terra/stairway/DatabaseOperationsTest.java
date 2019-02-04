@@ -2,13 +2,8 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import org.apache.commons.dbcp2.ConnectionFactory;
-import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
 import org.apache.commons.dbcp2.PoolableConnection;
-import org.apache.commons.dbcp2.PoolableConnectionFactory;
 import org.apache.commons.dbcp2.PoolingDataSource;
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,7 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
-import java.util.Properties;
 
 import static bio.terra.stairway.TestUtil.dubValue;
 import static bio.terra.stairway.TestUtil.errString;
@@ -47,21 +41,7 @@ public class DatabaseOperationsTest {
 
     @Before
     public void setup() {
-        Properties props = new Properties();
-        props.setProperty("user", jdbcConfiguration.getUsername());
-        props.setProperty("password", jdbcConfiguration.getPassword());
-
-        ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);
-
-        PoolableConnectionFactory poolableConnectionFactory =
-                new PoolableConnectionFactory(connectionFactory, null);
-
-        ObjectPool<PoolableConnection> connectionPool =
-                new GenericObjectPool<>(poolableConnectionFactory);
-
-        poolableConnectionFactory.setPool(connectionPool);
-
-        dataSource = new PoolingDataSource<>(connectionPool);
+        dataSource = TestUtil.setupDataSource(jdbcConfiguration);
     }
 
     @Test
@@ -149,7 +129,7 @@ public class DatabaseOperationsTest {
 
         FlightMap outputParams = flightState.getResultMap().get();
         checkOutputs(outputParams);
-        Assert.assertThat(flightState.getErrorMessage().get(), is(errString));
+        Assert.assertThat(flightState.getErrorMessage().get(), containsString(errString));
     }
 
     private Database createDatabase(boolean forceCleanStart) {

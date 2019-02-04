@@ -59,15 +59,9 @@ public class Stairway {
     private Database database;
     private Object applicationContext;
 
-    public Stairway(ExecutorService threadPool) {
-        this(threadPool, null, true, null);
-    }
-
     /**
-     *
      * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
-     * @param dataSource optional - if null, no database operations are performed.
-     *                   That is enforced in the {@link Database} class.
+     * @param dataSource dataSource where stairway stores its log
      * @param forceCleanStart true will drop any existing stairway database tables and recreate them from scratch.
      *                        false will validate the schema version matches, and recovery any incomplete flights.
      */

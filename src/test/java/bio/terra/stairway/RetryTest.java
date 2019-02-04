@@ -2,28 +2,34 @@ package bio.terra.stairway;
 
 
 import bio.terra.category.StairwayUnit;
+import bio.terra.configuration.StairwayJdbcConfiguration;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @Category(StairwayUnit.class)
 public class RetryTest {
-    private ExecutorService executorService;
     private Stairway stairway;
+
+    @Autowired
+    private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
-        executorService = Executors.newFixedThreadPool(2);
-        stairway = new Stairway(executorService);
+        stairway = TestUtil.setupStairway(jdbcConfiguration);
     }
 
     @Test

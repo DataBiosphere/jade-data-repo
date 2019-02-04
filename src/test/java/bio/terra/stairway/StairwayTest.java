@@ -1,30 +1,35 @@
 package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
+import bio.terra.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
 // Stairway class tests - mostly validating error conditions
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @Category(StairwayUnit.class)
 public class StairwayTest {
     private Stairway stairway;
-    private FlightMap flightMap;
+
+    @Autowired
+    private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        stairway = new Stairway(executorService);
-        flightMap = new FlightMap();
+        stairway = TestUtil.setupStairway(jdbcConfiguration);
     }
 
     @Test(expected = MakeFlightException.class)
     public void testNullFlightClass() {
+        FlightMap flightMap = new FlightMap();
         stairway.submit(null, flightMap);
     }
 

@@ -15,7 +15,7 @@ public class FlightContext {
     private int stepIndex; // what step we are on
     private boolean doing; // true - executing do's; false - executing undo's
     private StepResult result; // current step status
-    private FlightStatus flightStatus;
+    private FlightStatus flightStatus; // flight complete status
 
     // Construct the context with defaults
     public FlightContext(FlightMap inputParameters, String flightClassName) {

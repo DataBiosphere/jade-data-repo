@@ -1,5 +1,7 @@
 package bio.terra.stairway;
 
+import bio.terra.stairway.exception.FlightException;
+
 import static bio.terra.stairway.TestUtil.debugWrite;
 
 public class TestStepRetry implements Step {
@@ -18,7 +20,8 @@ public class TestStepRetry implements Step {
         if (timesFailed < timesToFail) {
             timesFailed++;
             debugWrite(" - failure_retry");
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
+            Throwable throwable = new FlightException("step retry failed");
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, throwable);
         }
         debugWrite(" - success");
         return StepResult.getStepResultSuccess();

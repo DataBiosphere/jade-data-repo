@@ -2,11 +2,18 @@ package bio.terra.stairway;
 
 
 import bio.terra.category.StairwayUnit;
+import bio.terra.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import org.apache.commons.dbcp2.PoolableConnection;
+import org.apache.commons.dbcp2.PoolingDataSource;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
 import java.io.PrintWriter;
@@ -18,15 +25,21 @@ import static bio.terra.stairway.TestUtil.debugWrite;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
+@RunWith(SpringRunner.class)
+@SpringBootTest
 @Category(StairwayUnit.class)
 public class ScenarioTest {
-    private ExecutorService executorService;
+    private PoolingDataSource<PoolableConnection> dataSource;
     private Stairway stairway;
+
+    @Autowired
+    private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
     public void setup() {
-        executorService = Executors.newFixedThreadPool(2);
-        stairway = new Stairway(executorService);
+        dataSource = TestUtil.setupDataSource(jdbcConfiguration);
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        stairway = new Stairway(executorService, dataSource, true, null);
     }
 
     @Test
@@ -140,6 +153,5 @@ public class ScenarioTest {
     private String makeFilename() {
         return "/tmp/test." + UUID.randomUUID().toString() + ".txt";
     }
-
 
 }

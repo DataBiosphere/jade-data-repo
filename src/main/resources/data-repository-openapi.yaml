@@ -239,12 +239,22 @@ paths:
           description: Study in use by at least one dataset
 
   '/api/repository/v1/jobs':
+    # '/api/repository/v1/jobs?offset=100&limit=50':
     get:  ## enumerate --- will need to add paging
       description: |
         Returns a list of all of the jobs the caller has access to
       operationId: enumerateJobs
       tags:
       - repository
+      parameters:
+      - in: query
+        name: offset
+        type: integer
+        description: The number of items to skip before starting to collect the result set.
+      - in: query
+        name: limit
+        type: integer
+        description: The numbers of items to return.
       responses:
         200:
           description: List of jobs
@@ -295,7 +305,6 @@ paths:
           description: Failed
         500:
           description: Failed
-
 
 ##########################################################################################
 # PARAMETERS

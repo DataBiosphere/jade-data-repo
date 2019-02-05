@@ -125,7 +125,7 @@ public class Database {
     }
 
     /**
-     * Record completion of a flight and the data from the log
+     * Record completion of a flight and remove the data from the log
      * This is idempotent; repeated execution will work properly.
      */
     public void complete(FlightContext flightContext) {

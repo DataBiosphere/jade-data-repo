@@ -23,7 +23,7 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
 
     // part of a transaction propagated from StudyDao
     public void createStudyRelationships(Study study) {
-        for (StudyRelationship rel : study.getRelationships().values()) {
+        for (StudyRelationship rel : study.getRelationships()) {
             create(rel);
         }
     }

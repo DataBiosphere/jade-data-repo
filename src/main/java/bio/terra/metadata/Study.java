@@ -1,9 +1,11 @@
 package bio.terra.metadata;
 
-import bio.terra.model.*;
-
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class Study {
 
@@ -12,23 +14,11 @@ public class Study {
     private String description;
     private Instant createdDate;
 
-    private Map<String, StudyTable> tables = new HashMap<>();
-    private Map<String, StudyRelationship> relationships = new HashMap<>();
-    private Map<String, AssetSpecification> assetSpecifications = new HashMap<>();
+    private List<StudyTable> tables = Collections.emptyList();
+    private List<StudyRelationship> relationships = Collections.emptyList();
+    private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
     public Study() {}
-
-    public Study(String name,
-                 String description,
-                 Map<String, StudyTable> tables,
-                 Map<String, StudyRelationship> relationships,
-                 Map<String, AssetSpecification> assetSpecifications) {
-        this.name = name;
-        this.description = description;
-        this.tables = tables;
-        this.relationships = relationships;
-        this.assetSpecifications = assetSpecifications;
-    }
 
     public UUID getId() { return id; }
     public Study setId(UUID id) { this.id = id; return this; }
@@ -48,24 +38,32 @@ public class Study {
     }
     public Study setCreatedDate(Instant createdDate) { this.createdDate = createdDate; return this; }
 
-    public Collection<StudyTable> getTables() {
-        return Collections.unmodifiableCollection(tables.values());
+    public List<StudyTable> getTables() {
+        return tables;
     }
-    public Study setTables(Map<String, StudyTable> tables) { this.tables = tables; return this; }
-
-    public Map<String, StudyRelationship> getRelationships() {
-        return Collections.unmodifiableMap(relationships);
+    public Map<String, StudyTable> getTablesMap() {
+        Map <String, StudyTable> tablesMap = new HashMap<>();
+        tables.forEach(table -> tablesMap.put(table.getName(), table));
+        return tablesMap;
     }
-    public Study setRelationships(Map<String, StudyRelationship> relationships) {
-        this.relationships = relationships;
+    public Study setTables(List<StudyTable> tables) {
+        this.tables = Collections.unmodifiableList(tables);
         return this;
     }
 
-    public Map<String, AssetSpecification> getAssetSpecifications() {
-        return Collections.unmodifiableMap(assetSpecifications);
+    public List<StudyRelationship> getRelationships() {
+        return relationships;
     }
-    public Study setAssetSpecifications(Map<String, AssetSpecification> assetSpecifications) {
-        this.assetSpecifications = assetSpecifications;
+    public Study setRelationships(List<StudyRelationship> relationships) {
+        this.relationships = Collections.unmodifiableList(relationships);
+        return this;
+    }
+
+    public List<AssetSpecification> getAssetSpecifications() {
+        return assetSpecifications;
+    }
+    public Study setAssetSpecifications(List<AssetSpecification> assetSpecifications) {
+        this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
         return this;
     }
 }

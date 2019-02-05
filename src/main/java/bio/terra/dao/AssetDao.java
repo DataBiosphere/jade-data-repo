@@ -25,7 +25,7 @@ public class AssetDao extends MetaDao<AssetSpecification> {
 
     // part of a transaction propagated from StudyDao
     public List<UUID> createAssets(Study study) {
-        return study.getAssetSpecifications().values()
+        return study.getAssetSpecifications()
                 .stream()
                 .map(assetSpec -> create(assetSpec, study))
                 .collect(Collectors.toList());

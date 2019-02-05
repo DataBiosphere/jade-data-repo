@@ -5,7 +5,9 @@ import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class StudyJsonConversion {
@@ -14,24 +16,24 @@ public final class StudyJsonConversion {
     private StudyJsonConversion() {}
 
     public static Study studyRequestToStudy(StudyRequestModel studyRequest) {
-        Map<String, StudyTable> tables = new HashMap<>();
-        Map<String, StudyRelationship> relationships = new HashMap<>();
-        Map<String, AssetSpecification> assetSpecifications = new HashMap<>();
+        Map<String, StudyTable> tablesMap = new HashMap<>();
+        Map<String, StudyRelationship> relationshipsMap = new HashMap<>();
+        List<AssetSpecification> assetSpecifications = new ArrayList<>();
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         studySpecification.getTables().forEach(tableModel ->
-                tables.put(tableModel.getName(), new StudyTable(tableModel)));
+                tablesMap.put(tableModel.getName(), new StudyTable(tableModel)));
         studySpecification.getRelationships().forEach(relationship ->
-                relationships.put(relationship.getName(), new StudyRelationship(relationship, tables)));
+                relationshipsMap.put(relationship.getName(), new StudyRelationship(relationship, tablesMap)));
         studySpecification.getAssets().forEach(asset ->
-                assetSpecifications.put(asset.getName(), new AssetSpecification(asset, tables, relationships)));
+                assetSpecifications.add(new AssetSpecification(asset, tablesMap, relationshipsMap)));
 
-        return new Study(
-                studyRequest.getName(),
-                studyRequest.getDescription(),
-                tables,
-                relationships,
-                assetSpecifications);
+        return new Study()
+                .setName(studyRequest.getName())
+                .setDescription(studyRequest.getDescription())
+                .setTables(new ArrayList<>(tablesMap.values()))
+                .setRelationships(new ArrayList<>(relationshipsMap.values()))
+                .setAssetSpecifications(assetSpecifications);
     }
 
 

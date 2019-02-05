@@ -68,10 +68,14 @@ public class StudyDao extends MetaDao<Study> {
 
         //    @Override
     public Study retrieve(UUID id) {
-        return jdbcTemplate.queryForObject(
-                "SELECT * FROM study WHERE id = :id",
+        Study study = jdbcTemplate.queryForObject(
+                "SELECT id, name, description, created_date FROM study WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id),
                 new StudyMapper());
+        // needed for fix bugs. but really can't be null
+        if (study != null)
+            tableDao.retrieve(study);
+        return study;
     }
 //
 //    @Override

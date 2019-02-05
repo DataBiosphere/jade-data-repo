@@ -56,6 +56,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+        // TODO: saving the seen table and column names will not work with multiple instances that can write to the DBs
         HashSet<String> seenTableNames = new HashSet<>();
         for (TableModel table : studyRequest.getSchema().getTables()) {
             String tableName = table.getName();

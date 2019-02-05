@@ -14,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -78,7 +79,7 @@ public class BigQueryPdaoTest {
         tables.put(table1.getName(), table1);
         tables.put(table2.getName(), table2);
 
-        Study study = new Study(studyName, "this is a test study", tables);
+        Study study = new Study(studyName, "this is a test study", tables, Collections.EMPTY_MAP, Collections.EMPTY_MAP);
         return study;
     }
 

@@ -2,6 +2,7 @@ package bio.terra.metadata;
 
 import bio.terra.model.*;
 
+import java.time.Instant;
 import java.util.*;
 
 public class Study {
@@ -9,64 +10,62 @@ public class Study {
     private UUID id;
     private String name;
     private String description;
+    private Instant createdDate;
 
     private Map<String, StudyTable> tables = new HashMap<>();
     private Map<String, StudyRelationship> relationships = new HashMap<>();
     private Map<String, AssetSpecification> assetSpecifications = new HashMap<>();
 
-    public Study(StudyRequestModel studyRequest) {
-        this(studyRequest.getName(), studyRequest.getDescription());
+    public Study() {}
 
-        StudySpecificationModel studySpecification = studyRequest.getSchema();
-        studySpecification.getTables().forEach(tableModel ->
-            tables.put(tableModel.getName(), new StudyTable(tableModel)));
-        studySpecification.getRelationships().forEach(relationship ->
-            relationships.put(relationship.getName(), new StudyRelationship(relationship, tables)));
-        studySpecification.getAssets().forEach(asset ->
-            assetSpecifications.put(asset.getName(), new AssetSpecification(asset, tables, relationships)));
-    }
-
-    public Study(String name, String description) {
+    public Study(String name,
+                 String description,
+                 Map<String, StudyTable> tables,
+                 Map<String, StudyRelationship> relationships,
+                 Map<String, AssetSpecification> assetSpecifications) {
         this.name = name;
         this.description = description;
-    }
-
-    // Constructor for building studies in unit tests.
-    public Study(String name, String description, Map<String, StudyTable> tables) {
-        this(name, description);
         this.tables = tables;
+        this.relationships = relationships;
+        this.assetSpecifications = assetSpecifications;
     }
 
-    public StudySummaryModel toSummary() {
-        return new StudySummaryModel()
-                .id(this.id.toString())
-                .name(this.name)
-                .description(this.description);
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() { return id; }
+    public Study setId(UUID id) { this.id = id; return this; }
 
     public String getName() {
         return name;
     }
+    public Study setName(String name) { this.name = name; return this; }
 
     public String getDescription() {
         return description;
     }
+    public Study setDescription(String description) { this.description = description; return this; }
+
+    public Instant getCreatedDate() {
+        return createdDate;
+    }
+    public Study setCreatedDate(Instant createdDate) { this.createdDate = createdDate; return this; }
 
     public Collection<StudyTable> getTables() {
         return Collections.unmodifiableCollection(tables.values());
     }
+    public Study setTables(Map<String, StudyTable> tables) { this.tables = tables; return this; }
 
     public Map<String, StudyRelationship> getRelationships() {
         return Collections.unmodifiableMap(relationships);
     }
+    public Study setRelationships(Map<String, StudyRelationship> relationships) {
+        this.relationships = relationships;
+        return this;
+    }
 
     public Map<String, AssetSpecification> getAssetSpecifications() {
         return Collections.unmodifiableMap(assetSpecifications);
+    }
+    public Study setAssetSpecifications(Map<String, AssetSpecification> assetSpecifications) {
+        this.assetSpecifications = assetSpecifications;
+        return this;
     }
 }

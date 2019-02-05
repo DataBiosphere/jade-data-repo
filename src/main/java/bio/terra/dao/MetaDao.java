@@ -7,7 +7,7 @@ import java.util.UUID;
 
 public abstract class MetaDao<T> {
 //    abstract UUID create(T object);
-//    T retrieve(String id);
+//    abstract T retrieve(UUID id);
     //void update(T object);
 //    void delete(String id);
 //    List<T> enumerate();

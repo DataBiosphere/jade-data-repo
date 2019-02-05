@@ -3,7 +3,6 @@ package bio.terra.dao;
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Study;
-import bio.terra.model.AssetModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -11,10 +10,12 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
-public class AssetDao extends MetaDao<AssetModel> {
+public class AssetDao extends MetaDao<AssetSpecification> {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -23,13 +24,14 @@ public class AssetDao extends MetaDao<AssetModel> {
     }
 
     // part of a transaction propagated from StudyDao
-    public void createAssets(Study study) {
-        study.getAssetSpecifications().values().forEach(assetSpec -> {
-            create(assetSpec, study);
-        });
+    public List<UUID> createAssets(Study study) {
+        return study.getAssetSpecifications().values()
+                .stream()
+                .map(assetSpec -> create(assetSpec, study))
+                .collect(Collectors.toList());
     }
 
-    private void create(AssetSpecification assetSpecification, Study study) {
+    private UUID create(AssetSpecification assetSpecification, Study study) {
         String sql = "INSERT INTO asset_specification (study_id, name, root_table_id) " +
                 "VALUES (:study_id, :name, :root_table_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -43,6 +45,7 @@ public class AssetDao extends MetaDao<AssetModel> {
 
         createAssetColumns(assetSpecification);
         createAssetRelationships(assetSpecification);
+        return assetSpecId;
     }
 
     private void createAssetColumns(AssetSpecification assetSpec) {
@@ -72,4 +75,13 @@ public class AssetDao extends MetaDao<AssetModel> {
             assetRel.setId(assetRelId);
         });
     }
+
+//    @Override
+    public AssetSpecification retrieve(UUID id) {
+        String sql = "SELECT * FROM asset_specification WHERE id = (id)";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("id", id);
+        return jdbcTemplate.queryForObject(sql, params, AssetSpecification.class);
+    }
+
 }

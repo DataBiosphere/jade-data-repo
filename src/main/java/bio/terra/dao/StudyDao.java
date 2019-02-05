@@ -2,6 +2,8 @@ package bio.terra.dao;
 
 import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -10,8 +12,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Repository
@@ -36,11 +41,11 @@ public class StudyDao extends MetaDao<Study> {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
-        String sql = "INSERT INTO study (name, description, created_date) VALUES (:name, :description, :created_date)";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("name", study.getName());
-        params.addValue("description", study.getDescription());
-        params.addValue("created_date", new Timestamp(Instant.now().toEpochMilli()));
+        String sql = "INSERT INTO study (name, description, created_date) VALUES (:name, :description, :createdDate)";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("name", study.getName())
+                .addValue("description", study.getDescription())
+                .addValue("createdDate", new Timestamp(Instant.now().toEpochMilli()));
         KeyHolder keyHolder = new GeneratedKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID studyId = getIdKey(keyHolder);
@@ -51,10 +56,24 @@ public class StudyDao extends MetaDao<Study> {
         return studyId;
     }
 
-//    @Override
-//    public Study retrieve(String id) {
-//        return null;
-//    }
+    private static final class StudyMapper implements RowMapper<Study> {
+
+        public Study mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new Study()
+                    .setId(UUID.fromString(rs.getString("id")))
+                    .setName(rs.getString("name"))
+                    .setDescription(rs.getString("description"))
+                    .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+        }
+    }
+
+        //    @Override
+    public Study retrieve(UUID id) {
+        return jdbcTemplate.queryForObject(
+                "SELECT * FROM study WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", id),
+                new StudyMapper());
+    }
 //
 //    @Override
 //    public void delete(String id) {

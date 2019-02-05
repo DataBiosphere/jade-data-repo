@@ -79,7 +79,11 @@ public class BigQueryPdaoTest {
         tables.put(table1.getName(), table1);
         tables.put(table2.getName(), table2);
 
-        Study study = new Study(studyName, "this is a test study", tables, Collections.EMPTY_MAP, Collections.EMPTY_MAP);
+        Study study = new Study(studyName,
+                "this is a test study",
+                tables,
+                Collections.EMPTY_MAP,
+                Collections.EMPTY_MAP);
         return study;
     }
 

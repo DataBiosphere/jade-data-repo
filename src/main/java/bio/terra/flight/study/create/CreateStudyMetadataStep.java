@@ -10,8 +10,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.UUID;
-
 public class CreateStudyMetadataStep implements Step {
 
     private StudyDao studyDAO;
@@ -26,7 +24,8 @@ public class CreateStudyMetadataStep implements Step {
         FlightMap inputParameters = context.getInputParameters();
         StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
         Study newStudy = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        UUID studyid = studyDAO.create(newStudy);
+//        UUID studyid =
+        studyDAO.create(newStudy);
         // TODO: get the id back, fetch the Study by ID and return a summary with created_date
         StudySummaryModel studySummary = StudyJsonConversion.studySummaryFromStudy(newStudy);
         workingMap.put("response", studySummary);

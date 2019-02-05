@@ -5,11 +5,13 @@ import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StudyJsonConversion {
+public final class StudyJsonConversion {
+
+    // only allow use of static methods
+    private StudyJsonConversion() {}
 
     public static Study studyRequestToStudy(StudyRequestModel studyRequest) {
         Map<String, StudyTable> tables = new HashMap<>();
@@ -24,7 +26,12 @@ public class StudyJsonConversion {
         studySpecification.getAssets().forEach(asset ->
                 assetSpecifications.put(asset.getName(), new AssetSpecification(asset, tables, relationships)));
 
-        return new Study(studyRequest.getName(), studyRequest.getDescription(), tables, relationships, assetSpecifications);
+        return new Study(
+                studyRequest.getName(),
+                studyRequest.getDescription(),
+                tables,
+                relationships,
+                assetSpecifications);
     }
 
 

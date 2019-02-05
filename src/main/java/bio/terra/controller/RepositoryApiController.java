@@ -7,6 +7,7 @@ import bio.terra.model.*;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.FlightStatusEnum;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +17,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import javax.print.attribute.standard.JobMediaSheets;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Optional;
 
 @Controller
@@ -94,6 +98,19 @@ public class RepositoryApiController implements RepositoryApi {
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+    }
+
+    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit){
+        List<JobModel> jobModelList = new ArrayList<JobModel>();
+        List<FlightState> flightStateList = stairway.getFlights(offset, limit);
+        for (FlightState flightState : flightStateList) {
+            Optional<FlightMap> resultMapOp = flightState.getResultMap(); // TODO need to throw an error if not there?
+            FlightMap resultMap = resultMapOp.get();
+            JobModel jobModel = resultMap.get(FlightStatusEnum.RESPONSE.toString(), JobModel.class);
+            // why does this want me to make this a string? Should just the enum be okay
+            jobModelList.add(jobModel);
+        }
+        return new ResponseEntity<>(jobModelList, HttpStatus.OK);
     }
 
     public <T> T getResponse(String flightId, Class<T> resultClass) {

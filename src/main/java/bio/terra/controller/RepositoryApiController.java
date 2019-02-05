@@ -5,7 +5,8 @@ import bio.terra.controller.exception.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.model.*;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightResult;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -96,20 +97,24 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public <T> T getResponse(String flightId, Class<T> resultClass) {
-        FlightResult result = stairway.getResult(flightId);
-        if (result.isSuccess()) {
-            FlightMap resultMap = result.getResultMap();
-            return resultMap.get("response", resultClass);
-        } else {
-            String message = "Could not complete flight";
-            Optional<Throwable> optThrowable = result.getThrowable();
-            if (optThrowable.isPresent()) {
-                Throwable throwable = optThrowable.get();
-                throwable.printStackTrace();
-                message = throwable.getMessage();
-                throw new ApiException(message, throwable);
+        stairway.waitForFlight(flightId);
+        FlightState result = stairway.getFlightState(flightId);
+        if (result.getFlightStatus() == FlightStatus.SUCCESS) {
+            if (result.getResultMap().isPresent()) {
+                FlightMap resultMap = result.getResultMap().get();
+                return resultMap.get("response", resultClass);
             }
-            throw new ApiException(message);
+            // It should not happen that we have success and no result map
+            // This is probably not the right exception, but we will replace this with
+            // the async stuff and the problem will go away.
+            throw new ApiException("Successful job, but no response!");
         }
+
+        String message = "Could not complete flight";
+        Optional<String> optErrorMessage = result.getErrorMessage();
+        if (optErrorMessage.isPresent()) {
+            message = message + ": " + optErrorMessage.get();
+        }
+        throw new ApiException(message);
     }
 }

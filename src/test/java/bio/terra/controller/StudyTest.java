@@ -3,8 +3,19 @@ package bio.terra.controller;
 import bio.terra.category.Unit;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.flight.study.create.StudyCreateFlight;
-import bio.terra.model.*;
-import bio.terra.stairway.*;
+import bio.terra.model.AssetModel;
+import bio.terra.model.AssetTableModel;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySpecificationModel;
+import bio.terra.model.StudySummaryModel;
+import bio.terra.model.TableModel;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.junit.Before;
@@ -19,8 +30,11 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
@@ -46,6 +60,8 @@ public class StudyTest {
 
     private StudyRequestModel minimalStudyRequest;
     private StudySummaryModel minimalStudySummary;
+
+    private static final String testFlightId = "test-flight-id";
 
     @Before
     public void setup() {
@@ -96,12 +112,14 @@ public class StudyTest {
 
     @Test
     public void testMinimalCreate() throws Exception {
-        FlightMap resultMap = new FlightMap();
-        resultMap.put("response", minimalStudySummary);
+        FlightState flightState = makeFlightState();
+
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenReturn("test-flight-id");
-        when(stairway.getResult(eq("test-flight-id")))
-                .thenReturn(new FlightResult(StepResult.getStepResultSuccess(), resultMap));
+                .thenReturn(testFlightId);
+        // Call to mocked waitForFlight will do nothing, so no need to handle that
+        when(stairway.getFlightState(eq(testFlightId)))
+                .thenReturn(flightState);
+
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudyRequest)))
@@ -113,12 +131,13 @@ public class StudyTest {
 
     @Test
     public void testMinimalJsonCreate() throws Exception {
-        FlightMap resultMap = new FlightMap();
-        resultMap.put("response", minimalStudySummary);
+        FlightState flightState = makeFlightState();
+
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenReturn("test-flight-id");
-        when(stairway.getResult(eq("test-flight-id")))
-                .thenReturn(new FlightResult(StepResult.getStepResultSuccess(), resultMap));
+                .thenReturn(testFlightId);
+        // Call to mocked waitForFlight will do nothing, so no need to handle that
+        when(stairway.getFlightState(eq(testFlightId)))
+                .thenReturn(flightState);
         ClassLoader classLoader = getClass().getClassLoader();
         String studyJSON = IOUtils.toString(classLoader.getResourceAsStream("study-minimal.json"));
         mvc.perform(post("/api/repository/v1/studies")
@@ -175,6 +194,22 @@ public class StudyTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudyRequest)))
                 .andExpect(status().is4xxClientError());
+    }
+
+    private FlightState makeFlightState() {
+        // Construct a mock FlightState
+        FlightMap resultMap = new FlightMap();
+        resultMap.put("response", minimalStudySummary);
+
+        FlightState flightState = new FlightState();
+        flightState.setFlightId(testFlightId);
+        flightState.setFlightStatus(FlightStatus.SUCCESS);
+        flightState.setSubmitted(Timestamp.from(Instant.now()));
+        flightState.setInputParameters(resultMap); // unused
+        flightState.setResultMap(Optional.of(resultMap));
+        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
+        flightState.setErrorMessage(Optional.empty());
+        return flightState;
     }
 
 }

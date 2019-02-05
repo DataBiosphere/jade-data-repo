@@ -14,8 +14,8 @@ public class FlightContext {
     private FlightMap workingMap; // open-ended state used by the steps
     private int stepIndex; // what step we are on
     private boolean doing; // true - executing do's; false - executing undo's
-    private StepResult result; // current status
-
+    private StepResult result; // current step status
+    private FlightStatus flightStatus; // Status: RUNNING while the flight is running; SUCCESS/FAILED when it completes
 
     // Construct the context with defaults
     public FlightContext(FlightMap inputParameters, String flightClassName) {
@@ -26,6 +26,7 @@ public class FlightContext {
         this.stepIndex = 0;
         this.doing = true;
         this.result = StepResult.getStepResultSuccess();
+        this.flightStatus = FlightStatus.RUNNING;
     }
 
     public String getFlightId() {
@@ -59,30 +60,13 @@ public class FlightContext {
         this.stepIndex = stepIndex;
     }
 
-    /**
-     * Set the step index to the next step. If we are doing, then we progress forwards.
-     * If we are undoing, we progress backwards. In either case, we see if we are at the
-     * end (or the beginning) and indicate that with the return value.
-     *
-     * @return true if we have incremented to a valid step; false if there are no more valid steps
-     * in this direction.
-     */
-    public void nextStepIndex() {
-        if (isDoing()) {
-            stepIndex++;
-        } else {
-            stepIndex--;
-        }
+    public FlightStatus getFlightStatus() {
+        return flightStatus;
     }
 
-    public boolean haveStepToDo(int stepListSize) {
-        if (isDoing()) {
-            return (stepIndex < stepListSize);
-        } else {
-            return (stepIndex >= 0);
-        }
+    public void setFlightStatus(FlightStatus flightStatus) {
+        this.flightStatus = flightStatus;
     }
-
 
     public boolean isDoing() {
         return doing;
@@ -100,6 +84,33 @@ public class FlightContext {
         this.result = result;
     }
 
+    /**
+     * Set the step index to the next step. If we are doing, then we progress forwards.
+     * If we are undoing, we progress backwards.
+     */
+    public void nextStepIndex() {
+        if (isDoing()) {
+            stepIndex++;
+        } else {
+            stepIndex--;
+        }
+    }
+
+    /**
+     * Check the termination condition (either undo to 0 or do to stepListSize)
+     * depending on which direction we are going.
+     *
+     * @param stepListSize
+     * @return true if there is a step to be executed
+     */
+    public boolean haveStepToDo(int stepListSize) {
+        if (isDoing()) {
+            return (stepIndex < stepListSize);
+        } else {
+            return (stepIndex >= 0);
+        }
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
@@ -110,6 +121,7 @@ public class FlightContext {
                 .append("stepIndex", stepIndex)
                 .append("doing", doing)
                 .append("result", result)
+                .append("flightStatus", flightStatus)
                 .toString();
     }
 }

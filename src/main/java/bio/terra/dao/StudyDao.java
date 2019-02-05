@@ -73,8 +73,11 @@ public class StudyDao extends MetaDao<Study> {
                 new MapSqlParameterSource().addValue("id", id),
                 new StudyMapper());
         // needed for fix bugs. but really can't be null
-        if (study != null)
+        if (study != null) {
             tableDao.retrieve(study);
+            relationshipDao.retrieve(study);
+//            assetDao.retrieve(study);
+        }
         return study;
     }
 //

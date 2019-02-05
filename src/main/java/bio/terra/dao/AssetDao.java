@@ -77,11 +77,11 @@ public class AssetDao extends MetaDao<AssetSpecification> {
     }
 
 //    @Override
-    public AssetSpecification retrieve(UUID id) {
-        String sql = "SELECT * FROM asset_specification WHERE id = (id)";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("id", id);
-        return jdbcTemplate.queryForObject(sql, params, AssetSpecification.class);
-    }
+//    public AssetSpecification retrieve(UUID id) {
+//        String sql = "SELECT * FROM asset_specification WHERE id = (id)";
+//        MapSqlParameterSource params = new MapSqlParameterSource();
+//        params.addValue("id", id);
+//        return jdbcTemplate.queryForObject(sql, params, AssetSpecification.class);
+//    }
 
 }

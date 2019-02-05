@@ -79,12 +79,13 @@ public class TableDao extends MetaDao<StudyTable> {
         study.setTables(tables);
     }
 
+    // also retrieves columns
     private List<StudyTable> retrieveStudyTables(UUID studyId) {
         List<StudyTable> tables = jdbcTemplate.query(
                 "SELECT id, name FROM study_table WHERE study_id = :studyId",
                 new MapSqlParameterSource().addValue("studyId", studyId),
                 new StudyTableMapper());
-        tables.stream().forEach(studyTable -> studyTable.setColumns(retrieveStudyTableColumns(studyTable.getId())));
+        tables.forEach(studyTable -> studyTable.setColumns(retrieveStudyTableColumns(studyTable.getId())));
         return tables;
     }
 

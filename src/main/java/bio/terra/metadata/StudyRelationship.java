@@ -15,6 +15,8 @@ public class StudyRelationship {
     private StudyTableColumn to;
     private RelationshipTermModel.CardinalityEnum toCardinality;
 
+    public StudyRelationship() {}
+
     public StudyRelationship(RelationshipModel relationshipModel, Map<String, StudyTable> tables) {
         name = relationshipModel.getName();
         from = getColumn(relationshipModel.getFrom(), tables);
@@ -31,9 +33,34 @@ public class StudyRelationship {
         return id;
     }
 
-    public void setId(UUID id) { this.id = id; }
+    public StudyRelationship setId(UUID id) { this.id = id; return this; }
 
     public String getName() { return name; }
+
+    public StudyRelationship setName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public StudyRelationship setFrom(StudyTableColumn from) {
+        this.from = from;
+        return this;
+    }
+
+    public StudyRelationship setFromCardinality(RelationshipTermModel.CardinalityEnum fromCardinality) {
+        this.fromCardinality = fromCardinality;
+        return this;
+    }
+
+    public StudyRelationship setTo(StudyTableColumn to) {
+        this.to = to;
+        return this;
+    }
+
+    public StudyRelationship setToCardinality(RelationshipTermModel.CardinalityEnum toCardinality) {
+        this.toCardinality = toCardinality;
+        return this;
+    }
 
     public StudyTableColumn getFrom() { return from; }
 

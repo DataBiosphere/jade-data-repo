@@ -1,0 +1,58 @@
+{
+  "name":        "Multiples",
+  "description": "This is a sample study definition with multiple tables, relationships and assets",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "participant",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "age", "datatype": "integer"},
+          {"name": "gender", "datatype": "string"}
+        ]
+      },
+      {
+        "name":    "sample",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "participant_id", "datatype": "string"},
+          {"name": "date_collected", "datatype": "date"}
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "participant_sample",
+        "from": {"table": "participant", "column": "id", "cardinality": "one"},
+        "to":   {"table": "sample", "column": "participant_id", "cardinality": "many"}
+      },
+      {
+        "name": "parent",
+        "from": {"table": "participant", "column": "id", "cardinality": "one"},
+        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "Sample",
+        "tables": [
+          {"name": "sample", "columns": [], "is_root": true},
+          {"name": "participant", "columns": []}
+        ],
+        "follow": [
+          "participant_sample"
+        ]
+      },
+      {
+        "name":   "Trio",
+        "tables": [
+          {"name": "participant", "columns": [], "is_root": true},
+          {"name": "sample", "columns": []}
+        ],
+        "follow": [
+          "participant_sample", "parent"
+        ]
+      }
+    ]
+  }
+}

@@ -76,7 +76,7 @@ public class StudyDao extends MetaDao<Study> {
         if (study != null) {
             tableDao.retrieve(study);
             relationshipDao.retrieve(study);
-//            assetDao.retrieve(study);
+            assetDao.retrieve(study);
         }
         return study;
     }

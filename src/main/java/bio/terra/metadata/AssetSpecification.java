@@ -14,6 +14,8 @@ public class AssetSpecification {
     private List<AssetColumn> assetColumns = new ArrayList<>();
     private List<AssetRelationship> assetRelationships;
 
+    public AssetSpecification() {}
+
     public AssetSpecification(AssetModel assetModel,
                               Map<String, StudyTable> tables,
                               Map<String, StudyRelationship> relationships) {
@@ -49,8 +51,34 @@ public class AssetSpecification {
         return id;
     }
 
-    public void setId(UUID id) {
+    public AssetSpecification setId(UUID id) {
         this.id = id;
+        return this;
+    }
+
+    public AssetSpecification setName(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public AssetSpecification setRootTable(StudyTable rootTable) {
+        this.rootTable = rootTable;
+        return this;
+    }
+
+    public AssetSpecification setIncludedTables(List<StudyTable> includedTables) {
+        this.includedTables = includedTables;
+        return this;
+    }
+
+    public AssetSpecification setAssetColumns(List<AssetColumn> assetColumns) {
+        this.assetColumns = assetColumns;
+        return this;
+    }
+
+    public AssetSpecification setAssetRelationships(List<AssetRelationship> assetRelationships) {
+        this.assetRelationships = assetRelationships;
+        return this;
     }
 
     public String getName() {

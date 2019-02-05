@@ -66,4 +66,22 @@ public class Study {
         this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
         return this;
     }
+
+    public Map<UUID, StudyTableColumn> getAllColumnsById() {
+        Map<UUID, StudyTableColumn> columns = new HashMap<>();
+        getTables().forEach(table -> table.getColumns().forEach(column -> columns.put(column.getId(), column)));
+        return columns;
+    }
+
+    public Map<UUID, StudyTable> getTablesById() {
+        Map<UUID, StudyTable> tables = new HashMap<>();
+        getTables().forEach(table -> tables.put(table.getId(), table));
+        return tables;
+    }
+
+    public Map<UUID, StudyRelationship> getRelationshipsById() {
+        Map<UUID, StudyRelationship> relationships = new HashMap<>();
+        getRelationships().forEach(relationship -> relationships.put(relationship.getId(), relationship));
+        return relationships;
+    }
 }

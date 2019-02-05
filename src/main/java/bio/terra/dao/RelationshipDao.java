@@ -12,7 +12,6 @@ import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -84,8 +83,7 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
 
     private List<StudyRelationship> createRelationships(Study study, List<Map<String, Object>> results) {
         // build up the collection of all columns
-        Map<UUID, StudyTableColumn> columns = new HashMap<>();
-        study.getTables().forEach(table -> table.getColumns().forEach(column -> columns.put(column.getId(), column)));
+        Map<UUID, StudyTableColumn> columns = study.getAllColumnsById();
 
         return results
                 .stream()

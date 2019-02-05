@@ -6,14 +6,22 @@ public class AssetColumn {
     private UUID id;
     private StudyTableColumn studyColumn;
 
+    public AssetColumn() {}
+
     public AssetColumn(StudyTableColumn studyColumn) {
         this.studyColumn = studyColumn;
     }
 
     public UUID getId() { return id; }
 
-    public void setId(UUID id) {
+    public AssetColumn setId(UUID id) {
         this.id = id;
+        return this;
+    }
+
+    public AssetColumn setStudyColumn(StudyTableColumn studyColumn) {
+        this.studyColumn = studyColumn;
+        return this;
     }
 
     public StudyTableColumn getStudyColumn() {

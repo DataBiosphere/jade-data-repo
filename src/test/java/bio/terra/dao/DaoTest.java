@@ -65,7 +65,7 @@ public class DaoTest {
 //        assetIds.forEach(assetId -> {
 //            AssetSpecification spec = assetDao.retrieveAssetSpecification(assetId);
 //        });
-//        System.out.println(objectMapper.writerFor(Study.class).writeValueAsString(fromDB));
+        System.out.println(objectMapper.writerFor(Study.class).writeValueAsString(fromDB));
     }
 
 }

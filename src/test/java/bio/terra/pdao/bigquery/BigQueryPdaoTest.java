@@ -57,22 +57,22 @@ public class BigQueryPdaoTest {
     }
 
     private Study makeStudy(String studyName) {
-        StudyTableColumn col1 = new StudyTableColumn("col1", "string");
-        StudyTableColumn col2 = new StudyTableColumn("col2", "string");
-        StudyTableColumn col3 = new StudyTableColumn("col3", "string");
-        StudyTableColumn col4 = new StudyTableColumn("col4", "string");
+        StudyTableColumn col1 = new StudyTableColumn().setName("col1").setType("string");
+        StudyTableColumn col2 = new StudyTableColumn().setName("col2").setType("string");
+        StudyTableColumn col3 = new StudyTableColumn().setName("col3").setType("string");
+        StudyTableColumn col4 = new StudyTableColumn().setName("col4").setType("string");
 
         List<StudyTableColumn> table1Columns = new ArrayList<>();
         table1Columns.add(col1);
         table1Columns.add(col2);
-        StudyTable table1 = new StudyTable("table1", table1Columns);
+        StudyTable table1 = new StudyTable().setName("table1").setColumns(table1Columns);
 
         List<StudyTableColumn> table2Columns = new ArrayList<>();
         table2Columns.add(col4);
         table2Columns.add(col3);
         table2Columns.add(col2);
         table2Columns.add(col1);
-        StudyTable table2 = new StudyTable("table2", table2Columns);
+        StudyTable table2 = new StudyTable().setName("table2").setColumns(table2Columns);
 
         List<StudyTable> tables = new ArrayList<>();
         tables.add(table1);

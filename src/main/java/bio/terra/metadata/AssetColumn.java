@@ -8,23 +8,14 @@ public class AssetColumn {
 
     public AssetColumn() {}
 
-    public AssetColumn(StudyTableColumn studyColumn) {
-        this.studyColumn = studyColumn;
-    }
-
     public UUID getId() { return id; }
-
-    public AssetColumn setId(UUID id) {
-        this.id = id;
-        return this;
-    }
-
-    public AssetColumn setStudyColumn(StudyTableColumn studyColumn) {
-        this.studyColumn = studyColumn;
-        return this;
-    }
+    public AssetColumn setId(UUID id) { this.id = id; return this; }
 
     public StudyTableColumn getStudyColumn() {
         return studyColumn;
+    }
+    public AssetColumn setStudyColumn(StudyTableColumn studyColumn) {
+        this.studyColumn = studyColumn;
+        return this;
     }
 }

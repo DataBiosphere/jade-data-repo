@@ -113,6 +113,25 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(jobModelList, HttpStatus.OK);
     }
 
+    public ResponseEntity<JobModel> retrieveJob(String jobId){
+        FlightState flightState = stairway.getFlightState(jobId);
+        FlightMap resultMap = new FlightMap();
+        if (flightState.getCompleted().isPresent()) {
+            resultMap = flightState.getResultMap().get();
+        } else { // If the flight is still going... does this still return a jobModel?
+            //FlightMap resultMap = flightState.getFlightStatus();
+        }
+        JobModel jobModel =  resultMap.get("response", JobModel.class); // is there an enum I'm missing?
+        return new ResponseEntity<>(jobModel, HttpStatus.OK);
+    }
+
+    public ResponseEntity<Object> retrieveJobResult(String jobId){ // TODO I probably want to use a helper method for these two similar
+        FlightState flightState = stairway.getFlightState(jobId);
+        FlightMap resultMap = flightState.getResultMap().get(); // TODO need to throw an error if not completed??!?!
+        Object returnedModel = resultMap.get("response", Object.class);
+        return new ResponseEntity<>(returnedModel, HttpStatus.OK);
+    }
+
     public <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);

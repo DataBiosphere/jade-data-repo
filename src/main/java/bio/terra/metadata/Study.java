@@ -45,11 +45,6 @@ public class Study {
         this.tables = Collections.unmodifiableList(tables);
         return this;
     }
-//    public Map<String, StudyTable> getTablesMap() {
-//        Map <String, StudyTable> tablesMap = new HashMap<>();
-//        tables.forEach(table -> tablesMap.put(table.getName(), table));
-//        return tablesMap;
-//    }
 
     public List<StudyRelationship> getRelationships() {
         return relationships;

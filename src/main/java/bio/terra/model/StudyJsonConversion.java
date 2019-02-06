@@ -48,7 +48,8 @@ public final class StudyJsonConversion {
         return new StudySummaryModel()
                 .id(study.getId().toString())
                 .name(study.getName())
-                .description(study.getDescription());
+                .description(study.getDescription())
+                .createdDate(study.getCreatedDate().toString());
     }
 
     public static StudyTable tableModelToStudyTable(TableModel tableModel) {

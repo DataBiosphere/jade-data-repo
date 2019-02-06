@@ -6,7 +6,7 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -34,38 +34,41 @@ public class DaoTest {
     private StudyDao studyDao;
 
     private Study study;
+    private UUID studyId;
+    private Study fromDB;
 
     @Before
-    public void setup() throws  Exception {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream("study-create-test.json"));
-        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
-        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
-        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+    public void setup() throws Exception {
+        if (study == null) {
+            ClassLoader classLoader = getClass().getClassLoader();
+            String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream("study-create-test.json"));
+            StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
+            studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
+            study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+            studyId = studyDao.create(study);
+            fromDB = studyDao.retrieve(studyId);
+        }
     }
 
-    @After
-    public void teardown() throws Exception {
+    @AfterClass
+    public static void teardown() throws Exception {
 //        studyDao.delete(study.getId());
     }
 
 
     @Test
-    public void basicTest() throws Exception {
-        UUID studyId = studyDao.create(study);
-        Study fromDB = studyDao.retrieve(studyId);
-        assertThat("UUID returned equal UUID of study",
-                fromDB.getId(),
-                equalTo(studyId));
-//                study.getAssetSpecifications().values()
-//                        .stream()
-//                        .map(spec -> spec.getId())
-//                        .collect(Collectors.toList()),
-//                containsInAnyOrder(assetIds.toArray()));
-//        assetIds.forEach(assetId -> {
-//            AssetSpecification spec = assetDao.retrieveAssetSpecification(assetId);
-//        });
-        System.out.println(objectMapper.writerFor(Study.class).writeValueAsString(fromDB));
+    public void studyTest() throws Exception {
+        assertThat("study name set correctly",
+                fromDB.getName(),
+                equalTo(study.getName()));
+    }
+
+    @Test
+    public void assetCreationTest() {
+        // verify assets
+        assertThat("correct number of assets created",
+                fromDB.getAssetSpecifications().size(),
+                equalTo(study.getAssetSpecifications().size()));
     }
 
 }

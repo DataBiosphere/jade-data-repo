@@ -12,7 +12,7 @@ public class AssetSpecification {
     private StudyTable rootTable;
     private List<StudyTable> includedTables = new ArrayList<>();
     private List<AssetColumn> assetColumns = new ArrayList<>();
-    private List<AssetRelationship> assetRelationships;
+    private List<AssetRelationship> assetRelationships = new ArrayList<>();
 
     public AssetSpecification() {}
 

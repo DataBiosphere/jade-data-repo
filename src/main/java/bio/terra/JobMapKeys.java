@@ -1,7 +1,7 @@
-package bio.terra.stairway;
+package bio.terra;
 
 
-public enum FlightStatusEnum {
+public enum JobMapKeys {
     RESPONSE,
     STATUS_CODE;
 

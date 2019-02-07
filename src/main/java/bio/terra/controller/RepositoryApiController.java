@@ -1,5 +1,6 @@
 package bio.terra.controller;
 
+import bio.terra.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
@@ -30,12 +31,19 @@ public class RepositoryApiController implements RepositoryApi {
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final Stairway stairway;
+    private final JobService jobService;
 
     @Autowired
-    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, Stairway stairway) {
+    public RepositoryApiController(
+            ObjectMapper objectMapper,
+            HttpServletRequest request,
+            Stairway stairway,
+            JobService jobService
+    ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.stairway = stairway;
+        this.jobService = jobService;
     }
 
     @Override
@@ -100,35 +108,48 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit){
-        List<JobModel> jobModelList = new ArrayList<JobModel>();
+        List<JobModel> jobModelList = new ArrayList<>();
+
         List<FlightState> flightStateList = stairway.getFlights(offset, limit);
         for (FlightState flightState : flightStateList) {
-            Optional<FlightMap> resultMapOp = flightState.getResultMap(); // TODO need to throw an error if not there?
-            FlightMap resultMap = resultMapOp.get();
-            JobModel jobModel = resultMap.get(JobMapKeys.RESPONSE.toString(), JobModel.class);
-            // why does this want me to make this a string? Should just the enum be okay
+            JobModel jobModel = jobService.mapFlightStateToJobModel(flightState);
             jobModelList.add(jobModel);
         }
         return new ResponseEntity<>(jobModelList, HttpStatus.OK);
     }
 
-    public ResponseEntity<JobModel> retrieveJob(String jobId){
+    public ResponseEntity<JobModel> retrieveJob(String jobId) {
         FlightState flightState = stairway.getFlightState(jobId);
-        FlightMap resultMap = new FlightMap();
+        JobModel jobModel = jobService.mapFlightStateToJobModel(flightState);
+        ResponseEntity responseEntity;
+
         if (flightState.getCompleted().isPresent()) {
-            resultMap = flightState.getResultMap().get();
-        } else { // If the flight is still going... does this still return a jobModel?
-            //FlightMap resultMap = flightState.getFlightStatus();
+            HttpStatus status = HttpStatus.SEE_OTHER; // HTTP 303
+            responseEntity = ResponseEntity
+                    .status(status)
+                    .header("Location", String.format("/api/jobs/%s/result", jobId))
+                    .body(jobModel);
+        } else { // TODO If the flight is still going... (what if there is an error?)
+            HttpStatus status = HttpStatus.OK;
+            responseEntity = ResponseEntity.status(status).body(jobModel);
         }
-        JobModel jobModel =  resultMap.get("response", JobModel.class); // is there an enum I'm missing?
-        return new ResponseEntity<>(jobModel, HttpStatus.OK);
+        return responseEntity;
     }
 
-    public ResponseEntity<Object> retrieveJobResult(String jobId){ // TODO I probably want to use a helper method for these two similar
+    public ResponseEntity<Object> retrieveJobResult(String jobId) {
         FlightState flightState = stairway.getFlightState(jobId);
-        FlightMap resultMap = flightState.getResultMap().get(); // TODO need to throw an error if not completed??!?!
-        Object returnedModel = resultMap.get("response", Object.class);
-        return new ResponseEntity<>(returnedModel, HttpStatus.OK);
+        ResponseEntity responseEntity;
+        if (flightState.getCompleted().isPresent()) {
+            FlightMap resultMap = flightState.getResultMap().get();
+            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.toString(), Object.class);
+            HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.toString(), HttpStatus.class);
+            // TODO handle case where cant find key
+            responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
+        } else {
+            HttpStatus status = HttpStatus.BAD_REQUEST;
+            responseEntity = new ResponseEntity<>(status);
+        }
+        return responseEntity;
     }
 
     public <T> T getResponse(String flightId, Class<T> resultClass) {

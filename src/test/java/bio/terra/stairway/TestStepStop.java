@@ -1,10 +1,13 @@
 package bio.terra.stairway;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.TimeUnit;
 
-import static bio.terra.stairway.TestUtil.debugWrite;
-
 public class TestStepStop implements Step {
+    private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
+
 
     @Override
     public StepResult doStep(FlightContext context) {
@@ -18,7 +21,7 @@ public class TestStepStop implements Step {
 
     private StepResult sleepStop() {
         if (TestStopController.getControl() == 0) {
-            debugWrite("TestStepStop stopping");
+            logger.debug("TestStepStop stopping");
             try {
                 TimeUnit.HOURS.sleep(1);
             } catch (InterruptedException ex) {
@@ -26,7 +29,7 @@ public class TestStepStop implements Step {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL);
             }
         }
-        debugWrite("TestStepStop did not stop");
+        logger.debug("TestStepStop did not stop");
         return StepResult.getStepResultSuccess();
     }
 }

@@ -1,10 +1,12 @@
 package bio.terra.stairway;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 
-import static bio.terra.stairway.TestUtil.debugWrite;
-
 public class TestStepExistence implements Step {
+    private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
     private String filename;
 
     public TestStepExistence(String filename) {
@@ -13,16 +15,16 @@ public class TestStepExistence implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        debugWrite("TestStepExistence");
+        logger.debug("TestStepExistence");
         File file = new File(filename);
 
         if (file.exists()) {
-            debugWrite("File " + filename + " already exists");
+            logger.debug("File " + filename + " already exists");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                     new IllegalArgumentException("File " + filename + " already exists."));
         }
 
-        debugWrite("File " + filename + " does not exist");
+        logger.debug("File " + filename + " does not exist");
         return StepResult.getStepResultSuccess();
     }
 

@@ -11,6 +11,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -21,7 +23,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static bio.terra.stairway.TestUtil.debugWrite;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
 
@@ -31,6 +32,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class ScenarioTest {
     private PoolingDataSource<PoolableConnection> dataSource;
     private Stairway stairway;
+    private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
@@ -46,7 +48,7 @@ public class ScenarioTest {
     public void simpleTest() {
         // Generate a unique filename
         String filename = makeFilename();
-        debugWrite("Filename: " + filename);
+        logger.debug("Filename: " + filename);
 
         // Submit the test flight
         FlightMap inputParameters = new FlightMap();
@@ -54,11 +56,11 @@ public class ScenarioTest {
         inputParameters.put("text", "testing 1 2 3");
 
         String flightId = stairway.submit(TestFlight.class, inputParameters);
-        debugWrite("Submitted flight id: " + flightId);
+        logger.debug("Submitted flight id: " + flightId);
 
         // Test for done
         boolean done = stairway.isDone(flightId);
-        debugWrite("Flight done: " + done);
+        logger.debug("Flight done: " + done);
 
         // Wait for done
         stairway.waitForFlight(flightId);
@@ -146,7 +148,7 @@ public class ScenarioTest {
         PrintWriter writer = new PrintWriter(existingFilename, "UTF-8");
         writer.println("abcd");
         writer.close();
-        debugWrite("Existing Filename: " + existingFilename);
+        logger.debug("Existing Filename: " + existingFilename);
         return existingFilename;
     }
 

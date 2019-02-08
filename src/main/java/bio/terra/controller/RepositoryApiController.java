@@ -4,11 +4,17 @@ import bio.terra.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
-import bio.terra.model.*;
+import bio.terra.model.AssetModel;
+import bio.terra.model.AssetTableModel;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.ErrorModel;
+import bio.terra.model.JobModel;
+import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySummaryModel;
+import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
-import bio.terra.JobMapKeys;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +28,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.HashSet;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.Optional;
 
 @Controller
@@ -106,51 +111,17 @@ public class RepositoryApiController implements RepositoryApi {
         StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
     }
-
-    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit){
-        List<JobModel> jobModelList = new ArrayList<>();
-
-        List<FlightState> flightStateList = stairway.getFlights(offset, limit);
-        for (FlightState flightState : flightStateList) {
-            JobModel jobModel = jobService.mapFlightStateToJobModel(flightState);
-            jobModelList.add(jobModel);
-        }
-        return new ResponseEntity<>(jobModelList, HttpStatus.OK);
+    
+    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) { // should these be optional??
+        return jobService.enumerateJobs(offset, limit);
     }
 
     public ResponseEntity<JobModel> retrieveJob(String jobId) {
-        String locationHeader  = String.format("/api/jobs/%s/result", jobId);
-        FlightState flightState = stairway.getFlightState(jobId);
-        JobModel jobModel = jobService.mapFlightStateToJobModel(flightState);
-        HttpStatus status;
-
-        if (flightState.getCompleted().isPresent()) {
-            status = HttpStatus.SEE_OTHER; // HTTP 303
-        } else { // TODO If the flight is still going... (what if there is an error?)
-            status = HttpStatus.OK;
-        }
-        ResponseEntity responseEntity = ResponseEntity
-                .status(status)
-                .header("Location", locationHeader)
-                .body(jobModel);
-
-        return responseEntity;
+        return jobService.retrieveJob(jobId);
     }
 
     public ResponseEntity<Object> retrieveJobResult(String jobId) {
-        FlightState flightState = stairway.getFlightState(jobId);
-        ResponseEntity responseEntity;
-        if (flightState.getCompleted().isPresent()) {
-            FlightMap resultMap = flightState.getResultMap().get();
-            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
-            HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-            // TODO handle case where cant find key
-            responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
-        } else {
-            HttpStatus status = HttpStatus.BAD_REQUEST;
-            responseEntity = new ResponseEntity<>(status);
-        }
-        return responseEntity;
+        return jobService.retrieveJobResult(jobId);
     }
 
     public <T> T getResponse(String flightId, Class<T> resultClass) {

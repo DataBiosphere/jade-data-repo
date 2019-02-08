@@ -1,5 +1,6 @@
 package bio.terra.metadata;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -10,7 +11,7 @@ import java.util.UUID;
 public class StudyTable {
 
     private String name;
-    private List<StudyTableColumn> columns;
+    private List<StudyTableColumn> columns = new ArrayList<>();
     private UUID id;
 
     public StudyTable() {}
@@ -23,9 +24,7 @@ public class StudyTable {
     }
     public StudyTable setName(String name) { this.name = name; return this; }
 
-    public Collection<StudyTableColumn> getColumns() {
-        return Collections.unmodifiableCollection(columns);
-    }
+    public Collection<StudyTableColumn> getColumns() { return columns; }
     public StudyTable setColumns(List<StudyTableColumn> columns) { this.columns = columns; return this; }
 
     public Map<String, StudyTableColumn> getColumnsMap() {

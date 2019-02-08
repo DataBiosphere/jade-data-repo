@@ -8,7 +8,8 @@
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "age", "datatype": "integer"},
-          {"name": "gender", "datatype": "string"}
+          {"name": "gender", "datatype": "string"},
+          {"name": "phenotype", "datatype": "string"}
         ]
       },
       {
@@ -46,7 +47,7 @@
       {
         "name":   "Trio",
         "tables": [
-          {"name": "participant", "columns": [], "is_root": true},
+          {"name": "participant", "columns": ["id", "age", "gender"], "is_root": true},
           {"name": "sample", "columns": []}
         ],
         "follow": [

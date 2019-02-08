@@ -9,9 +9,8 @@ import java.util.UUID;
 public class AssetSpecification {
     private UUID id;
     private String name;
-    private StudyTable rootTable;
-    private List<StudyTable> includedTables = new ArrayList<>();
-    private List<AssetColumn> assetColumns = new ArrayList<>();
+    private AssetTable rootTable;
+    private List<AssetTable> assetTables = new ArrayList<>();
     private List<AssetRelationship> assetRelationships = new ArrayList<>();
 
     public AssetSpecification() {}
@@ -26,32 +25,20 @@ public class AssetSpecification {
     }
     public AssetSpecification setName(String name) { this.name = name; return this; }
 
-    public StudyTable getRootTable() {
-        return rootTable;
-    }
-    public AssetSpecification setRootTable(StudyTable rootTable) { this.rootTable = rootTable; return this; }
+    public AssetTable getRootTable() { return rootTable; }
+    public AssetSpecification setRootTable(AssetTable rootTable) { this.rootTable = rootTable; return this; }
 
-    public List<AssetColumn> getAssetColumns() {
-        return Collections.unmodifiableList(assetColumns);
-    }
-    public AssetSpecification setAssetColumns(List<AssetColumn> assetColumns) {
-        this.assetColumns = assetColumns;
-        return this;
-    }
-
-    public List<AssetRelationship> getAssetRelationships() {
-        return Collections.unmodifiableList(assetRelationships);
-    }
+    public List<AssetRelationship> getAssetRelationships() { return Collections.unmodifiableList(assetRelationships); }
     public AssetSpecification setAssetRelationships(List<AssetRelationship> assetRelationships) {
         this.assetRelationships = assetRelationships;
         return this;
     }
 
-    public List<StudyTable> getIncludedTables() {
-        return Collections.unmodifiableList(includedTables);
+    public List<AssetTable> getAssetTables() {
+        return Collections.unmodifiableList(assetTables);
     }
-    public AssetSpecification setIncludedTables(List<StudyTable> includedTables) {
-        this.includedTables = includedTables;
+    public AssetSpecification setAssetTables(List<AssetTable> includedTables) {
+        this.assetTables = includedTables;
         return this;
     }
 }

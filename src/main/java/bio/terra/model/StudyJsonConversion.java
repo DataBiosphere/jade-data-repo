@@ -3,11 +3,11 @@ package bio.terra.model;
 import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
+import bio.terra.metadata.AssetTable;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
-
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
 import java.util.ArrayList;
@@ -146,31 +146,36 @@ public final class StudyJsonConversion {
     public static AssetSpecification assetModelToAssetSpecification(AssetModel assetModel,
                                                                     Map<String, StudyTable> tables,
                                                                     Map<String, StudyRelationship> relationships) {
-        AssetSpecification spec = new AssetSpecification().setName(assetModel.getName());
-        processAssetTables(spec, assetModel.getTables(), tables);
+        AssetSpecification spec = new AssetSpecification()
+                .setName(assetModel.getName());
+        spec.setAssetTables(processAssetTables(spec, assetModel.getTables(), tables));
         spec.setAssetRelationships(processAssetRelationships(assetModel.getFollow(), relationships));
         return spec;
     }
 
-    private static void processAssetTables(
+    private static List<AssetTable> processAssetTables(
             AssetSpecification spec,
-            List<AssetTableModel> assetTables,
+            List<AssetTableModel> assetTablesModel,
             Map<String, StudyTable> tables) {
-        List<StudyTable> includedTables = new ArrayList<>();
-        List<AssetColumn> assetColumns = new ArrayList<>();
-        assetTables.forEach(tblMod -> {
-            StudyTable studyTable = tables.get(tblMod.getName());
+        List<AssetTable> newAssetTables = new ArrayList<>();
+        assetTablesModel.forEach(tblMod -> {
+            String tableName = tblMod.getName();
+            StudyTable studyTable = tables.get(tableName);
+            //not sure if we need to set the id on the new table
+            AssetTable newAssetTable = new AssetTable().setStudyTable(studyTable);
             // TODO fix this so it defaults to false
-            if (tblMod.isIsRoot() != null && tblMod.isIsRoot()) { spec.setRootTable(studyTable); }
-            includedTables.add(studyTable);
+            if (tblMod.isIsRoot() != null && tblMod.isIsRoot()) { spec.setRootTable(newAssetTable); }
+            List<AssetColumn> assetColumns = new ArrayList<>();
             assetColumns.addAll(Collections.unmodifiableList(studyTable.getColumnsMap().entrySet()
                     .stream()
-                    .filter(entryToFilter -> tblMod.getColumns().contains(entryToFilter.getKey()))
+                    .filter(entryToFilter -> tblMod.getColumns().isEmpty() ||
+                            tblMod.getColumns().contains(entryToFilter.getKey()))
                     .map(entry -> new AssetColumn().setStudyColumn(entry.getValue()))
                     .collect(Collectors.toList())));
+            newAssetTable.setColumns(assetColumns);
+            newAssetTables.add(newAssetTable);
         });
-        spec.setAssetColumns(assetColumns);
-        spec.setIncludedTables(includedTables);
+        return newAssetTables;
     }
 
     private static List<AssetRelationship> processAssetRelationships(List<String> assetRelationshipNames,
@@ -185,34 +190,42 @@ public final class StudyJsonConversion {
     public static AssetModel assetModelFromAssetSpecification(AssetSpecification spec) {
         return new AssetModel()
                 .name(spec.getName())
-                .tables(setAssetModelTablesAndColumns(spec))
+                .tables(spec.getAssetTables()
+                        .stream()
+                        .map(table ->
+                                new AssetTableModel()
+                                        .name(table.getStudyTable().getName())
+                                        .columns(table.getColumns()
+                                                .stream()
+                                                .map(column -> column.getStudyColumn().getName())
+                                                .collect(Collectors.toList())))
+                        .collect(Collectors.toList()))
                 .follow(spec.getAssetRelationships()
                         .stream()
                         .map(assetRelationship -> assetRelationship.getStudyRelationship().getName())
                         .collect(Collectors.toList()));
     }
 
-    public static List<AssetTableModel> setAssetModelTablesAndColumns(AssetSpecification spec) {
-        Map<String, List<String>> tableToColumns = new HashMap<>();
-        String rootTableName = spec.getRootTable().getName();
-
-        // build structure
-        spec.getAssetColumns()
-                .forEach(column -> {
-                    String tableName = column.getStudyColumn().getInTable().getName();
-                    if (!tableToColumns.containsKey(tableName)) {
-                        tableToColumns.put(tableName, new ArrayList<>());
-                    }
-                    tableToColumns.get(tableName).add(column.getStudyColumn().getName());
-                });
-
-        return tableToColumns.entrySet()
-                .stream()
-                .map(entry -> new AssetTableModel()
-                        .name(entry.getKey())
-                        .columns(entry.getValue())
-                        .isRoot(entry.getKey().equals(rootTableName)))
-                .collect(Collectors.toList());
-    }
+//    public static List<AssetTableModel> setAssetModelTablesAndColumns(AssetSpecification spec) {
+//        Map<String, List<String>> tableToColumns = new HashMap<>();
+//        String rootTableName = spec.getRootTable().getName();
+//
+//        // build structure
+//        spec.getAssetTables()
+//                .forEach(table -> {
+//                    String tableName = table.getName();
+//                    table.getColumns()
+//                            .stream()
+//                            .map(column -> column.getName())
+//                            .collect(Collectors.toList());
+//
+//        return tableToColumns.entrySet()
+//                .stream()
+//                .map(entry -> new AssetTableModel()
+//                        .name(entry.getKey())
+//                        .columns(entry.getValue())
+//                        .isRoot(entry.getKey().equals(rootTableName)))
+//                .collect(Collectors.toList());
+//    }
 
 }

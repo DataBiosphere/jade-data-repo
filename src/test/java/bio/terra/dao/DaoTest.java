@@ -1,6 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
+import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
@@ -68,7 +69,20 @@ public class DaoTest {
         // verify assets
         assertThat("correct number of assets created",
                 fromDB.getAssetSpecifications().size(),
-                equalTo(study.getAssetSpecifications().size()));
+                equalTo(2));
+        fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+    }
+
+    protected void assertAssetSpecs(AssetSpecification spec) {
+        if (spec.getName().equals("Trio")) {
+            assertThat("Trio asset has 2 tables",
+                    spec.getAssetTables().size(),
+                    equalTo(2));
+        } else {
+            assertThat("other asset created is Sample",
+                    spec.getName(),
+                    equalTo("Sample"));
+        }
     }
 
 }

@@ -8,8 +8,6 @@ public class StudyTableColumn {
     private UUID id;
     private volatile StudyTable inTable;
 
-    public StudyTableColumn() {}
-
     public String getName() {
         return name;
     }

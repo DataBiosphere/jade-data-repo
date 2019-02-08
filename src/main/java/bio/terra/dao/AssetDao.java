@@ -10,15 +10,12 @@ import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -91,47 +88,6 @@ public class AssetDao extends MetaDao<AssetSpecification> {
         });
     }
 
-    private static final class AssetSpecificationMapper implements RowMapper<AssetSpecification> {
-        private Map<UUID, UUID> specIdToRootTableId = new HashMap<>();
-
-        public Map<UUID, UUID> getSpecIdToRootTableId() { return specIdToRootTableId; }
-
-        public AssetSpecification mapRow(ResultSet rs, int rowNum) throws SQLException {
-            UUID specId = UUID.fromString(rs.getString("id"));
-            specIdToRootTableId.put(specId, UUID.fromString(rs.getString("root_table_id")));
-            return new AssetSpecification()
-                    .setId(specId)
-                    .setName(rs.getString("name"));
-        }
-    }
-
-    private static final class AssetColumnMapper implements RowMapper<AssetColumn> {
-        private Map<UUID, StudyTableColumn> allColumns;
-
-        AssetColumnMapper(Map<UUID, StudyTableColumn> allColumns) { this.allColumns = allColumns; }
-
-        public AssetColumn mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new AssetColumn()
-                    .setId(UUID.fromString(rs.getString("id")))
-                    .setStudyColumn(allColumns.get(UUID.fromString(rs.getString("study_column_id"))));
-        }
-    }
-
-    private static final class AssetRelationshipMapper implements RowMapper<AssetRelationship> {
-        private Map<UUID, StudyRelationship> allRelationships;
-
-        AssetRelationshipMapper(Map<UUID, StudyRelationship> allRelationships) {
-            this.allRelationships = allRelationships;
-        }
-
-        public AssetRelationship mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new AssetRelationship()
-                    .setId(UUID.fromString(rs.getString("id")))
-                    .setStudyRelationship(allRelationships.get(
-                            UUID.fromString(rs.getString("relationship_id"))));
-        }
-    }
-
     //    @Override
     public void retrieve(Study study) {
         study.setAssetSpecifications(retrieveAssetSpecifications(study));
@@ -139,19 +95,24 @@ public class AssetDao extends MetaDao<AssetSpecification> {
 
     // also retrieves dependent objects
     public List<AssetSpecification> retrieveAssetSpecifications(Study study) {
-        AssetSpecificationMapper rsMapper = new AssetSpecificationMapper();
+        Map<UUID, UUID> specIdToRootTableId = new HashMap<>();
         List<AssetSpecification> specs = jdbcTemplate.query(
                 "SELECT id, name, root_table_id FROM asset_specification WHERE study_id = :study_id",
-                new MapSqlParameterSource().addValue("study_id", study.getId()),
-                rsMapper);
+                new MapSqlParameterSource().addValue("study_id", study.getId()), (
+                        rs, rowNum) -> {
+                //TODO this section can't be auto formatted and pass checkstyle!!!!
+                UUID specId = UUID.fromString(rs.getString("id"));
+                specIdToRootTableId.put(specId, UUID.fromString(rs.getString("root_table_id")));
+                return new AssetSpecification()
+                            .setId(specId)
+                            .setName(rs.getString("name")); });
         Map<UUID, StudyTable> allTables = study.getTablesById();
         Map<UUID, StudyTableColumn> allColumns = study.getAllColumnsById();
         Map<UUID, StudyRelationship> allRelationships = study.getRelationshipsById();
-        Map<UUID, UUID> rootTableIdMap = rsMapper.getSpecIdToRootTableId();
         specs.forEach(spec -> {
             spec.setAssetTables(new ArrayList(
-                    retrieveAssetTablesAndColumns(spec, rootTableIdMap.get(spec.getId()), allTables, allColumns)));
-            retrieveAssetRelationships(spec, allRelationships);
+                    retrieveAssetTablesAndColumns(spec, specIdToRootTableId.get(spec.getId()), allTables, allColumns)));
+            spec.setAssetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
         });
         return specs;
     }
@@ -187,11 +148,15 @@ public class AssetDao extends MetaDao<AssetSpecification> {
     }
 
 
-    private void retrieveAssetRelationships(AssetSpecification spec, Map<UUID, StudyRelationship> allRelationships) {
-        List<AssetRelationship> relationships = jdbcTemplate.query(
+    private List<AssetRelationship> retrieveAssetRelationships(
+            UUID specId,
+            Map<UUID, StudyRelationship> allRelationships) {
+        return jdbcTemplate.query(
                 "SELECT id, relationship_id FROM asset_relationship WHERE asset_id = :assetId",
-                new MapSqlParameterSource().addValue("assetId", spec.getId()),
-                new AssetRelationshipMapper(allRelationships));
-        spec.setAssetRelationships(relationships);
+                new MapSqlParameterSource().addValue("assetId", specId), (
+                        rs, rowNum) -> new AssetRelationship()
+                        .setId(UUID.fromString(rs.getString("id")))
+                        .setStudyRelationship(allRelationships.get(
+                                UUID.fromString(rs.getString("relationship_id")))));
     }
 }

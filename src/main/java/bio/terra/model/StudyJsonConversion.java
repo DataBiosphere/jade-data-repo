@@ -183,7 +183,7 @@ public final class StudyJsonConversion {
         return Collections.unmodifiableList(relationships.entrySet()
                 .stream()
                 .filter(map -> assetRelationshipNames.contains(map.getKey()))
-                .map(entry -> new AssetRelationship(entry.getValue()))
+                .map(entry -> new AssetRelationship().setStudyRelationship(entry.getValue()))
                 .collect(Collectors.toList()));
     }
 
@@ -205,27 +205,4 @@ public final class StudyJsonConversion {
                         .map(assetRelationship -> assetRelationship.getStudyRelationship().getName())
                         .collect(Collectors.toList()));
     }
-
-//    public static List<AssetTableModel> setAssetModelTablesAndColumns(AssetSpecification spec) {
-//        Map<String, List<String>> tableToColumns = new HashMap<>();
-//        String rootTableName = spec.getRootTable().getName();
-//
-//        // build structure
-//        spec.getAssetTables()
-//                .forEach(table -> {
-//                    String tableName = table.getName();
-//                    table.getColumns()
-//                            .stream()
-//                            .map(column -> column.getName())
-//                            .collect(Collectors.toList());
-//
-//        return tableToColumns.entrySet()
-//                .stream()
-//                .map(entry -> new AssetTableModel()
-//                        .name(entry.getKey())
-//                        .columns(entry.getValue())
-//                        .isRoot(entry.getKey().equals(rootTableName)))
-//                .collect(Collectors.toList());
-//    }
-
 }

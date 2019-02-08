@@ -13,8 +13,6 @@ public class AssetSpecification {
     private List<AssetTable> assetTables = new ArrayList<>();
     private List<AssetRelationship> assetRelationships = new ArrayList<>();
 
-    public AssetSpecification() {}
-
     public UUID getId() {
         return id;
     }

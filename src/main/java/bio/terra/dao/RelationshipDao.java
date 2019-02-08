@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Repository
 public class RelationshipDao extends MetaDao<StudyRelationship> {
@@ -50,53 +49,29 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
         studyRelationship.setId(relationshipId);
     }
 
-//    private static final class StudyRelationshipMapper implements RowMapper<StudyRelationship> {
-//        public StudyRelationship mapRow(ResultSet rs, int rowNum) throws SQLException {
-//            return new StudyRelationship()
-//                    .setId(UUID.fromString(rs.getString("id")))
-//                    .setName(rs.getString("name"))
-//                    .setFromCardinality(RelationshipTermModel.CardinalityEnum.valueOf(
-// rs.getString("from_cardinality")))
-//                    .setToCardinality(RelationshipTermModel.CardinalityEnum.valueOf(rs.getString("to_cardinality")))
-//                    .setFromColumn(rs.getString("from_cardinality")))
-//        }
-//    }
-
     //    @Override
     public void retrieve(Study study) {
         List<UUID> columnIds = new ArrayList<>();
         study.getTables().forEach(table ->
                 table.getColumns().forEach(column -> columnIds.add(column.getId())));
-        List<Map<String, Object>> results = retrieveStudyRelationships(columnIds);
-        List<StudyRelationship> relationships = createRelationships(study, results);
-        study.setRelationships(relationships);
+        study.setRelationships(retrieveStudyRelationships(columnIds, study.getAllColumnsById()));
     }
 
-    private List<Map<String, Object>> retrieveStudyRelationships(List<UUID> columnIds) {
-        List<Map<String, Object>> reldata = jdbcTemplate.queryForList(
+    private List<StudyRelationship> retrieveStudyRelationships(
+            List<UUID> columnIds, Map<UUID,
+            StudyTableColumn> columns) {
+        return jdbcTemplate.query(
                 "SELECT id, name, from_cardinality, to_cardinality, from_column, to_column " +
                         "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)",
-                new MapSqlParameterSource().addValue("columns", columnIds)
-                );
-        return reldata;
-    }
-
-    private List<StudyRelationship> createRelationships(Study study, List<Map<String, Object>> results) {
-        // build up the collection of all columns
-        Map<UUID, StudyTableColumn> columns = study.getAllColumnsById();
-
-        return results
-                .stream()
-                .map(rs ->
-                        new StudyRelationship()
-                                .setId(UUID.fromString(rs.get("id").toString()))
-                                .setName(rs.get("name").toString())
-                                .setFromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(rs.get(
-                                        "from_cardinality").toString()))
-                                .setToCardinality(RelationshipTermModel.CardinalityEnum.fromValue(rs.get(
-                                        "to_cardinality").toString()))
-                                .setFrom(columns.get(UUID.fromString(rs.get("from_column").toString())))
-                                .setTo(columns.get(UUID.fromString(rs.get("to_column").toString()))))
-                .collect(Collectors.toList());
+                new MapSqlParameterSource().addValue("columns", columnIds), (
+                        rs, rowNum) -> new StudyRelationship()
+                        .setId(UUID.fromString(rs.getString("id")))
+                        .setName(rs.getString("name"))
+                        .setFromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
+                                rs.getString("from_cardinality")))
+                        .setToCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
+                                rs.getString("to_cardinality")))
+                        .setFrom(columns.get(UUID.fromString(rs.getString("from_column"))))
+                        .setTo(columns.get(UUID.fromString(rs.getString("to_column")))));
     }
 }

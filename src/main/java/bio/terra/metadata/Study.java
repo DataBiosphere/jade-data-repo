@@ -18,8 +18,6 @@ public class Study {
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
-    public Study() {}
-
     public UUID getId() { return id; }
     public Study setId(UUID id) { this.id = id; return this; }
 

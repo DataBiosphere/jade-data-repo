@@ -13,12 +13,9 @@ public class StudyRelationship {
     private StudyTableColumn to;
     private CardinalityEnum toCardinality;
 
-    public StudyRelationship() {}
-
     public UUID getId() {
         return id;
     }
-
     public StudyRelationship setId(UUID id) { this.id = id; return this; }
 
     public String getName() { return name; }

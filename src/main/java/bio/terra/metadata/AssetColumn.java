@@ -6,8 +6,6 @@ public class AssetColumn {
     private UUID id;
     private StudyTableColumn studyColumn;
 
-    public AssetColumn() {}
-
     public UUID getId() { return id; }
     public AssetColumn setId(UUID id) { this.id = id; return this; }
 

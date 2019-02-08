@@ -14,8 +14,6 @@ public class StudyTable {
     private List<StudyTableColumn> columns = new ArrayList<>();
     private UUID id;
 
-    public StudyTable() {}
-
     public UUID getId() { return id; }
     public StudyTable setId(UUID id) { this.id = id; return this; }
 

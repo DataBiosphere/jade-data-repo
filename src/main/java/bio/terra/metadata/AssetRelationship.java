@@ -6,12 +6,6 @@ public class AssetRelationship {
     private UUID id;
     private StudyRelationship studyRelationship;
 
-    public AssetRelationship() {}
-
-    public AssetRelationship(StudyRelationship studyRelationship) {
-        this.studyRelationship = studyRelationship;
-    }
-
     public UUID getId() { return id; }
     public AssetRelationship setId(UUID id) { this.id = id; return this; }
 

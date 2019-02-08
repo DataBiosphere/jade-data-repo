@@ -2,7 +2,6 @@ package bio.terra.dao;
 
 import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -11,8 +10,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -55,23 +52,17 @@ public class StudyDao extends MetaDao<Study> {
         return studyId;
     }
 
-    private static final class StudyMapper implements RowMapper<Study> {
-
-        public Study mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new Study()
-                    .setId(UUID.fromString(rs.getString("id")))
-                    .setName(rs.getString("name"))
-                    .setDescription(rs.getString("description"))
-                    .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
-        }
-    }
-
-        //    @Override
+    //    @Override
     public Study retrieve(UUID id) {
         Study study = jdbcTemplate.queryForObject(
                 "SELECT id, name, description, created_date FROM study WHERE id = :id",
-                new MapSqlParameterSource().addValue("id", id),
-                new StudyMapper());
+                //this is a hack for check style. if the lambda params are on the next line it fails indentation check
+                new MapSqlParameterSource().addValue("id", id), (
+                        rs, rowNum) -> new Study()
+                        .setId(UUID.fromString(rs.getString("id")))
+                        .setName(rs.getString("name"))
+                        .setDescription(rs.getString("description"))
+                        .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
         // needed for fix bugs. but really can't be null
         if (study != null) {
             tableDao.retrieve(study);

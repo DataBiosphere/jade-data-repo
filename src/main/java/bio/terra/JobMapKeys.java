@@ -2,21 +2,18 @@ package bio.terra;
 
 
 public enum JobMapKeys {
-    DESCRIPTION,
-    RESPONSE,
-    STATUS_CODE;
+    DESCRIPTION("description"),
+    RESPONSE("response"),
+    STATUS_CODE("status_code");
 
-    String getStatus() {
-        switch (this) {
-            case DESCRIPTION:
-                return "description";
-            case RESPONSE:
-                return "response";
-            case STATUS_CODE:
-                return "status code";
-            default:
-                throw new AssertionError("Unknown response" + this);
-        }
+    private String keyName;
+
+    JobMapKeys(String keyName) {
+        this.keyName = keyName;
+    }
+
+    public String getKeyName() {
+        return keyName;
     }
 }
 

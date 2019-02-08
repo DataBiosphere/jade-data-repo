@@ -119,20 +119,21 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<JobModel> retrieveJob(String jobId) {
+        String locationHeader  = String.format("/api/jobs/%s/result", jobId);
         FlightState flightState = stairway.getFlightState(jobId);
         JobModel jobModel = jobService.mapFlightStateToJobModel(flightState);
-        ResponseEntity responseEntity;
+        HttpStatus status;
 
         if (flightState.getCompleted().isPresent()) {
-            HttpStatus status = HttpStatus.SEE_OTHER; // HTTP 303
-            responseEntity = ResponseEntity
-                    .status(status)
-                    .header("Location", String.format("/api/jobs/%s/result", jobId))
-                    .body(jobModel);
+            status = HttpStatus.SEE_OTHER; // HTTP 303
         } else { // TODO If the flight is still going... (what if there is an error?)
-            HttpStatus status = HttpStatus.OK;
-            responseEntity = ResponseEntity.status(status).body(jobModel);
+            status = HttpStatus.OK;
         }
+        ResponseEntity responseEntity = ResponseEntity
+                .status(status)
+                .header("Location", locationHeader)
+                .body(jobModel);
+
         return responseEntity;
     }
 
@@ -141,8 +142,8 @@ public class RepositoryApiController implements RepositoryApi {
         ResponseEntity responseEntity;
         if (flightState.getCompleted().isPresent()) {
             FlightMap resultMap = flightState.getResultMap().get();
-            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.toString(), Object.class);
-            HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.toString(), HttpStatus.class);
+            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
+            HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
             // TODO handle case where cant find key
             responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
         } else {

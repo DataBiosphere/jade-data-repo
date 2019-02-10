@@ -7,31 +7,39 @@ import bio.terra.model.*;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightResult;
 import bio.terra.stairway.Stairway;
+import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.HashSet;
 import java.util.Optional;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
-    private final ObjectMapper objectMapper;
-    private final HttpServletRequest request;
-    private final Stairway stairway;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Autowired
-    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, Stairway stairway) {
-        this.objectMapper = objectMapper;
-        this.request = request;
-        this.stairway = stairway;
+    private HttpServletRequest request;
+
+    @Autowired
+    private Stairway stairway;
+
+    @Autowired
+    private StudyRequestValidator studyRequestValidator;
+
+    @InitBinder
+    protected void initBinder(final WebDataBinder binder) {
+        binder.addValidators(studyRequestValidator);
     }
 
     @Override
@@ -55,39 +63,6 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        HashSet<String> seenTableNames = new HashSet<>();
-        for (TableModel table : studyRequest.getSchema().getTables()) {
-            String tableName = table.getName();
-            if (seenTableNames.contains(tableName)) {
-                throw new ValidationException("table names must be unique");
-            }
-            seenTableNames.add(tableName);
-            HashSet<String> seenColumnNames = new HashSet<>();
-            for (ColumnModel column : table.getColumns()) {
-                String columnName = column.getName();
-                if (seenColumnNames.contains(columnName)) {
-                    throw new ValidationException("column names must be unique within a table");
-                }
-                seenColumnNames.add(columnName);
-            }
-        }
-        boolean thereIsARootTable = false;
-        for (AssetModel assetModel : studyRequest.getSchema().getAssets()) {
-            // TODO: assert that there is at least one asset
-            // TODO: assert that all strings in assetModel.getFollow() match relationships
-            // TODO: assert that all asset names are unique
-            // TODO: assert that all asset tables reference real tables
-            // TODO: assert that all asset table columns reference real table columns
-            for (AssetTableModel atm : assetModel.getTables()) {
-                if (atm.isIsRoot() != null && atm.isIsRoot()) {
-                    thereIsARootTable = true;
-                }
-            }
-        }
-        if (!thereIsARootTable) {
-            throw new ValidationException("there is no root table in the asset specification");
-        }
-        // there has to be a root asset table
         FlightMap flightMap = new FlightMap();
         flightMap.put("request", studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);

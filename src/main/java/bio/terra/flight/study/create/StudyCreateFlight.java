@@ -11,7 +11,7 @@ public class StudyCreateFlight extends Flight {
     public StudyCreateFlight(FlightMap inputParameters, Object applicationContext) {
         super(inputParameters, applicationContext);
 
-        // get the required daos to pass into the steps
+        // get the required DAOs to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");

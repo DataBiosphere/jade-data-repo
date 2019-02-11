@@ -32,11 +32,12 @@ public class JobService {
         FlightStatus flightStatus = flightState.getFlightStatus(); // needs to be converted -- create a switch
         JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
         HttpStatus statusCode = inputParameters.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-        String submittedDate = new SimpleDateFormat().format(flightState.getSubmitted());
+        String submittedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(flightState.getSubmitted());
 
         String completedDate = null;
         if (flightState.getCompleted().isPresent()) {
-            completedDate = new SimpleDateFormat().format(flightState.getCompleted());
+            completedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
+                    .format(flightState.getCompleted().get());
         }
 
         JobModel jobModel = new JobModel()
@@ -52,7 +53,7 @@ public class JobService {
 
     private JobModel.JobStatusEnum getJobStatus(FlightStatus flightStatus) {
         switch (flightStatus) {
-            case ERROR: // TODO --why not FlightStatus.ERROR ?
+            case ERROR:
                 return JobModel.JobStatusEnum.FAILED;
             case FATAL:
                 return JobModel.JobStatusEnum.FAILED;
@@ -76,14 +77,17 @@ public class JobService {
 
     public ResponseEntity<JobModel> retrieveJob(String jobId) {
         FlightState flightState = stairway.getFlightState(jobId);
-        String locationHeader  = String.format("/api/jobs/%s/result", jobId);
         JobModel jobModel = mapFlightStateToJobModel(flightState);
         HttpStatus status;
+        String locationHeader;
 
         if (flightState.getCompleted().isPresent()) {
             status = HttpStatus.SEE_OTHER; // HTTP 303
-        } else { // TODO If the flight is still going... (what if there is an error?)
+            locationHeader = String.format("/api/jobs/%s/result", jobId);
+
+        } else {
             status = HttpStatus.OK;
+            locationHeader  = String.format("/api/jobs/%s", jobId);
         }
         ResponseEntity responseEntity = ResponseEntity
                 .status(status)

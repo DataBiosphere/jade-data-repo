@@ -111,8 +111,8 @@ public class RepositoryApiController implements RepositoryApi {
         StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
     }
-    
-    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) { // should these be optional??
+
+    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {
         return jobService.enumerateJobs(offset, limit);
     }
 

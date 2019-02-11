@@ -23,6 +23,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Optional;
@@ -56,7 +57,12 @@ public class RepositoryAPIControllerTest {
     private StudySummaryModel minimalStudySummary;
 
     private static final Timestamp submittedTime = Timestamp.from(Instant.now());
+    private static final String submittedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
+            .format(submittedTime);
     private static final Timestamp completedTime = Timestamp.from(Instant.now());
+    private static final String completedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
+            .format(completedTime);
+
 
     @Before
     public void setup() {
@@ -84,7 +90,7 @@ public class RepositoryAPIControllerTest {
                 .andExpect(jsonPath("$[:1].id").value(testFlightId))
                 .andExpect(jsonPath("$[:1].description").value(minimalStudySummary.getDescription()))
                 .andExpect(jsonPath("$[:1].job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
-                .andExpect(jsonPath("$[:1].completed").exists());
+                .andExpect(jsonPath("$[:1].completed").value(completedTimeFormatted));
     }
 
     @Test
@@ -100,7 +106,8 @@ public class RepositoryAPIControllerTest {
                 .andExpect(jsonPath("$.id").value(testFlightId))
                 .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
                 .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
-                .andExpect(jsonPath("$.completed").exists());
+                .andExpect(jsonPath("$.submitted").value(submittedTimeFormatted))
+                .andExpect(jsonPath("$.completed").value(completedTimeFormatted));
     }
 
     @Test

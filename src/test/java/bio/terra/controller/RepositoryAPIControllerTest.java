@@ -1,7 +1,9 @@
 package bio.terra.controller;
 
+import bio.terra.JobMapKeys;
 import bio.terra.category.Unit;
 import bio.terra.model.JobModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -15,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -50,10 +53,18 @@ public class RepositoryAPIControllerTest {
     private JobModel jobModel;
 
     private static final String testFlightId = "test-flight-id";
+    private StudySummaryModel minimalStudySummary;
+
+    private static final Timestamp submittedTime = Timestamp.from(Instant.now());
+    private static final Timestamp completedTime = Timestamp.from(Instant.now());
 
     @Before
     public void setup() {
         jobModel = new JobModel().id(testFlightId).description("This is not a job");
+        minimalStudySummary = new StudySummaryModel()
+                .id("Minimal")
+                .name("Minimal")
+                .description("This is a sample study definition");
     }
 
 
@@ -61,8 +72,8 @@ public class RepositoryAPIControllerTest {
     public void enumerateJobsTest() throws Exception {
         FlightState flightState = makeFlightState();
 
-        int offset = 0;
-        int limit = 1;
+        Integer offset = 0;
+        Integer limit = 1;
 
         when(stairway.getFlights(eq(offset), eq(limit))).thenReturn(Arrays.asList(flightState));
 
@@ -70,8 +81,10 @@ public class RepositoryAPIControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(Arrays.asList(jobModel))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[:1].id").value(testFlightId));
-        // TODO jobmodel has a description, but flights don't?
+                .andExpect(jsonPath("$[:1].id").value(testFlightId))
+                .andExpect(jsonPath("$[:1].description").value(minimalStudySummary.getDescription()))
+                .andExpect(jsonPath("$[:1].job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
+                .andExpect(jsonPath("$[:1].completed").exists());
     }
 
     @Test
@@ -84,38 +97,39 @@ public class RepositoryAPIControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(jobModel)))
                 .andExpect(status().isSeeOther())
-                .andExpect(jsonPath("$.id").value(testFlightId));
-        // TODO jobmodel has a description, but flights don't -- also why is this not returning Status?
+                .andExpect(jsonPath("$.id").value(testFlightId))
+                .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
+                .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
+                .andExpect(jsonPath("$.completed").exists());
     }
 
     @Test
     public void retrieveJobResultTest() throws Exception {
         FlightState flightState = makeFlightState();
-        Object object = new Object();
-
         when(stairway.getFlightState(any())).thenReturn(flightState);
 
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s/result", testFlightId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(object)))
+                .content(objectMapper.writeValueAsString(minimalStudySummary)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(testFlightId));
+                .andExpect(jsonPath("$.id").value(minimalStudySummary.getId()))
+                .andExpect(jsonPath("$.name").value(minimalStudySummary.getName()))
+                .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()));
     }
 
     private FlightState makeFlightState() {
-        Object object = new Object();
-        // Construct a mock FlightState
         FlightMap resultMap = new FlightMap();
-        resultMap.put("response", object);
-
+        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
+        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
+        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), minimalStudySummary.getDescription());
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
         flightState.setFlightStatus(FlightStatus.SUCCESS);
-        flightState.setSubmitted(Timestamp.from(Instant.now()));
-        flightState.setInputParameters(resultMap); // unused
+        flightState.setSubmitted(submittedTime);
+        flightState.setInputParameters(resultMap);
         flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
+        flightState.setCompleted(Optional.of(completedTime));
         flightState.setErrorMessage(Optional.empty());
         return flightState;
     }

@@ -172,6 +172,7 @@ public class StudyTest {
 
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
                 .thenReturn(testFlightId);
+        // Call to mocked waitForFlight will do nothing, so no need to handle that
         when(stairway.getFlightState(eq(testFlightId)))
                 .thenReturn(flightState);
 
@@ -187,6 +188,14 @@ public class StudyTest {
     }
 
     @Test
+    public void testInvalidStudyRequest() throws Exception {
+        mvc.perform(post("/api/repository/v1/studies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
     public void testFlightError() throws Exception {
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
                 .thenThrow(ApiException.class);
@@ -197,29 +206,6 @@ public class StudyTest {
     }
 
     @Test
-    public void testInvalidStudyRequest() throws Exception {
-        mvc.perform(post("/api/repository/v1/studies")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
-                .andExpect(status().is4xxClientError());
-    }
-
-    private FlightState makeFlightState() {
-        // Construct a mock FlightState
-        FlightMap resultMap = new FlightMap();
-        resultMap.put("response", studySummary);
-
-        FlightState flightState = new FlightState();
-        flightState.setFlightId(testFlightId);
-        flightState.setFlightStatus(FlightStatus.SUCCESS);
-        flightState.setSubmitted(Timestamp.from(Instant.now()));
-        flightState.setInputParameters(resultMap); // unused
-        flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
-        flightState.setErrorMessage(Optional.empty());
-        return flightState;
-    }
-
     public void testDuplicateTableNames() throws Exception {
         ColumnModel column = new ColumnModel().name("id").datatype("string");
         TableModel table = new TableModel()
@@ -239,6 +225,22 @@ public class StudyTest {
 
         studyRequest.getSchema().tables(Collections.singletonList(table));
         expectBadStudyCreateRequest(studyRequest);
+    }
+
+    private FlightState makeFlightState() {
+        // Construct a mock FlightState
+        FlightMap resultMap = new FlightMap();
+        resultMap.put("response", studySummary);
+
+        FlightState flightState = new FlightState();
+        flightState.setFlightId(testFlightId);
+        flightState.setFlightStatus(FlightStatus.SUCCESS);
+        flightState.setSubmitted(Timestamp.from(Instant.now()));
+        flightState.setInputParameters(resultMap); // unused
+        flightState.setResultMap(Optional.of(resultMap));
+        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
+        flightState.setErrorMessage(Optional.empty());
+        return flightState;
     }
 
     @Test

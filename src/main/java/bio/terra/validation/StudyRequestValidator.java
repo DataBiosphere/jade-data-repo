@@ -24,11 +24,14 @@ import static java.util.stream.Collectors.*;
 @Component
 public class StudyRequestValidator implements Validator {
 
-    @Autowired
-    private PrimaryDataAccess pdao;
+    private final PrimaryDataAccess pdao;
+    private final StudyDao studyDao;
 
     @Autowired
-    private StudyDao studyDao;
+    public StudyRequestValidator(PrimaryDataAccess pdao, StudyDao studyDao) {
+        this.pdao = pdao;
+        this.studyDao = studyDao;
+    }
 
     @Override
     public boolean supports(Class<?> clazz) {

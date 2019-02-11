@@ -26,17 +26,19 @@ import java.util.Optional;
 @Controller
 public class RepositoryApiController implements RepositoryApi {
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
+    private final HttpServletRequest request;
+    private final Stairway stairway;
+    private final StudyRequestValidator studyRequestValidator;
 
     @Autowired
-    private HttpServletRequest request;
-
-    @Autowired
-    private Stairway stairway;
-
-    @Autowired
-    private StudyRequestValidator studyRequestValidator;
+    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, Stairway stairway,
+                                   StudyRequestValidator studyRequestValidator) {
+        this.objectMapper = objectMapper;
+        this.request = request;
+        this.stairway = stairway;
+        this.studyRequestValidator = studyRequestValidator;
+    }
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
@@ -71,7 +73,7 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
     }
 
-    public <T> T getResponse(String flightId, Class<T> resultClass) {
+    private <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         if (result.getFlightStatus() == FlightStatus.SUCCESS) {

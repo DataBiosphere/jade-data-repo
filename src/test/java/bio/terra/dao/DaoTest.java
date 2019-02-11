@@ -3,11 +3,12 @@ package bio.terra.dao;
 import bio.terra.category.Unit;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Study;
+import bio.terra.metadata.StudyTable;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -37,6 +38,7 @@ public class DaoTest {
     private Study study;
     private UUID studyId;
     private Study fromDB;
+    private boolean deleted;
 
     @Before
     public void setup() throws Exception {
@@ -51,9 +53,11 @@ public class DaoTest {
         }
     }
 
-    @AfterClass
-    public static void teardown() throws Exception {
-//        studyDao.delete(study.getId());
+    @After
+    public void teardown() throws Exception {
+        if (!deleted) {
+            studyDao.delete(studyId);
+        }
     }
 
 
@@ -62,15 +66,22 @@ public class DaoTest {
         assertThat("study name set correctly",
                 fromDB.getName(),
                 equalTo(study.getName()));
-    }
 
-    @Test
-    public void assetCreationTest() {
+        // verify tables
+        assertThat("correct number of tables created",
+                fromDB.getTables().size(),
+                equalTo(2));
+        fromDB.getTables().forEach(this::assertStudyTable);
+
         // verify assets
         assertThat("correct number of assets created",
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
         fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+    }
+
+    protected void assertStudyTable(StudyTable table) {
+
     }
 
     protected void assertAssetSpecs(AssetSpecification spec) {
@@ -84,5 +95,4 @@ public class DaoTest {
                     equalTo("Sample"));
         }
     }
-
 }

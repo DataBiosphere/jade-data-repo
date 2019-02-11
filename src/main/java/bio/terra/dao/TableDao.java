@@ -6,8 +6,6 @@ import bio.terra.metadata.StudyTableColumn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
@@ -15,7 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public class TableDao extends MetaDao<StudyTable> {
+public class TableDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -29,11 +27,11 @@ public class TableDao extends MetaDao<StudyTable> {
         String sql = "INSERT INTO study_table (name, study_id) VALUES (:name, :study_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", study.getId());
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        UUIDHolder keyHolder = new UUIDHolder();
         for (StudyTable table : study.getTables()) {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sql, params, keyHolder);
-            UUID tableId = getIdKey(keyHolder);
+            UUID tableId = keyHolder.getId();
             table.setId(tableId);
             createStudyColumns(tableId, table.getColumns());
         }
@@ -43,17 +41,16 @@ public class TableDao extends MetaDao<StudyTable> {
         String sql = "INSERT INTO study_column (table_id, name, type) VALUES (:table_id, :name, :type)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("table_id", tableId);
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        UUIDHolder keyHolder = new UUIDHolder();
         for (StudyTableColumn column : columns) {
             params.addValue("name", column.getName());
             params.addValue("type", column.getType());
             jdbcTemplate.update(sql, params, keyHolder);
-            UUID columnId = getIdKey(keyHolder);
+            UUID columnId = keyHolder.getId();
             column.setId(columnId);
         }
     }
 
-    //    @Override
     public void retrieve(Study study) {
         List<StudyTable> tables = retrieveStudyTables(study.getId());
         study.setTables(tables);

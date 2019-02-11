@@ -4,8 +4,6 @@ import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,7 +14,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Repository
-public class StudyDao extends MetaDao<Study> {
+public class StudyDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final TableDao tableDao;
@@ -42,9 +40,9 @@ public class StudyDao extends MetaDao<Study> {
                 .addValue("name", study.getName())
                 .addValue("description", study.getDescription())
                 .addValue("createdDate", new Timestamp(Instant.now().toEpochMilli()));
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID studyId = getIdKey(keyHolder);
+        UUID studyId = keyHolder.getId();
         study.setId(studyId);
         tableDao.createStudyTables(study);
         relationshipDao.createStudyRelationships(study);
@@ -52,7 +50,13 @@ public class StudyDao extends MetaDao<Study> {
         return studyId;
     }
 
-    //    @Override
+    @Transactional
+    public void delete(UUID id) {
+        jdbcTemplate.update("DELETE FROM study WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", id));
+
+    }
+
     public Study retrieve(UUID id) {
         Study study = jdbcTemplate.queryForObject(
                 "SELECT id, name, description, created_date FROM study WHERE id = :id",
@@ -71,14 +75,4 @@ public class StudyDao extends MetaDao<Study> {
         }
         return study;
     }
-//
-//    @Override
-//    public void delete(String id) {
-//
-//    }
-//
-//    @Override
-//    public List<Study> enumerate() {
-//        return null;
-//    }
 }

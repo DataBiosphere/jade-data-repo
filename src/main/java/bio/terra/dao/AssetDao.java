@@ -12,8 +12,6 @@ import bio.terra.metadata.StudyTableColumn;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -25,7 +23,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Repository
-public class AssetDao extends MetaDao<AssetSpecification> {
+public class AssetDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -48,9 +46,9 @@ public class AssetDao extends MetaDao<AssetSpecification> {
         params.addValue("study_id", study.getId());
         params.addValue("name", assetSpecification.getName());
         params.addValue("root_table_id", assetSpecification.getRootTable().getStudyTable().getId());
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID assetSpecId = getIdKey(keyHolder);
+        UUID assetSpecId = keyHolder.getId();
         assetSpecification.setId(assetSpecId);
 
         createAssetColumns(assetSpecification);
@@ -66,9 +64,9 @@ public class AssetDao extends MetaDao<AssetSpecification> {
                 MapSqlParameterSource params = new MapSqlParameterSource();
                 params.addValue("asset_id", assetSpec.getId());
                 params.addValue("study_column_id", assetCol.getStudyColumn().getId());
-                KeyHolder keyHolder = new GeneratedKeyHolder();
+                UUIDHolder keyHolder = new UUIDHolder();
                 jdbcTemplate.update(sql, params, keyHolder);
-                UUID assetColumnId = getIdKey(keyHolder);
+                UUID assetColumnId = keyHolder.getId();
                 assetCol.setId(assetColumnId);
             });
         });
@@ -81,14 +79,13 @@ public class AssetDao extends MetaDao<AssetSpecification> {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("asset_id", assetSpec.getId());
             params.addValue("relationship_id", assetRel.getStudyRelationship().getId());
-            KeyHolder keyHolder = new GeneratedKeyHolder();
+            UUIDHolder keyHolder = new UUIDHolder();
             jdbcTemplate.update(sql, params, keyHolder);
-            UUID assetRelId = getIdKey(keyHolder);
+            UUID assetRelId = keyHolder.getId();
             assetRel.setId(assetRelId);
         });
     }
 
-    //    @Override
     public void retrieve(Study study) {
         study.setAssetSpecifications(retrieveAssetSpecifications(study));
     }

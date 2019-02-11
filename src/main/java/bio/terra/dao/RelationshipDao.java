@@ -7,8 +7,6 @@ import bio.terra.model.RelationshipTermModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 
 import java.util.ArrayList;
@@ -17,7 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Repository
-public class RelationshipDao extends MetaDao<StudyRelationship> {
+public class RelationshipDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -43,13 +41,12 @@ public class RelationshipDao extends MetaDao<StudyRelationship> {
         params.addValue("to_cardinality", studyRelationship.getToCardinality().toString());
         params.addValue("from_column", studyRelationship.getFrom().getId());
         params.addValue("to_column", studyRelationship.getTo().getId());
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID relationshipId = getIdKey(keyHolder);
+        UUID relationshipId = keyHolder.getId();
         studyRelationship.setId(relationshipId);
     }
 
-    //    @Override
     public void retrieve(Study study) {
         List<UUID> columnIds = new ArrayList<>();
         study.getTables().forEach(table ->

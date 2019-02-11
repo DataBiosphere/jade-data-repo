@@ -33,8 +33,11 @@ public class JobService {
         JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
         HttpStatus statusCode = inputParameters.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
         String submittedDate = new SimpleDateFormat().format(flightState.getSubmitted());
-        String completedDate = new SimpleDateFormat().format(flightState.getCompleted()
-                .orElse(null)); // TODO this doesn't seem right?
+
+        String completedDate = null;
+        if (flightState.getCompleted().isPresent()) {
+            completedDate = new SimpleDateFormat().format(flightState.getCompleted());
+        }
 
         JobModel jobModel = new JobModel()
                 .id(flightState.getFlightId())

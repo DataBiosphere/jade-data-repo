@@ -688,7 +688,6 @@ definitions:
     type: object
     required:
     - id
-    - status
     - job_status
     - status_code
     properties:

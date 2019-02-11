@@ -1,5 +1,6 @@
 package bio.terra.controller;
 
+import bio.terra.JobMapKeys;
 import bio.terra.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
@@ -130,7 +131,7 @@ public class RepositoryApiController implements RepositoryApi {
         if (result.getFlightStatus() == FlightStatus.SUCCESS) {
             if (result.getResultMap().isPresent()) {
                 FlightMap resultMap = result.getResultMap().get();
-                return resultMap.get("response", resultClass);
+                return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
             }
             // It should not happen that we have success and no result map
             // This is probably not the right exception, but we will replace this with

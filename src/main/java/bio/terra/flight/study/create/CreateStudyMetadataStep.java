@@ -37,6 +37,7 @@ public class CreateStudyMetadataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        // TODO: delete study with DAO
         return StepResult.getStepResultSuccess();
     }
 }

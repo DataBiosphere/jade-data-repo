@@ -1,6 +1,6 @@
 package bio.terra.flight.study.create;
 
-import bio.terra.category.Unit;
+import bio.terra.category.Connected;
 import bio.terra.metadata.Study;
 import bio.terra.model.*;
 import bio.terra.pdao.PrimaryDataAccess;
@@ -28,7 +28,7 @@ import static org.junit.Assert.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Category(Unit.class)
+@Category(Connected.class)
 public class StudyCreateFlightTest {
 
     @Autowired

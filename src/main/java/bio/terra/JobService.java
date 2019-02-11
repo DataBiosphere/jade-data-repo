@@ -1,9 +1,9 @@
 package bio.terra;
 
 import bio.terra.model.JobModel;
-import bio.terra.model.JobModel.StatusEnum;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,9 @@ public class JobService {
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
         FlightMap inputParameters = flightState.getInputParameters();
         String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
-        StatusEnum status = inputParameters.get(JobMapKeys.STATUS_CODE.getKeyName(), StatusEnum.class);
+        FlightStatus flightStatus = flightState.getFlightStatus(); // needs to be converted -- create a switch
+        JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
+        HttpStatus statusCode = inputParameters.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
         String submittedDate = new SimpleDateFormat().format(flightState.getSubmitted());
         String completedDate = new SimpleDateFormat().format(flightState.getCompleted()
                 .orElse(null)); // TODO this doesn't seem right?
@@ -37,12 +39,26 @@ public class JobService {
         JobModel jobModel = new JobModel()
                 .id(flightState.getFlightId())
                 .description(description)
-                .status(status)
+                .jobStatus(jobStatus)
+                .statusCode(statusCode.value())
                 .submitted(submittedDate)
                 .completed(completedDate);
 
         return jobModel;
+    }
 
+    private JobModel.JobStatusEnum getJobStatus(FlightStatus flightStatus) {
+        switch (flightStatus) {
+            case ERROR: // TODO --why not FlightStatus.ERROR ?
+                return JobModel.JobStatusEnum.FAILED;
+            case FATAL:
+                return JobModel.JobStatusEnum.FAILED;
+            case RUNNING:
+                return JobModel.JobStatusEnum.RUNNING;
+            case SUCCESS:
+                return JobModel.JobStatusEnum.SUCCEEDED;
+        }
+        return JobModel.JobStatusEnum.FAILED;
     }
 
     public ResponseEntity<List<JobModel>> enumerateJobs(int offset, int limit) {

@@ -38,14 +38,13 @@ public class StepResult {
     }
 
     /**
-     * Extract the error message from the throwable. If there is no throwable,
-     * then return an empty string.
+     * Convert the optional throwable into a optional string
      */
-    public String getErrorMessage() {
+    public Optional<String> getErrorMessage() {
         if (getThrowable().isPresent()) {
-            return getThrowable().get().toString();
+            return Optional.of(getThrowable().get().toString());
         }
-        return "";
+        return Optional.empty();
     }
 
     @Override

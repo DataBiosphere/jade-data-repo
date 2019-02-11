@@ -22,6 +22,7 @@ the code base. For simple addition of fields in a structure or new endpoints, th
 
 In the rare case of wanting to have swagger-codegen create a controller class,
 in a directory other than a git cloned workspace, run:
-`swagger-codegen generate -i path/to/data-repository-openapi.yaml -l spring` 
+`swagger-codegen generate -i path/to/data-repository-openapi.yaml -l spring -c path/to/config.json` 
+
 
 Then copy the files you want into the source tree

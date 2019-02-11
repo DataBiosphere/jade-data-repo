@@ -3,11 +3,22 @@ package bio.terra.controller;
 import bio.terra.category.Unit;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.flight.study.create.StudyCreateFlight;
-import bio.terra.model.*;
-import bio.terra.pdao.PrimaryDataAccess;
-import bio.terra.stairway.*;
+import bio.terra.model.AssetModel;
+import bio.terra.model.AssetTableModel;
+import bio.terra.model.ColumnModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySpecificationModel;
+import bio.terra.model.StudySummaryModel;
+import bio.terra.model.TableModel;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import bio.terra.pdao.PrimaryDataAccess;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,7 +32,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -61,6 +75,8 @@ public class StudyTest {
     private StudySpecificationModel schema;
     private StudyRequestModel studyRequest;
     private StudySummaryModel studySummary;
+
+    private static final String testFlightId = "test-flight-id";
 
     @Before
     public void setup() {
@@ -133,12 +149,14 @@ public class StudyTest {
 
     @Test
     public void testMinimalCreate() throws Exception {
-        FlightMap resultMap = new FlightMap();
-        resultMap.put("response", studySummary);
+        FlightState flightState = makeFlightState();
+
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenReturn("test-flight-id");
-        when(stairway.getResult(eq("test-flight-id")))
-                .thenReturn(new FlightResult(StepResult.getStepResultSuccess(), resultMap));
+                .thenReturn(testFlightId);
+        // Call to mocked waitForFlight will do nothing, so no need to handle that
+        when(stairway.getFlightState(eq(testFlightId)))
+                .thenReturn(flightState);
+
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(studyRequest)))
@@ -150,12 +168,13 @@ public class StudyTest {
 
     @Test
     public void testMinimalJsonCreate() throws Exception {
-        FlightMap resultMap = new FlightMap();
-        resultMap.put("response", studySummary);
+        FlightState flightState = makeFlightState();
+
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenReturn("test-flight-id");
-        when(stairway.getResult(eq("test-flight-id")))
-                .thenReturn(new FlightResult(StepResult.getStepResultSuccess(), resultMap));
+                .thenReturn(testFlightId);
+        when(stairway.getFlightState(eq(testFlightId)))
+                .thenReturn(flightState);
+
         ClassLoader classLoader = getClass().getClassLoader();
         String studyJSON = IOUtils.toString(classLoader.getResourceAsStream("study-minimal.json"));
         mvc.perform(post("/api/repository/v1/studies")
@@ -185,7 +204,22 @@ public class StudyTest {
                 .andExpect(status().is4xxClientError());
     }
 
-    @Test
+    private FlightState makeFlightState() {
+        // Construct a mock FlightState
+        FlightMap resultMap = new FlightMap();
+        resultMap.put("response", studySummary);
+
+        FlightState flightState = new FlightState();
+        flightState.setFlightId(testFlightId);
+        flightState.setFlightStatus(FlightStatus.SUCCESS);
+        flightState.setSubmitted(Timestamp.from(Instant.now()));
+        flightState.setInputParameters(resultMap); // unused
+        flightState.setResultMap(Optional.of(resultMap));
+        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
+        flightState.setErrorMessage(Optional.empty());
+        return flightState;
+    }
+
     public void testDuplicateTableNames() throws Exception {
         ColumnModel column = new ColumnModel().name("id").datatype("string");
         TableModel table = new TableModel()
@@ -232,12 +266,12 @@ public class StudyTest {
     @Test
     public void testInvalidAssetTable() throws Exception {
         AssetTableModel invalidAssetTable = new AssetTableModel()
-                .name("bad")
+                .name("mismatched_table_name")
                 .isRoot(true)
                 .columns(Collections.emptyList());
 
         AssetModel asset = new AssetModel()
-                .name("bad")
+                .name("bad_asset")
                 .tables(Collections.singletonList(invalidAssetTable))
                 .follow(Collections.singletonList("participant_sample"));
 
@@ -275,18 +309,19 @@ public class StudyTest {
 
     @Test
     public void testInvalidRelationshipTermTableColumn() throws Exception {
-       RelationshipTermModel mismatchedTerm = new RelationshipTermModel()
+        // participant_id is part of the sample table, not participant
+        RelationshipTermModel mismatchedTerm = new RelationshipTermModel()
                .table("participant")
-               .column("date_collected")
+               .column("participant_id")
                .cardinality(RelationshipTermModel.CardinalityEnum.ONE);
 
-       RelationshipModel mismatchedRelationship = new RelationshipModel()
-               .name("participant_sample")
-               .from(mismatchedTerm)
-               .to(sampleTerm);
+        RelationshipModel mismatchedRelationship = new RelationshipModel()
+                .name("participant_sample")
+                .from(mismatchedTerm)
+                .to(sampleTerm);
 
-       studyRequest.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
-       expectBadStudyCreateRequest(studyRequest);
+        studyRequest.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
+        expectBadStudyCreateRequest(studyRequest);
     }
 
     @Test

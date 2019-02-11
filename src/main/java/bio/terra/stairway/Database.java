@@ -3,6 +3,7 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightException;
+import bio.terra.stairway.exception.FlightNotFoundException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -11,8 +12,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The general layout of the database is:
@@ -30,35 +33,23 @@ import java.util.List;
  *
  * When the constructor completes, the database is ready for use. Note that recovery
  * is not part of construction. It just makes sure that the database is ready.
- *
- * If dataSource is null, then database support is disabled. The entrypoints all work,
- * but no database operations are performed.
  */
 public class Database {
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
-    private DataSource dataSource; // may be null, indicating database support is disabled
+    private DataSource dataSource;
     private boolean forceCleanStart;
 
-    public Database(DataSource dataSource,
-                    boolean forceCleanStart) {
+    public Database(DataSource dataSource, boolean forceCleanStart) {
 
         this.dataSource = dataSource;
         this.forceCleanStart = forceCleanStart;
-
-        if (isDatabaseDisabled()) {
-            return;
-        }
 
         // Clean up if need be
         if (forceCleanStart) {
             startClean();
         }
-    }
-
-    private boolean isDatabaseDisabled() {
-        return (dataSource == null);
     }
 
     /**
@@ -83,14 +74,10 @@ public class Database {
      * Record a new flight
      */
     public void submit(FlightContext flightContext) {
-        if (isDatabaseDisabled()) {
-            return;
-        }
-
         final String sqlInsertFlight =
                 "INSERT INTO " + FLIGHT_TABLE +
-                        " (flightId, submit_time, class_name, input_parameters)" +
-                        "VALUES (:flightid, CURRENT_TIMESTAMP, :class_name, :inputs)";
+                        " (flightId, submit_time, class_name, input_parameters, status)" +
+                        "VALUES (:flightid, CURRENT_TIMESTAMP, :class_name, :inputs, :status)";
 
         try (Connection connection = dataSource.getConnection();
              NamedParameterPreparedStatement statement =
@@ -99,6 +86,7 @@ public class Database {
             statement.setString("flightid", flightContext.getFlightId());
             statement.setString("class_name", flightContext.getFlightClassName());
             statement.setString("inputs", flightContext.getInputParameters().toJson());
+            statement.setString("status", flightContext.getFlightStatus().name());
             statement.getPreparedStatement().executeUpdate();
 
         } catch (SQLException ex) {
@@ -110,15 +98,12 @@ public class Database {
      * Record the flight state right before a step
      */
     public void step(FlightContext flightContext) {
-        if (isDatabaseDisabled()) {
-            return;
-        }
-
         final String sqlInsertFlightLog =
                 "INSERT INTO " + FLIGHT_LOG_TABLE +
-                        "(flightid, log_time, working_parameters, step_index, doing, succeeded, error_message)" +
-                        " VALUES (:flightid, CURRENT_TIMESTAMP, :working_map," +
-                        " :step_index, :doing, :succeeded, :error_message)";
+                        "(flightid, log_time, working_parameters, step_index, doing," +
+                        " succeeded, error_message, status)" +
+                        " VALUES (:flightid, CURRENT_TIMESTAMP, :working_map, :step_index, :doing," +
+                        " :succeeded, :error_message, :status)";
 
         try (Connection connection = dataSource.getConnection();
              NamedParameterPreparedStatement statement =
@@ -129,14 +114,14 @@ public class Database {
             statement.setInt("step_index", flightContext.getStepIndex());
             statement.setBoolean("doing", flightContext.isDoing());
             statement.setBoolean("succeeded", flightContext.getResult().isSuccess());
-            statement.setString("error_message", flightContext.getResult().getErrorMessage());
+            statement.setString("error_message", flightContext.getResult().getErrorMessage().orElse(null));
+            statement.setString("status", flightContext.getFlightStatus().name());
 
             statement.getPreparedStatement().executeUpdate();
 
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to log step", ex);
         }
-
     }
 
     /**
@@ -144,24 +129,17 @@ public class Database {
      * This is idempotent; repeated execution will work properly.
      */
     public void complete(FlightContext flightContext) {
-        if (isDatabaseDisabled()) {
-            return;
-        }
-
-        // Make the update idempotent; that is, only do it if it has not already been done by
-        // including the "succeeded IS NULL" predicate.
+        // Make the update idempotent; that is, only do it if the status is RUNNING
         final String sqlUpdateFlight =
                 "UPDATE " + FLIGHT_TABLE +
                         " SET completed_time = CURRENT_TIMESTAMP," +
                         " output_parameters = :output_parameters," +
-                        " succeeded = :succeeded," +
+                        " status = :status," +
                         " error_message = :error_message" +
-                        " WHERE flightid = :flightid AND succeeded IS NULL";
-
+                        " WHERE flightid = :flightid AND status = 'RUNNING'";
 
         // The delete is harmless if it has been done before. We just won't find anything.
         final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid";
-
 
         try (Connection connection = dataSource.getConnection();
              NamedParameterPreparedStatement statement =
@@ -172,8 +150,8 @@ public class Database {
             connection.setAutoCommit(false);
 
             statement.setString("output_parameters", flightContext.getWorkingMap().toJson());
-            statement.setBoolean("succeeded", flightContext.getResult().isSuccess());
-            statement.setString("error_message", flightContext.getResult().getErrorMessage());
+            statement.setString("status", flightContext.getFlightStatus().name());
+            statement.setString("error_message", flightContext.getResult().getErrorMessage().orElse(null));
             statement.setString("flightid", flightContext.getFlightId());
             statement.getPreparedStatement().executeUpdate();
 
@@ -185,28 +163,23 @@ public class Database {
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to complete flight", ex);
         }
-
     }
 
     /**
      * Find all incomplete flights and return the context
      */
     public List<FlightContext> recover() {
-        if (isDatabaseDisabled()) {
-            return new LinkedList<>();
-        }
-
         List<FlightContext> flightList = new LinkedList<>();
 
         final String sqlActiveFlights = "SELECT flightid, class_name, input_parameters" +
                 " FROM " + FLIGHT_TABLE +
-                " WHERE succeeded IS NULL";
+                " WHERE status = 'RUNNING'";
 
-        final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing, succeeded, error_message" +
+        final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing," +
+                " succeeded, error_message, status" +
                 " FROM " + FLIGHT_LOG_TABLE +
                 " WHERE flightid = :flightid AND log_time = " +
                 " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid2)";
-
 
         try (Connection connection = dataSource.getConnection();
              NamedParameterPreparedStatement activeFlightsStatement =
@@ -253,6 +226,8 @@ public class Database {
                         flightContext.setStepIndex(rsflight.getInt("step_index"));
                         flightContext.setDoing(rsflight.getBoolean("doing"));
                         flightContext.setResult(stepResult);
+                        FlightStatus flightStatus = FlightStatus.valueOf(rsflight.getString("status"));
+                        flightContext.setFlightStatus(flightStatus);
                     }
                 }
             }
@@ -263,6 +238,107 @@ public class Database {
 
         return flightList;
     }
+
+    /**
+     * Return flight state for a single flight
+     *
+     * @param flightId
+     * @return FlightState for the flight
+     */
+    public FlightState getFlightState(String flightId) {
+        final String sqlOneFlight = "SELECT flightid, submit_time, input_parameters," +
+                " completed_time, output_parameters, status, error_message" +
+                " FROM " + FLIGHT_TABLE +
+                " WHERE flightid = :flightid";
+
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement oneFlightStatement =
+                     new NamedParameterPreparedStatement(connection, sqlOneFlight)) {
+
+            oneFlightStatement.setString("flightid", flightId);
+
+            try (ResultSet rs = oneFlightStatement.getPreparedStatement().executeQuery()) {
+                List<FlightState> flightStateList = makeFlightStateList(rs);
+                if (flightStateList.size() == 0) {
+                    throw new FlightNotFoundException("Flight not found: " + flightId);
+                }
+                if (flightStateList.size() > 1) {
+                    throw new DatabaseOperationException("Multiple flights with the same id?!");
+                }
+                return flightStateList.get(0);
+            }
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get flight", ex);
+        }
+    }
+
+    public List<FlightState> getFlights(int offset, int limit) {
+        final String sqlFlightRange = "SELECT flightid, submit_time, input_parameters," +
+                " completed_time, output_parameters, status, error_message" +
+                " FROM " + FLIGHT_TABLE +
+                " ORDER BY submit_time" +
+                " LIMIT :limit OFFSET :offset";
+
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement flightRangeStatement =
+                     new NamedParameterPreparedStatement(connection, sqlFlightRange)) {
+
+            flightRangeStatement.setInt("limit", limit);
+            flightRangeStatement.setInt("offset", offset);
+
+            try (ResultSet rs = flightRangeStatement.getPreparedStatement().executeQuery()) {
+                List<FlightState> flightStateList = makeFlightStateList(rs);
+                return flightStateList;
+            }
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get flights", ex);
+        }
+    }
+
+    private List<FlightState> makeFlightStateList(ResultSet rs) throws SQLException {
+        List<FlightState> flightStateList = new ArrayList<>();
+
+        while (rs.next()) {
+            FlightState flightState = new FlightState();
+
+            // Flight data that is always present
+            flightState.setFlightId(rs.getString("flightid"));
+            flightState.setFlightStatus(FlightStatus.valueOf(rs.getString("status")));
+            flightState.setSubmitted(rs.getTimestamp("submit_time"));
+
+            FlightMap inputParameters = new FlightMap();
+            inputParameters.fromJson(rs.getString("input_parameters"));
+            flightState.setInputParameters(inputParameters);
+
+
+            // Only populate the optional fields if the flight is done; that is, not RUNNING
+            if (flightState.getFlightStatus() == FlightStatus.RUNNING) {
+                flightState.setCompleted(Optional.empty());
+                flightState.setErrorMessage(Optional.empty());
+                flightState.setResultMap(Optional.empty());
+            } else {
+                // If the optional flight data is present, then we fill it in
+                flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time")));
+                flightState.setErrorMessage(Optional.ofNullable(rs.getString("error_message")));
+                String outputParamsJson = rs.getString("output_parameters");
+                if (outputParamsJson == null) {
+                    flightState.setResultMap(Optional.empty());
+                } else {
+                    FlightMap outputParameters = new FlightMap();
+                    outputParameters.fromJson(outputParamsJson);
+                    flightState.setResultMap(Optional.of(outputParameters));
+                }
+            }
+
+            flightStateList.add(flightState);
+        }
+
+        return flightStateList;
+    }
+
+
 
     @Override
     public String toString() {

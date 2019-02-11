@@ -32,8 +32,9 @@ databaseChangeLog:
                   name: output_parameters
                   type: text
               - column:
-                  name: succeeded
-                  type: boolean
+                  name: status
+                  type: text
+                  remarks: contains FlightStatus enum values
               - column:
                   name: error_message
                   type: text
@@ -74,6 +75,10 @@ databaseChangeLog:
               - column:
                   name: error_message
                   type: text
+              - column:
+                  name: status
+                  type: text
+                  remarks: contains FlightStatus enum values
         - addPrimaryKey:
             tableName: flightlog
             columnNames: flightid, log_time

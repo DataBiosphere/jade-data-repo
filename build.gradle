@@ -84,6 +84,11 @@ configurations {
     generatedCompile
 }
 
+// Exclude the Spring logger, so everything will use SLF4J
+configurations.all {
+    exclude group: "commons-logging", module: "commons-logging"
+}
+
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'org.springframework.boot:spring-boot-starter-web'
@@ -97,6 +102,14 @@ dependencies {
     compile 'com.google.cloud:google-cloud-bigquery:1.49.0'
     compile 'com.google.cloud:google-cloud-storage:1.49.0'
     compile 'org.liquibase:liquibase-core:3.6.1'         // For upgrade
+    compile 'org.slf4j:slf4j-api:1.7.25'                 // Logging facade
+    compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
+
+    // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
+    // but the groovy config is... well... groovy.
+    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.6'
+
+
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 

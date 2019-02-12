@@ -29,15 +29,6 @@ final class TestUtil {
     static final String wskey = "wskey";
     static final String wfkey = "wfkey";
 
-    // debug output control (until we have logging configured)
-    static final boolean debugOutput = false;
-
-    static void debugWrite(String msg) {
-        if (debugOutput) {
-            System.out.println(msg);
-        }
-    }
-
     static PoolingDataSource<PoolableConnection> setupDataSource(StairwayJdbcConfiguration jdbcConfiguration) {
         Properties props = new Properties();
         props.setProperty("user", jdbcConfiguration.getUsername());

@@ -1,10 +1,12 @@
 package bio.terra.stairway;
 
 import bio.terra.stairway.exception.FlightException;
-
-import static bio.terra.stairway.TestUtil.debugWrite;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TestStepRetry implements Step {
+    private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
+
     private int timesToFail;
     private int timesFailed;
 
@@ -15,15 +17,15 @@ public class TestStepRetry implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        debugWrite("TestStepRetry - timesFailed=" + timesFailed + " timesToFail=" + timesToFail);
+        logger.debug("TestStepRetry - timesFailed=" + timesFailed + " timesToFail=" + timesToFail);
 
         if (timesFailed < timesToFail) {
             timesFailed++;
-            debugWrite(" - failure_retry");
+            logger.debug(" - failure_retry");
             Throwable throwable = new FlightException("step retry failed");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, throwable);
         }
-        debugWrite(" - success");
+        logger.debug(" - success");
         return StepResult.getStepResultSuccess();
     }
 

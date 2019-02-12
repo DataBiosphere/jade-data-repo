@@ -4,18 +4,17 @@ import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Repository
-public class StudyDao extends MetaDao<Study> {
+public class StudyDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final TableDao tableDao;
@@ -36,33 +35,46 @@ public class StudyDao extends MetaDao<Study> {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
-        String sql = "INSERT INTO study (name, description, created_date) VALUES (:name, :description, :created_date)";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("name", study.getName());
-        params.addValue("description", study.getDescription());
-        params.addValue("created_date", new Timestamp(Instant.now().toEpochMilli()));
-        KeyHolder keyHolder = new GeneratedKeyHolder();
+        String sql = "INSERT INTO study (name, description, created_date) VALUES (:name, :description, :createdDate)";
+        Instant now = Instant.now();
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("name", study.getName())
+                .addValue("description", study.getDescription())
+                .addValue("createdDate", new Timestamp(now.toEpochMilli()));
+        UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID studyId = getIdKey(keyHolder);
+        UUID studyId = keyHolder.getId();
         study.setId(studyId);
+        study.setCreatedDate(now);
         tableDao.createStudyTables(study);
         relationshipDao.createStudyRelationships(study);
         assetDao.createAssets(study);
         return studyId;
     }
 
-//    @Override
-//    public Study retrieve(String id) {
-//        return null;
-//    }
-//
-//    @Override
-//    public void delete(String id) {
-//
-//    }
-//
-//    @Override
-//    public List<Study> enumerate() {
-//        return null;
-//    }
+    @Transactional
+    public void delete(UUID id) {
+        jdbcTemplate.update("DELETE FROM study WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", id));
+
+    }
+
+    public Study retrieve(UUID id) {
+        Study study = jdbcTemplate.queryForObject(
+                "SELECT id, name, description, created_date FROM study WHERE id = :id",
+                //this is a hack for check style. if the lambda params are on the next line it fails indentation check
+                new MapSqlParameterSource().addValue("id", id), (
+                        rs, rowNum) -> new Study()
+                        .setId(UUID.fromString(rs.getString("id")))
+                        .setName(rs.getString("name"))
+                        .setDescription(rs.getString("description"))
+                        .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
+        // needed for fix bugs. but really can't be null
+        if (study != null) {
+            tableDao.retrieve(study);
+            relationshipDao.retrieve(study);
+            assetDao.retrieve(study);
+        }
+        return study;
+    }
 }

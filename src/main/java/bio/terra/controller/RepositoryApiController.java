@@ -1,9 +1,14 @@
 package bio.terra.controller;
 
+import bio.terra.JobMapKeys;
+import bio.terra.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
-import bio.terra.model.*;
+import bio.terra.model.ErrorModel;
+import bio.terra.model.JobModel;
+import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import bio.terra.validation.StudyRequestValidator;
@@ -21,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -29,14 +35,21 @@ public class RepositoryApiController implements RepositoryApi {
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final Stairway stairway;
+    private final JobService jobService;
     private final StudyRequestValidator studyRequestValidator;
 
     @Autowired
-    public RepositoryApiController(ObjectMapper objectMapper, HttpServletRequest request, Stairway stairway,
-                                   StudyRequestValidator studyRequestValidator) {
+    public RepositoryApiController(
+            ObjectMapper objectMapper,
+            HttpServletRequest request,
+            Stairway stairway,
+            JobService jobService,
+            StudyRequestValidator studyRequestValidator
+    ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.stairway = stairway;
+        this.jobService = jobService;
         this.studyRequestValidator = studyRequestValidator;
     }
 
@@ -73,13 +86,25 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
     }
 
+    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {
+        return jobService.enumerateJobs(offset, limit);
+    }
+
+    public ResponseEntity<JobModel> retrieveJob(String jobId) {
+        return jobService.retrieveJob(jobId);
+    }
+
+    public ResponseEntity<Object> retrieveJobResult(String jobId) {
+        return jobService.retrieveJobResult(jobId);
+    }
+
     private <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         if (result.getFlightStatus() == FlightStatus.SUCCESS) {
             if (result.getResultMap().isPresent()) {
                 FlightMap resultMap = result.getResultMap().get();
-                return resultMap.get("response", resultClass);
+                return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
             }
             // It should not happen that we have success and no result map
             // This is probably not the right exception, but we will replace this with

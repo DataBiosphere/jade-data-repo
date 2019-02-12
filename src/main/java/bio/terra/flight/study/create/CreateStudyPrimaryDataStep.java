@@ -1,6 +1,7 @@
 package bio.terra.flight.study.create;
 
 import bio.terra.metadata.Study;
+import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
@@ -19,7 +20,7 @@ public class CreateStudyPrimaryDataStep implements Step {
     Study getStudy(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
-        return new Study(studyRequest);
+        return StudyJsonConversion.studyRequestToStudy(studyRequest);
     }
 
     @Override

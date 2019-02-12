@@ -2,6 +2,7 @@ package bio.terra.flight.study.create;
 
 import bio.terra.category.Connected;
 import bio.terra.metadata.Study;
+import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.stairway.FlightMap;
@@ -60,7 +61,7 @@ public class StudyCreateFlightTest {
     public void setup() throws IOException {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
         studyRequest = makeStudyRequest(studyName);
-        study = new Study(studyRequest);
+        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
     }
 
     @After

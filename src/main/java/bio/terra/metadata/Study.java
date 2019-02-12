@@ -1,72 +1,80 @@
 package bio.terra.metadata;
 
-import bio.terra.model.*;
-
-import java.util.*;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 public class Study {
 
     private UUID id;
     private String name;
     private String description;
+    private Instant createdDate;
 
-    private Map<String, StudyTable> tables = new HashMap<>();
-    private Map<String, StudyRelationship> relationships = new HashMap<>();
-    private Map<String, AssetSpecification> assetSpecifications = new HashMap<>();
+    private List<StudyTable> tables = Collections.emptyList();
+    private List<StudyRelationship> relationships = Collections.emptyList();
+    private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
-    public Study(StudyRequestModel studyRequest) {
-        this(studyRequest.getName(), studyRequest.getDescription());
-
-        StudySpecificationModel studySpecification = studyRequest.getSchema();
-        studySpecification.getTables().forEach(tableModel ->
-            tables.put(tableModel.getName(), new StudyTable(tableModel)));
-        studySpecification.getRelationships().forEach(relationship ->
-            relationships.put(relationship.getName(), new StudyRelationship(relationship, tables)));
-        studySpecification.getAssets().forEach(asset ->
-            assetSpecifications.put(asset.getName(), new AssetSpecification(asset, tables, relationships)));
-    }
-
-    public Study(String name, String description) {
-        this.name = name;
-        this.description = description;
-    }
-
-    // Constructor for building studies in unit tests.
-    public Study(String name, String description, Map<String, StudyTable> tables) {
-        this(name, description);
-        this.tables = tables;
-    }
-
-    public StudySummaryModel toSummary() {
-        return new StudySummaryModel()
-                .id(this.id.toString())
-                .name(this.name)
-                .description(this.description);
-    }
-
-    public UUID getId() {
-        return id;
-    }
-
-    public void setId(UUID id) { this.id = id; }
+    public UUID getId() { return id; }
+    public Study setId(UUID id) { this.id = id; return this; }
 
     public String getName() {
         return name;
     }
+    public Study setName(String name) { this.name = name; return this; }
 
     public String getDescription() {
         return description;
     }
+    public Study setDescription(String description) { this.description = description; return this; }
 
-    public Collection<StudyTable> getTables() {
-        return Collections.unmodifiableCollection(tables.values());
+    public Instant getCreatedDate() {
+        return createdDate;
+    }
+    public Study setCreatedDate(Instant createdDate) { this.createdDate = createdDate; return this; }
+
+    public List<StudyTable> getTables() {
+        return tables;
+    }
+    public Study setTables(List<StudyTable> tables) {
+        this.tables = Collections.unmodifiableList(tables);
+        return this;
     }
 
-    public Map<String, StudyRelationship> getRelationships() {
-        return Collections.unmodifiableMap(relationships);
+    public List<StudyRelationship> getRelationships() {
+        return relationships;
+    }
+    public Study setRelationships(List<StudyRelationship> relationships) {
+        this.relationships = Collections.unmodifiableList(relationships);
+        return this;
     }
 
-    public Map<String, AssetSpecification> getAssetSpecifications() {
-        return Collections.unmodifiableMap(assetSpecifications);
+    public List<AssetSpecification> getAssetSpecifications() {
+        return assetSpecifications;
+    }
+    public Study setAssetSpecifications(List<AssetSpecification> assetSpecifications) {
+        this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
+        return this;
+    }
+
+    public Map<UUID, StudyTableColumn> getAllColumnsById() {
+        Map<UUID, StudyTableColumn> columns = new HashMap<>();
+        getTables().forEach(table -> table.getColumns().forEach(column -> columns.put(column.getId(), column)));
+        return columns;
+    }
+
+    public Map<UUID, StudyTable> getTablesById() {
+        Map<UUID, StudyTable> tables = new HashMap<>();
+        getTables().forEach(table -> tables.put(table.getId(), table));
+        return tables;
+    }
+
+    public Map<UUID, StudyRelationship> getRelationshipsById() {
+        Map<UUID, StudyRelationship> relationships = new HashMap<>();
+        getRelationships().forEach(relationship -> relationships.put(relationship.getId(), relationship));
+        return relationships;
     }
 }

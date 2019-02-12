@@ -78,10 +78,10 @@ public class BigQueryPdaoTest {
         tables.add(table1);
         tables.add(table2);
 
-        Study study = new Study()
-                .setName(studyName)
-                .setDescription("this is a test study")
-                .setTables(tables);
+        Study study = new Study();
+        study.setName(studyName)
+                .setDescription("this is a test study");
+        study.setTables(tables);
         return study;
     }
 

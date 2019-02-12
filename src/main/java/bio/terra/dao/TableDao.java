@@ -43,6 +43,8 @@ public class TableDao {
         params.addValue("table_id", tableId);
         UUIDHolder keyHolder = new UUIDHolder();
         for (StudyTableColumn column : columns) {
+            // TODO: feedback please. this is reusing the same param object and just overriding the name and type
+            // values. is this a bad idea? should i be creating a new MapSqlParameterSource every iteration?
             params.addValue("name", column.getName());
             params.addValue("type", column.getType());
             jdbcTemplate.update(sql, params, keyHolder);
@@ -58,26 +60,25 @@ public class TableDao {
 
     // also retrieves columns
     private List<StudyTable> retrieveStudyTables(UUID studyId) {
-        List<StudyTable> tables = jdbcTemplate.query(
-                "SELECT id, name FROM study_table WHERE study_id = :studyId",
-                //this is a hack for check style. if the lambda params are on the next line it fails indentation check
-                new MapSqlParameterSource().addValue("studyId", studyId), (
-                        rs, rowNum) -> new StudyTable()
+        String sql = "SELECT id, name FROM study_table WHERE study_id = :studyId";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
+        List<StudyTable> tables = jdbcTemplate.query(sql, params, (rs, rowNum) ->
+                new StudyTable()
                         .setId(UUID.fromString(rs.getString("id")))
                         .setName(rs.getString("name")));
-        tables.forEach(studyTable -> studyTable.setColumns(retrieveStudyTableColumns(studyTable.getId())));
+        tables.forEach(studyTable -> studyTable.setColumns(retrieveStudyTableColumns(studyTable)));
         return tables;
     }
 
-    private List<StudyTableColumn> retrieveStudyTableColumns(UUID tableId) {
-        List<StudyTableColumn> columns = jdbcTemplate.query(
-                "SELECT id, name, type FROM study_column WHERE table_id = :tableId",
-                //this is a hack for check style. if the lambda params are on the next line it fails indentation check
-                new MapSqlParameterSource().addValue("tableId", tableId), (
-                        rs, rowNum) -> new StudyTableColumn()
+    private List<StudyTableColumn> retrieveStudyTableColumns(StudyTable table) {
+        String sql = "SELECT id, name, type FROM study_column WHERE table_id = :tableId";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("tableId", table.getId());
+        List<StudyTableColumn> columns = jdbcTemplate.query(sql, params, (rs, rowNum) ->
+                new StudyTableColumn()
                         .setId(UUID.fromString(rs.getString("id")))
                         .setName(rs.getString("name"))
-                        .setType(rs.getString("type")));
+                        .setType(rs.getString("type"))
+                        .setInTable(table));
 
         return columns;
     }

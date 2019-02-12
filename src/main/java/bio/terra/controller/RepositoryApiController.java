@@ -4,9 +4,14 @@ import bio.terra.service.JobMapKeys;
 import bio.terra.service.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
+import bio.terra.dao.StudyDao;
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.flight.study.create.StudyCreateFlight;
+import bio.terra.metadata.Study;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.StudyJsonConversion;
+import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
@@ -15,6 +20,8 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.validation.StudyRequestValidator;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.Stairway;
+import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -23,12 +30,14 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.WebDataBinder;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
@@ -38,6 +47,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final Stairway stairway;
     private final JobService jobService;
     private final StudyRequestValidator studyRequestValidator;
+    private final StudyDao studyDao;
 
     @Autowired
     public RepositoryApiController(
@@ -45,13 +55,15 @@ public class RepositoryApiController implements RepositoryApi {
             HttpServletRequest request,
             Stairway stairway,
             JobService jobService,
-            StudyRequestValidator studyRequestValidator
+            StudyRequestValidator studyRequestValidator,
+            StudyDao studyDao
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.stairway = stairway;
         this.jobService = jobService;
         this.studyRequestValidator = studyRequestValidator;
+        this.studyDao = studyDao;
     }
 
     @InitBinder
@@ -90,6 +102,21 @@ public class RepositoryApiController implements RepositoryApi {
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+    }
+
+    public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
+        try {
+            Study study = studyDao.retrieve(UUID.fromString(id));
+            if (study == null) {
+                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            }
+            StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
+            return new ResponseEntity<>(studyModel, HttpStatus.OK);
+        } catch (IllegalArgumentException ex) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        } catch (StudyNotFoundException ex) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {

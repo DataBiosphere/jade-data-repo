@@ -1,7 +1,9 @@
 package bio.terra.dao;
 
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -52,10 +54,15 @@ public class StudySummaryDao {
         }
     }
 
-    public StudySummary retrieve(UUID id) {
-        String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-        return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
+    public StudySummary retrieve(UUID id) throws StudyNotFoundException {
+        try {
+            String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
+        }
+        catch (EmptyResultDataAccessException ex) {
+            throw new StudyNotFoundException("Study not found for id " + id.toString());
+        }
     }
 
     // does not return sub-objects with studies

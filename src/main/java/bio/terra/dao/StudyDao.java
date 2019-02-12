@@ -1,5 +1,6 @@
 package bio.terra.dao;
 
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,4 +75,5 @@ public class StudyDao extends StudySummaryDao {
             return Optional.empty();
         }
     }
+
 }

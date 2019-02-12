@@ -30,14 +30,20 @@ public class JobService {
         FlightMap inputParameters = flightState.getInputParameters();
         String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
         FlightStatus flightStatus = flightState.getFlightStatus(); // needs to be converted -- create a switch
-        JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
-        HttpStatus statusCode = inputParameters.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
         String submittedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(flightState.getSubmitted());
+        JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
 
         String completedDate = null;
+        HttpStatus statusCode = HttpStatus.ACCEPTED;
+
         if (flightState.getCompleted().isPresent()) {
             completedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
                     .format(flightState.getCompleted().get());
+
+            if (flightState.getResultMap().isPresent()) {
+                statusCode = flightState.getResultMap().get()
+                        .get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+            }
         }
 
         JobModel jobModel = new JobModel()

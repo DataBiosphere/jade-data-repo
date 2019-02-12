@@ -48,8 +48,6 @@ info:
   version: "0.1.0"
 
 basePath: /
-consumes:
-  - application/json
 produces:
   - application/json
 
@@ -95,6 +93,8 @@ paths:
       operationId: createDataset
       tags:
       - repository
+      consumes:
+      - application/json
       parameters:
       - in: body
         name: dataset
@@ -179,6 +179,8 @@ paths:
       operationId: createStudy
       tags:
       - repository
+      consumes:
+      - application/json
       parameters:
       - in: body
         name: study
@@ -250,11 +252,13 @@ paths:
       - in: query
         name: offset
         type: integer
+        default: 0
         description: The number of items to skip before starting to collect the result set.
       - in: query
         name: limit
         type: integer
         description: The numbers of items to return.
+        default: 10
       responses:
         200:
           description: List of jobs

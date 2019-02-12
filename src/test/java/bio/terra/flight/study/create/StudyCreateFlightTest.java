@@ -2,9 +2,12 @@ package bio.terra.flight.study.create;
 
 import bio.terra.category.Connected;
 import bio.terra.metadata.Study;
-import bio.terra.model.*;
+import bio.terra.model.StudyRequestModel;
 import bio.terra.pdao.PrimaryDataAccess;
-import bio.terra.stairway.*;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.commons.lang3.StringUtils;

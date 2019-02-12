@@ -18,7 +18,6 @@ import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
-import bio.terra.pdao.PrimaryDataAccess;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +37,6 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.Collections;
 
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
@@ -54,9 +52,6 @@ public class StudyTest {
 
     @MockBean
     private Stairway stairway;
-
-    @MockBean
-    private PrimaryDataAccess pdao;
 
     @Autowired
     private MockMvc mvc;
@@ -136,8 +131,6 @@ public class StudyTest {
         studySummary = new StudySummaryModel()
                 .name("Minimal")
                 .description("This is a sample study definition");
-
-        when(pdao.studyExists(anyString())).thenReturn(false);
     }
 
     private void expectBadStudyCreateRequest(StudyRequestModel studyRequest) throws Exception {
@@ -326,11 +319,6 @@ public class StudyTest {
         expectBadStudyCreateRequest(studyRequest);
     }
 
-    @Test
-    public void testStudyNameInUse() throws Exception {
-        when(pdao.studyExists("Minimal")).thenReturn(true);
-        expectBadStudyCreateRequest(studyRequest);
-    }
 
     @Test
     public void testNoRootTable() throws Exception {

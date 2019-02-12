@@ -1,6 +1,7 @@
 package bio.terra.flight.study.create;
 
 import bio.terra.category.Connected;
+import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
@@ -13,7 +14,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -42,6 +42,9 @@ public class StudyCreateFlightTest {
     private PrimaryDataAccess pdao;
 
     @Autowired
+    private StudyDao studyDao;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private String studyName;
@@ -66,8 +69,10 @@ public class StudyCreateFlightTest {
 
     @After
     public void tearDown() {
-        // TODO: cleanup study using the DAO if it still exists
-
+        Optional<Study> createdStudy = studyDao.retrieveByName(studyName);
+        if (createdStudy.isPresent()) {
+            studyDao.delete(createdStudy.get().getId());
+        }
         if (pdao.studyExists(studyName)) {
             pdao.deleteStudy(study);
         }
@@ -81,7 +86,8 @@ public class StudyCreateFlightTest {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         assertEquals(result.getFlightStatus(), FlightStatus.SUCCESS);
-        // TODO: check that the DAO can read the study
+        Optional<Study> createdStudy = studyDao.retrieveByName(studyName);
+        assertTrue(createdStudy.isPresent());
         assertTrue(pdao.studyExists(studyName));
     }
 
@@ -96,7 +102,8 @@ public class StudyCreateFlightTest {
         Optional<String> errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.isPresent());
         assertThat(errorMessage.get(), containsString("TestTriggerUndoStep"));
-        // TODO: use the DAO to make sure the study is cleaned up
-        Assert.assertFalse(pdao.studyExists(studyName));
+        Optional<Study> createdStudy = studyDao.retrieveByName(studyName);
+        assertFalse(createdStudy.isPresent());
+        assertFalse(pdao.studyExists(studyName));
     }
 }

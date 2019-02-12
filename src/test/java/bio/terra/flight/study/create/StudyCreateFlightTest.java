@@ -5,6 +5,7 @@ import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -69,13 +70,10 @@ public class StudyCreateFlightTest {
 
     @After
     public void tearDown() {
-        Optional<Study> createdStudy = studyDao.retrieveByName(studyName);
-        if (createdStudy.isPresent()) {
-            studyDao.delete(createdStudy.get().getId());
-        }
         if (pdao.studyExists(studyName)) {
             pdao.deleteStudy(study);
         }
+        studyDao.deleteByName(studyName);
     }
 
     @Test
@@ -84,10 +82,18 @@ public class StudyCreateFlightTest {
         map.put("request", studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
+
         FlightState result = stairway.getFlightState(flightId);
-        assertEquals(result.getFlightStatus(), FlightStatus.SUCCESS);
-        Optional<Study> createdStudy = studyDao.retrieveByName(studyName);
+        assertEquals(FlightStatus.SUCCESS, result.getFlightStatus());
+        Optional<FlightMap> resultMap = result.getResultMap();
+        assertTrue(resultMap.isPresent());
+        StudySummaryModel response = resultMap.get().get("response", StudySummaryModel.class);
+        assertEquals(studyName, response.getName());
+
+        Optional<Study> createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
         assertTrue(createdStudy.isPresent());
+        assertEquals(studyName, createdStudy.get().getName());
+
         assertTrue(pdao.studyExists(studyName));
     }
 
@@ -97,13 +103,16 @@ public class StudyCreateFlightTest {
         map.put("request", studyRequest);
         String flightId = stairway.submit(UndoStudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
+
         FlightState result = stairway.getFlightState(flightId);
         assertNotEquals(result.getFlightStatus(), FlightStatus.SUCCESS);
         Optional<String> errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.isPresent());
         assertThat(errorMessage.get(), containsString("TestTriggerUndoStep"));
-        Optional<Study> createdStudy = studyDao.retrieveByName(studyName);
-        assertFalse(createdStudy.isPresent());
+
+        boolean deletedSomething = studyDao.deleteByName(studyName);
+        assertFalse(deletedSomething);
+
         assertFalse(pdao.studyExists(studyName));
     }
 }

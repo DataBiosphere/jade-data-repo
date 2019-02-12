@@ -10,8 +10,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.Optional;
-
 public class CreateStudyMetadataStep implements Step {
 
     private StudyDao studyDao;
@@ -37,10 +35,7 @@ public class CreateStudyMetadataStep implements Step {
         FlightMap inputParameters = context.getInputParameters();
         StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
         String studyName = studyRequest.getName();
-        Optional<Study> study = studyDao.retrieveByName(studyName);
-        if (study.isPresent()) {
-            studyDao.delete(study.get().getId());
-        }
+        studyDao.deleteByName(studyName);
         return StepResult.getStepResultSuccess();
     }
 }

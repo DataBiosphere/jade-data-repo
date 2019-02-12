@@ -1,4 +1,4 @@
-package bio.terra;
+package bio.terra.service;
 
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;

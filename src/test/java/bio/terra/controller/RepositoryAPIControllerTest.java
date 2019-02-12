@@ -1,6 +1,6 @@
 package bio.terra.controller;
 
-import bio.terra.JobMapKeys;
+import bio.terra.service.JobMapKeys;
 import bio.terra.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudySummaryModel;

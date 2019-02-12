@@ -81,6 +81,7 @@ public class FlightMap {
     private ObjectMapper getObjectMapper() {
         if (objectMapper == null) {
             objectMapper = new ObjectMapper();
+            objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
         }
         return objectMapper;
     }

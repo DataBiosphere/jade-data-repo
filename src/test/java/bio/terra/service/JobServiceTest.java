@@ -43,49 +43,61 @@ public class JobServiceTest {
         }
 
         // Test single retrieval
-        ResponseEntity<JobModel> response3 = jobService.retrieveJob(fids.get(2));
-        Assert.assertThat(response3.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        JobModel job3 = response3.getBody();
-        validateJobModel(job3, 2, fids);
+        {
+            ResponseEntity<JobModel> response = jobService.retrieveJob(fids.get(2));
+            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.SEE_OTHER)));
+            JobModel job3 = response.getBody();
+            validateJobModel(job3, 2, fids);
+        }
 
         // Test result retrieval - the body should be the description string
-        ResponseEntity<Object> result = jobService.retrieveJobResult(fids.get(2));
-        Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        String resultDesc = (String)result.getBody();
-        Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
+        {
+            ResponseEntity<Object> result = jobService.retrieveJobResult(fids.get(2));
+            Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.OK)));
+            String resultDesc = (String) result.getBody();
+            Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
+        }
 
         // Retrieve everything
-        ResponseEntity<List<JobModel>> responseAll = jobService.enumerateJobs(0, 100);
-        Assert.assertThat(responseAll.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        List<JobModel> jobList = responseAll.getBody();
-        int index = 0;
-        for (JobModel job : jobList) {
-            validateJobModel(job, index, fids);
-            index++;
+        {
+            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(0, 100);
+            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+            List<JobModel> jobList = response.getBody();
+            int index = 0;
+            for (JobModel job : jobList) {
+                validateJobModel(job, index, fids);
+                index++;
+            }
         }
 
         // Retrieve the middle 3; offset means skip 2 rows
-        ResponseEntity<List<JobModel>> responseMid = jobService.enumerateJobs(2, 3);
-        Assert.assertThat(responseMid.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        jobList = responseMid.getBody();
-        index = 2;
-        for (JobModel job : jobList) {
-            validateJobModel(job, index, fids);
-            index++;
+        {
+            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(2, 3);
+            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+            List<JobModel> jobList = response.getBody();
+            int index = 2;
+            for (JobModel job : jobList) {
+                validateJobModel(job, index, fids);
+                index++;
+            }
         }
 
         // Retrieve from the end; should only get the last one back
-        ResponseEntity<List<JobModel>> responseLast = jobService.enumerateJobs(6, 3);
-        Assert.assertThat(responseMid.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        jobList = responseLast.getBody();
-        Assert.assertThat(jobList.size(), is(1));
-        validateJobModel(jobList.get(0), 6, fids);
+        {
+            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(6, 3);
+            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+            List<JobModel> jobList = response.getBody();
+            Assert.assertThat(jobList.size(), is(1));
+            validateJobModel(jobList.get(0), 6, fids);
+        }
 
         // Retrieve past the end; should get nothing
-        ResponseEntity<List<JobModel>> responseNone = jobService.enumerateJobs(22, 3);
-        Assert.assertThat(responseMid.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        jobList = responseLast.getBody();
-        Assert.assertThat(jobList.size(), is(0));
+        {
+            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(22, 3);
+            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+            List<JobModel> jobList = response.getBody();
+            Assert.assertThat(jobList.size(), is(0));
+        }
     }
 
     @Test(expected = FlightNotFoundException.class)
@@ -101,8 +113,8 @@ public class JobServiceTest {
     private void validateJobModel(JobModel jm, int index, List<String> fids) {
         Assert.assertThat(jm.getDescription(), is(equalTo(makeDescription(index))));
         Assert.assertThat(jm.getId(), is(equalTo(fids.get(index))));
-        Assert.assertThat(jm.getJobStatus(), is(equalTo(JobModel.JobStatusEnum.SUCCEEDED)));
-        Assert.assertThat(jm.getStatusCode(), is(equalTo(HttpStatus.OK)));
+        Assert.assertThat(jm.getJobStatus(), is(JobModel.JobStatusEnum.SUCCEEDED));
+        Assert.assertThat(jm.getStatusCode(), is(HttpStatus.OK.value()));
     }
 
     // Submit a flight; wait for it to finish; return the flight id

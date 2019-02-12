@@ -43,71 +43,69 @@ public class JobServiceTest {
         }
 
         // Test single retrieval
-        {
-            ResponseEntity<JobModel> response = jobService.retrieveJob(fids.get(2));
-            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.SEE_OTHER)));
-            JobModel job3 = response.getBody();
-            validateJobModel(job3, 2, fids);
-        }
+        testSingleRetrieval(fids);
 
         // Test result retrieval - the body should be the description string
-        {
-            ResponseEntity<Object> result = jobService.retrieveJobResult(fids.get(2));
-            Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.OK)));
-            String resultDesc = (String) result.getBody();
-            Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
-        }
+        testResultRetrieval(fids);
 
         // Retrieve everything
-        {
-            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(0, 100);
-            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-            List<JobModel> jobList = response.getBody();
-            int index = 0;
-            for (JobModel job : jobList) {
-                validateJobModel(job, index, fids);
-                index++;
-            }
-        }
+        testEnumRange(fids, 0, 100);
 
         // Retrieve the middle 3; offset means skip 2 rows
-        {
-            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(2, 3);
-            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-            List<JobModel> jobList = response.getBody();
-            int index = 2;
-            for (JobModel job : jobList) {
-                validateJobModel(job, index, fids);
-                index++;
-            }
-        }
+        testEnumRange(fids, 2, 3);
 
         // Retrieve from the end; should only get the last one back
-        {
-            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(6, 3);
-            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-            List<JobModel> jobList = response.getBody();
-            Assert.assertThat(jobList.size(), is(1));
-            validateJobModel(jobList.get(0), 6, fids);
-        }
+        testEnumCount(1, 6, 3);
 
         // Retrieve past the end; should get nothing
-        {
-            ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(22, 3);
-            Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-            List<JobModel> jobList = response.getBody();
-            Assert.assertThat(jobList.size(), is(0));
+        testEnumCount(0, 22, 3);
+    }
+
+    private void testSingleRetrieval(List<String> fids) {
+        ResponseEntity<JobModel> response = jobService.retrieveJob(fids.get(2));
+        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.SEE_OTHER)));
+        JobModel job3 = response.getBody();
+        Assert.assertNotNull(job3);
+        validateJobModel(job3, 2, fids);
+    }
+
+    private void testResultRetrieval(List<String> fids) {
+        ResponseEntity<Object> result = jobService.retrieveJobResult(fids.get(2));
+        Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.OK)));
+        String resultDesc = (String) result.getBody();
+        Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
+    }
+
+    // Get some range and compare it with the fids
+    private void testEnumRange(List<String> fids, int offset, int limit) {
+        ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(offset, limit);
+        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+        List<JobModel> jobList = response.getBody();
+        Assert.assertNotNull(jobList);
+        int index = offset;
+        for (JobModel job : jobList) {
+            validateJobModel(job, index, fids);
+            index++;
         }
+    }
+
+    // Get some range and make sure we got the number we expected
+    private void testEnumCount(int count, int offset, int length) {
+        ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(offset, length);
+        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
+        List<JobModel> jobList = response.getBody();
+        Assert.assertNotNull(jobList);
+        Assert.assertThat(jobList.size(), is(count));
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveJob() {
-        ResponseEntity<JobModel> badResponse = jobService.retrieveJob("abcdef");
+        jobService.retrieveJob("abcdef");
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        ResponseEntity<Object> result = jobService.retrieveJobResult("abcdef");
+        jobService.retrieveJobResult("abcdef");
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {

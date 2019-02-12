@@ -1,4 +1,4 @@
-package bio.terra;
+package bio.terra.service;
 
 
 public enum JobMapKeys {

@@ -1,7 +1,7 @@
 package bio.terra.controller;
 
-import bio.terra.JobMapKeys;
-import bio.terra.JobService;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
@@ -11,6 +11,7 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
+import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.validation.StudyRequestValidator;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -75,6 +76,11 @@ public class RepositoryApiController implements RepositoryApi {
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ErrorModel> handleValidationException(ValidationException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(FlightNotFoundException.class)
+    public ResponseEntity<ErrorModel> handleFlightNotFoundException(FlightNotFoundException ex) {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 

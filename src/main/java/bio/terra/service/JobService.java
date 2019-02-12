@@ -1,4 +1,4 @@
-package bio.terra;
+package bio.terra.service;
 
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
@@ -50,7 +50,7 @@ public class JobService {
                 .id(flightState.getFlightId())
                 .description(description)
                 .jobStatus(jobStatus)
-                .statusCode(statusCode.value())
+                 .statusCode(statusCode.value())
                 .submitted(submittedDate)
                 .completed(completedDate);
 

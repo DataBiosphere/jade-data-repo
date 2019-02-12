@@ -496,6 +496,7 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       is_root:
         type: boolean
+        default: false
       columns:
         type: array
         items:

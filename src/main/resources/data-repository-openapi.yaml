@@ -527,6 +527,7 @@ definitions:
     type: object
     required:
       - tables
+      - assets
     properties:
       tables:
         type: array

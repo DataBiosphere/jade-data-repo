@@ -36,14 +36,16 @@ public class StudyDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
         String sql = "INSERT INTO study (name, description, created_date) VALUES (:name, :description, :createdDate)";
+        Instant now = Instant.now();
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", study.getName())
                 .addValue("description", study.getDescription())
-                .addValue("createdDate", new Timestamp(Instant.now().toEpochMilli()));
+                .addValue("createdDate", new Timestamp(now.toEpochMilli()));
         UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID studyId = keyHolder.getId();
         study.setId(studyId);
+        study.setCreatedDate(now);
         tableDao.createStudyTables(study);
         relationshipDao.createStudyRelationships(study);
         assetDao.createAssets(study);

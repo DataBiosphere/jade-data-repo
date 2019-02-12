@@ -48,8 +48,6 @@ info:
   version: "0.1.0"
 
 basePath: /
-consumes:
-  - application/json
 produces:
   - application/json
 
@@ -95,6 +93,8 @@ paths:
       operationId: createDataset
       tags:
       - repository
+      consumes:
+      - application/json
       parameters:
       - in: body
         name: dataset
@@ -179,6 +179,8 @@ paths:
       operationId: createStudy
       tags:
       - repository
+      consumes:
+      - application/json
       parameters:
       - in: body
         name: study

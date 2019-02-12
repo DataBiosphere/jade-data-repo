@@ -14,8 +14,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -57,28 +57,31 @@ public class BigQueryPdaoTest {
     }
 
     private Study makeStudy(String studyName) {
-        StudyTableColumn col1 = new StudyTableColumn("col1", "string");
-        StudyTableColumn col2 = new StudyTableColumn("col2", "string");
-        StudyTableColumn col3 = new StudyTableColumn("col3", "string");
-        StudyTableColumn col4 = new StudyTableColumn("col4", "string");
+        StudyTableColumn col1 = new StudyTableColumn().setName("col1").setType("string");
+        StudyTableColumn col2 = new StudyTableColumn().setName("col2").setType("string");
+        StudyTableColumn col3 = new StudyTableColumn().setName("col3").setType("string");
+        StudyTableColumn col4 = new StudyTableColumn().setName("col4").setType("string");
 
-        Map<String, StudyTableColumn> tableMap1 = new HashMap<>();
-        tableMap1.put(col1.getName(), col1);
-        tableMap1.put(col2.getName(), col2);
-        StudyTable table1 = new StudyTable("table1", tableMap1);
+        List<StudyTableColumn> table1Columns = new ArrayList<>();
+        table1Columns.add(col1);
+        table1Columns.add(col2);
+        StudyTable table1 = new StudyTable().setName("table1").setColumns(table1Columns);
 
-        Map<String, StudyTableColumn> tableMap2 = new HashMap<>();
-        tableMap2.put(col4.getName(), col4);
-        tableMap2.put(col3.getName(), col3);
-        tableMap2.put(col2.getName(), col2);
-        tableMap2.put(col1.getName(), col1);
-        StudyTable table2 = new StudyTable("table2", tableMap2);
+        List<StudyTableColumn> table2Columns = new ArrayList<>();
+        table2Columns.add(col4);
+        table2Columns.add(col3);
+        table2Columns.add(col2);
+        table2Columns.add(col1);
+        StudyTable table2 = new StudyTable().setName("table2").setColumns(table2Columns);
 
-        Map<String, StudyTable> tables = new HashMap<>();
-        tables.put(table1.getName(), table1);
-        tables.put(table2.getName(), table2);
+        List<StudyTable> tables = new ArrayList<>();
+        tables.add(table1);
+        tables.add(table2);
 
-        Study study = new Study(studyName, "this is a test study", tables);
+        Study study = new Study()
+                .setName(studyName)
+                .setDescription("this is a test study")
+                .setTables(tables);
         return study;
     }
 

@@ -1,75 +1,42 @@
 package bio.terra.metadata;
 
-import bio.terra.model.AssetModel;
-import bio.terra.model.AssetTableModel;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 public class AssetSpecification {
     private UUID id;
     private String name;
-    private StudyTable rootTable;
-    private List<StudyTable> includedTables = new ArrayList<>();
-    private List<AssetColumn> assetColumns = new ArrayList<>();
-    private List<AssetRelationship> assetRelationships;
-
-    public AssetSpecification(AssetModel assetModel,
-                              Map<String, StudyTable> tables,
-                              Map<String, StudyRelationship> relationships) {
-        name = assetModel.getName();
-        processAssetTables(assetModel.getTables(), tables);
-        processAssetRelationships(assetModel.getFollow(), relationships);
-    }
-
-    private void processAssetTables(List<AssetTableModel> assetTables, Map<String, StudyTable> tables) {
-        assetTables.forEach(tblMod -> {
-            StudyTable studyTable = tables.get(tblMod.getName());
-            // TODO fix this so it defaults to false
-            if (tblMod.isIsRoot() != null && tblMod.isIsRoot()) { rootTable = studyTable; }
-            includedTables.add(studyTable);
-            assetColumns.addAll(Collections.unmodifiableList(studyTable.getColumnsMap().entrySet()
-                    .stream()
-                    .filter(entryToFilter -> tblMod.getColumns().contains(entryToFilter.getKey()))
-                    .map(entry -> new AssetColumn(entry.getValue()))
-                    .collect(Collectors.toList())));
-        });
-    }
-
-    private void processAssetRelationships(List<String> assetRelationshipNames,
-                                           Map<String, StudyRelationship> relationships) {
-        assetRelationships = Collections.unmodifiableList(relationships.entrySet()
-                .stream()
-                .filter(map -> assetRelationshipNames.contains(map.getKey()))
-                .map(entry -> new AssetRelationship(entry.getValue()))
-                .collect(Collectors.toList()));
-    }
+    private AssetTable rootTable;
+    private List<AssetTable> assetTables = new ArrayList<>();
+    private List<AssetRelationship> assetRelationships = new ArrayList<>();
 
     public UUID getId() {
         return id;
     }
-
-    public void setId(UUID id) {
-        this.id = id;
-    }
+    public AssetSpecification setId(UUID id) { this.id = id; return this; }
 
     public String getName() {
         return name;
     }
+    public AssetSpecification setName(String name) { this.name = name; return this; }
 
-    public StudyTable getRootTable() {
-        return rootTable;
+    public AssetTable getRootTable() { return rootTable; }
+    public AssetSpecification setRootTable(AssetTable rootTable) { this.rootTable = rootTable; return this; }
+
+    public List<AssetRelationship> getAssetRelationships() { return Collections.unmodifiableList(assetRelationships); }
+    public AssetSpecification setAssetRelationships(List<AssetRelationship> assetRelationships) {
+        this.assetRelationships = assetRelationships;
+        return this;
     }
 
-    public List<StudyTable> getIncludedTables() {
-        return Collections.unmodifiableList(includedTables);
+    public List<AssetTable> getAssetTables() {
+        return Collections.unmodifiableList(assetTables);
     }
-
-    public List<AssetColumn> getAssetColumns() {
-        return Collections.unmodifiableList(assetColumns);
-    }
-
-    public List<AssetRelationship> getAssetRelationships() {
-        return Collections.unmodifiableList(assetRelationships);
+    public AssetSpecification setAssetTables(List<AssetTable> includedTables) {
+        this.assetTables = includedTables;
+        return this;
     }
 }

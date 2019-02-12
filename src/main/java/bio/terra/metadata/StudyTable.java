@@ -1,45 +1,34 @@
 package bio.terra.metadata;
 
-import bio.terra.model.ColumnModel;
-import bio.terra.model.TableModel;
-
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 public class StudyTable {
 
     private String name;
-    private Map<String, StudyTableColumn> columns;
+    private List<StudyTableColumn> columns = new ArrayList<>();
     private UUID id;
 
-    public StudyTable(TableModel tableModel) {
-        this.name = tableModel.getName();
-        this.columns = new HashMap<>();
-        for (ColumnModel columnModel : tableModel.getColumns()) {
-            this.columns.put(columnModel.getName(), new StudyTableColumn(columnModel));
-        }
-    }
-
-    // Constructor for assembling test studies. Maybe useful for DAO.
-    public StudyTable(String name, Map<String, StudyTableColumn> studyTableColumns) {
-        this.name = name;
-        this.columns = studyTableColumns;
-    }
-
-    public String getName() { return name; }
-
     public UUID getId() { return id; }
+    public StudyTable setId(UUID id) { this.id = id; return this; }
 
-    public void setId(UUID tableId) { this.id = tableId; }
+    public String getName() {
+        return name;
+    }
+    public StudyTable setName(String name) { this.name = name; return this; }
 
-    public Collection<StudyTableColumn> getColumns() {
-        return Collections.unmodifiableCollection(columns.values());
+    public Collection<StudyTableColumn> getColumns() { return columns; }
+    public StudyTable setColumns(List<StudyTableColumn> columns) { this.columns = columns; return this; }
+
+    public Map<String, StudyTableColumn> getColumnsMap() {
+        Map<String, StudyTableColumn> columnMap = new HashMap<>();
+        columns.forEach(column -> columnMap.put(column.getName(), column));
+        return Collections.unmodifiableMap(columnMap);
     }
 
-    protected Map<String, StudyTableColumn> getColumnsMap() {
-        return Collections.unmodifiableMap(columns);
-    }
 }

@@ -496,6 +496,7 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       is_root:
         type: boolean
+        default: false
       columns:
         type: array
         items:
@@ -688,21 +689,24 @@ definitions:
     type: object
     required:
     - id
-    - status
-    - submitted
+    - job_status
+    - status_code
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
       description:
         type: string
         description: Description of the job's flight # from description flight input parameter
-      status:
+      job_status:
         description: Status of job
         type: string
         enum:
           - running
           - succeeded
           - failed
+      status_code:
+        description: HTTP code
+        type: integer
       submitted:
         type: string
         description: Timestamp when the flight was created

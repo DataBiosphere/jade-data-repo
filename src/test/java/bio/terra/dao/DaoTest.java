@@ -81,6 +81,11 @@ public class DaoTest {
     }
 
     protected void assertStudyTable(StudyTable table) {
+        if (table.getName().equals("participant")) {
+            assertThat("participant table has 4 columns",
+                    table.getColumns().size(),
+                    equalTo(4));
+        }
 
     }
 
@@ -93,6 +98,15 @@ public class DaoTest {
             assertThat("other asset created is Sample",
                     spec.getName(),
                     equalTo("Sample"));
+            assertThat("Sample asset has 2 tables",
+                    spec.getAssetTables().size(),
+                    equalTo(2));
+            assertThat("sample is the root table",
+                    spec.getRootTable().getStudyTable().getName(),
+                    equalTo("sample"));
+            assertThat("and 3 columns",
+                    spec.getRootTable().getColumns().size(),
+                    equalTo(3));
         }
     }
 }

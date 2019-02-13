@@ -104,19 +104,20 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
     }
 
+    @ExceptionHandler(StudyNotFoundException.class)
+    public ResponseEntity<ErrorModel> handleStudyNotFoundException(StudyNotFoundException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorModel> handleStudyNotFoundException(IllegalArgumentException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
-        try {
-            Study study = studyDao.retrieve(UUID.fromString(id));
-            if (study == null) {
-                return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-            }
-            StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
-            return new ResponseEntity<>(studyModel, HttpStatus.OK);
-        } catch (IllegalArgumentException ex) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        } catch (StudyNotFoundException ex) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
+        Study study = studyDao.retrieve(UUID.fromString(id));
+        StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
+        return new ResponseEntity<>(studyModel, HttpStatus.OK);
     }
 
     public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {

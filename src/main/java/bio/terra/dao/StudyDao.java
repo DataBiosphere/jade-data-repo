@@ -2,6 +2,7 @@ package bio.terra.dao;
 
 import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -53,28 +55,39 @@ public class StudyDao {
     }
 
     @Transactional
-    public void delete(UUID id) {
-        jdbcTemplate.update("DELETE FROM study WHERE id = :id",
+    public boolean delete(UUID id) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM study WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id));
-
+        return rowsAffected > 0;
     }
 
-    public Study retrieve(UUID id) {
-        Study study = jdbcTemplate.queryForObject(
-                "SELECT id, name, description, created_date FROM study WHERE id = :id",
-                //this is a hack for check style. if the lambda params are on the next line it fails indentation check
-                new MapSqlParameterSource().addValue("id", id), (
-                        rs, rowNum) -> new Study()
-                        .setId(UUID.fromString(rs.getString("id")))
-                        .setName(rs.getString("name"))
-                        .setDescription(rs.getString("description"))
-                        .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
-        // needed for fix bugs. but really can't be null
-        if (study != null) {
-            tableDao.retrieve(study);
-            relationshipDao.retrieve(study);
-            assetDao.retrieve(study);
+    @Transactional
+    public boolean deleteByName(String studyName) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM study WHERE name = :name",
+                new MapSqlParameterSource().addValue("name", studyName));
+        return rowsAffected > 0;
+    }
+
+    public Optional<Study> retrieve(UUID id) {
+        String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+        try {
+            Study study = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                    new Study()
+                            .setId(UUID.fromString(rs.getString("id")))
+                            .setName(rs.getString("name"))
+                            .setDescription(rs.getString("description"))
+                            .setCreatedDate(Instant.from(rs.getObject("created_date",
+                                    OffsetDateTime.class))));
+            // needed for fix bugs. but really can't be null
+            if (study != null) {
+                tableDao.retrieve(study);
+                relationshipDao.retrieve(study);
+                assetDao.retrieve(study);
+            }
+            return Optional.of(study);
+        } catch (EmptyResultDataAccessException ex) {
+            return Optional.empty();
         }
-        return study;
     }
 }

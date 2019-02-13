@@ -1,9 +1,11 @@
 package bio.terra.flight.study.create;
 
 import bio.terra.category.Connected;
+import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -13,7 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -42,6 +43,9 @@ public class StudyCreateFlightTest {
     private PrimaryDataAccess pdao;
 
     @Autowired
+    private StudyDao studyDao;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private String studyName;
@@ -66,11 +70,10 @@ public class StudyCreateFlightTest {
 
     @After
     public void tearDown() {
-        // TODO: cleanup study using the DAO if it still exists
-
         if (pdao.studyExists(studyName)) {
             pdao.deleteStudy(study);
         }
+        studyDao.deleteByName(studyName);
     }
 
     @Test
@@ -79,9 +82,18 @@ public class StudyCreateFlightTest {
         map.put("request", studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
+
         FlightState result = stairway.getFlightState(flightId);
-        assertEquals(result.getFlightStatus(), FlightStatus.SUCCESS);
-        // TODO: check that the DAO can read the study
+        assertEquals(FlightStatus.SUCCESS, result.getFlightStatus());
+        Optional<FlightMap> resultMap = result.getResultMap();
+        assertTrue(resultMap.isPresent());
+        StudySummaryModel response = resultMap.get().get("response", StudySummaryModel.class);
+        assertEquals(studyName, response.getName());
+
+        Optional<Study> createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
+        assertTrue(createdStudy.isPresent());
+        assertEquals(studyName, createdStudy.get().getName());
+
         assertTrue(pdao.studyExists(studyName));
     }
 
@@ -91,12 +103,16 @@ public class StudyCreateFlightTest {
         map.put("request", studyRequest);
         String flightId = stairway.submit(UndoStudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
+
         FlightState result = stairway.getFlightState(flightId);
         assertNotEquals(result.getFlightStatus(), FlightStatus.SUCCESS);
         Optional<String> errorMessage = result.getErrorMessage();
         assertTrue(errorMessage.isPresent());
         assertThat(errorMessage.get(), containsString("TestTriggerUndoStep"));
-        // TODO: use the DAO to make sure the study is cleaned up
-        Assert.assertFalse(pdao.studyExists(studyName));
+
+        boolean deletedSomething = studyDao.deleteByName(studyName);
+        assertFalse(deletedSomething);
+
+        assertFalse(pdao.studyExists(studyName));
     }
 }

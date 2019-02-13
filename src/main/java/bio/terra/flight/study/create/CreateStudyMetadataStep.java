@@ -12,10 +12,10 @@ import bio.terra.stairway.StepResult;
 
 public class CreateStudyMetadataStep implements Step {
 
-    private StudyDao studyDAO;
+    private StudyDao studyDao;
 
-    public CreateStudyMetadataStep(StudyDao studyDAO) {
-        this.studyDAO = studyDAO;
+    public CreateStudyMetadataStep(StudyDao studyDao) {
+        this.studyDao = studyDao;
     }
 
     @Override
@@ -24,9 +24,7 @@ public class CreateStudyMetadataStep implements Step {
         FlightMap inputParameters = context.getInputParameters();
         StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
         Study newStudy = StudyJsonConversion.studyRequestToStudy(studyRequest);
-//        UUID studyid =
-        studyDAO.create(newStudy);
-        // TODO: get the id back, fetch the Study by ID and return a summary with created_date
+        studyDao.create(newStudy);
         StudySummaryModel studySummary = StudyJsonConversion.studySummaryFromStudy(newStudy);
         workingMap.put("response", studySummary);
         return StepResult.getStepResultSuccess();
@@ -34,7 +32,10 @@ public class CreateStudyMetadataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // TODO: delete study with DAO
+        FlightMap inputParameters = context.getInputParameters();
+        StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
+        String studyName = studyRequest.getName();
+        studyDao.deleteByName(studyName);
         return StepResult.getStepResultSuccess();
     }
 }

@@ -40,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class RepositoryAPIControllerTest {
+public class JobTest {
 
     @MockBean
     private Stairway stairway;

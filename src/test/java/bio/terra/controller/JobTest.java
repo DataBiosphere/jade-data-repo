@@ -78,7 +78,24 @@ public class JobTest {
     }
 
     @Test
-    public void retrieveJobsTest() throws Exception {
+    public void retrieveJobStillRunningTest() throws Exception {
+        FlightState flightState = FlightStates.makeFlightRunningState();
+
+        when(stairway.getFlightState(any())).thenReturn(flightState);
+
+        mvc.perform(get(String.format("/api/repository/v1/jobs/%s", testFlightId))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(jobModel)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(testFlightId))
+                .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
+                .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
+                .andExpect(jsonPath("$.submitted").value(submittedTimeFormatted))
+                .andExpect(jsonPath("$.completed").isEmpty());
+    }
+
+    @Test
+    public void retrieveJobTest() throws Exception {
         FlightState flightState = FlightStates.makeFlightCompletedState();
 
         when(stairway.getFlightState(any())).thenReturn(flightState);

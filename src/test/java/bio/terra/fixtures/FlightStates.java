@@ -1,3 +1,4 @@
+// CHECKSTYLE:OFF
 package bio.terra.fixtures;
 
 import bio.terra.model.StudySummaryModel;

@@ -308,6 +308,7 @@ paths:
       - $ref: '#/parameters/Id'
       responses: ## successful responses return the type of model specified by the job
         default:
+          description: Successful responses return the type of model specified by the job; otherwise, ErrorModel
           schema:
             type: object
 
@@ -548,53 +549,18 @@ definitions:
 
   ## Dataset Definitions ##
 
-  DatasetModel:
-    description: |
-      complete dataset
-      Schema is the shape of the resulting dataset: the table names and columns in the
-      tables. The datatypes are derived from the underlying data.
-      DatasetData provides the rows from the asset that are to be included in the
-      dataset. DatasetMapping instructs how to map columns from tables on the columns
-      in the dataset schema.
-    type: object
-    required:
-      - id
-      - name
-      - tables
-      - source
-      - createdDate
-    properties:
-      id:
-        $ref: '#/definitions/UniqueIdProperty'
-      name:
-        $ref: '#/definitions/ObjectNameProperty'
-      description:
-        type: string
-        description: Description of the dataset
-      tables:
-        type: array
-        items:
-          $ref: '#/definitions/TableModel'
-      source:
-        type: array
-        items:
-          $ref: '#/definitions/DatasetSourceModel'
-      createdDate:
-        type: string
-        description: Date the dataset was created
-
   DatasetRequestModel:
     description: |
-      complete dataset save the dataset id, for dataset creation
-      Schema is the shape of the resulting dataset: the table names and columns in the
-      tables. The datatypes are derived from the underlying data.
-      DatasetData provides the rows from the asset that are to be included in the
-      dataset. DatasetMapping instructs how to map columns from tables on the columns
-      in the dataset schema.
+      Request for creating a dataset.
+      For now, the API only supports datasets defined as a single study asset and
+      row ids for the root table of that asset. The dataset has exactly the tables
+      and columns of the asset.
+      In the future, we will need to extend this to handle cross-study datasets
+      from disparate assets, so we will need to support column and datatype
+      mapping from asset tables to the target dataset tables.
     type: object
     required:
       - name
-      - tables
       - source
     properties:
       name:
@@ -602,14 +568,32 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-      tables:
-        type: array
-        items:
-          $ref: '#/definitions/TableModel'
       source:
         type: array
         items:
-          $ref: '#/definitions/DatasetSourceModel'
+          $ref: '#/definitions/DatasetRequestSourceModel'
+
+  DatasetRequestSourceModel:
+    description: |
+      The datasource identifies the study and asset from which to source the data.
+      It specifies a field name and a set of values used to identify the rows to include.
+    type: object
+    required:
+      - studyName
+      - assetName
+      - fieldName
+      - rows
+    properties:
+      studyName:
+        $ref: '#/definitions/ObjectNameProperty'
+      assetName:
+        $ref: '#/definitions/ObjectNameProperty'
+      fieldName:
+        $ref: '#/definitions/ObjectNameProperty'
+      values:
+        type: array
+        items:
+          type: string
 
   DatasetSummaryModel:
     description: |
@@ -630,62 +614,46 @@ definitions:
         type: string
         description: Date the dataset was created
 
+  DatasetModel:
+    description: |
+      DatasetModel returns detailed data about an existing dataset.
+    type: object
+    required:
+      - id
+      - name
+      - source
+      - createdDate
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+      name:
+        $ref: '#/definitions/ObjectNameProperty'
+      description:
+        type: string
+        description: Description of the dataset
+      createdDate:
+        type: string
+        description: Date the dataset was created
+      source:
+        type: array
+        items:
+          $ref: '#/definitions/DatasetSourceModel'
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/TableModel'
+
   DatasetSourceModel:
     description: |
-      The datasource identifies the study from which to source the data and how to map that data into the
-      dataset schema. If the dataset is immutable, then you must provide the asset of the study to use and the set
-      of row ids of the root table of that asset to include in the dataset. If the dataset is passthru, then you
-      must not specify an asset or rows.
+      DatasetSourceModel returns data about the source for an existing dataset
     type: object
     required:
       - study
-      - mapping
+      - asset
     properties:
       study:
-        $ref: '#/definitions/ObjectNameProperty'
+        $ref: '#/definitions/StudySummaryModel'
       asset:
-        $ref: '#/definitions/ObjectNameProperty'
-      rows:
-        type: array
-        items:
-          type: string
-      mapping:
-        type: array
-        items:
-          $ref: '#/definitions/DatasetMappingModel'
-
-  DatasetMappingModel:
-    description: |
-      Mapping of asset table and columns to target dataset table and columns. The from_table is a table
-      in the asset. The to_table has to be the name of a table in the dataset schema. And, perhaps
-      obviously, the columns have to be valid references in their appropriate tables. The DR Manager computes the
-      datatype of the target column based on the source columns. If no mapping is specified for a dataset table,
-      then we match by table name and column name. That allows no specification for the typical case where the
-      names all match and all columns are included.
-    type: object
-    required:
-      - from_table
-      - to_table
-      - column_map
-    properties:
-      from_table:
-        $ref: '#/definitions/ObjectNameProperty'
-      to_table:
-        $ref: '#/definitions/ObjectNameProperty'
-      column_map:
-        type: array
-        items:
-          $ref: '#/definitions/DatasetMapColumnsModel'
-
-  DatasetMapColumnsModel:
-    description: Column to column mapping
-    required:
-      - from_column
-      - to_column
-    properties:
-      from_column:
-        $ref: '#/definitions/ObjectNameProperty'
-      to_column:
         $ref: '#/definitions/ObjectNameProperty'
 
   JobModel:
@@ -701,7 +669,7 @@ definitions:
         $ref: '#/definitions/UniqueIdProperty'
       description:
         type: string
-        description: Description of the job's flight # from description flight input parameter
+        description: Description of the job's flight from description flight input parameter
       job_status:
         description: Status of job
         type: string

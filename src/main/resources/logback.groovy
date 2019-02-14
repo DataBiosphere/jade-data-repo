@@ -22,8 +22,8 @@ appender("File-Appender", FileAppender) {
     }
 }
 
-// You can set different logging configuration. This would set all loggers in the Stairway
-// package to log at debug level.
+// You can set different logging configuration. For example, uncommenting the next line
+// will set all loggers in the Stairway package to log at debug level:
 // logger("bio.terra.stairway", DEBUG)
 
 // root sets the default logging level and appenders

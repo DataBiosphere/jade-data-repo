@@ -27,6 +27,7 @@ hs_err_pid*
 
 # IntelliJ files *
 .idea/
+*.iml
 
 # build results
 out/

@@ -15,11 +15,9 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySpecificationModel;
-import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
-import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
@@ -37,8 +35,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.sql.Timestamp;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
@@ -53,6 +49,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+
+import bio.terra.fixtures.FlightStates;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -79,7 +79,6 @@ public class StudyTest {
     private AssetModel asset;
     private StudySpecificationModel schema;
     private StudyRequestModel studyRequest;
-    private StudySummaryModel studySummary;
 
     private static final String testFlightId = "test-flight-id";
 
@@ -138,9 +137,6 @@ public class StudyTest {
                 .description("This is a sample study definition")
                 .schema(schema);
 
-        studySummary = new StudySummaryModel()
-                .name("Minimal")
-                .description("This is a sample study definition");
     }
 
     private void expectBadStudyCreateRequest(StudyRequestModel studyRequest) throws Exception {
@@ -152,7 +148,7 @@ public class StudyTest {
 
     @Test
     public void testMinimalCreate() throws Exception {
-        FlightState flightState = makeFlightState();
+        FlightState flightState = FlightStates.makeFlightSimpleState();
 
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
                 .thenReturn(testFlightId);
@@ -171,7 +167,7 @@ public class StudyTest {
 
     @Test
     public void testMinimalJsonCreate() throws Exception {
-        FlightState flightState = makeFlightState();
+        FlightState flightState = FlightStates.makeFlightSimpleState();
 
         when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
                 .thenReturn(testFlightId);
@@ -228,22 +224,6 @@ public class StudyTest {
 
         studyRequest.getSchema().tables(Collections.singletonList(table));
         expectBadStudyCreateRequest(studyRequest);
-    }
-
-    private FlightState makeFlightState() {
-        // Construct a mock FlightState
-        FlightMap resultMap = new FlightMap();
-        resultMap.put("response", studySummary);
-
-        FlightState flightState = new FlightState();
-        flightState.setFlightId(testFlightId);
-        flightState.setFlightStatus(FlightStatus.SUCCESS);
-        flightState.setSubmitted(Timestamp.from(Instant.now()));
-        flightState.setInputParameters(resultMap); // unused
-        flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
-        flightState.setErrorMessage(Optional.empty());
-        return flightState;
     }
 
     @Test

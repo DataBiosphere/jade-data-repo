@@ -1,9 +1,9 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ApiException;
-import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.metadata.Study;
 import bio.terra.model.ErrorModel;

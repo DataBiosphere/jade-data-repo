@@ -1,9 +1,12 @@
 package bio.terra.metadata;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class Study extends StudySummary {
@@ -39,6 +42,15 @@ public class Study extends StudySummary {
     public Study setAssetSpecifications(List<AssetSpecification> assetSpecifications) {
         this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
         return this;
+    }
+
+    public Optional<AssetSpecification> getAssetSpecificationByName(String name) {
+        for (AssetSpecification assetSpecification : getAssetSpecifications()) {
+            if (StringUtils.equals(name, assetSpecification.getName())) {
+                return Optional.of(assetSpecification);
+            }
+        }
+        return Optional.empty();
     }
 
     public Map<UUID, StudyTableColumn> getAllColumnsById() {

@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -39,6 +40,15 @@ public class Table {
     public Table columns(List<Column> columns) {
         this.columns = columns;
         return this;
+    }
+
+    public Optional<Column> getColumnById(UUID id) {
+        for (Column tryColumn : getColumns()) {
+            if (tryColumn.getId().equals(id)) {
+                return Optional.of(tryColumn);
+            }
+        }
+        return Optional.empty();
     }
 
     // Build a name to column map

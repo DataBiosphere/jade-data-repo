@@ -3,6 +3,7 @@ package bio.terra.metadata;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class Dataset {
@@ -65,5 +66,15 @@ public class Dataset {
     public Dataset datasetSources(List<DatasetSource> datasetSources) {
         this.datasetSources = datasetSources;
         return this;
+    }
+
+    public Optional<Table> getTableById(UUID id) {
+        Table table = null;
+        for (Table tryTable : getTables()) {
+            if (tryTable.getId().equals(id)) {
+                table = tryTable;
+            }
+        }
+        return Optional.ofNullable(table);
     }
 }

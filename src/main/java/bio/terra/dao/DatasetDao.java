@@ -1,14 +1,23 @@
 package bio.terra.dao;
 
+import bio.terra.dao.exceptions.CorruptMetadataException;
+import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.Study;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -17,14 +26,17 @@ public class DatasetDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final DatasetTableDao datasetTableDao;
     private final DatasetMapTableDao datasetMapTableDao;
+    private final StudyDao studyDao;
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
                       DatasetTableDao datasetTableDao,
-                      DatasetMapTableDao datasetMapTableDao) {
+                      DatasetMapTableDao datasetMapTableDao,
+                      StudyDao studyDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.datasetTableDao = datasetTableDao;
         this.datasetMapTableDao = datasetMapTableDao;
+        this.studyDao = studyDao;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -59,6 +71,90 @@ public class DatasetDao {
         UUID id = keyHolder.getId();
         datasetSource.id(id);
         datasetMapTableDao.createTables(id, datasetSource.getDatasetMapTables());
+    }
+
+    public Optional<Dataset> retrieveDataset(UUID datasetId) {
+        String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", datasetId);
+        return retrieveWorker(sql, params);
+    }
+
+    public Optional<Dataset> retrieveDatasetByNae(String name) {
+        String sql = "SELECT id, name, description, created_date FROM dataset WHERE nane = :name";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
+        return retrieveWorker(sql, params);
+    }
+
+    private Optional<Dataset> retrieveWorker(String sql, MapSqlParameterSource params) {
+        try {
+            Dataset dataset = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                    new Dataset()
+                            .id(UUID.fromString(rs.getString("id")))
+                            .name(rs.getString("name"))
+                            .description(rs.getString("description"))
+                            .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
+            // needed for fix bugs. but really can't be null
+            if (dataset != null) {
+                // retrieve the dataset tables
+                dataset.datasetTables(datasetTableDao.retrieveTables(dataset.getId()));
+
+                // Must be done after we we make the dataset tables so we can resolve the table and column references
+                dataset.datasetSources(retrieveDatasetSources(dataset));
+            }
+            return Optional.of(dataset);
+        } catch (EmptyResultDataAccessException ex) {
+            return Optional.empty();
+        }
+    }
+
+    private List<DatasetSource> retrieveDatasetSources(Dataset dataset) {
+        // We collect all of the source ids first to avoid introducing a recursive query. While the recursive
+        // query might work, it makes debugging errors more difficult.
+        class RawSourceData {
+            private UUID id;
+            private UUID studyId;
+            private UUID assetId;
+        }
+
+        String sql = "SELECT id, study_id, asset_id FROM dataset_source WHERE dataset_id = :dataset_id";
+        List<RawSourceData> rawList =
+            jdbcTemplate.query(
+                sql,
+                new MapSqlParameterSource().addValue("dataset_id", dataset.getId()),
+                (rs, rowNum) -> {
+                    RawSourceData raw = new RawSourceData();
+                    raw.id = UUID.fromString(rs.getString("id"));
+                    raw.studyId = UUID.fromString(rs.getString("study_id"));
+                    raw.assetId = UUID.fromString(rs.getString("asset_id"));
+                    return raw;
+                });
+
+        List<DatasetSource> datasetSources = new ArrayList<>();
+        for (RawSourceData raw : rawList) {
+            Optional<Study> study = studyDao.retrieve(raw.studyId);
+            if (!study.isPresent()) {
+                throw new CorruptMetadataException("Study referenced by dataset source was not found!");
+            }
+
+            // Find the matching asset in the study
+            Optional<AssetSpecification> assetSpecification = study.get().getAssetSpecificationById(raw.assetId);
+            if (!assetSpecification.isPresent()) {
+                throw new CorruptMetadataException("Asset referenced by dataset source was not found!");
+            }
+
+            DatasetSource datasetSource = new DatasetSource()
+                    .id(raw.id)
+                    .dataset(dataset)
+                    .study(study.get())
+                    .assetSpecification(assetSpecification.get());
+
+            // Now that we have access to all of the parts, build the map structure
+            datasetSource.datasetMapTables(datasetMapTableDao.retrieveMapTables(dataset, datasetSource));
+
+            datasetSources.add(datasetSource);
+        }
+
+        return datasetSources;
     }
 
 }

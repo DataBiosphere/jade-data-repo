@@ -1,14 +1,23 @@
 package bio.terra.dao;
 
+import bio.terra.dao.exceptions.CorruptMetadataException;
+import bio.terra.metadata.Column;
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
+import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.StudyTable;
+import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -52,6 +61,68 @@ public class DatasetMapTableDao {
             UUID id = keyHolder.getId();
             column.id(id);
         }
+    }
+
+    public List<DatasetMapTable> retrieveMapTables(Dataset dataset, DatasetSource source) {
+        String sql = "SELECT id, source_id, from_table_id, to_table_id" +
+                " FROM dataset_map_table WHERE source_id = :source_id";
+        List<DatasetMapTable> mapTableList = jdbcTemplate.query(
+            sql,
+            new MapSqlParameterSource().addValue("source_id", source.getId()),
+            (rs, rowNum) -> {
+                List<DatasetMapTable> mapTables = new ArrayList<>();
+                UUID fromTableId = UUID.fromString(rs.getString("from_table_id"));
+                Optional<StudyTable> studyTable = source.getStudy().getTableById(fromTableId);
+                if (!studyTable.isPresent()) {
+                    throw new CorruptMetadataException(
+                            "Study table referenced by dataset source map table was not found!");
+                }
+
+                UUID toTableId = UUID.fromString(rs.getString("to_table_id"));
+                Optional<Table> datasetTable = dataset.getTableById(toTableId);
+                if (!datasetTable.isPresent()) {
+                    throw new CorruptMetadataException(
+                            "Dataset table referenced by dataset source map table was not found!");
+                }
+
+                return new DatasetMapTable()
+                        .id(UUID.fromString(rs.getString("id")))
+                        .fromTable(studyTable.get())
+                        .toTable(datasetTable.get());
+            });
+
+        return mapTableList;
+    }
+
+    public List<DatasetMapColumn> retrieveMapColumns(UUID mapTableId, StudyTable fromTable, Table toTable) {
+        String sql = "SELECT id, from_column_id, to_column_id" +
+                " FROM dataset_map_column WHERE map_table_id = :map_table_id";
+
+        List<DatasetMapColumn> mapColumns = jdbcTemplate.query(
+            sql,
+            new MapSqlParameterSource().addValue("map_table_id", mapTableId),
+            (rs, rowNum) -> {
+                UUID fromId = UUID.fromString(rs.getString("from_column_id"));
+                Optional<StudyTableColumn> studyColumn = fromTable.getColumnById(fromId);
+                if (!studyColumn.isPresent()) {
+                    throw new CorruptMetadataException(
+                            "Study column referenced by dataset source map column was not found");
+                }
+
+                UUID toId = UUID.fromString(rs.getString("from_column_id"));
+                Optional<Column> datasetColumn = toTable.getColumnById(toId);
+                if (!datasetColumn.isPresent()) {
+                    throw new CorruptMetadataException(
+                            "Dataset  column referenced by dataset source map column was not found");
+                }
+
+                return new DatasetMapColumn()
+                        .id(UUID.fromString(rs.getString("from_column_id")))
+                        .fromColumn(studyColumn.get())
+                        .toColumn(datasetColumn.get());
+            });
+
+        return mapColumns;
     }
 
 }

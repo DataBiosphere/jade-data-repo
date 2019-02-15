@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class StudyTable {
@@ -31,4 +32,12 @@ public class StudyTable {
         return Collections.unmodifiableMap(columnMap);
     }
 
+    public Optional<StudyTableColumn> getColumnById(UUID id) {
+        for (StudyTableColumn tryColumn : getColumns()) {
+            if (tryColumn.getId().equals(id)) {
+                return Optional.of(tryColumn);
+            }
+        }
+        return Optional.empty();
+    }
 }

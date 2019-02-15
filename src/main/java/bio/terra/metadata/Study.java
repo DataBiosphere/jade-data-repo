@@ -53,6 +53,15 @@ public class Study extends StudySummary {
         return Optional.empty();
     }
 
+    public Optional<AssetSpecification> getAssetSpecificationById(UUID id) {
+        for (AssetSpecification assetSpecification : getAssetSpecifications()) {
+            if (assetSpecification.getId().equals(id)) {
+                return Optional.of(assetSpecification);
+            }
+        }
+        return Optional.empty();
+    }
+
     public Map<UUID, StudyTableColumn> getAllColumnsById() {
         Map<UUID, StudyTableColumn> columns = new HashMap<>();
         getTables().forEach(table -> table.getColumns().forEach(column -> columns.put(column.getId(), column)));
@@ -71,4 +80,12 @@ public class Study extends StudySummary {
         return relationships;
     }
 
+    public Optional<StudyTable> getTableById(UUID id) {
+        for (StudyTable tryTable : getTables()) {
+            if (tryTable.getId().equals(id)) {
+                return Optional.of(tryTable);
+            }
+        }
+        return Optional.empty();
+    }
 }

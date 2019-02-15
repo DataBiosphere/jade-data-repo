@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.exceptions.NotFoundException;
 import bio.terra.exceptions.ValidationException;
@@ -20,7 +21,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +51,7 @@ public class DatasetService {
         flightMap.put("request", datasetRequestModel);
         // TODO: wire this up
         //return stairway.submit(DatasetCreateFlight.class, flightMap);
-        throw new NotImplementedException();
+        throw new ApiException("Create dataset is not implemented");
     }
 
     /**

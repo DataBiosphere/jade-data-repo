@@ -73,13 +73,27 @@ public class DatasetDao {
         datasetMapTableDao.createTables(id, datasetSource.getDatasetMapTables());
     }
 
+    @Transactional
+    public boolean delete(UUID id) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE id = :id",
+                new MapSqlParameterSource().addValue("id", id));
+        return rowsAffected > 0;
+    }
+
+    @Transactional
+    public boolean deleteByName(String datasetName) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE name = :name",
+                new MapSqlParameterSource().addValue("name", datasetName));
+        return rowsAffected > 0;
+    }
+
     public Optional<Dataset> retrieveDataset(UUID datasetId) {
         String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", datasetId);
         return retrieveWorker(sql, params);
     }
 
-    public Optional<Dataset> retrieveDatasetByNae(String name) {
+    public Optional<Dataset> retrieveDatasetByName(String name) {
         String sql = "SELECT id, name, description, created_date FROM dataset WHERE nane = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
         return retrieveWorker(sql, params);

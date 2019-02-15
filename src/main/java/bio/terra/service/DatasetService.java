@@ -74,8 +74,6 @@ public class DatasetService {
         DatasetRequestSourceModel requestSource = requestSourceList.get(0);
         DatasetSource datasetSource = makeSourceFromRequestSource(requestSource, dataset);
 
-
-
         // TODO: When we implement explicit definition of dataset tables, we will handle that here.
         // For now, we generate the dataset tables directly from the asset tables of the one source
         // allowed in a dataset.
@@ -159,7 +157,8 @@ public class DatasetService {
             tableList.add(table);
             mapTableList.add(new DatasetMapTable()
                     .fromTable(assetTable.getStudyTable())
-                    .toTable(table));
+                    .toTable(table)
+                    .datasetMapColumns(mapColumnList));
         }
 
         datasetSource.datasetMapTables(mapTableList);

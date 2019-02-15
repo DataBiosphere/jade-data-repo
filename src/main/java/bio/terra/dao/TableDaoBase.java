@@ -34,7 +34,7 @@ public class TableDaoBase {
         this.jdbcTemplate = jdbcTemplate;
         this.sqlInsertColumn = "INSERT INTO " + columnTableName + "" +
                 " (table_id, name, type) VALUES (:table_id, :name, :type)";
-        this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, id) VALUES (:name, :parent_id)";
+        this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, parent_id) VALUES (:name, :parent_id)";
         this.sqlSelectTable = "SELECT id, name FROM " + tableTableName + " WHERE parent_id = :parentId";
         this.sqlSelectColumn = "SELECT id, name, type FROM " + columnTableName + " WHERE table_id = :tableId";
     }
@@ -74,16 +74,17 @@ public class TableDaoBase {
                         new Table()
                                 .id(UUID.fromString(rs.getString("id")))
                                 .name(rs.getString("name")));
-        tables.forEach(table -> table.columns(retrieveColumns(table.getId())));
+        tables.forEach(table -> table.columns(retrieveColumns(table)));
         return tables;
     }
 
-    private List<Column> retrieveColumns(UUID tableId) {
+    private List<Column> retrieveColumns(Table table) {
         List<Column> columns = jdbcTemplate.query(
                 sqlSelectColumn,
-                new MapSqlParameterSource().addValue("tableId", tableId), (rs, rowNum) ->
+                new MapSqlParameterSource().addValue("tableId", table.getId()), (rs, rowNum) ->
                         new Column()
                                 .id(UUID.fromString(rs.getString("id")))
+                                .table(table)
                                 .name(rs.getString("name"))
                                 .type(rs.getString("type")));
         return columns;

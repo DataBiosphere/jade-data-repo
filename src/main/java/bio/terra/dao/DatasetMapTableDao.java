@@ -56,7 +56,7 @@ public class DatasetMapTableDao {
         UUIDHolder keyHolder = new UUIDHolder();
         for (DatasetMapColumn column : columns) {
             params.addValue("from_column_id", column.getFromColumn().getId());
-            params.addValue("type", column.getToColumn().getId());
+            params.addValue("to_column_id", column.getToColumn().getId());
             jdbcTemplate.update(sql, params, keyHolder);
             UUID id = keyHolder.getId();
             column.id(id);
@@ -85,10 +85,14 @@ public class DatasetMapTableDao {
                             "Dataset table referenced by dataset source map table was not found!");
                 }
 
+                UUID id = UUID.fromString(rs.getString("id"));
+                List<DatasetMapColumn> mapColumns = retrieveMapColumns(id, studyTable.get(), datasetTable.get());
+
                 return new DatasetMapTable()
-                        .id(UUID.fromString(rs.getString("id")))
+                        .id(id)
                         .fromTable(studyTable.get())
-                        .toTable(datasetTable.get());
+                        .toTable(datasetTable.get())
+                        .datasetMapColumns(mapColumns);
             });
 
         return mapTableList;
@@ -109,11 +113,11 @@ public class DatasetMapTableDao {
                             "Study column referenced by dataset source map column was not found");
                 }
 
-                UUID toId = UUID.fromString(rs.getString("from_column_id"));
+                UUID toId = UUID.fromString(rs.getString("to_column_id"));
                 Optional<Column> datasetColumn = toTable.getColumnById(toId);
                 if (!datasetColumn.isPresent()) {
                     throw new CorruptMetadataException(
-                            "Dataset  column referenced by dataset source map column was not found");
+                            "Dataset column referenced by dataset source map column was not found");
                 }
 
                 return new DatasetMapColumn()

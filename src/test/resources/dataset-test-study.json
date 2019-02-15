@@ -1,0 +1,22 @@
+{
+  "name":        "dataset-test-study",
+  "description": "Study to test building datasets with",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "thetable",
+        "columns": [
+          {"name": "thecolumn", "datatype": "string"}
+        ]
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "theasset",
+        "tables": [
+          {"name": "thetable", "columns": [], "is_root": true}
+        ]
+      }
+    ]
+  }
+}

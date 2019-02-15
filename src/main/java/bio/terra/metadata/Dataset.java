@@ -69,12 +69,11 @@ public class Dataset {
     }
 
     public Optional<Table> getTableById(UUID id) {
-        Table table = null;
         for (Table tryTable : getTables()) {
             if (tryTable.getId().equals(id)) {
-                table = tryTable;
+                return Optional.of(tryTable);
             }
         }
-        return Optional.ofNullable(table);
+        return Optional.empty();
     }
 }

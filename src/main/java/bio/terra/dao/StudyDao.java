@@ -1,6 +1,6 @@
 package bio.terra.dao;
 
-import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.dao.exception.RepositoryMetadataException;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,10 +11,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -59,7 +55,7 @@ public class StudyDao extends StudySummaryDao {
         return rowsAffected > 0;
     }
 
-    public Optional<Study> retrieve(UUID id) {
+    public Study retrieve(UUID id) {
         Study study = null;
         try {
             StudySummary summary = super.retrieve(id);
@@ -69,10 +65,9 @@ public class StudyDao extends StudySummaryDao {
                 relationshipDao.retrieve(study);
                 assetDao.retrieve(study);
             }
-            return Optional.of(study);
-        } catch (
-                EmptyResultDataAccessException ex) {
-            return Optional.empty();
+            return study;
+        } catch (EmptyResultDataAccessException ex) {
+            throw new RepositoryMetadataException("Inconsistent data", ex);
         }
     }
 

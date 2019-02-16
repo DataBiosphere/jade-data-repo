@@ -48,7 +48,7 @@ public class DaoTest {
         studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         studyId = studyDao.create(study);
-        fromDB = studyDao.retrieve(studyId).get();
+        fromDB = studyDao.retrieve(studyId);
     }
 
     @After

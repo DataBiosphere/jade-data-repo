@@ -1,7 +1,5 @@
 package bio.terra.controller;
 
-import bio.terra.service.JobMapKeys;
-import bio.terra.service.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.StudyDao;
@@ -14,13 +12,13 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
-import bio.terra.stairway.exception.FlightNotFoundException;
-import bio.terra.validation.StudyRequestValidator;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
+import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -76,8 +76,8 @@ public class DatasetDaoTest {
 
     @After
     public void teardown() throws Exception {
-        //datasetDao.delete(datasetId);
-        //studyDao.delete(studyId);
+        datasetDao.delete(datasetId);
+        studyDao.delete(studyId);
     }
 
     @Test
@@ -86,7 +86,7 @@ public class DatasetDaoTest {
         // sure table and resolution basically work.
         Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
         datasetId = datasetDao.create(dataset);
-        Dataset fromDB = datasetDao.retrieveDataset(datasetId).get();
+        Dataset fromDB = datasetDao.retrieveDataset(datasetId);
 
         assertThat("dataset name set correctly",
                 fromDB.getName(),
@@ -149,5 +149,7 @@ public class DatasetDaoTest {
                 mapColumn.getToColumn().getId(),
                 equalTo(datasetColumn.getId()));
     }
+
+
 
 }

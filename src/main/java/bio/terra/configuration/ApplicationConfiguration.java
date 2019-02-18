@@ -39,7 +39,6 @@ public class ApplicationConfiguration {
         return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
-
     @Bean("modelDateFormat")
     public SimpleDateFormat modelDateFormat() {
         return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");

@@ -26,7 +26,6 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -40,17 +39,18 @@ import java.util.stream.Collectors;
 
 @Component
 public class DatasetService {
-    private Stairway stairway;
+// TODO: comment out stairway to appease findbugs. It will be used when the flights are implemented
+//    private Stairway stairway;
     private StudyDao studyDao;
     private DatasetDao datasetDao;
     private SimpleDateFormat modelDateFormat;
 
     @Autowired
-    public DatasetService(Stairway stairway,
+    public DatasetService(// Stairway stairway, TODO: see above
                           StudyDao studyDao,
                           DatasetDao datasetDao,
                           SimpleDateFormat modelDateFormat) {
-        this.stairway = stairway;
+        // this.stairway = stairway; TODO: see above
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
         this.modelDateFormat = modelDateFormat;

@@ -6,6 +6,7 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
@@ -26,6 +27,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -67,7 +70,6 @@ public class DatasetDaoTest {
 
         String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
         datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
-        datasetRequest.name(datasetRequest.getName() + UUID.randomUUID().toString());
         datasetRequest.getSource().get(0).setStudyName(study.getName());
 
         // Populate the datasetId with random; delete should quietly not find it.
@@ -82,8 +84,8 @@ public class DatasetDaoTest {
 
     @Test
     public void happyInOutTest() throws Exception {
-        // NOTE: we take advantage of the single table single column setup here to make
-        // sure table and resolution basically work.
+        datasetRequest.name(datasetRequest.getName() + UUID.randomUUID().toString());
+
         Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
         datasetId = datasetDao.create(dataset);
         Dataset fromDB = datasetDao.retrieveDataset(datasetId);
@@ -149,6 +151,44 @@ public class DatasetDaoTest {
                 mapColumn.getToColumn().getId(),
                 equalTo(datasetColumn.getId()));
     }
+
+    @Test
+    public void datasetEnumerateTest() throws Exception {
+        List<UUID> datasetIds = new ArrayList<>();
+        String datasetName = datasetRequest.getName();
+
+        // Make 6 datasets
+        for (int i = 0; i < 6; i++) {
+            datasetRequest.name(datasetName + i);
+            Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+            datasetId = datasetDao.create(dataset);
+            datasetIds.add(datasetId);
+        }
+
+        testOneEnumerateRange(datasetIds, datasetName, 0, 1000);
+        testOneEnumerateRange(datasetIds, datasetName, 1, 3);
+        testOneEnumerateRange(datasetIds, datasetName, 3, 5);
+        testOneEnumerateRange(datasetIds, datasetName, 4, 7);
+    }
+
+    private void testOneEnumerateRange(List<UUID> datasetIds,
+                                       String datasetName,
+                                       int offset,
+                                       int limit) {
+        // We expect the datasets to be returned in their created order
+        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit);
+        int index = offset;
+        for (DatasetSummary summary : summaryList) {
+            assertThat("correct dataset id",
+                    datasetIds.get(index),
+                    equalTo(summary.getId()));
+            assertThat("correct dataset namee",
+                    datasetName + index,
+                    equalTo(summary.getName()));
+            index++;
+        }
+    }
+
 
 
 

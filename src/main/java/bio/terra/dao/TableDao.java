@@ -43,8 +43,6 @@ public class TableDao {
         params.addValue("table_id", tableId);
         UUIDHolder keyHolder = new UUIDHolder();
         for (StudyTableColumn column : columns) {
-            // TODO: feedback please. this is reusing the same param object and just overriding the name and type
-            // values. is this a bad idea? should i be creating a new MapSqlParameterSource every iteration?
             params.addValue("name", column.getName());
             params.addValue("type", column.getType());
             jdbcTemplate.update(sql, params, keyHolder);

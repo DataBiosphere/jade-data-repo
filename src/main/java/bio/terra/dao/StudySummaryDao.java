@@ -7,7 +7,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
@@ -28,9 +27,10 @@ public class StudySummaryDao {
 
     public NamedParameterJdbcTemplate getJdbcTemplate() { return jdbcTemplate; }
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional
     public UUID create(Study study) {
         String sql = "INSERT INTO study (name, description, created_date) VALUES (:name, :description, :createdDate)";
+        // TODO when new key holder is merged remove date code and get created date from key holder
         Instant now = Instant.now();
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", study.getName())

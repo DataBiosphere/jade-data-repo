@@ -33,7 +33,7 @@ public class StudyRequestValidator implements Validator {
 
     @Override
     public boolean supports(Class<?> clazz) {
-        return StudyRequestModel.class.equals(clazz);
+        return true;
     }
 
     private static class SchemaValidationContext {
@@ -188,7 +188,7 @@ public class StudyRequestValidator implements Validator {
 
     @Override
     public void validate(@NotNull Object target, Errors errors) {
-        if (target != null) {
+        if (target != null && target instanceof StudyRequestModel) {
             StudyRequestModel studyRequest = (StudyRequestModel) target;
             validateStudyName(studyRequest.getName(), errors);
             StudySpecificationModel schema = studyRequest.getSchema();

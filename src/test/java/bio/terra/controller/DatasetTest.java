@@ -18,10 +18,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -67,8 +70,6 @@ public class DatasetTest {
     }
 
 
-    // TODO Values list can’t be empty
-
     @Test
     public void testDatasetNameInvalid() throws Exception {
         datasetRequest.name("no spaces");
@@ -83,6 +84,18 @@ public class DatasetTest {
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
         datasetRequest.name(tooLong);
+        expectBadDatasetCreateRequest(datasetRequest);
+    }
+
+    @Test
+    public void testDatasetValuesListEmpty() throws Exception {
+        ArrayList empty = new ArrayList<String>();
+        DatasetRequestSourceModel datasetRequestSourceModelEmpty = new DatasetRequestSourceModel()
+                .assetName("asset")
+                .fieldName("field")
+                .studyName("study")
+                .values(empty);
+        datasetRequest.source(Collections.singletonList(datasetRequestSourceModelEmpty));
         expectBadDatasetCreateRequest(datasetRequest);
     }
 

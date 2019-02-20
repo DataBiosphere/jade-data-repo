@@ -568,15 +568,16 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-      source:
+      contents:
         type: array
         items:
-          $ref: '#/definitions/DatasetRequestSourceModel'
+          $ref: '#/definitions/DatasetRequestContentsModel'
 
-  DatasetRequestSourceModel:
+  DatasetRequestContentsModel:
     description: |
-      The datasource identifies the study and asset from which to source the data.
-      It specifies a field name and a set of values used to identify the rows to include.
+      The contents specifies the source of the data (study and asset)
+      and the rows to include (field and rootValues).
+      TODO: field will move the asset object; it is here temporarily
     type: object
     required:
       - studyName
@@ -584,16 +585,27 @@ definitions:
       - fieldName
       - rows
     properties:
-      studyName:
-        $ref: '#/definitions/ObjectNameProperty'
-      assetName:
-        $ref: '#/definitions/ObjectNameProperty'
+      source:
+        $ref: '#/definitions/DatasetRequestSourceModel'
       fieldName:
         $ref: '#/definitions/ObjectNameProperty'
       values:
         type: array
         items:
           type: string
+
+  DatasetRequestSourceModel:
+    description: |
+      The datasource identifies the study and asset from which to source the data.
+    type: object
+    required:
+      - studyName
+      - assetName
+    properties:
+      studyName:
+        $ref: '#/definitions/ObjectNameProperty'
+      assetName:
+        $ref: '#/definitions/ObjectNameProperty'
 
   DatasetSummaryModel:
     description: |
@@ -621,7 +633,7 @@ definitions:
     required:
       - id
       - name
-      - source
+      - contents
       - createdDate
     properties:
       id:
@@ -634,7 +646,7 @@ definitions:
       createdDate:
         type: string
         description: Date the dataset was created
-      source:
+      contents:
         type: array
         items:
           $ref: '#/definitions/DatasetSourceModel'

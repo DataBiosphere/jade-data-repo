@@ -51,7 +51,7 @@ public class FlightStates {
     public static FlightState makeFlightRunningState() {
         FlightMap resultMap = new FlightMap();
         resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
-        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
+        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
         resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), minimalStudySummary.getDescription());
 
         FlightState flightState = new FlightState();
@@ -68,7 +68,7 @@ public class FlightStates {
     public static FlightState makeFlightCompletedState() {
         FlightMap resultMap = new FlightMap();
         resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
-        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
+        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
         resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), minimalStudySummary.getDescription());
 
         FlightState flightState = new FlightState();

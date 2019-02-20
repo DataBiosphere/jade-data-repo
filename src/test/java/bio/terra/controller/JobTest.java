@@ -86,7 +86,7 @@ public class JobTest {
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s", testFlightId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(jobModel)))
-                .andExpect(status().isOk())
+                .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(testFlightId))
                 .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
                 .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))

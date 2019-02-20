@@ -584,13 +584,10 @@ definitions:
     type: object
     required:
       - source
-      - fieldName
       - rootValues
     properties:
       source:
         $ref: '#/definitions/DatasetRequestSourceModel'
-      fieldName:
-        $ref: '#/definitions/ObjectNameProperty'
       rootValues:
         type: array
         items:

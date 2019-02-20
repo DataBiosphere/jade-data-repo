@@ -568,32 +568,43 @@ definitions:
       description:
         type: string
         description: Description of the dataset
-      source:
+      contents:
         type: array
         items:
-          $ref: '#/definitions/DatasetRequestSourceModel'
+          $ref: '#/definitions/DatasetRequestContentsModel'
+
+  DatasetRequestContentsModel:
+    description: |
+      The contents specifies the source of the data (study and asset)
+      and the rows to include (field and rootValues).
+      TODO: field will move the asset object; it is here as a stepping stone
+    type: object
+    required:
+      - source
+      - fieldName
+      - rootValues
+    properties:
+      source:
+        $ref: '#/definitions/DatasetRequestSourceModel'
+      fieldName:
+        $ref: '#/definitions/ObjectNameProperty'
+      rootValues:
+        type: array
+        items:
+          type: string
 
   DatasetRequestSourceModel:
     description: |
       The datasource identifies the study and asset from which to source the data.
-      It specifies a field name and a set of values used to identify the rows to include.
     type: object
     required:
       - studyName
       - assetName
-      - fieldName
-      - rows
     properties:
       studyName:
         $ref: '#/definitions/ObjectNameProperty'
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
-      fieldName:
-        $ref: '#/definitions/ObjectNameProperty'
-      values:
-        type: array
-        items:
-          type: string
 
   DatasetSummaryModel:
     description: |

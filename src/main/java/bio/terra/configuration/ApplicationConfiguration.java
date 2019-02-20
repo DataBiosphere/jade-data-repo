@@ -2,6 +2,8 @@ package bio.terra.configuration;
 
 import bio.terra.stairway.Stairway;
 import bio.terra.upgrade.Migrate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -15,8 +17,10 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class ApplicationConfiguration {
+    private Logger logger = LoggerFactory.getLogger("bio.terra.configuration.ApplicationConfiguration");
 
-    @Value("db.stairway.forceClean")
+
+    @Value("${db.stairway.forceClean}")
     private String stairwayForceClean;
 
     @Bean("stairway")
@@ -25,6 +29,8 @@ public class ApplicationConfiguration {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         DataSource dataSource = jdbcConfiguration.getDataSource();
         boolean forceClean = Boolean.parseBoolean(stairwayForceClean);
+        logger.debug("ApplicationConfiguration stairwayForceClean is '" + stairwayForceClean +
+                "'; forceClean is " + forceClean);
         return new Stairway(executorService, dataSource, forceClean, applicationContext);
     }
 

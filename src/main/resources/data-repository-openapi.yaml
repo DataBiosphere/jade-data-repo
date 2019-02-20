@@ -632,7 +632,7 @@ definitions:
     required:
       - id
       - name
-      - contents
+      - source
       - createdDate
     properties:
       id:
@@ -645,7 +645,7 @@ definitions:
       createdDate:
         type: string
         description: Date the dataset was created
-      contents:
+      source:
         type: array
         items:
           $ref: '#/definitions/DatasetSourceModel'

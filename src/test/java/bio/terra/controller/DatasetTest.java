@@ -85,6 +85,38 @@ public class DatasetTest {
     }
 
     @Test
+    public void testDatasetDescriptionInvalid() throws Exception {
+        String tooLongDescription = "People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
+                "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good";
+        datasetRequest.description(tooLongDescription);
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        datasetRequest.description(null);
+        expectBadDatasetCreateRequest(datasetRequest);
+    }
+
+    @Test
     public void testDatasetValuesListEmpty() throws Exception {
         ArrayList empty = new ArrayList<String>();
         DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()

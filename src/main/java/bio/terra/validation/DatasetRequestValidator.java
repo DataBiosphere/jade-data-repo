@@ -49,11 +49,20 @@ public class DatasetRequestValidator implements Validator {
         }
     }
 
+    private void validateDatasetDescription(String description, Errors errors) {
+        if (description == null) {
+            errors.rejectValue("description", "DatasetDescriptionMissing");
+        } else if (description.length() > 2048) {
+            errors.rejectValue("description", "DatasetDescriptionTooLong");
+        }
+    }
+
     @Override
     public void validate(@NotNull Object target, Errors errors) {
         if (target != null && target instanceof DatasetRequestModel) {
             DatasetRequestModel datasetRequestModel = (DatasetRequestModel) target;
             validateDatasetName(datasetRequestModel.getName(), errors);
+            validateDatasetDescription(datasetRequestModel.getDescription(), errors);
             validateDatasetValues(datasetRequestModel.getContents(), errors);
         }
     }

@@ -10,6 +10,17 @@ public class AssetSpecification {
     private UUID id;
     private String name;
     private AssetTable rootTable;
+
+    public AssetColumn getRootColumn() {
+        return rootColumn;
+    }
+
+    public AssetSpecification rootColumn(AssetColumn rootColumn) {
+        this.rootColumn = rootColumn;
+        return this;
+    }
+
+    private AssetColumn rootColumn;
     private List<AssetTable> assetTables = new ArrayList<>();
     private List<AssetRelationship> assetRelationships = new ArrayList<>();
 

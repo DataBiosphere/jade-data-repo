@@ -57,11 +57,11 @@ public class RelationshipDao {
     private List<StudyRelationship> retrieveStudyRelationships(
             List<UUID> columnIds, Map<UUID,
             StudyTableColumn> columns) {
-        return jdbcTemplate.query(
-                "SELECT id, name, from_cardinality, to_cardinality, from_column, to_column " +
-                        "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)",
-                new MapSqlParameterSource().addValue("columns", columnIds), (
-                        rs, rowNum) -> new StudyRelationship()
+        String sql = "SELECT id, name, from_cardinality, to_cardinality, from_column, to_column " +
+                "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
+        return jdbcTemplate.query(sql, params, (rs, rowNum) ->
+                new StudyRelationship()
                         .setId(UUID.fromString(rs.getString("id")))
                         .setName(rs.getString("name"))
                         .setFromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(

@@ -13,8 +13,10 @@
     "assets":        [
       {
         "name":   "theasset",
+        "rootTable": "thetable",
+        "rootColumn": "thecolumn",
         "tables": [
-          {"name": "thetable", "columns": [], "is_root": true}
+          {"name": "thetable", "columns": []}
         ]
       }
     ]

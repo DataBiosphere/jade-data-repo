@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public class AssetColumn {
     private UUID id;
+    private StudyTable studyTable;
     private StudyTableColumn studyColumn;
 
     public UUID getId() { return id; }
@@ -14,6 +15,15 @@ public class AssetColumn {
     }
     public AssetColumn setStudyColumn(StudyTableColumn studyColumn) {
         this.studyColumn = studyColumn;
+        return this;
+    }
+
+    public StudyTable getStudyTable() {
+        return studyTable;
+    }
+
+    public AssetColumn studyTable(StudyTable studyTable) {
+        this.studyTable = studyTable;
         return this;
     }
 }

@@ -138,7 +138,13 @@ databaseChangeLog:
                     nullable: false
                     foreignKeyName: fk_asset_specification_study_table
                     references: study_table(id)
-                    deleteCascade: true
+              - column:
+                  name: root_column_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_asset_specification_study_column
+                    references: study_column(id)
 
         - createTable:
             tableName: asset_column

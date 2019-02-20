@@ -5,6 +5,7 @@ import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -22,18 +23,18 @@ public class CreateStudyMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
+        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
         Study newStudy = StudyJsonConversion.studyRequestToStudy(studyRequest);
         studyDao.create(newStudy);
         StudySummaryModel studySummary = StudyJsonConversion.studySummaryFromStudy(newStudy);
-        workingMap.put("response", studySummary);
+        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), studySummary);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get("request", StudyRequestModel.class);
+        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
         String studyName = studyRequest.getName();
         studyDao.deleteByName(studyName);
         return StepResult.getStepResultSuccess();

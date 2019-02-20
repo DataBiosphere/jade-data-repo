@@ -96,7 +96,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put("request", studyRequest);
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
         return new ResponseEntity<>(studySummary, HttpStatus.CREATED);

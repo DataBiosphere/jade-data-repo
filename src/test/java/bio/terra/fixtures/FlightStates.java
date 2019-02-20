@@ -1,4 +1,3 @@
-// CHECKSTYLE:OFF
 package bio.terra.fixtures;
 
 import bio.terra.model.StudySummaryModel;
@@ -14,7 +13,8 @@ import java.time.Instant;
 import java.util.Optional;
 
 
-public class FlightStates {
+public final class FlightStates {
+    private FlightStates() {}
 
     public static final String testFlightId = "test-flight-id";
     public static final Timestamp submittedTime = Timestamp.from(Instant.now());

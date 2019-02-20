@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -18,27 +19,29 @@ import java.util.List;
 public class JobService {
 
     private final Stairway stairway;
+    private final SimpleDateFormat modelDateFormat;
 
     @Autowired
     public JobService(
-            Stairway stairway
+            Stairway stairway,
+            SimpleDateFormat modelDateFormat
     ) {
         this.stairway = stairway;
+        this.modelDateFormat = modelDateFormat;
     }
 
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
         FlightMap inputParameters = flightState.getInputParameters();
         String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
-        FlightStatus flightStatus = flightState.getFlightStatus(); // needs to be converted -- create a switch
-        String submittedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS").format(flightState.getSubmitted());
+        FlightStatus flightStatus = flightState.getFlightStatus();
+        String submittedDate = modelDateFormat.format(flightState.getSubmitted());
         JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
 
         String completedDate = null;
         HttpStatus statusCode = HttpStatus.ACCEPTED;
 
         if (flightState.getCompleted().isPresent()) {
-            completedDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-                    .format(flightState.getCompleted().get());
+            completedDate = modelDateFormat.format(flightState.getCompleted().get());
 
             if (flightState.getResultMap().isPresent()) {
                 statusCode = flightState.getResultMap().get()
@@ -88,11 +91,11 @@ public class JobService {
         String locationHeader;
 
         if (flightState.getCompleted().isPresent()) {
-            status = HttpStatus.SEE_OTHER; // HTTP 303
+            status = HttpStatus.OK;
             locationHeader = String.format("/api/jobs/%s/result", jobId);
 
         } else {
-            status = HttpStatus.OK;
+            status = HttpStatus.ACCEPTED;
             locationHeader  = String.format("/api/jobs/%s", jobId);
         }
         ResponseEntity responseEntity = ResponseEntity
@@ -108,13 +111,22 @@ public class JobService {
         FlightState flightState = stairway.getFlightState(jobId);
         if (flightState.getCompleted().isPresent()) {
             FlightMap resultMap = flightState.getResultMap().get();
-            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
             HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-            // TODO handle case where cant find key
-            responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
+            if (returnedStatus == null) {
+                throw new IllegalStateException("No status code returned from flight");
+            }
+
+            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
+            if (returnedModel == null) {
+                responseEntity = new ResponseEntity<>(returnedStatus);
+            } else {
+                responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
+            }
         } else {
+            ErrorModel errorModel = new ErrorModel()
+                    .message("Attempt to retrieve job result before job is complete; job id: " + jobId);
             HttpStatus status = HttpStatus.BAD_REQUEST;
-            responseEntity = new ResponseEntity<>(status);
+            responseEntity = new ResponseEntity<>(errorModel, status);
         }
         return responseEntity;
     }

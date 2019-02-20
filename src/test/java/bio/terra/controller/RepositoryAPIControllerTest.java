@@ -51,21 +51,27 @@ public class RepositoryAPIControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private SimpleDateFormat modelDateFormat;
+
     private JobModel jobModel;
 
     private static final String testFlightId = "test-flight-id";
     private StudySummaryModel minimalStudySummary;
 
-    private static final Timestamp submittedTime = Timestamp.from(Instant.now());
-    private static final String submittedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-            .format(submittedTime);
-    private static final Timestamp completedTime = Timestamp.from(Instant.now());
-    private static final String completedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-            .format(completedTime);
-
+    private Timestamp submittedTime;
+    private String submittedTimeFormatted;
+    private Timestamp completedTime;
+    private String completedTimeFormatted;
 
     @Before
     public void setup() {
+        submittedTime = Timestamp.from(Instant.now());
+        submittedTimeFormatted = modelDateFormat.format(submittedTime);
+        completedTime = Timestamp.from(Instant.now());
+        completedTimeFormatted = modelDateFormat.format(completedTime);
+
+
         jobModel = new JobModel().id(testFlightId).description("This is not a job");
         minimalStudySummary = new StudySummaryModel()
                 .id("Minimal")
@@ -102,7 +108,7 @@ public class RepositoryAPIControllerTest {
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s", testFlightId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(jobModel)))
-                .andExpect(status().isSeeOther())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testFlightId))
                 .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
                 .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
@@ -118,7 +124,7 @@ public class RepositoryAPIControllerTest {
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s/result", testFlightId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(minimalStudySummary)))
-                .andExpect(status().isOk())
+                .andExpect(status().isIAmATeapot())
                 .andExpect(jsonPath("$.id").value(minimalStudySummary.getId()))
                 .andExpect(jsonPath("$.name").value(minimalStudySummary.getName()))
                 .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()));
@@ -127,7 +133,7 @@ public class RepositoryAPIControllerTest {
     private FlightState makeFlightState() {
         FlightMap resultMap = new FlightMap();
         resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
-        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
+        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
         resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), minimalStudySummary.getDescription());
 
         FlightState flightState = new FlightState();

@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
+import java.text.SimpleDateFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -32,4 +33,9 @@ public class ApplicationConfiguration {
         return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
+
+    @Bean("modelDateFormat")
+    public SimpleDateFormat modelDateFormat() {
+        return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    }
 }

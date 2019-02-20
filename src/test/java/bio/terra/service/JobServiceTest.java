@@ -63,7 +63,7 @@ public class JobServiceTest {
 
     private void testSingleRetrieval(List<String> fids) {
         ResponseEntity<JobModel> response = jobService.retrieveJob(fids.get(2));
-        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.SEE_OTHER)));
+        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
         JobModel job3 = response.getBody();
         Assert.assertNotNull(job3);
         validateJobModel(job3, 2, fids);
@@ -71,7 +71,7 @@ public class JobServiceTest {
 
     private void testResultRetrieval(List<String> fids) {
         ResponseEntity<Object> result = jobService.retrieveJobResult(fids.get(2));
-        Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.OK)));
+        Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
         String resultDesc = (String) result.getBody();
         Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
     }
@@ -112,7 +112,7 @@ public class JobServiceTest {
         Assert.assertThat(jm.getDescription(), is(equalTo(makeDescription(index))));
         Assert.assertThat(jm.getId(), is(equalTo(fids.get(index))));
         Assert.assertThat(jm.getJobStatus(), is(JobModel.JobStatusEnum.SUCCEEDED));
-        Assert.assertThat(jm.getStatusCode(), is(HttpStatus.OK.value()));
+        Assert.assertThat(jm.getStatusCode(), is(HttpStatus.I_AM_A_TEAPOT.value()));
     }
 
     // Submit a flight; wait for it to finish; return the flight id

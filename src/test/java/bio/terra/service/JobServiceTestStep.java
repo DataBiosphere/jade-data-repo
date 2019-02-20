@@ -16,7 +16,7 @@ public class JobServiceTestStep implements Step {
     public StepResult doStep(FlightContext context) {
         // Configure the results
         context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), description);
-        context.getWorkingMap().put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.OK);
+        context.getWorkingMap().put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
         return StepResult.getStepResultSuccess();
     }
 

@@ -580,8 +580,7 @@ definitions:
       TODO: field will move the asset object; it is here as a stepping stone
     type: object
     required:
-      - studyName
-      - assetName
+      - source
       - fieldName
       - rootValues
     properties:

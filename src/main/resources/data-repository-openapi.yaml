@@ -577,19 +577,19 @@ definitions:
     description: |
       The contents specifies the source of the data (study and asset)
       and the rows to include (field and rootValues).
-      TODO: field will move the asset object; it is here temporarily
+      TODO: field will move the asset object; it is here as a stepping stone
     type: object
     required:
       - studyName
       - assetName
       - fieldName
-      - rows
+      - rootValues
     properties:
       source:
         $ref: '#/definitions/DatasetRequestSourceModel'
       fieldName:
         $ref: '#/definitions/ObjectNameProperty'
-      values:
+      rootValues:
         type: array
         items:
           type: string

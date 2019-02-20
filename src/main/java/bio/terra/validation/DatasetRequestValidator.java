@@ -1,7 +1,8 @@
 package bio.terra.validation;
 
+import bio.terra.model.DatasetRequestContentsModel;
+
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetRequestSourceModel;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -35,14 +36,14 @@ public class DatasetRequestValidator implements Validator {
         }
     }
 
-    private void validateDatasetValues(List<DatasetRequestSourceModel> sourceList, Errors errors) {
-        if (sourceList.isEmpty()) {
-            errors.rejectValue("source", "DatasetSourceListEmpty");
+    private void validateDatasetValues(List<DatasetRequestContentsModel> contentsList, Errors errors) {
+        if (contentsList.isEmpty()) {
+            errors.rejectValue("contents", "DatasetSourceListEmpty");
         } else {
-            sourceList.forEach(source -> {
-                List<String> test = source.getValues();
-                if (test == null || test.isEmpty()) {
-                    errors.rejectValue("source", "DatasetValuesListEmpty");
+            contentsList.forEach(contents -> {
+                List<String> rootValues = contents.getRootValues();
+                if (rootValues == null || rootValues.isEmpty()) {
+                    errors.rejectValue("contents", "DatasetRootValuesListEmpty");
                 }
             });
         }
@@ -53,7 +54,7 @@ public class DatasetRequestValidator implements Validator {
         if (target != null && target instanceof DatasetRequestModel) {
             DatasetRequestModel datasetRequestModel = (DatasetRequestModel) target;
             validateDatasetName(datasetRequestModel.getName(), errors);
-            validateDatasetValues(datasetRequestModel.getSource(), errors);
+            validateDatasetValues(datasetRequestModel.getContents(), errors);
         }
     }
 }

@@ -1,9 +1,9 @@
 package bio.terra.controller;
 
 import bio.terra.category.Unit;
+import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetRequestSourceModel;
-import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -13,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,16 +23,12 @@ import java.util.Collections;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class DatasetTest {
-
-    @MockBean
-    private Stairway stairway;
 
     @Autowired
     private MockMvc mvc;
@@ -58,14 +53,16 @@ public class DatasetTest {
 
     public DatasetRequestModel makeDatasetRequest() {
         DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
-                .assetName("asset")
-                .fieldName("field")
                 .studyName("study")
-                .values(Arrays.asList("sample 1", "sample 2", "sample 3"));
+                .assetName("asset");
+        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
+                .source(datasetRequestSourceModel)
+                .fieldName("field")
+                .rootValues(Arrays.asList("sample 1", "sample 2", "sample 3"));
         DatasetRequestModel datasetRequestModel = new DatasetRequestModel()
                 .name("dataset")
                 .description("dataset description")
-                .addSourceItem(datasetRequestSourceModel);
+                .addContentsItem(datasetRequestContentsModel);
         return datasetRequestModel;
     }
 
@@ -90,12 +87,14 @@ public class DatasetTest {
     @Test
     public void testDatasetValuesListEmpty() throws Exception {
         ArrayList empty = new ArrayList<String>();
-        DatasetRequestSourceModel datasetRequestSourceModelEmpty = new DatasetRequestSourceModel()
-                .assetName("asset")
-                .fieldName("field")
+        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
                 .studyName("study")
-                .values(empty);
-        datasetRequest.source(Collections.singletonList(datasetRequestSourceModelEmpty));
+                .assetName("asset");
+        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
+                .source(datasetRequestSourceModel)
+                .fieldName("field")
+                .rootValues(empty);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
         expectBadDatasetCreateRequest(datasetRequest);
     }
 

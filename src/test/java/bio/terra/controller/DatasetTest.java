@@ -131,6 +131,67 @@ public class DatasetTest {
     }
 
     @Test
+    public void testDatasetStudyNameInvalid() throws Exception {
+        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
+                .studyName("no spaces")
+                .assetName("asset");
+        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
+                .source(datasetRequestSourceModel)
+                .fieldName("field")
+                .rootValues(Collections.singletonList("root"));
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        datasetRequestSourceModel.studyName("no-dashes");
+        datasetRequestContentsModel.source(datasetRequestSourceModel);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        datasetRequestSourceModel.studyName("");
+        datasetRequestContentsModel.source(datasetRequestSourceModel);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        // Make a 64 character string, it should be considered too long by the validation.
+        String tooLong = StringUtils.repeat("a", 64);
+        datasetRequestSourceModel.studyName(tooLong);
+        datasetRequestContentsModel.source(datasetRequestSourceModel);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+    }
+
+
+    @Test
+    public void testDatasetAssetNameInvalid() throws Exception {
+        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
+                .studyName("study")
+                .assetName("no spaces");
+        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
+                .source(datasetRequestSourceModel)
+                .fieldName("field")
+                .rootValues(Collections.singletonList("root"));
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        datasetRequestSourceModel.assetName("no-dashes");
+        datasetRequestContentsModel.source(datasetRequestSourceModel);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        datasetRequestSourceModel.assetName("");
+        datasetRequestContentsModel.source(datasetRequestSourceModel);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+
+        // Make a 64 character string, it should be considered too long by the validation.
+        String tooLong = StringUtils.repeat("a", 64);
+        datasetRequestSourceModel.assetName(tooLong);
+        datasetRequestContentsModel.source(datasetRequestSourceModel);
+        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
+        expectBadDatasetCreateRequest(datasetRequest);
+    }
+
+    @Test
     public void testStudyNameMissing() throws Exception {
         datasetRequest.name(null);
         expectBadDatasetCreateRequest(datasetRequest);

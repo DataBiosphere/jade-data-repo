@@ -1,40 +1,21 @@
 package bio.terra.metadata;
 
-import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class Study {
-
-    private UUID id;
-    private String name;
-    private String description;
-    private Instant createdDate;
+public class Study extends StudySummary {
 
     private List<StudyTable> tables = Collections.emptyList();
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
-    public UUID getId() { return id; }
-    public Study setId(UUID id) { this.id = id; return this; }
-
-    public String getName() {
-        return name;
+    public Study() {}
+    public Study(StudySummary summary) {
+        super(summary);
     }
-    public Study setName(String name) { this.name = name; return this; }
-
-    public String getDescription() {
-        return description;
-    }
-    public Study setDescription(String description) { this.description = description; return this; }
-
-    public Instant getCreatedDate() {
-        return createdDate;
-    }
-    public Study setCreatedDate(Instant createdDate) { this.createdDate = createdDate; return this; }
 
     public List<StudyTable> getTables() {
         return tables;
@@ -77,4 +58,5 @@ public class Study {
         getRelationships().forEach(relationship -> relationships.put(relationship.getId(), relationship));
         return relationships;
     }
+
 }

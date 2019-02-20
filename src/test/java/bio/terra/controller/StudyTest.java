@@ -2,12 +2,17 @@ package bio.terra.controller;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.exception.ApiException;
+import bio.terra.dao.StudyDao;
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.flight.study.create.StudyCreateFlight;
+import bio.terra.metadata.Study;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
+import bio.terra.model.StudyJsonConversion;
+import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySpecificationModel;
 import bio.terra.model.StudySummaryModel;
@@ -27,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -34,12 +40,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.Collections;
+import java.util.Optional;
+import java.util.UUID;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -353,4 +363,50 @@ public class StudyTest {
         studyRequest.name(null);
         expectBadStudyCreateRequest(studyRequest);
     }
+
+    @MockBean
+    private StudyDao studyDao;
+
+
+    @Test
+    public void testStudyRetrieve() throws Exception {
+        assertThat("Study retrieve with bad id gets 400",
+                mvc.perform(get("/api/repository/v1/studies/{id}", "blah"))
+                        .andReturn().getResponse().getStatus(),
+                equalTo(HttpStatus.BAD_REQUEST.value()));
+
+        UUID missingId = UUID.fromString("cd100f94-e2c6-4d0c-aaf4-9be6651276a6");
+        when(studyDao.retrieve(eq(missingId))).thenThrow(
+                new StudyNotFoundException("Study not found for id " + missingId.toString()));
+        assertThat("Study retrieve that doesn't exist returns 404",
+                mvc.perform(get("/api/repository/v1/studies/{id}", missingId))
+                        .andReturn().getResponse().getStatus(),
+                equalTo(HttpStatus.NOT_FOUND.value()));
+
+        UUID id = UUID.fromString("8d2e052c-e1d1-4a29-88ed-26920907791f");
+        Study study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+        study.setId(id).setCreatedDate(Instant.now());
+
+        when(studyDao.retrieve(eq(id))).thenReturn(study);
+        assertThat("Study retrieve returns 200",
+                mvc.perform(get("/api/repository/v1/studies/{id}", id.toString()))
+                        .andReturn().getResponse().getStatus(),
+                equalTo(HttpStatus.OK.value()));
+
+        mvc.perform(get("/api/repository/v1/studies/{id}", id.toString())).andDo((result) ->
+                        assertThat("Study retrieve returns a Study Model with schema",
+                                objectMapper.readValue(result.getResponse().getContentAsString(), StudyModel.class)
+                                        .getName(),
+                                equalTo(studyRequest.getName())));
+
+        assertThat("Study retrieve returns a Study Model with schema",
+                objectMapper.readValue(
+                        mvc.perform(get("/api/repository/v1/studies/{id}", id))
+                                .andReturn()
+                                .getResponse()
+                                .getContentAsString(),
+                        StudyModel.class).getName(),
+                equalTo(studyRequest.getName()));
+    }
+
 }

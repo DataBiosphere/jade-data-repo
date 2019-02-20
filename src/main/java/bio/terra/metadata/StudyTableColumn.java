@@ -6,7 +6,7 @@ public class StudyTableColumn {
     private String name;
     private String type;
     private UUID id;
-    private volatile StudyTable inTable;
+    private transient StudyTable inTable;
 
     public String getName() {
         return name;

@@ -90,9 +90,8 @@ public class StudyCreateFlightTest {
         StudySummaryModel response = resultMap.get().get("response", StudySummaryModel.class);
         assertEquals(studyName, response.getName());
 
-        Optional<Study> createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
-        assertTrue(createdStudy.isPresent());
-        assertEquals(studyName, createdStudy.get().getName());
+        Study createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
+        assertEquals(studyName, createdStudy.getName());
 
         assertTrue(pdao.studyExists(studyName));
     }

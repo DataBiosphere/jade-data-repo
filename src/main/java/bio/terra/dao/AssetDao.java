@@ -35,15 +35,15 @@ public class AssetDao {
     public List<UUID> createAssets(Study study) {
         return study.getAssetSpecifications()
                 .stream()
-                .map(assetSpec -> create(assetSpec, study))
+                .map(assetSpec -> create(assetSpec, study.getId()))
                 .collect(Collectors.toList());
     }
 
-    private UUID create(AssetSpecification assetSpecification, Study study) {
+    private UUID create(AssetSpecification assetSpecification, UUID studyId) {
         String sql = "INSERT INTO asset_specification (study_id, name, root_table_id) " +
                 "VALUES (:study_id, :name, :root_table_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("study_id", study.getId());
+        params.addValue("study_id", studyId);
         params.addValue("name", assetSpecification.getName());
         params.addValue("root_table_id", assetSpecification.getRootTable().getStudyTable().getId());
         UUIDHolder keyHolder = new UUIDHolder();

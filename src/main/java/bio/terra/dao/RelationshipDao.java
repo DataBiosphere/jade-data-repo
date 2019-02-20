@@ -35,12 +35,12 @@ public class RelationshipDao {
         String sql = "INSERT INTO study_relationship " +
                 "(name, from_cardinality, to_cardinality, from_column, to_column) VALUES " +
                 "(:name, :from_cardinality, :to_cardinality, :from_column, :to_column)";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("name", studyRelationship.getName());
-        params.addValue("from_cardinality", studyRelationship.getFromCardinality().toString());
-        params.addValue("to_cardinality", studyRelationship.getToCardinality().toString());
-        params.addValue("from_column", studyRelationship.getFrom().getId());
-        params.addValue("to_column", studyRelationship.getTo().getId());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("name", studyRelationship.getName())
+                .addValue("from_cardinality", studyRelationship.getFromCardinality().toString())
+                .addValue("to_cardinality", studyRelationship.getToCardinality().toString())
+                .addValue("from_column", studyRelationship.getFrom().getId())
+                .addValue("to_column", studyRelationship.getTo().getId());
         UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID relationshipId = keyHolder.getId();

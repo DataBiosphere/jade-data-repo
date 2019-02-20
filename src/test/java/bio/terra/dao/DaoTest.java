@@ -42,15 +42,13 @@ public class DaoTest {
 
     @Before
     public void setup() throws Exception {
-        if (study == null) {
-            ClassLoader classLoader = getClass().getClassLoader();
-            String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream("study-create-test.json"));
-            StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
-            studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
-            study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-            studyId = studyDao.create(study);
-            fromDB = studyDao.retrieve(studyId).get();
-        }
+        ClassLoader classLoader = getClass().getClassLoader();
+        String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream("study-create-test.json"));
+        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
+        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
+        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+        studyId = studyDao.create(study);
+        fromDB = studyDao.retrieve(studyId);
     }
 
     @After
@@ -63,24 +61,40 @@ public class DaoTest {
 
     @Test
     public void studyTest() throws Exception {
-        assertThat("study name set correctly",
+        assertThat("study name is set correctly",
                 fromDB.getName(),
                 equalTo(study.getName()));
 
         // verify tables
-        assertThat("correct number of tables created",
+        assertThat("correct number of tables created for study",
                 fromDB.getTables().size(),
                 equalTo(2));
         fromDB.getTables().forEach(this::assertStudyTable);
 
+        assertThat("correct number of relationships are created for study",
+                fromDB.getRelationships().size(),
+                equalTo(2));
+
         // verify assets
-        assertThat("correct number of assets created",
+        assertThat("correct number of assets created for study",
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
         fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
     }
 
     protected void assertStudyTable(StudyTable table) {
+        if (table.getName().equals("participant")) {
+            assertThat("participant table has 4 columns",
+                    table.getColumns().size(),
+                    equalTo(4));
+        } else {
+            assertThat("other table created is sample",
+                    table.getName(),
+                    equalTo("sample"));
+            assertThat("sample table has 3 columns",
+                    table.getColumns().size(),
+                    equalTo(3));
+        }
 
     }
 
@@ -89,10 +103,31 @@ public class DaoTest {
             assertThat("Trio asset has 2 tables",
                     spec.getAssetTables().size(),
                     equalTo(2));
+            assertThat("participant is the root table for Trio",
+                    spec.getRootTable().getStudyTable().getName(),
+                    equalTo("participant"));
+            assertThat("participant asset table has only 3 columns",
+                    spec.getRootTable().getColumns().size(),
+                    equalTo(3));
+            assertThat("Trio asset follows 2 relationships",
+                    spec.getAssetRelationships().size(),
+                    equalTo(2));
         } else {
             assertThat("other asset created is Sample",
                     spec.getName(),
                     equalTo("Sample"));
+            assertThat("Sample asset has 2 tables",
+                    spec.getAssetTables().size(),
+                    equalTo(2));
+            assertThat("sample is the root table",
+                    spec.getRootTable().getStudyTable().getName(),
+                    equalTo("sample"));
+            assertThat("and 3 columns",
+                    spec.getRootTable().getColumns().size(),
+                    equalTo(3));
+            assertThat("Sample asset follows 1 relationship",
+                    spec.getAssetRelationships().size(),
+                    equalTo(1));
         }
     }
 }

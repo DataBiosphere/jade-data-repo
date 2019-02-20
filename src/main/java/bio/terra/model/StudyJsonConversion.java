@@ -6,6 +6,7 @@ import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
+import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
@@ -37,14 +38,13 @@ public final class StudyJsonConversion {
         studySpecification.getAssets().forEach(asset ->
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
 
-        return new Study()
+        return new Study(new StudySummary()
                 .setName(studyRequest.getName())
-                .setDescription(studyRequest.getDescription())
+                .setDescription(studyRequest.getDescription()))
                 .setTables(new ArrayList<>(tablesMap.values()))
                 .setRelationships(new ArrayList<>(relationshipsMap.values()))
                 .setAssetSpecifications(assetSpecifications);
     }
-
 
     public static StudySummaryModel studySummaryFromStudy(Study study) {
         return new StudySummaryModel()
@@ -60,10 +60,10 @@ public final class StudyJsonConversion {
                 .name(study.getName())
                 .description(study.getDescription())
                 .createdDate(study.getCreatedDate().toString())
-                .schema(studySpecificationModelFromStudy(study));
+                .schema(studySpecificationModelFromStudySchema(study));
     }
 
-    public static StudySpecificationModel studySpecificationModelFromStudy(Study study) {
+    public static StudySpecificationModel studySpecificationModelFromStudySchema(Study study) {
         return new StudySpecificationModel()
                 .tables(study.getTables()
                         .stream()

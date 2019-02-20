@@ -1,10 +1,13 @@
 {
   "name":        "dataset-test-dataset",
   "description": "Very simple dataset for test",
-  "source": [
+  "contents": [
     {
-      "studyName": "dataset-test-study",
-      "assetName": "theasset",
+      "source":
+      {
+        "studyName": "dataset-test-study",
+        "assetName": "theasset"
+      },
       "fieldName": "thecolumn",
       "values": [
         "1",

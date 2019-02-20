@@ -66,11 +66,11 @@ public class DatasetDaoTest {
         studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         studyId = studyDao.create(study);
-        study = studyDao.retrieve(studyId).get();
+        study = studyDao.retrieve(studyId);
 
         String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
         datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
-        datasetRequest.getSource().get(0).setStudyName(study.getName());
+        datasetRequest.getContents().get(0).getSource().setStudyName(study.getName());
 
         // Populate the datasetId with random; delete should quietly not find it.
         datasetId = UUID.randomUUID();

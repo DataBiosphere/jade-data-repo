@@ -157,13 +157,10 @@ public class DatasetDao {
 
         List<DatasetSource> datasetSources = new ArrayList<>();
         for (RawSourceData raw : rawList) {
-            Optional<Study> study = studyDao.retrieve(raw.studyId);
-            if (!study.isPresent()) {
-                throw new CorruptMetadataException("Study referenced by dataset source was not found!");
-            }
+            Study study = studyDao.retrieve(raw.studyId);
 
             // Find the matching asset in the study
-            Optional<AssetSpecification> assetSpecification = study.get().getAssetSpecificationById(raw.assetId);
+            Optional<AssetSpecification> assetSpecification = study.getAssetSpecificationById(raw.assetId);
             if (!assetSpecification.isPresent()) {
                 throw new CorruptMetadataException("Asset referenced by dataset source was not found!");
             }
@@ -171,7 +168,7 @@ public class DatasetDao {
             DatasetSource datasetSource = new DatasetSource()
                     .id(raw.id)
                     .dataset(dataset)
-                    .study(study.get())
+                    .study(study)
                     .assetSpecification(assetSpecification.get());
 
             // Now that we have access to all of the parts, build the map structure

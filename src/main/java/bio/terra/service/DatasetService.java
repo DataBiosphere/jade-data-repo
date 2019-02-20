@@ -19,6 +19,7 @@ import bio.terra.metadata.StudyTableColumn;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetRequestSourceModel;
 import bio.terra.model.DatasetSourceModel;
@@ -135,13 +136,13 @@ public class DatasetService {
         // Make this early so we can hook up back links to it
         Dataset dataset = new Dataset();
 
-        List<DatasetRequestSourceModel> requestSourceList = datasetRequestModel.getSource();
+        List<DatasetRequestContentsModel> requestContentsList = datasetRequestModel.getContents();
         // TODO: for MVM we only allow one source list
-        if (requestSourceList.size() > 1) {
-            throw new ValidationException("Only a single dataset source is currently allowed.");
+        if (requestContentsList.size() > 1) {
+            throw new ValidationException("Only a single dataset contents entry is currently allowed.");
         }
-        DatasetRequestSourceModel requestSource = requestSourceList.get(0);
-        DatasetSource datasetSource = makeSourceFromRequestSource(requestSource, dataset);
+        DatasetRequestContentsModel requestContents = requestContentsList.get(0);
+        DatasetSource datasetSource = makeSourceFromRequestContents(requestContents, dataset);
 
         // TODO: When we implement explicit definition of dataset tables, we will handle that here.
         // For now, we generate the dataset tables directly from the asset tables of the one source
@@ -155,12 +156,9 @@ public class DatasetService {
         return dataset;
     }
 
-    private DatasetSource makeSourceFromRequestSource(DatasetRequestSourceModel requestSource, Dataset dataset) {
-        Optional<Study> optStudy = studyDao.retrieveByName(requestSource.getStudyName());
-        if (!optStudy.isPresent()) {
-            throw new NotFoundException("Study not found: " + requestSource.getStudyName());
-        }
-        Study study = optStudy.get();
+    private DatasetSource makeSourceFromRequestContents(DatasetRequestContentsModel requestContents, Dataset dataset) {
+        DatasetRequestSourceModel requestSource = requestContents.getSource();
+        Study study = studyDao.retrieveByName(requestSource.getStudyName());
 
         Optional<AssetSpecification> optAsset = study.getAssetSpecificationByName(requestSource.getAssetName());
         if (!optAsset.isPresent()) {
@@ -171,9 +169,9 @@ public class DatasetService {
 
         // We don't save the studyColumn in the dataset source; we can navigate to it, but we need to
         // validate that the column name exists.
-        Optional<StudyTableColumn> optColumn = assetTable.getStudyColumnByName(requestSource.getFieldName());
+        Optional<StudyTableColumn> optColumn = assetTable.getStudyColumnByName(requestContents.getFieldName());
         if (!optColumn.isPresent()) {
-            throw new NotFoundException("Source column not found: " + requestSource.getFieldName());
+            throw new NotFoundException("Source column not found: " + requestContents.getFieldName());
         }
 
         // TODO: When we implement explicit definition of the dataset tables and mapping to study tables,

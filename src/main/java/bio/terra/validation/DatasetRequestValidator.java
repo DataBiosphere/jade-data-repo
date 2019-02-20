@@ -3,6 +3,7 @@ package bio.terra.validation;
 import bio.terra.model.DatasetRequestContentsModel;
 
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetRequestSourceModel;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -37,13 +38,26 @@ public class DatasetRequestValidator implements Validator {
     }
 
     private void validateDatasetValues(List<DatasetRequestContentsModel> contentsList, Errors errors) {
-        if (contentsList.isEmpty()) {
+        if (contentsList == null || contentsList.isEmpty()) {
             errors.rejectValue("contents", "DatasetSourceListEmpty");
         } else {
             contentsList.forEach(contents -> {
                 List<String> rootValues = contents.getRootValues();
                 if (rootValues == null || rootValues.isEmpty()) {
                     errors.rejectValue("contents", "DatasetRootValuesListEmpty");
+                }
+                DatasetRequestSourceModel source = contents.getSource();
+                String studyName = source.getStudyName();
+                String assetName = source.getAssetName();
+                if (studyName == null) {
+                    errors.rejectValue("contents", "DatasetStudyNameMissing");
+                } else if (!ValidationUtils.isValidName(studyName)) {
+                    errors.rejectValue("contents", "DatasetStudyNameInvalid");
+                }
+                if (assetName == null) {
+                    errors.rejectValue("contents", "DatasetAssetNameMissing");
+                } else if (!ValidationUtils.isValidName(assetName)) {
+                    errors.rejectValue("contents", "DatasetAssetNameInvalid");
                 }
             });
         }

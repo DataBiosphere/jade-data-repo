@@ -31,10 +31,13 @@ public final class StudyJsonConversion {
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         studySpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToStudyTable(tableModel)));
-        studySpecification.getRelationships().forEach(relationship ->
-                relationshipsMap.put(
-                        relationship.getName(),
-                        relationshipModelToStudyRelationship(relationship, tablesMap)));
+        // Relationships are optional, so there might not be any here
+        if (studySpecification.getRelationships() != null) {
+            studySpecification.getRelationships().forEach(relationship ->
+                    relationshipsMap.put(
+                            relationship.getName(),
+                            relationshipModelToStudyRelationship(relationship, tablesMap)));
+        }
         studySpecification.getAssets().forEach(asset ->
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
 

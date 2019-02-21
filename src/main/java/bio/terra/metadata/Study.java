@@ -1,9 +1,12 @@
 package bio.terra.metadata;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 public class Study extends StudySummary {
@@ -41,6 +44,24 @@ public class Study extends StudySummary {
         return this;
     }
 
+    public Optional<AssetSpecification> getAssetSpecificationByName(String name) {
+        for (AssetSpecification assetSpecification : getAssetSpecifications()) {
+            if (StringUtils.equals(name, assetSpecification.getName())) {
+                return Optional.of(assetSpecification);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public Optional<AssetSpecification> getAssetSpecificationById(UUID id) {
+        for (AssetSpecification assetSpecification : getAssetSpecifications()) {
+            if (assetSpecification.getId().equals(id)) {
+                return Optional.of(assetSpecification);
+            }
+        }
+        return Optional.empty();
+    }
+
     public Map<UUID, StudyTableColumn> getAllColumnsById() {
         Map<UUID, StudyTableColumn> columns = new HashMap<>();
         getTables().forEach(table -> table.getColumns().forEach(column -> columns.put(column.getId(), column)));
@@ -59,4 +80,12 @@ public class Study extends StudySummary {
         return relationships;
     }
 
+    public Optional<StudyTable> getTableById(UUID id) {
+        for (StudyTable tryTable : getTables()) {
+            if (tryTable.getId().equals(id)) {
+                return Optional.of(tryTable);
+            }
+        }
+        return Optional.empty();
+    }
 }

@@ -1,4 +1,4 @@
-package bio.terra.controller.exception;
+package bio.terra.exceptions;
 
 public class ValidationException extends RuntimeException {
     public ValidationException(String message) {

@@ -54,13 +54,23 @@ public class StudySummaryDao {
         }
     }
 
-    public StudySummary retrieve(UUID id) throws StudyNotFoundException, EmptyResultDataAccessException {
+    public StudySummary retrieve(UUID id) {
         try {
             String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new StudyNotFoundException("Study not found for id " + id.toString());
+        }
+    }
+
+    public StudySummary retrieveByName(String name) {
+        try {
+            String sql = "SELECT id, name, description, created_date FROM study WHERE name = :name";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
+            return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new StudyNotFoundException("Study not found for name " + name);
         }
     }
 

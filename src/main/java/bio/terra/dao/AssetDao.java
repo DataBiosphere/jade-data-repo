@@ -136,9 +136,10 @@ public class AssetDao {
                     if (spec.getRootTable() == null && rootTableId.equals(tableId)) {
                         spec.setRootTable(newAssetTable);
                     }
+                    // TODO: handle the error case where the id is not found
                     AssetColumn newColumn = new AssetColumn()
                             .setId(UUID.fromString(rs.get("id").toString()))
-                            .setStudyColumn(allColumns.get(rs.get("study_column_id").toString()));
+                            .setStudyColumn(allColumns.get(UUID.fromString(rs.get("study_column_id").toString())));
                     newAssetTable.getColumns().add(newColumn);
                 });
         return tables.values();

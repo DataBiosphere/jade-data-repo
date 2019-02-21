@@ -56,9 +56,18 @@ public class StudyDao extends StudySummaryDao {
     }
 
     public Study retrieve(UUID id) {
+        StudySummary summary = super.retrieve(id);
+        return retrieveWorker(summary);
+    }
+
+    public Study retrieveByName(String name) {
+        StudySummary summary = super.retrieveByName(name);
+        return retrieveWorker(summary);
+    }
+
+    private Study retrieveWorker(StudySummary summary) {
         Study study = null;
         try {
-            StudySummary summary = super.retrieve(id);
             if (summary != null) {
                 study = new Study(summary);
                 tableDao.retrieve(study);

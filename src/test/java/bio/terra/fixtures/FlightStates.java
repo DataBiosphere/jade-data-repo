@@ -23,19 +23,13 @@ public final class FlightStates {
     public static final Timestamp completedTime = Timestamp.from(Instant.now());
     public static final String completedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
             .format(completedTime);
-    public static final StudySummaryModel studySummary = new StudySummaryModel()
-                .name("Minimal")
-                .description("This is a sample study definition");
-    public static final StudySummaryModel minimalStudySummary = new StudySummaryModel()
-                .id("Minimal")
-                .name("Minimal")
-                .description("This is a sample study definition");
+    public static final StudySummaryModel minimalStudySummary = StudyFixtures.makeStudySummary();
 
 
     public static FlightState makeFlightSimpleState() {
         // Construct a mock FlightState
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), studySummary);
+        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);

@@ -66,7 +66,7 @@ public class DatasetRequestValidator implements Validator {
     private void validateDatasetDescription(String description, Errors errors) {
         if (description == null) {
             errors.rejectValue("description", "DatasetDescriptionMissing");
-        } else if (description.length() > 2048) {
+        } else if (!ValidationUtils.isValidDescription(description)) {
             errors.rejectValue("description", "DatasetDescriptionTooLong");
         }
     }

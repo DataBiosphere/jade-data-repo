@@ -43,8 +43,8 @@ public class DatasetDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Dataset dataset) {
-        String sql = "INSERT INTO dataset (name, description, created_date)" +
-                " VALUES (:name, :description, CURRENT_TIMESTAMP)";
+        String sql = "INSERT INTO dataset (name, description)" +
+                " VALUES (:name, :description)";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", dataset.getName())
                 .addValue("description", dataset.getDescription());

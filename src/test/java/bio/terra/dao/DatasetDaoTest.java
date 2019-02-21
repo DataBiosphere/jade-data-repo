@@ -155,11 +155,11 @@ public class DatasetDaoTest {
     @Test
     public void datasetEnumerateTest() throws Exception {
         List<UUID> datasetIds = new ArrayList<>();
-        String datasetName = datasetRequest.getName();
+        String datasetName = datasetRequest.getName() + UUID.randomUUID().toString();
 
         // Make 6 datasets
         for (int i = 0; i < 6; i++) {
-            datasetRequest.name(datasetName + i);
+            datasetRequest.name(makeName(datasetName, i));
             Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
             datasetId = datasetDao.create(dataset);
             datasetIds.add(datasetId);
@@ -169,6 +169,14 @@ public class DatasetDaoTest {
         testOneEnumerateRange(datasetIds, datasetName, 1, 3);
         testOneEnumerateRange(datasetIds, datasetName, 3, 5);
         testOneEnumerateRange(datasetIds, datasetName, 4, 7);
+
+        for (UUID datasetId : datasetIds) {
+            datasetDao.delete(datasetId);
+        }
+    }
+
+    private String makeName(String baseName, int index) {
+        return baseName + "-" + index;
     }
 
     private void testOneEnumerateRange(List<UUID> datasetIds,
@@ -183,13 +191,10 @@ public class DatasetDaoTest {
                     datasetIds.get(index),
                     equalTo(summary.getId()));
             assertThat("correct dataset namee",
-                    datasetName + index,
+                    makeName(datasetName, index),
                     equalTo(summary.getName()));
             index++;
         }
     }
-
-
-
 
 }

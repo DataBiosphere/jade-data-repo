@@ -1,5 +1,8 @@
 package bio.terra.controller;
 
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.StudyDao;
@@ -12,13 +15,12 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.service.JobMapKeys;
-import bio.terra.service.JobService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.validation.DatasetRequestValidator;
 import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +48,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final JobService jobService;
     private final StudyRequestValidator studyRequestValidator;
     private final StudyDao studyDao;
+    private final DatasetRequestValidator datasetRequestValidator;
 
     @Autowired
     public RepositoryApiController(
@@ -54,7 +57,8 @@ public class RepositoryApiController implements RepositoryApi {
             Stairway stairway,
             JobService jobService,
             StudyRequestValidator studyRequestValidator,
-            StudyDao studyDao
+            StudyDao studyDao,
+            DatasetRequestValidator datasetRequestValidator
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -62,11 +66,13 @@ public class RepositoryApiController implements RepositoryApi {
         this.jobService = jobService;
         this.studyRequestValidator = studyRequestValidator;
         this.studyDao = studyDao;
+        this.datasetRequestValidator = datasetRequestValidator;
     }
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
         binder.addValidators(studyRequestValidator);
+        binder.addValidators(datasetRequestValidator);
     }
 
     @Override
@@ -116,6 +122,10 @@ public class RepositoryApiController implements RepositoryApi {
         Study study = studyDao.retrieve(UUID.fromString(id));
         StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
         return new ResponseEntity<>(studyModel, HttpStatus.OK);
+    }
+
+    public ResponseEntity<Void> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
+        return new ResponseEntity<>(HttpStatus.CREATED);
     }
 
     public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {

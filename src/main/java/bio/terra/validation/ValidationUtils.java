@@ -17,4 +17,8 @@ public final class ValidationUtils {
     public static boolean isValidName(String name) {
         return Pattern.matches(VALID_NAME_REGEX, name);
     }
+
+    public static boolean isValidDescription(String name) {
+        return name.length() < 2048;
+    }
 }

@@ -57,7 +57,6 @@ public class DatasetTest {
                 .assetName("asset");
         DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
                 .source(datasetRequestSourceModel)
-                .fieldName("field")
                 .rootValues(Arrays.asList("sample 1", "sample 2", "sample 3"));
         DatasetRequestModel datasetRequestModel = new DatasetRequestModel()
                 .name("dataset")
@@ -124,7 +123,6 @@ public class DatasetTest {
                 .assetName("asset");
         DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
                 .source(datasetRequestSourceModel)
-                .fieldName("field")
                 .rootValues(empty);
         datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
         expectBadDatasetCreateRequest(datasetRequest);
@@ -137,7 +135,6 @@ public class DatasetTest {
                 .assetName("asset");
         DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
                 .source(datasetRequestSourceModel)
-                .fieldName("field")
                 .rootValues(Collections.singletonList("root"));
         datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
         expectBadDatasetCreateRequest(datasetRequest);
@@ -168,7 +165,6 @@ public class DatasetTest {
                 .assetName("no spaces");
         DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
                 .source(datasetRequestSourceModel)
-                .fieldName("field")
                 .rootValues(Collections.singletonList("root"));
         datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
         expectBadDatasetCreateRequest(datasetRequest);

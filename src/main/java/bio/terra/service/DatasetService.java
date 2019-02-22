@@ -15,7 +15,6 @@ import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTableColumn;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
@@ -164,15 +163,6 @@ public class DatasetService {
         if (!optAsset.isPresent()) {
             throw new NotFoundException("Asset specification not found: " + requestSource.getAssetName());
         }
-        AssetSpecification asset = optAsset.get();
-        AssetTable assetTable = asset.getRootTable();
-
-        // We don't save the studyColumn in the dataset source; we can navigate to it, but we need to
-        // validate that the column name exists.
-        Optional<StudyTableColumn> optColumn = assetTable.getStudyColumnByName(requestContents.getFieldName());
-        if (!optColumn.isPresent()) {
-            throw new NotFoundException("Source column not found: " + requestContents.getFieldName());
-        }
 
         // TODO: When we implement explicit definition of the dataset tables and mapping to study tables,
         // the map construction will go here. For MVM, we generate the mapping data directly from the asset spec.
@@ -180,7 +170,7 @@ public class DatasetService {
         return new DatasetSource()
                .dataset(dataset)
                .study(study)
-               .assetSpecification(asset);
+               .assetSpecification(optAsset.get());
     }
 
     /**

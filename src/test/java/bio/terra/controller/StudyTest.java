@@ -115,16 +115,16 @@ public class StudyTest {
 
         assetParticipantTable = new AssetTableModel()
                 .name("participant")
-                .columns(Collections.emptyList())
-                .isRoot(false);
+                .columns(Collections.emptyList());
 
         assetSampleTable = new AssetTableModel()
                 .name("sample")
-                .columns(Arrays.asList("participant_id", "date_collected"))
-                .isRoot(true);
+                .columns(Arrays.asList("participant_id", "date_collected"));
 
         asset = new AssetModel()
                 .name("Sample")
+                .rootTable("sample")
+                .rootColumn("participant_id")
                 .tables(Arrays.asList(assetParticipantTable, assetSampleTable))
                 .follow(Collections.singletonList("participant_sample"));
 
@@ -272,11 +272,11 @@ public class StudyTest {
     public void testInvalidAssetTable() throws Exception {
         AssetTableModel invalidAssetTable = new AssetTableModel()
                 .name("mismatched_table_name")
-                .isRoot(true)
                 .columns(Collections.emptyList());
 
         AssetModel asset = new AssetModel()
                 .name("bad_asset")
+                .rootTable("mismatched_table_name")
                 .tables(Collections.singletonList(invalidAssetTable))
                 .follow(Collections.singletonList("participant_sample"));
 
@@ -289,11 +289,12 @@ public class StudyTest {
         // participant is a valid table but date_collected is in the sample table
         AssetTableModel invalidAssetTable = new AssetTableModel()
                 .name("participant")
-                .isRoot(true)
                 .columns(Collections.singletonList("date_collected"));
 
         AssetModel asset = new AssetModel()
                 .name("mismatched")
+                .rootTable("participant")
+                .rootColumn("date_collected")
                 .tables(Collections.singletonList(invalidAssetTable))
                 .follow(Collections.singletonList("participant_sample"));
 

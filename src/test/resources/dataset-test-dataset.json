@@ -8,7 +8,6 @@
         "studyName": "dataset-test-study",
         "assetName": "theasset"
       },
-      "fieldName": "thecolumn",
       "values": [
         "1",
         "2",

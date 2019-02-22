@@ -494,14 +494,10 @@ definitions:
     type: object
     required:
       - name
-      - is_root
       - columns
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
-      is_root:
-        type: boolean
-        default: false
       columns:
         type: array
         items:
@@ -509,12 +505,15 @@ definitions:
 
   AssetModel:
     description: One asset in the data model. The table list identifies the tables in the asset.
+          The rootTable and rootColumn indicate which value will be used as the unique identifier.
           The list of relationships provides the instructions for how to connect the tables.
           Asset tables have to be connected in a relationship hierarchy. So there cannot be
           two paths to the same table from the root.
     required:
       - name
-      - follow
+      - tables
+      - rootTable
+      - rootColumn
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
@@ -522,6 +521,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/AssetTableModel'
+      rootTable:
+        $ref: '#/definitions/ObjectNameProperty'
+      rootColumn:
+        $ref: '#/definitions/ObjectNameProperty'
       follow:
         type: array
         items:
@@ -581,13 +584,10 @@ definitions:
     type: object
     required:
       - source
-      - fieldName
       - rootValues
     properties:
       source:
         $ref: '#/definitions/DatasetRequestSourceModel'
-      fieldName:
-        $ref: '#/definitions/ObjectNameProperty'
       rootValues:
         type: array
         items:

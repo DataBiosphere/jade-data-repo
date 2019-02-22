@@ -151,31 +151,39 @@ public final class StudyJsonConversion {
                                                                     Map<String, StudyRelationship> relationships) {
         AssetSpecification spec = new AssetSpecification()
                 .setName(assetModel.getName());
-        spec.setAssetTables(processAssetTables(spec, assetModel.getTables(), tables));
+        spec.setAssetTables(processAssetTables(spec, assetModel, tables));
         spec.setAssetRelationships(processAssetRelationships(assetModel.getFollow(), relationships));
         return spec;
     }
 
     private static List<AssetTable> processAssetTables(
             AssetSpecification spec,
-            List<AssetTableModel> assetTablesModel,
+            AssetModel assetModel,
             Map<String, StudyTable> tables) {
         List<AssetTable> newAssetTables = new ArrayList<>();
-        assetTablesModel.forEach(tblMod -> {
+        assetModel.getTables().forEach(tblMod -> {
+            boolean processingRootTable = false;
             String tableName = tblMod.getName();
             StudyTable studyTable = tables.get(tableName);
             //not sure if we need to set the id on the new table
             AssetTable newAssetTable = new AssetTable().setStudyTable(studyTable);
-            // TODO fix this so it defaults to false
-            if (tblMod.isIsRoot() != null && tblMod.isIsRoot()) { spec.setRootTable(newAssetTable); }
-            List<AssetColumn> assetColumns = new ArrayList<>();
-            assetColumns.addAll(Collections.unmodifiableList(studyTable.getColumnsMap().entrySet()
+            if (assetModel.getRootTable().equals(tableName)) {
+                spec.setRootTable(newAssetTable);
+                processingRootTable = true;
+            }
+            Map<String, StudyTableColumn> allTableColumns = studyTable.getColumnsMap();
+            List<String> colNamesToInclude = tblMod.getColumns();
+            if (colNamesToInclude.isEmpty()) {
+                colNamesToInclude = new ArrayList<>(allTableColumns.keySet());
+            }
+            Map<String, AssetColumn> assetColumnsMap = colNamesToInclude
                     .stream()
-                    .filter(entryToFilter -> tblMod.getColumns().isEmpty() ||
-                            tblMod.getColumns().contains(entryToFilter.getKey()))
-                    .map(entry -> new AssetColumn().setStudyColumn(entry.getValue()))
-                    .collect(Collectors.toList())));
-            newAssetTable.setColumns(assetColumns);
+                    .collect(Collectors.toMap(colName -> colName, colName ->
+                            new AssetColumn().setStudyColumn(allTableColumns.get(colName))));
+            newAssetTable.setColumns(new ArrayList<>(assetColumnsMap.values()));
+            if (processingRootTable) {
+                spec.rootColumn(assetColumnsMap.get(assetModel.getRootColumn()));
+            }
             newAssetTables.add(newAssetTable);
         });
         return newAssetTables;

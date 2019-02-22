@@ -36,8 +36,10 @@
     "assets":        [
       {
         "name":   "Sample",
+        "rootTable": "sample",
+        "rootColumn": "id",
         "tables": [
-          {"name": "sample", "columns": [], "is_root": true},
+          {"name": "sample", "columns": []},
           {"name": "participant", "columns": []}
         ],
         "follow": [
@@ -46,8 +48,10 @@
       },
       {
         "name":   "Trio",
+        "rootTable": "participant",
+        "rootColumn": "id",
         "tables": [
-          {"name": "participant", "columns": ["id", "age", "gender"], "is_root": true},
+          {"name": "participant", "columns": ["id", "age", "gender"]},
           {"name": "sample", "columns": []}
         ],
         "follow": [

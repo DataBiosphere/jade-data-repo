@@ -115,10 +115,24 @@ public class StudyRequestValidator implements Validator {
         }
     }
 
-    private void validateAssetTable(AssetTableModel assetTable, Errors errors, SchemaValidationContext context) {
+    // returns true if the table is the root table
+    // error for invalid root column is determined within this method
+    private boolean validateAssetTable(
+            AssetTableModel assetTable,
+            String rootTableName,
+            String rootColumnName,
+            Errors errors,
+            SchemaValidationContext context) {
+        boolean hasRootTable = false;
         String tableName = assetTable.getName();
         List<String> columnNames = assetTable.getColumns();
         if (tableName != null && columnNames != null) {
+            if (tableName.equals(rootTableName)) {
+                hasRootTable = true;
+                if (!context.isValidTableColumn(rootTableName, rootColumnName)) {
+                    errors.rejectValue("schema", "InvalidRootColumn");
+                }
+            }
             // An empty list acts like a wildcard to include all columns from a table in the asset specification.
             if (columnNames.size() == 0) {
                 if (!context.isValidTable(tableName)) {
@@ -133,15 +147,16 @@ public class StudyRequestValidator implements Validator {
                 }
             }
         }
+        return hasRootTable;
     }
 
     private void validateAsset(AssetModel asset, Errors errors, SchemaValidationContext context) {
         List<AssetTableModel> assetTables = asset.getTables();
         if (assetTables != null) {
-            if (assetTables.stream().noneMatch(AssetTableModel::isIsRoot)) {
+            if (assetTables.stream().noneMatch((assetTable) -> validateAssetTable(
+                    assetTable, asset.getRootTable(), asset.getRootColumn(), errors, context))) {
                 errors.rejectValue("schema", "NoRootTable");
             }
-            assetTables.forEach((assetTable) -> validateAssetTable(assetTable, errors, context));
         }
         List<String> follows = asset.getFollow();
         if (follows != null) {

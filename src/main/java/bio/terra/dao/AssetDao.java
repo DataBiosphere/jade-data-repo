@@ -40,12 +40,13 @@ public class AssetDao {
     }
 
     private UUID create(AssetSpecification assetSpecification, UUID studyId) {
-        String sql = "INSERT INTO asset_specification (study_id, name, root_table_id) " +
-                "VALUES (:study_id, :name, :root_table_id)";
+        String sql = "INSERT INTO asset_specification (study_id, name, root_table_id, root_column_id) " +
+                "VALUES (:study_id, :name, :root_table_id, :root_column_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", studyId);
         params.addValue("name", assetSpecification.getName());
         params.addValue("root_table_id", assetSpecification.getRootTable().getStudyTable().getId());
+        params.addValue("root_column_id", assetSpecification.getRootColumn().getStudyColumn().getId());
         UUIDHolder keyHolder = new UUIDHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID assetSpecId = keyHolder.getId();
@@ -92,31 +93,36 @@ public class AssetDao {
 
     // also retrieves dependent objects
     public List<AssetSpecification> retrieveAssetSpecifications(Study study) {
-        Map<UUID, UUID> specIdToRootTableId = new HashMap<>();
-        List<AssetSpecification> specs = jdbcTemplate.query(
-                "SELECT id, name, root_table_id FROM asset_specification WHERE study_id = :study_id",
-                new MapSqlParameterSource().addValue("study_id", study.getId()), (
-                        rs, rowNum) -> {
-                //TODO this section can't be auto formatted and pass checkstyle!!!!
-                UUID specId = UUID.fromString(rs.getString("id"));
-                specIdToRootTableId.put(specId, UUID.fromString(rs.getString("root_table_id")));
-                return new AssetSpecification()
-                            .setId(specId)
-                            .setName(rs.getString("name")); });
         Map<UUID, StudyTable> allTables = study.getTablesById();
         Map<UUID, StudyTableColumn> allColumns = study.getAllColumnsById();
         Map<UUID, StudyRelationship> allRelationships = study.getRelationshipsById();
-        specs.forEach(spec -> {
+
+        String sql = "SELECT id, name, root_table_id, root_column_id FROM asset_specification WHERE study_id = " +
+                ":studyId";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", study.getId());
+
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            UUID specId = UUID.fromString(rs.getString("id"));
+            AssetSpecification spec = new AssetSpecification()
+                    .setId(specId)
+                    .setName(rs.getString("name"));
             spec.setAssetTables(new ArrayList(
-                    retrieveAssetTablesAndColumns(spec, specIdToRootTableId.get(spec.getId()), allTables, allColumns)));
+                    retrieveAssetTablesAndColumns(
+                            spec,
+                            UUID.fromString(rs.getString("root_table_id")),
+                            UUID.fromString(rs.getString("root_column_id")),
+                            allTables,
+                            allColumns)));
             spec.setAssetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
+
+            return spec;
         });
-        return specs;
     }
 
     // also retrieves columns
     private Collection<AssetTable> retrieveAssetTablesAndColumns(AssetSpecification spec,
                                                                  UUID rootTableId,
+                                                                 UUID rootColumnId,
                                                                  Map<UUID, StudyTable> allTables,
                                                                  Map<UUID, StudyTableColumn> allColumns) {
         Map<UUID, AssetTable> tables = new HashMap<>();
@@ -129,18 +135,21 @@ public class AssetDao {
         results
                 .forEach(rs -> {
                     UUID tableId = UUID.fromString(rs.get("table_id").toString());
+                    UUID columnId = UUID.fromString(rs.get("study_column_id").toString());
                     if (!tables.containsKey(tableId)) {
                         tables.put(tableId, new AssetTable().setStudyTable(allTables.get(tableId)));
                     }
-                    AssetTable newAssetTable = tables.get(tableId);
-                    if (spec.getRootTable() == null && rootTableId.equals(tableId)) {
-                        spec.setRootTable(newAssetTable);
-                    }
-                    // TODO: handle the error case where the id is not found
+                    AssetTable assetTable = tables.get(tableId);
                     AssetColumn newColumn = new AssetColumn()
                             .setId(UUID.fromString(rs.get("id").toString()))
-                            .setStudyColumn(allColumns.get(UUID.fromString(rs.get("study_column_id").toString())));
-                    newAssetTable.getColumns().add(newColumn);
+                            .setStudyColumn(allColumns.get(columnId));
+                    // check to see if this table and column are the root values
+                    if (rootTableId.equals(tableId) && rootColumnId.equals(columnId)) {
+                        spec.setRootTable(assetTable);
+                        spec.rootColumn(newColumn);
+                    }
+                    // add the new column to the asset table object
+                    assetTable.getColumns().add(newColumn);
                 });
         return tables.values();
     }
@@ -149,10 +158,10 @@ public class AssetDao {
     private List<AssetRelationship> retrieveAssetRelationships(
             UUID specId,
             Map<UUID, StudyRelationship> allRelationships) {
-        return jdbcTemplate.query(
-                "SELECT id, relationship_id FROM asset_relationship WHERE asset_id = :assetId",
-                new MapSqlParameterSource().addValue("assetId", specId), (
-                        rs, rowNum) -> new AssetRelationship()
+        String sql = "SELECT id, relationship_id FROM asset_relationship WHERE asset_id = :assetId";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", specId);
+        return jdbcTemplate.query(sql, params, (rs, rowNum) ->
+                new AssetRelationship()
                         .setId(UUID.fromString(rs.getString("id")))
                         .setStudyRelationship(allRelationships.get(
                                 UUID.fromString(rs.getString("relationship_id")))));

@@ -29,8 +29,10 @@
     "assets":        [
       {
         "name":   "Sample",
+        "rootTable": "sample",
+        "rootColumn": "id",
         "tables": [
-          {"name": "sample", "columns": [], "is_root": true},
+          {"name": "sample", "columns": []},
           {"name": "participant", "columns": []}
         ],
         "follow": ["participant_sample"]

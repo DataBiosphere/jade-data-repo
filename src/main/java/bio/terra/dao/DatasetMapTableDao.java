@@ -71,7 +71,7 @@ public class DatasetMapTableDao {
             new MapSqlParameterSource().addValue("source_id", source.getId()),
             (rs, rowNum) -> {
                 List<DatasetMapTable> mapTables = new ArrayList<>();
-                UUID fromTableId = UUID.fromString(rs.getString("from_table_id"));
+                UUID fromTableId = rs.getObject("from_table_id", UUID.class);
                 Optional<StudyTable> studyTable = source.getStudy().getTableById(fromTableId);
                 if (!studyTable.isPresent()) {
                     throw new CorruptMetadataException(
@@ -85,7 +85,7 @@ public class DatasetMapTableDao {
                             "Dataset table referenced by dataset source map table was not found!");
                 }
 
-                UUID id = UUID.fromString(rs.getString("id"));
+                UUID id = rs.getObject("id", UUID.class);
                 List<DatasetMapColumn> mapColumns = retrieveMapColumns(id, studyTable.get(), datasetTable.get());
 
                 return new DatasetMapTable()
@@ -106,14 +106,14 @@ public class DatasetMapTableDao {
             sql,
             new MapSqlParameterSource().addValue("map_table_id", mapTableId),
             (rs, rowNum) -> {
-                UUID fromId = UUID.fromString(rs.getString("from_column_id"));
+                UUID fromId = rs.getObject("from_column_id", UUID.class);
                 Optional<StudyTableColumn> studyColumn = fromTable.getColumnById(fromId);
                 if (!studyColumn.isPresent()) {
                     throw new CorruptMetadataException(
                             "Study column referenced by dataset source map column was not found");
                 }
 
-                UUID toId = UUID.fromString(rs.getString("to_column_id"));
+                UUID toId = rs.getObject("to_column_id", UUID.class);
                 Optional<Column> datasetColumn = toTable.getColumnById(toId);
                 if (!datasetColumn.isPresent()) {
                     throw new CorruptMetadataException(
@@ -121,7 +121,7 @@ public class DatasetMapTableDao {
                 }
 
                 return new DatasetMapColumn()
-                        .id(UUID.fromString(rs.getString("from_column_id")))
+                        .id(rs.getObject("from_column_id", UUID.class))
                         .fromColumn(studyColumn.get())
                         .toColumn(datasetColumn.get());
             });

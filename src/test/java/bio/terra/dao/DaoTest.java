@@ -99,11 +99,11 @@ public class DaoTest {
             UUID fromUUID = jdbcTemplate.queryForObject(sqlFrom, params, UUID.class);
             assertThat("from table id in DB matches that in retrieved object",
                     fromUUID,
-                    equalTo(rel.getFrom().getInTable().getId()));
+                    equalTo(rel.getFromColumn().getInTable().getId()));
             UUID toUUID = jdbcTemplate.queryForObject(sqlTo, params, UUID.class);
             assertThat("to table id in DB matches that in retrieved object",
                     toUUID,
-                    equalTo(rel.getTo().getInTable().getId()));
+                    equalTo(rel.getToColumn().getInTable().getId()));
         });
     }
 

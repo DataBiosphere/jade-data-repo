@@ -72,7 +72,7 @@ public class TableDaoBase {
                 sqlSelectTable,
                 new MapSqlParameterSource().addValue("parentId", parentId), (rs, rowNum) ->
                         new Table()
-                                .id(UUID.fromString(rs.getString("id")))
+                                .id(rs.getObject("id", UUID.class))
                                 .name(rs.getString("name")));
         tables.forEach(table -> table.columns(retrieveColumns(table)));
         return tables;
@@ -83,7 +83,7 @@ public class TableDaoBase {
                 sqlSelectColumn,
                 new MapSqlParameterSource().addValue("tableId", table.getId()), (rs, rowNum) ->
                         new Column()
-                                .id(UUID.fromString(rs.getString("id")))
+                                .id(rs.getObject("id", UUID.class))
                                 .table(table)
                                 .name(rs.getString("name"))
                                 .type(rs.getString("type")));

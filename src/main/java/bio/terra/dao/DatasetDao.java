@@ -115,7 +115,7 @@ public class DatasetDao {
         try {
             Dataset dataset = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
                     new Dataset()
-                            .id(UUID.fromString(rs.getString("id")))
+                            .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
                             .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
@@ -150,8 +150,8 @@ public class DatasetDao {
                 (rs, rowNum) -> {
                     RawSourceData raw = new RawSourceData();
                     raw.id = UUID.fromString(rs.getString("id"));
-                    raw.studyId = UUID.fromString(rs.getString("study_id"));
-                    raw.assetId = UUID.fromString(rs.getString("asset_id"));
+                    raw.studyId = rs.getObject("study_id", UUID.class);
+                    raw.assetId = rs.getObject("asset_id", UUID.class);
                     return raw;
                 });
 
@@ -206,7 +206,7 @@ public class DatasetDao {
 
             DatasetSummary datasetSummary = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
                     new DatasetSummary()
-                            .id(UUID.fromString(rs.getString("id")))
+                            .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
                             .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));

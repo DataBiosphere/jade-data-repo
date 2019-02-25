@@ -16,6 +16,8 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.UUID;
@@ -34,6 +36,9 @@ public class DaoTest {
 
     @Autowired
     private StudyDao studyDao;
+
+    @Autowired
+    private NamedParameterJdbcTemplate jdbcTemplate;
 
     private Study study;
     private UUID studyId;
@@ -75,11 +80,31 @@ public class DaoTest {
                 fromDB.getRelationships().size(),
                 equalTo(2));
 
+        assertTablesInRelationship(fromDB);
+
         // verify assets
         assertThat("correct number of assets created for study",
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
         fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+    }
+
+    protected void assertTablesInRelationship(Study study) {
+        String sqlFrom = "SELECT from_table "
+                + "FROM study_relationship WHERE id = :id";
+        String sqlTo = "SELECT to_table "
+                + "FROM study_relationship WHERE id = :id";
+        study.getRelationships().stream().forEach(rel -> {
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", rel.getId());
+            UUID fromUUID = jdbcTemplate.queryForObject(sqlFrom, params, UUID.class);
+            assertThat("from table id in DB matches that in retrieved object",
+                    fromUUID,
+                    equalTo(rel.getFrom().getInTable().getId()));
+            UUID toUUID = jdbcTemplate.queryForObject(sqlTo, params, UUID.class);
+            assertThat("to table id in DB matches that in retrieved object",
+                    toUUID,
+                    equalTo(rel.getTo().getInTable().getId()));
+        });
     }
 
     protected void assertStudyTable(StudyTable table) {

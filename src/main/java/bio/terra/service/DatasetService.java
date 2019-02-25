@@ -1,10 +1,11 @@
 package bio.terra.service;
 
-import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.exceptions.NotFoundException;
 import bio.terra.exceptions.ValidationException;
+import bio.terra.flight.dataset.create.DatasetCreateFlight;
+import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
 import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
@@ -27,6 +28,7 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.time.FastDateFormat;
+import bio.terra.stairway.Stairway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -39,18 +41,17 @@ import java.util.stream.Collectors;
 
 @Component
 public class DatasetService {
-// TODO: comment out stairway to appease findbugs. It will be used when the flights are implemented
-//    private Stairway stairway;
+    private Stairway stairway;
     private StudyDao studyDao;
     private DatasetDao datasetDao;
     private FastDateFormat modelDateFormat;
 
     @Autowired
-    public DatasetService(// Stairway stairway, TODO: see above
+    public DatasetService(Stairway stairway,
                           StudyDao studyDao,
                           DatasetDao datasetDao,
                           FastDateFormat modelDateFormat) {
-        // this.stairway = stairway; TODO: see above
+        this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
         this.modelDateFormat = modelDateFormat;
@@ -67,9 +68,7 @@ public class DatasetService {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
         flightMap.put("request", datasetRequestModel);
-        // TODO: wire this up
-        //return stairway.submit(DatasetCreateFlight.class, flightMap);
-        throw new ApiException("Create dataset is not implemented");
+        return stairway.submit(DatasetCreateFlight.class, flightMap);
     }
 
     /**
@@ -82,9 +81,7 @@ public class DatasetService {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
         flightMap.put("id", id);
-        // TODO: wire this up
-        //return stairway.submit(DatasetDeleteFlight.class, flightMap);
-        throw new ApiException("Delete dataset is not implemented");
+        return stairway.submit(DatasetDeleteFlight.class, flightMap);
     }
 
     /**
@@ -222,7 +219,7 @@ public class DatasetService {
         dataset.datasetTables(tableList);
     }
 
-    private DatasetSummaryModel makeSummaryModelFromSummary(DatasetSummary datasetSummary) {
+    public DatasetSummaryModel makeSummaryModelFromSummary(DatasetSummary datasetSummary) {
         DatasetSummaryModel summaryModel = new DatasetSummaryModel()
                 .id(datasetSummary.getId().toString())
                 .name(datasetSummary.getName())

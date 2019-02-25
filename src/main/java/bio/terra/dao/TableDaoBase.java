@@ -43,7 +43,7 @@ public class TableDaoBase {
     public void createTables(UUID parentId, List<Table> tableList) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("parent_id", parentId);
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Table table : tableList) {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sqlInsertTable, params, keyHolder);
@@ -56,7 +56,7 @@ public class TableDaoBase {
     protected void createColumns(UUID tableId, Collection<Column> columns) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("table_id", tableId);
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Column column : columns) {
             params.addValue("name", column.getName());
             params.addValue("type", column.getType());

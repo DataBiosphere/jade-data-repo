@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
 
-public class UUIDHolder extends GeneratedKeyHolder {
+public class DaoKeyHolder extends GeneratedKeyHolder {
 
     public UUID getId() {
         Map<String, Object> keys = getKeys();

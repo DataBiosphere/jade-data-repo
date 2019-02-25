@@ -43,11 +43,10 @@ public class StudyDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
         String sql = "INSERT INTO study (name, description) VALUES (:name, :description)";
-        // TODO when new key holder is merged remove date code and get created date from key holder
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", study.getName())
                 .addValue("description", study.getDescription());
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID studyId = keyHolder.getId();
         study.setId(studyId);

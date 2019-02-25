@@ -37,7 +37,7 @@ public class DatasetMapTableDao {
                 "VALUES (:source_id, :from_table_id, :to_table_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("source_id", sourceId);
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (DatasetMapTable table : tableList) {
             params.addValue("from_table_id", table.getFromTable().getId());
             params.addValue("to_table_id", table.getToTable().getId());
@@ -53,7 +53,7 @@ public class DatasetMapTableDao {
                 " VALUES (:map_table_id, :from_column_id, :to_column_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("map_table_id", tableId);
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (DatasetMapColumn column : columns) {
             params.addValue("from_column_id", column.getFromColumn().getId());
             params.addValue("to_column_id", column.getToColumn().getId());

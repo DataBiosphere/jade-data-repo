@@ -1,21 +1,29 @@
 package bio.terra.dao;
 
 import bio.terra.dao.exception.RepositoryMetadataException;
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
-public class StudyDao extends StudySummaryDao {
+public class StudyDao {
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
     private final TableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
@@ -25,7 +33,7 @@ public class StudyDao extends StudySummaryDao {
                     TableDao tableDao,
                     RelationshipDao relationshipDao,
                     AssetDao assetDao) {
-        super(jdbcTemplate);
+        this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
@@ -34,7 +42,15 @@ public class StudyDao extends StudySummaryDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
-        UUID studyId = super.create(study);
+        String sql = "INSERT INTO study (name, description) VALUES (:name, :description)";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("name", study.getName())
+                .addValue("description", study.getDescription());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        jdbcTemplate.update(sql, params, keyHolder);
+        UUID studyId = keyHolder.getId();
+        study.setId(studyId);
+        study.setCreatedDate(keyHolder.getCreatedDate());
         tableDao.createStudyTables(study);
         relationshipDao.createStudyRelationships(study);
         assetDao.createAssets(study);
@@ -43,25 +59,25 @@ public class StudyDao extends StudySummaryDao {
 
     @Transactional
     public boolean delete(UUID id) {
-        int rowsAffected = getJdbcTemplate().update("DELETE FROM study WHERE id = :id",
+        int rowsAffected = jdbcTemplate.update("DELETE FROM study WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id));
         return rowsAffected > 0;
     }
 
     @Transactional
     public boolean deleteByName(String studyName) {
-        int rowsAffected = getJdbcTemplate().update("DELETE FROM study WHERE name = :name",
+        int rowsAffected = jdbcTemplate.update("DELETE FROM study WHERE name = :name",
                 new MapSqlParameterSource().addValue("name", studyName));
         return rowsAffected > 0;
     }
 
     public Study retrieve(UUID id) {
-        StudySummary summary = super.retrieve(id);
+        StudySummary summary = retrieveSummaryById(id);
         return retrieveWorker(summary);
     }
 
     public Study retrieveByName(String name) {
-        StudySummary summary = super.retrieveByName(name);
+        StudySummary summary = retrieveSummaryByName(name);
         return retrieveWorker(summary);
     }
 
@@ -80,4 +96,39 @@ public class StudyDao extends StudySummaryDao {
         }
     }
 
+    public StudySummary retrieveSummaryById(UUID id) {
+        try {
+            String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new StudyNotFoundException("Study not found for id " + id.toString());
+        }
+    }
+
+    public StudySummary retrieveSummaryByName(String name) {
+        try {
+            String sql = "SELECT id, name, description, created_date FROM study WHERE name = :name";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
+            return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new StudyNotFoundException("Study not found for name " + name);
+        }
+    }
+
+    // does not return sub-objects with studies
+    public List<StudySummary> enumerate() {
+        String sql = "SELECT id, name, description, created_date FROM study";
+        return jdbcTemplate.query(sql, new MapSqlParameterSource(), new StudySummaryMapper());
+    }
+
+    private static class StudySummaryMapper implements RowMapper<StudySummary> {
+        public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new StudySummary()
+                    .setId(UUID.fromString(rs.getString("id")))
+                    .setName(rs.getString("name"))
+                    .setDescription(rs.getString("description"))
+                    .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+        }
+    }
 }

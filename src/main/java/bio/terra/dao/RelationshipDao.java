@@ -41,7 +41,7 @@ public class RelationshipDao {
                 .addValue("to_cardinality", studyRelationship.getToCardinality().toString())
                 .addValue("from_column", studyRelationship.getFrom().getId())
                 .addValue("to_column", studyRelationship.getTo().getId());
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID relationshipId = keyHolder.getId();
         studyRelationship.setId(relationshipId);

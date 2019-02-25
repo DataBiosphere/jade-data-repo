@@ -48,7 +48,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", dataset.getName())
                 .addValue("description", dataset.getDescription());
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID datasetId = keyHolder.getId();
         Instant createdDate = keyHolder.getCreatedDate();
@@ -70,7 +70,7 @@ public class DatasetDao {
                 .addValue("dataset_id", datasetSource.getDataset().getId())
                 .addValue("study_id", datasetSource.getStudy().getId())
                 .addValue("asset_id", datasetSource.getAssetSpecification().getId());
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID id = keyHolder.getId();
         datasetSource.id(id);

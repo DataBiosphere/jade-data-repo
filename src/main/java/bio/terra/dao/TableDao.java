@@ -27,7 +27,7 @@ public class TableDao {
         String sql = "INSERT INTO study_table (name, study_id) VALUES (:name, :study_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", study.getId());
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (StudyTable table : study.getTables()) {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sql, params, keyHolder);
@@ -41,7 +41,7 @@ public class TableDao {
         String sql = "INSERT INTO study_column (table_id, name, type) VALUES (:table_id, :name, :type)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("table_id", tableId);
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (StudyTableColumn column : columns) {
             params.addValue("name", column.getName());
             params.addValue("type", column.getType());

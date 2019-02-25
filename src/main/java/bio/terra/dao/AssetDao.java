@@ -47,7 +47,7 @@ public class AssetDao {
         params.addValue("name", assetSpecification.getName());
         params.addValue("root_table_id", assetSpecification.getRootTable().getStudyTable().getId());
         params.addValue("root_column_id", assetSpecification.getRootColumn().getStudyColumn().getId());
-        UUIDHolder keyHolder = new UUIDHolder();
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID assetSpecId = keyHolder.getId();
         assetSpecification.setId(assetSpecId);
@@ -65,7 +65,7 @@ public class AssetDao {
                 MapSqlParameterSource params = new MapSqlParameterSource();
                 params.addValue("asset_id", assetSpec.getId());
                 params.addValue("study_column_id", assetCol.getStudyColumn().getId());
-                UUIDHolder keyHolder = new UUIDHolder();
+                DaoKeyHolder keyHolder = new DaoKeyHolder();
                 jdbcTemplate.update(sql, params, keyHolder);
                 UUID assetColumnId = keyHolder.getId();
                 assetCol.setId(assetColumnId);
@@ -80,7 +80,7 @@ public class AssetDao {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("asset_id", assetSpec.getId());
             params.addValue("relationship_id", assetRel.getStudyRelationship().getId());
-            UUIDHolder keyHolder = new UUIDHolder();
+            DaoKeyHolder keyHolder = new DaoKeyHolder();
             jdbcTemplate.update(sql, params, keyHolder);
             UUID assetRelId = keyHolder.getId();
             assetRel.setId(assetRelId);

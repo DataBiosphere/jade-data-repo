@@ -39,8 +39,6 @@ public class StudyDao {
         this.assetDao = assetDao;
     }
 
-    public NamedParameterJdbcTemplate getJdbcTemplate() { return jdbcTemplate; }
-
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
         String sql = "INSERT INTO study (name, description) VALUES (:name, :description)";

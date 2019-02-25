@@ -33,13 +33,15 @@ public class RelationshipDao {
 
     protected void create(StudyRelationship studyRelationship) {
         String sql = "INSERT INTO study_relationship " +
-                "(name, from_cardinality, to_cardinality, from_column, to_column) VALUES " +
-                "(:name, :from_cardinality, :to_cardinality, :from_column, :to_column)";
+                "(name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column) VALUES " +
+                "(:name, :from_cardinality, :to_cardinality, :from_table, :from_column, :to_table, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", studyRelationship.getName())
                 .addValue("from_cardinality", studyRelationship.getFromCardinality().toString())
                 .addValue("to_cardinality", studyRelationship.getToCardinality().toString())
+                .addValue("from_table", studyRelationship.getFrom().getInTable().getId())
                 .addValue("from_column", studyRelationship.getFrom().getId())
+                .addValue("to_table", studyRelationship.getTo().getInTable().getId())
                 .addValue("to_column", studyRelationship.getTo().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
@@ -57,8 +59,8 @@ public class RelationshipDao {
     private List<StudyRelationship> retrieveStudyRelationships(
             List<UUID> columnIds, Map<UUID,
             StudyTableColumn> columns) {
-        String sql = "SELECT id, name, from_cardinality, to_cardinality, from_column, to_column " +
-                "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
+        String sql = "SELECT id, name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column "
+                + "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new StudyRelationship()

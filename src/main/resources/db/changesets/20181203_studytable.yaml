@@ -24,6 +24,12 @@ databaseChangeLog:
                   type: ${description_type}
                   constraints:
                     nullable: true
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
 
         - createTable:
             tableName: study_table
@@ -102,12 +108,28 @@ databaseChangeLog:
                     references: study_column(id)
                     deleteCascade: true
               - column:
+                  name: from_table
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_relationship_study_table_from
+                    references: study_table(id)
+                    deleteCascade: true
+              - column:
                   name: to_column
                   type: ${uuid_type}
                   constraints:
                     nullable: false
                     foreignKeyName: fk_study_relationship_study_column_to
                     references: study_column(id)
+                    deleteCascade: true
+              - column:
+                  name: to_table
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_relationship_study_table_to
+                    references: study_table(id)
                     deleteCascade: true
 
         - createTable:
@@ -145,6 +167,12 @@ databaseChangeLog:
                     nullable: false
                     foreignKeyName: fk_asset_specification_study_column
                     references: study_column(id)
+              - column:
+                  name: created_date
+                  type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
 
         - createTable:
             tableName: asset_column

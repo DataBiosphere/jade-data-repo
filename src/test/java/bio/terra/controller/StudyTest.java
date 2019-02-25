@@ -366,7 +366,7 @@ public class StudyTest {
 
         UUID id = UUID.fromString("8d2e052c-e1d1-4a29-88ed-26920907791f");
         Study study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        study.setId(id).setCreatedDate(Instant.now());
+        study.id(id).createdDate(Instant.now());
 
         when(studyDao.retrieve(eq(id))).thenReturn(study);
         assertThat("Study retrieve returns 200",

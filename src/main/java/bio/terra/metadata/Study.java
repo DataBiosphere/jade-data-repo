@@ -15,7 +15,9 @@ public class Study extends StudySummary {
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
-    public Study() {}
+    public Study() {
+    }
+
     public Study(StudySummary summary) {
         super(summary);
     }
@@ -23,7 +25,8 @@ public class Study extends StudySummary {
     public List<StudyTable> getTables() {
         return tables;
     }
-    public Study setTables(List<StudyTable> tables) {
+
+    public Study tables(List<StudyTable> tables) {
         this.tables = Collections.unmodifiableList(tables);
         return this;
     }
@@ -31,7 +34,8 @@ public class Study extends StudySummary {
     public List<StudyRelationship> getRelationships() {
         return relationships;
     }
-    public Study setRelationships(List<StudyRelationship> relationships) {
+
+    public Study relationships(List<StudyRelationship> relationships) {
         this.relationships = Collections.unmodifiableList(relationships);
         return this;
     }
@@ -39,7 +43,8 @@ public class Study extends StudySummary {
     public List<AssetSpecification> getAssetSpecifications() {
         return assetSpecifications;
     }
-    public Study setAssetSpecifications(List<AssetSpecification> assetSpecifications) {
+
+    public Study assetSpecifications(List<AssetSpecification> assetSpecifications) {
         this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
         return this;
     }

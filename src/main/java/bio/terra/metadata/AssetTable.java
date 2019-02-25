@@ -14,13 +14,20 @@ public class AssetTable {
     public StudyTable getStudyTable() {
         return studyTable;
     }
-    public AssetTable setStudyTable(StudyTable studyTable) {
+
+    public AssetTable studyTable(StudyTable studyTable) {
         this.studyTable = studyTable;
         return this;
     }
 
-    public Collection<AssetColumn> getColumns() { return columns; }
-    public AssetTable setColumns(List<AssetColumn> columns) { this.columns = columns; return this; }
+    public Collection<AssetColumn> getColumns() {
+        return columns;
+    }
+
+    public AssetTable columns(List<AssetColumn> columns) {
+        this.columns = columns;
+        return this;
+    }
 
     public Optional<StudyTableColumn> getStudyColumnByName(String name) {
         for (AssetColumn assetColumn : getColumns()) {

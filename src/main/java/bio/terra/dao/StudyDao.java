@@ -39,6 +39,7 @@ public class StudyDao {
         this.assetDao = assetDao;
     }
 
+    public NamedParameterJdbcTemplate getJdbcTemplate() { return jdbcTemplate; }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
@@ -49,8 +50,8 @@ public class StudyDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID studyId = keyHolder.getId();
-        study.setId(studyId);
-        study.setCreatedDate(keyHolder.getCreatedDate());
+        study.id(studyId);
+        study.createdDate(keyHolder.getCreatedDate());
         tableDao.createStudyTables(study);
         relationshipDao.createStudyRelationships(study);
         assetDao.createAssets(study);
@@ -125,10 +126,10 @@ public class StudyDao {
     private static class StudySummaryMapper implements RowMapper<StudySummary> {
         public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {
             return new StudySummary()
-                    .setId(UUID.fromString(rs.getString("id")))
-                    .setName(rs.getString("name"))
-                    .setDescription(rs.getString("description"))
-                    .setCreatedDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+                    .id(UUID.fromString(rs.getString("id")))
+                    .name(rs.getString("name"))
+                    .description(rs.getString("description"))
+                    .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
         }
     }
 }

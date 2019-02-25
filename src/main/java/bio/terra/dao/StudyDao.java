@@ -39,6 +39,7 @@ public class StudyDao {
         this.assetDao = assetDao;
     }
 
+    public NamedParameterJdbcTemplate getJdbcTemplate() { return jdbcTemplate; }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {

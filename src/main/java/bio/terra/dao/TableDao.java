@@ -32,7 +32,7 @@ public class TableDao {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sql, params, keyHolder);
             UUID tableId = keyHolder.getId();
-            table.setId(tableId);
+            table.id(tableId);
             createStudyColumns(tableId, table.getColumns());
         }
     }
@@ -47,13 +47,13 @@ public class TableDao {
             params.addValue("type", column.getType());
             jdbcTemplate.update(sql, params, keyHolder);
             UUID columnId = keyHolder.getId();
-            column.setId(columnId);
+            column.id(columnId);
         }
     }
 
     public void retrieve(Study study) {
         List<StudyTable> tables = retrieveStudyTables(study.getId());
-        study.setTables(tables);
+        study.tables(tables);
     }
 
     // also retrieves columns
@@ -62,9 +62,9 @@ public class TableDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
         List<StudyTable> tables = jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new StudyTable()
-                        .setId(UUID.fromString(rs.getString("id")))
-                        .setName(rs.getString("name")));
-        tables.forEach(studyTable -> studyTable.setColumns(retrieveStudyTableColumns(studyTable)));
+                        .id(UUID.fromString(rs.getString("id")))
+                        .name(rs.getString("name")));
+        tables.forEach(studyTable -> studyTable.columns(retrieveStudyTableColumns(studyTable)));
         return tables;
     }
 
@@ -73,10 +73,10 @@ public class TableDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("tableId", table.getId());
         List<StudyTableColumn> columns = jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new StudyTableColumn()
-                        .setId(UUID.fromString(rs.getString("id")))
-                        .setName(rs.getString("name"))
-                        .setType(rs.getString("type"))
-                        .setInTable(table));
+                        .id(UUID.fromString(rs.getString("id")))
+                        .name(rs.getString("name"))
+                        .type(rs.getString("type"))
+                        .inTable(table));
 
         return columns;
     }

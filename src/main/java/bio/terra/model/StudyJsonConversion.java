@@ -42,11 +42,11 @@ public final class StudyJsonConversion {
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
 
         return new Study(new StudySummary()
-                .setName(studyRequest.getName())
-                .setDescription(studyRequest.getDescription()))
-                .setTables(new ArrayList<>(tablesMap.values()))
-                .setRelationships(new ArrayList<>(relationshipsMap.values()))
-                .setAssetSpecifications(assetSpecifications);
+                .name(studyRequest.getName())
+                .description(studyRequest.getDescription()))
+                .tables(new ArrayList<>(tablesMap.values()))
+                .relationships(new ArrayList<>(relationshipsMap.values()))
+                .assetSpecifications(assetSpecifications);
     }
 
     public static StudySummaryModel studySummaryFromStudy(Study study) {
@@ -84,11 +84,11 @@ public final class StudyJsonConversion {
 
     public static StudyTable tableModelToStudyTable(TableModel tableModel) {
         StudyTable studyTable = new StudyTable()
-                .setName(tableModel.getName());
+                .name(tableModel.getName());
         studyTable
-                .setColumns(tableModel.getColumns()
+                .columns(tableModel.getColumns()
                         .stream()
-                        .map(columnModel -> columnModelToStudyColumn(columnModel).setInTable(studyTable))
+                        .map(columnModel -> columnModelToStudyColumn(columnModel).inTable(studyTable))
                         .collect(Collectors.toList()));
         return studyTable;
     }
@@ -104,8 +104,8 @@ public final class StudyJsonConversion {
 
     public static StudyTableColumn columnModelToStudyColumn(ColumnModel columnModel) {
         return new StudyTableColumn()
-                .setName(columnModel.getName())
-                .setType(columnModel.getDatatype());
+                .name(columnModel.getName())
+                .type(columnModel.getDatatype());
     }
 
     public static ColumnModel columnModelFromStudyColumn(StudyTableColumn tableColumn) {
@@ -118,11 +118,11 @@ public final class StudyJsonConversion {
             RelationshipModel relationshipModel,
             Map<String, StudyTable> tables) {
         return new StudyRelationship()
-                .setName(relationshipModel.getName())
-                .setFrom(getColumn(relationshipModel.getFrom(), tables))
-                .setFromCardinality(relationshipModel.getFrom().getCardinality())
-                .setTo(getColumn(relationshipModel.getTo(), tables))
-                .setToCardinality(relationshipModel.getTo().getCardinality());
+                .name(relationshipModel.getName())
+                .from(getColumn(relationshipModel.getFrom(), tables))
+                .fromCardinality(relationshipModel.getFrom().getCardinality())
+                .to(getColumn(relationshipModel.getTo(), tables))
+                .toCardinality(relationshipModel.getTo().getCardinality());
     }
 
     protected static StudyTableColumn getColumn(RelationshipTermModel relTerm, Map<String, StudyTable> tables) {
@@ -150,9 +150,9 @@ public final class StudyJsonConversion {
                                                                     Map<String, StudyTable> tables,
                                                                     Map<String, StudyRelationship> relationships) {
         AssetSpecification spec = new AssetSpecification()
-                .setName(assetModel.getName());
-        spec.setAssetTables(processAssetTables(spec, assetModel, tables));
-        spec.setAssetRelationships(processAssetRelationships(assetModel.getFollow(), relationships));
+                .name(assetModel.getName());
+        spec.assetTables(processAssetTables(spec, assetModel, tables));
+        spec.assetRelationships(processAssetRelationships(assetModel.getFollow(), relationships));
         return spec;
     }
 
@@ -166,9 +166,9 @@ public final class StudyJsonConversion {
             String tableName = tblMod.getName();
             StudyTable studyTable = tables.get(tableName);
             //not sure if we need to set the id on the new table
-            AssetTable newAssetTable = new AssetTable().setStudyTable(studyTable);
+            AssetTable newAssetTable = new AssetTable().studyTable(studyTable);
             if (assetModel.getRootTable().equals(tableName)) {
-                spec.setRootTable(newAssetTable);
+                spec.rootTable(newAssetTable);
                 processingRootTable = true;
             }
             Map<String, StudyTableColumn> allTableColumns = studyTable.getColumnsMap();
@@ -179,8 +179,8 @@ public final class StudyJsonConversion {
             Map<String, AssetColumn> assetColumnsMap = colNamesToInclude
                     .stream()
                     .collect(Collectors.toMap(colName -> colName, colName ->
-                            new AssetColumn().setStudyColumn(allTableColumns.get(colName))));
-            newAssetTable.setColumns(new ArrayList<>(assetColumnsMap.values()));
+                            new AssetColumn().studyColumn(allTableColumns.get(colName))));
+            newAssetTable.columns(new ArrayList<>(assetColumnsMap.values()));
             if (processingRootTable) {
                 spec.rootColumn(assetColumnsMap.get(assetModel.getRootColumn()));
             }
@@ -194,7 +194,7 @@ public final class StudyJsonConversion {
         return Collections.unmodifiableList(relationships.entrySet()
                 .stream()
                 .filter(map -> assetRelationshipNames.contains(map.getKey()))
-                .map(entry -> new AssetRelationship().setStudyRelationship(entry.getValue()))
+                .map(entry -> new AssetRelationship().studyRelationship(entry.getValue()))
                 .collect(Collectors.toList()));
     }
 

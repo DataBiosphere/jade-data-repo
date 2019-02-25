@@ -15,16 +15,32 @@ public class StudyTable {
     private List<StudyTableColumn> columns = new ArrayList<>();
     private UUID id;
 
-    public UUID getId() { return id; }
-    public StudyTable setId(UUID id) { this.id = id; return this; }
+    public UUID getId() {
+        return id;
+    }
+
+    public StudyTable id(UUID id) {
+        this.id = id;
+        return this;
+    }
 
     public String getName() {
         return name;
     }
-    public StudyTable setName(String name) { this.name = name; return this; }
 
-    public Collection<StudyTableColumn> getColumns() { return columns; }
-    public StudyTable setColumns(List<StudyTableColumn> columns) { this.columns = columns; return this; }
+    public StudyTable name(String name) {
+        this.name = name;
+        return this;
+    }
+
+    public Collection<StudyTableColumn> getColumns() {
+        return columns;
+    }
+
+    public StudyTable columns(List<StudyTableColumn> columns) {
+        this.columns = columns;
+        return this;
+    }
 
     public Map<String, StudyTableColumn> getColumnsMap() {
         Map<String, StudyTableColumn> columnMap = new HashMap<>();

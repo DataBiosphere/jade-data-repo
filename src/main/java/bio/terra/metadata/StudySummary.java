@@ -9,30 +9,50 @@ public class StudySummary {
     private String description;
     private Instant createdDate;
 
-    public StudySummary() {}
-    public StudySummary(StudySummary summary) {
-        this.setId(summary.getId())
-                .setName(summary.getName())
-                .setDescription(summary.getDescription())
-                .setCreatedDate(summary.getCreatedDate());
+    public StudySummary() {
     }
 
-    public UUID getId() { return id; }
-    public StudySummary setId(UUID id) { this.id = id; return this; }
+    public StudySummary(StudySummary summary) {
+        this.id(summary.getId())
+                .name(summary.getName())
+                .description(summary.getDescription())
+                .createdDate(summary.getCreatedDate());
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public StudySummary id(UUID id) {
+        this.id = id;
+        return this;
+    }
 
     public String getName() {
         return name;
     }
-    public StudySummary setName(String name) { this.name = name; return this; }
+
+    public StudySummary name(String name) {
+        this.name = name;
+        return this;
+    }
 
     public String getDescription() {
         return description;
     }
-    public StudySummary setDescription(String description) { this.description = description; return this; }
+
+    public StudySummary description(String description) {
+        this.description = description;
+        return this;
+    }
 
     public Instant getCreatedDate() {
         return createdDate;
     }
-    public StudySummary setCreatedDate(Instant createdDate) { this.createdDate = createdDate; return this; }
+
+    public StudySummary createdDate(Instant createdDate) {
+        this.createdDate = createdDate;
+        return this;
+    }
 
 }

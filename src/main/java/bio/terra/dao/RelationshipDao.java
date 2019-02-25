@@ -44,14 +44,14 @@ public class RelationshipDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID relationshipId = keyHolder.getId();
-        studyRelationship.setId(relationshipId);
+        studyRelationship.id(relationshipId);
     }
 
     public void retrieve(Study study) {
         List<UUID> columnIds = new ArrayList<>();
         study.getTables().forEach(table ->
                 table.getColumns().forEach(column -> columnIds.add(column.getId())));
-        study.setRelationships(retrieveStudyRelationships(columnIds, study.getAllColumnsById()));
+        study.relationships(retrieveStudyRelationships(columnIds, study.getAllColumnsById()));
     }
 
     private List<StudyRelationship> retrieveStudyRelationships(
@@ -62,13 +62,13 @@ public class RelationshipDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new StudyRelationship()
-                        .setId(UUID.fromString(rs.getString("id")))
-                        .setName(rs.getString("name"))
-                        .setFromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
+                        .id(UUID.fromString(rs.getString("id")))
+                        .name(rs.getString("name"))
+                        .fromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
                                 rs.getString("from_cardinality")))
-                        .setToCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
+                        .toCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
                                 rs.getString("to_cardinality")))
-                        .setFrom(columns.get(UUID.fromString(rs.getString("from_column"))))
-                        .setTo(columns.get(UUID.fromString(rs.getString("to_column")))));
+                        .from(columns.get(UUID.fromString(rs.getString("from_column"))))
+                        .to(columns.get(UUID.fromString(rs.getString("to_column")))));
     }
 }

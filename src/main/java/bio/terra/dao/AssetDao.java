@@ -50,7 +50,7 @@ public class AssetDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID assetSpecId = keyHolder.getId();
-        assetSpecification.setId(assetSpecId);
+        assetSpecification.id(assetSpecId);
 
         createAssetColumns(assetSpecification);
         createAssetRelationships(assetSpecification);
@@ -68,7 +68,7 @@ public class AssetDao {
                 DaoKeyHolder keyHolder = new DaoKeyHolder();
                 jdbcTemplate.update(sql, params, keyHolder);
                 UUID assetColumnId = keyHolder.getId();
-                assetCol.setId(assetColumnId);
+                assetCol.id(assetColumnId);
             });
         });
     }
@@ -83,12 +83,12 @@ public class AssetDao {
             DaoKeyHolder keyHolder = new DaoKeyHolder();
             jdbcTemplate.update(sql, params, keyHolder);
             UUID assetRelId = keyHolder.getId();
-            assetRel.setId(assetRelId);
+            assetRel.id(assetRelId);
         });
     }
 
     public void retrieve(Study study) {
-        study.setAssetSpecifications(retrieveAssetSpecifications(study));
+        study.assetSpecifications(retrieveAssetSpecifications(study));
     }
 
     // also retrieves dependent objects
@@ -104,16 +104,16 @@ public class AssetDao {
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             UUID specId = UUID.fromString(rs.getString("id"));
             AssetSpecification spec = new AssetSpecification()
-                    .setId(specId)
-                    .setName(rs.getString("name"));
-            spec.setAssetTables(new ArrayList(
+                    .id(specId)
+                    .name(rs.getString("name"));
+            spec.assetTables(new ArrayList(
                     retrieveAssetTablesAndColumns(
                             spec,
                             UUID.fromString(rs.getString("root_table_id")),
                             UUID.fromString(rs.getString("root_column_id")),
                             allTables,
                             allColumns)));
-            spec.setAssetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
+            spec.assetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
 
             return spec;
         });
@@ -137,15 +137,15 @@ public class AssetDao {
                     UUID tableId = UUID.fromString(rs.get("table_id").toString());
                     UUID columnId = UUID.fromString(rs.get("study_column_id").toString());
                     if (!tables.containsKey(tableId)) {
-                        tables.put(tableId, new AssetTable().setStudyTable(allTables.get(tableId)));
+                        tables.put(tableId, new AssetTable().studyTable(allTables.get(tableId)));
                     }
                     AssetTable assetTable = tables.get(tableId);
                     AssetColumn newColumn = new AssetColumn()
-                            .setId(UUID.fromString(rs.get("id").toString()))
-                            .setStudyColumn(allColumns.get(columnId));
+                            .id(UUID.fromString(rs.get("id").toString()))
+                            .studyColumn(allColumns.get(columnId));
                     // check to see if this table and column are the root values
                     if (rootTableId.equals(tableId) && rootColumnId.equals(columnId)) {
-                        spec.setRootTable(assetTable);
+                        spec.rootTable(assetTable);
                         spec.rootColumn(newColumn);
                     }
                     // add the new column to the asset table object
@@ -162,8 +162,8 @@ public class AssetDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", specId);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new AssetRelationship()
-                        .setId(UUID.fromString(rs.getString("id")))
-                        .setStudyRelationship(allRelationships.get(
+                        .id(UUID.fromString(rs.getString("id")))
+                        .studyRelationship(allRelationships.get(
                                 UUID.fromString(rs.getString("relationship_id")))));
     }
 }

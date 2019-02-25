@@ -10,6 +10,9 @@ public class AssetSpecification {
     private UUID id;
     private String name;
     private AssetTable rootTable;
+    private AssetColumn rootColumn;
+    private List<AssetTable> assetTables = new ArrayList<>();
+    private List<AssetRelationship> assetRelationships = new ArrayList<>();
 
     public AssetColumn getRootColumn() {
         return rootColumn;
@@ -20,25 +23,38 @@ public class AssetSpecification {
         return this;
     }
 
-    private AssetColumn rootColumn;
-    private List<AssetTable> assetTables = new ArrayList<>();
-    private List<AssetRelationship> assetRelationships = new ArrayList<>();
-
     public UUID getId() {
         return id;
     }
-    public AssetSpecification setId(UUID id) { this.id = id; return this; }
+
+    public AssetSpecification id(UUID id) {
+        this.id = id;
+        return this;
+    }
 
     public String getName() {
         return name;
     }
-    public AssetSpecification setName(String name) { this.name = name; return this; }
 
-    public AssetTable getRootTable() { return rootTable; }
-    public AssetSpecification setRootTable(AssetTable rootTable) { this.rootTable = rootTable; return this; }
+    public AssetSpecification name(String name) {
+        this.name = name;
+        return this;
+    }
 
-    public List<AssetRelationship> getAssetRelationships() { return Collections.unmodifiableList(assetRelationships); }
-    public AssetSpecification setAssetRelationships(List<AssetRelationship> assetRelationships) {
+    public AssetTable getRootTable() {
+        return rootTable;
+    }
+
+    public AssetSpecification rootTable(AssetTable rootTable) {
+        this.rootTable = rootTable;
+        return this;
+    }
+
+    public List<AssetRelationship> getAssetRelationships() {
+        return Collections.unmodifiableList(assetRelationships);
+    }
+
+    public AssetSpecification assetRelationships(List<AssetRelationship> assetRelationships) {
         this.assetRelationships = assetRelationships;
         return this;
     }
@@ -46,7 +62,8 @@ public class AssetSpecification {
     public List<AssetTable> getAssetTables() {
         return Collections.unmodifiableList(assetTables);
     }
-    public AssetSpecification setAssetTables(List<AssetTable> includedTables) {
+
+    public AssetSpecification assetTables(List<AssetTable> includedTables) {
         this.assetTables = includedTables;
         return this;
     }

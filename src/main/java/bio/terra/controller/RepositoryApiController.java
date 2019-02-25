@@ -1,20 +1,23 @@
 package bio.terra.controller;
 
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.JobMapKeys;
-import bio.terra.service.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.metadata.Study;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -49,6 +52,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final StudyRequestValidator studyRequestValidator;
     private final StudyDao studyDao;
     private final DatasetRequestValidator datasetRequestValidator;
+    private final DatasetService datasetService;
 
     @Autowired
     public RepositoryApiController(
@@ -58,7 +62,8 @@ public class RepositoryApiController implements RepositoryApi {
             JobService jobService,
             StudyRequestValidator studyRequestValidator,
             StudyDao studyDao,
-            DatasetRequestValidator datasetRequestValidator
+            DatasetRequestValidator datasetRequestValidator,
+            DatasetService datasetService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -67,6 +72,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.studyRequestValidator = studyRequestValidator;
         this.studyDao = studyDao;
         this.datasetRequestValidator = datasetRequestValidator;
+        this.datasetService = datasetService;
     }
 
     @InitBinder
@@ -100,15 +106,6 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
-    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
-        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
-        StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
-        return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
-    }
-
     @ExceptionHandler(StudyNotFoundException.class)
     public ResponseEntity<ErrorModel> handleStudyNotFoundException(StudyNotFoundException ex) {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
@@ -119,16 +116,48 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    // -- study --
+    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+        FlightMap flightMap = new FlightMap();
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
+        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
+        StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
+        return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+    }
+
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
         Study study = studyDao.retrieve(UUID.fromString(id));
         StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
         return new ResponseEntity<>(studyModel, HttpStatus.OK);
     }
 
-    public ResponseEntity<Void> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
-        return new ResponseEntity<>(HttpStatus.CREATED);
+    // -- dataset --
+    @Override
+    public ResponseEntity<JobModel> createDataset(@Valid DatasetRequestModel dataset) {
+        String jobId = datasetService.createDataset(dataset);
+        return jobService.retrieveJob(jobId);
     }
 
+    @Override
+    public ResponseEntity<Void> deleteDataset(String id) {
+        datasetService.deleteDataset(id);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(@Valid Integer offset, @Valid Integer limit) {
+        List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
+        return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<DatasetModel> retrieveDataset(String id) {
+        DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(id));
+        return new ResponseEntity<>(datasetModel, HttpStatus.OK);
+    }
+
+    // -- jobs --
     public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {
         return jobService.enumerateJobs(offset, limit);
     }
@@ -140,6 +169,8 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<Object> retrieveJobResult(String jobId) {
         return jobService.retrieveJobResult(jobId);
     }
+
+
 
     private <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);

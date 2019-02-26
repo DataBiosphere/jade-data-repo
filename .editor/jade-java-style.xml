@@ -1,1 +1,7 @@
-<code_scheme name="Default" version="173" />
+<!-- Preferences > Editor > Code Style > Gear Icon > Import Scheme > IntelliJ IDEA code style XML-->
+<code_scheme name="jade-java-style" version="173">
+  <JavaCodeStyleSettings>
+    <option name="CLASS_COUNT_TO_USE_IMPORT_ON_DEMAND" value="50" />
+    <option name="NAMES_COUNT_TO_USE_IMPORT_ON_DEMAND" value="50" />
+  </JavaCodeStyleSettings>
+</code_scheme>

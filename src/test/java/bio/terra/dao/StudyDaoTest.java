@@ -29,7 +29,7 @@ import static org.junit.Assert.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class DaoTest {
+public class StudyDaoTest {
 
     @Autowired
     private ObjectMapper objectMapper;

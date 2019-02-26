@@ -165,12 +165,22 @@ paths:
       parameters:
         - $ref: '#/parameters/Id'
       responses:
-        202: # kicks off a delete dataset job
-          description: Dataset deletion job started & url for polling is in the response header
+        202:
+          description: Job status of dataset creation job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
-              description: url for the job poller
+              description: url for the job polling
+        200:
+          description: Redirect for dataset successful creation
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
         400:
           description: Bad request - invalid id, badly formed
         403:

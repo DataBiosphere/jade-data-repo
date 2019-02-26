@@ -3,6 +3,7 @@ package bio.terra.controller;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.exceptions.NotFoundException;
 import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.metadata.Study;
@@ -106,6 +107,11 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorModel> handleNotFoundException(NotFoundException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(StudyNotFoundException.class)
     public ResponseEntity<ErrorModel> handleStudyNotFoundException(StudyNotFoundException ex) {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
@@ -140,7 +146,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<Void> deleteDataset(String id) {
+    public ResponseEntity<JobModel> deleteDataset(String id) {
         datasetService.deleteDataset(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }

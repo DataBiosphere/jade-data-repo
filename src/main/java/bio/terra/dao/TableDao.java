@@ -62,7 +62,7 @@ public class TableDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
         List<StudyTable> tables = jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new StudyTable()
-                        .id(UUID.fromString(rs.getString("id")))
+                        .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name")));
         tables.forEach(studyTable -> studyTable.columns(retrieveStudyTableColumns(studyTable)));
         return tables;
@@ -73,7 +73,7 @@ public class TableDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("tableId", table.getId());
         List<StudyTableColumn> columns = jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new StudyTableColumn()
-                        .id(UUID.fromString(rs.getString("id")))
+                        .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name"))
                         .type(rs.getString("type"))
                         .inTable(table));

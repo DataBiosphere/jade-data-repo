@@ -39,7 +39,6 @@ public class StudyDao {
         this.assetDao = assetDao;
     }
 
-
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
         String sql = "INSERT INTO study (name, description) VALUES (:name, :description)";
@@ -125,7 +124,7 @@ public class StudyDao {
     private static class StudySummaryMapper implements RowMapper<StudySummary> {
         public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {
             return new StudySummary()
-                    .id(UUID.fromString(rs.getString("id")))
+                    .id(rs.getObject("id", UUID.class))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
                     .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));

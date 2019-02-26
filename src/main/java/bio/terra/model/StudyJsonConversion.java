@@ -117,32 +117,35 @@ public final class StudyJsonConversion {
     public static StudyRelationship relationshipModelToStudyRelationship(
             RelationshipModel relationshipModel,
             Map<String, StudyTable> tables) {
+        StudyTable fromTable = tables.get(relationshipModel.getFrom().getTable());
+        StudyTable toTable = tables.get(relationshipModel.getTo().getTable());
         return new StudyRelationship()
                 .name(relationshipModel.getName())
-                .from(getColumn(relationshipModel.getFrom(), tables))
+                .fromTable(fromTable)
+                .fromColumn(fromTable.getColumnsMap().get(relationshipModel.getFrom().getColumn()))
                 .fromCardinality(relationshipModel.getFrom().getCardinality())
-                .to(getColumn(relationshipModel.getTo(), tables))
+                .toTable(toTable)
+                .toColumn(toTable.getColumnsMap().get(relationshipModel.getTo().getColumn()))
                 .toCardinality(relationshipModel.getTo().getCardinality());
-    }
-
-    protected static StudyTableColumn getColumn(RelationshipTermModel relTerm, Map<String, StudyTable> tables) {
-        return tables.get(relTerm.getTable()).getColumnsMap().get(relTerm.getColumn());
     }
 
     public static RelationshipModel relationshipModelFromStudyRelationship(
             StudyRelationship studyRel) {
         return new RelationshipModel()
                 .name(studyRel.getName())
-                .from(relationshipTermModelFromStudyTableColumn(studyRel.getFrom(), studyRel.getFromCardinality()))
-                .to(relationshipTermModelFromStudyTableColumn(studyRel.getTo(), studyRel.getToCardinality()));
+                .from(relationshipTermModelFromStudyTableColumn(
+                        studyRel.getFromTable(), studyRel.getFromColumn(), studyRel.getFromCardinality()))
+                .to(relationshipTermModelFromStudyTableColumn(
+                        studyRel.getToTable(), studyRel.getToColumn(), studyRel.getToCardinality()));
     }
 
     protected static RelationshipTermModel relationshipTermModelFromStudyTableColumn(
-            StudyTableColumn rel,
+            StudyTable table,
+            StudyTableColumn col,
             CardinalityEnum cardinality) {
         return new RelationshipTermModel()
-                .table(rel.getInTable().getName())
-                .column(rel.getName())
+                .table(table.getName())
+                .column(col.getName())
                 .cardinality(cardinality);
     }
 

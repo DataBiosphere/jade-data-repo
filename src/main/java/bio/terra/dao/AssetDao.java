@@ -102,15 +102,15 @@ public class AssetDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", study.getId());
 
         return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            UUID specId = UUID.fromString(rs.getString("id"));
+            UUID specId = rs.getObject("id", UUID.class);
             AssetSpecification spec = new AssetSpecification()
                     .id(specId)
                     .name(rs.getString("name"));
             spec.assetTables(new ArrayList(
                     retrieveAssetTablesAndColumns(
                             spec,
-                            UUID.fromString(rs.getString("root_table_id")),
-                            UUID.fromString(rs.getString("root_column_id")),
+                            rs.getObject("root_table_id", UUID.class),
+                            rs.getObject("root_column_id", UUID.class),
                             allTables,
                             allColumns)));
             spec.assetRelationships(retrieveAssetRelationships(spec.getId(), allRelationships));
@@ -126,31 +126,30 @@ public class AssetDao {
                                                                  Map<UUID, StudyTable> allTables,
                                                                  Map<UUID, StudyTableColumn> allColumns) {
         Map<UUID, AssetTable> tables = new HashMap<>();
-        List<Map<String, Object>> results = jdbcTemplate.queryForList(
-                "SELECT asset_column.id, asset_column.study_column_id, study_column.table_id " +
-                        "FROM asset_column " +
-                        "INNER JOIN study_column ON asset_column.study_column_id = study_column.id " +
-                        "WHERE asset_id = :assetId",
-                new MapSqlParameterSource().addValue("assetId", spec.getId()));
-        results
-                .forEach(rs -> {
-                    UUID tableId = UUID.fromString(rs.get("table_id").toString());
-                    UUID columnId = UUID.fromString(rs.get("study_column_id").toString());
-                    if (!tables.containsKey(tableId)) {
-                        tables.put(tableId, new AssetTable().studyTable(allTables.get(tableId)));
-                    }
-                    AssetTable assetTable = tables.get(tableId);
-                    AssetColumn newColumn = new AssetColumn()
-                            .id(UUID.fromString(rs.get("id").toString()))
-                            .studyColumn(allColumns.get(columnId));
-                    // check to see if this table and column are the root values
-                    if (rootTableId.equals(tableId) && rootColumnId.equals(columnId)) {
-                        spec.rootTable(assetTable);
-                        spec.rootColumn(newColumn);
-                    }
-                    // add the new column to the asset table object
-                    assetTable.getColumns().add(newColumn);
-                });
+        String sql = "SELECT asset_column.id, asset_column.study_column_id, study_column.table_id " +
+                "FROM asset_column " +
+                "INNER JOIN study_column ON asset_column.study_column_id = study_column.id " +
+                "WHERE asset_id = :assetId";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", spec.getId());
+        List<Map<String, Object>> results = jdbcTemplate.queryForList(sql, params);
+        results.forEach(rs -> {
+            UUID tableId = (UUID) rs.get("table_id");
+            UUID columnId = (UUID) rs.get("study_column_id");
+            if (!tables.containsKey(tableId)) {
+                tables.put(tableId, new AssetTable().studyTable(allTables.get(tableId)));
+            }
+            AssetTable assetTable = tables.get(tableId);
+            AssetColumn newColumn = new AssetColumn()
+                    .id((UUID) rs.get("id"))
+                    .studyColumn(allColumns.get(columnId));
+            // check to see if this table and column are the root values
+            if (rootTableId.equals(tableId) && rootColumnId.equals(columnId)) {
+                spec.rootTable(assetTable);
+                spec.rootColumn(newColumn);
+            }
+            // add the new column to the asset table object
+            assetTable.getColumns().add(newColumn);
+        });
         return tables.values();
     }
 
@@ -162,8 +161,8 @@ public class AssetDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("assetId", specId);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new AssetRelationship()
-                        .id(UUID.fromString(rs.getString("id")))
+                        .id(rs.getObject("id", UUID.class))
                         .studyRelationship(allRelationships.get(
-                                UUID.fromString(rs.getString("relationship_id")))));
+                                rs.getObject("relationship_id", UUID.class))));
     }
 }

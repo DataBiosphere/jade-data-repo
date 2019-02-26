@@ -6,7 +6,7 @@ import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
-import liquibase.resource.FileSystemResourceAccessor;
+import liquibase.resource.ClassLoaderResourceAccessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,7 +41,7 @@ public class Migrate {
     private void migrateDatabase(String changesetFile, DataSource dataSource) {
         try (Connection connection = dataSource.getConnection()) {
             Liquibase liquibase = new Liquibase(changesetFile,
-                    new FileSystemResourceAccessor(),
+                    new ClassLoaderResourceAccessor(),
                     new JdbcConnection(connection));
             liquibase.update(new Contexts()); // Run all migrations - no context filtering
         } catch (LiquibaseException | SQLException ex) {

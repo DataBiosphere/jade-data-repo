@@ -48,7 +48,7 @@ public class DatasetService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
-    private final SimpleDateFormat modelDateFormat;
+    private final FastDateFormat modelDateFormat;
 
     @Autowired
     public DatasetService(Stairway stairway,

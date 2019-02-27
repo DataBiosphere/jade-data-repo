@@ -26,10 +26,10 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,13 +43,13 @@ public class DatasetService {
 //    private Stairway stairway;
     private StudyDao studyDao;
     private DatasetDao datasetDao;
-    private SimpleDateFormat modelDateFormat;
+    private FastDateFormat modelDateFormat;
 
     @Autowired
     public DatasetService(// Stairway stairway, TODO: see above
                           StudyDao studyDao,
                           DatasetDao datasetDao,
-                          SimpleDateFormat modelDateFormat) {
+                          FastDateFormat modelDateFormat) {
         // this.stairway = stairway; TODO: see above
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;

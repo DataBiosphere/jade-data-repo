@@ -2,6 +2,7 @@ package bio.terra.configuration;
 
 import bio.terra.stairway.Stairway;
 import bio.terra.upgrade.Migrate;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -11,7 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import javax.sql.DataSource;
-import java.text.SimpleDateFormat;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -40,7 +40,7 @@ public class ApplicationConfiguration {
     }
 
     @Bean("modelDateFormat")
-    public SimpleDateFormat modelDateFormat() {
-        return new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+    public FastDateFormat modelDateFormat() {
+        return FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS");
     }
 }

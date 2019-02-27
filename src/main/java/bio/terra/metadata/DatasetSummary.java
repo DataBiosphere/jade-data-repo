@@ -1,13 +1,13 @@
 package bio.terra.metadata;
 
-import java.time.Instant;
+import java.sql.Timestamp;
 import java.util.UUID;
 
 public class DatasetSummary {
     private UUID id;
     private String name;
     private String description;
-    private Instant createdDate;
+    private Timestamp createdDate;
 
     public UUID getId() {
         return id;
@@ -36,12 +36,12 @@ public class DatasetSummary {
         return this;
     }
 
-    public Instant getCreatedDate() {
-        return createdDate;
+    public Timestamp getCreatedDate() {
+        return new Timestamp(createdDate.getTime());
     }
 
-    public DatasetSummary createdDate(Instant createdDate) {
-        this.createdDate = createdDate;
+    public DatasetSummary createdDate(Timestamp createdDate) {
+        this.createdDate = new Timestamp(createdDate.getTime());
         return this;
     }
 }

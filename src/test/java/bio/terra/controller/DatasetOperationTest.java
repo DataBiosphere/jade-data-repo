@@ -148,12 +148,14 @@ public class DatasetOperationTest {
     }
 
     private void deleteTestDataset(String id) throws Exception {
-        mvc.perform(delete("/api/repository/v1/datasets/" + id)).andExpect(status().isOk());
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        assertThat(response.getStatus(), equalTo(HttpStatus.NO_CONTENT.value()));
     }
 
     private DatasetSummaryModel[] enumerateTestDatasets() throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets?offset=0&limit=10"))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -164,7 +166,7 @@ public class DatasetOperationTest {
 
     private DatasetModel getTestDataset(String id) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -193,7 +195,7 @@ public class DatasetOperationTest {
 
     private void getNonexistentDataset(String id) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -254,7 +256,8 @@ public class DatasetOperationTest {
 
     private void deleteTestStudy() throws Exception {
         String url = "/api/repository/v1/studies/" + studyId;
-        mvc.perform(delete(url)).andExpect(status().isOk());
+// TODO: turn this on when delete study is supported
+//        mvc.perform(delete(url)).andExpect(status().isOk());
     }
 
     private String randomizedName(String baseName) {

@@ -17,8 +17,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -55,7 +54,7 @@ public class DatasetDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID datasetId = keyHolder.getId();
-        Instant createdDate = keyHolder.getCreatedDate();
+        Timestamp createdDate = keyHolder.getTimestamp("created_date");
         dataset.id(datasetId)
                 .createdDate(createdDate);
         datasetTableDao.createTables(datasetId, dataset.getTables());
@@ -81,7 +80,6 @@ public class DatasetDao {
         datasetMapTableDao.createTables(id, datasetSource.getDatasetMapTables());
     }
 
-    @Transactional
     public boolean delete(UUID id) {
         logger.debug("delete dataset by id: " + id);
         int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE id = :id",
@@ -89,7 +87,6 @@ public class DatasetDao {
         return rowsAffected > 0;
     }
 
-    @Transactional
     public boolean deleteByName(String datasetName) {
         logger.debug("delete dataset by name: " + datasetName);
         int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE name = :name",
@@ -126,7 +123,7 @@ public class DatasetDao {
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
-                            .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
+                            .createdDate(rs.getTimestamp("created_date")));
             // needed for fix bugs. but really can't be null
             if (dataset != null) {
                 // retrieve the dataset tables
@@ -202,7 +199,7 @@ public class DatasetDao {
                         .id(UUID.fromString(rs.getString("id")))
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))
-                        .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+                        .createdDate(rs.getTimestamp("created_date"));
                 return summary;
             });
         return summaries;
@@ -219,7 +216,7 @@ public class DatasetDao {
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
-                            .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
+                            .createdDate(rs.getTimestamp("created_date")));
             return datasetSummary;
         } catch (EmptyResultDataAccessException ex) {
             throw new NotFoundException("Dataset not found - id: " + id);

@@ -11,9 +11,12 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 public class CreateDatasetMetadataStep implements Step {
+    private static final Logger logger = LoggerFactory.getLogger("bio.terra.flight.dataset");
 
     private DatasetDao datasetDao;
     private DatasetService datasetService;

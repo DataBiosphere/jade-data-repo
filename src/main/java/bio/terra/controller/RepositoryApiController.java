@@ -148,8 +148,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
-        datasetService.deleteDataset(id);
-        return new ResponseEntity<>(HttpStatus.OK);
+        String jobId = datasetService.deleteDataset(id);
+        return jobService.retrieveJob(jobId);
     }
 
     @Override

@@ -19,7 +19,6 @@ import java.util.concurrent.Executors;
 public class ApplicationConfiguration {
     private Logger logger = LoggerFactory.getLogger("bio.terra.configuration.ApplicationConfiguration");
 
-
     @Value("${db.stairway.forceClean}")
     private String stairwayForceClean;
 
@@ -43,4 +42,5 @@ public class ApplicationConfiguration {
     public FastDateFormat modelDateFormat() {
         return FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS");
     }
+
 }

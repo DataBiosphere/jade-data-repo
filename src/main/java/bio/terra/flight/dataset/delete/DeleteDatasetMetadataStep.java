@@ -23,13 +23,8 @@ public class DeleteDatasetMetadataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
+        datasetDao.delete(datasetId);
         FlightMap workingMap = context.getWorkingMap();
-        String datasetName = workingMap.get("datasetName", String.class);
-        if (datasetName != null) {
-            // There was a dataset when we looked. Try the delete
-            datasetDao.delete(datasetId);
-        }
-
         workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
         return StepResult.getStepResultSuccess();
     }

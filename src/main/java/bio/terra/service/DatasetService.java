@@ -27,8 +27,8 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
-import org.apache.commons.lang3.time.FastDateFormat;
 import bio.terra.stairway.Stairway;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -258,7 +258,8 @@ public class DatasetService {
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
-                .createdDate(modelDateFormat.format(study.getCreatedDate()));
+// TODO: decide on our datetime datatype
+                .createdDate(study.getCreatedDate().toString());
 
         DatasetSourceModel sourceModel = new DatasetSourceModel()
                 .asset(source.getAssetSpecification().getName())

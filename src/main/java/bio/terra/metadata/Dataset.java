@@ -1,6 +1,6 @@
 package bio.terra.metadata;
 
-import java.time.Instant;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -10,7 +10,7 @@ public class Dataset {
     private UUID id;
     private String name;
     private String description;
-    private Instant createdDate;
+    private Timestamp createdDate;
     private List<Table> tables = Collections.emptyList();
     private List<DatasetSource> datasetSources = Collections.emptyList();
 
@@ -41,12 +41,12 @@ public class Dataset {
         return this;
     }
 
-    public Instant getCreatedDate() {
-        return createdDate;
+    public Timestamp getCreatedDate() {
+        return new Timestamp(createdDate.getTime());
     }
 
-    public Dataset createdDate(Instant createdDate) {
-        this.createdDate = createdDate;
+    public Dataset createdDate(Timestamp createdDate) {
+        this.createdDate = new Timestamp(createdDate.getTime());
         return this;
     }
 

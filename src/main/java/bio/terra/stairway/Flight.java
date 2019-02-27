@@ -122,6 +122,9 @@ public class Flight implements Callable<FlightState> {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
+        } catch (Exception ex) {
+            logger.error("Unhandled step exception", ex);
+            context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
         }
 
         return FlightStatus.FATAL;

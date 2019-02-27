@@ -5,6 +5,8 @@ import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Constructor;
@@ -15,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Stairway is the object that drives execution of Flights. The class is constructed
@@ -33,6 +36,8 @@ import java.util.concurrent.FutureTask;
  * when either method detects that the flight is done.
  */
 public class Stairway {
+    private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
+
     // For each task we start, we make a task context. It lets us look up the results
 
     static class TaskContext {
@@ -211,6 +216,16 @@ public class Stairway {
 
         // Build the task context to keep track of the running task
         TaskContext taskContext = new TaskContext(new FutureTask<FlightState>(flight), flight);
+
+        if (logger.isDebugEnabled()) {
+            if (threadPool instanceof ThreadPoolExecutor) {
+                ThreadPoolExecutor tpe = (ThreadPoolExecutor) threadPool;
+                logger.debug("Stairway thread pool: " + tpe.getActiveCount() +
+                        " active from pool of " + tpe.getPoolSize());
+            }
+        }
+        logger.info("Launching flight " + flight.context().getFlightClassName());
+
         threadPool.execute(taskContext.getFutureResult());
 
         // Now that it is in the pool, hook it into the map so other calls can resolve it.

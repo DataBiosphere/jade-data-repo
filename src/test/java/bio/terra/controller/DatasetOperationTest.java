@@ -1,6 +1,6 @@
 package bio.terra.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.category.Connected;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSourceModel;
@@ -12,7 +12,9 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -35,18 +37,18 @@ import java.util.concurrent.TimeUnit;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Category(Unit.class)
+@Category(Connected.class)
 public class DatasetOperationTest {
 
     @Autowired
@@ -65,7 +67,7 @@ public class DatasetOperationTest {
         ClassLoader classLoader = getClass().getClassLoader();
         String studyJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-study.json"));
         studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
-        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
+        studyRequest.setName(randomizedName(studyRequest.getName()));
         createTestStudy();
 
         String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
@@ -119,13 +121,16 @@ public class DatasetOperationTest {
 
     private DatasetSummaryModel createTestDataset(DatasetRequestModel datasetRequest) throws Exception {
         String baseName = datasetRequest.getName();
-        String datasetName = baseName + UUID.randomUUID().toString();
+        String datasetName = randomizedName(baseName);
         datasetRequest.setName(datasetName);
+
+        String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
 
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(datasetRequest)))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .content(jsonRequest))
+// TODO: swagger field validation errors do not set content type; they log and return nothing
+//                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
@@ -186,8 +191,6 @@ public class DatasetOperationTest {
     }
 
 
-
-
     private void getNonexistentDataset(String id) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + id))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -199,19 +202,24 @@ public class DatasetOperationTest {
     }
 
     // TODO: this can probably be common code for anything async
-    private MockHttpServletResponse validateJobModelAndWait(MvcResult result) throws Exception {
+    private MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
+        MvcResult result = inResult;
         while (true) {
             MockHttpServletResponse response = result.getResponse();
+            HttpStatus status = HttpStatus.valueOf(response.getStatus());
+            Assert.assertTrue("received expected jobs polling status",
+                    (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
+
             JobModel jobModel = objectMapper.readValue(response.getContentAsString(), JobModel.class);
             String jobId = jobModel.getId();
             String locationUrl = response.getHeader("Location");
+            assertNotNull("location URL was specified", locationUrl);
 
-            HttpStatus status = HttpStatus.valueOf(response.getStatus());
             switch (status) {
                 case ACCEPTED:
                     // Not done case: sleep and probe using the header URL
                     assertThat("location header for probe", locationUrl,
-                            equalTo(String.format("/api/jobs/%s", jobId)));
+                            equalTo(String.format("/api/repository/v1/jobs/%s", jobId)));
 
                     TimeUnit.SECONDS.sleep(1);
                     result = mvc.perform(get(locationUrl).accept(MediaType.APPLICATION_JSON)).andReturn();
@@ -221,7 +229,7 @@ public class DatasetOperationTest {
                     // Done case: get the result with the header URL and return the response;
                     // let the caller interpret the response
                     assertThat("location heaeder for result", locationUrl,
-                            equalTo(String.format("/api/jobs/%s/result", jobId)));
+                            equalTo(String.format("/api/repository/v1/jobs/%s/result", jobId)));
                     result = mvc.perform(get(locationUrl).accept(MediaType.APPLICATION_JSON)).andReturn();
                     return result.getResponse();
 
@@ -237,8 +245,6 @@ public class DatasetOperationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(studyRequest)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.description")
-                        .value("This is a sample study definition"))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -251,5 +257,8 @@ public class DatasetOperationTest {
         mvc.perform(delete(url)).andExpect(status().isOk());
     }
 
+    private String randomizedName(String baseName) {
+        return StringUtils.replaceChars(baseName + UUID.randomUUID().toString(), '-', '_');
+    }
 
 }

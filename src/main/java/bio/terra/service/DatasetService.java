@@ -29,6 +29,8 @@ import bio.terra.model.TableModel;
 import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.time.FastDateFormat;
 import bio.terra.stairway.Stairway;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,10 +43,12 @@ import java.util.stream.Collectors;
 
 @Component
 public class DatasetService {
-    private Stairway stairway;
-    private StudyDao studyDao;
-    private DatasetDao datasetDao;
-    private FastDateFormat modelDateFormat;
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DatasetService");
+
+    private final Stairway stairway;
+    private final StudyDao studyDao;
+    private final DatasetDao datasetDao;
+    private final SimpleDateFormat modelDateFormat;
 
     @Autowired
     public DatasetService(Stairway stairway,
@@ -220,11 +224,14 @@ public class DatasetService {
     }
 
     public DatasetSummaryModel makeSummaryModelFromSummary(DatasetSummary datasetSummary) {
+        logger.debug("makeSummaryModelFromSummary");
+        String createdDateString = modelDateFormat.format(datasetSummary.getCreatedDate());
+
         DatasetSummaryModel summaryModel = new DatasetSummaryModel()
                 .id(datasetSummary.getId().toString())
                 .name(datasetSummary.getName())
                 .description(datasetSummary.getDescription())
-                .createdDate(modelDateFormat.format(datasetSummary.getCreatedDate()));
+                .createdDate(createdDateString);
         return summaryModel;
     }
 

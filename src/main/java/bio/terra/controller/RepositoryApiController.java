@@ -36,6 +36,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -140,13 +141,13 @@ public class RepositoryApiController implements RepositoryApi {
 
     // -- dataset --
     @Override
-    public ResponseEntity<JobModel> createDataset(@Valid DatasetRequestModel dataset) {
+    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
         String jobId = datasetService.createDataset(dataset);
         return jobService.retrieveJob(jobId);
     }
 
     @Override
-    public ResponseEntity<JobModel> deleteDataset(String id) {
+    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
         datasetService.deleteDataset(id);
         return new ResponseEntity<>(HttpStatus.OK);
     }
@@ -158,25 +159,28 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<DatasetModel> retrieveDataset(String id) {
+    public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
         DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(id));
         return new ResponseEntity<>(datasetModel, HttpStatus.OK);
     }
 
     // -- jobs --
-    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {
+    @Override
+    public ResponseEntity<List<JobModel>> enumerateJobs(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         return jobService.enumerateJobs(offset, limit);
     }
 
-    public ResponseEntity<JobModel> retrieveJob(String jobId) {
-        return jobService.retrieveJob(jobId);
+    @Override
+    public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
+        return jobService.retrieveJob(id);
     }
 
-    public ResponseEntity<Object> retrieveJobResult(String jobId) {
-        return jobService.retrieveJobResult(jobId);
+    @Override
+    public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
+        return jobService.retrieveJobResult(id);
     }
-
-
 
     private <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);

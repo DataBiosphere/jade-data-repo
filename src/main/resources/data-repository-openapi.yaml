@@ -597,7 +597,7 @@ definitions:
     type: object
     required:
       - name
-      - source
+      - contents
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'

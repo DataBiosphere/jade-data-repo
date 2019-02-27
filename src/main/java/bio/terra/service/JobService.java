@@ -6,12 +6,12 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,12 +19,12 @@ import java.util.List;
 public class JobService {
 
     private final Stairway stairway;
-    private final SimpleDateFormat modelDateFormat;
+    private final FastDateFormat modelDateFormat;
 
     @Autowired
     public JobService(
             Stairway stairway,
-            SimpleDateFormat modelDateFormat
+            FastDateFormat modelDateFormat
     ) {
         this.stairway = stairway;
         this.modelDateFormat = modelDateFormat;

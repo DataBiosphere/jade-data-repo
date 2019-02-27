@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -221,6 +222,31 @@ public class DatasetDao {
         } catch (EmptyResultDataAccessException ex) {
             throw new NotFoundException("Dataset not found - id: " + id);
         }
+    }
+
+    public List<DatasetSummary> retrieveDatasetsForStudy(UUID studyId) {
+        try {
+            String sql = "SELECT id, name, description, created_date FROM dataset" +
+                " JOIN dataset_source JOIN study " +
+                "WHERE dataset.id = dataset_source.dataset_id AND dataset_source.study_id = :studyId";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
+            List<DatasetSummary> summaries = jdbcTemplate.query(
+                sql,
+                params,
+                (rs, rowNum) -> {
+                    DatasetSummary summary = new DatasetSummary()
+                        .id(UUID.fromString(rs.getString("id")))
+                        .name(rs.getString("name"))
+                        .description(rs.getString("description"))
+                        .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+                    return summary;
+                });
+            return summaries;
+        } catch (EmptyResultDataAccessException ex) {
+            //this is ok - used during study delete to validate no datasets reference the study
+            return Collections.emptyList();
+        }
+
     }
 
 }

@@ -49,7 +49,7 @@ public final class StudyJsonConversion {
                 .assetSpecifications(assetSpecifications);
     }
 
-    public static StudySummaryModel studySummaryFromStudy(Study study) {
+    public static StudySummaryModel studySummaryModelFromStudySummary(StudySummary study) {
         return new StudySummaryModel()
                 .id(study.getId().toString())
                 .name(study.getName())

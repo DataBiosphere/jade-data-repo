@@ -3,7 +3,6 @@ package bio.terra.controller;
 import bio.terra.category.Unit;
 import bio.terra.fixtures.FlightStates;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 
+import static bio.terra.fixtures.StudyFixtures.minimalStudySummary;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
@@ -49,7 +49,6 @@ public class JobTest {
     private static final String testFlightId = FlightStates.testFlightId;
     private static final String submittedTimeFormatted = FlightStates.submittedTimeFormatted;
     private static final String completedTimeFormatted = FlightStates.completedTimeFormatted;
-    private static StudySummaryModel minimalStudySummary = FlightStates.minimalStudySummary;
 
 
     @Before

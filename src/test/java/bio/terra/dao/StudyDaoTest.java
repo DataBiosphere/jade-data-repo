@@ -1,6 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyTable;
@@ -61,8 +62,16 @@ public class StudyDaoTest {
         if (!deleted) {
             studyDao.delete(studyId);
         }
+        studyId = null;
+        fromDB = null;
     }
 
+    @Test(expected = StudyNotFoundException.class)
+    public void studyDeleteTest() {
+        boolean success = studyDao.delete(studyId);
+        deleted = success;
+        studyDao.retrieve(studyId);
+    }
 
     @Test
     public void studyTest() throws Exception {

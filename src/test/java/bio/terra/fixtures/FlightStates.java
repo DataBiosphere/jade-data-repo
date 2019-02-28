@@ -1,6 +1,5 @@
 package bio.terra.fixtures;
 
-import bio.terra.model.StudySummaryModel;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -11,6 +10,8 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Optional;
+
+import static bio.terra.fixtures.StudyFixtures.minimalStudySummary;
 
 
 public final class FlightStates {
@@ -23,7 +24,6 @@ public final class FlightStates {
     public static final Timestamp completedTime = Timestamp.from(Instant.now());
     public static final String completedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
             .format(completedTime);
-    public static final StudySummaryModel minimalStudySummary = StudyFixtures.makeStudySummary();
 
 
     public static FlightState makeFlightSimpleState() {

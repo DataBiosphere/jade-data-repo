@@ -226,9 +226,9 @@ public class DatasetDao {
 
     public List<DatasetSummary> retrieveDatasetsForStudy(UUID studyId) {
         try {
-            String sql = "SELECT id, name, description, created_date FROM dataset" +
-                " JOIN dataset_source JOIN study " +
-                "WHERE dataset.id = dataset_source.dataset_id AND dataset_source.study_id = :studyId";
+            String sql = "SELECT dataset.id, name, description, created_date FROM dataset " +
+                "JOIN dataset_source ON dataset.id = dataset_source.dataset_id " +
+                "WHERE dataset_source.study_id = :studyId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
             List<DatasetSummary> summaries = jdbcTemplate.query(
                 sql,

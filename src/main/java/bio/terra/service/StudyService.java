@@ -4,6 +4,7 @@ import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
+import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
@@ -47,7 +48,7 @@ public class StudyService {
     }
 
     public List<StudySummaryModel> enumerate(int offset, int limit) {
-        return studyDao.enumerate()
+        return studyDao.enumerate(offset, limit)
             .stream()
             .map(summary -> StudyJsonConversion.studySummaryModelFromStudySummary(summary))
             .collect(Collectors.toList());
@@ -55,9 +56,13 @@ public class StudyService {
 
     public boolean delete(UUID id) {
         List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
-        if (referencedDatasets == null || referencedDatasets.isEmpty())
-            return studyDao.delete(id);
-        else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);
+        if (referencedDatasets == null || referencedDatasets.isEmpty()) {
+            FlightMap flightMap = new FlightMap();
+            flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
+            flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting a study");
+            String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
+            return getResponse(flightId, Boolean.class).booleanValue();
+        } else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);
     }
 
     private <T> T getResponse(String flightId, Class<T> resultClass) {

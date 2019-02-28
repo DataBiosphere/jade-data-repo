@@ -126,8 +126,25 @@ public class RepositoryApiController implements RepositoryApi {
         return success ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    public ResponseEntity<List<StudySummaryModel>> enumerateStudies() {
-        return new ResponseEntity<>(studyService.enumerate(0, 10), HttpStatus.OK);
+    public ResponseEntity<List<StudySummaryModel>> enumerateStudies(Integer offset, Integer limit) {
+        String errors = null;
+        if (offset == null) {
+            offset = 0;
+        } else if (offset < 0) {
+            errors = "Offset must be greater than or equal to 0.";
+        }
+
+        if (limit == null) {
+            limit = 10;
+        } else if (limit < 1) {
+            if (errors != null) errors += " ";
+            errors += "Limit must be great than or equal to 1.";
+        }
+        if (errors != null) {
+            throw new ValidationException(errors);
+        }
+
+        return new ResponseEntity<>(studyService.enumerate(offset, limit), HttpStatus.OK);
     }
 
     // -- dataset --

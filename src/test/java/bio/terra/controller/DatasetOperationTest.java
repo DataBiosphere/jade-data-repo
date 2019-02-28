@@ -67,7 +67,7 @@ public class DatasetOperationTest {
         ClassLoader classLoader = getClass().getClassLoader();
         String studyJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-study.json"));
         studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
-        studyRequest.setName(randomizedName(studyRequest.getName()));
+        studyRequest.setName(randomizedName(studyRequest.getName(), ""));
         createTestStudy();
 
         String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
@@ -86,7 +86,7 @@ public class DatasetOperationTest {
 
     @Test
     public void testHappyPath() throws Exception {
-        DatasetSummaryModel summaryModel = createTestDataset(datasetRequest);
+        DatasetSummaryModel summaryModel = createTestDataset(datasetRequest, "happy");
 
         DatasetModel datasetModel = getTestDataset(summaryModel.getId());
 
@@ -103,25 +103,33 @@ public class DatasetOperationTest {
         // Just make sure we get the same dataset summary that we made.
         List<DatasetSummaryModel> datasetList = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            DatasetSummaryModel dataset = createTestDataset(datasetRequest);
+            DatasetSummaryModel dataset = createTestDataset(datasetRequest, "_enum_");
             datasetList.add(dataset);
         }
 
         DatasetSummaryModel[] enumeratedArray = enumerateTestDatasets();
-        for (int i = 0; i < 5; i++) {
-            // Match the dataset summaries and retrieve and validate the dataset
-            assertThat(enumeratedArray[i], equalTo(datasetList.get(i)));
-            getTestDataset(datasetList.get(i).getId());
+
+        // The enumeratedArray may contain more datasets than just the set we created,
+        // but ours should be in order in the enumeration. So we do a merge waiting until we match
+        // by id and then comparing contents.
+        int compareIndex = 0;
+        for (int i = 0; i < enumeratedArray.length; i++) {
+            if (enumeratedArray[i].getId().equals(datasetList.get(compareIndex).getId())) {
+                assertThat("Enumeration summary matches create summary",
+                        enumeratedArray[i], equalTo(datasetList.get(compareIndex)));
+                compareIndex++;
+            }
         }
+        assertThat("we found all datasets", compareIndex, equalTo(5));
 
         for (int i = 0; i < 5; i++) {
             deleteTestDataset(enumeratedArray[i].getId());
         }
     }
 
-    private DatasetSummaryModel createTestDataset(DatasetRequestModel datasetRequest) throws Exception {
+    private DatasetSummaryModel createTestDataset(DatasetRequestModel datasetRequest, String infix) throws Exception {
         String baseName = datasetRequest.getName();
-        String datasetName = randomizedName(baseName);
+        String datasetName = randomizedName(baseName, infix);
         datasetRequest.setName(datasetName);
 
         String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
@@ -154,7 +162,7 @@ public class DatasetOperationTest {
     }
 
     private DatasetSummaryModel[] enumerateTestDatasets() throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/datasets?offset=0&limit=10"))
+        MvcResult result = mvc.perform(get("/api/repository/v1/datasets?offset=0&limit=100"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
 
@@ -260,8 +268,9 @@ public class DatasetOperationTest {
 //        mvc.perform(delete(url)).andExpect(status().isOk());
     }
 
-    private String randomizedName(String baseName) {
-        return StringUtils.replaceChars(baseName + UUID.randomUUID().toString(), '-', '_');
+    private String randomizedName(String baseName, String infix) {
+        String name = baseName + infix + UUID.randomUUID().toString();
+        return StringUtils.replaceChars(name, '-', '_');
     }
 
 }

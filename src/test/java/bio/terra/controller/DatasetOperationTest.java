@@ -13,7 +13,6 @@ import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +59,6 @@ public class DatasetOperationTest {
     private DatasetRequestModel datasetRequest;
     private StudyRequestModel studyRequest;
     private StudySummaryModel studySummary;
-    private String studyId;
 
     @Before
     public void setup() throws Exception {
@@ -75,14 +73,7 @@ public class DatasetOperationTest {
         datasetRequest.getContents().get(0).getSource().setStudyName(studyRequest.getName());
     }
 
-    @After
-    public void teardown() throws Exception {
-        deleteTestStudy();
-    }
-
-    // TODO: happy path; study, dataset, retrieve and validate dataset
-    // multiple dataset w/enumeration
-    // delete dataset
+    // TODO: add @After for study delete when that is hooked up
 
     @Test
     public void testHappyPath() throws Exception {
@@ -259,13 +250,6 @@ public class DatasetOperationTest {
 
         MockHttpServletResponse response = result.getResponse();
         studySummary = objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
-        studyId = studySummary.getId();
-    }
-
-    private void deleteTestStudy() throws Exception {
-        String url = "/api/repository/v1/studies/" + studyId;
-// TODO: turn this on when delete study is supported
-//        mvc.perform(delete(url)).andExpect(status().isOk());
     }
 
     private String randomizedName(String baseName, String infix) {

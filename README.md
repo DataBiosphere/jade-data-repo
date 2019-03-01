@@ -1,6 +1,20 @@
 # jade-data-repo
 The repo for the terra data repository built by the jade team.
 
+See the DATABASE.md to set up the postgres database before you run jade.
+
+## Build and Run
+
+If you are making code changes, run:
+`./gradlew check`
+
+To run jade locally:
+`./gradlew bootRun`
+
+To have the code hot reload, enable automatic builds in intellij, go to:
+Preferences -> Build, Execution, Deployment -> Compiler
+and select "Build project automatically"
+
 ## Swagger Codegen
 
 We are using swagger-codegen to generate code from the swagger (OpenAPI) document. Therefore, in order to build

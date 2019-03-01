@@ -5,15 +5,15 @@ See the DATABASE.md to set up the postgres database before you run jade.
 
 ## Build and Run
 
-If you are making code changes, run:
+If you are making code changes, run:  
 `./gradlew check`
 
-To run jade locally:
+To run jade locally:  
 `./gradlew bootRun`
 
-To have the code hot reload, enable automatic builds in intellij, go to:
-Preferences -> Build, Execution, Deployment -> Compiler
-and select "Build project automatically"
+To have the code hot reload, enable automatic builds in intellij, go to:  
+`Preferences -> Build, Execution, Deployment -> Compiler`
+and select `Build project automatically`
 
 ## Swagger Codegen
 

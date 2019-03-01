@@ -3,12 +3,16 @@ package bio.terra.pdao.bigquery;
 import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
+import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetMapColumn;
+import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
 import bio.terra.pdao.PdaoException;
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
@@ -30,6 +34,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.ViewDefinition;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -121,7 +126,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // create the row id table
             createRowIdTable(datasetName);
 
-            // populate root row ids
+            // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
             DatasetSource source = dataset.getDatasetSources().get(0);
             storeRowIdsForRoot(studyDatasetName, datasetName, source, rowIds);
@@ -132,8 +137,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             walkRelationships(studyDatasetName, datasetName, asset, rootTableId);
 
             // create the views
-
-
+            createViews(studyDatasetName, datasetName, dataset);
 
         } catch (Exception ex) {
             throw new PdaoException("createStudy failed", ex);
@@ -340,6 +344,128 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } catch (InterruptedException ie) {
             throw new PdaoException("Append query unexpectedly interrupted", ie);
         }
+    }
+
+    private void createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
+        for (Table table : dataset.getTables()) {
+            StringBuilder builder = new StringBuilder();
+
+            builder.append("SELECT ");
+            buildColumnList(builder, table);
+            builder.append(" FROM ");
+
+            // Build the FROM clause from the source
+            // NOTE: we can put this in a loop when we do multiple sources
+            DatasetSource source = dataset.getDatasetSources().get(0);
+            buildSource(builder, studyDatasetName, datasetName, table, source);
+
+            // create the view
+            String tableName = table.getName();
+            String sql = builder.toString();
+
+            logger.debug("Creating view" + datasetName + "." + tableName + " as " + sql);
+            TableId tableId = TableId.of(datasetName, tableName);
+            TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
+            bigQuery.create(tableInfo);
+        }
+    }
+
+    private void buildColumnList(StringBuilder builder, Table table) {
+        String prefix = "";
+        for (Column column : table.getColumns()) {
+            builder.append(prefix).append(column.getName());
+            prefix = ",";
+        }
+    }
+
+    private void buildSource(StringBuilder builder,
+                             String studyDatasetName,
+                             String datasetName,
+                             Table table,
+                             DatasetSource source) {
+
+        // Find the table map for the table. If there is none, we skip it.
+        // NOTE: for now, we know that there will be one, because we generate it directly.
+        // In the future when we have more than one, we can just return.
+        DatasetMapTable mapTable = lookupMapTable(table, source);
+        if (mapTable == null) {
+            throw new PdaoException("No matching map table for dataset table " + table.getName());
+        }
+
+        // Build this as a sub-select so it is easily extended to multiple sources in the future.
+        builder.append("(SELECT ");
+        buildSourceSelectList(builder, table, mapTable);
+
+        builder.append(" FROM `")
+                // base study table
+                .append(projectId)
+                .append('.')
+                .append(studyDatasetName)
+                .append('.')
+                .append(mapTable.getFromTable().getName())
+                .append('`')
+                // joined with the row id table
+                .append(" S, `")
+                .append(projectId)
+                .append('.')
+                .append(datasetName)
+                .append('.')
+                .append(PDAO_ROW_ID_TABLE)
+                .append("` R WHERE S.")
+                // where row_id matches and table_id matches
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(" = R.")
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(" AND R.")
+                .append(PDAO_TABLE_ID_COLUMN)
+                .append(" = '")
+                .append(mapTable.getFromTable().getId().toString())
+                .append("')");
+    }
+
+    private void buildSourceSelectList(StringBuilder builder, Table targetTable, DatasetMapTable mapTable) {
+        String prefix = "";
+
+        for (Column targetColumn : targetTable.getColumns()) {
+            builder.append(prefix);
+            prefix = ",";
+
+            // In the future, there may not be a column map for a given target column; it might not exist
+            // in the table. The logic here covers three cases:
+            // 1) no source column: supply NULL
+            // 2) source and target column with same name: supply name
+            // 3) source and target column with different names: supply target name with AS
+            String targetColumnName = targetColumn.getName();
+
+            DatasetMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
+            if (mapColumn == null) {
+                builder.append("NULL AS ").append(targetColumnName);
+            } else if (StringUtils.equals(mapColumn.getFromColumn().getName(), targetColumnName)) {
+                builder.append(targetColumnName);
+            } else {
+                builder.append(mapColumn.getFromColumn().getName())
+                        .append(" AS ")
+                        .append(targetColumnName);
+            }
+        }
+    }
+
+    private DatasetMapTable lookupMapTable(Table toTable, DatasetSource source) {
+        for (DatasetMapTable tryMapTable : source.getDatasetMapTables()) {
+            if (tryMapTable.getToTable().getId().equals(toTable.getId())) {
+                return tryMapTable;
+            }
+        }
+        return null;
+    }
+
+    private DatasetMapColumn lookupMapColumn(Column toColumn, DatasetMapTable mapTable) {
+        for (DatasetMapColumn tryMapColumn : mapTable.getDatasetMapColumns()) {
+            if (tryMapColumn.getToColumn().getId().equals(toColumn.getId())) {
+                return tryMapColumn;
+            }
+        }
+        return null;
     }
 
     // TODO: Make an enum for the datatypes in swagger

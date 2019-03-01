@@ -4,11 +4,13 @@ import bio.terra.category.Unit;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Study;
+import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.StudyTable;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,6 +23,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -48,9 +52,7 @@ public class StudyDaoTest {
 
     @Before
     public void setup() throws Exception {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream("study-create-test.json"));
-        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
+        StudyRequestModel studyRequest = getStudyRequestModel("study-create-test.json");
         studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         studyId = studyDao.create(study);
@@ -66,11 +68,45 @@ public class StudyDaoTest {
         fromDB = null;
     }
 
+    private StudyRequestModel getStudyRequestModel(String jsonResourceFileName) throws IOException {
+        ClassLoader classLoader = getClass().getClassLoader();
+        String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream(jsonResourceFileName));
+        return objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
+    }
+
+    private UUID createMinimalStudy() throws IOException {
+        StudyRequestModel studyRequest = getStudyRequestModel("study-minimal.json");
+        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
+        return studyDao.create(StudyJsonConversion.studyRequestToStudy(studyRequest));
+    }
+
     @Test(expected = StudyNotFoundException.class)
     public void studyDeleteTest() {
         boolean success = studyDao.delete(studyId);
         deleted = success;
         studyDao.retrieve(studyId);
+    }
+
+    @Test
+    public void enumerateTest() throws Exception {
+        UUID study1 = createMinimalStudy();
+
+        List<StudySummary> studies = studyDao.enumerate(0, 2);
+        assertThat("study enumerate limit param works",
+            studies.size(),
+            equalTo(2));
+
+        assertThat("study enumerate returns studies in the order created",
+            studies.get(0).getCreatedDate().toEpochMilli(),
+                Matchers.lessThan(studies.get(1).getCreatedDate().toEpochMilli()));
+
+        // this is skipping the first item returned above
+        // so compare the id from the previous retrieve
+        assertThat("study enumerate offset param works",
+            studyDao.enumerate(1, 1).get(0).getId(),
+            equalTo(studies.get(1).getId()));
+
+        studyDao.delete(study1);
     }
 
     @Test

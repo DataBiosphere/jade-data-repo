@@ -19,14 +19,26 @@ public class CreateDatasetPrimaryDataStep implements Step {
         this.datasetService = datasetService;
     }
 
-    Dataset getDataset(FlightContext context) {
+    DatasetRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get("request", DatasetRequestModel.class);
+        return inputParameters.get("request", DatasetRequestModel.class);
+    }
+
+    Dataset getDataset(FlightContext context) {
+        DatasetRequestModel datasetRequest = getRequestModel(context);
         return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
+        /*
+         * map field ids into row ids and validate
+         * then pass the row id array into create dataset
+         */
+        DatasetRequestModel requestModel = getRequestModel(context);
+
+
+
         bigQueryPdao.createDataset(getDataset(context));
         return StepResult.getStepResultSuccess();
     }

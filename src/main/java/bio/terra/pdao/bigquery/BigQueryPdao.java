@@ -1,99 +1,162 @@
 package bio.terra.pdao.bigquery;
 
+import bio.terra.metadata.AssetColumn;
+import bio.terra.metadata.AssetRelationship;
+import bio.terra.metadata.AssetSpecification;
+import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
+import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
 import bio.terra.pdao.PdaoException;
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.InsertAllRequest;
+import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.TableResult;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_TABLE;
+import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 
 @Component
 @Profile("bigquery")
 public class BigQueryPdao implements PrimaryDataAccess {
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.pdao.bigquery");
 
     private final BigQuery bigQuery;
     private final String projectId;
-    private final String rowIdColumnName;
-    private final String rowIdColumnDatatype;
 
     public BigQueryPdao(
             @Autowired BigQuery bigQuery,
-            @Autowired String bigQueryProjectId,
-            @Autowired String rowIdColumnName,
-            @Autowired String rowIdColumnDatatype) {
+            @Autowired String bigQueryProjectId) {
         this.bigQuery = bigQuery;
         this.projectId = bigQueryProjectId;
-        this.rowIdColumnName = rowIdColumnName;
-        this.rowIdColumnDatatype = rowIdColumnDatatype;
     }
 
     @Override
     public boolean studyExists(String name) {
+        return existenceCheck(prefixName(name));
+    }
+
+    @Override
+    public void createStudy(Study study) {
+        // Keep the study name from colliding with a dataset name by prefixing it.
+        String studyName = prefixName(study.getName());
+        try {
+            // For idempotency, if we find the study exists, we assume that we started to
+            // create it before and failed in the middle. We delete it and re-create it from scratch.
+            if (studyExists(studyName)) {
+                deleteStudy(study);
+            }
+
+            createContainer(studyName);
+            for (StudyTable table : study.getTables()) {
+                createTable(studyName, table);
+            }
+        } catch (Exception ex) {
+            throw new PdaoException("create study failed for " + studyName, ex);
+        }
+    }
+
+    @Override
+    public boolean deleteStudy(Study study) {
+        return deleteContainer(prefixName(study.getName()));
+    }
+
+    @Override
+    public boolean datasetExists(String datasetName) {
+        return existenceCheck(prefixName(datasetName));
+    }
+
+    // compute the row ids from the input ids and validate all inputs have matches
+    // Add new public method that takes table, column, list of keys and either returns
+    // the list of row ids with errors for missing.
+    @Override
+    public RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset, AssetColumn column, List<String> inputValues) {
+        // TODO: implement this
+        return new RowIdMatch();
+    }
+
+    @Override
+    public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
+        String studyDatasetName = prefixName(dataset.getName());
+        String datasetName = dataset.getName();
+        try {
+            // Idempotency: delete possibly partial create.
+            if (existenceCheck(datasetName)) {
+                deleteContainer(datasetName);
+            }
+
+            createContainer(datasetName);
+
+            // create the row id table
+            createRowIdTable(datasetName);
+
+            // populate root row ids
+            // NOTE: when we have multiple sources, we can put this into a loop
+            DatasetSource source = dataset.getDatasetSources().get(0);
+            storeRowIdsForRoot(studyDatasetName, datasetName, source, rowIds);
+
+            // walk and populate relationship table row ids
+            AssetSpecification asset = source.getAssetSpecification();
+            String rootTableId = asset.getRootTable().getStudyTable().getId().toString();
+            walkRelationships(studyDatasetName, datasetName, asset, rootTableId);
+
+            // create the views
+
+
+
+        } catch (Exception ex) {
+            throw new PdaoException("createStudy failed", ex);
+        }
+    }
+
+    @Override
+    public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
+        return deleteContainer(dataset.getName());
+    }
+
+    private boolean existenceCheck(String name) {
         try {
             DatasetId datasetId = DatasetId.of(projectId, name);
             Dataset dataset = bigQuery.getDataset(datasetId);
             return (dataset != null);
         } catch (Exception ex) {
-            throw new PdaoException("studyExists failed", ex);
+            throw new PdaoException("existence check failed for " + name, ex);
         }
     }
 
-    @Override
-    public void createStudy(Study study) {
-        try {
-            if (studyExists(study.getName())) {
-                deleteStudy(study);
-            }
-
-            createContainer(study.getName());
-            for (StudyTable table : study.getTables()) {
-                createTable(study.getName(), table);
-            }
-        } catch (Exception ex) {
-            throw new PdaoException("createStudy failed", ex);
-        }
-
-    }
-
-    @Override
-    public boolean deleteStudy(Study study) {
-        try {
-            return deleteContainer(study.getName());
-        } catch (Exception ex) {
-            throw new PdaoException("deleteStudy failed", ex);
-        }
-    }
-
-    @Override
-    public boolean datasetExists(String datasetName) {
-        return false;
-    }
-
-    @Override
-    public void createDataset(bio.terra.metadata.Dataset dataset) {
-
-    }
-
-    @Override
-    public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
-        return false;
+    private String prefixName(String name) {
+        return PDAO_PREFIX + name;
     }
 
     private void createContainer(String name) {
@@ -102,8 +165,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private boolean deleteContainer(String name) {
-        DatasetId datasetId = DatasetId.of(projectId, name);
-        return bigQuery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+        try {
+            DatasetId datasetId = DatasetId.of(projectId, name);
+            return bigQuery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
+        } catch (Exception ex) {
+            throw new PdaoException("delete failed for " + name, ex);
+        }
     }
 
     private void createTable(String containerName, StudyTable table) {
@@ -118,7 +185,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         List<Field> fieldList = new ArrayList<>();
 
         if (addRowIdColumn) {
-            fieldList.add(Field.of(rowIdColumnName, translateType(rowIdColumnDatatype)));
+            fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         }
 
         for (StudyTableColumn column : table.getColumns()) {
@@ -126,6 +193,153 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         return Schema.of(fieldList);
+    }
+
+    private void createRowIdTable(String datasetName) {
+        TableId tableId = TableId.of(datasetName, PDAO_ROW_ID_TABLE);
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
+        fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        Schema schema = Schema.of(fieldList);
+        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
+        bigQuery.create(tableInfo);
+    }
+
+    private void storeRowIdsForRoot(String studyDatasetName,
+                                    String datasetName,
+                                    DatasetSource source,
+                                    List<String> rowIds) {
+        AssetSpecification asset = source.getAssetSpecification();
+        StudyTable rootTable = asset.getRootTable().getStudyTable();
+        loadRootRowIds(datasetName, rootTable.getId().toString(), rowIds);
+        validateRowIdsForRoot(studyDatasetName, datasetName, rootTable.getName(), rowIds);
+    }
+
+    // Load row ids
+    private void loadRootRowIds(String datasetName, String tableId, List<String> rowIds) {
+        if (rowIds.size() == 0) {
+            return;
+        }
+
+        TableId bqTableId = TableId.of(datasetName, PDAO_ROW_ID_TABLE);
+        InsertAllRequest.Builder requestBuilder = InsertAllRequest.newBuilder(bqTableId);
+        for (String rowId : rowIds) {
+            Map<String, Object> row = new HashMap<>();
+            row.put(PDAO_TABLE_ID_COLUMN, tableId);
+            row.put(PDAO_ROW_ID_COLUMN, rowId);
+            requestBuilder.addRow(row);
+        }
+        InsertAllRequest request = requestBuilder.build();
+
+        InsertAllResponse response = bigQuery.insertAll(request);
+        if (response.hasErrors()) {
+            logger.error("Row Id InsertAll had errors:");
+            for (List<BigQueryError> errorList : response.getInsertErrors().values()) {
+                for (BigQueryError bigQueryError : errorList) {
+                    logger.debug("    {}", bigQueryError);
+                }
+            }
+        }
+    }
+
+    private void validateRowIdsForRoot(String studyDatasetName,
+                                       String datasetName,
+                                       String rootTableName,
+                                       List<String> rowIds) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT COUNT(*) FROM `")
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(rootTableName)
+                .append("` AS T, `")
+                .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
+                .append("` AS R WHERE R.")
+                .append(PDAO_ROW_ID_COLUMN).append(" = T.").append(PDAO_ROW_ID_COLUMN);
+
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQuery.query(queryConfig);
+            FieldValueList row = result.iterateAll().iterator().next();
+            FieldValue countValue = row.get(0);
+            if (countValue.getLongValue() != rowIds.size()) {
+                throw new PdaoException("Invalid row ids supplied");
+            }
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Append query unexpectedly interrupted", ie);
+        }
+    }
+
+    // Recursive walk of the asset relationships. Note that we only follow what is connected.
+    // If there are relationships in the asset that are not connected to the root, they will
+    // simply be ignored. See the related comment in study validator.
+    private void walkRelationships(String studyDatasetName,
+                                   String datasetName,
+                                   AssetSpecification asset,
+                                   String fromTableId) {
+        for (AssetRelationship relationship : asset.getAssetRelationships()) {
+            // Walk all relationships with this from table
+            StudyRelationship studyRelationship = relationship.getStudyRelationship();
+            String studyFromId = studyRelationship.getFromTable().getId().toString();
+            if (StringUtils.equals(fromTableId, studyFromId)) {
+                storeRowIdsForRelatedTable(studyDatasetName, datasetName, studyRelationship);
+                walkRelationships(studyDatasetName, datasetName, asset, studyRelationship.getToTable().getId().toString());
+            }
+        }
+    }
+
+    private void storeRowIdsForRelatedTable(String studyDatasetName,
+                                            String datasetName,
+                                            StudyRelationship relationship) {
+
+        // NOTE: this will have to be re-written when we support relationships that include
+        // more than one column.
+        String toTableId =  relationship.getToTable().getId().toString();
+        String toTableName = relationship.getToTable().getName();
+        String toColumnName = relationship.getToColumn().getName();
+        String fromTableId = relationship.getFromTable().getId().toString();
+        String fromTableName = relationship.getFromTable().getName();
+        String fromColumnName = relationship.getFromColumn().getName();
+
+        /*
+            Building this SQL:
+                SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
+                FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
+                WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
+                  AND R.PDAO_ROW_ID_COLUMN = F.PDAO_ROW_ID_COLUMN
+                  AND F.fromColumnName = T.toColumnName
+         */
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT DISTINCT '")
+                .append(toTableId)
+                .append("' AS ")
+                .append(PDAO_TABLE_ID_COLUMN)
+                .append(", T.")
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(" FROM `")
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(toTableName)
+                .append("` AS T, `")
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(fromTableName)
+                .append("` AS F, `")
+                .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
+                .append("` AS R WHERE R.")
+                .append(PDAO_TABLE_ID_COLUMN).append(" = '").append(fromTableId)
+                .append("' AND R.")
+                .append(PDAO_ROW_ID_COLUMN).append(" = F.").append(PDAO_ROW_ID_COLUMN)
+                .append(" AND T.").append(toColumnName).append(" = F.").append(fromColumnName);
+
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig =
+                    QueryJobConfiguration.newBuilder(sql)
+                            .setDestinationTable(TableId.of(datasetName, PDAO_ROW_ID_TABLE))
+                            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                            .build();
+
+            bigQuery.query(queryConfig);
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Append query unexpectedly interrupted", ie);
+        }
     }
 
     // TODO: Make an enum for the datatypes in swagger

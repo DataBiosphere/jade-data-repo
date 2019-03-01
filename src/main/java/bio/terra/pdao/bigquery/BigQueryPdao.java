@@ -105,10 +105,79 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // compute the row ids from the input ids and validate all inputs have matches
     // Add new public method that takes table, column, list of keys and either returns
     // the list of row ids with errors for missing.
+    // NOTE: In the fullness of time, we may not do this and kick the function into the UI.
+    // So this code just builds a query with embedded data values. I think it will
+    // support about 25,000 input values.
+    // Another, more complicated alternative:
+    // - create a scratch table at dataset creation time
+    // - truncate before we start
+    // - load the values in
+    // - do the query
+    // - truncate (even tidier...)
+    // So if we need to make this work in the long term, we can take that approach.
+
+
+
     @Override
-    public RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset, AssetColumn column, List<String> inputValues) {
-        // TODO: implement this
-        return new RowIdMatch();
+    public RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
+                                      AssetColumn column,
+                                      List<String> inputValues) {
+
+        /*
+            Making this SQL query:
+            SELECT T.datarepo_row_id, T.<study-column>, V.inputValue
+            FROM (select inputValue from unnest(['inputValue0', 'inputValue1', ...]) as inputValue) AS V
+            LEFT JOIN <study-table> AS T
+            ON T.<study-column> = V.inputValue
+        */
+
+        String studyDatasetName = prefixName(dataset.getName());
+        String studyColumnName = column.getStudyColumn().getName();
+        String studyTableName = column.getStudyTable().getName();
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT T.")
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(", V.inputValue FROM (SELECT inputValue FROM UNNEST([");
+
+        // Put all of the values into an array that is unnested into a table
+        String prefix = "";
+        for (String inval : inputValues) {
+            builder.append(prefix).append("'").append(inval).append("'");
+            prefix = ",";
+        }
+
+        builder.append("]) AS inputValue) AS V RIGHT JOIN `")
+                .append(projectId)
+                .append('.')
+                .append(studyDatasetName)
+                .append('.')
+                .append(studyTableName)
+                .append("` AS T ON V.inputValue = T.")
+                .append(studyColumnName);
+
+        // Execute the query building the row id match structure that tracks the matching
+        // ids and the mismatched ids
+        RowIdMatch rowIdMatch = new RowIdMatch();
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQuery.query(queryConfig);
+            for (FieldValueList row : result.iterateAll()) {
+                // Test getting these by name
+                FieldValue rowId = row.get(0);
+                FieldValue inputValue = row.get(1);
+                if (rowId.isNull()) {
+                    rowIdMatch.addMismatch(inputValue.getStringValue());
+                } else {
+                    rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
+                }
+            }
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Append query unexpectedly interrupted", ie);
+        }
+
+        return rowIdMatch;
     }
 
     @Override
@@ -269,7 +338,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 throw new PdaoException("Invalid row ids supplied");
             }
         } catch (InterruptedException ie) {
-            throw new PdaoException("Append query unexpectedly interrupted", ie);
+            throw new PdaoException("Validate row ids query unexpectedly interrupted", ie);
         }
     }
 
@@ -349,6 +418,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private void createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
         for (Table table : dataset.getTables()) {
             StringBuilder builder = new StringBuilder();
+
+            /*
+            Building this SQL:
+                SELECT <column list from dataset table> FROM
+                  (SELECT <column list mapping study to dataset columns>
+                   FROM <study table> S, datarepo_row_ids R
+                   WHERE S.datarepo_row_id = R.datarepo_row_id
+                     AND R.datarepo_table_id = '<study table id>')
+             */
 
             builder.append("SELECT ");
             buildColumnList(builder, table);

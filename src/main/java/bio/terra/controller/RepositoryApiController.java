@@ -108,7 +108,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorModel> handleStudyNotFoundException(IllegalArgumentException ex) {
+    public ResponseEntity<ErrorModel> handleIllegalArgumentException(IllegalArgumentException ex) {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
@@ -123,24 +123,21 @@ public class RepositoryApiController implements RepositoryApi {
 
     public ResponseEntity<Void> deleteStudy(@PathVariable("id") String id) {
         boolean success = studyService.delete(UUID.fromString(id));
-        return success ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        return success ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     public ResponseEntity<List<StudySummaryModel>> enumerateStudies(Integer offset, Integer limit) {
-        String errors = null;
-        if (offset == null) {
-            offset = 0;
-        } else if (offset < 0) {
+        String errors = "";
+        offset = (offset == null) ? offset = 0 : offset;
+        if (offset < 0) {
             errors = "Offset must be greater than or equal to 0.";
         }
 
-        if (limit == null) {
-            limit = 10;
-        } else if (limit < 1) {
-            if (errors != null) errors += " ";
-            errors += "Limit must be great than or equal to 1.";
+        limit =  (limit == null) ? limit = 10 : limit;
+        if (limit < 1) {
+            errors += " Limit must be greater than or equal to 1.";
         }
-        if (errors != null) {
+        if (!errors.isEmpty()) {
             throw new ValidationException(errors);
         }
 

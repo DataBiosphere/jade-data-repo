@@ -29,13 +29,12 @@ before_install:
       curl https://sdk.cloud.google.com | bash > /dev/null;
     fi
   - source $HOME/google-cloud-sdk/path.bash.inc
-  - ls -la $HOME/google-cloud-sdk
-  - which gcloud
   - gcloud config set project $INTEGRATION_PROJECT
   - gcloud config set compute/zone $INTEGRATION_ZONE
   - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud components install kubectl
+  - echo "$(git rev-parse --short HEAD)"
   - gcloud container clusters get-credentials $CLUSTER_NAME
 
 before_script:

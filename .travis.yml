@@ -24,7 +24,8 @@ services:
   - postgresql
 
 before_install:
-  - if [ ! -d ${HOME}/google-cloud-sdk ]; then
+  - if [ ! -d ${HOME}/google-cloud-sdk/bin ]; then
+      rm -rf $HOME/google-cloud-sdk;
       curl https://sdk.cloud.google.com | bash;
     fi
   - gcloud config set project $INTEGRATION_PROJECT

@@ -1,6 +1,5 @@
 package bio.terra.pdao.bigquery;
 
-import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
@@ -60,9 +59,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private final BigQuery bigQuery;
     private final String projectId;
 
-    public BigQueryPdao(
-            @Autowired BigQuery bigQuery,
-            @Autowired String bigQueryProjectId) {
+    @Autowired
+    public BigQueryPdao(BigQuery bigQuery, String bigQueryProjectId) {
         this.bigQuery = bigQuery;
         this.projectId = bigQueryProjectId;
     }
@@ -103,26 +101,24 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     // compute the row ids from the input ids and validate all inputs have matches
-    // Add new public method that takes table, column, list of keys and either returns
-    // the list of row ids with errors for missing.
+    // Add new public method that takes the asset and the dataset source and the input values and
+    // returns a structure with the matching row ids (suitable for calling create dataset)
+    // and any mismatched input values that don't have corresponding roww.
     // NOTE: In the fullness of time, we may not do this and kick the function into the UI.
-    // So this code just builds a query with embedded data values. I think it will
-    // support about 25,000 input values.
-    // Another, more complicated alternative:
+    // So this code assumes there is one source and one set of input values.
+    // The query it builds embeds data values into the query in an array. I think it will
+    // support about 25,000 input values. It that is not enough there is another, more
+    // complicated alternative:
     // - create a scratch table at dataset creation time
     // - truncate before we start
     // - load the values in
     // - do the query
     // - truncate (even tidier...)
     // So if we need to make this work in the long term, we can take that approach.
-
-
-
     @Override
     public RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
-                                      AssetColumn column,
+                                      DatasetSource source,
                                       List<String> inputValues) {
-
         /*
             Making this SQL query:
             SELECT T.datarepo_row_id, T.<study-column>, V.inputValue
@@ -131,9 +127,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             ON T.<study-column> = V.inputValue
         */
 
-        String studyDatasetName = prefixName(dataset.getName());
-        String studyColumnName = column.getStudyColumn().getName();
-        String studyTableName = column.getStudyTable().getName();
+        // One source: grab it and navigate to the relevant parts
+        AssetSpecification asset = source.getAssetSpecification();
+        StudyTableColumn column = asset.getRootColumn().getStudyColumn();
+        String studyColumnName = column.getName();
+        String studyTableName = column.getInTable().getName();
+        String studyDatasetName = prefixName(source.getStudy().getName());
 
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT T.")
@@ -147,7 +146,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             prefix = ",";
         }
 
-        builder.append("]) AS inputValue) AS V RIGHT JOIN `")
+        builder.append("]) AS inputValue) AS V LEFT JOIN `")
                 .append(projectId)
                 .append('.')
                 .append(studyDatasetName)
@@ -182,7 +181,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
-        String studyDatasetName = prefixName(dataset.getName());
         String datasetName = dataset.getName();
         try {
             // Idempotency: delete possibly partial create.
@@ -198,6 +196,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
             DatasetSource source = dataset.getDatasetSources().get(0);
+            String studyDatasetName = prefixName(source.getStudy().getName());
+
             storeRowIdsForRoot(studyDatasetName, datasetName, source, rowIds);
 
             // walk and populate relationship table row ids
@@ -209,7 +209,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             createViews(studyDatasetName, datasetName, dataset);
 
         } catch (Exception ex) {
-            throw new PdaoException("createStudy failed", ex);
+            throw new PdaoException("createDataset failed", ex);
         }
     }
 

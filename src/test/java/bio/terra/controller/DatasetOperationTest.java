@@ -11,10 +11,16 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.InsertAllRequest;
+import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.TableId;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -29,13 +35,18 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -50,15 +61,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Category(Connected.class)
 public class DatasetOperationTest {
 
-    @Autowired
-    private MockMvc mvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Autowired private MockMvc mvc;
+    @Autowired private ObjectMapper objectMapper;
+    @Autowired private BigQuery bigQuery;
+    @Autowired private String projectId;
 
     private DatasetRequestModel datasetRequest;
     private StudyRequestModel studyRequest;
     private StudySummaryModel studySummary;
+
+    // Has to match data in the dataset-test-dataset.json file
+    // and not match data in the dataset-test-baddata.json file
+    private final String[] data = { "Andrea", "Dan", "Rori", "Jeremy"};
 
     @Before
     public void setup() throws Exception {
@@ -72,6 +86,7 @@ public class DatasetOperationTest {
         datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
         datasetRequest.getContents().get(0).getSource().setStudyName(studyRequest.getName());
     }
+
 
     // TODO: add @After for study delete when that is hooked up
 
@@ -115,6 +130,51 @@ public class DatasetOperationTest {
 
         for (int i = 0; i < 5; i++) {
             deleteTestDataset(enumeratedArray[i].getId());
+        }
+    }
+
+    @Test
+    public void testBadData() throws Exception {
+        ClassLoader classLoader = getClass().getClassLoader();
+        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset-baddata.json"));
+        DatasetRequestModel badDataRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
+        badDataRequest.getContents().get(0).getSource().setStudyName(studyRequest.getName());
+
+        String baseName = badDataRequest.getName();
+        String datasetName = randomizedName(baseName, "baddata");
+        badDataRequest.setName(datasetName);
+        String jsonRequest = objectMapper.writeValueAsString(badDataRequest);
+
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonRequest))
+// TODO: swagger field validation errors do not set content type; they log and return nothing
+//                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+// TODO: the status code is always 201 right now and the response is the dataset summary model, because
+// jobs doesn't notice that the flight failed...
+//        assertThat(response.getStatus(), equalTo(400));
+//        ErrorModel errorModel = objectMapper.readValue(response.getContentAsString(), ErrorModel.class);
+//        assertThat(errorModel.getMessage(), containsString("Fred"));
+    }
+
+    // !!! This test is intended to be run manually when the BigQuery project gets orphans in it.
+    // !!! It tries to delete all datasets from the project.
+    // You have to comment out the @Ignore to run it and not forget to uncomment it when you are done.
+    @Ignore
+    @Test
+    public void deleteAllBigQueryProjects() throws Exception {
+        // Collect a list of datasets. Then delete each one.
+        List<DatasetId> idList = new ArrayList<>();
+        for (com.google.cloud.bigquery.Dataset dataset :  bigQuery.listDatasets().iterateAll()) {
+            idList.add(dataset.getDatasetId());
+        }
+
+        for (DatasetId id : idList) {
+            bigQuery.delete(id, BigQuery.DatasetDeleteOption.deleteContents());
         }
     }
 
@@ -250,6 +310,21 @@ public class DatasetOperationTest {
 
         MockHttpServletResponse response = result.getResponse();
         studySummary = objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
+
+        // Use BigQuery directly to load test data into the table.
+        String studyDatasetName = PDAO_PREFIX + studySummary.getName();
+        TableId bqTableId = TableId.of(studyDatasetName, "thetable");
+
+        InsertAllRequest.Builder requestBuilder = InsertAllRequest.newBuilder(bqTableId);
+        for (String datum : data) {
+            Map<String, Object> row = new HashMap<>();
+            row.put(PDAO_ROW_ID_COLUMN, UUID.randomUUID().toString());
+            row.put("thecolumn", datum);
+            requestBuilder.addRow(row);
+        }
+        InsertAllRequest bqrequest = requestBuilder.build();
+        InsertAllResponse bqresponse = bigQuery.insertAll(bqrequest);
+        assertFalse("no insert errors", bqresponse.hasErrors());
     }
 
     private String randomizedName(String baseName, String infix) {

@@ -1,6 +1,11 @@
 package bio.terra.flight.dataset.create;
 
+import bio.terra.dao.DatasetDao;
+import bio.terra.exceptions.ValidationException;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.RowIdMatch;
+import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
@@ -8,15 +13,20 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 
 public class CreateDatasetPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
+    private DatasetDao datasetDao;
 
-    public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao, DatasetService datasetService) {
+    public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
+                                        DatasetService datasetService,
+                                        DatasetDao datasetDao) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
+        this.datasetDao = datasetDao;
     }
 
     DatasetRequestModel getRequestModel(FlightContext context) {
@@ -36,10 +46,22 @@ public class CreateDatasetPrimaryDataStep implements Step {
          * then pass the row id array into create dataset
          */
         DatasetRequestModel requestModel = getRequestModel(context);
+        DatasetRequestContentsModel contentsModel = requestModel.getContents().get(0);
 
+        Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
+        DatasetSource source = dataset.getDatasetSources().get(0);
+        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(dataset, source, contentsModel.getRootValues());
+        if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
+            StringBuilder builder = new StringBuilder("Mismatched input values: ");
+            String prefix = "'";
+            for (String unmatchedValue : rowIdMatch.getUnmatchedInputValues()) {
+                builder.append(prefix).append(unmatchedValue).append("'");
+                prefix = ",'";
+            }
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new ValidationException(builder.toString()));
+        }
 
-
-        bigQueryPdao.createDataset(getDataset(context));
+        bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
         return StepResult.getStepResultSuccess();
     }
 

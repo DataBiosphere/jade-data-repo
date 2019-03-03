@@ -1,7 +1,7 @@
 package bio.terra.pdao;
 
-import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 
@@ -66,11 +66,13 @@ public interface PrimaryDataAccess {
      * information to return meaningful errors for mismatched input values.
      *
      * @param dataset
-     * @param column - asset column that the input values apply to
+     * @param source - source in the dataset we are mapping
      * @param inputValues
      * @return RowIdMatch
      */
-    RowIdMatch mapValuesToRows(Dataset dataset, AssetColumn column, List<String> inputValues);
+    RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
+                                      DatasetSource source,
+                                      List<String> inputValues);
 
     /**
      * Create the container, tables and views for a dataset.

@@ -13,7 +13,6 @@ env:
 language: java
 
 jdk:
-  - oraclejdk8
   - openjdk8
 
 addons:
@@ -45,9 +44,17 @@ script:
   - ./gradlew assemble
   - ./gradlew check
   - ./gradlew dockerPush
+  - kubectl --record deployment.apps/data-repo-deployment set image
+    deployment.v1.apps/data-repo-deployment
+    "data-repo-api-container=gcr.io/${INTEGRATION_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
 
-# deploy:
-#   provider: script
-#   script: # deploy to dev
-#   on:
-#     branch: develop
+deploy:
+  provider: script
+  script:
+    - gcloud config set project $DEV_PROJECT
+    - gcloud config set compute/zone $DEV_ZONE
+    - kubectl --record deployment.apps/data-repo-deployment set image
+      deployment.v1.apps/data-repo-deployment
+      "data-repo-api-container=gcr.io/${INTEGRATION_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
+  on:
+    branch: develop

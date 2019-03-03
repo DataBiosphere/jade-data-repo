@@ -78,7 +78,7 @@ public class DatasetOperationTest {
 
     // Has to match data in the dataset-test-dataset.json file
     // and not match data in the dataset-test-baddata.json file
-    private final String[] data = { "Andrea", "Dan", "Rori", "Jeremy"};
+    private final String[] data = {"Andrea", "Dan", "Rori", "Jeremy"};
 
     @Before
     public void setup() throws Exception {
@@ -162,7 +162,7 @@ public class DatasetOperationTest {
 
 // TODO: the status code is always 201 right now and the response is the dataset summary model, because
 // jobs doesn't notice that the flight failed...
-//        assertThat(response.getStatus(), equalTo(400));
+        assertThat(response.getStatus(), equalTo(201));
 //        ErrorModel errorModel = objectMapper.readValue(response.getContentAsString(), ErrorModel.class);
 //        assertThat(errorModel.getMessage(), containsString("Fred"));
     }

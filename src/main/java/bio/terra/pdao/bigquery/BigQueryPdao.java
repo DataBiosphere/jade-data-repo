@@ -355,7 +355,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
             String studyFromId = studyRelationship.getFromTable().getId().toString();
             if (StringUtils.equals(fromTableId, studyFromId)) {
                 storeRowIdsForRelatedTable(studyDatasetName, datasetName, studyRelationship);
-                walkRelationships(studyDatasetName, datasetName, asset, studyRelationship.getToTable().getId().toString());
+                walkRelationships(studyDatasetName,
+                        datasetName,
+                        asset,
+                        studyRelationship.getToTable().getId().toString());
             }
         }
     }

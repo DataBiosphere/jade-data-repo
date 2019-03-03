@@ -5,6 +5,10 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+    - $HOME/google-cloud-sdk/
+
+env:
+  - PATH=$PATH:${HOME}/google-cloud-sdk/bin CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 language: java
 
@@ -19,11 +23,27 @@ services:
   - docker
   - postgresql
 
+before_install:
+  - if [ ! -d ${HOME}/google-cloud-sdk ]; then
+      curl https://sdk.cloud.google.com | bash;
+    fi
+  - gcloud config set project $INTEGRATION_PROJECT
+  - gcloud config set compute/zone $INTEGRATION_ZONE
+  - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS
+  - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
+  - gcloud components install kubectl
+  - gcloud container clusters get-credentials $CLUSTER_NAME
+
 before_script:
   - psql -U postgres -f db/create-data-repo-db
 
-deploy:
-  provider: script
-  script: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin && ./gradlew dockerPush
-  on:
-    branch: develop
+script:
+  - ./gradlew assemble
+  - ./gradlew check
+  - ./gradlew dockerPush
+
+# deploy:
+#   provider: script
+#   script: # deploy to dev
+#   on:
+#     branch: develop

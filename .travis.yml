@@ -28,6 +28,7 @@ before_install:
       rm -rf $HOME/google-cloud-sdk;
       curl https://sdk.cloud.google.com | bash > /dev/null;
     fi
+  - source $HOME/google-cloud-sdk/path.bash.inc
   - gcloud config set project $INTEGRATION_PROJECT
   - gcloud config set compute/zone $INTEGRATION_ZONE
   - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS

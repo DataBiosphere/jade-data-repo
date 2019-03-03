@@ -61,6 +61,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Category(Connected.class)
 public class DatasetOperationTest {
 
+    // TODO: MORE TESTS to be done when we can ingest data:
+    // - test more complex studies with relationships
+    // - test relationship walking with valid and invalid setups
+    // TODO: MORE TESTS when we separate the value translation from the create
+    // - test invalid row ids
+
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private BigQuery bigQuery;

@@ -33,6 +33,7 @@ before_install:
   - gcloud config set compute/zone $INTEGRATION_ZONE
   - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
+  - gcloud auth configure-docker
   - gcloud components install kubectl
   - echo "$(git rev-parse --short HEAD)"
   - gcloud container clusters get-credentials $CLUSTER_NAME

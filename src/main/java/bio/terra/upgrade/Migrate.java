@@ -43,6 +43,8 @@ public class Migrate {
             Liquibase liquibase = new Liquibase(changesetFile,
                     new ClassLoaderResourceAccessor(),
                     new JdbcConnection(connection));
+            // TODO: make this configurable (it should always happen for integration)
+            liquibase.dropAll();
             liquibase.update(new Contexts()); // Run all migrations - no context filtering
         } catch (LiquibaseException | SQLException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);

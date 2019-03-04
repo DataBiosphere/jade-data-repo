@@ -11,6 +11,12 @@
     <property name="identifier_type" value="varchar(63)"/>
     <property name="description_type" value="varchar(2047)"/>
 
+    <changeSet author="jh" id="db-init">
+        <sql dbms="postgresql" >
+            CREATE EXTENSION IF NOT EXISTS pgcrypto;
+        </sql>
+    </changeSet>
+
     <include file="changesets/20181203_studytable.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20190214_datasets.yaml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

@@ -46,7 +46,7 @@ script:
   - ./gradlew dockerPush
   - kubectl --record deployment.apps/data-repo-deployment set image
     deployment.v1.apps/data-repo-deployment
-    "data-repo-api-container=gcr.io/${INTEGRATION_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
+    "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
   - ./ops/wait-for-deployment.sh data-repo-deployment
 
 deploy:
@@ -57,6 +57,6 @@ deploy:
     - gcloud container clusters get-credentials $CLUSTER_NAME
     - kubectl --record deployment.apps/data-repo-deployment set image
       deployment.v1.apps/data-repo-deployment
-      "data-repo-api-container=gcr.io/${INTEGRATION_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
+      "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
   on:
     branch: develop

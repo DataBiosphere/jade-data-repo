@@ -54,6 +54,7 @@ deploy:
   script:
     - gcloud config set project $DEV_PROJECT
     - gcloud config set compute/zone $DEV_ZONE
+    - gcloud container clusters get-credentials $CLUSTER_NAME
     - kubectl --record deployment.apps/data-repo-deployment set image
       deployment.v1.apps/data-repo-deployment
       "data-repo-api-container=gcr.io/${INTEGRATION_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"

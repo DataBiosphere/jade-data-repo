@@ -59,7 +59,7 @@ public class StudyService {
         if (referencedDatasets == null || referencedDatasets.isEmpty()) {
             FlightMap flightMap = new FlightMap();
             flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
-            flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting a study");
+            flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the study with ID " + id);
             String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
             return getResponse(flightId, Boolean.class).booleanValue();
         } else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);

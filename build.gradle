@@ -237,7 +237,6 @@ def getGitHash = { ->
     return stdout.toString().trim()
 }
 
-// TODO: don't have access to broadinstitute to create a repository, or is there a better place?
 docker {
     name "gcr.io/broad-jade-dev/${bootJar.baseName}:${getGitHash()}"
     copySpec.from(tasks.unpack.outputs).into("dependency")

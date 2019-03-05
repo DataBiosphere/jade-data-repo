@@ -9,6 +9,10 @@ gcloud config set compute/zone $ZONE
 # set the project
 gcloud config set project $PROJECT
 
+###############################################################################
+# Kubernetes commands
+###############################################################################
+
 gcloud iam service-accounts create jade-k8-sa --display-name 'Jade K8 SA'
 
 gcloud projects add-iam-policy-binding ${PROJECT} \

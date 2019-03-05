@@ -34,7 +34,6 @@ before_install:
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth configure-docker
   - gcloud components install kubectl
-  - echo "$(git rev-parse --short HEAD)"
   - gcloud container clusters get-credentials $CLUSTER_NAME
 
 before_script:

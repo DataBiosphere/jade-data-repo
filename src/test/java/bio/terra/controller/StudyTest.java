@@ -5,7 +5,6 @@ import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.fixtures.FlightStates;
-import bio.terra.fixtures.StudyFixtures;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
@@ -31,6 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.UUID;
 
+import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -58,7 +58,6 @@ public class StudyTest {
     private ObjectMapper objectMapper;
 
 
-    private static final StudyRequestModel localStudyRequest = StudyFixtures.studyRequest;
 
     private static final String testFlightId = "test-flight-id";
 
@@ -74,7 +73,7 @@ public class StudyTest {
 
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(localStudyRequest)))
+                .content(objectMapper.writeValueAsString(buildStudyRequest())))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name").value("Minimal"))
                 .andExpect(jsonPath("$.description")
@@ -108,7 +107,7 @@ public class StudyTest {
                 .thenThrow(ApiException.class);
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(localStudyRequest)))
+                .content(objectMapper.writeValueAsString(buildStudyRequest())))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -132,7 +131,8 @@ public class StudyTest {
                 equalTo(HttpStatus.NOT_FOUND.value()));
 
         UUID id = UUID.fromString("8d2e052c-e1d1-4a29-88ed-26920907791f");
-        Study study = StudyJsonConversion.studyRequestToStudy(localStudyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        Study study = StudyJsonConversion.studyRequestToStudy(req);
         study.id(id).createdDate(Instant.now());
 
         when(studyDao.retrieve(eq(id))).thenReturn(study);
@@ -145,7 +145,7 @@ public class StudyTest {
                         assertThat("Study retrieve returns a Study Model with schema",
                                 objectMapper.readValue(result.getResponse().getContentAsString(), StudyModel.class)
                                         .getName(),
-                                equalTo(localStudyRequest.getName())));
+                                equalTo(req.getName())));
 
         assertThat("Study retrieve returns a Study Model with schema",
                 objectMapper.readValue(
@@ -154,7 +154,7 @@ public class StudyTest {
                                 .getResponse()
                                 .getContentAsString(),
                         StudyModel.class).getName(),
-                equalTo(localStudyRequest.getName()));
+                equalTo(req.getName()));
     }
 
 }

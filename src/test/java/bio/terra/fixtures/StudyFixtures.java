@@ -18,61 +18,83 @@ public final class StudyFixtures {
     private StudyFixtures() {
     }
 
-    public static final StudySummaryModel minimalStudySummary = new StudySummaryModel()
-        .id("Minimal")
-        .name("Minimal")
-        .description("This is a sample study definition");
+    public static StudySummaryModel buildMinimalStudySummary() {
+        return new StudySummaryModel()
+            .id("Minimal")
+            .name("Minimal")
+            .description("This is a sample study definition");
+    }
 
-    public static final TableModel participantTable = new TableModel()
-        .name("participant")
-        .columns(Arrays.asList(
-            new ColumnModel().name("id").datatype("string"),
-            new ColumnModel().name("age").datatype("number")));
+    public static TableModel buildParticipantTable() {
+        return new TableModel()
+            .name("participant")
+            .columns(Arrays.asList(
+                new ColumnModel().name("id").datatype("string"),
+                new ColumnModel().name("age").datatype("number")));
+    }
 
-    public static final TableModel sampleTable = new TableModel()
-        .name("sample")
-        .columns(Arrays.asList(
-            new ColumnModel().name("id").datatype("string"),
-            new ColumnModel().name("participant_id").datatype("string"),
-            new ColumnModel().name("date_collected").datatype("date")));
+    public static TableModel buildSampleTable() {
+        return new TableModel()
+            .name("sample")
+            .columns(Arrays.asList(
+                new ColumnModel().name("id").datatype("string"),
+                new ColumnModel().name("participant_id").datatype("string"),
+                new ColumnModel().name("date_collected").datatype("date")));
+    }
 
-    public static final RelationshipTermModel participantTerm = new RelationshipTermModel()
-        .table("participant")
-        .column("id")
-        .cardinality(RelationshipTermModel.CardinalityEnum.ONE);
+    public static RelationshipTermModel buildParticipantTerm() {
+        return new RelationshipTermModel()
+            .table("participant")
+            .column("id")
+            .cardinality(RelationshipTermModel.CardinalityEnum.ONE);
+    }
 
-    public static final RelationshipTermModel sampleTerm = new RelationshipTermModel()
-        .table("sample")
-        .column("participant_id")
-        .cardinality(RelationshipTermModel.CardinalityEnum.MANY);
+    public static RelationshipTermModel buildSampleTerm() {
+        return new RelationshipTermModel()
+            .table("sample")
+            .column("participant_id")
+            .cardinality(RelationshipTermModel.CardinalityEnum.MANY);
+    }
 
-    public static final RelationshipModel participantSampleRelationship = new RelationshipModel()
-        .name("participant_sample")
-        .from(participantTerm)
-        .to(sampleTerm);
+    public static RelationshipModel buildParticipantSampleRelationship() {
+        return new RelationshipModel()
+            .name("participant_sample")
+            .from(buildParticipantTerm())
+            .to(buildSampleTerm());
+    }
 
-    public static final AssetTableModel assetParticipantTable = new AssetTableModel()
-        .name("participant")
-        .columns(Collections.emptyList());
+    public static AssetTableModel buildAssetParticipantTable() {
+        return new AssetTableModel()
+            .name("participant")
+            .columns(Collections.emptyList());
+    }
 
-    public static final AssetTableModel assetSampleTable = new AssetTableModel()
-        .name("sample")
-        .columns(Arrays.asList("participant_id", "date_collected"));
+    public static AssetTableModel buildAssetSampleTable() {
+        return new AssetTableModel()
+            .name("sample")
+            .columns(Arrays.asList("participant_id", "date_collected"));
+    }
 
-    public static final AssetModel asset = new AssetModel()
-        .name("Sample")
-        .rootTable("sample")
-        .rootColumn("participant_id")
-        .tables(Arrays.asList(assetParticipantTable, assetSampleTable))
-        .follow(Collections.singletonList("participant_sample"));
+    public static AssetModel buildAsset() {
+        return new AssetModel()
+            .name("Sample")
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(buildAssetParticipantTable(), buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+    }
 
-    public static final StudySpecificationModel schema = new StudySpecificationModel()
-        .tables(Arrays.asList(participantTable, sampleTable))
-        .relationships(Collections.singletonList(participantSampleRelationship))
-        .assets(Collections.singletonList(asset));
+    public static StudySpecificationModel buildSchema()  {
+        return new StudySpecificationModel()
+            .tables(Arrays.asList(buildParticipantTable(), buildSampleTable()))
+            .relationships(Collections.singletonList(buildParticipantSampleRelationship()))
+            .assets(Collections.singletonList(buildAsset()));
+    }
 
-    public static final StudyRequestModel studyRequest = new StudyRequestModel()
-        .name("Minimal")
-        .description("This is a sample study definition")
-        .schema(schema);
+    public static StudyRequestModel buildStudyRequest() {
+        return new StudyRequestModel()
+            .name("Minimal")
+            .description("This is a sample study definition")
+            .schema(buildSchema());
+    }
 }

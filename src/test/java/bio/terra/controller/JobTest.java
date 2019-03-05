@@ -3,6 +3,7 @@ package bio.terra.controller;
 import bio.terra.category.Unit;
 import bio.terra.fixtures.FlightStates;
 import bio.terra.model.JobModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
 
-import static bio.terra.fixtures.StudyFixtures.minimalStudySummary;
+import static bio.terra.fixtures.StudyFixtures.buildMinimalStudySummary;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
@@ -71,7 +72,7 @@ public class JobTest {
                 .content(objectMapper.writeValueAsString(Arrays.asList(jobModel))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[:1].id").value(testFlightId))
-                .andExpect(jsonPath("$[:1].description").value(minimalStudySummary.getDescription()))
+                .andExpect(jsonPath("$[:1].description").value(buildMinimalStudySummary().getDescription()))
                 .andExpect(jsonPath("$[:1].job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
                 .andExpect(jsonPath("$[:1].completed").value(completedTimeFormatted));
     }
@@ -87,7 +88,7 @@ public class JobTest {
                 .content(objectMapper.writeValueAsString(jobModel)))
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(testFlightId))
-                .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
+                .andExpect(jsonPath("$.description").value(buildMinimalStudySummary().getDescription()))
                 .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
                 .andExpect(jsonPath("$.submitted").value(submittedTimeFormatted))
                 .andExpect(jsonPath("$.completed").isEmpty());
@@ -104,7 +105,7 @@ public class JobTest {
                 .content(objectMapper.writeValueAsString(jobModel)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(testFlightId))
-                .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()))
+                .andExpect(jsonPath("$.description").value(buildMinimalStudySummary().getDescription()))
                 .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
                 .andExpect(jsonPath("$.submitted").value(submittedTimeFormatted))
                 .andExpect(jsonPath("$.completed").value(completedTimeFormatted));
@@ -115,12 +116,14 @@ public class JobTest {
         FlightState flightState = FlightStates.makeFlightCompletedState();
         when(stairway.getFlightState(any())).thenReturn(flightState);
 
+        StudySummaryModel req = buildMinimalStudySummary();
+
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s/result", testFlightId))
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(minimalStudySummary)))
+                .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isIAmATeapot())
-                .andExpect(jsonPath("$.id").value(minimalStudySummary.getId()))
-                .andExpect(jsonPath("$.name").value(minimalStudySummary.getName()))
-                .andExpect(jsonPath("$.description").value(minimalStudySummary.getDescription()));
+                .andExpect(jsonPath("$.id").value(req.getId()))
+                .andExpect(jsonPath("$.name").value(req.getName()))
+                .andExpect(jsonPath("$.description").value(req.getDescription()));
     }
 }

@@ -23,12 +23,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Arrays;
 import java.util.Collections;
 
-import static bio.terra.fixtures.StudyFixtures.asset;
-import static bio.terra.fixtures.StudyFixtures.assetParticipantTable;
-import static bio.terra.fixtures.StudyFixtures.assetSampleTable;
-import static bio.terra.fixtures.StudyFixtures.participantSampleRelationship;
-import static bio.terra.fixtures.StudyFixtures.sampleTerm;
-import static bio.terra.fixtures.StudyFixtures.studyRequest;
+import static bio.terra.fixtures.StudyFixtures.buildAsset;
+import static bio.terra.fixtures.StudyFixtures.buildAssetParticipantTable;
+import static bio.terra.fixtures.StudyFixtures.buildAssetSampleTable;
+import static bio.terra.fixtures.StudyFixtures.buildParticipantSampleRelationship;
+import static bio.terra.fixtures.StudyFixtures.buildSampleTerm;
+import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -56,7 +56,7 @@ public class StudyValidationsTest {
     private void expectBadStudyEnumerateRequest(Integer offset, Integer limit) throws Exception {
         mvc.perform(get("/api/repository/v1/studies/{offset}/{limit}", offset, limit)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(studyRequest)))
+            .content(objectMapper.writeValueAsString(buildStudyRequest())))
             .andExpect(status().is4xxClientError());
     }
 
@@ -75,8 +75,9 @@ public class StudyValidationsTest {
             .name("duplicate")
             .columns(Collections.singletonList(column));
 
-        studyRequest.getSchema().tables(Arrays.asList(table, table));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().tables(Arrays.asList(table, table));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
@@ -86,30 +87,34 @@ public class StudyValidationsTest {
             .name("table")
             .columns(Arrays.asList(column, column));
 
-        studyRequest.getSchema().tables(Collections.singletonList(table));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().tables(Collections.singletonList(table));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
     public void testMissingAssets() throws Exception {
-        studyRequest.getSchema().assets(null);
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().assets(null);
+        expectBadStudyCreateRequest(req);
 
-        studyRequest.getSchema().assets(Collections.emptyList());
-        expectBadStudyCreateRequest(studyRequest);
+        req.getSchema().assets(Collections.emptyList());
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
     public void testDuplicateAssetNames() throws Exception {
-        studyRequest.getSchema().assets(Arrays.asList(asset, asset));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
     public void testDuplicateRelationshipNames() throws Exception {
-        studyRequest.getSchema()
-            .relationships(Arrays.asList(participantSampleRelationship, participantSampleRelationship));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        RelationshipModel relationship = buildParticipantSampleRelationship();
+        req.getSchema().relationships(Arrays.asList(relationship, relationship));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
@@ -124,8 +129,9 @@ public class StudyValidationsTest {
             .tables(Collections.singletonList(invalidAssetTable))
             .follow(Collections.singletonList("participant_sample"));
 
-        studyRequest.getSchema().assets(Collections.singletonList(asset));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().assets(Collections.singletonList(asset));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
@@ -142,19 +148,21 @@ public class StudyValidationsTest {
             .tables(Collections.singletonList(invalidAssetTable))
             .follow(Collections.singletonList("participant_sample"));
 
-        studyRequest.getSchema().assets(Collections.singletonList(asset));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().assets(Collections.singletonList(asset));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
     public void testInvalidFollowsRelationship() throws Exception {
         AssetModel asset = new AssetModel()
             .name("bad_follows")
-            .tables(Arrays.asList(assetSampleTable, assetParticipantTable))
+            .tables(Arrays.asList(buildAssetSampleTable(), buildAssetParticipantTable()))
             .follow(Collections.singletonList("missing"));
 
-        studyRequest.getSchema().assets(Collections.singletonList(asset));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().assets(Collections.singletonList(asset));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
@@ -168,10 +176,11 @@ public class StudyValidationsTest {
         RelationshipModel mismatchedRelationship = new RelationshipModel()
             .name("participant_sample")
             .from(mismatchedTerm)
-            .to(sampleTerm);
+            .to(buildSampleTerm());
 
-        studyRequest.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
+        expectBadStudyCreateRequest(req);
     }
 
 
@@ -180,33 +189,27 @@ public class StudyValidationsTest {
         AssetModel noRoot = new AssetModel()
             .name("bad")
             // In the fixtures, the participant asset table has isRoot set to false.
-            .tables(Collections.singletonList(assetParticipantTable))
+            .tables(Collections.singletonList(buildAssetParticipantTable()))
             .follow(Collections.singletonList("participant_sample"));
-        studyRequest.getSchema().assets(Collections.singletonList(noRoot));
-        expectBadStudyCreateRequest(studyRequest);
+        StudyRequestModel req = buildStudyRequest();
+        req.getSchema().assets(Collections.singletonList(noRoot));
+        expectBadStudyCreateRequest(req);
     }
 
     @Test
     public void testStudyNameInvalid() throws Exception {
-        studyRequest.name("no spaces");
-        expectBadStudyCreateRequest(studyRequest);
-
-        studyRequest.name("no-dashes");
-        expectBadStudyCreateRequest(studyRequest);
-
-        studyRequest.name("");
-        expectBadStudyCreateRequest(studyRequest);
+        expectBadStudyCreateRequest(buildStudyRequest().name("no spaces"));
+        expectBadStudyCreateRequest(buildStudyRequest().name("no-dashes"));
+        expectBadStudyCreateRequest(buildStudyRequest().name(""));
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        studyRequest.name(tooLong);
-        expectBadStudyCreateRequest(studyRequest);
+        expectBadStudyCreateRequest(buildStudyRequest().name(tooLong));
     }
 
     @Test
     public void testStudyNameMissing() throws Exception {
-        studyRequest.name(null);
-        expectBadStudyCreateRequest(studyRequest);
+        expectBadStudyCreateRequest(buildStudyRequest().name(null));
     }
 
     @Test
@@ -216,7 +219,7 @@ public class StudyValidationsTest {
 
         mvc.perform(get("/api/repository/v1/studies/")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(studyRequest)))
+            .content(objectMapper.writeValueAsString(buildStudyRequest())))
             .andExpect(status().isOk());
     }
 

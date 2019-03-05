@@ -238,7 +238,7 @@ public class DatasetDao {
                         .id(UUID.fromString(rs.getString("id")))
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))
-                        .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+                        .createdDate(rs.getTimestamp("created_date"));
                     return summary;
                 });
             return summaries;

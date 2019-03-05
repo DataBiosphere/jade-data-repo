@@ -10,23 +10,27 @@ import java.util.UUID;
 public class DaoKeyHolder extends GeneratedKeyHolder {
 
     public UUID getId() {
-        Map<String, Object> keys = getKeys();
-        if (keys != null) {
-            Object id = keys.get("id");
-            if (id != null) {
-                return (UUID)id;
-            }
+        return getField("id", UUID.class);
+    }
+
+    public Timestamp getTimestamp(String fieldName) {
+        return getField("created_date", Timestamp.class);
+    }
+
+    public Instant getCreatedDate() {
+        Timestamp timestamp = getTimestamp("created_date");
+        if (timestamp != null) {
+            return timestamp.toInstant();
         }
         return null;
     }
 
-    public Instant getCreatedDate() {
+    private <T> T getField(String fieldName, Class<T> type) {
         Map<String, Object> keys = getKeys();
         if (keys != null) {
-            Object createdDate = keys.get("created_date");
-            if (createdDate != null) {
-                Timestamp timestamp = (Timestamp)createdDate;
-                return timestamp.toInstant();
+            Object fieldObject = keys.get(fieldName);
+            if (type.isInstance(fieldObject)) {
+                return type.cast(fieldObject);
             }
         }
         return null;

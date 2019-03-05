@@ -3,6 +3,8 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -28,6 +30,8 @@ public class Flight implements Callable<FlightState> {
             this.retryRule = retryRule;
         }
     }
+
+    private static Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
 
     private List<StepRetry> steps;
     private Database database;
@@ -71,6 +75,7 @@ public class Flight implements Callable<FlightState> {
      * so we may be headed either direction.
      */
     public FlightState call() {
+        logger.debug("Executing flight class: " + context().getFlightClassName() + " id: " + context().getFlightId());
         FlightStatus flightStatus = fly();
         context().setFlightStatus(flightStatus);
         database.complete(context());
@@ -117,6 +122,9 @@ public class Flight implements Callable<FlightState> {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
+        } catch (Exception ex) {
+            logger.error("Unhandled step exception", ex);
+            context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
         }
 
         return FlightStatus.FATAL;
@@ -152,6 +160,8 @@ public class Flight implements Callable<FlightState> {
     }
 
     private StepResult stepWithRetry() throws InterruptedException {
+        logger.debug("Executing flight id: " + context().getFlightId() + " step: " + context().getStepIndex());
+
         StepRetry currentStep = getCurrentStep();
         currentStep.retryRule.initialize();
 

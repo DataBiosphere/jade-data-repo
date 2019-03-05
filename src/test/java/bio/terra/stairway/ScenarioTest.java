@@ -4,8 +4,6 @@ package bio.terra.stairway;
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightNotFoundException;
-import org.apache.commons.dbcp2.PoolableConnection;
-import org.apache.commons.dbcp2.PoolingDataSource;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -20,8 +18,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.File;
 import java.io.PrintWriter;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
@@ -30,7 +26,6 @@ import static org.hamcrest.CoreMatchers.is;
 @SpringBootTest
 @Category(StairwayUnit.class)
 public class ScenarioTest {
-    private PoolingDataSource<PoolableConnection> dataSource;
     private Stairway stairway;
     private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
 
@@ -39,9 +34,7 @@ public class ScenarioTest {
 
     @Before
     public void setup() {
-        dataSource = TestUtil.setupDataSource(jdbcConfiguration);
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
-        stairway = new Stairway(executorService, dataSource, true, null);
+        stairway = TestUtil.setupStairway(jdbcConfiguration);
     }
 
     @Test

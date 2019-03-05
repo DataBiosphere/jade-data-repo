@@ -154,10 +154,12 @@ public class DatasetDaoTest {
 
     @Test
     public void datasetEnumerateTest() throws Exception {
+        // Delete all datasets from previous tests before we run this one so the results are predictable
+        deleteAllDatasets();
+
         List<UUID> datasetIds = new ArrayList<>();
         String datasetName = datasetRequest.getName() + UUID.randomUUID().toString();
 
-        // Make 6 datasets
         for (int i = 0; i < 6; i++) {
             datasetRequest.name(makeName(datasetName, i));
             Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
@@ -194,6 +196,13 @@ public class DatasetDaoTest {
                     makeName(datasetName, index),
                     equalTo(summary.getName()));
             index++;
+        }
+    }
+
+    private void deleteAllDatasets() {
+        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 1000);
+        for (DatasetSummary summary : summaryList) {
+            datasetDao.delete(summary.getId());
         }
     }
 

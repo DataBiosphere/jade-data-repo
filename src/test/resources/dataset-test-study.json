@@ -1,5 +1,5 @@
 {
-  "name":        "dataset-test-study",
+  "name":        "dataset_test_study",
   "description": "Study to test building datasets with",
   "schema":      {
     "tables":        [

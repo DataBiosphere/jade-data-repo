@@ -92,11 +92,11 @@ public class JobService {
 
         if (flightState.getCompleted().isPresent()) {
             status = HttpStatus.OK;
-            locationHeader = String.format("/api/jobs/%s/result", jobId);
+            locationHeader = String.format("/api/repository/v1/jobs/%s/result", jobId);
 
         } else {
             status = HttpStatus.ACCEPTED;
-            locationHeader  = String.format("/api/jobs/%s", jobId);
+            locationHeader  = String.format("/api/repository/v1/jobs/%s", jobId);
         }
         ResponseEntity responseEntity = ResponseEntity
                 .status(status)

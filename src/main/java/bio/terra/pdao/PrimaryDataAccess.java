@@ -1,5 +1,6 @@
 package bio.terra.pdao;
 
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Study;
 
 /**
@@ -49,5 +50,27 @@ public interface PrimaryDataAccess {
      * @return true if the study was deleted; false if it was not found; throw on other errors
      */
     boolean deleteStudy(Study study);
+
+    /**
+     * Check to see if a dataset exists
+     */
+    boolean datasetExists(String datasetName);
+
+    /**
+     * Create the container, tables and views for a dataset.
+     * BigQuery: container is a BigQuery dataset
+     *
+     * @param dataset
+     */
+    void createDataset(Dataset dataset);
+
+    /**
+     * Delete the dataset. All tables within the container and the container are deleted
+     *
+     * @param dataset
+     * @return true if the dataset was deleted; false if it was not found; throw on other errors
+     */
+    boolean deleteDataset(Dataset dataset);
+
 
 }

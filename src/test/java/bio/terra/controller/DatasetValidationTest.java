@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class DatasetTest {
+public class DatasetValidationTest {
 
     @Autowired
     private MockMvc mvc;

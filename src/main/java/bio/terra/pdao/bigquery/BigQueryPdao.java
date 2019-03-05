@@ -81,6 +81,21 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    @Override
+    public boolean datasetExists(String datasetName) {
+        return false;
+    }
+
+    @Override
+    public void createDataset(bio.terra.metadata.Dataset dataset) {
+
+    }
+
+    @Override
+    public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
+        return false;
+    }
+
     private void createContainer(String name) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name).build();
         bigQuery.create(datasetInfo);

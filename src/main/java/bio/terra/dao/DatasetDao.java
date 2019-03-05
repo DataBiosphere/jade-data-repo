@@ -7,6 +7,8 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Study;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -15,8 +17,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -24,6 +25,7 @@ import java.util.UUID;
 
 @Repository
 public class DatasetDao {
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.dao.DatasetDao");
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final DatasetTableDao datasetTableDao;
@@ -43,6 +45,7 @@ public class DatasetDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Dataset dataset) {
+        logger.debug("create dataset " + dataset.getName());
         String sql = "INSERT INTO dataset (name, description)" +
                 " VALUES (:name, :description)";
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -51,7 +54,7 @@ public class DatasetDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID datasetId = keyHolder.getId();
-        Instant createdDate = keyHolder.getCreatedDate();
+        Timestamp createdDate = keyHolder.getTimestamp("created_date");
         dataset.id(datasetId)
                 .createdDate(createdDate);
         datasetTableDao.createTables(datasetId, dataset.getTables());
@@ -77,21 +80,23 @@ public class DatasetDao {
         datasetMapTableDao.createTables(id, datasetSource.getDatasetMapTables());
     }
 
-    @Transactional
     public boolean delete(UUID id) {
+        logger.debug("delete dataset by id: " + id);
         int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE id = :id",
                 new MapSqlParameterSource().addValue("id", id));
         return rowsAffected > 0;
     }
 
-    @Transactional
     public boolean deleteByName(String datasetName) {
+        logger.debug("delete dataset by name: " + datasetName);
         int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE name = :name",
                 new MapSqlParameterSource().addValue("name", datasetName));
         return rowsAffected > 0;
     }
 
     public Dataset retrieveDataset(UUID datasetId) {
+        logger.debug("retrieve dataset id: " + datasetId);
+
         String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", datasetId);
         Dataset dataset = retrieveWorker(sql, params);
@@ -118,7 +123,7 @@ public class DatasetDao {
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
-                            .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
+                            .createdDate(rs.getTimestamp("created_date")));
             // needed for fix bugs. but really can't be null
             if (dataset != null) {
                 // retrieve the dataset tables
@@ -181,6 +186,7 @@ public class DatasetDao {
     }
 
     public List<DatasetSummary> retrieveDatasets(int offset, int limit) {
+        logger.debug("retrieve datasets offset: " + offset + " limit: " + limit);
         String sql = "SELECT id, name, description, created_date FROM dataset" +
                 " ORDER BY created_date OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("offset", offset)
@@ -193,13 +199,14 @@ public class DatasetDao {
                         .id(UUID.fromString(rs.getString("id")))
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))
-                        .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+                        .createdDate(rs.getTimestamp("created_date"));
                 return summary;
             });
         return summaries;
     }
 
     public DatasetSummary retrieveDatasetSummary(UUID id) {
+        logger.debug("retrieve dataset summary for id: " + id);
         try {
             String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
@@ -209,7 +216,7 @@ public class DatasetDao {
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
-                            .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class))));
+                            .createdDate(rs.getTimestamp("created_date")));
             return datasetSummary;
         } catch (EmptyResultDataAccessException ex) {
             throw new NotFoundException("Dataset not found - id: " + id);

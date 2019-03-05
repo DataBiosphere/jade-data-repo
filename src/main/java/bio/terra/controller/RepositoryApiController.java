@@ -1,20 +1,24 @@
 package bio.terra.controller;
 
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.JobMapKeys;
-import bio.terra.service.JobService;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.exceptions.NotFoundException;
 import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.metadata.Study;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -32,6 +36,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.InitBinder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
@@ -49,6 +54,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final StudyRequestValidator studyRequestValidator;
     private final StudyDao studyDao;
     private final DatasetRequestValidator datasetRequestValidator;
+    private final DatasetService datasetService;
 
     @Autowired
     public RepositoryApiController(
@@ -58,7 +64,8 @@ public class RepositoryApiController implements RepositoryApi {
             JobService jobService,
             StudyRequestValidator studyRequestValidator,
             StudyDao studyDao,
-            DatasetRequestValidator datasetRequestValidator
+            DatasetRequestValidator datasetRequestValidator,
+            DatasetService datasetService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -67,6 +74,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.studyRequestValidator = studyRequestValidator;
         this.studyDao = studyDao;
         this.datasetRequestValidator = datasetRequestValidator;
+        this.datasetService = datasetService;
     }
 
     @InitBinder
@@ -100,13 +108,9 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
-    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
-        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
-        StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
-        return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+    @ExceptionHandler(NotFoundException.class)
+    public ResponseEntity<ErrorModel> handleNotFoundException(NotFoundException ex) {
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(StudyNotFoundException.class)
@@ -119,26 +123,63 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
+    // -- study --
+    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+        FlightMap flightMap = new FlightMap();
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
+        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
+        StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
+        return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+    }
+
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
         Study study = studyDao.retrieve(UUID.fromString(id));
         StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
         return new ResponseEntity<>(studyModel, HttpStatus.OK);
     }
 
-    public ResponseEntity<Void> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
-        return new ResponseEntity<>(HttpStatus.CREATED);
-    }
-
-    public ResponseEntity<List<JobModel>> enumerateJobs(Integer offset, Integer limit) {
-        return jobService.enumerateJobs(offset, limit);
-    }
-
-    public ResponseEntity<JobModel> retrieveJob(String jobId) {
+    // -- dataset --
+    @Override
+    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
+        String jobId = datasetService.createDataset(dataset);
         return jobService.retrieveJob(jobId);
     }
 
-    public ResponseEntity<Object> retrieveJobResult(String jobId) {
-        return jobService.retrieveJobResult(jobId);
+    @Override
+    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
+        String jobId = datasetService.deleteDataset(id);
+        return jobService.retrieveJob(jobId);
+    }
+
+    @Override
+    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(@Valid Integer offset, @Valid Integer limit) {
+        List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
+        return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
+        DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(id));
+        return new ResponseEntity<>(datasetModel, HttpStatus.OK);
+    }
+
+    // -- jobs --
+    @Override
+    public ResponseEntity<List<JobModel>> enumerateJobs(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        return jobService.enumerateJobs(offset, limit);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
+        return jobService.retrieveJob(id);
+    }
+
+    @Override
+    public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
+        return jobService.retrieveJobResult(id);
     }
 
     private <T> T getResponse(String flightId, Class<T> resultClass) {

@@ -285,7 +285,8 @@ public class DatasetOperationTest {
         return datasetRequest;
     }
 
-    private MockHttpServletResponse performCreateDataset(DatasetRequestModel datasetRequest, String infix) throws Exception {
+    private MockHttpServletResponse performCreateDataset(DatasetRequestModel datasetRequest, String infix)
+            throws Exception {
         datasetOriginalName = datasetRequest.getName();
         String datasetName = randomizedName(datasetOriginalName, infix);
         datasetRequest.setName(datasetName);

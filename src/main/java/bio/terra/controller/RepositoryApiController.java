@@ -105,12 +105,12 @@ public class RepositoryApiController implements RepositoryApi {
 
     @ExceptionHandler(FlightNotFoundException.class)
     public ResponseEntity<ErrorModel> handleFlightNotFoundException(FlightNotFoundException ex) {
-        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorModel> handleNotFoundException(NotFoundException ex) {
-        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(StudyNotFoundException.class)
@@ -120,7 +120,7 @@ public class RepositoryApiController implements RepositoryApi {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorModel> handleStudyNotFoundException(IllegalArgumentException ex) {
-        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     // -- study --

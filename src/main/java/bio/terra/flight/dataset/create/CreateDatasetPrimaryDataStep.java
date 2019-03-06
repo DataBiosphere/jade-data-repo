@@ -7,13 +7,16 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import org.springframework.http.HttpStatus;
 
 public class CreateDatasetPrimaryDataStep implements Step {
 
@@ -52,13 +55,11 @@ public class CreateDatasetPrimaryDataStep implements Step {
         DatasetSource source = dataset.getDatasetSources().get(0);
         RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(dataset, source, contentsModel.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
-            StringBuilder builder = new StringBuilder("Mismatched input values: ");
-            String prefix = "'";
-            for (String unmatchedValue : rowIdMatch.getUnmatchedInputValues()) {
-                builder.append(prefix).append(unmatchedValue).append("'");
-                prefix = ",'";
-            }
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new ValidationException(builder.toString()));
+            String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
+            String message = String.format("Mismatched input values: '%s'", unmatchedValues);
+            ErrorModel errorModel = new ErrorModel().message(message);
+            setResponse(context, errorModel, HttpStatus.BAD_REQUEST);
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new ValidationException(message));
         }
 
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
@@ -70,5 +71,14 @@ public class CreateDatasetPrimaryDataStep implements Step {
         bigQueryPdao.deleteDataset(getDataset(context));
         return StepResult.getStepResultSuccess();
     }
+
+    // TODO: this is a copy of what is in the metadata step. Should make a common utility module for
+    // things like this.
+    private void setResponse(FlightContext context, Object responseObject, HttpStatus responseStatus) {
+        FlightMap workingMap = context.getWorkingMap();
+        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), responseObject);
+        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), responseStatus);
+    }
+
 }
 

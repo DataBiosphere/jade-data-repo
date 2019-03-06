@@ -9,16 +9,20 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.Job;
+import com.google.cloud.bigquery.JobId;
+import com.google.cloud.bigquery.JobStatus;
+import com.google.cloud.bigquery.TableDataWriteChannel;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.WriteChannelConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Assert;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -34,21 +38,23 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.channels.Channels;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
-import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static junit.framework.TestCase.fail;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -72,9 +78,9 @@ public class DatasetOperationTest {
     @Autowired private BigQuery bigQuery;
     @Autowired private String projectId;
 
-    private DatasetRequestModel datasetRequest;
-    private StudyRequestModel studyRequest;
-    private StudySummaryModel studySummary;
+    private ClassLoader classLoader;
+    private List<String> createdDatasetIds;
+    private String datasetOriginalName;
 
     // Has to match data in the dataset-test-dataset.json file
     // and not match data in the dataset-test-baddata.json file
@@ -82,25 +88,29 @@ public class DatasetOperationTest {
 
     @Before
     public void setup() throws Exception {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String studyJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-study.json"));
-        studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
-        studyRequest.setName(randomizedName(studyRequest.getName(), ""));
-        createTestStudy();
-
-        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
-        datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
-        datasetRequest.getContents().get(0).getSource().setStudyName(studyRequest.getName());
+        classLoader = getClass().getClassLoader();
+        createdDatasetIds = new ArrayList<>();
     }
 
+    @After
+    public void tearDown() throws Exception {
+        // TODO: add study deletes when that is available
 
-    // TODO: add @After for study delete when that is hooked up
+        for (String datasetId : createdDatasetIds) {
+            deleteTestDataset(datasetId);
+        }
+    }
 
     @Test
     public void testHappyPath() throws Exception {
-        DatasetSummaryModel summaryModel = createTestDataset(datasetRequest, "happy");
+        StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
+        loadStudyData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
 
-        DatasetModel datasetModel = getTestDataset(summaryModel.getId());
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "dataset-test-dataset.json");
+        MockHttpServletResponse response = performCreateDataset(datasetRequest, "_happy_");
+        DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
+
+        DatasetModel datasetModel = getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
 
         deleteTestDataset(datasetModel.getId());
         // Duplicate delete should work
@@ -110,13 +120,38 @@ public class DatasetOperationTest {
     }
 
     @Test
+    public void testMinimal() throws Exception {
+        StudySummaryModel studySummary = setupMinimalStudy();
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "study-minimal-dataset.json");
+        MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
+        DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
+        getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
+    }
+
+    @Test
+    public void testMinimalBadAsset() throws Exception {
+        StudySummaryModel studySummary = setupMinimalStudy();
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
+                "study-minimal-dataset-bad-asset.json");
+        MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
+        ErrorModel errorModel = handleCreateDatasetFailureCase(response);
+        assertThat(errorModel.getMessage(), containsString("Asset"));
+        assertThat(errorModel.getMessage(), containsString("NotARealAsset"));
+    }
+
+    @Test
     public void testEnumeration() throws Exception {
-        // Unit tests exercise the array bounds, so here we don't fuss with that here.
+        StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
+        loadStudyData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "dataset-test-dataset.json");
+
+        // Other unit tests exercise the array bounds, so here we don't fuss with that here.
         // Just make sure we get the same dataset summary that we made.
         List<DatasetSummaryModel> datasetList = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            DatasetSummaryModel dataset = createTestDataset(datasetRequest, "_enum_");
-            datasetList.add(dataset);
+            MockHttpServletResponse response = performCreateDataset(datasetRequest, "_enum_");
+            DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
+            datasetList.add(summaryModel);
         }
 
         DatasetSummaryModel[] enumeratedArray = enumerateTestDatasets();
@@ -141,30 +176,14 @@ public class DatasetOperationTest {
 
     @Test
     public void testBadData() throws Exception {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset-baddata.json"));
-        DatasetRequestModel badDataRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
-        badDataRequest.getContents().get(0).getSource().setStudyName(studyRequest.getName());
+        StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
+        loadStudyData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        DatasetRequestModel badDataRequest = makeDatasetTestRequest(studySummary,
+                "dataset-test-dataset-baddata.json");
 
-        String baseName = badDataRequest.getName();
-        String datasetName = randomizedName(baseName, "baddata");
-        badDataRequest.setName(datasetName);
-        String jsonRequest = objectMapper.writeValueAsString(badDataRequest);
-
-        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
-// TODO: swagger field validation errors do not set content type; they log and return nothing
-//                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-
-        MockHttpServletResponse response = validateJobModelAndWait(result);
-
-// TODO: the status code is always 201 right now and the response is the dataset summary model, because
-// jobs doesn't notice that the flight failed...
-        assertThat(response.getStatus(), equalTo(201));
-//        ErrorModel errorModel = objectMapper.readValue(response.getContentAsString(), ErrorModel.class);
-//        assertThat(errorModel.getMessage(), containsString("Fred"));
+        MockHttpServletResponse response = performCreateDataset(badDataRequest, "_baddata_");
+        ErrorModel errorModel = handleCreateDatasetFailureCase(response);
+        assertThat(errorModel.getMessage(), containsString("Fred"));
     }
 
     // !!! This test is intended to be run manually when the BigQuery project gets orphans in it.
@@ -184,9 +203,76 @@ public class DatasetOperationTest {
         }
     }
 
-    private DatasetSummaryModel createTestDataset(DatasetRequestModel datasetRequest, String infix) throws Exception {
-        String baseName = datasetRequest.getName();
-        String datasetName = randomizedName(baseName, infix);
+    private StudySummaryModel setupMinimalStudy() throws Exception {
+        StudySummaryModel studySummary = createTestStudy("study-minimal.json");
+        loadStudyData(studySummary.getName(), "participant", "study-minimal-participant.csv");
+        loadStudyData(studySummary.getName(), "sample", "study-minimal-sample.csv");
+        return  studySummary;
+    }
+
+    // create a study to create datasets in and return its id
+    private StudySummaryModel createTestStudy(String resourcePath) throws Exception {
+        String studyJson = IOUtils.toString(classLoader.getResourceAsStream(resourcePath));
+        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
+        studyRequest.setName(randomizedName(studyRequest.getName(), ""));
+
+        MvcResult result = mvc.perform(post("/api/repository/v1/studies")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(studyRequest)))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        StudySummaryModel studySummaryModel =
+                objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
+
+        return studySummaryModel;
+    }
+
+    private void loadStudyData(String studyName, String tableName, String resourcePath) throws Exception {
+        String datasetName = PDAO_PREFIX + studyName;
+        String location = "US"; // ?? Hope this will work. It is what
+        TableId tableId = TableId.of(datasetName, tableName);
+
+        CsvOptions csvOptions = CsvOptions.newBuilder().setSkipLeadingRows(1).build();
+        WriteChannelConfiguration writeChannelConfiguration =
+                WriteChannelConfiguration.newBuilder(tableId).setFormatOptions(csvOptions).build();
+
+        // The location must be specified; other fields can be auto-detected.
+        JobId jobId = JobId.newBuilder().setLocation(location).build();
+        TableDataWriteChannel writer = bigQuery.writer(jobId, writeChannelConfiguration);
+
+        // Write data to writer
+        try (OutputStream stream = Channels.newOutputStream(writer);
+             InputStream csvStream = classLoader.getResourceAsStream(resourcePath)) {
+            IOUtils.copy(csvStream, stream);
+        }
+
+        // Get load job
+        Job job = writer.getJob();
+        job = job.waitFor();
+        JobStatus jobStatus = job.getStatus();
+        List<BigQueryError> jobErrors = jobStatus.getExecutionErrors();
+        if (jobErrors != null && jobErrors.size() != 0) {
+            System.out.println("Errors loading study data: ");
+            for (BigQueryError bqError : jobErrors) {
+                System.out.println(bqError.toString());
+            }
+            fail("Failed to load study data");
+        }
+    }
+
+    private DatasetRequestModel makeDatasetTestRequest(StudySummaryModel studySummaryModel,
+                                                       String resourcePath) throws Exception {
+        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream(resourcePath));
+        DatasetRequestModel datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
+        datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
+        return datasetRequest;
+    }
+
+    private MockHttpServletResponse performCreateDataset(DatasetRequestModel datasetRequest, String infix) throws Exception {
+        datasetOriginalName = datasetRequest.getName();
+        String datasetName = randomizedName(datasetOriginalName, infix);
         datasetRequest.setName(datasetName);
 
         String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
@@ -197,19 +283,46 @@ public class DatasetOperationTest {
 // TODO: swagger field validation errors do not set content type; they log and return nothing
 //                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-
         MockHttpServletResponse response = validateJobModelAndWait(result);
+        return response;
+    }
 
-        DatasetSummaryModel summaryModel = objectMapper.readValue(response.getContentAsString(),
-                DatasetSummaryModel.class);
+    private DatasetSummaryModel handleCreateDatasetSuccessCase(DatasetRequestModel datasetRequest,
+                                                               MockHttpServletResponse response) throws Exception {
+        String responseBody = response.getContentAsString();
+        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
+        if (!responseStatus.is2xxSuccessful()) {
+            String failMessage = "createTestDataset failed: status=" + responseStatus.toString();
+            if (StringUtils.contains(responseBody, "message")) {
+                // If the responseBody contains the word 'message', then we try to decode it as an ErrorModel
+                // so we can generate good failure information.
+                ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+                failMessage += " msg=" + errorModel.getMessage();
+            }
+            fail(failMessage);
+        }
+
+        DatasetSummaryModel summaryModel = objectMapper.readValue(responseBody, DatasetSummaryModel.class);
+        createdDatasetIds.add(summaryModel.getId());
 
         assertThat(summaryModel.getDescription(), equalTo(datasetRequest.getDescription()));
-        assertThat(summaryModel.getName(), equalTo(datasetName));
+        assertThat(summaryModel.getName(), equalTo(datasetRequest.getName()));
 
         // Reset the name in the dataset request
-        datasetRequest.setName(baseName);
+        datasetRequest.setName(datasetOriginalName);
 
         return summaryModel;
+    }
+
+    private ErrorModel handleCreateDatasetFailureCase(MockHttpServletResponse response) throws Exception {
+        String responseBody = response.getContentAsString();
+        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
+        assertFalse("Expect create dataset failure", responseStatus.is2xxSuccessful());
+
+        assertTrue("Error model was returned on failure",
+                StringUtils.contains(responseBody, "message"));
+
+        return objectMapper.readValue(responseBody, ErrorModel.class);
     }
 
     private void deleteTestDataset(String id) throws Exception {
@@ -229,7 +342,9 @@ public class DatasetOperationTest {
         return summaryArray;
     }
 
-    private DatasetModel getTestDataset(String id) throws Exception {
+    private DatasetModel getTestDataset(String id,
+                                        DatasetRequestModel datasetRequest,
+                                        StudySummaryModel studySummary) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + id))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
@@ -245,18 +360,9 @@ public class DatasetOperationTest {
         DatasetSourceModel sourceModel = datasetModel.getSource().get(0);
         assertThat("dataset study summary is the same as from study",
                 sourceModel.getStudy(), equalTo(studySummary));
-        assertThat("dataset asset name is the same as from study",
-                sourceModel.getAsset(), equalTo(studyRequest.getSchema().getAssets().get(0).getName()));
-
-        assertThat("table list has one table",
-                datasetModel.getTables().size(), equalTo(1));
-        TableModel tableModel = datasetModel.getTables().get(0);
-        assertThat("dataset table name is same as from study",
-                tableModel.getName(), equalTo(studyRequest.getSchema().getTables().get(0).getName()));
 
         return datasetModel;
     }
-
 
     private void getNonexistentDataset(String id) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + id))
@@ -274,7 +380,7 @@ public class DatasetOperationTest {
         while (true) {
             MockHttpServletResponse response = result.getResponse();
             HttpStatus status = HttpStatus.valueOf(response.getStatus());
-            Assert.assertTrue("received expected jobs polling status",
+            assertTrue("received expected jobs polling status",
                     (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
 
             JobModel jobModel = objectMapper.readValue(response.getContentAsString(), JobModel.class);
@@ -295,7 +401,7 @@ public class DatasetOperationTest {
                 case OK:
                     // Done case: get the result with the header URL and return the response;
                     // let the caller interpret the response
-                    assertThat("location heaeder for result", locationUrl,
+                    assertThat("location header for result", locationUrl,
                             equalTo(String.format("/api/repository/v1/jobs/%s/result", jobId)));
                     result = mvc.perform(get(locationUrl).accept(MediaType.APPLICATION_JSON)).andReturn();
                     return result.getResponse();
@@ -306,32 +412,6 @@ public class DatasetOperationTest {
         }
     }
 
-    // create a study to create datasets in and return its id
-    private void createTestStudy() throws Exception {
-        MvcResult result = mvc.perform(post("/api/repository/v1/studies")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(studyRequest)))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        MockHttpServletResponse response = result.getResponse();
-        studySummary = objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
-
-        // Use BigQuery directly to load test data into the table.
-        String studyDatasetName = PDAO_PREFIX + studySummary.getName();
-        TableId bqTableId = TableId.of(studyDatasetName, "thetable");
-
-        InsertAllRequest.Builder requestBuilder = InsertAllRequest.newBuilder(bqTableId);
-        for (String datum : data) {
-            Map<String, Object> row = new HashMap<>();
-            row.put(PDAO_ROW_ID_COLUMN, UUID.randomUUID().toString());
-            row.put("thecolumn", datum);
-            requestBuilder.addRow(row);
-        }
-        InsertAllRequest bqrequest = requestBuilder.build();
-        InsertAllResponse bqresponse = bigQuery.insertAll(bqrequest);
-        assertFalse("no insert errors", bqresponse.hasErrors());
-    }
 
     private String randomizedName(String baseName, String infix) {
         String name = baseName + infix + UUID.randomUUID().toString();

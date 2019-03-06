@@ -1,5 +1,5 @@
 {
-  "name":        "dataset_test_baddata",
+  "name":        "dataset_test",
   "description": "Test unmatched root values",
   "contents": [
     {

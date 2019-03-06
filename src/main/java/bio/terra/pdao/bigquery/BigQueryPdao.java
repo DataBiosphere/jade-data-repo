@@ -316,6 +316,21 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    /**
+     * Check that the incoming row ids actually exist in the root table.
+     *
+     * Even though these are currently generated within the create dataset flight, they may
+     * be exposed externally in the future, so validating seemed like a good idea.
+     * At this point, the only thing we have stored into the row id table are the incoming row ids.
+     * We make the equi-join of row id table and root table over row id. We should get one root table row
+     * for each row id table row. So we validate by comparing the count of the joined rows against the
+     * count of incoming row ids. This will catch duplicate and mismatched row ids.
+     *
+     * @param studyDatasetName
+     * @param datasetName
+     * @param rootTableName
+     * @param rowIds
+     */
     private void validateRowIdsForRoot(String studyDatasetName,
                                        String datasetName,
                                        String rootTableName,
@@ -342,9 +357,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    // Recursive walk of the asset relationships. Note that we only follow what is connected.
-    // If there are relationships in the asset that are not connected to the root, they will
-    // simply be ignored. See the related comment in study validator.
+    /**
+     * Recursive walk of the asset relationships. Note that we only follow what is connected.
+     * If there are relationships in the asset that are not connected to the root, they will
+     * simply be ignored. See the related comment in study validator.
+     *
+     * @param studyDatasetName
+     * @param datasetName
+     * @param asset
+     * @param fromTableId
+     */
     private void walkRelationships(String studyDatasetName,
                                    String datasetName,
                                    AssetSpecification asset,

@@ -116,9 +116,13 @@ public class StudyDao {
     }
 
     // does not return sub-objects with studies
-    public List<StudySummary> enumerate() {
-        String sql = "SELECT id, name, description, created_date FROM study";
-        return jdbcTemplate.query(sql, new MapSqlParameterSource(), new StudySummaryMapper());
+    public List<StudySummary> enumerate(int offset, int limit) {
+        String sql = "SELECT id, name, description, created_date FROM study " +
+            "ORDER BY created_date OFFSET :offset LIMIT :limit";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("offset", offset)
+            .addValue("limit", limit);
+        return jdbcTemplate.query(sql, params, new StudySummaryMapper());
     }
 
     private static class StudySummaryMapper implements RowMapper<StudySummary> {

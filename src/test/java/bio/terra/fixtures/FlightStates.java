@@ -12,6 +12,8 @@ import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Optional;
 
+import static bio.terra.fixtures.StudyFixtures.buildMinimalStudySummary;
+
 
 public final class FlightStates {
     private FlightStates() {}
@@ -23,13 +25,12 @@ public final class FlightStates {
     public static final Timestamp completedTime = Timestamp.from(Instant.now());
     public static final String completedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
             .format(completedTime);
-    public static final StudySummaryModel minimalStudySummary = StudyFixtures.makeStudySummary();
 
 
     public static FlightState makeFlightSimpleState() {
         // Construct a mock FlightState
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
+        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), buildMinimalStudySummary());
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
@@ -43,10 +44,11 @@ public final class FlightStates {
     }
 
     public static FlightState makeFlightRunningState() {
+        StudySummaryModel req = buildMinimalStudySummary();
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
+        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
         resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
-        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), minimalStudySummary.getDescription());
+        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), req.getDescription());
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
@@ -60,10 +62,11 @@ public final class FlightStates {
     }
 
     public static FlightState makeFlightCompletedState() {
+        StudySummaryModel req = buildMinimalStudySummary();
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), minimalStudySummary);
+        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
         resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
-        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), minimalStudySummary.getDescription());
+        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), req.getDescription());
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);

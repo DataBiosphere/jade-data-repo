@@ -26,7 +26,7 @@ public class CreateStudyMetadataStep implements Step {
         StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
         Study newStudy = StudyJsonConversion.studyRequestToStudy(studyRequest);
         studyDao.create(newStudy);
-        StudySummaryModel studySummary = StudyJsonConversion.studySummaryFromStudy(newStudy);
+        StudySummaryModel studySummary = StudyJsonConversion.studySummaryModelFromStudySummary(newStudy);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), studySummary);
         return StepResult.getStepResultSuccess();
     }

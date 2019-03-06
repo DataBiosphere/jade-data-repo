@@ -163,7 +163,6 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-
         List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
         return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
     }

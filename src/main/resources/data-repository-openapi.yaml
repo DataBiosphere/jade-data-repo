@@ -197,6 +197,17 @@ paths:
       operationId: enumerateStudies
       tags:
       - repository
+      parameters:
+      - in: query
+        name: offset
+        type: integer
+        default: 0
+        description: The number of studies to skip before when retrieving the next page
+      - in: query
+        name: limit
+        type: integer
+        description: The numbers studies to retrieve and return.
+        default: 10
       responses:
         200:
           description: List of studies

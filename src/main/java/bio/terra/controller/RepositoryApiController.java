@@ -1,28 +1,20 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ApiException;
-import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.exceptions.NotFoundException;
 import bio.terra.exceptions.ValidationException;
-import bio.terra.flight.study.create.StudyCreateFlight;
-import bio.terra.metadata.Study;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.DatasetService;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.JobService;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightState;
-import bio.terra.stairway.FlightStatus;
-import bio.terra.stairway.Stairway;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.validation.DatasetRequestValidator;
 import bio.terra.validation.StudyRequestValidator;
@@ -49,10 +41,9 @@ public class RepositoryApiController implements RepositoryApi {
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
-    private final Stairway stairway;
     private final JobService jobService;
     private final StudyRequestValidator studyRequestValidator;
-    private final StudyDao studyDao;
+    private final StudyService studyService;
     private final DatasetRequestValidator datasetRequestValidator;
     private final DatasetService datasetService;
 
@@ -60,19 +51,17 @@ public class RepositoryApiController implements RepositoryApi {
     public RepositoryApiController(
             ObjectMapper objectMapper,
             HttpServletRequest request,
-            Stairway stairway,
             JobService jobService,
             StudyRequestValidator studyRequestValidator,
-            StudyDao studyDao,
+            StudyService studyService,
             DatasetRequestValidator datasetRequestValidator,
             DatasetService datasetService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
-        this.stairway = stairway;
         this.jobService = jobService;
         this.studyRequestValidator = studyRequestValidator;
-        this.studyDao = studyDao;
+        this.studyService = studyService;
         this.datasetRequestValidator = datasetRequestValidator;
         this.datasetService = datasetService;
     }
@@ -125,18 +114,36 @@ public class RepositoryApiController implements RepositoryApi {
 
     // -- study --
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
-        String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
-        StudySummaryModel studySummary = getResponse(flightId, StudySummaryModel.class);
-        return new ResponseEntity<>(studySummary, HttpStatus.CREATED);
+        return new ResponseEntity<>(studyService.createStudy(studyRequest), HttpStatus.CREATED);
     }
 
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
-        Study study = studyDao.retrieve(UUID.fromString(id));
-        StudyModel studyModel = StudyJsonConversion.studyModelFromStudy(study);
-        return new ResponseEntity<>(studyModel, HttpStatus.OK);
+        return new ResponseEntity<>(studyService.retrieve(UUID.fromString(id)), HttpStatus.OK);
+    }
+
+    public ResponseEntity<Void> deleteStudy(@PathVariable("id") String id) {
+        boolean success = studyService.delete(UUID.fromString(id));
+        return success ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue="0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue="10") Integer limit) {
+        String errors = "";
+        offset = (offset == null) ? offset = 0 : offset;
+        if (offset < 0) {
+            errors = "Offset must be greater than or equal to 0.";
+        }
+
+        limit =  (limit == null) ? limit = 10 : limit;
+        if (limit < 1) {
+            errors += " Limit must be greater than or equal to 1.";
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+
+        return new ResponseEntity<>(studyService.enumerate(offset, limit), HttpStatus.OK);
     }
 
     // -- dataset --
@@ -153,7 +160,10 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(@Valid Integer offset, @Valid Integer limit) {
+    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue="0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue="10") Integer limit) {
+
         List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
         return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
     }
@@ -180,27 +190,5 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         return jobService.retrieveJobResult(id);
-    }
-
-    private <T> T getResponse(String flightId, Class<T> resultClass) {
-        stairway.waitForFlight(flightId);
-        FlightState result = stairway.getFlightState(flightId);
-        if (result.getFlightStatus() == FlightStatus.SUCCESS) {
-            if (result.getResultMap().isPresent()) {
-                FlightMap resultMap = result.getResultMap().get();
-                return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
-            }
-            // It should not happen that we have success and no result map
-            // This is probably not the right exception, but we will replace this with
-            // the async stuff and the problem will go away.
-            throw new ApiException("Successful job, but no response!");
-        }
-
-        String message = "Could not complete flight";
-        Optional<String> optErrorMessage = result.getErrorMessage();
-        if (optErrorMessage.isPresent()) {
-            message = message + ": " + optErrorMessage.get();
-        }
-        throw new ApiException(message);
     }
 }

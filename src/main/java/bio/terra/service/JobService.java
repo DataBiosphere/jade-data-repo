@@ -92,6 +92,7 @@ public class JobService {
 
         } else {
             status = HttpStatus.ACCEPTED;
+
             locationHeader = String.format("/api/repository/v1/jobs/%s", jobId);
         }
         ResponseEntity responseEntity = ResponseEntity

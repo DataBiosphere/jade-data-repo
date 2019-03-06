@@ -175,10 +175,10 @@ public class DatasetOperationTest {
         // but ours should be in order in the enumeration. So we do a merge waiting until we match
         // by id and then comparing contents.
         int compareIndex = 0;
-        for (int i = 0; i < enumeratedArray.length; i++) {
-            if (enumeratedArray[i].getId().equals(datasetList.get(compareIndex).getId())) {
+        for (DatasetSummaryModel anEnumeratedArray : enumeratedArray) {
+            if (anEnumeratedArray.getId().equals(datasetList.get(compareIndex).getId())) {
                 assertThat("Enumeration summary matches create summary",
-                        enumeratedArray[i], equalTo(datasetList.get(compareIndex)));
+                        anEnumeratedArray, equalTo(datasetList.get(compareIndex)));
                 compareIndex++;
             }
         }
@@ -299,6 +299,7 @@ public class DatasetOperationTest {
 // TODO: swagger field validation errors do not set content type; they log and return nothing
 //                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
+
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return response;
     }
@@ -314,6 +315,8 @@ public class DatasetOperationTest {
                 // so we can generate good failure information.
                 ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
                 failMessage += " msg=" + errorModel.getMessage();
+            } else {
+                failMessage += " responseBody=" + responseBody;
             }
             fail(failMessage);
         }

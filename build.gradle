@@ -82,7 +82,12 @@ repositories {
 
 configurations {
     generatedCompile
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
 }
+
 
 // Exclude the Spring logger, so everything will use SLF4J
 configurations.all {
@@ -124,6 +129,8 @@ dependencies {
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
     generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
+
+    developmentOnly("org.springframework.boot:spring-boot-devtools")
 }
 
 def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'

@@ -14,11 +14,15 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.DatasetId;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobStatus;
+import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableDataWriteChannel;
 import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.WriteChannelConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -122,10 +126,21 @@ public class DatasetOperationTest {
     @Test
     public void testMinimal() throws Exception {
         StudySummaryModel studySummary = setupMinimalStudy();
+        String studyName = PDAO_PREFIX + studySummary.getName();
+        long studyParticipants = queryForCount(studyName, "participant");
+        assertThat("study participants loaded properly", studyParticipants, equalTo(2L));
+        long studySamples = queryForCount(studyName, "sample");
+        assertThat("study samples loaded properly", studySamples, equalTo(5L));
+
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "study-minimal-dataset.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
         getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
+
+        long datasetParticipants = queryForCount(summaryModel.getName(), "participant");
+        assertThat("study participants loaded properly", datasetParticipants, equalTo(1L));
+        long datasetSamples = queryForCount(summaryModel.getName(), "sample");
+        assertThat("study samples loaded properly", datasetSamples, equalTo(2L));
     }
 
     @Test
@@ -412,6 +427,18 @@ public class DatasetOperationTest {
         }
     }
 
+    // Get the count of rows in a table or view
+    private long queryForCount(String datasetName, String tableName) throws Exception {
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT COUNT(*) FROM `")
+                .append(projectId).append('.').append(datasetName).append('.').append(tableName).append('`');
+        String sql = builder.toString();
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+        TableResult result = bigQuery.query(queryConfig);
+        FieldValueList row = result.iterateAll().iterator().next();
+        FieldValue countValue = row.get(0);
+        return countValue.getLongValue();
+    }
 
     private String randomizedName(String baseName, String infix) {
         String name = baseName + infix + UUID.randomUUID().toString();

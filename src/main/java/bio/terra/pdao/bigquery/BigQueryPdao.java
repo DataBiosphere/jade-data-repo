@@ -1,6 +1,5 @@
 package bio.terra.pdao.bigquery;
 
-import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.DatasetMapColumn;
@@ -8,7 +7,6 @@ import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudyTable;
 import bio.terra.metadata.StudyTableColumn;
 import bio.terra.metadata.Table;
@@ -203,7 +201,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // walk and populate relationship table row ids
             AssetSpecification asset = source.getAssetSpecification();
             String rootTableId = asset.getRootTable().getStudyTable().getId().toString();
-            walkRelationships(studyDatasetName, datasetName, asset, rootTableId);
+            List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
+
+            walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
 
             // create the views
             createViews(studyDatasetName, datasetName, dataset);
@@ -358,73 +358,91 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     /**
-     * Recursive walk of the asset relationships. Note that we only follow what is connected.
+     * Recursive walk of the relationships. Note that we only follow what is connected.
      * If there are relationships in the asset that are not connected to the root, they will
      * simply be ignored. See the related comment in study validator.
      *
+     * We operate on a pdoa-specific list of the asset relationships so that we can
+     * bookkeep which ones we have visited. Since we need to walk relationships in both
+     * the from->to and to->from direction, we have to avoid re-walking a traversed relationship
+     * or we infinite loop. Trust me, I know... :)
+     *
+     * TODO: REVIEWERS: should this code detect circular references?
+     *
      * @param studyDatasetName
      * @param datasetName
-     * @param asset
-     * @param fromTableId
+     * @param walkRelationships - list of relationships to consider walking
+     * @param startTableId
      */
     private void walkRelationships(String studyDatasetName,
                                    String datasetName,
-                                   AssetSpecification asset,
-                                   String fromTableId) {
-        for (AssetRelationship relationship : asset.getAssetRelationships()) {
-            // Walk all relationships with this from table
-            StudyRelationship studyRelationship = relationship.getStudyRelationship();
-            String studyFromId = studyRelationship.getFromTable().getId().toString();
-            if (StringUtils.equals(fromTableId, studyFromId)) {
-                storeRowIdsForRelatedTable(studyDatasetName, datasetName, studyRelationship);
-                walkRelationships(studyDatasetName,
-                        datasetName,
-                        asset,
-                        studyRelationship.getToTable().getId().toString());
+                                   List<WalkRelationship> walkRelationships,
+                                   String startTableId) {
+        for (WalkRelationship relationship : walkRelationships) {
+            if (relationship.isVisited()) {
+                continue;
             }
+
+            // NOTE: setting the direction tells the WalkRelationship to change its meaning of from and to.
+            // When constructed, it is always in the FROM_TO direction.
+            if (StringUtils.equals(startTableId, relationship.getFromTableId())) {
+                relationship.setDirection(WalkRelationship.WalkDirection.FROM_TO);
+            } else if (StringUtils.equals(startTableId, relationship.getToTableId())) {
+                relationship.setDirection(WalkRelationship.WalkDirection.TO_FROM);
+            } else {
+                // This relationship is not connected to the start table
+                continue;
+            }
+
+            relationship.setVisited();
+            storeRowIdsForRelatedTable(studyDatasetName, datasetName, relationship);
+            walkRelationships(studyDatasetName, datasetName, walkRelationships, relationship.getToTableId());
         }
     }
 
+    /**
+     * Given a relationship, join from the start table to the target table.
+     * This may be walking the relationship from the from table to the to table,
+     * or walking the relationship from the to table to the from table.
+     *
+     * @param studyDatasetName - name of the study BigQuery dataset
+     * @param datasetName - name of the new dataset's BigQuery dataset
+     * @param relationship - relationship we are walking with its direction set. The class returns
+     *                       the appropriate from and to based on that direction.
+     */
     private void storeRowIdsForRelatedTable(String studyDatasetName,
                                             String datasetName,
-                                            StudyRelationship relationship) {
-
+                                            WalkRelationship relationship) {
         // NOTE: this will have to be re-written when we support relationships that include
         // more than one column.
-        String toTableId =  relationship.getToTable().getId().toString();
-        String toTableName = relationship.getToTable().getName();
-        String toColumnName = relationship.getToColumn().getName();
-        String fromTableId = relationship.getFromTable().getId().toString();
-        String fromTableName = relationship.getFromTable().getName();
-        String fromColumnName = relationship.getFromColumn().getName();
-
         /*
             Building this SQL:
                 SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
                 FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
                 WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
                   AND R.PDAO_ROW_ID_COLUMN = F.PDAO_ROW_ID_COLUMN
-                  AND F.fromColumnName = T.toColumnName
+                  AND T.toColumnName = F.fromColumnName
          */
 
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT DISTINCT '")
-                .append(toTableId)
+                .append(relationship.getToTableId())
                 .append("' AS ")
                 .append(PDAO_TABLE_ID_COLUMN)
                 .append(", T.")
                 .append(PDAO_ROW_ID_COLUMN)
                 .append(" FROM `")
-                .append(projectId).append('.').append(studyDatasetName).append('.').append(toTableName)
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(relationship.getToTableName())
                 .append("` AS T, `")
-                .append(projectId).append('.').append(studyDatasetName).append('.').append(fromTableName)
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(relationship.getFromTableName())
                 .append("` AS F, `")
                 .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
                 .append("` AS R WHERE R.")
-                .append(PDAO_TABLE_ID_COLUMN).append(" = '").append(fromTableId)
+                .append(PDAO_TABLE_ID_COLUMN).append(" = '").append(relationship.getFromTableId())
                 .append("' AND R.")
                 .append(PDAO_ROW_ID_COLUMN).append(" = F.").append(PDAO_ROW_ID_COLUMN)
-                .append(" AND T.").append(toColumnName).append(" = F.").append(fromColumnName);
+                .append(" AND T.").append(relationship.getToColumnName())
+                .append(" = F.").append(relationship.getFromColumnName());
 
         String sql = builder.toString();
         try {

@@ -57,7 +57,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
             String message = String.format("Mismatched input values: '%s'", unmatchedValues);
-            FlightUtils.setResponse(context, message, HttpStatus.BAD_REQUEST);
+            FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new ValidationException(message));
         }
 

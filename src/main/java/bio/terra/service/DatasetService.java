@@ -71,7 +71,7 @@ public class DatasetService {
     public String createDataset(DatasetRequestModel datasetRequestModel) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
-        flightMap.put("request", datasetRequestModel);
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequestModel);
         return stairway.submit(DatasetCreateFlight.class, flightMap);
     }
 

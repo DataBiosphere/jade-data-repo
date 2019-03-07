@@ -2,12 +2,12 @@ package bio.terra.flight.dataset.create;
 
 import bio.terra.dao.DatasetDao;
 import bio.terra.exceptions.ValidationException;
+import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.ErrorModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
@@ -34,7 +34,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     DatasetRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get("request", DatasetRequestModel.class);
+        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
     }
 
     Dataset getDataset(FlightContext context) {
@@ -57,8 +57,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
             String message = String.format("Mismatched input values: '%s'", unmatchedValues);
-            ErrorModel errorModel = new ErrorModel().message(message);
-            setResponse(context, errorModel, HttpStatus.BAD_REQUEST);
+            FlightUtils.setResponse(context, message, HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new ValidationException(message));
         }
 
@@ -70,14 +69,6 @@ public class CreateDatasetPrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         bigQueryPdao.deleteDataset(getDataset(context));
         return StepResult.getStepResultSuccess();
-    }
-
-    // TODO: this is a copy of what is in the metadata step. Should make a common utility module for
-    // things like this.
-    private void setResponse(FlightContext context, Object responseObject, HttpStatus responseStatus) {
-        FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), responseObject);
-        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), responseStatus);
     }
 
 }

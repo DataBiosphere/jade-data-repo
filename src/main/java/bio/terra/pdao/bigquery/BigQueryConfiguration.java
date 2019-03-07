@@ -14,10 +14,6 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("bigquery")
 public class BigQueryConfiguration {
-
-    private static String rowIdColumnName = "datarepo_row_id";
-    private static String rowIdColumnDatatype = "STRING"; // TODO: datatype enums??
-
     @Bean
     public String bigQueryProjectId() {
         return BigQueryOptions.getDefaultProjectId();
@@ -27,15 +23,4 @@ public class BigQueryConfiguration {
     public BigQuery bigQuery() {
         return BigQueryOptions.getDefaultInstance().getService();
     }
-
-    @Bean
-    public String rowIdColumnName() {
-        return rowIdColumnName;
-    }
-
-    @Bean
-    public String rowIdColumnDatatype() {
-        return rowIdColumnDatatype;
-    }
-
 }

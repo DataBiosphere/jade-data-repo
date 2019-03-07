@@ -41,12 +41,16 @@ public class JobService {
         HttpStatus statusCode = HttpStatus.ACCEPTED;
 
         if (flightState.getCompleted().isPresent()) {
-            completedDate = modelDateFormat.format(flightState.getCompleted().get());
-
-            if (flightState.getResultMap().isPresent()) {
-                statusCode = flightState.getResultMap().get()
-                        .get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+            // When the flight is completed, we want to put the status code from the flight
+            // into the job model.
+            FlightMap resultMap = getResultMap(flightState);
+            statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+            if (statusCode == null) {
+                // Error: this is a flight coding bug where the status code was not filled in properly.
+                throw new IllegalStateException("No status code returned from flight");
             }
+
+            completedDate = modelDateFormat.format(flightState.getCompleted().get());
         }
 
         JobModel jobModel = new JobModel()
@@ -87,47 +91,85 @@ public class JobService {
     public ResponseEntity<JobModel> retrieveJob(String jobId) {
         FlightState flightState = stairway.getFlightState(jobId);
         JobModel jobModel = mapFlightStateToJobModel(flightState);
-        HttpStatus status;
+        HttpStatus responseStatus;
         String locationHeader;
 
         if (flightState.getCompleted().isPresent()) {
-            status = HttpStatus.OK;
+            responseStatus = HttpStatus.OK;
             locationHeader = String.format("/api/repository/v1/jobs/%s/result", jobId);
-
         } else {
-            status = HttpStatus.ACCEPTED;
-            locationHeader  = String.format("/api/repository/v1/jobs/%s", jobId);
+            responseStatus = HttpStatus.ACCEPTED;
+            locationHeader = String.format("/api/repository/v1/jobs/%s", jobId);
         }
-        ResponseEntity responseEntity = ResponseEntity
-                .status(status)
+
+        return ResponseEntity
+                .status(responseStatus)
                 .header("Location", locationHeader)
                 .body(jobModel);
-
-        return responseEntity;
     }
 
     public ResponseEntity<Object> retrieveJobResult(String jobId) {
-        ResponseEntity responseEntity;
         FlightState flightState = stairway.getFlightState(jobId);
-        if (flightState.getCompleted().isPresent()) {
-            FlightMap resultMap = flightState.getResultMap().get();
-            HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-            if (returnedStatus == null) {
-                throw new IllegalStateException("No status code returned from flight");
-            }
 
-            Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
-            if (returnedModel == null) {
-                responseEntity = new ResponseEntity<>(returnedStatus);
-            } else {
-                responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
-            }
-        } else {
-            ErrorModel errorModel = new ErrorModel()
+        // If the flight isn't done, we call that a bad request.
+        if (!flightState.getCompleted().isPresent()) {
+            ErrorModel errorRunning = new ErrorModel()
                     .message("Attempt to retrieve job result before job is complete; job id: " + jobId);
-            HttpStatus status = HttpStatus.BAD_REQUEST;
-            responseEntity = new ResponseEntity<>(errorModel, status);
+            HttpStatus statusRunning = HttpStatus.BAD_REQUEST;
+            return new ResponseEntity<>(errorRunning, statusRunning);
         }
-        return responseEntity;
+
+        FlightMap resultMap = getResultMap(flightState);
+        HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+        Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
+
+        ResponseEntity<Object> responseEntity;
+        switch (flightState.getFlightStatus()) {
+            case FATAL:
+            case ERROR:
+                // If the flight failed without supplying a status code and response, then we generate one
+                // from the flight error. This handles the case of thrown errors that the step code does
+                // not handle.
+                if (returnedStatus == null) {
+                    returnedStatus = HttpStatus.INTERNAL_SERVER_ERROR;
+                }
+                if (returnedModel == null) {
+                    String msg = flightState.getErrorMessage().orElse("Job failed with no error message!");
+                    ErrorModel errorModel = new ErrorModel().message(msg);
+                    responseEntity = new ResponseEntity<>(errorModel, returnedStatus);
+                } else {
+                    responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
+                }
+                return responseEntity;
+
+            case RUNNING:
+                // This should never happen
+                throw new IllegalStateException("Job marked running but has completion time");
+
+            case SUCCESS:
+                if (returnedStatus == null) {
+                    // Error: this is a flight coding bug where the status code was not filled in properly.
+                    throw new IllegalStateException("No status code returned from flight");
+                }
+                if (returnedModel == null) {
+                    // Flights do not have to set the return model. We return an empty response body
+                    responseEntity = new ResponseEntity<>(returnedStatus);
+                } else {
+                    responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
+                }
+                return responseEntity;
+
+            default:
+                throw new IllegalStateException("Switch default should never be taken");
+        }
     }
+
+    private FlightMap getResultMap(FlightState flightState) {
+        FlightMap resultMap = flightState.getResultMap().orElse(null);
+        if (resultMap == null) {
+            throw new IllegalStateException("No result map returned from flight");
+        }
+        return resultMap;
+    }
+
 }

@@ -1,7 +1,11 @@
 package bio.terra.pdao;
 
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
+
+import java.util.List;
 
 /**
  * In the long term, we want to make the primary data store be pluggable, supporting different implementations.
@@ -57,12 +61,27 @@ public interface PrimaryDataAccess {
     boolean datasetExists(String datasetName);
 
     /**
+     * Given inputs from one asset, compute the row ids from the input values. The
+     * returned structure provides a list suitable to pass into createDataset and
+     * information to return meaningful errors for mismatched input values.
+     *
+     * @param dataset
+     * @param source - source in the dataset we are mapping
+     * @param inputValues
+     * @return RowIdMatch
+     */
+    RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
+                                      DatasetSource source,
+                                      List<String> inputValues);
+
+    /**
      * Create the container, tables and views for a dataset.
      * BigQuery: container is a BigQuery dataset
      *
      * @param dataset
+     * @param rowIds - row ids for the root table
      */
-    void createDataset(Dataset dataset);
+    void createDataset(Dataset dataset, List<String> rowIds);
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted

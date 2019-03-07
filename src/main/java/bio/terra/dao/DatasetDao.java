@@ -108,7 +108,7 @@ public class DatasetDao {
     }
 
     public Dataset retrieveDatasetByName(String name) {
-        String sql = "SELECT id, name, description, created_date FROM dataset WHERE nane = :name";
+        String sql = "SELECT id, name, description, created_date FROM dataset WHERE name = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
         Dataset dataset = retrieveWorker(sql, params);
         if (dataset == null) {

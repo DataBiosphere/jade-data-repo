@@ -94,12 +94,12 @@ public class RepositoryApiController implements RepositoryApi {
 
     @ExceptionHandler(FlightNotFoundException.class)
     public ResponseEntity<ErrorModel> handleFlightNotFoundException(FlightNotFoundException ex) {
-        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<ErrorModel> handleNotFoundException(NotFoundException ex) {
-        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(StudyNotFoundException.class)
@@ -108,7 +108,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorModel> handleIllegalArgumentException(IllegalArgumentException ex) {
+    public ResponseEntity<ErrorModel> handleStudyNotFoundException(IllegalArgumentException ex) {
         return new ResponseEntity<>(new ErrorModel().message(ex.getMessage()), HttpStatus.BAD_REQUEST);
     }
 
@@ -126,7 +126,9 @@ public class RepositoryApiController implements RepositoryApi {
         return success ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    public ResponseEntity<List<StudySummaryModel>> enumerateStudies(Integer offset, Integer limit) {
+    public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         String errors = "";
         offset = (offset == null) ? offset = 0 : offset;
         if (offset < 0) {
@@ -158,7 +160,10 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(@Valid Integer offset, @Valid Integer limit) {
+    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+
         List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
         return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
     }
@@ -186,5 +191,4 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         return jobService.retrieveJobResult(id);
     }
-
 }

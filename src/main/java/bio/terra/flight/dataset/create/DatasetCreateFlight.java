@@ -19,6 +19,6 @@ public class DatasetCreateFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetService));
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService));
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService, datasetDao));
     }
 }

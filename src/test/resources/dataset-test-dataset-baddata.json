@@ -1,6 +1,6 @@
 {
-  "name":        "dataset_test_dataset",
-  "description": "Very simple dataset for test",
+  "name":        "dataset_test",
+  "description": "Test unmatched root values",
   "contents": [
     {
       "source":
@@ -9,8 +9,8 @@
         "assetName": "theasset"
       },
       "rootValues": [
-        "Jeremy",
-        "Andrea",
+        "Fred",
+        "Wilma",
         "Rori"
       ]
     }

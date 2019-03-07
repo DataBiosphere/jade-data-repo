@@ -84,24 +84,24 @@ public class DatasetOperationTest {
 
     private ClassLoader classLoader;
     private List<String> createdDatasetIds;
+    private List<String> createdStudyIds;
     private String datasetOriginalName;
-
-    // Has to match data in the dataset-test-dataset.json file
-    // and not match data in the dataset-test-baddata.json file
-    private final String[] data = {"Andrea", "Dan", "Rori", "Jeremy"};
 
     @Before
     public void setup() throws Exception {
         classLoader = getClass().getClassLoader();
         createdDatasetIds = new ArrayList<>();
+        createdStudyIds = new ArrayList<>();
     }
 
     @After
     public void tearDown() throws Exception {
-        // TODO: add study deletes when that is available
-
         for (String datasetId : createdDatasetIds) {
             deleteTestDataset(datasetId);
+        }
+
+        for (String studyId : createdStudyIds) {
+            deleteTestStudy(studyId);
         }
     }
 
@@ -132,7 +132,8 @@ public class DatasetOperationTest {
         long studySamples = queryForCount(studyName, "sample");
         assertThat("study samples loaded properly", studySamples, equalTo(5L));
 
-        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "study-minimal-dataset.json");
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
+                "study-minimal-dataset.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
         getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
@@ -240,6 +241,7 @@ public class DatasetOperationTest {
         MockHttpServletResponse response = result.getResponse();
         StudySummaryModel studySummaryModel =
                 objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
+        createdStudyIds.add(studySummaryModel.getId());
 
         return studySummaryModel;
     }
@@ -348,6 +350,11 @@ public class DatasetOperationTest {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.NO_CONTENT.value()));
+    }
+
+    private void deleteTestStudy(String id) throws Exception {
+        // We only use this for @After, so we don't check return values
+        mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
     }
 
     private DatasetSummaryModel[] enumerateTestDatasets() throws Exception {

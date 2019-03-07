@@ -7,6 +7,7 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -29,7 +30,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.core.StringContains.containsString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -79,7 +84,7 @@ public class StudyCreateFlightTest {
     @Test
     public void testHappyPath() {
         FlightMap map = new FlightMap();
-        map.put("request", studyRequest);
+        map.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
 
@@ -87,7 +92,7 @@ public class StudyCreateFlightTest {
         assertEquals(FlightStatus.SUCCESS, result.getFlightStatus());
         Optional<FlightMap> resultMap = result.getResultMap();
         assertTrue(resultMap.isPresent());
-        StudySummaryModel response = resultMap.get().get("response", StudySummaryModel.class);
+        StudySummaryModel response = resultMap.get().get(JobMapKeys.RESPONSE.getKeyName(), StudySummaryModel.class);
         assertEquals(studyName, response.getName());
 
         Study createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
@@ -99,7 +104,7 @@ public class StudyCreateFlightTest {
     @Test
     public void testUndoAfterPrimaryDataStep() {
         FlightMap map = new FlightMap();
-        map.put("request", studyRequest);
+        map.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
         String flightId = stairway.submit(UndoStudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
 

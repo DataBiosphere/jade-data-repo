@@ -39,5 +39,12 @@ in a directory other than a git cloned workspace, run:
 Then copy the files you want into the source tree
 
 ## Environment variables
+
+There are some secrets that need to be provided to the app and will not be checked in
+to github. If you are standing this up on your own, you will need to get an Oauth client
+id and secret. We got one in GCP from the cloud console by creating an
+[Oauth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+and then an [Oauth web client id](https://console.cloud.google.com/apis/credentials).
+
     OAUTH_CLIENT_ID
     OAUTH_CLIENT_SECRET

@@ -37,7 +37,7 @@ public class SwaggerDocumentationConfig {
     private String loginEndpoint;
     private String clientId;
     private String clientSecret;
-    private final static String UNUSED = "__unused__";
+    private static final String UNUSED = "__unused__";
 
     public String getSchemeName() {
         return schemeName;
@@ -72,11 +72,11 @@ public class SwaggerDocumentationConfig {
     }
 
     public String[] getScopes() {
-        return scopes;
+        return scopes.clone();
     }
 
     public void setScopes(String[] scopes) {
-        this.scopes = scopes;
+        this.scopes = scopes.clone();
     }
 
     ApiInfo apiInfo() {

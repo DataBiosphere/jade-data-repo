@@ -70,7 +70,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Category(Connected.class)
 public class DatasetOperationTest {
-    private final boolean deleteOnTeardown = false;
+    private final boolean deleteOnTeardown = true;
 
 
     // TODO: MORE TESTS to be done when we can ingest data:

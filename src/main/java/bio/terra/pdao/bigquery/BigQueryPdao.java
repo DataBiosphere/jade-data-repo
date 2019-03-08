@@ -79,7 +79,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 deleteStudy(study);
             }
 
-            createContainer(studyName);
+            createContainer(studyName, study.getDescription());
             for (StudyTable table : study.getTables()) {
                 createTable(studyName, table);
             }
@@ -186,7 +186,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 deleteContainer(datasetName);
             }
 
-            createContainer(datasetName);
+            createContainer(datasetName, dataset.getDescription());
 
             // create the row id table
             createRowIdTable(datasetName);
@@ -232,8 +232,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private void createContainer(String name) {
-        DatasetInfo datasetInfo = DatasetInfo.newBuilder(name).build();
+    private void createContainer(String name, String description) {
+        DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
+            .setDescription(description)
+            .build();
         bigQuery.create(datasetInfo);
     }
 

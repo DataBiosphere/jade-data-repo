@@ -1,5 +1,7 @@
 package bio.terra.service;
 
+import bio.terra.flight.FlightResponse;
+import bio.terra.flight.FlightUtils;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
@@ -110,58 +112,16 @@ public class JobService {
 
     public ResponseEntity<Object> retrieveJobResult(String jobId) {
         FlightState flightState = stairway.getFlightState(jobId);
+        FlightResponse flightResponse = FlightUtils.makeFlightResponse(flightState);
 
         // If the flight isn't done, we call that a bad request.
-        if (!flightState.getCompleted().isPresent()) {
+        if (!flightResponse.isFlightComplete()) {
             ErrorModel errorRunning = new ErrorModel()
                     .message("Attempt to retrieve job result before job is complete; job id: " + jobId);
-            HttpStatus statusRunning = HttpStatus.BAD_REQUEST;
-            return new ResponseEntity<>(errorRunning, statusRunning);
+            flightResponse.response(errorRunning).statusCode(HttpStatus.BAD_REQUEST);
         }
 
-        FlightMap resultMap = getResultMap(flightState);
-        HttpStatus returnedStatus = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-        Object returnedModel = resultMap.get(JobMapKeys.RESPONSE.getKeyName(), Object.class);
-
-        ResponseEntity<Object> responseEntity;
-        switch (flightState.getFlightStatus()) {
-            case FATAL:
-            case ERROR:
-                // If the flight failed without supplying a status code and response, then we generate one
-                // from the flight error. This handles the case of thrown errors that the step code does
-                // not handle.
-                if (returnedStatus == null) {
-                    returnedStatus = HttpStatus.INTERNAL_SERVER_ERROR;
-                }
-                if (returnedModel == null) {
-                    String msg = flightState.getErrorMessage().orElse("Job failed with no error message!");
-                    ErrorModel errorModel = new ErrorModel().message(msg);
-                    responseEntity = new ResponseEntity<>(errorModel, returnedStatus);
-                } else {
-                    responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
-                }
-                return responseEntity;
-
-            case RUNNING:
-                // This should never happen
-                throw new IllegalStateException("Job marked running but has completion time");
-
-            case SUCCESS:
-                if (returnedStatus == null) {
-                    // Error: this is a flight coding bug where the status code was not filled in properly.
-                    throw new IllegalStateException("No status code returned from flight");
-                }
-                if (returnedModel == null) {
-                    // Flights do not have to set the return model. We return an empty response body
-                    responseEntity = new ResponseEntity<>(returnedStatus);
-                } else {
-                    responseEntity = new ResponseEntity<>(returnedModel, returnedStatus);
-                }
-                return responseEntity;
-
-            default:
-                throw new IllegalStateException("Switch default should never be taken");
-        }
+        return new ResponseEntity<>(flightResponse.getResponse(), flightResponse.getStatusCode());
     }
 
     private FlightMap getResultMap(FlightState flightState) {

@@ -1,9 +1,9 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.service.JobMapKeys;
+import bio.terra.flight.FlightUtils;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -23,9 +23,11 @@ public class DeleteDatasetMetadataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        datasetDao.delete(datasetId);
-        FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
+        boolean found = datasetDao.delete(datasetId);
+        DeleteResponseModel.ObjectStateEnum stateEnum =
+            (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+        DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
+        FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
         return StepResult.getStepResultSuccess();
     }
 

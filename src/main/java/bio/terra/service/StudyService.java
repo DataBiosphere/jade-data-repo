@@ -3,22 +3,24 @@ package bio.terra.service;
 import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.exceptions.ValidationException;
+import bio.terra.flight.FlightResponse;
+import bio.terra.flight.FlightUtils;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
-import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -54,36 +56,26 @@ public class StudyService {
             .collect(Collectors.toList());
     }
 
-    public boolean delete(UUID id) {
+    public DeleteResponseModel delete(UUID id) {
         List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
         if (referencedDatasets == null || referencedDatasets.isEmpty()) {
             FlightMap flightMap = new FlightMap();
             flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
             flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the study with ID " + id);
             String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
-            return getResponse(flightId, Boolean.class).booleanValue();
+            return getResponse(flightId, DeleteResponseModel.class);
         } else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);
     }
 
     private <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
-        if (result.getFlightStatus() == FlightStatus.SUCCESS) {
-            if (result.getResultMap().isPresent()) {
-                FlightMap resultMap = result.getResultMap().get();
-                return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
-            }
-            // It should not happen that we have success and no result map
-            // This is probably not the right exception, but we will replace this with
-            // the async stuff and the problem will go away.
-            throw new ApiException("Successful job, but no response!");
+        FlightResponse flightResponse = FlightUtils.makeFlightResponse(result);
+        // TODO: Figure out a better way of returning an ErrorModel rather than re-throwing
+        if (flightResponse.isErrorResponse()) {
+            ErrorModel errorModel = (ErrorModel) flightResponse.getResponse();
+            throw new ApiException(errorModel.getMessage());
         }
-
-        String message = "Could not complete flight";
-        Optional<String> optErrorMessage = result.getErrorMessage();
-        if (optErrorMessage.isPresent()) {
-            message = message + ": " + optErrorMessage.get();
-        }
-        throw new ApiException(message);
+        return resultClass.cast(flightResponse.getResponse());
     }
 }

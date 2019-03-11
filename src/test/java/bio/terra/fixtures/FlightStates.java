@@ -31,6 +31,7 @@ public final class FlightStates {
         // Construct a mock FlightState
         FlightMap resultMap = new FlightMap();
         resultMap.put(JobMapKeys.RESPONSE.getKeyName(), buildMinimalStudySummary());
+        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);

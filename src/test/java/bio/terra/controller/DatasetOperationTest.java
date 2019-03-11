@@ -5,6 +5,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSourceModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
@@ -353,12 +354,22 @@ public class DatasetOperationTest {
     private void deleteTestDataset(String id) throws Exception {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        assertThat(response.getStatus(), equalTo(HttpStatus.NO_CONTENT.value()));
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        checkDeleteResponse(response);
     }
 
     private void deleteTestStudy(String id) throws Exception {
         // We only use this for @After, so we don't check return values
-        mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
+        MvcResult result = mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
+        checkDeleteResponse(result.getResponse());
+    }
+
+    private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
+        DeleteResponseModel responseModel =
+            objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
+        assertTrue("Valid delete response object state enumeration",
+            (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
+                responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
     private DatasetSummaryModel[] enumerateTestDatasets() throws Exception {

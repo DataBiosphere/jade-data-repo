@@ -7,6 +7,7 @@ import bio.terra.exceptions.ValidationException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyModel;
@@ -121,9 +122,8 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studyService.retrieve(UUID.fromString(id)), HttpStatus.OK);
     }
 
-    public ResponseEntity<Void> deleteStudy(@PathVariable("id") String id) {
-        boolean success = studyService.delete(UUID.fromString(id));
-        return success ? new ResponseEntity<>(HttpStatus.OK) : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
+        return new ResponseEntity<>(studyService.delete(UUID.fromString(id)), HttpStatus.OK);
     }
 
     public ResponseEntity<List<StudySummaryModel>> enumerateStudies(

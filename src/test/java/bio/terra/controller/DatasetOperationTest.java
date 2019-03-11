@@ -70,6 +70,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Category(Connected.class)
 public class DatasetOperationTest {
+    private static final boolean deleteOnTeardown = true;
+
 
     // TODO: MORE TESTS to be done when we can ingest data:
     // - test more complex studies with relationships
@@ -96,12 +98,14 @@ public class DatasetOperationTest {
 
     @After
     public void tearDown() throws Exception {
-        for (String datasetId : createdDatasetIds) {
-            deleteTestDataset(datasetId);
-        }
+        if (deleteOnTeardown) {
+            for (String datasetId : createdDatasetIds) {
+                deleteTestDataset(datasetId);
+            }
 
-        for (String studyId : createdStudyIds) {
-            deleteTestStudy(studyId);
+            for (String studyId : createdStudyIds) {
+                deleteTestStudy(studyId);
+            }
         }
     }
 

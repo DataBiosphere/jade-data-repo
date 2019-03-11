@@ -37,11 +37,6 @@ public class StudyService {
         this.datasetService = datasetService;
     }
 
-    /**
-     * Create a study
-     * @param studyRequest from the REST API
-     * @return a StudySummaryModel
-     */
     public StudySummaryModel createStudy(StudyRequestModel studyRequest) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
@@ -61,11 +56,6 @@ public class StudyService {
             .collect(Collectors.toList());
     }
 
-    /**
-     * Delete a study
-     * @param id
-     * @return a DeleteResponseModel
-     */
     public DeleteResponseModel delete(UUID id) {
         List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
         if (referencedDatasets == null || referencedDatasets.isEmpty()) {

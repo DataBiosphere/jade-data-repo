@@ -8,6 +8,8 @@ import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -15,15 +17,30 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Provides methods for upgrading the data repository metadata and stairway databases.
  * See <a href="https://docs.google.com/document/d/1CY9bOSwaw0HjdZ9uuxwm1rh4LkcOqV65tjI77IhKcxE/edit#">Liquibase
  * Migration Notes</a></a>
  */
 @Component
+@EnableConfigurationProperties
+@ConfigurationProperties(prefix = "db")
 public class Migrate {
+    private Logger logger = LoggerFactory.getLogger("bio.terra.upgrade");
     private DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
     private StairwayJdbcConfiguration stairwayJdbcConfiguration;
+    private boolean dropAllOnStart;
+
+    public boolean getDropAllOnStart() {
+        return dropAllOnStart;
+    }
+
+    public void setDropAllOnStart(boolean dropAllOnStart) {
+        this.dropAllOnStart = dropAllOnStart;
+    }
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
@@ -43,8 +60,10 @@ public class Migrate {
             Liquibase liquibase = new Liquibase(changesetFile,
                     new ClassLoaderResourceAccessor(),
                     new JdbcConnection(connection));
-            // TODO: make this configurable (it should always happen for integration)
-            liquibase.dropAll();
+            logger.info(String.format("dropAllOnStart is set to %s", dropAllOnStart));
+            if (dropAllOnStart) {
+                liquibase.dropAll();
+            }
             liquibase.update(new Contexts()); // Run all migrations - no context filtering
         } catch (LiquibaseException | SQLException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);

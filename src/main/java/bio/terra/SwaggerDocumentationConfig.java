@@ -1,20 +1,83 @@
 package bio.terra;
 
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import springfox.documentation.builders.ApiInfoBuilder;
+import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
+import springfox.documentation.service.AuthorizationScope;
 import springfox.documentation.service.Contact;
+import springfox.documentation.service.GrantType;
+import springfox.documentation.service.ImplicitGrant;
+import springfox.documentation.service.LoginEndpoint;
+import springfox.documentation.service.OAuth;
+import springfox.documentation.service.SecurityReference;
 import springfox.documentation.spi.DocumentationType;
+import springfox.documentation.spi.service.contexts.SecurityContext;
 import springfox.documentation.spring.web.plugins.Docket;
+import springfox.documentation.swagger.web.ApiKeyVehicle;
+import springfox.documentation.swagger.web.SecurityConfiguration;
 
-@javax.annotation.Generated(value = "io.swagger.codegen.languages.SpringCodegen",
-                            date = "2018-11-21T14:51:14.798-05:00")
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
+@EnableConfigurationProperties
+@ConfigurationProperties(prefix = "oauth")
 public class SwaggerDocumentationConfig {
+
+    private String schemeName;
+    private String[] scopes;
+    private String loginEndpoint;
+    private String clientId;
+    private String clientSecret;
+    private static final String UNUSED = "__unused__";
+
+    public String getSchemeName() {
+        return schemeName;
+    }
+
+    public void setSchemeName(String schemeName) {
+        this.schemeName = schemeName;
+    }
+
+    public String getLoginEndpoint() {
+        return loginEndpoint;
+    }
+
+    public void setLoginEndpoint(String loginEndpoint) {
+        this.loginEndpoint = loginEndpoint;
+    }
+
+    public String getClientId() {
+        return clientId;
+    }
+
+    public void setClientId(String clientId) {
+        this.clientId = clientId;
+    }
+
+    public String getClientSecret() {
+        return clientSecret;
+    }
+
+    public void setClientSecret(String clientSecret) {
+        this.clientSecret = clientSecret;
+    }
+
+    public String[] getScopes() {
+        return scopes.clone();
+    }
+
+    public void setScopes(String[] scopes) {
+        this.scopes = scopes.clone();
+    }
 
     ApiInfo apiInfo() {
         return new ApiInfoBuilder()
@@ -69,7 +132,46 @@ public class SwaggerDocumentationConfig {
                     .build()
                 .directModelSubstitute(java.time.LocalDate.class, java.sql.Date.class)
                 .directModelSubstitute(java.time.OffsetDateTime.class, java.util.Date.class)
-                .apiInfo(apiInfo());
+                .apiInfo(apiInfo())
+                .securityContexts(Collections.singletonList(securityContext()))
+                .securitySchemes(Collections.singletonList(securityScheme()));
     }
 
+    private SecurityContext securityContext() {
+        return SecurityContext.builder()
+                .securityReferences(defaultAuth())
+                .forPaths(PathSelectors.regex("/api.*"))
+                .build();
+    }
+
+    private List<AuthorizationScope> authorizationScopes() {
+        return Arrays.stream(scopes)
+                .map(scope -> new AuthorizationScope(scope, scope))
+                .collect(Collectors.toList());
+    }
+
+    private List<SecurityReference> defaultAuth() {
+        AuthorizationScope[] authorizationScopes = authorizationScopes().toArray(new AuthorizationScope[0]);
+        SecurityReference securityReference = new SecurityReference(schemeName, authorizationScopes);
+        return Collections.singletonList(securityReference);
+    }
+
+    private OAuth securityScheme() {
+        List<AuthorizationScope> scopes = authorizationScopes();
+        GrantType grantType = new ImplicitGrant(new LoginEndpoint(loginEndpoint), "access_token");
+        return new OAuth(schemeName, scopes, Collections.singletonList(grantType));
+    }
+
+    @Bean
+    public SecurityConfiguration securityInfo() {
+        return new SecurityConfiguration(
+                clientId,
+                clientSecret,
+                UNUSED,
+                UNUSED,
+                UNUSED,
+                ApiKeyVehicle.HEADER,
+                UNUSED,
+                " ");
+    }
 }

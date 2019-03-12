@@ -28,7 +28,7 @@
     ],
     "assets":        [
       {
-        "name":   "Sample",
+        "name":   "sample",
         "rootTable": "sample",
         "rootColumn": "id",
         "tables": [

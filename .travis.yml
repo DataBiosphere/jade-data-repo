@@ -5,11 +5,14 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+    - $HOME/google-cloud-sdk/
+
+env:
+  - PATH=${HOME}/google-cloud-sdk/bin:$PATH CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 language: java
 
 jdk:
-  - oraclejdk8
   - openjdk8
 
 addons:
@@ -19,11 +22,39 @@ services:
   - docker
   - postgresql
 
+before_install:
+  - if [ ! -d ${HOME}/google-cloud-sdk/bin ]; then
+      rm -rf $HOME/google-cloud-sdk;
+      curl https://sdk.cloud.google.com | bash > /dev/null;
+    fi
+  - source $HOME/google-cloud-sdk/path.bash.inc
+  - gcloud config set project $INTEGRATION_PROJECT
+  - gcloud config set compute/zone $INTEGRATION_ZONE
+  - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS
+  - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
+  - gcloud auth configure-docker
+  - gcloud components install kubectl
+  - gcloud container clusters get-credentials $CLUSTER_NAME
+
 before_script:
   - psql -U postgres -f db/create-data-repo-db
 
+script:
+  - ./gradlew assemble
+  - ./gradlew check
+  - ./gradlew dockerPush
+  - kubectl --record deployment.apps/data-repo-deployment set image
+    deployment.v1.apps/data-repo-deployment
+    "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
+
 deploy:
   provider: script
-  script: echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin && ./gradlew dockerPush
+  script:
+    - gcloud config set project $DEV_PROJECT
+    - gcloud config set compute/zone $DEV_ZONE
+    - gcloud container clusters get-credentials $CLUSTER_NAME
+    - kubectl --record deployment.apps/data-repo-deployment set image
+      deployment.v1.apps/data-repo-deployment
+      "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
   on:
     branch: develop

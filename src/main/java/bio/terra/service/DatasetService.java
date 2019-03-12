@@ -1,9 +1,8 @@
 package bio.terra.service;
 
+import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
-import bio.terra.exceptions.NotFoundException;
-import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
 import bio.terra.metadata.AssetColumn;
@@ -26,6 +25,7 @@ import bio.terra.model.DatasetSourceModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.time.FastDateFormat;
@@ -162,7 +162,7 @@ public class DatasetService {
 
         Optional<AssetSpecification> optAsset = study.getAssetSpecificationByName(requestSource.getAssetName());
         if (!optAsset.isPresent()) {
-            throw new NotFoundException("Asset specification not found: " + requestSource.getAssetName());
+            throw new AssetNotFoundException("Asset specification not found: " + requestSource.getAssetName());
         }
 
         // TODO: When we implement explicit definition of the dataset tables and mapping to study tables,

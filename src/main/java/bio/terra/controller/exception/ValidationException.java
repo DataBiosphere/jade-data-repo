@@ -1,6 +1,8 @@
-package bio.terra.exceptions;
+package bio.terra.controller.exception;
 
-public class ValidationException extends RuntimeException {
+import bio.terra.exception.BadRequestException;
+
+public class ValidationException extends BadRequestException {
     public ValidationException(String message) {
         super(message);
     }

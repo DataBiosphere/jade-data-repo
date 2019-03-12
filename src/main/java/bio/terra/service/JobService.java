@@ -4,6 +4,7 @@ import bio.terra.flight.FlightResponse;
 import bio.terra.flight.FlightUtils;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.exception.InvalidResultStateException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -49,7 +50,7 @@ public class JobService {
             statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
             if (statusCode == null) {
                 // Error: this is a flight coding bug where the status code was not filled in properly.
-                throw new IllegalStateException("No status code returned from flight");
+                throw new InvalidResultStateException("No status code returned from flight");
             }
 
             completedDate = modelDateFormat.format(flightState.getCompleted().get());
@@ -127,7 +128,7 @@ public class JobService {
     private FlightMap getResultMap(FlightState flightState) {
         FlightMap resultMap = flightState.getResultMap().orElse(null);
         if (resultMap == null) {
-            throw new IllegalStateException("No result map returned from flight");
+            throw new InvalidResultStateException("No result map returned from flight");
         }
         return resultMap;
     }

@@ -29,7 +29,7 @@ import java.util.List;
  *     </ol>
  * </ul>
  *
- * All implementation-specific exceptions should be caught by the implementation and wrapped
+ * All implementation-specific exception should be caught by the implementation and wrapped
  * in PdaoException.
  */
 public interface PrimaryDataAccess {

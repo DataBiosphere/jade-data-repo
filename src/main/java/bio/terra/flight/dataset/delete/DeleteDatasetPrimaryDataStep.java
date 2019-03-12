@@ -1,7 +1,7 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.exceptions.NotFoundException;
+import bio.terra.exception.NotFoundException;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;

@@ -1,6 +1,8 @@
-package bio.terra.dao.exceptions;
+package bio.terra.dao.exception;
 
-public class CorruptMetadataException extends RuntimeException {
+import bio.terra.exception.InternalServerErrorException;
+
+public class CorruptMetadataException extends InternalServerErrorException {
     public CorruptMetadataException(String message) {
         super(message);
     }

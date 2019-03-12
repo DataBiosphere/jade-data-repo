@@ -1,7 +1,6 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.exceptions.ValidationException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
@@ -58,7 +57,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
             String message = String.format("Mismatched input values: '%s'", unmatchedValues);
             FlightUtils.setErrorResponse(context, message, HttpStatus.BAD_REQUEST);
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new ValidationException(message));
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
 
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());

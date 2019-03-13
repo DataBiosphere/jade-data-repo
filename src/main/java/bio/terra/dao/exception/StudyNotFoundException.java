@@ -1,6 +1,8 @@
 package bio.terra.dao.exception;
 
-public class StudyNotFoundException extends RepositoryMetadataException {
+import bio.terra.exception.NotFoundException;
+
+public class StudyNotFoundException extends NotFoundException {
     public StudyNotFoundException(String message) {
         super(message);
     }

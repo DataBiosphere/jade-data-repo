@@ -1,6 +1,6 @@
 package bio.terra.dao;
 
-import bio.terra.dao.exceptions.CorruptMetadataException;
+import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;

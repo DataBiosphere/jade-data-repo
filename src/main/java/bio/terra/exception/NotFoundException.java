@@ -1,4 +1,4 @@
-package bio.terra.exceptions;
+package bio.terra.exception;
 
 public class NotFoundException extends RuntimeException {
     public NotFoundException(String message) {

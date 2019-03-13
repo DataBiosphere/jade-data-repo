@@ -1,6 +1,6 @@
 package bio.terra.dao;
 
-import bio.terra.dao.exception.RepositoryMetadataException;
+import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
@@ -91,7 +91,7 @@ public class StudyDao {
             }
             return study;
         } catch (EmptyResultDataAccessException ex) {
-            throw new RepositoryMetadataException("Inconsistent data", ex);
+            throw new CorruptMetadataException("Inconsistent data", ex);
         }
     }
 

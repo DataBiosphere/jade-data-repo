@@ -1,7 +1,7 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.exceptions.NotFoundException;
+import bio.terra.exception.NotFoundException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSummary;

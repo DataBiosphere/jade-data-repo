@@ -2,7 +2,7 @@ package bio.terra.service;
 
 import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
-import bio.terra.exceptions.ValidationException;
+import bio.terra.controller.exception.ValidationException;
 import bio.terra.flight.FlightResponse;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.study.create.StudyCreateFlight;

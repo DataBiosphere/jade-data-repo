@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
-import bio.terra.dao.exceptions.CorruptMetadataException;
-import bio.terra.exceptions.NotFoundException;
+import bio.terra.dao.exception.CorruptMetadataException;
+import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
@@ -102,7 +102,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", datasetId);
         Dataset dataset = retrieveWorker(sql, params);
         if (dataset == null) {
-            throw new NotFoundException("Dataset not found - id: " + datasetId);
+            throw new DatasetNotFoundException("Dataset not found - id: " + datasetId);
         }
         return dataset;
     }
@@ -112,7 +112,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
         Dataset dataset = retrieveWorker(sql, params);
         if (dataset == null) {
-            throw new NotFoundException("Dataset not found - name: '" + name + "'");
+            throw new DatasetNotFoundException("Dataset not found - name: '" + name + "'");
         }
         return dataset;
     }
@@ -220,7 +220,7 @@ public class DatasetDao {
                             .createdDate(rs.getTimestamp("created_date")));
             return datasetSummary;
         } catch (EmptyResultDataAccessException ex) {
-            throw new NotFoundException("Dataset not found - id: " + id);
+            throw new DatasetNotFoundException("Dataset not found - id: " + id);
         }
     }
 

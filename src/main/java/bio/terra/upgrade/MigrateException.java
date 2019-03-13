@@ -1,8 +1,5 @@
 package bio.terra.upgrade;
 
-/**
- * Migrate exception is thrown on Liquibase or SQL exception during migration.
- */
 public class MigrateException extends RuntimeException {
     public MigrateException(String message) {
         super(message);

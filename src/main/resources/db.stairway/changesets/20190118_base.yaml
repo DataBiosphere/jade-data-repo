@@ -36,7 +36,8 @@ databaseChangeLog:
                   type: text
                   remarks: contains FlightStatus enum values
               - column:
-                  name: error_message
+                  name: exception
+                  remarks: contains JSON-serialized Exception
                   type: text
 
         - createTable:
@@ -73,8 +74,9 @@ databaseChangeLog:
                   type: boolean
                   remarks: null = not done; true = success; false = failure
               - column:
-                  name: error_message
+                  name: exception
                   type: text
+                  remarks: contains JSON-serialized Exception
               - column:
                   name: status
                   type: text

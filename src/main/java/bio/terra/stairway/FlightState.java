@@ -14,7 +14,7 @@ public class FlightState {
     private Timestamp submitted;
     private Optional<Timestamp> completed;
     private Optional<FlightMap> resultMap;  // filled in when flightStatus is SUCCESS
-    private Optional<String> errorMessage;  // filled in when flightStatus is ERROR or FATAL
+    private Optional<Exception> exception;  // filled in when flightStatus is ERROR or FATAL
 
     public FlightState() {
     }
@@ -73,11 +73,13 @@ public class FlightState {
         this.resultMap = resultMap;
     }
 
-    public Optional<String> getErrorMessage() {
-        return errorMessage;
+    public Optional<Exception> getException() {
+        return exception;
     }
 
-    public void setErrorMessage(Optional<String> errorMessage) {
-        this.errorMessage = errorMessage;
+    public FlightState setException(Optional<Exception> exception) {
+        this.exception = exception;
+        return this;
     }
+
 }

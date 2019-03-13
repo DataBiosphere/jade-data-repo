@@ -153,6 +153,6 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
-        return jobService.retrieveJobResult(id);
+        return jobService.retrieveJobResultResponse(id);
     }
 }

@@ -40,7 +40,7 @@ public final class FlightStates {
         flightState.setInputParameters(resultMap); // unused
         flightState.setResultMap(Optional.of(resultMap));
         flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
-        flightState.setErrorMessage(Optional.empty());
+        flightState.setException(Optional.empty());
         return flightState;
     }
 
@@ -58,7 +58,7 @@ public final class FlightStates {
         flightState.setInputParameters(resultMap);
         flightState.setResultMap(Optional.of(resultMap));
         flightState.setCompleted(Optional.empty());
-        flightState.setErrorMessage(Optional.empty());
+        flightState.setException(Optional.empty());
         return flightState;
     }
 
@@ -76,7 +76,7 @@ public final class FlightStates {
         flightState.setInputParameters(resultMap);
         flightState.setResultMap(Optional.of(resultMap));
         flightState.setCompleted(Optional.of(completedTime));
-        flightState.setErrorMessage(Optional.empty());
+        flightState.setException(Optional.empty());
         return flightState;
     }
 }

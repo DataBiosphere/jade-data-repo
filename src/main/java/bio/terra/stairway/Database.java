@@ -2,12 +2,14 @@ package bio.terra.stairway;
 
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
-import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -37,6 +39,8 @@ import java.util.Optional;
 public class Database {
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
+
+    private ObjectMapper objectMapper;
 
     private DataSource dataSource;
     private boolean forceCleanStart;
@@ -101,9 +105,9 @@ public class Database {
         final String sqlInsertFlightLog =
                 "INSERT INTO " + FLIGHT_LOG_TABLE +
                         "(flightid, log_time, working_parameters, step_index, doing," +
-                        " succeeded, error_message, status)" +
+                        " succeeded, exception, status)" +
                         " VALUES (:flightid, CURRENT_TIMESTAMP, :working_map, :step_index, :doing," +
-                        " :succeeded, :error_message, :status)";
+                        " :succeeded, :exception, :status)";
 
         try (Connection connection = dataSource.getConnection();
              NamedParameterPreparedStatement statement =
@@ -114,7 +118,7 @@ public class Database {
             statement.setInt("step_index", flightContext.getStepIndex());
             statement.setBoolean("doing", flightContext.isDoing());
             statement.setBoolean("succeeded", flightContext.getResult().isSuccess());
-            statement.setString("error_message", flightContext.getResult().getErrorMessage().orElse(null));
+            statement.setString("exception", getExceptionJson(flightContext));
             statement.setString("status", flightContext.getFlightStatus().name());
 
             statement.getPreparedStatement().executeUpdate();
@@ -135,7 +139,7 @@ public class Database {
                         " SET completed_time = CURRENT_TIMESTAMP," +
                         " output_parameters = :output_parameters," +
                         " status = :status," +
-                        " error_message = :error_message" +
+                        " exception = :exception" +
                         " WHERE flightid = :flightid AND status = 'RUNNING'";
 
         // The delete is harmless if it has been done before. We just won't find anything.
@@ -151,7 +155,7 @@ public class Database {
 
             statement.setString("output_parameters", flightContext.getWorkingMap().toJson());
             statement.setString("status", flightContext.getFlightStatus().name());
-            statement.setString("error_message", flightContext.getResult().getErrorMessage().orElse(null));
+            statement.setString("exception", getExceptionJson(flightContext));
             statement.setString("flightid", flightContext.getFlightId());
             statement.getPreparedStatement().executeUpdate();
 
@@ -176,7 +180,7 @@ public class Database {
                 " WHERE status = 'RUNNING'";
 
         final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing," +
-                " succeeded, error_message, status" +
+                " succeeded, exception, status" +
                 " FROM " + FLIGHT_LOG_TABLE +
                 " WHERE flightid = :flightid AND log_time = " +
                 " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid2)";
@@ -218,7 +222,7 @@ public class Database {
                             stepResult = StepResult.getStepResultSuccess();
                         } else {
                             stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                                    new FlightException(rsflight.getString("error_message")));
+                                    getExceptionFromJson(rsflight.getString("exception")));
                         }
 
                         flightContext.getWorkingMap().fromJson(rsflight.getString("working_parameters"));
@@ -247,7 +251,7 @@ public class Database {
      */
     public FlightState getFlightState(String flightId) {
         final String sqlOneFlight = "SELECT flightid, submit_time, input_parameters," +
-                " completed_time, output_parameters, status, error_message" +
+                " completed_time, output_parameters, status, exception" +
                 " FROM " + FLIGHT_TABLE +
                 " WHERE flightid = :flightid";
 
@@ -275,7 +279,7 @@ public class Database {
 
     public List<FlightState> getFlights(int offset, int limit) {
         final String sqlFlightRange = "SELECT flightid, submit_time, input_parameters," +
-                " completed_time, output_parameters, status, error_message" +
+                " completed_time, output_parameters, status, exception" +
                 " FROM " + FLIGHT_TABLE +
                 " ORDER BY submit_time" +
                 " LIMIT :limit OFFSET :offset";
@@ -316,12 +320,13 @@ public class Database {
             // Only populate the optional fields if the flight is done; that is, not RUNNING
             if (flightState.getFlightStatus() == FlightStatus.RUNNING) {
                 flightState.setCompleted(Optional.empty());
-                flightState.setErrorMessage(Optional.empty());
+                flightState.setException(Optional.empty());
                 flightState.setResultMap(Optional.empty());
             } else {
                 // If the optional flight data is present, then we fill it in
                 flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time")));
-                flightState.setErrorMessage(Optional.ofNullable(rs.getString("error_message")));
+                flightState.setException(Optional.ofNullable(
+                    getExceptionFromJson(rs.getString("exception"))));
                 String outputParamsJson = rs.getString("output_parameters");
                 if (outputParamsJson == null) {
                     flightState.setResultMap(Optional.empty());
@@ -338,7 +343,37 @@ public class Database {
         return flightStateList;
     }
 
+    private String getExceptionJson(FlightContext flightContext) {
+        try {
+            String exceptionJson = null;
+            if (flightContext.getResult().getException().isPresent()) {
+                Exception exception = flightContext.getResult().getException().get();
+                exceptionJson = getObjectMapper().writeValueAsString(exception);
+            }
+            return exceptionJson;
+        } catch (JsonProcessingException ex) {
+            throw new DatabaseOperationException("Failed to convert exception to JSON", ex);
+        }
+    }
 
+    private Exception getExceptionFromJson(String exceptionJson) {
+        try {
+            if (exceptionJson == null) {
+                return null;
+            }
+            return getObjectMapper().readValue(exceptionJson, Exception.class);
+        } catch (IOException ex) {
+            throw new DatabaseOperationException("Failed to convert JSON to exception", ex);
+        }
+    }
+
+    private ObjectMapper getObjectMapper() {
+        if (objectMapper == null) {
+            objectMapper = new ObjectMapper();
+            objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        }
+        return objectMapper;
+    }
 
     @Override
     public String toString() {

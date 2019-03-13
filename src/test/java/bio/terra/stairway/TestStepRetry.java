@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.stairway.exception.FlightException;
+import bio.terra.stairway.exception.RetryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,8 +22,7 @@ public class TestStepRetry implements Step {
         if (timesFailed < timesToFail) {
             timesFailed++;
             logger.debug(" - failure_retry");
-            Throwable throwable = new FlightException("step retry failed");
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, throwable);
+            throw new RetryException("step retry failed");
         }
         logger.debug(" - success");
         return StepResult.getStepResultSuccess();

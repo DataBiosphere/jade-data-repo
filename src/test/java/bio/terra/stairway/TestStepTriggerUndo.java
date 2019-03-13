@@ -9,7 +9,7 @@ public class TestStepTriggerUndo implements Step {
         // This step sets the stop controller to 0 to cause the
         // stop step to sleep. Then it returns a fatal error.
         TestStopController.setControl(0);
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new FlightException("TestStepTriggerUndo"));
+        throw new FlightException("TestStepTriggerUndo");
     }
 
     @Override

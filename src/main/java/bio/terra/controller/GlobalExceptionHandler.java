@@ -4,6 +4,7 @@ import bio.terra.exception.BadRequestException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.NotFoundException;
 import bio.terra.model.ErrorModel;
+import bio.terra.service.exception.JobResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -46,6 +47,16 @@ public class GlobalExceptionHandler {
         return buildErrorModel(ex);
     }
 
+    // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions
+    // returned from flights. So at this level, we catch the JobResponseException and retrieve the
+    // original exception from inside it and use that to construct the error model.
+    @ExceptionHandler(JobResponseException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorModel jobResponseExceptionHandler(Exception ex) {
+        Throwable nestedException = ex.getCause();
+        return buildErrorModel(nestedException);
+    }
+
     // -- catchall - log so we can understand what we have missed in the handlers above
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -54,7 +65,7 @@ public class GlobalExceptionHandler {
         return buildErrorModel(ex);
     }
 
-    private ErrorModel buildErrorModel(Exception ex) {
+    private ErrorModel buildErrorModel(Throwable ex) {
         return new ErrorModel().message(ex.getMessage());
     }
 

@@ -110,9 +110,9 @@ public class StudyCreateFlightTest {
 
         FlightState result = stairway.getFlightState(flightId);
         assertNotEquals(result.getFlightStatus(), FlightStatus.SUCCESS);
-        Optional<String> errorMessage = result.getErrorMessage();
+        Optional<Exception> errorMessage = result.getException();
         assertTrue(errorMessage.isPresent());
-        assertThat(errorMessage.get(), containsString("TestTriggerUndoStep"));
+        assertThat(errorMessage.get().getMessage(), containsString("TestTriggerUndoStep"));
 
         boolean deletedSomething = studyDao.deleteByName(studyName);
         assertFalse(deletedSomething);

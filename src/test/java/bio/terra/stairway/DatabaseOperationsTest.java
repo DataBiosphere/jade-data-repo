@@ -101,7 +101,7 @@ public class DatabaseOperationsTest {
         Assert.assertThat(recoveredFlight.getStepIndex(), is(equalTo(2)));
         Assert.assertThat(recoveredFlight.isDoing(), is(false));
         Assert.assertThat(recoveredFlight.getResult().isSuccess(), is(false));
-        Assert.assertThat(recoveredFlight.getResult().getThrowable().get().toString(), containsString(errString));
+        Assert.assertThat(recoveredFlight.getResult().getException().get().toString(), containsString(errString));
         Assert.assertThat(recoveredFlight.getFlightStatus(), is(FlightStatus.RUNNING));
 
         FlightMap recoveredWork = recoveredFlight.getWorkingMap();
@@ -125,11 +125,11 @@ public class DatabaseOperationsTest {
         Assert.assertThat(flightState.getFlightId(), is(flightId));
         Assert.assertThat(flightState.getFlightStatus(), is(FlightStatus.ERROR));
         Assert.assertTrue(flightState.getResultMap().isPresent());
-        Assert.assertTrue(flightState.getErrorMessage().isPresent());
+        Assert.assertTrue(flightState.getException().isPresent());
 
         FlightMap outputParams = flightState.getResultMap().get();
         checkOutputs(outputParams);
-        Assert.assertThat(flightState.getErrorMessage().get(), containsString(errString));
+        Assert.assertThat(flightState.getException().get().toString(), containsString(errString));
     }
 
     private Database createDatabase(boolean forceCleanStart) {
@@ -141,7 +141,7 @@ public class DatabaseOperationsTest {
         Assert.assertThat(flightState.getFlightStatus(), is(FlightStatus.RUNNING));
         Assert.assertFalse(flightState.getCompleted().isPresent());
         Assert.assertFalse(flightState.getResultMap().isPresent());
-        Assert.assertFalse(flightState.getErrorMessage().isPresent());
+        Assert.assertFalse(flightState.getException().isPresent());
     }
 
     private void checkInputs(FlightMap inputMap) {

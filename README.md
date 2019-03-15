@@ -77,9 +77,15 @@ If you are making code changes, run:
 To run jade locally:
 `./gradlew bootRun`
 
+To run jade locally and wait for debugger to attach on port 5005:
+`./gradlew bootRun --debug-jvm`
+
 To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`
 and select `Build project automatically`
+
+The swagger page is:
+https://local.broadinstitue.org:8080
 
 ## Swagger Codegen
 

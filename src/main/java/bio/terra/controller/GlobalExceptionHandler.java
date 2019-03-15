@@ -58,13 +58,15 @@ public class GlobalExceptionHandler {
     }
 
     // -- catchall - log so we can understand what we have missed in the handlers above
-    @ExceptionHandler(Throwable.class)
+    @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorModel catchallHandler(Exception ex) {
         logger.info("Catchall exception caught: {} of {}", ex.getClass().getName(), ex.toString());
         return buildErrorModel(ex);
     }
 
+    // This method takes throwable so it can be shared by the JobResponseException handler:
+    // the type returned from getCause() is a Throwable.
     private ErrorModel buildErrorModel(Throwable ex) {
         return new ErrorModel().message(ex.getMessage());
     }

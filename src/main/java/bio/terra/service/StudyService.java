@@ -1,21 +1,16 @@
 package bio.terra.service;
 
-import bio.terra.controller.exception.ApiException;
-import bio.terra.dao.StudyDao;
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.flight.FlightResponse;
-import bio.terra.flight.FlightUtils;
+import bio.terra.dao.StudyDao;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.ErrorModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -29,12 +24,14 @@ public class StudyService {
     private final StudyDao studyDao;
     private final Stairway stairway;
     private final DatasetService datasetService;
+    private final JobService jobService; // for handling flight response
 
     @Autowired
-    public StudyService(StudyDao studyDao, Stairway stairway, DatasetService datasetService) {
+    public StudyService(StudyDao studyDao, Stairway stairway, DatasetService datasetService, JobService jobService) {
         this.studyDao = studyDao;
         this.stairway = stairway;
         this.datasetService = datasetService;
+        this.jobService = jobService;
     }
 
     public StudySummaryModel createStudy(StudyRequestModel studyRequest) {
@@ -69,13 +66,6 @@ public class StudyService {
 
     private <T> T getResponse(String flightId, Class<T> resultClass) {
         stairway.waitForFlight(flightId);
-        FlightState result = stairway.getFlightState(flightId);
-        FlightResponse flightResponse = FlightUtils.makeFlightResponse(result);
-        // TODO: Figure out a better way of returning an ErrorModel rather than re-throwing
-        if (flightResponse.isErrorResponse()) {
-            ErrorModel errorModel = (ErrorModel) flightResponse.getResponse();
-            throw new ApiException(errorModel.getMessage());
-        }
-        return resultClass.cast(flightResponse.getResponse());
+        return jobService.retrieveJobResult(flightId, resultClass);
     }
 }

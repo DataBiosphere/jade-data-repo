@@ -44,7 +44,7 @@ public class FlightStateTest {
         result.setSubmitted(timestamp);
         result.setCompleted(Optional.of(timestamp));
         result.setResultMap(Optional.of(outputs));
-        result.setErrorMessage(Optional.of(errString));
+        result.setException(Optional.of(new RuntimeException(errString)));
     }
 
     @Test
@@ -56,10 +56,10 @@ public class FlightStateTest {
 
         Assert.assertTrue(result.getCompleted().isPresent());
         Assert.assertTrue(result.getResultMap().isPresent());
-        Assert.assertTrue(result.getErrorMessage().isPresent());
+        Assert.assertTrue(result.getException().isPresent());
 
         Assert.assertThat(result.getCompleted().get(), is(timestamp));
-        Assert.assertThat(result.getErrorMessage().get(), is(errString));
+        Assert.assertThat(result.getException().get().getMessage(), is(errString));
 
         FlightMap outputMap = result.getResultMap().get();
         Assert.assertThat(outputMap.get(fkey, Double.class), is(dubValue));

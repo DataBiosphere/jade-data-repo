@@ -29,7 +29,8 @@ import java.util.concurrent.ThreadPoolExecutor;
  * There are two techniques you can use to wait for a flight. One is polling by calling getFlightState. That
  * reads the flight state from the stairway database so will report correct state for as long as the flight
  * lives in the database. (Since we haven't implemented pruning, that means forever.) If you poll in this way,
- * then you must explicitly call releaseFlight() so that the in-memory resources for the flight are freed.
+ * then the in-memory resources are released on the first call to getFlightState that reports the flight has
+ * completed in some way.
  *
  * The other technique is to poll the flight future using the isDone() method or block waiting for the
  * flight to complete using the waitForFlight() method. In this case, the in-memory resources are freed
@@ -140,12 +141,19 @@ public class Stairway {
 
     /**
      * Get the state of a specific flight
+     * If the flight is complete and still in our in-memory map, we remove it.
+     * The logic is that if getFlightState is called, then either the wait
+     * finished or we are polling and won't perform a wait.
      *
      * @param flightId
      * @return FlightState
      */
     public FlightState getFlightState(String flightId) {
-        return database.getFlightState(flightId);
+        FlightState flightState = database.getFlightState(flightId);
+        if (flightState.getFlightStatus() != FlightStatus.RUNNING) {
+            releaseFlight(flightId);
+        }
+        return flightState;
     }
 
     /**
@@ -161,13 +169,7 @@ public class Stairway {
         return database.getFlights(offset, limit);
     }
 
-    /**
-     * Remove the task context for a completed flight. If the flight is not complete or does not
-     * exist, the code simply returns.
-     *
-     * @param flightId
-     */
-    public void releaseFlight(String flightId) {
+    private void releaseFlight(String flightId) {
         TaskContext taskContext = taskContextMap.get(flightId);
         if (taskContext != null) {
             if (taskContext.getFutureResult().isDone()) {

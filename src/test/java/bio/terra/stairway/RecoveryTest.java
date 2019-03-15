@@ -153,9 +153,10 @@ public class RecoveryTest {
         stairway2.waitForFlight(flightId);
         FlightState result = stairway2.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.ERROR)));
-        Assert.assertTrue(result.getErrorMessage().isPresent());
+        Assert.assertTrue(result.getException().isPresent());
         // The exception is thrown by TestStepTriggerUndo
-        Assert.assertThat(result.getErrorMessage().get(), is(containsString("TestStepTriggerUndo")));
+        Assert.assertThat(result.getException().get().getMessage(),
+            is(containsString("TestStepTriggerUndo")));
 
         Assert.assertTrue(result.getResultMap().isPresent());
         Integer value = result.getResultMap().get().get("value", Integer.class);

@@ -70,7 +70,7 @@ public class JobServiceTest {
     }
 
     private void testResultRetrieval(List<String> fids) {
-        ResponseEntity<Object> result = jobService.retrieveJobResult(fids.get(2));
+        ResponseEntity<Object> result = jobService.retrieveJobResultResponse(fids.get(2));
         Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
         String resultDesc = (String) result.getBody();
         Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
@@ -105,7 +105,7 @@ public class JobServiceTest {
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        jobService.retrieveJobResult("abcdef");
+        jobService.retrieveJobResultResponse("abcdef");
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {
@@ -122,7 +122,6 @@ public class JobServiceTest {
 
         String flightId = stairway.submit(JobServiceTestFlight.class, inputs);
         stairway.waitForFlight(flightId);
-        stairway.releaseFlight(flightId);
         return flightId;
     }
 

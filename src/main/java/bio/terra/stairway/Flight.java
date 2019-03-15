@@ -1,5 +1,6 @@
 package bio.terra.stairway;
 
+import bio.terra.stairway.exception.RetryException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
@@ -123,7 +124,7 @@ public class Flight implements Callable<FlightState> {
             Thread.currentThread().interrupt();
             context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
         } catch (Exception ex) {
-            logger.error("Unhandled step exception", ex);
+            logger.error("Unhandled flight exception", ex);
             context().setResult(new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex));
         }
 
@@ -169,13 +170,23 @@ public class Flight implements Callable<FlightState> {
 
         // Retry loop
         do {
-            // Do or undo based on direction we are headed
-            if (context().isDoing()) {
-                result = currentStep.step.doStep(context());
-            } else {
-                result = currentStep.step.undoStep(context());
+            try {
+                // Do or undo based on direction we are headed
+                if (context().isDoing()) {
+                    result = currentStep.step.doStep(context());
+                } else {
+                    result = currentStep.step.undoStep(context());
+                }
 
+            } catch (Exception ex) {
+                // The purpose of this catch is to relieve steps of implementing their own repetitive try-catch
+                // simply to turn exceptions into StepResults.
+                StepStatus stepStatus = (ex instanceof RetryException)
+                    ? StepStatus.STEP_RESULT_FAILURE_RETRY
+                    : StepStatus.STEP_RESULT_FAILURE_FATAL;
+                result = new StepResult(stepStatus, ex);
             }
+
             switch (result.getStepStatus()) {
                 case STEP_RESULT_SUCCESS:
                 case STEP_RESULT_FAILURE_FATAL:
@@ -185,7 +196,6 @@ public class Flight implements Callable<FlightState> {
                 default:
                     break;
             }
-
         } while (currentStep.retryRule.retrySleep()); // retry rule decides if we should try again or not
 
         return result;

@@ -45,7 +45,7 @@ public class RetryTest {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
-        Assert.assertFalse(result.getErrorMessage().isPresent());
+        Assert.assertFalse(result.getException().isPresent());
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RetryTest {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
-        Assert.assertFalse(result.getErrorMessage().isPresent());
+        Assert.assertFalse(result.getException().isPresent());
     }
 
     @Test
@@ -108,7 +108,7 @@ public class RetryTest {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.ERROR)));
-        Assert.assertTrue(result.getErrorMessage().isPresent());
+        Assert.assertTrue(result.getException().isPresent());
     }
 
     @Test
@@ -135,7 +135,7 @@ public class RetryTest {
         Assert.assertTrue(endTime.isBefore(endRange));
 
         Assert.assertThat(result.getFlightStatus(), is(FlightStatus.SUCCESS));
-        Assert.assertFalse(result.getErrorMessage().isPresent());
+        Assert.assertFalse(result.getException().isPresent());
     }
 
 }

@@ -59,7 +59,7 @@ public class ScenarioTest {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(FlightStatus.SUCCESS));
-        Assert.assertFalse(result.getErrorMessage().isPresent());
+        Assert.assertFalse(result.getException().isPresent());
 
         // Should be released
         try {
@@ -89,10 +89,10 @@ public class ScenarioTest {
         // Handle results
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(FlightStatus.ERROR));
-        Assert.assertTrue(result.getErrorMessage().isPresent());
+        Assert.assertTrue(result.getException().isPresent());
 
         // The error text thrown by TestStepExistence
-        Assert.assertThat(result.getErrorMessage().get(), containsString("already exists"));
+        Assert.assertThat(result.getException().get().getMessage(), containsString("already exists"));
     }
 
     @Test
@@ -123,8 +123,8 @@ public class ScenarioTest {
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(FlightStatus.ERROR));
-        Assert.assertTrue(result.getErrorMessage().isPresent());
-        Assert.assertThat(result.getErrorMessage().get(), containsString("already exists"));
+        Assert.assertTrue(result.getException().isPresent());
+        Assert.assertThat(result.getException().get().getMessage(), containsString("already exists"));
 
         // We expect the non-existent filename to have been deleted
         File file = new File(filename);

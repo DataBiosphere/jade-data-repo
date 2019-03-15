@@ -7,7 +7,7 @@ import java.util.Optional;
 
 public class StepResult {
     private StepStatus stepStatus;
-    private Optional<Throwable> throwable;
+    private Optional<Exception> exception;
 
     // Static version of success result
     private static StepResult stepResultSuccess = new StepResult(StepStatus.STEP_RESULT_SUCCESS);
@@ -15,43 +15,33 @@ public class StepResult {
         return stepResultSuccess;
     }
 
-    public StepResult(StepStatus stepStatus, Throwable throwable) {
+    public StepResult(StepStatus stepStatus, Exception exception) {
         this.stepStatus = stepStatus;
-        this.throwable = Optional.ofNullable(throwable);
+        this.exception = Optional.ofNullable(exception);
     }
 
     public StepResult(StepStatus stepStatus) {
         this.stepStatus = stepStatus;
-        this.throwable = Optional.empty();
+        this.exception = Optional.empty();
     }
 
     public StepStatus getStepStatus() {
         return stepStatus;
     }
 
-    public Optional<Throwable> getThrowable() {
-        return throwable;
+    public Optional<Exception> getException() {
+        return exception;
     }
 
     public boolean isSuccess() {
         return (stepStatus == StepStatus.STEP_RESULT_SUCCESS);
     }
 
-    /**
-     * Convert the optional throwable into a optional string
-     */
-    public Optional<String> getErrorMessage() {
-        if (getThrowable().isPresent()) {
-            return Optional.of(getThrowable().get().toString());
-        }
-        return Optional.empty();
-    }
-
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("stepStatus", stepStatus)
-                .append("throwable", throwable)
+                .append("exception", exception)
                 .toString();
     }
 }

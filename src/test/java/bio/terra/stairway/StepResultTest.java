@@ -17,8 +17,8 @@ public class StepResultTest {
     public void testStepResultSuccess() {
         StepResult result = StepResult.getStepResultSuccess();
         Assert.assertThat(result.getStepStatus(), is(StepStatus.STEP_RESULT_SUCCESS));
-        Optional<Throwable> throwable = result.getThrowable();
-        Assert.assertFalse(throwable.isPresent());
+        Optional<Exception> exception = result.getException();
+        Assert.assertFalse(exception.isPresent());
     }
 
     @Test
@@ -26,10 +26,10 @@ public class StepResultTest {
         StepResult result = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                 new IllegalArgumentException(bad));
         Assert.assertThat(result.getStepStatus(), is(StepStatus.STEP_RESULT_FAILURE_FATAL));
-        Optional<Throwable> throwable = result.getThrowable();
-        Assert.assertTrue(throwable.isPresent());
-        Assert.assertTrue(throwable.get() instanceof IllegalArgumentException);
-        Assert.assertThat(throwable.get().getMessage(), is(bad));
+        Optional<Exception> exception = result.getException();
+        Assert.assertTrue(exception.isPresent());
+        Assert.assertTrue(exception.get() instanceof IllegalArgumentException);
+        Assert.assertThat(exception.get().getMessage(), is(bad));
     }
 
 }

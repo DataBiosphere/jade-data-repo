@@ -78,6 +78,9 @@ sourceCompatibility = 1.8
 
 repositories {
     mavenCentral()
+    maven {
+        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
+    }
 }
 
 configurations {
@@ -109,6 +112,7 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.6.1'         // For upgrade
     compile 'org.slf4j:slf4j-api:1.7.25'                 // Logging facade
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
+    compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-37bc074'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.

@@ -2,6 +2,7 @@ package bio.terra.flight.study.delete;
 
 import bio.terra.dao.StudyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -15,8 +16,10 @@ public class StudyDeleteFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
+        SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
 
         addStep(new DeleteStudyPrimaryDataStep(bigQueryPdao, studyDao));
         addStep(new DeleteStudyMetadataStep(studyDao));
+        addStep(new DeleteStudyAuthzResource(samClient));
     }
 }

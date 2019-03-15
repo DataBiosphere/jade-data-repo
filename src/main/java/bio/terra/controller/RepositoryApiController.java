@@ -83,9 +83,17 @@ public class RepositoryApiController implements RepositoryApi {
         return Optional.ofNullable(request);
     }
 
+    private String getToken() {
+        Optional<String> header =  getRequest().map(r -> r.getHeader("Authorization"));
+        if (header.isPresent()) {
+            return header.get().substring("Bearer ".length());
+        }
+        return null;
+    }
+
     // -- study --
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        return new ResponseEntity<>(studyService.createStudy(studyRequest), HttpStatus.CREATED);
+        return new ResponseEntity<>(studyService.createStudy(studyRequest, getToken()), HttpStatus.CREATED);
     }
 
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
@@ -93,7 +101,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
-        return new ResponseEntity<>(studyService.delete(UUID.fromString(id)), HttpStatus.OK);
+        return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getToken()), HttpStatus.OK);
     }
 
     public ResponseEntity<List<StudySummaryModel>> enumerateStudies(

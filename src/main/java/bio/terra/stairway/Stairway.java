@@ -143,6 +143,7 @@ public class Stairway {
      * Get the state of a specific flight
      * If the flight is complete and still in our in-memory map, we remove it.
      * The logic is that if getFlightState is called, then either the wait
+     * finished or we are polling and won't perform a wait.
      *
      * @param flightId
      * @return FlightState

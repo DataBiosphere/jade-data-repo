@@ -58,7 +58,7 @@ public class GlobalExceptionHandler {
     }
 
     // -- catchall - log so we can understand what we have missed in the handlers above
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(Throwable.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorModel catchallHandler(Exception ex) {
         logger.info("Catchall exception caught: {} of {}", ex.getClass().getName(), ex.toString());

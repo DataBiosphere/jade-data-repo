@@ -1,4 +1,5 @@
-#!/bin/bash
+# These are the steps required to get a new Google Cloud Project set up. A
+# few of the steps are manual and so this script cannot be run as-is.
 
 PROJECT=broad-jade-integration
 ZONE=us-east1-c

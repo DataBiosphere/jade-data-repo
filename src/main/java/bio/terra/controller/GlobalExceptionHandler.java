@@ -50,7 +50,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorModel catchallHandler(Exception ex) {
-        logger.info("Catchall exception caught: {} of {}", ex.getClass().getName(), ex.toString());
+        logger.error("Exception caught by catchall hander", ex);
         return buildErrorModel(ex);
     }
 

@@ -71,7 +71,8 @@ public class StudyRequestValidator implements Validator {
         if (studyName == null) {
             errors.rejectValue("name", "StudyNameMissing");
         } else if (!ValidationUtils.isValidName(studyName)) {
-            errors.rejectValue("name", "StudyNameInvalid");
+            errors.rejectValue("name", "StudyNameInvalid",
+                "Invalid study name " + studyName);
         }
     }
 
@@ -93,7 +94,8 @@ public class StudyRequestValidator implements Validator {
         String column = term.getColumn();
         if (table != null && column != null) {
             if (!context.isValidTableColumn(table, column)) {
-                errors.rejectValue("schema", "InvalidRelationshipTermTableColumn");
+                errors.rejectValue("schema", "InvalidRelationshipTermTableColumn",
+                    "invalid table '" + table + "." + column + "'");
             }
         }
     }
@@ -115,49 +117,54 @@ public class StudyRequestValidator implements Validator {
         }
     }
 
-    // returns true if the table is the root table
-    // error for invalid root column is determined within this method
-    private boolean validateAssetTable(
-            AssetTableModel assetTable,
-            String rootTableName,
-            String rootColumnName,
-            Errors errors,
-            SchemaValidationContext context) {
-        boolean hasRootTable = false;
+    private void validateAssetTable(
+        AssetTableModel assetTable,
+        Errors errors,
+        SchemaValidationContext context) {
+
         String tableName = assetTable.getName();
         List<String> columnNames = assetTable.getColumns();
         if (tableName != null && columnNames != null) {
-            if (tableName.equals(rootTableName)) {
-                hasRootTable = true;
-                if (!context.isValidTableColumn(rootTableName, rootColumnName)) {
-                    errors.rejectValue("schema", "InvalidRootColumn");
-                }
-            }
             // An empty list acts like a wildcard to include all columns from a table in the asset specification.
             if (columnNames.size() == 0) {
                 if (!context.isValidTable(tableName)) {
-                    errors.rejectValue("schema", "InvalidAssetTable");
+                    errors.rejectValue("schema", "InvalidAssetTable",
+                        "Invalid asset table: " + tableName);
                 }
             } else {
-                boolean anyInvalidTableColumns = columnNames.stream()
-                        .anyMatch((columnName) -> !context.isValidTableColumn(tableName, columnName));
-
-                if (anyInvalidTableColumns) {
-                    errors.rejectValue("schema", "InvalidAssetTableColumn");
-                }
+                columnNames.forEach(
+                    (columnName) -> {
+                        if (!context.isValidTableColumn(tableName, columnName)) {
+                            errors.rejectValue("schema", "InvalidAssetTableColumn",
+                                "Invalid asset table: " + tableName + " column: " + columnName);
+                        }
+                    }
+                );
             }
         }
-        return hasRootTable;
     }
 
     private void validateAsset(AssetModel asset, Errors errors, SchemaValidationContext context) {
         List<AssetTableModel> assetTables = asset.getTables();
+
         if (assetTables != null) {
-            if (assetTables.stream().noneMatch((assetTable) -> validateAssetTable(
-                    assetTable, asset.getRootTable(), asset.getRootColumn(), errors, context))) {
+            boolean hasRootTable = false;
+            for (AssetTableModel assetTable : assetTables) {
+                validateAssetTable(assetTable, errors, context);
+                if (assetTable.getName().equals(asset.getRootTable())) {
+                    if (!context.isValidTableColumn(asset.getRootTable(), asset.getRootColumn())) {
+                        errors.rejectValue("schema", "InvalidRootColumn",
+                            "Invalid root table column. Table: " + asset.getRootTable() +
+                                " Column: " + asset.getRootColumn());
+                    }
+                    hasRootTable = true;
+                }
+            }
+            if (!hasRootTable) {
                 errors.rejectValue("schema", "NoRootTable");
             }
         }
+
         List<String> follows = asset.getFollow();
         if (follows != null) {
             if (follows.stream().anyMatch(relationshipName -> !context.isValidRelationship(relationshipName))) {

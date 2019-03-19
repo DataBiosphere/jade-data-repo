@@ -606,11 +606,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
             case "FILEREF":   return LegacySQLTypeName.STRING;
             case "FLOAT":     return LegacySQLTypeName.FLOAT;
             case "INTEGER":   return LegacySQLTypeName.INTEGER;
+            case "INT64":     return LegacySQLTypeName.INTEGER;  // match the SQL type
             case "NUMERIC":   return LegacySQLTypeName.NUMERIC;
             //case "RECORD":    return LegacySQLTypeName.RECORD;
             case "STRING":    return LegacySQLTypeName.STRING;
-            // One special to match the Postgres type
-            case "TEXT":    return LegacySQLTypeName.STRING;
+            case "TEXT":      return LegacySQLTypeName.STRING;   // match the Postgres type
             case "TIME":      return LegacySQLTypeName.TIME;
             case "TIMESTAMP": return LegacySQLTypeName.TIMESTAMP;
             default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");

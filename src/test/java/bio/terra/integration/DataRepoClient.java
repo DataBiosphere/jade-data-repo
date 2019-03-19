@@ -45,41 +45,33 @@ public class DataRepoClient {
 
     public <T> DataRepoResponse<T> get(String path, Class<T> responseClass) throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        ResponseEntity<String> response = restTemplate.exchange(
-            makeUrl(path),
-            HttpMethod.GET,
-            entity,
-            String.class);
-
-        return makeDataRepoResponse(response, responseClass);
+        return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
     public <T> DataRepoResponse<T> post(String path, String json, Class<T> responseClass) throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(json, headers);
-        ResponseEntity<String> response = restTemplate.exchange(
-            makeUrl(path),
-            HttpMethod.POST,
-            entity,
-            String.class);
-
-        return makeDataRepoResponse(response, responseClass);
+        return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
 
     public DataRepoResponse<DeleteResponseModel> delete(String path) throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(headers);
+        return makeDataRepoRequest(path, HttpMethod.DELETE, entity, DeleteResponseModel.class);
+    }
+
+    private <T> DataRepoResponse<T> makeDataRepoRequest(String path,
+                                                        HttpMethod method,
+                                                        HttpEntity entity,
+                                                        Class<T> responseClass) throws Exception {
+
         ResponseEntity<String> response = restTemplate.exchange(
             makeUrl(path),
-            HttpMethod.DELETE,
+            method,
             entity,
             String.class);
 
-        return makeDataRepoResponse(response, DeleteResponseModel.class);
-    }
-
-    private <T> DataRepoResponse<T> makeDataRepoResponse(ResponseEntity<String> response,
-                                                         Class<T> responseClass) throws Exception {
         DataRepoResponse<T> drResponse = new DataRepoResponse<>();
         drResponse.setStatusCode(response.getStatusCode());
+
         if (response.getStatusCode().is2xxSuccessful()) {
             T responseObject = objectMapper.readValue(response.getBody(), responseClass);
             drResponse.setResponseObject(Optional.of(responseObject));
@@ -92,8 +84,6 @@ public class DataRepoClient {
 
         return drResponse;
     }
-
-
 
     private String makeUrl(String path) {
         return String.format("%s://%s:%s%s", testProtocol, testServer, testPort, path);

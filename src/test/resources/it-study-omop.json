@@ -668,7 +668,7 @@
                     },
                     {
                         "name": "admitted_from_concept_id",
-                        "datatype": "INT64 /*Changed from admitting_source_* */"
+                        "datatype": "INT64"
                     },
                     {
                         "name": "admitted_from_source_value",
@@ -757,7 +757,7 @@
                     },
                     {
                         "name": "modifier_source_value",
-                        "datatype": "STRING "
+                        "datatype": "STRING"
                     }
                 ]
             },
@@ -1090,11 +1090,11 @@
                     },
                     {
                         "name": "note_event_id",
-                        "datatype": "INT64 "
+                        "datatype": "INT64"
                     },
                     {
                         "name": "note_event_field_concept_id",
-                        "datatype": "INT64 "
+                        "datatype": "INT64"
                     },
                     {
                         "name": "note_date",
@@ -1166,7 +1166,7 @@
                         "datatype": "STRING"
                     },
                     {
-                        "name": "\"offset\"",
+                        "name": "snippet_offset",
                         "datatype": "STRING"
                     },
                     {
@@ -1284,11 +1284,11 @@
                     },
                     {
                         "name": "observation_event_id",
-                        "datatype": "INT64 "
+                        "datatype": "INT64"
                     },
                     {
                         "name": "obs_event_field_concept_id",
-                        "datatype": "INT64 "
+                        "datatype": "INT64"
                     },
                     {
                         "name": "value_as_datetime",
@@ -1700,7 +1700,7 @@
                     },
                     {
                         "name": "cost_event_field_concept_id",
-                        "datatype": "INT64 "
+                        "datatype": "INT64"
                     },
                     {
                         "name": "cost_concept_id",

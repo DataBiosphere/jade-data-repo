@@ -29,6 +29,7 @@ import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.time.FastDateFormat;
+import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,10 +69,12 @@ public class DatasetService {
      * @param datasetRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createDataset(DatasetRequestModel datasetRequestModel) {
+    public String createDataset(DatasetRequestModel datasetRequestModel, String token) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequestModel);
+        flightMap.put(JobMapKeys.TOKEN.getKeyName(), token);
+        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), new UserInfo().userEmail("ahaesslydev@gmail.com"));
         return stairway.submit(DatasetCreateFlight.class, flightMap);
     }
 
@@ -81,10 +84,15 @@ public class DatasetService {
      * @param id dataset id to delete
      * @returns jobId (flightId) of the job
      */
-    public String deleteDataset(String id) {
+    public String deleteDataset(UUID id, String token) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
+        // TODO talk about conventions for naming data in the input map
+        // and in the step whether to pass data from input map to steps or let each step retrieve what they need
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
         flightMap.put("id", id);
+        flightMap.put(JobMapKeys.TOKEN.getKeyName(), token);
+        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), new UserInfo().userEmail("ahaesslydev@gmail.com"));
         return stairway.submit(DatasetDeleteFlight.class, flightMap);
     }
 

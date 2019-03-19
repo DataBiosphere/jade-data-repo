@@ -134,13 +134,13 @@ public class RepositoryApiController implements RepositoryApi {
     // -- dataset --
     @Override
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
-        String jobId = datasetService.createDataset(dataset);
+        String jobId = datasetService.createDataset(dataset, getToken());
         return jobService.retrieveJob(jobId);
     }
 
     @Override
     public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
-        String jobId = datasetService.deleteDataset(id);
+        String jobId = datasetService.deleteDataset(UUID.fromString(id), getToken());
         return jobService.retrieveJob(jobId);
     }
 

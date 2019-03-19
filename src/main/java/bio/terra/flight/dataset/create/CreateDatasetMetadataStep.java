@@ -16,6 +16,8 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.springframework.http.HttpStatus;
 
+import java.util.UUID;
+
 public class CreateDatasetMetadataStep implements Step {
     private DatasetDao datasetDao;
     private DatasetService datasetService;
@@ -32,7 +34,8 @@ public class CreateDatasetMetadataStep implements Step {
                 DatasetRequestModel.class);
         try {
             Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-            datasetDao.create(dataset);
+            UUID datasetId = datasetDao.create(dataset);
+            context.getWorkingMap().put("datasetId", datasetId);
             DatasetSummary datasetSummary = datasetDao.retrieveDatasetSummary(dataset.getId());
             DatasetSummaryModel response = datasetService.makeSummaryModelFromSummary(datasetSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);

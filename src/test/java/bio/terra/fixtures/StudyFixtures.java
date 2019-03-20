@@ -77,7 +77,7 @@ public final class StudyFixtures {
 
     public static AssetModel buildAsset() {
         return new AssetModel()
-            .name("Sample")
+            .name("sample")
             .rootTable("sample")
             .rootColumn("participant_id")
             .tables(Arrays.asList(buildAssetParticipantTable(), buildAssetSampleTable()))

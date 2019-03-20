@@ -605,7 +605,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             case "DATETIME":  return LegacySQLTypeName.DATETIME;
             case "FILEREF":   return LegacySQLTypeName.STRING;
             case "FLOAT":     return LegacySQLTypeName.FLOAT;
-            case "FLOAT64":   return LegacySQLTypeName.INTEGER;  // match the SQL type
+            case "FLOAT64":   return LegacySQLTypeName.FLOAT;  // match the SQL type
             case "INTEGER":   return LegacySQLTypeName.INTEGER;
             case "INT64":     return LegacySQLTypeName.INTEGER;  // match the SQL type
             case "NUMERIC":   return LegacySQLTypeName.NUMERIC;

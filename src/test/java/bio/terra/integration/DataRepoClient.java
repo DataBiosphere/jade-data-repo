@@ -3,7 +3,7 @@ package bio.terra.integration;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,14 +20,8 @@ import java.util.Optional;
  */
 @Component
 public class DataRepoClient {
-    @Value("${integrationtest.port}")
-    private String testPort;
-
-    @Value("${integrationtest.server}")
-    private String testServer;
-
-    @Value("${integrationtest.protocol}")
-    private String testProtocol;
+    @Autowired
+    private DataRepoConfiguration dataRepoConfiguration;
 
     private RestTemplate restTemplate;
     private ObjectMapper objectMapper;
@@ -86,6 +80,10 @@ public class DataRepoClient {
     }
 
     private String makeUrl(String path) {
-        return String.format("%s://%s:%s%s", testProtocol, testServer, testPort, path);
+        return String.format("%s://%s:%s%s",
+            dataRepoConfiguration.getProtocol(),
+            dataRepoConfiguration.getServer(),
+            dataRepoConfiguration.getPort(),
+            path);
     }
 }

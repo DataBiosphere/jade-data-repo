@@ -79,6 +79,9 @@ databaseChangeLog:
               - column:
                   name: type
                   type: varchar(127)
+              - column:
+                  name: array_of
+                  type: boolean
 
         - createTable:
             tableName: dataset_source

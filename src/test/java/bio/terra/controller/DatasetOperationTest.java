@@ -72,7 +72,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Category(Connected.class)
 public class DatasetOperationTest {
-    private static final boolean deleteOnTeardown = true;
+    private static final boolean deleteOnTeardown = false;
 
 
     // TODO: MORE TESTS to be done when we can ingest data:
@@ -147,6 +147,14 @@ public class DatasetOperationTest {
         assertThat("study participants loaded properly", datasetParticipants, equalTo(1L));
         long datasetSamples = queryForCount(summaryModel.getName(), "sample");
         assertThat("study samples loaded properly", datasetSamples, equalTo(2L));
+    }
+
+    @Test
+    public void testArrayStruct() throws Exception {
+        StudySummaryModel studySummary = setupArrayStructStudy();
+        String studyName = PDAO_PREFIX + studySummary.getName();
+        System.out.println("Created array study: " + studyName);
+        // TODO: create some JSON data and load it; then create a dataset
     }
 
     @Test
@@ -228,6 +236,11 @@ public class DatasetOperationTest {
         StudySummaryModel studySummary = createTestStudy("study-minimal.json");
         loadStudyData(studySummary.getName(), "participant", "study-minimal-participant.csv");
         loadStudyData(studySummary.getName(), "sample", "study-minimal-sample.csv");
+        return  studySummary;
+    }
+
+    private StudySummaryModel setupArrayStructStudy() throws Exception {
+        StudySummaryModel studySummary = createTestStudy("study-array-struct.json");
         return  studySummary;
     }
 

@@ -262,7 +262,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         for (Column column : table.getColumns()) {
-            fieldList.add(Field.of(column.getName(), translateType(column.getType())));
+            Field fieldSpec = Field.newBuilder(column.getName(), translateType(column.getType()))
+                .setMode(column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE)
+                .build();
+
+            fieldList.add(fieldSpec);
         }
 
         return Schema.of(fieldList);

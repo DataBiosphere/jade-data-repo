@@ -92,7 +92,7 @@ public class TableDaoBase {
                                 .table(table)
                                 .name(rs.getString("name"))
                                 .type(rs.getString("type"))
-                                .arrayOf(rs.getBoolean("arrayOf")));
+                                .arrayOf(rs.getBoolean("array_of")));
         return columns;
     }
 }

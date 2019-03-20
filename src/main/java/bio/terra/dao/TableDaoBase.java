@@ -34,12 +34,12 @@ public class TableDaoBase {
                         String parentIdColumnName) {
         this.jdbcTemplate = jdbcTemplate;
         this.sqlInsertColumn = "INSERT INTO " + columnTableName +
-            " (table_id, name, type) VALUES (:table_id, :name, :type)";
+            " (table_id, name, type, array_of) VALUES (:table_id, :name, :type, :arrayOf)";
         this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, " +
             parentIdColumnName + ") VALUES (:name, :parent_id)";
         this.sqlSelectTable = "SELECT id, name FROM " + tableTableName + " WHERE " +
             parentIdColumnName + " = :parentId";
-        this.sqlSelectColumn = "SELECT id, name, type FROM " + columnTableName + " WHERE table_id = :tableId";
+        this.sqlSelectColumn = "SELECT id, name, type, array_of FROM " + columnTableName + " WHERE table_id = :tableId";
     }
 
     // Assumes transaction propagation from parent's create
@@ -63,6 +63,7 @@ public class TableDaoBase {
         for (Column column : columns) {
             params.addValue("name", column.getName());
             params.addValue("type", column.getType());
+            params.addValue("arrayOf", column.isArrayOf());
             jdbcTemplate.update(sqlInsertColumn, params, keyHolder);
             UUID columnId = keyHolder.getId();
             column.id(columnId);
@@ -90,7 +91,8 @@ public class TableDaoBase {
                                 .id(rs.getObject("id", UUID.class))
                                 .table(table)
                                 .name(rs.getString("name"))
-                                .type(rs.getString("type")));
+                                .type(rs.getString("type"))
+                                .arrayOf(rs.getBoolean("arrayOf")));
         return columns;
     }
 }

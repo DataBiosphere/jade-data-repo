@@ -105,13 +105,15 @@ public final class StudyJsonConversion {
     public static Column columnModelToStudyColumn(ColumnModel columnModel) {
         return new Column()
                 .name(columnModel.getName())
-                .type(columnModel.getDatatype());
+                .type(columnModel.getDatatype())
+                .arrayOf(columnModel.isArrayOf());
     }
 
     public static ColumnModel columnModelFromStudyColumn(Column tableColumn) {
         return new ColumnModel()
                 .name(tableColumn.getName())
-                .datatype(tableColumn.getType());
+                .datatype(tableColumn.getType())
+                .arrayOf(tableColumn.isArrayOf());
     }
 
     public static StudyRelationship relationshipModelToStudyRelationship(

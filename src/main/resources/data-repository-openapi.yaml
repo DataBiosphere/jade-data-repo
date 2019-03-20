@@ -526,7 +526,6 @@ definitions:
     required:
       - name
       - datatype
-
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
@@ -536,7 +535,7 @@ definitions:
 
       datatype:
         type: string
-      is_array:
+      array_of:
         type: boolean
         default: false
         description: if true, make this column an array of type datatype.

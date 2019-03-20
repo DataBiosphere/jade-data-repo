@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public class DatasetMapTable {
     private UUID id;
-    private StudyTable fromTable;
+    private Table fromTable;
     private Table toTable;
     private List<DatasetMapColumn> datasetMapColumns = Collections.emptyList();
 
@@ -19,11 +19,11 @@ public class DatasetMapTable {
         return this;
     }
 
-    public StudyTable getFromTable() {
+    public Table getFromTable() {
         return fromTable;
     }
 
-    public DatasetMapTable fromTable(StudyTable fromTable) {
+    public DatasetMapTable fromTable(Table fromTable) {
         this.fromTable = fromTable;
         return this;
     }

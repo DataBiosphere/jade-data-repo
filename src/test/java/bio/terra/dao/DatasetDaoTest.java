@@ -8,8 +8,6 @@ import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
 import bio.terra.metadata.Table;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.StudyJsonConversion;
@@ -122,7 +120,7 @@ public class DatasetDaoTest {
 
         // Verify map table
         DatasetMapTable mapTable = source.getDatasetMapTables().get(0);
-        StudyTable studyTable = study.getTables().get(0);
+        Table studyTable = study.getTables().get(0);
         Table datasetTable = dataset.getTables().get(0);
 
         assertThat("correct map table study table",
@@ -140,7 +138,7 @@ public class DatasetDaoTest {
         // Verify map columns
         DatasetMapColumn mapColumn = mapTable.getDatasetMapColumns().get(0);
         // Why is study columns Collection and not List?
-        StudyTableColumn studyColumn = studyTable.getColumns().iterator().next();
+        Column studyColumn = studyTable.getColumns().iterator().next();
         Column datasetColumn = datasetTable.getColumns().get(0);
 
         assertThat("correct map column study column",

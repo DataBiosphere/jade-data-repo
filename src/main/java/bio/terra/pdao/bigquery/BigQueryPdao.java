@@ -7,8 +7,6 @@ import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
 import bio.terra.metadata.Table;
 import bio.terra.pdao.PdaoException;
 import bio.terra.pdao.PrimaryDataAccess;
@@ -80,7 +78,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             createContainer(studyName, study.getDescription());
-            for (StudyTable table : study.getTables()) {
+            for (Table table : study.getTables()) {
                 createTable(studyName, table);
             }
         } catch (Exception ex) {
@@ -127,9 +125,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         // One source: grab it and navigate to the relevant parts
         AssetSpecification asset = source.getAssetSpecification();
-        StudyTableColumn column = asset.getRootColumn().getStudyColumn();
+        Column column = asset.getRootColumn().getStudyColumn();
         String studyColumnName = column.getName();
-        String studyTableName = column.getInTable().getName();
+        String studyTableName = column.getTable().getName();
         String studyDatasetName = prefixName(source.getStudy().getName());
 
         StringBuilder builder = new StringBuilder();
@@ -200,7 +198,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             // walk and populate relationship table row ids
             AssetSpecification asset = source.getAssetSpecification();
-            String rootTableId = asset.getRootTable().getStudyTable().getId().toString();
+            String rootTableId = asset.getRootTable().getTable().getId().toString();
             List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
 
             walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
@@ -248,7 +246,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private void createTable(String containerName, StudyTable table) {
+    private void createTable(String containerName, Table table) {
         TableId tableId = TableId.of(containerName, table.getName());
         Schema schema = buildSchema(table, true);
         TableDefinition tableDefinition = StandardTableDefinition.of(schema);
@@ -256,14 +254,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQuery.create(tableInfo);
     }
 
-    private Schema buildSchema(StudyTable table, boolean addRowIdColumn) {
+    private Schema buildSchema(Table table, boolean addRowIdColumn) {
         List<Field> fieldList = new ArrayList<>();
 
         if (addRowIdColumn) {
             fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         }
 
-        for (StudyTableColumn column : table.getColumns()) {
+        for (Column column : table.getColumns()) {
             fieldList.add(Field.of(column.getName(), translateType(column.getType())));
         }
 
@@ -286,7 +284,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                     DatasetSource source,
                                     List<String> rowIds) {
         AssetSpecification asset = source.getAssetSpecification();
-        StudyTable rootTable = asset.getRootTable().getStudyTable();
+        Table rootTable = asset.getRootTable().getTable();
         loadRootRowIds(datasetName, rootTable.getId().toString(), rowIds);
         validateRowIdsForRoot(studyDatasetName, datasetName, rootTable.getName(), rowIds);
     }

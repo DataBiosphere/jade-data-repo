@@ -30,12 +30,15 @@ public class TableDaoBase {
 
     public TableDaoBase(NamedParameterJdbcTemplate jdbcTemplate,
                         String tableTableName,
-                        String columnTableName) {
+                        String columnTableName,
+                        String parentIdColumnName) {
         this.jdbcTemplate = jdbcTemplate;
-        this.sqlInsertColumn = "INSERT INTO " + columnTableName + "" +
-                " (table_id, name, type) VALUES (:table_id, :name, :type)";
-        this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, parent_id) VALUES (:name, :parent_id)";
-        this.sqlSelectTable = "SELECT id, name FROM " + tableTableName + " WHERE parent_id = :parentId";
+        this.sqlInsertColumn = "INSERT INTO " + columnTableName +
+            " (table_id, name, type) VALUES (:table_id, :name, :type)";
+        this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, " +
+            parentIdColumnName + ") VALUES (:name, :parent_id)";
+        this.sqlSelectTable = "SELECT id, name FROM " + tableTableName + " WHERE " +
+            parentIdColumnName + " = :parentId";
         this.sqlSelectColumn = "SELECT id, name, type FROM " + columnTableName + " WHERE table_id = :tableId";
     }
 
@@ -68,12 +71,13 @@ public class TableDaoBase {
 
     // also retrieves columns
     public List<Table> retrieveTables(UUID parentId) {
-        List<Table> tables = jdbcTemplate.query(
-                sqlSelectTable,
-                new MapSqlParameterSource().addValue("parentId", parentId), (rs, rowNum) ->
-                        new Table()
-                                .id(rs.getObject("id", UUID.class))
-                                .name(rs.getString("name")));
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("parentId", parentId);
+
+
+        List<Table> tables = jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) ->
+                new Table()
+                        .id(rs.getObject("id", UUID.class))
+                        .name(rs.getString("name")));
         tables.forEach(table -> table.columns(retrieveColumns(table)));
         return tables;
     }

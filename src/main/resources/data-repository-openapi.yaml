@@ -536,6 +536,10 @@ definitions:
 
       datatype:
         type: string
+      is_array:
+        type: boolean
+        default: false
+        description: if true, make this column an array of type datatype.
 
   TableModel:
     description: one table in a schema

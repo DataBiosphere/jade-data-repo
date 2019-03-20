@@ -3,8 +3,8 @@ package bio.terra.pdao.bigquery;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.StudyRelationship;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
+import bio.terra.metadata.Column;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,24 +50,24 @@ public class WalkRelationship {
 
     }
 
-    public WalkRelationship fromTable(StudyTable table) {
+    public WalkRelationship fromTable(Table table) {
         this.tableNames[0] = table.getName();
         this.tableIds[0] = table.getId().toString();
         return this;
     }
 
-    public WalkRelationship fromColumn(StudyTableColumn column) {
+    public WalkRelationship fromColumn(Column column) {
         this.columnNames[0] = column.getName();
         return this;
     }
 
-    public WalkRelationship toTable(StudyTable table) {
+    public WalkRelationship toTable(Table table) {
         this.tableNames[1] = table.getName();
         this.tableIds[1] = table.getId().toString();
         return this;
     }
 
-    public WalkRelationship toColumn(StudyTableColumn column) {
+    public WalkRelationship toColumn(Column column) {
         this.columnNames[1] = column.getName();
         return this;
     }

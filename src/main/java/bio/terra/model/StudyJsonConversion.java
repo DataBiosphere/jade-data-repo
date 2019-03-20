@@ -7,8 +7,8 @@ import bio.terra.metadata.AssetTable;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudySummary;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
+import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
 import java.util.ArrayList;
@@ -24,13 +24,13 @@ public final class StudyJsonConversion {
     private StudyJsonConversion() {}
 
     public static Study studyRequestToStudy(StudyRequestModel studyRequest) {
-        Map<String, StudyTable> tablesMap = new HashMap<>();
+        Map<String, Table> tablesMap = new HashMap<>();
         Map<String, StudyRelationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         studySpecification.getTables().forEach(tableModel ->
-                tablesMap.put(tableModel.getName(), tableModelToStudyTable(tableModel)));
+                tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
         // Relationships are optional, so there might not be any here
         if (studySpecification.getRelationships() != null) {
             studySpecification.getRelationships().forEach(relationship ->
@@ -70,7 +70,7 @@ public final class StudyJsonConversion {
         return new StudySpecificationModel()
                 .tables(study.getTables()
                         .stream()
-                        .map(table -> tableModelFromStudyTable(table))
+                        .map(table -> tableModelFromTable(table))
                         .collect(Collectors.toList()))
                 .relationships(study.getRelationships()
                         .stream()
@@ -82,18 +82,18 @@ public final class StudyJsonConversion {
                         .collect(Collectors.toList()));
     }
 
-    public static StudyTable tableModelToStudyTable(TableModel tableModel) {
-        StudyTable studyTable = new StudyTable()
+    public static Table tableModelToTable(TableModel tableModel) {
+        Table studyTable = new Table()
                 .name(tableModel.getName());
         studyTable
                 .columns(tableModel.getColumns()
                         .stream()
-                        .map(columnModel -> columnModelToStudyColumn(columnModel).inTable(studyTable))
+                        .map(columnModel -> columnModelToStudyColumn(columnModel).table(studyTable))
                         .collect(Collectors.toList()));
         return studyTable;
     }
 
-    public static TableModel tableModelFromStudyTable(StudyTable studyTable) {
+    public static TableModel tableModelFromTable(Table studyTable) {
         return new TableModel()
                 .name(studyTable.getName())
                 .columns(studyTable.getColumns()
@@ -102,13 +102,13 @@ public final class StudyJsonConversion {
                         .collect(Collectors.toList()));
     }
 
-    public static StudyTableColumn columnModelToStudyColumn(ColumnModel columnModel) {
-        return new StudyTableColumn()
+    public static Column columnModelToStudyColumn(ColumnModel columnModel) {
+        return new Column()
                 .name(columnModel.getName())
                 .type(columnModel.getDatatype());
     }
 
-    public static ColumnModel columnModelFromStudyColumn(StudyTableColumn tableColumn) {
+    public static ColumnModel columnModelFromStudyColumn(Column tableColumn) {
         return new ColumnModel()
                 .name(tableColumn.getName())
                 .datatype(tableColumn.getType());
@@ -116,9 +116,9 @@ public final class StudyJsonConversion {
 
     public static StudyRelationship relationshipModelToStudyRelationship(
             RelationshipModel relationshipModel,
-            Map<String, StudyTable> tables) {
-        StudyTable fromTable = tables.get(relationshipModel.getFrom().getTable());
-        StudyTable toTable = tables.get(relationshipModel.getTo().getTable());
+            Map<String, Table> tables) {
+        Table fromTable = tables.get(relationshipModel.getFrom().getTable());
+        Table toTable = tables.get(relationshipModel.getTo().getTable());
         return new StudyRelationship()
                 .name(relationshipModel.getName())
                 .fromTable(fromTable)
@@ -133,15 +133,15 @@ public final class StudyJsonConversion {
             StudyRelationship studyRel) {
         return new RelationshipModel()
                 .name(studyRel.getName())
-                .from(relationshipTermModelFromStudyTableColumn(
+                .from(relationshipTermModelFromColumn(
                         studyRel.getFromTable(), studyRel.getFromColumn(), studyRel.getFromCardinality()))
-                .to(relationshipTermModelFromStudyTableColumn(
+                .to(relationshipTermModelFromColumn(
                         studyRel.getToTable(), studyRel.getToColumn(), studyRel.getToCardinality()));
     }
 
-    protected static RelationshipTermModel relationshipTermModelFromStudyTableColumn(
-            StudyTable table,
-            StudyTableColumn col,
+    protected static RelationshipTermModel relationshipTermModelFromColumn(
+            Table table,
+            Column col,
             CardinalityEnum cardinality) {
         return new RelationshipTermModel()
                 .table(table.getName())
@@ -150,7 +150,7 @@ public final class StudyJsonConversion {
     }
 
     public static AssetSpecification assetModelToAssetSpecification(AssetModel assetModel,
-                                                                    Map<String, StudyTable> tables,
+                                                                    Map<String, Table> tables,
                                                                     Map<String, StudyRelationship> relationships) {
         AssetSpecification spec = new AssetSpecification()
                 .name(assetModel.getName());
@@ -162,19 +162,19 @@ public final class StudyJsonConversion {
     private static List<AssetTable> processAssetTables(
             AssetSpecification spec,
             AssetModel assetModel,
-            Map<String, StudyTable> tables) {
+            Map<String, Table> tables) {
         List<AssetTable> newAssetTables = new ArrayList<>();
         assetModel.getTables().forEach(tblMod -> {
             boolean processingRootTable = false;
             String tableName = tblMod.getName();
-            StudyTable studyTable = tables.get(tableName);
+            Table studyTable = tables.get(tableName);
             //not sure if we need to set the id on the new table
             AssetTable newAssetTable = new AssetTable().studyTable(studyTable);
             if (assetModel.getRootTable().equals(tableName)) {
                 spec.rootTable(newAssetTable);
                 processingRootTable = true;
             }
-            Map<String, StudyTableColumn> allTableColumns = studyTable.getColumnsMap();
+            Map<String, Column> allTableColumns = studyTable.getColumnsMap();
             List<String> colNamesToInclude = tblMod.getColumns();
             if (colNamesToInclude.isEmpty()) {
                 colNamesToInclude = new ArrayList<>(allTableColumns.keySet());
@@ -208,7 +208,7 @@ public final class StudyJsonConversion {
                         .stream()
                         .map(table ->
                                 new AssetTableModel()
-                                        .name(table.getStudyTable().getName())
+                                        .name(table.getTable().getName())
                                         .columns(table.getColumns()
                                                 .stream()
                                                 .map(column -> column.getStudyColumn().getName())

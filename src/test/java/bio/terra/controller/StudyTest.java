@@ -5,6 +5,7 @@ import bio.terra.controller.exception.ApiException;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.fixtures.FlightStates;
+import bio.terra.fixtures.JsonLoader;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
@@ -14,7 +15,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -57,7 +57,8 @@ public class StudyTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-
+    @Autowired
+    private JsonLoader jsonLoader;
 
     private static final String testFlightId = "test-flight-id";
 
@@ -90,8 +91,7 @@ public class StudyTest {
         when(stairway.getFlightState(eq(testFlightId)))
                 .thenReturn(flightState);
 
-        ClassLoader classLoader = getClass().getClassLoader();
-        String studyJSON = IOUtils.toString(classLoader.getResourceAsStream("study-minimal.json"));
+        String studyJSON = jsonLoader.loadJson("study-minimal.json");
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(studyJSON))

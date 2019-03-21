@@ -1,6 +1,8 @@
 package bio.terra.controller;
 
 import bio.terra.category.Connected;
+import bio.terra.fixtures.JsonLoader;
+import bio.terra.fixtures.Names;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSourceModel;
@@ -48,7 +50,6 @@ import java.io.OutputStream;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -84,15 +85,14 @@ public class DatasetOperationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private BigQuery bigQuery;
     @Autowired private String projectId;
+    @Autowired private JsonLoader jsonLoader;
 
-    private ClassLoader classLoader;
     private List<String> createdDatasetIds;
     private List<String> createdStudyIds;
     private String datasetOriginalName;
 
     @Before
     public void setup() throws Exception {
-        classLoader = getClass().getClassLoader();
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
     }
@@ -233,9 +233,8 @@ public class DatasetOperationTest {
 
     // create a study to create datasets in and return its id
     private StudySummaryModel createTestStudy(String resourcePath) throws Exception {
-        String studyJson = IOUtils.toString(classLoader.getResourceAsStream(resourcePath));
-        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
-        studyRequest.setName(randomizedName(studyRequest.getName(), ""));
+        StudyRequestModel studyRequest = jsonLoader.loadObject(resourcePath, StudyRequestModel.class);
+        studyRequest.setName(Names.randomizeName(studyRequest.getName()));
 
         MvcResult result = mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -266,7 +265,7 @@ public class DatasetOperationTest {
 
         // Write data to writer
         try (OutputStream stream = Channels.newOutputStream(writer);
-             InputStream csvStream = classLoader.getResourceAsStream(resourcePath)) {
+             InputStream csvStream = jsonLoader.getClassLoader().getResourceAsStream(resourcePath)) {
             IOUtils.copy(csvStream, stream);
         }
 
@@ -286,8 +285,7 @@ public class DatasetOperationTest {
 
     private DatasetRequestModel makeDatasetTestRequest(StudySummaryModel studySummaryModel,
                                                        String resourcePath) throws Exception {
-        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream(resourcePath));
-        DatasetRequestModel datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
         datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
         return datasetRequest;
     }
@@ -295,7 +293,7 @@ public class DatasetOperationTest {
     private MockHttpServletResponse performCreateDataset(DatasetRequestModel datasetRequest, String infix)
             throws Exception {
         datasetOriginalName = datasetRequest.getName();
-        String datasetName = randomizedName(datasetOriginalName, infix);
+        String datasetName = Names.randomizeNameInfix(datasetOriginalName, infix);
         datasetRequest.setName(datasetName);
 
         String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
@@ -464,11 +462,6 @@ public class DatasetOperationTest {
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue countValue = row.get(0);
         return countValue.getLongValue();
-    }
-
-    private String randomizedName(String baseName, String infix) {
-        String name = baseName + infix + UUID.randomUUID().toString();
-        return StringUtils.replaceChars(name, '-', '_');
     }
 
 }

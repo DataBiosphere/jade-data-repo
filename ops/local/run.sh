@@ -6,6 +6,19 @@ set -e
 # - Docker (https://www.docker.com/products/docker-desktop)
 # - Homebrew (https://brew.sh/)
 
+# check to make sure vault and cloud env vars are set correctly
+# these commands below check to make sure that an environment variable is set to a non-empty thing
+: ${GOOGLE_CLOUD_PROJECT:?}
+: ${VAULT_ADDR:?}
+
+if [ -z "$VAULT_TOKEN" ]; then
+    if [ ! -f ~/.vault-token ]; then
+        echo "VAULT_TOKEN needs to be set or ~/.vault-token needs to exist"
+        exit 1
+    fi
+    export VAULT_TOKEN=$( cat ~/.vault-token )
+fi
+
 # the paths we'll use will be relative to this script
 WD=$( dirname "${BASH_SOURCE[0]}" )
 SCRATCH=/tmp/deploy-scratch
@@ -85,6 +98,6 @@ PROXY_CLUSTER_IP=$(kubectl get service oidc-proxy-service -o jsonpath='{.spec.cl
 echo "remote debug available at ${API_CLUSTER_IP}:5005"
 echo "to use the oidc proxy, add this to your /etc/hosts file:"
 echo "${PROXY_CLUSTER_IP}   local.broadinstitute.org"
-echo "about to call minikube tunnel, it will ask you for your password and then fill up your console with logs.."
+echo "about to call minikube tunnel, it will ask you for your system password and then fill up your console with logs.."
 minikube tunnel -c
 minikube tunnel

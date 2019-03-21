@@ -19,6 +19,7 @@ import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobId;
 import com.google.cloud.bigquery.JobStatus;
@@ -72,7 +73,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Category(Connected.class)
 public class DatasetOperationTest {
-    private static final boolean deleteOnTeardown = false;
+    private static final boolean deleteOnTeardown = true;
 
 
     // TODO: MORE TESTS to be done when we can ingest data:
@@ -113,7 +114,7 @@ public class DatasetOperationTest {
     @Test
     public void testHappyPath() throws Exception {
         StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
-        loadStudyData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
 
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "dataset-test-dataset.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "_happy_");
@@ -153,8 +154,22 @@ public class DatasetOperationTest {
     public void testArrayStruct() throws Exception {
         StudySummaryModel studySummary = setupArrayStructStudy();
         String studyName = PDAO_PREFIX + studySummary.getName();
-        System.out.println("Created array study: " + studyName);
-        // TODO: create some JSON data and load it; then create a dataset
+        long studyParticipants = queryForCount(studyName, "participant");
+        assertThat("study participants loaded properly", studyParticipants, equalTo(2L));
+        long studySamples = queryForCount(studyName, "sample");
+        assertThat("study samples loaded properly", studySamples, equalTo(5L));
+
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
+            "dataset-array-struct.json");
+        MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
+        DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
+        getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
+
+        long datasetParticipants = queryForCount(summaryModel.getName(), "participant");
+        assertThat("study participants loaded properly", datasetParticipants, equalTo(2L));
+        long datasetSamples = queryForCount(summaryModel.getName(), "sample");
+        assertThat("study samples loaded properly", datasetSamples, equalTo(3L));
+
     }
 
     @Test
@@ -171,7 +186,7 @@ public class DatasetOperationTest {
     @Test
     public void testEnumeration() throws Exception {
         StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
-        loadStudyData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "dataset-test-dataset.json");
 
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
@@ -206,7 +221,7 @@ public class DatasetOperationTest {
     @Test
     public void testBadData() throws Exception {
         StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
-        loadStudyData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
         DatasetRequestModel badDataRequest = makeDatasetTestRequest(studySummary,
                 "dataset-test-dataset-baddata.json");
 
@@ -234,13 +249,15 @@ public class DatasetOperationTest {
 
     private StudySummaryModel setupMinimalStudy() throws Exception {
         StudySummaryModel studySummary = createTestStudy("study-minimal.json");
-        loadStudyData(studySummary.getName(), "participant", "study-minimal-participant.csv");
-        loadStudyData(studySummary.getName(), "sample", "study-minimal-sample.csv");
+        loadCsvData(studySummary.getName(), "participant", "study-minimal-participant.csv");
+        loadCsvData(studySummary.getName(), "sample", "study-minimal-sample.csv");
         return  studySummary;
     }
 
     private StudySummaryModel setupArrayStructStudy() throws Exception {
         StudySummaryModel studySummary = createTestStudy("study-array-struct.json");
+        loadJsonData(studySummary.getName(), "participant", "study-array-struct-participant.json");
+        loadJsonData(studySummary.getName(), "sample", "study-array-struct-sample.json");
         return  studySummary;
     }
 
@@ -263,14 +280,25 @@ public class DatasetOperationTest {
         return studySummaryModel;
     }
 
-    private void loadStudyData(String studyName, String tableName, String resourcePath) throws Exception {
+    private void loadCsvData(String studyName, String tableName, String resourcePath) throws Exception {
+        FormatOptions csvOptions = CsvOptions.newBuilder().setSkipLeadingRows(1).build();
+        loadData(studyName, tableName, resourcePath, csvOptions);
+    }
+
+    private void loadJsonData(String studyName, String tableName, String resourcePath) throws Exception {
+        loadData(studyName, tableName, resourcePath, FormatOptions.json());
+    }
+
+    private void loadData(String studyName,
+                          String tableName,
+                          String resourcePath,
+                          FormatOptions options) throws Exception {
         String datasetName = PDAO_PREFIX + studyName;
-        String location = "US"; // ?? Hope this will work. It is what
+        String location = "US";
         TableId tableId = TableId.of(datasetName, tableName);
 
-        CsvOptions csvOptions = CsvOptions.newBuilder().setSkipLeadingRows(1).build();
         WriteChannelConfiguration writeChannelConfiguration =
-                WriteChannelConfiguration.newBuilder(tableId).setFormatOptions(csvOptions).build();
+            WriteChannelConfiguration.newBuilder(tableId).setFormatOptions(options).build();
 
         // The location must be specified; other fields can be auto-detected.
         JobId jobId = JobId.newBuilder().setLocation(location).build();

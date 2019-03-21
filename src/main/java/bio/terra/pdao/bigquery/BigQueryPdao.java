@@ -75,7 +75,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         try {
             // For idempotency, if we find the study exists, we assume that we started to
             // create it before and failed in the middle. We delete it and re-create it from scratch.
-            if (studyExists(studyName)) {
+            if (studyExists(study.getName())) {
                 deleteStudy(study);
             }
 

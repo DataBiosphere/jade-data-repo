@@ -42,6 +42,7 @@ before_script:
 script:
   - ./gradlew assemble
   - ./gradlew check
+  - ./gradlew testConnected
   - ./gradlew dockerPush
   - kubectl --record deployment.apps/data-repo-deployment set image
     deployment.v1.apps/data-repo-deployment

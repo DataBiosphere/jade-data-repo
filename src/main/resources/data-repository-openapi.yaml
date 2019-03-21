@@ -338,6 +338,51 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/studies/{id}/ingest':
+    post:
+      description: Ingest data into a study table
+      operationId: ingestStudy
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: ingest
+        description: Ingest request
+        schema:
+          $ref: '#/definitions/IngestRequestModel'
+      responses:
+        202:
+          description: Job status of ingest job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to ingest
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: No idea if we will generate this error code
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
   '/api/repository/v1/jobs':
     # '/api/repository/v1/jobs?offset=100&limit=50':
     get:  ## enumerate
@@ -658,6 +703,77 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/AssetModel'
+
+  ## Study Ingest Definitions ##
+  IngestRequestModel:
+    description: |
+      Request to ingest data from a file in GCS into a table in a study.
+      The ingest source must be readable by the DR manager.
+      TODO: other input forms
+    type: object
+    required:
+      - table
+      - source
+      - source_type
+    properties:
+      table:
+        $ref: '#/definitions/ObjectNameProperty'
+        description: name of the target table for ingest
+      path:
+        type: string
+        description: gs path to a file in a bucket accessible to data repo
+      format:
+        type: string
+        enum:
+          - csv
+          - json
+      load_tag:
+        type: string
+        description: |
+          client-specified tag for this load. If no id is specified, we use the
+          string form of the job create time as the tag.
+      max_bad_records:
+        type: integer
+        default: 0
+        description: max number of bad records to skip; applies to JSON and CSV
+      ignore_unknown_values:
+        type: boolean
+        default: true
+        description: skip extra data; applies to JSON and CSV
+      csv_field_delimiter:
+        type: string
+        default: ','
+        description: field separator
+      csv_skip_leading_rows:
+        type: integer
+        default: 0
+        description: number of header rows to skip
+      csv_allow_quoted_newlines:
+        type: boolean
+        default: true
+      csv_null_marker:
+        type: string
+        default: ''
+
+  IngestResponseModel:
+    description: |
+      Response from performing an ingest.
+    type: object
+    required:
+      - table
+      - path
+      - row_count
+    properties:
+      table:
+        $ref: '#/definitions/ObjectNameProperty'
+        description: name of the target table for ingest
+      path:
+        type: string
+      load_tag:
+        type: string
+      row_count:
+        type: integer
+        description: number of rows successfully ingested
 
   ## Dataset Definitions ##
 

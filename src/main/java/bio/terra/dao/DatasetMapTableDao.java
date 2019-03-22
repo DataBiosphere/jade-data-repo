@@ -6,8 +6,6 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
 import bio.terra.metadata.Table;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -72,7 +70,7 @@ public class DatasetMapTableDao {
             (rs, rowNum) -> {
                 List<DatasetMapTable> mapTables = new ArrayList<>();
                 UUID fromTableId = rs.getObject("from_table_id", UUID.class);
-                Optional<StudyTable> studyTable = source.getStudy().getTableById(fromTableId);
+                Optional<Table> studyTable = source.getStudy().getTableById(fromTableId);
                 if (!studyTable.isPresent()) {
                     throw new CorruptMetadataException(
                             "Study table referenced by dataset source map table was not found!");
@@ -98,7 +96,7 @@ public class DatasetMapTableDao {
         return mapTableList;
     }
 
-    public List<DatasetMapColumn> retrieveMapColumns(UUID mapTableId, StudyTable fromTable, Table toTable) {
+    public List<DatasetMapColumn> retrieveMapColumns(UUID mapTableId, Table fromTable, Table toTable) {
         String sql = "SELECT id, from_column_id, to_column_id" +
                 " FROM dataset_map_column WHERE map_table_id = :map_table_id";
 
@@ -107,7 +105,7 @@ public class DatasetMapTableDao {
             new MapSqlParameterSource().addValue("map_table_id", mapTableId),
             (rs, rowNum) -> {
                 UUID fromId = rs.getObject("from_column_id", UUID.class);
-                Optional<StudyTableColumn> studyColumn = fromTable.getColumnById(fromId);
+                Optional<Column> studyColumn = fromTable.getColumnById(fromId);
                 if (!studyColumn.isPresent()) {
                     throw new CorruptMetadataException(
                             "Study column referenced by dataset source map column was not found");

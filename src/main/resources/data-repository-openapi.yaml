@@ -526,7 +526,6 @@ definitions:
     required:
       - name
       - datatype
-
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
@@ -536,6 +535,10 @@ definitions:
 
       datatype:
         type: string
+      array_of:
+        type: boolean
+        default: false
+        description: if true, make this column an array of type datatype.
 
   TableModel:
     description: one table in a schema

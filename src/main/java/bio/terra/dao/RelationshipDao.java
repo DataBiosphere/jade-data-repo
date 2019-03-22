@@ -2,8 +2,8 @@ package bio.terra.dao;
 
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
+import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -59,8 +59,8 @@ public class RelationshipDao {
 
     private List<StudyRelationship> retrieveStudyRelationships(
             List<UUID> columnIds,
-            Map<UUID, StudyTable> tables,
-            Map<UUID, StudyTableColumn> columns) {
+            Map<UUID, Table> tables,
+            Map<UUID, Column> columns) {
         String sql = "SELECT id, name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column "
                 + "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);

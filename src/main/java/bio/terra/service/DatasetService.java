@@ -210,11 +210,11 @@ public class DatasetService {
                         .toColumn(column));
             }
 
-            table.name(assetTable.getStudyTable().getName())
+            table.name(assetTable.getTable().getName())
                     .columns(columnList);
             tableList.add(table);
             mapTableList.add(new DatasetMapTable()
-                    .fromTable(assetTable.getStudyTable())
+                    .fromTable(assetTable.getTable())
                     .toTable(table)
                     .datasetMapColumns(mapColumnList));
         }

@@ -8,14 +8,14 @@ import java.util.List;
 import java.util.Optional;
 
 public class AssetTable {
-    private StudyTable studyTable;
+    private Table studyTable;
     private List<AssetColumn> columns = new ArrayList<>();
 
-    public StudyTable getStudyTable() {
+    public Table getTable() {
         return studyTable;
     }
 
-    public AssetTable studyTable(StudyTable studyTable) {
+    public AssetTable studyTable(Table studyTable) {
         this.studyTable = studyTable;
         return this;
     }
@@ -29,9 +29,9 @@ public class AssetTable {
         return this;
     }
 
-    public Optional<StudyTableColumn> getStudyColumnByName(String name) {
+    public Optional<Column> getStudyColumnByName(String name) {
         for (AssetColumn assetColumn : getColumns()) {
-            StudyTableColumn studyColumn = assetColumn.getStudyColumn();
+            Column studyColumn = assetColumn.getStudyColumn();
             if (StringUtils.equals(name, studyColumn.getName())) {
                 return Optional.of(studyColumn);
             }

@@ -7,8 +7,8 @@ import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
+import bio.terra.metadata.Column;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -45,7 +45,7 @@ public class AssetDao {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("study_id", studyId);
         params.addValue("name", assetSpecification.getName());
-        params.addValue("root_table_id", assetSpecification.getRootTable().getStudyTable().getId());
+        params.addValue("root_table_id", assetSpecification.getRootTable().getTable().getId());
         params.addValue("root_column_id", assetSpecification.getRootColumn().getStudyColumn().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
@@ -93,8 +93,8 @@ public class AssetDao {
 
     // also retrieves dependent objects
     public List<AssetSpecification> retrieveAssetSpecifications(Study study) {
-        Map<UUID, StudyTable> allTables = study.getTablesById();
-        Map<UUID, StudyTableColumn> allColumns = study.getAllColumnsById();
+        Map<UUID, Table> allTables = study.getTablesById();
+        Map<UUID, Column> allColumns = study.getAllColumnsById();
         Map<UUID, StudyRelationship> allRelationships = study.getRelationshipsById();
 
         String sql = "SELECT id, name, root_table_id, root_column_id FROM asset_specification WHERE study_id = " +
@@ -123,8 +123,8 @@ public class AssetDao {
     private Collection<AssetTable> retrieveAssetTablesAndColumns(AssetSpecification spec,
                                                                  UUID rootTableId,
                                                                  UUID rootColumnId,
-                                                                 Map<UUID, StudyTable> allTables,
-                                                                 Map<UUID, StudyTableColumn> allColumns) {
+                                                                 Map<UUID, Table> allTables,
+                                                                 Map<UUID, Column> allColumns) {
         Map<UUID, AssetTable> tables = new HashMap<>();
         String sql = "SELECT asset_column.id, asset_column.study_column_id, study_column.table_id " +
                 "FROM asset_column " +

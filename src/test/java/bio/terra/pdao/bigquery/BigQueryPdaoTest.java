@@ -2,8 +2,8 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
-import bio.terra.metadata.StudyTableColumn;
+import bio.terra.metadata.Table;
+import bio.terra.metadata.Column;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
@@ -57,24 +57,24 @@ public class BigQueryPdaoTest {
     }
 
     private Study makeStudy(String studyName) {
-        StudyTableColumn col1 = new StudyTableColumn().name("col1").type("string");
-        StudyTableColumn col2 = new StudyTableColumn().name("col2").type("string");
-        StudyTableColumn col3 = new StudyTableColumn().name("col3").type("string");
-        StudyTableColumn col4 = new StudyTableColumn().name("col4").type("string");
+        Column col1 = new Column().name("col1").type("string");
+        Column col2 = new Column().name("col2").type("string");
+        Column col3 = new Column().name("col3").type("string");
+        Column col4 = new Column().name("col4").type("string");
 
-        List<StudyTableColumn> table1Columns = new ArrayList<>();
+        List<Column> table1Columns = new ArrayList<>();
         table1Columns.add(col1);
         table1Columns.add(col2);
-        StudyTable table1 = new StudyTable().name("table1").columns(table1Columns);
+        Table table1 = new Table().name("table1").columns(table1Columns);
 
-        List<StudyTableColumn> table2Columns = new ArrayList<>();
+        List<Column> table2Columns = new ArrayList<>();
         table2Columns.add(col4);
         table2Columns.add(col3);
         table2Columns.add(col2);
         table2Columns.add(col1);
-        StudyTable table2 = new StudyTable().name("table2").columns(table2Columns);
+        Table table2 = new Table().name("table2").columns(table2Columns);
 
-        List<StudyTable> tables = new ArrayList<>();
+        List<Table> tables = new ArrayList<>();
         tables.add(table1);
         tables.add(table2);
 

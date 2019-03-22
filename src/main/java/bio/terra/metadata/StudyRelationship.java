@@ -8,11 +8,11 @@ public class StudyRelationship {
 
     private UUID id;
     private String name;
-    private StudyTableColumn fromColumn;
-    private StudyTable fromTable;
+    private Column fromColumn;
+    private Table fromTable;
     private CardinalityEnum fromCardinality;
-    private StudyTableColumn toColumn;
-    private StudyTable toTable;
+    private Column toColumn;
+    private Table toTable;
     private CardinalityEnum toCardinality;
 
     public UUID getId() {
@@ -33,20 +33,20 @@ public class StudyRelationship {
         return this;
     }
 
-    public StudyTable getFromTable() {
+    public Table getFromTable() {
         return fromTable;
     }
 
-    public StudyRelationship fromTable(StudyTable fromTable) {
+    public StudyRelationship fromTable(Table fromTable) {
         this.fromTable = fromTable;
         return this;
     }
 
-    public StudyTableColumn getFromColumn() {
+    public Column getFromColumn() {
         return fromColumn;
     }
 
-    public StudyRelationship fromColumn(StudyTableColumn from) {
+    public StudyRelationship fromColumn(Column from) {
         this.fromColumn = from;
         return this;
     }
@@ -60,20 +60,20 @@ public class StudyRelationship {
         return this;
     }
 
-    public StudyTable getToTable() {
+    public Table getToTable() {
         return toTable;
     }
 
-    public StudyRelationship toTable(StudyTable toTable) {
+    public StudyRelationship toTable(Table toTable) {
         this.toTable = toTable;
         return this;
     }
 
-    public StudyTableColumn getToColumn() {
+    public Column getToColumn() {
         return toColumn;
     }
 
-    public StudyRelationship toColumn(StudyTableColumn to) {
+    public StudyRelationship toColumn(Column to) {
         this.toColumn = to;
         return this;
     }

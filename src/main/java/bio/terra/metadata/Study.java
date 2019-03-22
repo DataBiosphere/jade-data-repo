@@ -11,7 +11,7 @@ import java.util.UUID;
 
 public class Study extends StudySummary {
 
-    private List<StudyTable> tables = Collections.emptyList();
+    private List<Table> tables = Collections.emptyList();
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
@@ -22,11 +22,11 @@ public class Study extends StudySummary {
         super(summary);
     }
 
-    public List<StudyTable> getTables() {
+    public List<Table> getTables() {
         return tables;
     }
 
-    public Study tables(List<StudyTable> tables) {
+    public Study tables(List<Table> tables) {
         this.tables = Collections.unmodifiableList(tables);
         return this;
     }
@@ -67,14 +67,14 @@ public class Study extends StudySummary {
         return Optional.empty();
     }
 
-    public Map<UUID, StudyTableColumn> getAllColumnsById() {
-        Map<UUID, StudyTableColumn> columns = new HashMap<>();
+    public Map<UUID, Column> getAllColumnsById() {
+        Map<UUID, Column> columns = new HashMap<>();
         getTables().forEach(table -> table.getColumns().forEach(column -> columns.put(column.getId(), column)));
         return columns;
     }
 
-    public Map<UUID, StudyTable> getTablesById() {
-        Map<UUID, StudyTable> tables = new HashMap<>();
+    public Map<UUID, Table> getTablesById() {
+        Map<UUID, Table> tables = new HashMap<>();
         getTables().forEach(table -> tables.put(table.getId(), table));
         return tables;
     }
@@ -85,8 +85,8 @@ public class Study extends StudySummary {
         return relationships;
     }
 
-    public Optional<StudyTable> getTableById(UUID id) {
-        for (StudyTable tryTable : getTables()) {
+    public Optional<Table> getTableById(UUID id) {
+        for (Table tryTable : getTables()) {
             if (tryTable.getId().equals(id)) {
                 return Optional.of(tryTable);
             }

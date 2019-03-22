@@ -7,6 +7,7 @@ public class Column {
     private Table table;
     private String name;
     private String type;
+    private boolean arrayOf;
 
     public UUID getId() {
         return id;
@@ -41,6 +42,15 @@ public class Column {
 
     public Column type(String type) {
         this.type = type;
+        return this;
+    }
+
+    public boolean isArrayOf() {
+        return arrayOf;
+    }
+
+    public Column arrayOf(boolean arrayOf) {
+        this.arrayOf = arrayOf;
         return this;
     }
 }

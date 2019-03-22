@@ -5,7 +5,7 @@ import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
-import bio.terra.metadata.StudyTable;
+import bio.terra.metadata.Table;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -144,15 +144,15 @@ public class StudyDaoTest {
             UUID fromUUID = jdbcTemplate.queryForObject(sqlFrom, params, UUID.class);
             assertThat("from table id in DB matches that in retrieved object",
                     fromUUID,
-                    equalTo(rel.getFromColumn().getInTable().getId()));
+                    equalTo(rel.getFromColumn().getTable().getId()));
             UUID toUUID = jdbcTemplate.queryForObject(sqlTo, params, UUID.class);
             assertThat("to table id in DB matches that in retrieved object",
                     toUUID,
-                    equalTo(rel.getToColumn().getInTable().getId()));
+                    equalTo(rel.getToColumn().getTable().getId()));
         });
     }
 
-    protected void assertStudyTable(StudyTable table) {
+    protected void assertStudyTable(Table table) {
         if (table.getName().equals("participant")) {
             assertThat("participant table has 4 columns",
                     table.getColumns().size(),
@@ -174,7 +174,7 @@ public class StudyDaoTest {
                     spec.getAssetTables().size(),
                     equalTo(2));
             assertThat("participant is the root table for Trio",
-                    spec.getRootTable().getStudyTable().getName(),
+                    spec.getRootTable().getTable().getName(),
                     equalTo("participant"));
             assertThat("participant asset table has only 3 columns",
                     spec.getRootTable().getColumns().size(),
@@ -190,7 +190,7 @@ public class StudyDaoTest {
                     spec.getAssetTables().size(),
                     equalTo(2));
             assertThat("sample is the root table",
-                    spec.getRootTable().getStudyTable().getName(),
+                    spec.getRootTable().getTable().getName(),
                     equalTo("sample"));
             assertThat("and 3 columns",
                     spec.getRootTable().getColumns().size(),

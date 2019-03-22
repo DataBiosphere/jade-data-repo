@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class DatasetMapColumn {
     private UUID id;
-    private StudyTableColumn fromColumn;
+    private Column fromColumn;
     private Column toColumn;
 
     public UUID getId() {
@@ -16,11 +16,11 @@ public class DatasetMapColumn {
         return this;
     }
 
-    public StudyTableColumn getFromColumn() {
+    public Column getFromColumn() {
         return fromColumn;
     }
 
-    public DatasetMapColumn fromColumn(StudyTableColumn fromColumn) {
+    public DatasetMapColumn fromColumn(Column fromColumn) {
         this.fromColumn = fromColumn;
         return this;
     }

@@ -24,13 +24,13 @@ import java.util.UUID;
 public class StudyDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final TableDao tableDao;
+    private final StudyTableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
 
     @Autowired
     public StudyDao(NamedParameterJdbcTemplate jdbcTemplate,
-                    TableDao tableDao,
+                    StudyTableDao tableDao,
                     RelationshipDao relationshipDao,
                     AssetDao assetDao) {
         this.jdbcTemplate = jdbcTemplate;
@@ -50,7 +50,7 @@ public class StudyDao {
         UUID studyId = keyHolder.getId();
         study.id(studyId);
         study.createdDate(keyHolder.getCreatedDate());
-        tableDao.createStudyTables(study);
+        tableDao.createTables(study.getId(), study.getTables());
         relationshipDao.createStudyRelationships(study);
         assetDao.createAssets(study);
         return studyId;
@@ -85,7 +85,7 @@ public class StudyDao {
         try {
             if (summary != null) {
                 study = new Study(summary);
-                tableDao.retrieve(study);
+                study.tables(tableDao.retrieveTables(study.getId()));
                 relationshipDao.retrieve(study);
                 assetDao.retrieve(study);
             }

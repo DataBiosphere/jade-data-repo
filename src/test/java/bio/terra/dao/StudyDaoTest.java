@@ -185,7 +185,7 @@ public class StudyDaoTest {
         } else {
             assertThat("other asset created is Sample",
                     spec.getName(),
-                    equalTo("Sample"));
+                    equalTo("sample"));
             assertThat("Sample asset has 2 tables",
                     spec.getAssetTables().size(),
                     equalTo(2));

@@ -78,6 +78,9 @@ kubectl apply -f "${WD}/services/psql-service.yaml"
 cat "${WD}/../../db/create-data-repo-db" | \
     kubectl run psql -i --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service -U postgres
 
+# prepare the code to be dockerized
+${WD}/../../gradlew dockerPrepare
+
 # build the debuggable api container
 docker build -t data-repo-debug -f "${WD}/Dockerfile.debug" "${WD}/../.."
 
@@ -95,9 +98,13 @@ rm -r $SCRATCH
 # finally, set up a tunnel to allow remote debugging and output the new entry for /etc/hosts
 API_CLUSTER_IP=$(kubectl get service api-service -o jsonpath='{.spec.clusterIP}')
 PROXY_CLUSTER_IP=$(kubectl get service oidc-proxy-service -o jsonpath='{.spec.clusterIP}')
+echo
 echo "remote debug available at ${API_CLUSTER_IP}:5005"
+echo
 echo "to use the oidc proxy, add this to your /etc/hosts file:"
-echo "${PROXY_CLUSTER_IP}   local.broadinstitute.org"
+echo "${PROXY_CLUSTER_IP}   mini.broadinstitute.org"
+echo
 echo "about to call minikube tunnel, it will ask you for your system password and then fill up your console with logs.."
+echo
 minikube tunnel -c
 minikube tunnel

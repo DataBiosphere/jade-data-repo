@@ -17,11 +17,11 @@ spec:
       - name: PROXY_URL3
         value: 'http://api-service:8080/register'
       - name: CALLBACK_URI
-        value: 'https://local.broadinstitute.org/oauth2callback'
+        value: 'https://mini.broadinstitute.org/oauth2callback'
       - name: LOG_LEVEL
         value: 'debug'
       - name: SERVER_NAME
-        value: 'local.broadinstitute.org'
+        value: 'mini.broadinstitute.org'
       - name: REMOTE_USER_CLAIM
         value: 'sub'
       - name: ENABLE_STACKDRIVER

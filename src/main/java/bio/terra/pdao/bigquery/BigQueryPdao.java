@@ -1,5 +1,7 @@
 package bio.terra.pdao.bigquery;
 
+import bio.terra.flight.exception.IngestFailureException;
+import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.DatasetMapColumn;
@@ -8,20 +10,27 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoException;
+import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.InsertAllRequest;
 import com.google.cloud.bigquery.InsertAllResponse;
+import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
+import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
@@ -37,6 +46,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -215,6 +225,118 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
         return deleteContainer(dataset.getName());
     }
+
+    // Create a staging table for loading data
+    public void createStagingTable(String studyName,
+                                   Table targetTable,
+                                   String stagingTableName) {
+        String containerName = prefixName(studyName);
+        createTable(containerName, targetTable, stagingTableName);
+    }
+
+    // Load data
+    public PdaoLoadStatistics loadToStagingTable(Study study,
+                                                 Table targetTable,
+                                                 String stagingTableName,
+                                                 IngestRequestModel ingestRequest) {
+
+        TableId tableId = TableId.of(prefixName(study.getName()), stagingTableName);
+        Schema schema = buildSchema(targetTable, false); // Source does not have row_id
+        LoadJobConfiguration configuration =
+            LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
+                .setFormatOptions(buildFormatOptions(ingestRequest))
+                .setMaxBadRecords(
+                    (ingestRequest.getMaxBadRecords() == null) ? Integer.valueOf(0)
+                        : ingestRequest.getMaxBadRecords())
+                .setNullMarker(
+                    (ingestRequest.getCsvNullMarker() == null) ? ""
+                        : ingestRequest.getCsvNullMarker())
+                .setIgnoreUnknownValues(
+                    (ingestRequest.isIgnoreUnknownValues() == null) ? Boolean.TRUE
+                        : ingestRequest.isIgnoreUnknownValues())
+                .setSchema(schema) // docs say this is for target, but CLI provides one for the source
+                .setCreateDisposition(JobInfo.CreateDisposition.CREATE_NEVER)
+                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE)
+                .build();
+
+        Job loadJob = bigQuery.create(JobInfo.of(configuration));
+        try {
+            loadJob = loadJob.waitFor();
+            if (loadJob.getStatus() == null) {
+                throw new PdaoException("Unexpected return from BigQuery job - no getStatus()");
+            }
+        } catch (InterruptedException ex) {
+            // Someone is shutting down the application
+            Thread.currentThread().interrupt();
+            throw new IngestInterruptedException("Ingest was interrupted");
+        }
+
+        if (loadJob.getStatus().getError() != null) {
+            // TODO: DR-263:
+            //List<BigQueryError> errors = loadJob.getStatus().getExecutionErrors();
+            // For now, we just throw an error based on the last error reported from the
+            // load job.
+            // TODO: also, understand what reasons are. Some might be retryable by Stairway.
+            // Others are not, like bad input data.
+            BigQueryError lastError = loadJob.getStatus().getError();
+            throw new IngestFailureException("Ingest failed: " + lastError.toString());
+        }
+
+        // Job completed successfully
+        JobStatistics.LoadStatistics loadStatistics = loadJob.getStatistics();
+
+        PdaoLoadStatistics pdaoLoadStatistics = new PdaoLoadStatistics()
+            .badRecords(loadStatistics.getBadRecords())
+            .rowCount(loadStatistics.getOutputRows())
+            .startTime(Instant.ofEpochMilli(loadStatistics.getStartTime()))
+            .endTime(Instant.ofEpochMilli(loadStatistics.getEndTime()));
+        return pdaoLoadStatistics;
+    }
+
+    private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
+        FormatOptions options;
+        switch (ingestRequest.getFormat()) {
+            case CSV:
+                CsvOptions csvDefaults = FormatOptions.csv();
+
+                options = CsvOptions.newBuilder()
+                    .setFieldDelimiter(
+                        ingestRequest.getCsvFieldDelimiter() == null ? csvDefaults.getFieldDelimiter()
+                            : ingestRequest.getCsvFieldDelimiter())
+                    .setQuote(
+                        ingestRequest.getCsvQuote() == null ? csvDefaults.getQuote()
+                            : ingestRequest.getCsvQuote())
+                    .setSkipLeadingRows(
+                        ingestRequest.getCsvSkipLeadingRows() == null ? csvDefaults.getSkipLeadingRows()
+                            : ingestRequest.getCsvSkipLeadingRows())
+                    .setAllowQuotedNewLines(
+                        ingestRequest.isCsvAllowQuotedNewlines() == null ? csvDefaults.allowQuotedNewLines()
+                            : ingestRequest.isCsvAllowQuotedNewlines())
+                    .build();
+                break;
+
+            case JSON:
+                options = FormatOptions.json();
+                break;
+
+            default:
+                throw new PdaoException("Invalid format option: " + ingestRequest.getFormat());
+        }
+        return options;
+    }
+
+
+
+    public boolean deleteTable(String studyName, String tableName) {
+        try {
+            TableId tableId = TableId.of(projectId, prefixName(studyName), tableName);
+            return bigQuery.delete(tableId);
+        } catch (Exception ex) {
+            throw new PdaoException("Failed attempt delete of study: " +
+                studyName + " table: " + tableName, ex);
+        }
+    }
+
 
     private boolean existenceCheck(String name) {
         try {

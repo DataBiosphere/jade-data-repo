@@ -744,6 +744,10 @@ definitions:
         type: string
         default: ','
         description: field separator
+      csv_quote:
+        type: string
+        default: '"'
+        description: quoting character
       csv_skip_leading_rows:
         type: integer
         default: 0
@@ -773,7 +777,12 @@ definitions:
         type: string
       row_count:
         type: integer
+        format: int64
         description: number of rows successfully ingested
+      bad_row_count:
+        type: integer
+        format: int64
+        description: number of bad rows skipped
 
   ## Dataset Definitions ##
 

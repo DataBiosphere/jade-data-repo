@@ -5,6 +5,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
@@ -13,6 +14,7 @@ import bio.terra.service.DatasetService;
 import bio.terra.service.JobService;
 import bio.terra.service.StudyService;
 import bio.terra.validation.DatasetRequestValidator;
+import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +43,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final StudyService studyService;
     private final DatasetRequestValidator datasetRequestValidator;
     private final DatasetService datasetService;
+    private final IngestRequestValidator ingestRequestValidator;
 
     @Autowired
     public RepositoryApiController(
@@ -50,7 +53,8 @@ public class RepositoryApiController implements RepositoryApi {
             StudyRequestValidator studyRequestValidator,
             StudyService studyService,
             DatasetRequestValidator datasetRequestValidator,
-            DatasetService datasetService
+            DatasetService datasetService,
+            IngestRequestValidator ingestRequestValidator
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -59,12 +63,14 @@ public class RepositoryApiController implements RepositoryApi {
         this.studyService = studyService;
         this.datasetRequestValidator = datasetRequestValidator;
         this.datasetService = datasetService;
+        this.ingestRequestValidator = ingestRequestValidator;
     }
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
         binder.addValidators(studyRequestValidator);
         binder.addValidators(datasetRequestValidator);
+        binder.addValidators(ingestRequestValidator);
     }
 
     @Override
@@ -108,6 +114,12 @@ public class RepositoryApiController implements RepositoryApi {
         }
 
         return new ResponseEntity<>(studyService.enumerate(offset, limit), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
+                                                @Valid @RequestBody IngestRequestModel ingest) {
+        return null;
     }
 
     // -- dataset --

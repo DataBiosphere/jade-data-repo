@@ -93,4 +93,14 @@ public class Study extends StudySummary {
         }
         return Optional.empty();
     }
+
+    public Optional<StudyTable> getTableByName(String name) {
+        for (StudyTable tryTable : getTables()) {
+            if (StringUtils.equals(tryTable.getName(), name)) {
+                return Optional.of(tryTable);
+            }
+        }
+        return Optional.empty();
+    }
+
 }

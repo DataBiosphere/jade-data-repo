@@ -293,6 +293,69 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return pdaoLoadStatistics;
     }
 
+    public void addRowIdsToStagingTable(Study study, String stagingTableName) {
+        /*
+         * UPDATE `project.dataset.stagingtable`
+         * SET datarepo_row_id = GENERATE_UUID()
+         * WHERE datarepo_row_id IS NULL
+         */
+        StringBuilder sql = new StringBuilder();
+        sql.append("UPDATE ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(study.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append(" SET ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" = GENERATE_UUID() WHERE ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" IS NULL");
+
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql.toString()).build();
+            bigQuery.query(queryConfig);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException("Update staging table unexpectedly interrupted", e);
+        }
+    }
+
+    public void insertIntoStudyTable(Study study,
+                                     StudyTable targetTable,
+                                     String stagingTableName) {
+        /*
+         * INSERT INTO `project.dataset.studytable`
+         * (<column names...>)
+         * SELECT <column names...>
+         * FROM `project.dataset.studytable`
+         */
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(study.getName()))
+            .append(".")
+            .append(targetTable.getName())
+            .append(" (");
+        buildColumnList(sql, targetTable);
+
+        /*
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" = GENERATE_UUID() WHERE ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" IS NULL");
+         */
+
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql.toString()).build();
+            bigQuery.query(queryConfig);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException("Update staging table unexpectedly interrupted", e);
+        }
+    }
+
     private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
         FormatOptions options;
         switch (ingestRequest.getFormat()) {

@@ -20,6 +20,8 @@ public class StudyIngestFlight extends Flight {
         addStep(new IngestCreateStagingTableStep(studyDao, bigQueryPdao));
         addStep(new IngestLoadTableStep(studyDao, bigQueryPdao));
         addStep(new IngestRowIdsStep(studyDao, bigQueryPdao));
+        addStep(new IngestInsertIntoStudyTableStep(studyDao, bigQueryPdao));
+        addStep(new IngestCleanupStep(studyDao, bigQueryPdao));
     }
 
 }

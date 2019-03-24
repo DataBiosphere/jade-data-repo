@@ -338,21 +338,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(prefixName(study.getName()))
             .append(".")
             .append(targetTable.getName())
-            .append(" (");
+            .append("` (");
         buildColumnList(sql, targetTable);
-
-        /*
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" = GENERATE_UUID() WHERE ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" IS NULL");
-         */
+        sql.append(") SELECT ");
+        buildColumnList(sql, targetTable);
+        sql.append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(study.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append("`");
 
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql.toString()).build();
             bigQuery.query(queryConfig);
         } catch (InterruptedException e) {
-            throw new IllegalStateException("Update staging table unexpectedly interrupted", e);
+            throw new IllegalStateException("Insert staging into study table unexpectedly interrupted", e);
         }
     }
 

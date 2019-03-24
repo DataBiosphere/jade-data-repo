@@ -4,7 +4,7 @@ import bio.terra.dao.StudyDao;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.flight.exception.TableNotFoundException;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
+import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.service.JobMapKeys;
@@ -56,9 +56,9 @@ public final class IngestUtils {
         return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
     }
 
-    public static StudyTable getStudyTable(FlightContext context, Study study) {
+    public static Table getStudyTable(FlightContext context, Study study) {
         IngestRequestModel ingestRequest = getIngestRequestModel(context);
-        Optional<StudyTable> optTable = study.getTableByName(ingestRequest.getTable());
+        Optional<Table> optTable = study.getTableByName(ingestRequest.getTable());
         if (!optTable.isPresent()) {
             throw new TableNotFoundException("Table not found: " + ingestRequest.getTable());
         }

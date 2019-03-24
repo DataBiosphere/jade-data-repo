@@ -1,7 +1,6 @@
 package bio.terra.flight.study.ingest;
 
 import bio.terra.dao.StudyDao;
-import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -18,9 +17,7 @@ public class IngestCleanupStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = IngestUtils.getStudy(context, studyDao);
-        String stagingTableName = IngestUtils.getStagingTableName(context);
-        bigQueryPdao.deleteTable(study.getName(), stagingTableName);
+        IngestUtils.deleteStagingTable(context, bigQueryPdao);
         return StepResult.getStepResultSuccess();
     }
 

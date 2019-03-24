@@ -7,6 +7,7 @@ import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
+import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -64,6 +65,13 @@ public final class IngestUtils {
         }
         return optTable.get();
     }
+
+    public static boolean deleteStagingTable(FlightContext context, BigQueryPdao bigQueryPdao) {
+        String studyName = IngestUtils.getStudyName(context);
+        String stagingTableName = IngestUtils.getStagingTableName(context);
+        return bigQueryPdao.deleteTable(studyName, stagingTableName);
+    }
+
 
     public static GsUrlParts parseBlobUri(String uri) {
         String protocol = "gs://";

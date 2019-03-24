@@ -2,7 +2,7 @@ package bio.terra.flight.study.ingest;
 
 import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
+import bio.terra.metadata.Table;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -20,7 +20,7 @@ public class IngestCreateStagingTableStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         Study study = IngestUtils.getStudy(context, studyDao);
-        StudyTable targetTable = IngestUtils.getStudyTable(context, study);
+        Table targetTable = IngestUtils.getStudyTable(context, study);
 
         String stagingTableName = IngestUtils.getStagingTableName(context);
         bigQueryPdao.createStagingTable(study.getName(), targetTable, stagingTableName);
@@ -30,9 +30,7 @@ public class IngestCreateStagingTableStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        String studyName = IngestUtils.getStudyName(context);
-        String stagingTableName = IngestUtils.getStagingTableName(context);
-        bigQueryPdao.deleteTable(studyName, stagingTableName);
+        IngestUtils.deleteStagingTable(context, bigQueryPdao);
         return StepResult.getStepResultSuccess();
     }
 }

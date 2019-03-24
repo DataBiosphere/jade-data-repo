@@ -11,6 +11,7 @@ import java.util.Optional;
  * The object contains:
  * <ul>
  *     <li>status code from the response</li>
+ *     <li>location header, if any, from the response</li>
  *     <li>if the status code is success, then it will contain the deserialized object of class T</li>
  *     <li>if the status code is failure, then it will contain the deserialized object of ErrorModel</li>
  * </ul>
@@ -18,6 +19,7 @@ import java.util.Optional;
  */
 public class DataRepoResponse<T> {
     private HttpStatus statusCode;
+    private Optional<String> locationHeader;
     private Optional<ErrorModel> errorModel;
     private Optional<T> responseObject;
 
@@ -43,5 +45,13 @@ public class DataRepoResponse<T> {
 
     public void setResponseObject(Optional<T> responseObject) {
         this.responseObject = responseObject;
+    }
+
+    public Optional<String> getLocationHeader() {
+        return locationHeader;
+    }
+
+    public void setLocationHeader(Optional<String> locationHeader) {
+        this.locationHeader = locationHeader;
     }
 }

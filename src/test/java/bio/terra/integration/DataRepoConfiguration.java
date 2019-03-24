@@ -11,6 +11,7 @@ public class DataRepoConfiguration {
     private String port;
     private String server;
     private String protocol;
+    private String ingestbucket;
 
     public String getPort() {
         return port;
@@ -24,6 +25,10 @@ public class DataRepoConfiguration {
         return protocol;
     }
 
+    public String getIngestbucket() {
+        return ingestbucket;
+    }
+
     public void setPort(String port) {
         this.port = port;
     }
@@ -34,5 +39,9 @@ public class DataRepoConfiguration {
 
     public void setProtocol(String protocol) {
         this.protocol = protocol;
+    }
+
+    public void setIngestbucket(String ingestbucket) {
+        this.ingestbucket = ingestbucket;
     }
 }

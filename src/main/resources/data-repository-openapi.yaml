@@ -713,8 +713,8 @@ definitions:
     type: object
     required:
       - table
-      - source
-      - source_type
+      - path
+      - format
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'

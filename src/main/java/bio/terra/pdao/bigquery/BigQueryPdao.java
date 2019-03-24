@@ -89,7 +89,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             createContainer(studyName, study.getDescription());
             for (Table table : study.getTables()) {
-                createTable(studyName, table);
+                createTable(studyName, table, table.getName());
             }
         } catch (Exception ex) {
             throw new PdaoException("create study failed for " + studyName, ex);
@@ -322,7 +322,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public void insertIntoStudyTable(Study study,
-                                     StudyTable targetTable,
+                                     Table targetTable,
                                      String stagingTableName) {
         /*
          * INSERT INTO `project.dataset.studytable`
@@ -431,8 +431,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private void createTable(String containerName, Table table) {
-        TableId tableId = TableId.of(containerName, table.getName());
+    private void createTable(String containerName, Table table, String tableName) {
+        TableId tableId = TableId.of(containerName, tableName);
         Schema schema = buildSchema(table, true);
         TableDefinition tableDefinition = StandardTableDefinition.of(schema);
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();

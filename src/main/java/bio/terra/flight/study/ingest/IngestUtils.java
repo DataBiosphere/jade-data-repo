@@ -44,10 +44,9 @@ public final class IngestUtils {
         }
     }
 
-
     public static Study getStudy(FlightContext context, StudyDao studyDao) {
         FlightMap inputParameters = context.getInputParameters();
-        String id = inputParameters.get("id", String.class);
+        String id = inputParameters.get(IngestMapKeys.STUDY_ID, String.class);
         UUID studyId = UUID.fromString(id);
         return studyDao.retrieve(studyId);
     }
@@ -93,32 +92,32 @@ public final class IngestUtils {
 
     public static void putStagingTableName(FlightContext context, String name) {
         FlightMap workingMap = context.getWorkingMap();
-        workingMap.put("stagingTableName", name);
+        workingMap.put(IngestMapKeys.STAGING_TABLE_NAME, name);
     }
 
     public static String getStagingTableName(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        return workingMap.get("stagingTableName", String.class);
+        return workingMap.get(IngestMapKeys.STAGING_TABLE_NAME, String.class);
     }
 
     public static void putStudyName(FlightContext context, String name) {
         FlightMap workingMap = context.getWorkingMap();
-        workingMap.put("studyName", name);
+        workingMap.put(IngestMapKeys.STUDY_NAME, name);
     }
 
     public static String getStudyName(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        return workingMap.get("studyName", String.class);
+        return workingMap.get(IngestMapKeys.STUDY_NAME, String.class);
     }
 
     public static void putIngestStatistics(FlightContext context, PdaoLoadStatistics statistics) {
         FlightMap workingMap = context.getWorkingMap();
-        workingMap.put("ingestStatistics", statistics);
+        workingMap.put(IngestMapKeys.INGEST_STATISTICS, statistics);
     }
 
     public static PdaoLoadStatistics getIngestStatistics(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        return workingMap.get("ingestStatistics", PdaoLoadStatistics.class);
+        return workingMap.get(IngestMapKeys.INGEST_STATISTICS, PdaoLoadStatistics.class);
     }
 
 }

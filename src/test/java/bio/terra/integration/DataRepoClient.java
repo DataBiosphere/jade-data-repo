@@ -12,7 +12,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import java.net.URI;
 import java.util.Arrays;
@@ -64,26 +63,26 @@ public class DataRepoClient {
 
                 // TODO: tune this. Maybe use exponential backoff?
                 TimeUnit.SECONDS.sleep(10);
-                jobModelResponse = post(location, "{}", JobModel.class);
+                jobModelResponse = get(location, JobModel.class);
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new InvalidStateException("unexpected interrupt waiting for response");
+            throw new IllegalStateException("unexpected interrupt waiting for response");
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
-            throw new InvalidStateException("unexpected interrupt waiting for response");
+            throw new IllegalStateException("unexpected interrupt waiting for response");
         }
 
         String location = getLocationHeader(jobModelResponse);
-        DataRepoResponse<T> resultResponse = post(location, "{}", responseClass);
+        DataRepoResponse<T> resultResponse = get(location, responseClass);
 
         return resultResponse;
     }
 
     private String getLocationHeader(DataRepoResponse<JobModel> jobModelResponse) {
         if (!jobModelResponse.getLocationHeader().isPresent()) {
-            throw new InvalidStateException("No location header present!");
+            throw new IllegalStateException("No location header present!");
         }
         return jobModelResponse.getLocationHeader().get();
     }

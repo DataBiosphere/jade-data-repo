@@ -17,11 +17,12 @@ public class StudyIngestFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
 
         addStep(new IngestSetupStep(studyDao));
-        addStep(new IngestCreateStagingTableStep(studyDao, bigQueryPdao));
+//        addStep(new IngestCreateStagingTableStep(studyDao, bigQueryPdao));
         addStep(new IngestLoadTableStep(studyDao, bigQueryPdao));
+// new step to add the row id column here
         addStep(new IngestRowIdsStep(studyDao, bigQueryPdao));
         addStep(new IngestInsertIntoStudyTableStep(studyDao, bigQueryPdao));
-        addStep(new IngestCleanupStep(studyDao, bigQueryPdao));
+        addStep(new IngestCleanupStep(bigQueryPdao));
     }
 
 }

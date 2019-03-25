@@ -241,23 +241,28 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                                  IngestRequestModel ingestRequest) {
 
         TableId tableId = TableId.of(prefixName(study.getName()), stagingTableName);
-        Schema schema = buildSchema(targetTable, false); // Source does not have row_id
-        LoadJobConfiguration configuration =
-            LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
+        Schema schema = buildSchema(targetTable, true); // Source does not have row_id
+        LoadJobConfiguration.Builder loadBuilder = LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
                 .setFormatOptions(buildFormatOptions(ingestRequest))
                 .setMaxBadRecords(
                     (ingestRequest.getMaxBadRecords() == null) ? Integer.valueOf(0)
                         : ingestRequest.getMaxBadRecords())
-                .setNullMarker(
-                    (ingestRequest.getCsvNullMarker() == null) ? ""
-                        : ingestRequest.getCsvNullMarker())
                 .setIgnoreUnknownValues(
                     (ingestRequest.isIgnoreUnknownValues() == null) ? Boolean.TRUE
                         : ingestRequest.isIgnoreUnknownValues())
                 .setSchema(schema) // docs say this is for target, but CLI provides one for the source
-                .setCreateDisposition(JobInfo.CreateDisposition.CREATE_NEVER)
-                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE)
-                .build();
+                .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
+                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE);
+
+        // This seems like a bug in the BigQuery Java interface.
+        // The null marker is CSV-only, but it cannot be set in the format,
+        // so we have to special-case here. Grumble...
+        if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV) {
+            loadBuilder.setNullMarker(
+                    (ingestRequest.getCsvNullMarker() == null) ? ""
+                        : ingestRequest.getCsvNullMarker());
+        }
+        LoadJobConfiguration configuration = loadBuilder.build();
 
         Job loadJob = bigQuery.create(JobInfo.of(configuration));
         try {
@@ -307,7 +312,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(prefixName(study.getName()))
             .append(".")
             .append(stagingTableName)
-            .append(" SET ")
+            .append("` SET ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" = GENERATE_UUID() WHERE ")
             .append(PDAO_ROW_ID_COLUMN)
@@ -339,9 +344,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(".")
             .append(targetTable.getName())
             .append("` (");
-        buildColumnList(sql, targetTable);
+        buildColumnList(sql, targetTable, true);
         sql.append(") SELECT ");
-        buildColumnList(sql, targetTable);
+        buildColumnList(sql, targetTable, true);
         sql.append(" FROM `")
             .append(projectId)
             .append(".")
@@ -667,7 +672,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
              */
 
             builder.append("SELECT ");
-            buildColumnList(builder, table);
+            buildColumnList(builder, table, false);
             builder.append(" FROM ");
 
             // Build the FROM clause from the source
@@ -686,8 +691,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private void buildColumnList(StringBuilder builder, Table table) {
+    private void buildColumnList(StringBuilder builder, Table table, boolean addRowIdColumn) {
         String prefix = "";
+        if (addRowIdColumn) {
+            builder.append(PDAO_ROW_ID_COLUMN);
+            prefix = ",";
+        }
+
         for (Column column : table.getColumns()) {
             builder.append(prefix).append(column.getName());
             prefix = ",";

@@ -284,7 +284,7 @@ task testAll(type: Test) {
         includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
     }
     testLogging {
-        outputs.upToDateWhen {false}
+        outputs.upToDateWhen { false }
         showStandardStreams = true
         showStackTraces = true
         showCauses = true
@@ -292,6 +292,9 @@ task testAll(type: Test) {
     }
 }
 
+task testIngest(type: Test) {
+    filter { includeTestsMatching "bio.terra.integration.IngestTest" }
+}
 
 compileGeneratedJava.dependsOn generateApi
 classes.dependsOn generatedClasses

@@ -6,6 +6,7 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +47,7 @@ public class IngestTest {
 
     @After
     public void teardown() throws Exception {
+/*
         for (String datasetId : createdDatasetIds) {
             testOperations.deleteTestDataset(datasetId);
         }
@@ -53,6 +55,7 @@ public class IngestTest {
         if (studyId != null) {
             testOperations.deleteTestStudy(studyId);
         }
+*/
     }
 
     @Test
@@ -62,6 +65,7 @@ public class IngestTest {
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
     }
 
+    @Ignore
     @Test
     public void ingestBuildDataset() throws Exception {
         IngestResponseModel ingestResponse =

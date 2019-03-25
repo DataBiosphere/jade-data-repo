@@ -768,6 +768,12 @@ definitions:
       - path
       - row_count
     properties:
+      study_id:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: unique id of the study
+      study:
+        $ref: '#/definitions/ObjectNameProperty'
+        description: name of the study
       table:
         $ref: '#/definitions/ObjectNameProperty'
         description: name of the target table for ingest

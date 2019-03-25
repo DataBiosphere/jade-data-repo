@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.dao.StudyDao;
+import bio.terra.flight.study.ingest.IngestMapKeys;
 import bio.terra.flight.study.ingest.StudyIngestFlight;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.stairway.FlightMap;
@@ -42,7 +43,7 @@ public class IngestService {
                 " to " + ingestRequestModel.getTable() +
                 " in study id " + id);
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
-        flightMap.put("studyId", id);
+        flightMap.put(IngestMapKeys.STUDY_ID, id);
         return stairway.submit(StudyIngestFlight.class, flightMap);
     }
 

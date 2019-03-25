@@ -1,17 +1,14 @@
 package bio.terra.flight.study.ingest;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class IngestCleanupStep implements Step {
-    private StudyDao studyDao;
     private BigQueryPdao bigQueryPdao;
 
-    public IngestCleanupStep(StudyDao studyDao, BigQueryPdao bigQueryPdao) {
-        this.studyDao = studyDao;
+    public IngestCleanupStep(BigQueryPdao bigQueryPdao) {
         this.bigQueryPdao = bigQueryPdao;
     }
 

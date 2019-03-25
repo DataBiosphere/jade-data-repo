@@ -11,6 +11,7 @@ import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.DatasetService;
+import bio.terra.service.IngestService;
 import bio.terra.service.JobService;
 import bio.terra.service.StudyService;
 import bio.terra.validation.DatasetRequestValidator;
@@ -44,6 +45,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final DatasetRequestValidator datasetRequestValidator;
     private final DatasetService datasetService;
     private final IngestRequestValidator ingestRequestValidator;
+    private final IngestService ingestService;
 
     @Autowired
     public RepositoryApiController(
@@ -54,7 +56,8 @@ public class RepositoryApiController implements RepositoryApi {
             StudyService studyService,
             DatasetRequestValidator datasetRequestValidator,
             DatasetService datasetService,
-            IngestRequestValidator ingestRequestValidator
+            IngestRequestValidator ingestRequestValidator,
+            IngestService ingestService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -64,6 +67,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.datasetRequestValidator = datasetRequestValidator;
         this.datasetService = datasetService;
         this.ingestRequestValidator = ingestRequestValidator;
+        this.ingestService = ingestService;
     }
 
     @InitBinder
@@ -119,7 +123,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
                                                 @Valid @RequestBody IngestRequestModel ingest) {
-        return null;
+        String jobId = ingestService.ingestStudy(id, ingest);
+        return jobService.retrieveJob(jobId);
     }
 
     // -- dataset --

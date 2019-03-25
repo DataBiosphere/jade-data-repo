@@ -54,16 +54,16 @@ public class TestOperations {
     }
 
     // Create a test dataset; expect successful creation
-    public DatasetSummaryModel createTestDataset(StudySummaryModel studySummaryModel, String filename) throws Exception {
+    public DatasetSummaryModel createTestDataset(StudySummaryModel studySummaryModel,
+                                                 String filename) throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
         String json = objectMapper.writeValueAsString(requestModel);
 
-        String datasetRequestJson = jsonLoader.loadJson("ingest-test-dataset.json");
         DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
             "/api/repository/v1/datasets",
-            datasetRequestJson,
+            json,
             JobModel.class);
         assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());

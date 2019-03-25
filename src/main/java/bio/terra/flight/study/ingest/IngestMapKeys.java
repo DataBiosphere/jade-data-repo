@@ -1,6 +1,6 @@
 package bio.terra.flight.study.ingest;
 
-public class IngestMapKeys {
+public final class IngestMapKeys {
     private IngestMapKeys() {
 
     }

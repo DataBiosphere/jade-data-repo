@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestResponseModel;
@@ -8,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,7 +23,7 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Category(Integration.class)
+@Category(Integration.class)
 public class IngestTest {
     @Autowired
     private DataRepoConfiguration dataRepoConfiguration;
@@ -47,7 +49,6 @@ public class IngestTest {
 
     @After
     public void teardown() throws Exception {
-/*
         for (String datasetId : createdDatasetIds) {
             testOperations.deleteTestDataset(datasetId);
         }
@@ -55,9 +56,9 @@ public class IngestTest {
         if (studyId != null) {
             testOperations.deleteTestStudy(studyId);
         }
-*/
     }
 
+    @Ignore  // subset of the dataset test; not worth running everytime, but useful for debugging
     @Test
     public void ingestParticipants() throws Exception {
         IngestResponseModel ingestResponse =
@@ -65,7 +66,6 @@ public class IngestTest {
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
     }
 
-    @Ignore
     @Test
     public void ingestBuildDataset() throws Exception {
         IngestResponseModel ingestResponse =

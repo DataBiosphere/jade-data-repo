@@ -9,7 +9,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

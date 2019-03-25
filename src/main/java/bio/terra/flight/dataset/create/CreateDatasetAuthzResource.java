@@ -1,5 +1,6 @@
 package bio.terra.flight.dataset.create;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
 import bio.terra.service.JobMapKeys;
@@ -9,7 +10,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,13 +26,12 @@ public class CreateDatasetAuthzResource implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        String token = inputParameters.get(JobMapKeys.TOKEN.getKeyName(), String.class);
-        UserInfo userInfo = inputParameters.get(JobMapKeys.USER_INFO.getKeyName(), UserInfo.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
-        System.out.println("!!!!!!!!!!! imin ds resource create");
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
-            sam.createResourceForDataset(userInfo, token, datasetId);
+            sam.createResourceForDataset(userReq, datasetId);
         } catch (ApiException ex) {
             logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);
@@ -43,12 +42,13 @@ public class CreateDatasetAuthzResource implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        String token = inputParameters.get(JobMapKeys.TOKEN.getKeyName(), String.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         System.out.println("im in undo ds resource");
         try {
-            sam.deleteDatasetResource(token, datasetId);
+            sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }

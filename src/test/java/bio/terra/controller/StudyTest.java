@@ -11,6 +11,7 @@ import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
@@ -53,6 +54,9 @@ public class StudyTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @MockBean
+    private SamClientService sam;
 
     @Autowired
     private ObjectMapper objectMapper;

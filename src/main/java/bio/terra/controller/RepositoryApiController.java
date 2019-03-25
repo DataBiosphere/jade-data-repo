@@ -1,6 +1,7 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ValidationException;
+import bio.terra.exception.BadRequestException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -83,17 +84,19 @@ public class RepositoryApiController implements RepositoryApi {
         return Optional.ofNullable(request);
     }
 
-    private String getToken() {
-        Optional<String> header =  getRequest().map(r -> r.getHeader("Authorization"));
-        if (header.isPresent()) {
-            return header.get().substring("Bearer ".length());
+    private AuthenticatedUserRequest getAuthenticatedInfo() {
+        if (!getRequest().isPresent()) {
+            throw new BadRequestException("No valid request found.");
         }
-        return null;
+        HttpServletRequest req = getRequest().get();
+        return new AuthenticatedUserRequest(
+            req.getHeader("oidc_claim_email"),
+            req.getHeader("oidc_access_token"));
     }
 
     // -- study --
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
-        return new ResponseEntity<>(studyService.createStudy(studyRequest, getToken()), HttpStatus.CREATED);
+        return new ResponseEntity<>(studyService.createStudy(studyRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
     }
 
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
@@ -101,7 +104,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
-        return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getToken()), HttpStatus.OK);
+        return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
     public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
@@ -134,13 +137,13 @@ public class RepositoryApiController implements RepositoryApi {
     // -- dataset --
     @Override
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
-        String jobId = datasetService.createDataset(dataset, getToken());
+        String jobId = datasetService.createDataset(dataset, getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
     @Override
     public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
-        String jobId = datasetService.deleteDataset(UUID.fromString(id), getToken());
+        String jobId = datasetService.deleteDataset(UUID.fromString(id), getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 

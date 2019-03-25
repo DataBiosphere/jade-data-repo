@@ -1,5 +1,6 @@
 package bio.terra.flight.dataset.delete;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
 import bio.terra.service.JobMapKeys;
@@ -25,10 +26,11 @@ public class DeleteDatasetAuthzResource implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        String token = inputParameters.get(JobMapKeys.TOKEN.getKeyName(), String.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         try {
-            sam.deleteDatasetResource(token, datasetId);
+            sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
             logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);

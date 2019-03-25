@@ -1,5 +1,6 @@
 package bio.terra.flight.study.delete;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
 import bio.terra.service.JobMapKeys;
@@ -25,10 +26,11 @@ public class DeleteStudyAuthzResource implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        String token = inputParameters.get(JobMapKeys.TOKEN.getKeyName(), String.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         try {
-            sam.deleteStudyResource(token, studyId);
+            sam.deleteStudyResource(userReq, studyId);
         } catch (ApiException ex) {
             logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);

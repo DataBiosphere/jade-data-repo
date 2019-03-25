@@ -6,7 +6,6 @@ public enum JobMapKeys {
     REQUEST("request"),
     RESPONSE("response"),
     STATUS_CODE("status_code"),
-    TOKEN("token"),
     USER_INFO("user_info");
 
     private String keyName;

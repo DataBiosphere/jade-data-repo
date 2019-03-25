@@ -1,16 +1,15 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.sam.CreateResourceCorrectRequest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.broadinstitute.dsde.workbench.client.sam.ApiResponse;
 import org.broadinstitute.dsde.workbench.client.sam.Pair;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -117,23 +116,27 @@ public class SamClientService {
         return new GoogleApi(getApiClient(accessToken));
     }
 
-    public boolean checkResourceAction(String token, String samResourceType, String samResource, String action)
+    public boolean checkResourceAction(
+        AuthenticatedUserRequest userReq,
+        String samResourceType,
+        String samResource,
+        String action)
             throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(token);
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         return samResourceApi.resourceAction(samResourceType, samResource, action);
     }
 
-    public void deleteStudyResource(String token, UUID studyId) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(token);
+    public void deleteStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         samResourceApi.deleteResource(ResourceType.study.toString(), studyId.toString());
     }
 
-    public void deleteDatasetResource(String token, UUID datsetId) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(token);
+    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         samResourceApi.deleteResource(ResourceType.dataset.toString(), datsetId.toString());
     }
 
-    public void createResourceForStudy(UserInfo userInfo, String token, UUID studyId) throws ApiException {
+    public void createResourceForStudy(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
@@ -141,17 +144,17 @@ public class SamClientService {
             createAccessPolicy(DataRepoRole.steward.getRoleName(), samStewardsGroupEmail));
         req.addPoliciesItem(
             DataRepoRole.custodian.getPolicyName(),
-            createAccessPolicy(DataRepoRole.custodian.getRoleName(), userInfo.getUserEmail()));
+            createAccessPolicy(DataRepoRole.custodian.getRoleName(), userReq.getEmail()));
         req.addPoliciesItem(
             DataRepoRole.ingester.getPolicyName(),
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.ingester.getRoleName())));
 
-        ResourcesApi samResourceApi = samResourcesApi(token);
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.study.toString(), req);
     }
 
-    public String createResourceForDataset(UserInfo userInfo, String token, UUID datasetId) throws ApiException {
+    public String createResourceForDataset(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
@@ -159,7 +162,7 @@ public class SamClientService {
             createAccessPolicy(DataRepoRole.steward.getRoleName(), samStewardsGroupEmail));
         req.addPoliciesItem(
             DataRepoRole.custodian.getPolicyName(),
-            createAccessPolicy(DataRepoRole.custodian.getRoleName(), userInfo.getUserEmail()));
+            createAccessPolicy(DataRepoRole.custodian.getRoleName(), userReq.getEmail()));
         req.addPoliciesItem(
             DataRepoRole.reader.getPolicyName(),
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.reader.getRoleName())));
@@ -168,13 +171,13 @@ public class SamClientService {
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.discoverer.getRoleName())));
 
         // create the resource in sam
-        ResourcesApi samResourceApi = samResourcesApi(token);
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.dataset.toString(), req);
 
         // sync the readers policy
         // Map[WorkbenchEmail, Seq[SyncReportItem]]
-        Map<String, List<Object>> results = samGoogleApi(token).syncPolicy(
+        Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
             ResourceType.dataset.toString(),
             datasetId.toString(),
             DataRepoRole.reader.getPolicyName());
@@ -192,7 +195,7 @@ public class SamClientService {
     // This is a work around for https://broadworkbench.atlassian.net/browse/AP-149
     // This is a copy of the ApiClient.createResourceCall but adds in the validation and
     // the actual execution of the call. And doesn't allow listener callbacks
-    public ApiResponse<Void>  createResourceCorrectCall(
+    private void createResourceCorrectCall(
         ApiClient localVarApiClient,
         String resourceTypeName,
         CreateResourceCorrectRequest resourceCreate) throws ApiException {
@@ -245,7 +248,7 @@ public class SamClientService {
             localVarFormParams,
             localVarAuthNames,
             null);
-        return localVarApiClient.execute(localVarCall);
+        localVarApiClient.execute(localVarCall);
     }
 
 }

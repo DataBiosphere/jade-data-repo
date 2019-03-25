@@ -1,6 +1,5 @@
 package bio.terra.integration;
 
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,9 +51,9 @@ public class DataRepoClient {
         return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
 
-    public DataRepoResponse<DeleteResponseModel> delete(String path) throws Exception {
+    public <T> DataRepoResponse<T> delete(String path, Class<T> responseClass) throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(headers);
-        return makeDataRepoRequest(path, HttpMethod.DELETE, entity, DeleteResponseModel.class);
+        return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
     }
 
     public <T> DataRepoResponse<T> waitForResponse(DataRepoResponse<JobModel> jobModelResponse,

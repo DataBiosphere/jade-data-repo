@@ -2,7 +2,7 @@ package bio.terra.flight.study.ingest;
 
 import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
+import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.bigquery.BigQueryPdao;
@@ -22,7 +22,7 @@ public class IngestLoadTableStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         Study study = IngestUtils.getStudy(context, studyDao);
-        StudyTable targetTable = IngestUtils.getStudyTable(context, study);
+        Table targetTable = IngestUtils.getStudyTable(context, study);
         String stagingTableName = IngestUtils.getStagingTableName(context);
         IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
 

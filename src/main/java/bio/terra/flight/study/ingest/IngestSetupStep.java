@@ -5,7 +5,7 @@ import bio.terra.flight.FlightUtils;
 import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyTable;
+import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoConstant;
 import bio.terra.stairway.FlightContext;
@@ -50,7 +50,7 @@ public class IngestSetupStep implements Step {
         Study study = IngestUtils.getStudy(context, studyDao);
         IngestUtils.putStudyName(context, study.getName());
 
-        StudyTable targetTable = IngestUtils.getStudyTable(context, study);
+        Table targetTable = IngestUtils.getStudyTable(context, study);
         String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
         String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
         IngestUtils.putStagingTableName(context, sgName);

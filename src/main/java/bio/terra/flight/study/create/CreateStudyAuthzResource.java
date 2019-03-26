@@ -31,7 +31,7 @@ public class CreateStudyAuthzResource implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID studyId = workingMap.get("studyId", UUID.class);
         try {
-            sam.createResourceForStudy(userReq, studyId);
+            sam.createStudyResource(userReq, studyId);
         } catch (ApiException ex) {
             logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);

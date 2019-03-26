@@ -6,6 +6,7 @@ import bio.terra.fixtures.Names;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -13,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -23,6 +25,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -35,9 +40,15 @@ public class StudyConnectedTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
+    @MockBean private SamClientService samService;
 
     @Test
     public void testCreateOmopStudy() throws Exception {
+        when(samService.createDatasetResource(any(), any())).thenReturn("hi");
+        doNothing().when(samService).createStudyResource(any(), any());
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
+
         StudyRequestModel studyRequest = jsonLoader.loadObject("it-study-omop.json", StudyRequestModel.class);
         studyRequest.name(Names.randomizeName(studyRequest.getName()));
 

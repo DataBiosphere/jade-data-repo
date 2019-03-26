@@ -8,6 +8,7 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -22,6 +23,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -35,6 +37,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -53,6 +58,9 @@ public class StudyCreateFlightTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockBean
+    private SamClientService samService;
+
     private String studyName;
     private StudyRequestModel studyRequest;
     private Study study;
@@ -67,10 +75,14 @@ public class StudyCreateFlightTest {
     }
 
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
         studyRequest = makeStudyRequest(studyName);
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+        when(samService.createDatasetResource(any(), any())).thenReturn("hi");
+        doNothing().when(samService).createStudyResource(any(), any());
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
     @After

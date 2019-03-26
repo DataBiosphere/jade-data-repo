@@ -35,7 +35,7 @@ public class SamClientServiceTest {
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.study.name()), any());
-        sam.createResourceForStudy(new AuthenticatedUserRequest("blah", "blah"), studyId);
+        sam.createStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
     }
 
     @Test(expected = ApiException.class)
@@ -44,7 +44,7 @@ public class SamClientServiceTest {
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.dataset.name()), any());
-        sam.createResourceForDataset(new AuthenticatedUserRequest("blah", "blah"), datasetId);
+        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
     }
 
     @Test(expected = ApiException.class)

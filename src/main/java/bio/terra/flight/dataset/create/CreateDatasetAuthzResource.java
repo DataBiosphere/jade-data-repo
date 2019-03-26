@@ -31,7 +31,7 @@ public class CreateDatasetAuthzResource implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
-            sam.createResourceForDataset(userReq, datasetId);
+            sam.createDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
             logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);

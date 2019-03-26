@@ -12,6 +12,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -39,6 +40,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -62,6 +64,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -88,6 +93,10 @@ public class DatasetOperationTest {
     @Autowired private String projectId;
     @Autowired private JsonLoader jsonLoader;
 
+    @MockBean
+    private SamClientService samService;
+
+
     private List<String> createdDatasetIds;
     private List<String> createdStudyIds;
     private String datasetOriginalName;
@@ -96,6 +105,10 @@ public class DatasetOperationTest {
     public void setup() throws Exception {
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
+        doNothing().when(samService).createStudyResource(any(), any());
+        when(samService.createDatasetResource(any(), any())).thenReturn("hi");
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
     @After

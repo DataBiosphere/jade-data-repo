@@ -33,7 +33,6 @@ and then an [Oauth web client id](https://console.cloud.google.com/apis/credenti
     OAUTH_CLIENT_SECRET
 
 ## Build and Run
-### Locally
 
 If you are making code changes, run:
 `./gradlew check`
@@ -41,21 +40,9 @@ If you are making code changes, run:
 To run jade locally:
 `./gradlew bootRun`
 
-To run jade locally and wait for debugger to attach on port 5005:
-`./gradlew bootRun --debug-jvm`
-
 To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`
 and select `Build project automatically`
-
-The swagger page is:
-https://local.broadinstitue.org:8080
-
-### MiniKube (local kubernetes w/ proxy)
-
-You must have authenticated with google for application-default credentials: ` gcloud auth application-default login` and login with your broad account - not your dev account. This will save credentials locally. 
-
-You must also set up the google project you want to use. Do not use dev for your own development. Dev will be used for system tests. 
 
 ## Swagger Codegen
 

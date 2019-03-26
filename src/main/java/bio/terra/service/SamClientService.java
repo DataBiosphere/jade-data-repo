@@ -88,7 +88,7 @@ public class SamClientService {
         }
 
         public String getPolicyName() {
-            return this.value + "Policy";
+            return this.value;
         }
     }
 

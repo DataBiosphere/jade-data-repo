@@ -279,9 +279,24 @@ task testConnected(type: Test) {
     }
 }
 
+task testIntegration(type: Test) {
+    useJUnit {
+        includeCategories 'bio.terra.category.Integration'
+        excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit', 'bio.terra.category.Connected'
+    }
+    testLogging {
+        outputs.upToDateWhen {false}
+        showStandardStreams = true
+        showStackTraces = true
+        showCauses = true
+        exceptionFormat = "full"
+    }
+}
+
 task testAll(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
+        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit',
+            'bio.terra.category.Integration'
     }
     testLogging {
         outputs.upToDateWhen {false}

@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.sam.CreateResourceCorrectRequest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -10,6 +11,7 @@ import org.broadinstitute.dsde.workbench.client.sam.Pair;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
+import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -22,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 @EnableConfigurationProperties
@@ -198,6 +201,53 @@ public class SamClientService {
         return results.keySet().iterator().next();
     }
 
+    public List<PolicyModel> retrievePolicies(
+        AuthenticatedUserRequest userReq,
+        ResourceType resourceType,
+        UUID resourceId) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        List<AccessPolicyResponseEntry> results =
+            samResourceApi.listResourcePolicies(resourceType.toString(), resourceId.toString());
+        return results.stream().map(entry -> new PolicyModel()
+            .name(entry.getPolicyName())
+            .members(entry.getPolicy().getMemberEmails()))
+            .collect(Collectors.toList());
+
+    }
+
+    public PolicyModel addPolicyMember(
+        AuthenticatedUserRequest userReq,
+        ResourceType resourceType,
+        UUID resourceId,
+        String policyName,
+        String userEmail) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        samResourceApi.addUserToPolicy(resourceType.toString(), resourceId.toString(), policyName, userEmail);
+
+        AccessPolicyMembership result =
+            samResourceApi.getPolicy(resourceType.toString(), resourceId.toString(), policyName);
+        return new PolicyModel()
+            .name(policyName)
+            .members(result.getMemberEmails());
+
+    }
+
+    public PolicyModel deletePolicyMember(
+        AuthenticatedUserRequest userReq,
+        ResourceType resourceType,
+        UUID resourceId,
+        String policyName,
+        String userEmail) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        samResourceApi.removeUserFromPolicy(resourceType.toString(), resourceId.toString(), policyName, userEmail);
+
+        AccessPolicyMembership result =
+            samResourceApi.getPolicy(resourceType.toString(), resourceId.toString(), policyName);
+        return new PolicyModel()
+            .name(policyName)
+            .members(result.getMemberEmails());
+
+    }
 
     private AccessPolicyMembership createAccessPolicy(String role, String email) {
         return new AccessPolicyMembership()

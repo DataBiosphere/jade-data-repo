@@ -5,6 +5,7 @@ import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.NotFoundException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.exception.JobResponseException;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -13,6 +14,9 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -57,6 +61,13 @@ public class GlobalExceptionHandler {
         return buildErrorModel(nestedException);
     }
 
+    @ExceptionHandler(ApiException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorModel samApiExceptionHandler(ApiException ex) {
+        //TODO convert from sam exception to jade exception
+        return buildErrorModel(ex);
+    }
+
     // -- catchall - log so we can understand what we have missed in the handlers above
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -74,7 +85,10 @@ public class GlobalExceptionHandler {
         for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
             logger.error("   cause: " + cause.toString());
         }
-        return new ErrorModel().message(ex.getMessage());
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        ex.printStackTrace(pw);
+        return new ErrorModel().message(ex.getMessage()).stackTrace(sw.toString());
     }
 
 }

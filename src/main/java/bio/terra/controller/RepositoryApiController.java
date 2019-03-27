@@ -3,22 +3,27 @@ package bio.terra.controller;
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.BadRequestException;
+import bio.terra.exception.InternalServerErrorException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.PolicyResponse;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobService;
+import bio.terra.service.SamClientService;
 import bio.terra.service.StudyService;
 import bio.terra.validation.DatasetRequestValidator;
 import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,6 +51,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final StudyService studyService;
     private final DatasetRequestValidator datasetRequestValidator;
     private final DatasetService datasetService;
+    private final SamClientService samService;
     private final IngestRequestValidator ingestRequestValidator;
 
     // needed for local testing w/o proxy
@@ -59,6 +66,7 @@ public class RepositoryApiController implements RepositoryApi {
             StudyService studyService,
             DatasetRequestValidator datasetRequestValidator,
             DatasetService datasetService,
+            SamClientService samService,
             IngestRequestValidator ingestRequestValidator,
             ApplicationConfiguration appConfig
     ) {
@@ -69,6 +77,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.studyService = studyService;
         this.datasetRequestValidator = datasetRequestValidator;
         this.datasetService = datasetService;
+        this.samService = samService;
         this.ingestRequestValidator = ingestRequestValidator;
         this.appConfig = appConfig;
     }
@@ -175,6 +184,58 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(datasetModel, HttpStatus.OK);
     }
 
+    // --dataset policies --
+    @Override
+    public ResponseEntity<PolicyResponse> addDatasetPolicyMember(
+        @PathVariable("id") String id,
+        /*@Valid*/ @PathVariable("policyName") String policyName,
+        /*@Valid*/ @RequestBody PolicyMemberRequest policyMember) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.addPolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.dataset,
+                    UUID.fromString(id),
+                    policyName,
+                    policyMember.getEmail())));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") String id) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(
+                samService.retrievePolicies(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.dataset,
+                    UUID.fromString(id)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> deleteDatasetPolicyMember(
+        @PathVariable("id") String id,
+        /*@Valid*/ @PathVariable("policyName") String policyName,
+        @PathVariable("memberEmail") String memberEmail) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.deletePolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.dataset,
+                    UUID.fromString(id),
+                    policyName,
+                    memberEmail)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
     // -- jobs --
     @Override
     public ResponseEntity<List<JobModel>> enumerateJobs(

@@ -3,6 +3,35 @@ The repo for the terra data repository built by the jade team.
 
 See the DATABASE.md to set up the postgres database before you run jade.
 
+## Setup environment
+### Google project and account
+You must have authenticated with google for application-default credentials: 
+	
+	gcloud auth application-default login
+and login with an account that has access to your project. This will save credentials locally. If you are using multiple accounts, you can switch to the correct one using this command: 
+
+    gcloud config set account <account email>
+
+Then you must specify a google project to use. Either run this command: 
+
+
+    gcloud config set project <project-name>
+    
+or specify your project in the environment variable: `GOOGLE_CLOUD_PROJECT`.
+
+To see what you currently have set, use: `gcloud config list`
+
+### OIDC Environment variables
+
+There are some secrets that need to be provided to the app and will not be checked in
+to github. If you are standing this up on your own, you will need to get an Oauth client
+id and secret. We got one in GCP from the cloud console by creating an
+[Oauth consent screen](https://console.cloud.google.com/apis/credentials/consent)
+and then an [Oauth web client id](https://console.cloud.google.com/apis/credentials).
+
+    OAUTH_CLIENT_ID
+    OAUTH_CLIENT_SECRET
+
 ## Build and Run
 
 If you are making code changes, run:
@@ -38,13 +67,3 @@ in a directory other than a git cloned workspace, run:
 
 Then copy the files you want into the source tree
 
-## Environment variables
-
-There are some secrets that need to be provided to the app and will not be checked in
-to github. If you are standing this up on your own, you will need to get an Oauth client
-id and secret. We got one in GCP from the cloud console by creating an
-[Oauth consent screen](https://console.cloud.google.com/apis/credentials/consent)
-and then an [Oauth web client id](https://console.cloud.google.com/apis/credentials).
-
-    OAUTH_CLIENT_ID
-    OAUTH_CLIENT_SECRET

@@ -16,6 +16,10 @@ public class StudyIngestFlight extends Flight {
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
 
+        // TODO: an improvement would be to retrieve the study and lookup the
+        // target table at this point and pass it in to the constructors.
+        // Retrieving it every time doesn't really solve anything.
+
         addStep(new IngestSetupStep(studyDao));
         addStep(new IngestLoadTableStep(studyDao, bigQueryPdao));
         addStep(new IngestRowIdsStep(studyDao, bigQueryPdao));

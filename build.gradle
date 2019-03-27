@@ -292,6 +292,10 @@ task testAll(type: Test) {
     }
 }
 
+task testIngest(type: Test) {
+    filter { includeTestsMatching "bio.terra.integration.IngestTest" }
+}
+
 compileGeneratedJava.dependsOn generateApi
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava

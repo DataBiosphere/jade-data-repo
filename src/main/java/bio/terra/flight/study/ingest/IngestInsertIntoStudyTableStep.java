@@ -26,7 +26,6 @@ public class IngestInsertIntoStudyTableStep implements Step {
         Study study = IngestUtils.getStudy(context, studyDao);
         Table targetTable = IngestUtils.getStudyTable(context, study);
         String stagingTableName = IngestUtils.getStagingTableName(context);
-        bigQueryPdao.insertIntoStudyTable(study, targetTable, stagingTableName);
 
         IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
         PdaoLoadStatistics loadStatistics = IngestUtils.getIngestStatistics(context);
@@ -41,12 +40,15 @@ public class IngestInsertIntoStudyTableStep implements Step {
             .rowCount(loadStatistics.getRowCount());
         context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
+        bigQueryPdao.insertIntoStudyTable(study, targetTable, stagingTableName);
+
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // The update will update row ids that are null, so it can be rerun on failure.
+        // We do not need to undo the data insert. BigQuery guarantees that this statement is atomic, so either
+        // of the data will be in the table or we will fail and none of the data is in the table. The
         return StepResult.getStepResultSuccess();
     }
 }

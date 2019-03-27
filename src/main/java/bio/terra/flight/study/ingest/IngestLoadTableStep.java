@@ -41,8 +41,9 @@ public class IngestLoadTableStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // Since the load is set up to truncate the staging, we don't have to
-        // clean up from a previous load attempt.
+        Study study = IngestUtils.getStudy(context, studyDao);
+        String stagingTableName = IngestUtils.getStagingTableName(context);
+        bigQueryPdao.deleteTable(study.getName(), stagingTableName);
         return StepResult.getStepResultSuccess();
     }
 }

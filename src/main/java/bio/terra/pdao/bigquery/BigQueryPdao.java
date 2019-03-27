@@ -89,7 +89,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             createContainer(studyName, study.getDescription());
             for (Table table : study.getTables()) {
-                createTable(studyName, table, table.getName());
+                createTable(studyName, table);
             }
         } catch (Exception ex) {
             throw new PdaoException("create study failed for " + studyName, ex);
@@ -224,14 +224,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
     @Override
     public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
         return deleteContainer(dataset.getName());
-    }
-
-    // Create a staging table for loading data
-    public void createStagingTable(String studyName,
-                                   Table targetTable,
-                                   String stagingTableName) {
-        String containerName = prefixName(studyName);
-        createTable(containerName, targetTable, stagingTableName);
     }
 
     // Load data
@@ -438,8 +430,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private void createTable(String containerName, Table table, String tableName) {
-        TableId tableId = TableId.of(containerName, tableName);
+    private void createTable(String containerName, Table table) {
+        TableId tableId = TableId.of(containerName, table.getName());
         Schema schema = buildSchema(table, true);
         TableDefinition tableDefinition = StandardTableDefinition.of(schema);
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();

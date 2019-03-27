@@ -86,21 +86,11 @@ public class Study extends StudySummary {
     }
 
     public Optional<Table> getTableById(UUID id) {
-        for (Table tryTable : getTables()) {
-            if (tryTable.getId().equals(id)) {
-                return Optional.of(tryTable);
-            }
-        }
-        return Optional.empty();
+        return getTables().stream().filter(table -> table.getId().equals(id)).findFirst();
     }
 
     public Optional<Table> getTableByName(String name) {
-        for (Table tryTable : getTables()) {
-            if (StringUtils.equals(tryTable.getName(), name)) {
-                return Optional.of(tryTable);
-            }
-        }
-        return Optional.empty();
+        return getTables().stream().filter(table -> table.getName().equals(name)).findFirst();
     }
 
 }

@@ -118,7 +118,7 @@ public class TestOperations {
     }
 
     private String buildSimpleIngest(String table, String filename) {
-        // TODO: REVIEWERS: I think append is better than escaping. Alternate is to include javax.json. Should we???
+        // TODO: Change this to create the IngestRequestModel and convert it to JSON
         StringBuilder ingestBuilder = new StringBuilder()
             .append("{").append('"').append("table").append('"').append(':').append('"').append(table).append('"')
             .append(", ").append('"').append("format").append('"').append(':').append('"').append("json").append('"')

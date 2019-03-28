@@ -131,7 +131,7 @@
                     {"name": "label", "datatype": "string"},
                     {"name": "close_match", "datatype": "string"},
                     {"name": "aliases", "datatype": "string", "array_of": true},
-                    {"name": "status", "datatype": "string"},x
+                    {"name": "status", "datatype": "string"},
                     {"name": "submitted_by", "datatype": "string"},
 
                     {"name": "assay_id", "datatype": "string"},

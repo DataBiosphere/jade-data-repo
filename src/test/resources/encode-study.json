@@ -50,7 +50,6 @@
                 "name": "assay",
                 "columns": [
                     {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"},
                     {"name": "close_match", "datatype": "string"},
                     {"name": "aliases", "datatype": "string", "array_of": true},
                     {"name": "status", "datatype": "string"},
@@ -170,6 +169,7 @@
                     {"name": "derived_from_id", "datatype": "string"},
                     {"name": "experiment_id", "datatype": "string"},
                     {"name": "lab", "datatype": "string"},
+                    {"name": "sponsor", "datatype": "string"},
                     {"name": "strand_specific", "datatype": "boolean"}
                 ]
             },

@@ -32,7 +32,6 @@ public class DeleteStudyAuthzResource implements Step {
         try {
             sam.deleteStudyResource(userReq, studyId);
         } catch (ApiException ex) {
-            logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);
         }
         return StepResult.getStepResultSuccess();

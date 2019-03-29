@@ -34,7 +34,7 @@ public class SamClientServiceTest {
         UUID studyId = UUID.randomUUID();
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .createResource(eq(SamClientService.ResourceType.study.name()), any());
+            .createResource(eq(SamClientService.ResourceType.STUDY.toString()), any());
         sam.createStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
     }
 
@@ -43,7 +43,7 @@ public class SamClientServiceTest {
         UUID datasetId = UUID.randomUUID();
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .createResource(eq(SamClientService.ResourceType.dataset.name()), any());
+            .createResource(eq(SamClientService.ResourceType.DATASET.toString()), any());
         sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
     }
 
@@ -52,7 +52,7 @@ public class SamClientServiceTest {
         UUID studyId = UUID.randomUUID();
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .deleteResource(eq(SamClientService.ResourceType.study.name()), eq(studyId.toString()));
+            .deleteResource(eq(SamClientService.ResourceType.STUDY.toString()), eq(studyId.toString()));
         sam.deleteStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
     }
 
@@ -61,7 +61,7 @@ public class SamClientServiceTest {
         UUID datasetId = UUID.randomUUID();
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .deleteResource(eq(SamClientService.ResourceType.dataset.name()), eq(datasetId.toString()));
+            .deleteResource(eq(SamClientService.ResourceType.DATASET.toString()), eq(datasetId.toString()));
         sam.deleteDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
     }
 }

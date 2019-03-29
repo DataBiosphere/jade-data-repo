@@ -17,22 +17,22 @@ import java.util.UUID;
 
 public class DeleteDatasetAuthzResource implements Step {
     private SamClientService sam;
-    public DeleteDatasetAuthzResource(SamClientService sam) {
-        this.sam = sam;
-    }
-
+    private UUID datasetId;
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
+
+    public DeleteDatasetAuthzResource(SamClientService sam, UUID datasetId) {
+        this.sam = sam;
+        this.datasetId = datasetId;
+    }
 
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         try {
             sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
-            logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);
         }
         return StepResult.getStepResultSuccess();

@@ -12,7 +12,8 @@ import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -23,12 +24,14 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
+@EnableConfigurationProperties
+@ConfigurationProperties(prefix = "sam")
 public class SamClientService {
 
     public enum ResourceType {
-        data_repository("data_repository"),
-        study("study"),
-        dataset("dataset");
+        DATA_REPOSITORY("data_repository"),
+        STUDY("study"),
+        DATASET("dataset");
 
         private String value;
 
@@ -55,11 +58,11 @@ public class SamClientService {
     }
 
     public enum DataRepoRole {
-        steward("steward"),
-        custodian("custodian"),
-        ingester("ingester"),
-        reader("reader"),
-        discoverer("discoverer");
+        STEWARD("steward"),
+        CUSTODIAN("custodian"),
+        INGESTER("ingester"),
+        READER("reader"),
+        DISCOVERER("discoverer");
 
         private String value;
 
@@ -92,20 +95,15 @@ public class SamClientService {
         }
     }
 
-    @Value("${sam.basePath}")
-    private String samBasePath;
-
-    @Value("${sam.group.email.stewards}")
-    private String samStewardsGroupEmail;
-
-
+    private String basePath;
+    private String stewardsGroupEmail;
     private static Logger logger = LoggerFactory.getLogger(SamClientService.class);
 
     private ApiClient getApiClient(String accessToken) {
         ApiClient apiClient = new ApiClient();
         apiClient.setAccessToken(accessToken);
         apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
-        return apiClient.setBasePath(samBasePath);
+        return apiClient.setBasePath(basePath);
     }
 
     private ResourcesApi samResourcesApi(String accessToken) {
@@ -114,6 +112,22 @@ public class SamClientService {
 
     private GoogleApi samGoogleApi(String accessToken) {
         return new GoogleApi(getApiClient(accessToken));
+    }
+
+    public String getBasePath() {
+        return basePath;
+    }
+
+    public void setBasePath(String basePath) {
+        this.basePath = basePath;
+    }
+
+    public String getStewardsGroupEmail() {
+        return stewardsGroupEmail;
+    }
+
+    public void setStewardsGroupEmail(String stewardsGroupEmail) {
+        this.stewardsGroupEmail = stewardsGroupEmail;
     }
 
     public boolean checkResourceAction(
@@ -128,59 +142,59 @@ public class SamClientService {
 
     public void deleteStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        samResourceApi.deleteResource(ResourceType.study.toString(), studyId.toString());
+        samResourceApi.deleteResource(ResourceType.STUDY.toString(), studyId.toString());
     }
 
     public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        samResourceApi.deleteResource(ResourceType.dataset.toString(), datsetId.toString());
+        samResourceApi.deleteResource(ResourceType.DATASET.toString(), datsetId.toString());
     }
 
     public void createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
-            DataRepoRole.steward.getPolicyName(),
-            createAccessPolicy(DataRepoRole.steward.getRoleName(), samStewardsGroupEmail));
+            DataRepoRole.STEWARD.getPolicyName(),
+            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), stewardsGroupEmail));
         req.addPoliciesItem(
-            DataRepoRole.custodian.getPolicyName(),
-            createAccessPolicy(DataRepoRole.custodian.getRoleName(), userReq.getEmail()));
+            DataRepoRole.CUSTODIAN.getPolicyName(),
+            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), userReq.getEmail()));
         req.addPoliciesItem(
-            DataRepoRole.ingester.getPolicyName(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.ingester.getRoleName())));
+            DataRepoRole.INGESTER.getPolicyName(),
+            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.INGESTER.getRoleName())));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
-        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.study.toString(), req);
+        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
     }
 
     public String createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
-            DataRepoRole.steward.getPolicyName(),
-            createAccessPolicy(DataRepoRole.steward.getRoleName(), samStewardsGroupEmail));
+            DataRepoRole.STEWARD.getPolicyName(),
+            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), stewardsGroupEmail));
         req.addPoliciesItem(
-            DataRepoRole.custodian.getPolicyName(),
-            createAccessPolicy(DataRepoRole.custodian.getRoleName(), userReq.getEmail()));
+            DataRepoRole.CUSTODIAN.getPolicyName(),
+            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), userReq.getEmail()));
         req.addPoliciesItem(
-            DataRepoRole.reader.getPolicyName(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.reader.getRoleName())));
+            DataRepoRole.READER.getPolicyName(),
+            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.READER.getRoleName())));
         req.addPoliciesItem(
-            DataRepoRole.discoverer.getPolicyName(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.discoverer.getRoleName())));
+            DataRepoRole.DISCOVERER.getPolicyName(),
+            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.DISCOVERER.getRoleName())));
 
         // create the resource in sam
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
-        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.dataset.toString(), req);
+        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASET.toString(), req);
 
         // sync the readers policy
         // Map[WorkbenchEmail, Seq[SyncReportItem]]
         Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
-            ResourceType.dataset.toString(),
+            ResourceType.DATASET.toString(),
             datasetId.toString(),
-            DataRepoRole.reader.getPolicyName());
+            DataRepoRole.READER.getPolicyName());
         return results.keySet().iterator().next();
     }
 

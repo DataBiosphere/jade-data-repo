@@ -33,7 +33,6 @@ public class CreateStudyAuthzResource implements Step {
         try {
             sam.createStudyResource(userReq, studyId);
         } catch (ApiException ex) {
-            logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);
         }
         return StepResult.getStepResultSuccess();

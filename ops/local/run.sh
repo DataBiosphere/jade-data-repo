@@ -73,6 +73,12 @@ vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key.json" -format=j
 kubectl --namespace data-repo get secret sa-key && kubectl --namespace data-repo delete secret sa-key
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
+# set the tsl certificate
+vault read -field=value secret/dsp/certs/wildcard.datarepo-dev.broadinstitute.org/20210326/server.crt > "${SCRATCH}/server.crt"
+vault read -field=value secret/dsp/certs/wildcard.datarepo-dev.broadinstitute.org/20210326/server.key > "${SCRATCH}/server.key"
+kubectl get secret tls-cert && kubectl delete secret tls-cert
+kubectl create secret tls tls-cert --cert=${SCRATCH}/server.crt --key=${SCRATCH}/server.key
+
 # create or update postgres pod + service
 kubectl apply -f "${WD}/pods/psql-pod.yaml"
 kubectl apply -f "${WD}/services/psql-service.yaml"
@@ -105,7 +111,7 @@ echo
 echo "remote debug available at ${API_CLUSTER_IP}:5005"
 echo
 echo "to use the oidc proxy, add this to your /etc/hosts file:"
-echo "${PROXY_CLUSTER_IP}   mini.broadinstitute.org"
+echo "${PROXY_CLUSTER_IP}   mini.datarepo-dev.broadinstitute.org"
 echo
 echo "about to call minikube tunnel, it will ask you for your system password and then fill up your console with logs.."
 echo

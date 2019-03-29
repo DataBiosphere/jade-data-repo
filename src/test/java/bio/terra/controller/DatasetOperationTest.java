@@ -36,6 +36,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -75,6 +77,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class DatasetOperationTest {
     private static final boolean deleteOnTeardown = true;
 
+    private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DatasetOperationTest");
 
     // TODO: MORE TESTS to be done when we can ingest data:
     // - test more complex studies with relationships
@@ -204,18 +207,47 @@ public class DatasetOperationTest {
         // but ours should be in order in the enumeration. So we do a merge waiting until we match
         // by id and then comparing contents.
         int compareIndex = 0;
-        for (DatasetSummaryModel anEnumeratedArray : enumeratedArray) {
-            if (anEnumeratedArray.getId().equals(datasetList.get(compareIndex).getId())) {
+        for (DatasetSummaryModel anEnumeratedDataset : enumeratedArray) {
+            if (anEnumeratedDataset.getId().equals(datasetList.get(compareIndex).getId())) {
+                // FOR DEBUG: do the assertion test explicitly and dump the data if it doesn't match.
+                if (!anEnumeratedDataset.equals(datasetList.get(compareIndex))) {
+                    dumpEnumState("dataset compare", compareIndex, datasetList, enumeratedArray);
+                }
                 assertThat("Enumeration summary matches create summary",
-                        anEnumeratedArray, equalTo(datasetList.get(compareIndex)));
+                        anEnumeratedDataset, equalTo(datasetList.get(compareIndex)));
                 compareIndex++;
             }
+        }
+        if (compareIndex != 5) {
+            dumpEnumState("index check", compareIndex, datasetList, enumeratedArray);
         }
         assertThat("we found all datasets", compareIndex, equalTo(5));
 
         for (int i = 0; i < 5; i++) {
             deleteTestDataset(enumeratedArray[i].getId());
         }
+    }
+
+    private void dumpEnumState(String context,
+                               int compareIndex,
+                               List<DatasetSummaryModel> datasetList,
+                               DatasetSummaryModel[] enumeratedArray) {
+        logger.error("== DEBUG DUMP FROM DATASET TEST ENUMERATION ==");
+        logger.error("context=" + context);
+        logger.error("compareIndex=" + compareIndex);
+        logger.error("createList:");
+        int index = 0;
+        for (DatasetSummaryModel dataset : datasetList) {
+            logger.error("[" + index + "] " + dataset.toString());
+            index++;
+        }
+        logger.error("enumList:");
+        index = 0;
+        for (DatasetSummaryModel dataset : enumeratedArray) {
+            logger.error("[" + index + "] " + dataset.toString());
+            index++;
+        }
+        logger.error("== END DEBUG DUMP ==");
     }
 
     @Test

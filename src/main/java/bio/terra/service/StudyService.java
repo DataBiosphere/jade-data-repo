@@ -17,7 +17,6 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
-import org.broadinstitute.dsde.workbench.client.sam.model.UserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

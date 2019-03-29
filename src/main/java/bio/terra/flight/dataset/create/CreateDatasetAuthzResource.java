@@ -33,7 +33,6 @@ public class CreateDatasetAuthzResource implements Step {
         try {
             sam.createDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
-            logger.warn(ex.getMessage());
             throw new InternalServerErrorException(ex);
         }
         return StepResult.getStepResultSuccess();
@@ -46,7 +45,6 @@ public class CreateDatasetAuthzResource implements Step {
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
-        System.out.println("im in undo ds resource");
         try {
             sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {

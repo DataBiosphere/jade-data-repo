@@ -23,7 +23,7 @@ public class DatasetDeleteFlight extends Flight {
         UUID datasetId = inputParameters.get("id", UUID.class);
 
         // Delete access control first so users can no longer see dataset
-        addStep(new DeleteDatasetAuthzResource(samClient));
+        addStep(new DeleteDatasetAuthzResource(samClient, datasetId));
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // dataset object from the metadata to know what to delete.
         addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, datasetDao, datasetId));

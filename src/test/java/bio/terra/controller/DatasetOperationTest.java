@@ -36,6 +36,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -208,7 +210,7 @@ public class DatasetOperationTest {
         for (DatasetSummaryModel anEnumeratedDataset : enumeratedArray) {
             if (anEnumeratedDataset.getId().equals(datasetList.get(compareIndex).getId())) {
                 assertThat("Enumeration summary matches create summary",
-                        anEnumeratedDataset, equalTo(datasetList.get(compareIndex)));
+                    anEnumeratedDataset, equalTo(datasetList.get(compareIndex)));
                 compareIndex++;
             }
         }

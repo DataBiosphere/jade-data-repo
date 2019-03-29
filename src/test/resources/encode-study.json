@@ -72,9 +72,8 @@
 
                     {"name": "biosample_type_id", "datatype": "string"},
                     {"name": "consent_code_id", "datatype": "string"},
-                    {"name": "date_created", "datatype": "timestamp"},
-                    {"name": "date_submitted", "datatype": "timestamp"},
-                    {"name": "date_obtained", "datatype": "timestamp"},
+                    {"name": "created_at", "datatype": "timestamp"},
+                    {"name": "date_obtained", "datatype": "date"},
                     {"name": "lab", "datatype": "string"},
                     {"name": "organ_id", "datatype": "string"},
                     {"name": "derived_from_id", "datatype": "string"},
@@ -94,7 +93,7 @@
 
                     {"name": "age_units", "datatype": "string"},
                     {"name": "age", "datatype": "integer"},
-                    {"name": "date_created", "datatype": "timestamp"},
+                    {"name": "created_at", "datatype": "timestamp"},
                     {"name": "ethnicity", "datatype": "string"},
                     {"name": "lab", "datatype": "string"},
                     {"name": "life_stage", "datatype": "string"},
@@ -114,9 +113,9 @@
                     {"name": "status", "datatype": "string"},
                     {"name": "submitted_by", "datatype": "string"},
 
-                    {"name": "date_created", "datatype": "timestamp"},
-                    {"name": "date_released", "datatype": "timestamp"},
-                    {"name": "date_submitted", "datatype": "timestamp"},
+                    {"name": "created_at", "datatype": "timestamp"},
+                    {"name": "date_released", "datatype": "date"},
+                    {"name": "date_submitted", "datatype": "date"},
                     {"name": "description", "datatype": "string"},
                     {"name": "lab", "datatype": "string"},
                     {"name": "sponsor", "datatype": "string"},
@@ -135,7 +134,7 @@
 
                     {"name": "assay_id", "datatype": "string"},
                     {"name": "data_quality", "datatype": "string"},
-                    {"name": "date_created", "datatype": "timestamp"},
+                    {"name": "created_at", "datatype": "timestamp"},
                     {"name": "format", "datatype": "string"},
                     {"name": "file_path", "datatype": "string"},
                     {"name": "file_size", "datatype": "integer"},
@@ -165,7 +164,7 @@
                     {"name": "status", "datatype": "string"},
                     {"name": "submitted_by", "datatype": "string"},
 
-                    {"name": "date_created", "datatype": "timestamp"},
+                    {"name": "created_at", "datatype": "timestamp"},
                     {"name": "derived_from_id", "datatype": "string"},
                     {"name": "experiment_id", "datatype": "string"},
                     {"name": "lab", "datatype": "string"},

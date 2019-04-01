@@ -4,55 +4,13 @@
     "schema": {
         "tables": [
             {
-                "name": "assay_type",
-                "columns": [
-                    {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"}
-                ]
-            },
-            {
-                "name": "biosample_type",
-                "columns": [
-                    {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"}
-                ]
-            },
-            {
-                "name": "consent_code",
-                "columns": [
-                    {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"}
-                ]
-            },
-            {
-                "name": "organ",
-                "columns": [
-                    {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"}
-                ]
-            },
-            {
-                "name": "organism",
-                "columns": [
-                    {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"}
-                ]
-            },
-            {
-                "name": "platform",
-                "columns": [
-                    {"name": "id", "datatype": "string"},
-                    {"name": "label", "datatype": "string"}
-                ]
-            },
-
-            {
                 "name": "assay",
                 "columns": [
                     {"name": "id", "datatype": "string"},
+                    {"name": "label", "datatype": "string"},
 
                     {"name": "antibody", "datatype": "string"},
-                    {"name": "assay_type_id", "datatype": "string"}
+                    {"name": "assay_type", "datatype": "string"}
                 ]
             },
             {
@@ -66,12 +24,9 @@
                     {"name": "submitted_by", "datatype": "string"},
 
                     {"name": "biosample_type_id", "datatype": "string"},
-                    {"name": "consent_code_id", "datatype": "string"},
                     {"name": "created_at", "datatype": "timestamp"},
                     {"name": "date_obtained", "datatype": "date"},
                     {"name": "lab", "datatype": "string"},
-                    {"name": "organ_id", "datatype": "string"},
-                    {"name": "derived_from_id", "datatype": "string"},
                     {"name": "source", "datatype": "string"},
                     {"name": "sponsor", "datatype": "string"}
                 ]
@@ -127,7 +82,6 @@
                     {"name": "status", "datatype": "string"},
                     {"name": "submitted_by", "datatype": "string"},
 
-                    {"name": "assay_id", "datatype": "string"},
                     {"name": "data_quality", "datatype": "string"},
                     {"name": "created_at", "datatype": "timestamp"},
                     {"name": "format", "datatype": "string"},
@@ -135,13 +89,10 @@
                     {"name": "file_size", "datatype": "integer"},
                     {"name": "file_sub_type", "datatype": "string"},
                     {"name": "lab", "datatype": "string"},
-                    {"name": "mapped_read_length", "datatype": "integer"},
-                    {"name": "mapped_paired_end", "datatype": "boolean"},
                     {"name": "md5sum", "datatype": "string"},
                     {"name": "output_type", "datatype": "string"},
                     {"name": "paired_end", "datatype": "boolean"},
                     {"name": "paired_end_identifier", "datatype": "string"},
-                    {"name": "paired_file_id", "datatype": "string"},
                     {"name": "percent_aligned_reads", "datatype": "numeric"},
                     {"name": "platform_id", "datatype": "string"},
                     {"name": "read_count", "datatype": "integer"},
@@ -166,6 +117,13 @@
                 ]
             },
 
+            {
+                "name": "assay_file",
+                "columns": [
+                    {"name": "assay_id", "datatype": "string"},
+                    {"name": "file_id", "datatype": "string"}
+                ]
+            },
             {
                 "name": "assay_library",
                 "columns": [
@@ -195,6 +153,13 @@
                 ]
             },
             {
+                "name": "biosample_derivations",
+                "columns": [
+                    {"name": "parent_id", "datatype": "string"},
+                    {"name": "part_id", "datatype": "string"}
+                ]
+            },
+            {
                 "name": "experiment_file",
                 "columns": [
                     {"name": "experiment_id", "datatype": "string"},
@@ -207,27 +172,24 @@
                     {"name": "experiment_id", "datatype": "string"},
                     {"name": "library_id", "datatype": "string"}
                 ]
+            },
+            {
+                "name": "paired_files",
+                "columns": [
+                    {"name": "read1_id", "datatype": "string"},
+                    {"name": "read2_id", "datatype": "string"}
+                ]
             }
         ],
         "relationships": [
             {
-                "name": "sample_consent",
-                "from": {"table": "biosample", "column": "consent_code_id", "cardinality": "many"},
-                "to": {"table": "consent_code", "column": "id", "cardinality": "one"}
+                "name": "sample_parent_of",
+                "from": {"table": "biosample", "column": "id", "cardinality": "one"},
+                "to": {"table": "biosample_derivations", "column": "parent_id", "cardinality": "many"}
             },
             {
-                "name": "sample_organ",
-                "from": {"table": "biosample", "column": "organ_id", "cardinality": "many"},
-                "to": {"table": "organ", "column": "id", "cardinality": "one"}
-            },
-            {
-                "name": "sample_type",
-                "from": {"table": "biosample", "column": "biosample_type_id", "cardinality": "many"},
-                "to": {"table": "biosample_type", "column": "id", "cardinality": "one"}
-            },
-            {
-                "name": "sample_derived_from",
-                "from": {"table": "biosample", "column": "derived_from_id", "cardinality": "many"},
+                "name": "sample_part_of",
+                "from": {"table": "biosample_derivations", "column": "part_id", "cardinality": "many"},
                 "to": {"table": "biosample", "column": "id", "cardinality": "one"}
             },
             {
@@ -253,7 +215,7 @@
             {
                 "name": "assay_to_library",
                 "from": {"table": "assay", "column": "id", "cardinality": "one"},
-                "to": {"table": "assay_library", "column": "biosample_id", "cardinality": "many"}
+                "to": {"table": "assay_library", "column": "assay_id", "cardinality": "many"}
             },
             {
                 "name": "library_from_assay",
@@ -269,11 +231,6 @@
                 "name": "library_from_sample",
                 "from": {"table": "biosample_library", "column": "library_id", "cardinality": "many"},
                 "to": {"table": "library", "column": "id", "cardinality": "one"}
-            },
-            {
-                "name": "donor_organism",
-                "from": {"table": "donor", "column": "organism_id", "cardinality": "many"},
-                "to": {"table": "organism", "column": "id", "cardinality": "one"}
             },
             {
                 "name": "experiment_to_file",
@@ -296,34 +253,24 @@
                 "to": {"table": "library", "column": "id", "cardinality": "one"}
             },
             {
-                "name": "experiment_library",
-                "from": {"table": "experiment", "column": "id", "cardinality": "one"},
-                "to": {"table": "library", "column": "experiment_id", "cardinality": "many"}
-            },
-            {
-                "name": "library_assay",
-                "from": {"table": "library", "column": "id", "cardinality": "one"},
-                "to": {"table": "assay", "column": "library_id", "cardinality": "many"}
-            },
-            {
-                "name": "assay_type",
-                "from": {"table": "assay", "column": "assay_type_id", "cardinality": "many"},
-                "to": {"table": "assay_type", "column": "id", "cardinality": "one"}
-            },
-            {
-                "name": "assay_file",
+                "name": "assay_to_file",
                 "from": {"table": "assay", "column": "id", "cardinality": "one"},
-                "to": {"table": "file", "column": "assay_id", "cardinality": "one"}
+                "to": {"table": "assay_file", "column": "assay_id", "cardinality": "many"}
             },
             {
-                "name": "file_paired_with",
-                "from": {"table": "file", "column": "paired_file_id", "cardinality": "one"},
+                "name": "file_from_assay",
+                "from": {"table": "assay_file", "column": "file_id", "cardinality": "many"},
                 "to": {"table": "file", "column": "id", "cardinality": "one"}
             },
             {
-                "name": "file_platform",
-                "from": {"table": "file", "column": "platform_id", "cardinality": "many"},
-                "to": {"table": "platform", "column": "id", "cardinality": "one"}
+                "name": "file_to_read1",
+                "from": {"table": "file", "column": "id", "cardinality": "one"},
+                "to": {"table": "paired_files", "column": "read1_id", "cardinality": "many"}
+            },
+            {
+                "name": "read2_to_file",
+                "from": {"table": "paired_files", "column": "read2_id", "cardinality": "many"},
+                "to": {"table": "file", "column": "id", "cardinality": "one"}
             }
         ],
         "assets": [
@@ -332,49 +279,41 @@
                 "rootTable": "biosample",
                 "rootColumn": "id",
                 "tables": [
-                    {"name": "assay_type", "columns": []},
-                    {"name": "biosample_type", "columns": []},
-                    {"name": "consent_code", "columns": []},
-                    {"name": "organ", "columns": []},
-                    {"name": "organism", "columns": []},
-                    {"name": "platform", "columns": []},
                     {"name": "assay", "columns": []},
                     {"name": "biosample", "columns": []},
                     {"name": "donor", "columns": []},
                     {"name": "experiment", "columns": []},
                     {"name": "file", "columns": []},
                     {"name": "library", "columns": []},
+                    {"name": "assay_file", "columns": []},
                     {"name": "assay_library", "columns": []},
                     {"name": "biosample_donor", "columns": []},
                     {"name": "biosample_experiment", "columns": []},
                     {"name": "biosample_library", "columns": []},
+                    {"name": "biosample_derivations", "columns": []},
                     {"name": "experiment_file", "columns": []},
-                    {"name": "experiment_library", "columns": []}
+                    {"name": "experiment_library", "columns": []},
+                    {"name": "paired_files", "columns": []}
                 ],
                 "follow": [
-                    "sample_consent",
-                    "sample_organ",
-                    "sample_type",
-                    "sample_derived_from",
+                    "sample_parent_of",
+                    "sample_part_of",
                     "sample_to_donor",
                     "donor_from_sample",
                     "sample_to_experiment",
                     "experiment_from_sample",
-                    "sample_to_library",
-                    "library_from_sample",
-                    "donor_organism",
-                    "experiment_to_file",
-                    "file_from_experiment",
-                    "experiment_library",
-                    "library_assay",
-                    "assay_type",
-                    "assay_file",
-                    "file_paired_with",
-                    "file_platform",
                     "assay_to_library",
                     "library_from_assay",
+                    "sample_to_library",
+                    "library_from_sample",
+                    "experiment_to_file",
+                    "file_from_experiment",
                     "experiment_to_library",
-                    "library_from_experiment"
+                    "library_from_experiment",
+                    "assay_to_file",
+                    "file_from_assay",
+                    "file_to_read1",
+                    "read2_to_file"
                 ]
             }
         ]

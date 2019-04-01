@@ -165,6 +165,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         // ids and the mismatched ids
         RowIdMatch rowIdMatch = new RowIdMatch();
         String sql = builder.toString();
+        logger.info("mapValuesToRows sql: " + sql);
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
             TableResult result = bigQuery.query(queryConfig);
@@ -174,8 +175,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 FieldValue inputValue = row.get(1);
                 if (rowId.isNull()) {
                     rowIdMatch.addMismatch(inputValue.getStringValue());
+                    logger.info("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
                 } else {
                     rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
+                    logger.info("rowId=" + inputValue.getStringValue() + "  inVal=" + inputValue.getStringValue());
                 }
             }
         } catch (InterruptedException ie) {
@@ -502,6 +505,25 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 }
             }
         }
+
+        // DEBUG: dump the row id table
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
+            .append("`");
+        String sql = builder.toString();
+        try {
+            logger.info("Dump root row ids");
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQuery.query(queryConfig);
+            for (FieldValueList row : result.iterateAll()) {
+                logger.info("tableid=" + row.get(0).getStringValue() + "  rowid=" + row.get(1).getStringValue());
+            }
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Validate row ids query unexpectedly interrupted", ie);
+        }
     }
 
     /**
@@ -530,7 +552,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
                 .append("` AS R WHERE R.")
                 .append(PDAO_ROW_ID_COLUMN).append(" = T.").append(PDAO_ROW_ID_COLUMN);
-
         String sql = builder.toString();
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();

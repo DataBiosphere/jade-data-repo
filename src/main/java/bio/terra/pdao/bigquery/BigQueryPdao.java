@@ -521,8 +521,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 logger.info("tableid=" + row.get(0).getStringValue() + "  rowid=" + row.get(1).getStringValue());
             }
         } catch (InterruptedException ie) {
-            throw new PdaoException("Validate row ids query unexpectedly interrupted", ie);
+            throw new PdaoException("Debug dump row id query unexpectedly interrupted", ie);
         }
+
     }
 
     /**
@@ -563,6 +564,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 for (String rowId : rowIds) {
                     logger.error(" rowIdIn: " + rowId);
                 }
+
                 throw new PdaoException("Invalid row ids supplied");
             }
         } catch (InterruptedException ie) {

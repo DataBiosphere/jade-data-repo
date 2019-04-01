@@ -507,6 +507,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         // DEBUG: dump the row id table
+        debugDumpRowIdTable(datasetName);
+    }
+
+    private void debugDumpRowIdTable(String datasetName) {
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT ")
             .append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
@@ -522,8 +526,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 logger.info("tableid=" + row.get(0).getStringValue() + "  rowid=" + row.get(1).getStringValue());
             }
         } catch (InterruptedException ie) {
-            throw new PdaoException("Validate row ids query unexpectedly interrupted", ie);
+            throw new PdaoException("Debug dump row id query unexpectedly interrupted", ie);
         }
+
     }
 
     /**
@@ -564,6 +569,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 for (String rowId : rowIds) {
                     logger.error(" rowIdIn: " + rowId);
                 }
+
+                debugDumpRowIdTable(datasetName);
 
                 throw new PdaoException("Invalid row ids supplied");
             }

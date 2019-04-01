@@ -67,7 +67,13 @@ public class GlobalExceptionHandler {
 
     // This method takes throwable so it can be shared by the JobResponseException handler:
     // the type returned from getCause() is a Throwable.
+    // This error handler logs the complete error list so we can debug the underlying causes
+    // of errors. We do not want to return that to the client, but need it for our own debugging.
     private ErrorModel buildErrorModel(Throwable ex) {
+        logger.error("Global exception handler: catch stack");
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            logger.error("   cause: " + cause.toString());
+        }
         return new ErrorModel().message(ex.getMessage());
     }
 

@@ -75,6 +75,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class DatasetOperationTest {
     private static final boolean deleteOnTeardown = true;
 
+    // private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DatasetOperationTest");
 
     // TODO: MORE TESTS to be done when we can ingest data:
     // - test more complex studies with relationships
@@ -204,13 +205,14 @@ public class DatasetOperationTest {
         // but ours should be in order in the enumeration. So we do a merge waiting until we match
         // by id and then comparing contents.
         int compareIndex = 0;
-        for (DatasetSummaryModel anEnumeratedArray : enumeratedArray) {
-            if (anEnumeratedArray.getId().equals(datasetList.get(compareIndex).getId())) {
+        for (DatasetSummaryModel anEnumeratedDataset : enumeratedArray) {
+            if (anEnumeratedDataset.getId().equals(datasetList.get(compareIndex).getId())) {
                 assertThat("Enumeration summary matches create summary",
-                        anEnumeratedArray, equalTo(datasetList.get(compareIndex)));
+                        anEnumeratedDataset, equalTo(datasetList.get(compareIndex)));
                 compareIndex++;
             }
         }
+
         assertThat("we found all datasets", compareIndex, equalTo(5));
 
         for (int i = 0; i < 5; i++) {

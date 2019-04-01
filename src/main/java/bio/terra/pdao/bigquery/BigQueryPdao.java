@@ -569,9 +569,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 for (String rowId : rowIds) {
                     logger.error(" rowIdIn: " + rowId);
                 }
-
-                debugDumpRowIdTable(datasetName);
-
                 throw new PdaoException("Invalid row ids supplied");
             }
         } catch (InterruptedException ie) {

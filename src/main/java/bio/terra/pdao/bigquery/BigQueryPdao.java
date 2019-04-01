@@ -179,7 +179,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 }
             }
         } catch (InterruptedException ie) {
-            throw new PdaoException("Append query unexpectedly interrupted", ie);
+            throw new PdaoException("Map values to rows query unexpectedly interrupted", ie);
         }
 
         return rowIdMatch;
@@ -538,6 +538,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             FieldValueList row = result.iterateAll().iterator().next();
             FieldValue countValue = row.get(0);
             if (countValue.getLongValue() != rowIds.size()) {
+                logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
+                " count=" + countValue.getLongValue());
+                for (String rowId : rowIds) {
+                    logger.error(" rowIdIn: " + rowId);
+                }
+
                 throw new PdaoException("Invalid row ids supplied");
             }
         } catch (InterruptedException ie) {

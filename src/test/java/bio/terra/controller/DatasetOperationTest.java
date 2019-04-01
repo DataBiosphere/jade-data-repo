@@ -36,8 +36,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -77,7 +75,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class DatasetOperationTest {
     private static final boolean deleteOnTeardown = true;
 
-    private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DatasetOperationTest");
+    // private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DatasetOperationTest");
 
     // TODO: MORE TESTS to be done when we can ingest data:
     // - test more complex studies with relationships

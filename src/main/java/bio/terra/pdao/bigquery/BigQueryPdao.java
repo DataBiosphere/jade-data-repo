@@ -539,7 +539,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             FieldValue countValue = row.get(0);
             if (countValue.getLongValue() != rowIds.size()) {
                 logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
-                " count=" + countValue.getLongValue());
+                    " count=" + countValue.getLongValue());
                 for (String rowId : rowIds) {
                     logger.error(" rowIdIn: " + rowId);
                 }

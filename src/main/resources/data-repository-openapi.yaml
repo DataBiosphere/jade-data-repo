@@ -578,7 +578,7 @@ paths:
       parameters:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/FileId'
-     responses:
+      responses:
         202:
           description: Job status of dataset creation job & url for polling in the response header
           schema:
@@ -1032,7 +1032,7 @@ definitions:
         description: number of bad rows skipped
 
   ## File Definitions ##
-  FileLoad:
+  FileLoadModel:
     description: |
       Information needed to copy a file from a source bucket into the
       study bucket.
@@ -1053,7 +1053,7 @@ definitions:
           The path must start with /.
 
   # File, Checksum, and AccessMethod are cut and pasted from the DRS spec.
-  File:
+  FileModel:
       type: object
       required: ['id', 'size', 'created', 'checksums', 'access_methods']
       properties:

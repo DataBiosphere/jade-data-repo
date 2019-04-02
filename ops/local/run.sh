@@ -61,14 +61,17 @@ mkdir -p $SCRATCH
 # switch into minikube mode (we want the containers we build to be available locally to minikube)
 eval $( minikube docker-env )
 
+# create a data-repo namespace to put everything in
+kubectl apply -f "${WD}/../kubernetes/namespace.yaml"
+
 # render secrets, create or update on kubernetes
 consul-template -template "${WD}/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
 kubectl apply -f "${SCRATCH}/api-secrets.yaml"
 
 # update the service account key
 vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key.json" -format=json > "${SCRATCH}/sa-key.json"
-kubectl get secret sa-key && kubectl delete secret sa-key
-kubectl create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
+kubectl --namespace data-repo get secret sa-key && kubectl --namespace data-repo delete secret sa-key
+kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # create or update postgres pod + service
 kubectl apply -f "${WD}/pods/psql-pod.yaml"
@@ -76,7 +79,7 @@ kubectl apply -f "${WD}/services/psql-service.yaml"
 
 # create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
 cat "${WD}/../../db/create-data-repo-db" | \
-    kubectl run psql -i --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service -U postgres
+    kubectl --namespace data-repo run psql -i --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service -U postgres
 
 # prepare the code to be dockerized
 ${WD}/../../gradlew dockerPrepare
@@ -96,8 +99,8 @@ kubectl apply -f "${WD}/services/oidc-proxy-service.yaml"
 rm -r $SCRATCH
 
 # finally, set up a tunnel to allow remote debugging and output the new entry for /etc/hosts
-API_CLUSTER_IP=$(kubectl get service api-service -o jsonpath='{.spec.clusterIP}')
-PROXY_CLUSTER_IP=$(kubectl get service oidc-proxy-service -o jsonpath='{.spec.clusterIP}')
+API_CLUSTER_IP=$(kubectl get service api-service --namespace data-repo -o jsonpath='{.spec.clusterIP}')
+PROXY_CLUSTER_IP=$(kubectl get service oidc-proxy-service --namespace data-repo -o jsonpath='{.spec.clusterIP}')
 echo
 echo "remote debug available at ${API_CLUSTER_IP}:5005"
 echo

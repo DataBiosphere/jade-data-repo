@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: oidc-proxy-pod
+  namespace: data-repo
   labels:
     app: data-repo
     component: data-repo-oidc-proxy
@@ -11,11 +12,11 @@ spec:
     image: broadinstitute/openidc-proxy:db_ldap_2_3_3
     env:
       - name: PROXY_URL
-        value: 'http://api-service:8080/'
+        value: 'http://api-service.data-repo:8080/'
       - name: PROXY_URL2
-        value: 'http://api-service:8080/api'
+        value: 'http://api-service.data-repo:8080/api'
       - name: PROXY_URL3
-        value: 'http://api-service:8080/register'
+        value: 'http://api-service.data-repo:8080/register'
       - name: CALLBACK_URI
         value: 'https://mini.broadinstitute.org/oauth2callback'
       - name: LOG_LEVEL

@@ -1,6 +1,7 @@
 kind: Service
 apiVersion: v1
 metadata:
+  namespace: data-repo
   name: oidc-proxy-service
 spec:
   selector:

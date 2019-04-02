@@ -16,6 +16,7 @@ import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
@@ -24,8 +25,6 @@ import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.InsertAllRequest;
-import com.google.cloud.bigquery.InsertAllResponse;
 import com.google.cloud.bigquery.Job;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.JobStatistics;
@@ -48,9 +47,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
@@ -165,7 +162,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         // ids and the mismatched ids
         RowIdMatch rowIdMatch = new RowIdMatch();
         String sql = builder.toString();
-        logger.info("mapValuesToRows sql: " + sql);
+        logger.debug("mapValuesToRows sql: " + sql);
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
             TableResult result = bigQuery.query(queryConfig);
@@ -175,10 +172,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 FieldValue inputValue = row.get(1);
                 if (rowId.isNull()) {
                     rowIdMatch.addMismatch(inputValue.getStringValue());
-                    logger.info("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
+                    logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
                 } else {
                     rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
-                    logger.info("rowId=" + inputValue.getStringValue() + "  inVal=" + inputValue.getStringValue());
+                    logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
                 }
             }
         } catch (InterruptedException ie) {
@@ -481,49 +478,42 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     // Load row ids
+    // We load row ids by building a SQL INSERT statement with the row ids as data.
+    // This is more expensive than streaming the input, but does not introduce visibility
+    // issues with the new data. It has the same number of values limitation as the
+    // validate row ids.
     private void loadRootRowIds(String datasetName, String tableId, List<String> rowIds) {
         if (rowIds.size() == 0) {
             return;
         }
 
-        TableId bqTableId = TableId.of(datasetName, PDAO_ROW_ID_TABLE);
-        InsertAllRequest.Builder requestBuilder = InsertAllRequest.newBuilder(bqTableId);
-        for (String rowId : rowIds) {
-            Map<String, Object> row = new HashMap<>();
-            row.put(PDAO_TABLE_ID_COLUMN, tableId);
-            row.put(PDAO_ROW_ID_COLUMN, rowId);
-            requestBuilder.addRow(row);
-        }
-        InsertAllRequest request = requestBuilder.build();
-
-        InsertAllResponse response = bigQuery.insertAll(request);
-        if (response.hasErrors()) {
-            logger.error("Row Id InsertAll had errors:");
-            for (List<BigQueryError> errorList : response.getInsertErrors().values()) {
-                for (BigQueryError bigQueryError : errorList) {
-                    logger.debug("    {}", bigQueryError);
-                }
-            }
-        }
-
         StringBuilder builder = new StringBuilder();
-        builder.append("SELECT ")
-            .append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
+        builder.append("INSERT INTO `")
             .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
-            .append("`");
-        String sql = builder.toString();
-        try {
-            logger.info("Dump root row ids");
-            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-            TableResult result = bigQuery.query(queryConfig);
-            for (FieldValueList row : result.iterateAll()) {
-                logger.info("tableid=" + row.get(0).getStringValue() + "  rowid=" + row.get(1).getStringValue());
-            }
-        } catch (InterruptedException ie) {
-            throw new PdaoException("Debug dump row id query unexpectedly interrupted", ie);
+            .append("` (").append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
+            .append(") SELECT ").append("'").append(tableId).append("' AS ").append(PDAO_TABLE_ID_COLUMN)
+            .append(", T.rowid AS ").append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM (SELECT rowid FROM UNNEST([");
+
+        // Put all of the rowids into an array that is unnested into a table
+        String prefix = "";
+        for (String rowId : rowIds) {
+            builder.append(prefix).append("'").append(rowId).append("'");
+            prefix = ",";
         }
 
+        builder.append("]) AS rowid) AS T");
+        String sql = builder.toString();
+
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            bigQuery.query(queryConfig);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException("Insert root row ids unexpectedly interrupted", e);
+        } catch (BigQueryException ex) {
+            logger.error(ex.toString());
+            throw new PdaoException("Failure inserting root row ids", ex);
+        }
     }
 
     /**

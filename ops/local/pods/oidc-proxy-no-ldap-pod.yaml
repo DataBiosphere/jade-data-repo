@@ -12,7 +12,7 @@ spec:
     image: broadinstitute/openidc-proxy:db_ldap_2_3_3
     env:
       - name: PROXY_URL
-        value: 'http://api-service.data-repo:8080/'
+        value: 'http://ui-service.data-repo:80/'
       - name: PROXY_URL2
         value: 'http://api-service.data-repo:8080/api'
       - name: PROXY_URL3

@@ -1,5 +1,6 @@
 package bio.terra.controller;
 
+import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.BadRequestException;
 import bio.terra.model.DatasetModel;
@@ -46,6 +47,9 @@ public class RepositoryApiController implements RepositoryApi {
     private final DatasetService datasetService;
     private final IngestRequestValidator ingestRequestValidator;
 
+    // needed for local testing w/o proxy
+    private final ApplicationConfiguration appConfig;
+
     @Autowired
     public RepositoryApiController(
             ObjectMapper objectMapper,
@@ -55,7 +59,8 @@ public class RepositoryApiController implements RepositoryApi {
             StudyService studyService,
             DatasetRequestValidator datasetRequestValidator,
             DatasetService datasetService,
-            IngestRequestValidator ingestRequestValidator
+            IngestRequestValidator ingestRequestValidator,
+            ApplicationConfiguration appConfig
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -65,6 +70,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.datasetRequestValidator = datasetRequestValidator;
         this.datasetService = datasetService;
         this.ingestRequestValidator = ingestRequestValidator;
+        this.appConfig = appConfig;
     }
 
     @InitBinder
@@ -89,9 +95,16 @@ public class RepositoryApiController implements RepositoryApi {
             throw new BadRequestException("No valid request found.");
         }
         HttpServletRequest req = getRequest().get();
-        return new AuthenticatedUserRequest(
-            req.getHeader("oidc_claim_email"),
-            req.getHeader("oidc_access_token"));
+        String email = req.getHeader("oidc_claim_email");
+        String token = req.getHeader("oidc_access_token");
+
+        if (token == null) {
+            token = req.getHeader("Authorization").substring("Bearer ".length());
+        }
+        if (email == null) {
+            email = appConfig.getUserEmail();
+        }
+        return new AuthenticatedUserRequest(email, token);
     }
 
     // -- study --

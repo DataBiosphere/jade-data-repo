@@ -1,0 +1,9 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  namespace: data-repo
+  name: basic-ingress
+spec:
+  backend:
+    serviceName: oidc-proxy-service
+    servicePort: 443

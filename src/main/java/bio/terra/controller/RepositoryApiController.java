@@ -194,7 +194,7 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
                 samService.addPolicyMember(
                     getAuthenticatedInfo(),
-                    SamClientService.ResourceType.dataset,
+                    SamClientService.ResourceType.DATASET,
                     UUID.fromString(id),
                     policyName,
                     policyMember.getEmail())));
@@ -210,7 +210,7 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyResponse response = new PolicyResponse().policies(
                 samService.retrievePolicies(
                     getAuthenticatedInfo(),
-                    SamClientService.ResourceType.dataset,
+                    SamClientService.ResourceType.DATASET,
                     UUID.fromString(id)));
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (ApiException ex) {
@@ -227,7 +227,7 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
                 samService.deletePolicyMember(
                     getAuthenticatedInfo(),
-                    SamClientService.ResourceType.dataset,
+                    SamClientService.ResourceType.DATASET,
                     UUID.fromString(id),
                     policyName,
                     memberEmail)));

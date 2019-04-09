@@ -511,7 +511,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } catch (InterruptedException e) {
             throw new IllegalStateException("Insert root row ids unexpectedly interrupted", e);
         } catch (BigQueryException ex) {
-            logger.error(ex.toString());
             throw new PdaoException("Failure inserting root row ids", ex);
         }
     }

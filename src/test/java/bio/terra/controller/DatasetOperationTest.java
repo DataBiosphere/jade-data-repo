@@ -208,7 +208,7 @@ public class DatasetOperationTest {
         for (DatasetSummaryModel anEnumeratedDataset : enumeratedArray) {
             if (anEnumeratedDataset.getId().equals(datasetList.get(compareIndex).getId())) {
                 assertThat("Enumeration summary matches create summary",
-                        anEnumeratedDataset, equalTo(datasetList.get(compareIndex)));
+                    anEnumeratedDataset, equalTo(datasetList.get(compareIndex)));
                 compareIndex++;
             }
         }

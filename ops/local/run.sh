@@ -74,7 +74,7 @@ ${WD}/../../gradlew dockerPush
 kubectl apply -f "${WD}/pods/api-pod.yaml"
 kubectl apply -f "${WD}/services/api-service.yaml"
 
-kubectl --namespace data-repo set image pods/data-repo-api "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:latest-${GOOGLE_CLOUD_PROJECT}"
+kubectl --namespace data-repo set image pods/data-repo-api "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:latest${GOOGLE_CLOUD_PROJECT}"
 
 # create or update oidc proxy pod + service, probably need to render secrets
 kubectl apply -f "${WD}/pods/oidc-proxy-no-ldap-pod.yaml"

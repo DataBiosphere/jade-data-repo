@@ -242,7 +242,7 @@ def getGitHash = { ->
 
 
 docker {
-    name "gcr.io/broad-jade-dev/${bootJar.baseName}:latest-${System.env.GOOGLE_CLOUD_PROJECT}"
+    name "gcr.io/broad-jade-dev/${bootJar.baseName}:latest${System.env.GOOGLE_CLOUD_PROJECT}"
     copySpec.from(tasks.unpack.outputs).into("dependency")
     buildArgs(['DEPENDENCY': "dependency"])
 }

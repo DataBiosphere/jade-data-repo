@@ -18,11 +18,11 @@ spec:
       - name: PROXY_URL3
         value: 'http://api-service.data-repo:8080/register'
       - name: CALLBACK_URI
-        value: 'https://mini.broadinstitute.org/oauth2callback'
+        value: 'https://mini.datarepo-dev.broadinstitute.org/oauth2callback'
       - name: LOG_LEVEL
         value: 'debug'
       - name: SERVER_NAME
-        value: 'mini.broadinstitute.org'
+        value: 'mini.datarepo-dev.broadinstitute.org'
       - name: REMOTE_USER_CLAIM
         value: 'sub'
       - name: ENABLE_STACKDRIVER

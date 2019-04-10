@@ -3,6 +3,19 @@ The repo for the terra data repository built by the jade team.
 
 See the DATABASE.md to set up the postgres database before you run jade.
 
+## Deploying to kubernetes
+### Deploying in your own test account (not dev, integration, etc)
+#### Environment variables
+    GOOGLE_CLOUD_PROJECT
+    GOOGLE_APPLICATION_CREDENTIALS
+    ENVIRONMENT (local, dev)
+    
+    
+Add your secret to vault:
+PROJ_ABBREV (your initials, so "ah" if your project is broad-jade-ah)
+
+    vault write secret/dsde/firecloud/local/datarepo/sa-key{initials}.json @local-api-secrets.json
+    
 ## Setup environment
 ### Google project and account
 You must have authenticated with google for application-default credentials: 
@@ -17,11 +30,9 @@ Then you must specify a google project to use. Either run this command:
 
     gcloud config set project <project-name>
     
-or specify your project in the environment variable: `GOOGLE_CLOUD_PROJECT`.
-
 To see what you currently have set, use: `gcloud config list`
 
-### OIDC Environment variables
+### Environment variables
 
 There are some secrets that need to be provided to the app and will not be checked in
 to github. If you are standing this up on your own, you will need to get an Oauth client

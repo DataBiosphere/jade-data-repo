@@ -13,8 +13,7 @@ spec:
       secretName: sa-key
   containers:
   - name: data-repo-api-container
-    image: data-repo-debug:latest
-    imagePullPolicy: Never
+    image: gcr.io/broad-jade-dev/jade-data-repo:latest
     volumeMounts:
     - name: google-cloud-key
       mountPath: /var/secrets/google

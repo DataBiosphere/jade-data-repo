@@ -1051,6 +1051,15 @@ definitions:
         description: |
           Full path within the study where the file should be placed.
           The path must start with /.
+      mime_type:
+        type: string
+        description: |-
+          A string providing the mime-type of the Data Object.
+          For example, "application/json".
+      description:
+        type: string
+        description: |-
+          A human readable description of the contents of the Data Object.
 
   # File, Checksum, and AccessMethod are cut and pasted from the DRS spec.
   FileModel:
@@ -1066,7 +1075,7 @@ definitions:
           description: |-
             A string that can be optionally used to name a Data Object.
         size:
-          type: string
+          type: integer
           format: int64
           description: |-
             The computed size in bytes.
@@ -1113,9 +1122,6 @@ definitions:
             type: string
           description: |-
             A list of strings that can be used to find this Data Object.
-            These aliases can be used to represent the Data Object's location in
-            a directory (e.g. "bucket/folder/file.name") to make Data Objects
-            more discoverable. They might also be used to represent
 
   Checksum:
       type: object

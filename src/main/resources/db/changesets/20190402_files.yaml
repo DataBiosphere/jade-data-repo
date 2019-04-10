@@ -23,13 +23,17 @@ databaseChangeLog:
                   type: char(1)
                   constraints:
                     nullable: false
-                  ## D for directories; F for files
+                  ## D for directories; F for files; N for files not yet present
               - column:
                   name: created_date
                   type: timestamptz
                   defaultValueComputed: now()
                   constraints:
                     nullable: false
+              - column:
+                  name: creating_flight_id
+                  type: text
+                  ## stairway flight id to prevent create race conditions
               - column:
                   name: path
                   type: text

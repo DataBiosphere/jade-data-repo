@@ -7,17 +7,17 @@ See the DATABASE.md to set up the postgres database before you run jade.
 ### Deploying in your own test account (not dev, integration, etc)
 #### Environment variables
     GOOGLE_CLOUD_PROJECT
-    GOOGLE_APPLICATION_CREDENTIALS
     ENVIRONMENT (local, dev)
     
     
-Add your secret to vault:
-PROJ_ABBREV (your initials, so "ah" if your project is broad-jade-ah)
+Add the service account key for your project to vault:
 
-    vault write secret/dsde/firecloud/local/datarepo/sa-key{initials}.json @local-api-secrets.json
+    vault write secret/dsde/firecloud/local/datarepo/sa-key{project}.json @<localfilename>.json
     
-## Setup environment
-### Google project and account
+
+## Build and Run Locally
+
+### Set up
 You must have authenticated with google for application-default credentials: 
 	
 	gcloud auth application-default login
@@ -25,28 +25,30 @@ and login with an account that has access to your project. This will save creden
 
     gcloud config set account <account email>
 
-Then you must specify a google project to use. Either run this command: 
+Then you must specify a google project to use. Run this command: 
 
 
     gcloud config set project <project-name>
     
+    
 To see what you currently have set, use: `gcloud config list`
+
+When running locally, we are not using the proxy. Therefore, the system doesn't know your user email. Edit the `src/main/resources/application.properties` file and set the userEmail field. If you are running sam locally, set `sam.basePath` to `https://local.broadinstitute.org:50443`.
 
 ### Environment variables
 
 There are some secrets that need to be provided to the app and will not be checked in
-to github. If you are standing this up on your own, you will need to get an Oauth client
-id and secret. We got one in GCP from the cloud console by creating an
-[Oauth consent screen](https://console.cloud.google.com/apis/credentials/consent)
-and then an [Oauth web client id](https://console.cloud.google.com/apis/credentials).
+to github. If you are standing this up on your own, you will need to set the following environment variables to the values [here](https://console.cloud.google.com/apis/credentials/oauthclient/970791974390-1581mjhtp2b3jmg4avhor1vabs13b7ur.apps.googleusercontent.com?project=broad-jade-dev&organizationId=548622027621)
 
     OAUTH_CLIENT_ID
     OAUTH_CLIENT_SECRET
 
-## Build and Run
+### Run unit tests
 
 If you are making code changes, run:
 `./gradlew check`
+
+### Run jade locally
 
 To run jade locally:
 `./gradlew bootRun`

@@ -12,8 +12,6 @@ set -e
 : ${VAULT_ADDR:?}
 : ${ENVIRONMENT:?}
 
-PROJ_ABBREV=${1:-''}
-
 if [ -z "$VAULT_TOKEN" ]; then
     if [ ! -f ~/.vault-token ]; then
         echo "VAULT_TOKEN needs to be set or ~/.vault-token needs to exist"
@@ -50,7 +48,7 @@ consul-template -template "${WD}/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-s
 kubectl apply -f "${SCRATCH}/api-secrets.yaml"
 
 # update the service account key
-vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key${PROJ_ABBREV}.json" -format=json | jq .data  > "${SCRATCH}/sa-key.json"
+vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key${GOOGLE_CLOUD_PROJECT}.json" -format=json | jq .data  > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo get secret sa-key && kubectl --namespace data-repo delete secret sa-key
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
@@ -69,14 +67,14 @@ cat "${WD}/../../db/create-data-repo-db" | \
     kubectl --namespace data-repo run psql -i --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service -U postgres
 
 # prepare the code to be dockerized
-PROJ="${PROJ_ABBREV}" ${WD}/../../gradlew dockerPush
+${WD}/../../gradlew dockerPush
 
 # create or update the api pod + service
 #kubectl get pod data-repo-api && kubectl delete pod data-repo-api
 kubectl apply -f "${WD}/pods/api-pod.yaml"
 kubectl apply -f "${WD}/services/api-service.yaml"
 
-kubectl --namespace data-repo set image pods/data-repo-api "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:latest${PROJ_ABBREV}"
+kubectl --namespace data-repo set image pods/data-repo-api "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:latest-${GOOGLE_CLOUD_PROJECT}"
 
 # create or update oidc proxy pod + service, probably need to render secrets
 kubectl apply -f "${WD}/pods/oidc-proxy-no-ldap-pod.yaml"

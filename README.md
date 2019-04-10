@@ -14,6 +14,11 @@ Add the service account key for your project to vault:
 
     vault write secret/dsde/firecloud/local/datarepo/sa-key{project}.json @<localfilename>.json
     
+Deploy:
+
+    ./ops/local/run.sh
+    
+After you deploy, go to Kubernetes in the google cloud console, select services, and then add the IP address of the oidc-proxy-service to your /etc/hosts file as `jade.datarepo-dev.broadinstitute.org`
 
 ## Build and Run Locally
 

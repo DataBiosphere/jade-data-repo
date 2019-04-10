@@ -9,7 +9,8 @@ import java.util.UUID;
 public class FSObject {
     public enum FSObjectType {
         DIRECTORY("D"),
-        FILE("F");
+        FILE("F"),
+        FILE_NOT_PRESENT("N");
 
         private String letter;
 
@@ -41,6 +42,7 @@ public class FSObject {
     private Long size;
     private String mimeType;
     private String description;
+    private String creatingFlightId;
 
     public UUID getObjectId() {
         return objectId;
@@ -129,6 +131,15 @@ public class FSObject {
 
     public FSObject description(String description) {
         this.description = description;
+        return this;
+    }
+
+    public String getCreatingFlightId() {
+        return creatingFlightId;
+    }
+
+    public FSObject creatingFlightId(String creatingFlightId) {
+        this.creatingFlightId = creatingFlightId;
         return this;
     }
 }

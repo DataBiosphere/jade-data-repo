@@ -5,13 +5,22 @@ See the DATABASE.md to set up the postgres database before you run jade.
 
 ## Create kubernetes cluster
 
-In the google cloud console, within your personal project, go to Kubernetes Engine -> Clusters and create a cluster. In the default pool section change nodes to 1 and machine type to small. Open the Advanced section and click the checkbox to enable VPC native. Then click create.
+In the google cloud console, within your personal project, go to Kubernetes Engine -> Clusters and create a cluster. In the default pool section change nodes to 1 and click node pool options. Change boot disk size to 10G. At the bottom of the page, click the Advanced section and click the checkbox to enable VPC native. Then click create.
 
 Once your cluster has finished creating, click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
 
 
 ## Create a service account
-In the google cloud console, go to IAM & Admin
+In the google cloud console, go to IAM & Admin -> Service accounts. Click create service account. Choose a name and add a description (this service account will be used to manage big query and postgres data for the datarepo).
+
+Give your service account access to the gcr:
+    
+    gsutil iam ch serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
+    
+Grant your service account the storage and bigquery admin roles:
+
+    gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/bigquery.admin
+    gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/storage.admin
 
 ## Deploying to kubernetes
 ### Deploying in your own test account (not dev, integration, etc)

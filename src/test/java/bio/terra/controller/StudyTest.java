@@ -77,12 +77,13 @@ public class StudyTest {
                 .thenReturn(flightState);
 
         mvc.perform(post("/api/repository/v1/studies")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(buildStudyRequest())))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Minimal"))
-                .andExpect(jsonPath("$.description")
-                        .value("This is a sample study definition"));
+            .contentType(MediaType.APPLICATION_JSON)
+            .header("Authorization", "Bearer: faketoken")
+            .content(objectMapper.writeValueAsString(buildStudyRequest())))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value("Minimal"))
+            .andExpect(jsonPath("$.description")
+                .value("This is a sample study definition"));
     }
 
     @Test
@@ -97,12 +98,13 @@ public class StudyTest {
 
         String studyJSON = jsonLoader.loadJson("study-minimal.json");
         mvc.perform(post("/api/repository/v1/studies")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(studyJSON))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name").value("Minimal"))
-                .andExpect(jsonPath("$.description")
-                        .value("This is a sample study definition"));
+            .header("Authorization", "Bearer: faketoken")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(studyJSON))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.name").value("Minimal"))
+            .andExpect(jsonPath("$.description")
+                .value("This is a sample study definition"));
     }
 
     @Test

@@ -48,8 +48,6 @@ databaseChangeLog:
               - column:
                   name: checksum
                   type: text
-                  constraints:
-                    nullable: false
               - column:
                   name: size
                   type: bigint

@@ -66,7 +66,7 @@ public class FileOperationTest {
 
 
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/study/" + studySummary.getId() + "/file";
+        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/file";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))

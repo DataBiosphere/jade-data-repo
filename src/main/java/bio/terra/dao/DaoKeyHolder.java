@@ -14,7 +14,7 @@ public class DaoKeyHolder extends GeneratedKeyHolder {
     }
 
     public Timestamp getTimestamp(String fieldName) {
-        return getField("created_date", Timestamp.class);
+        return getField(fieldName, Timestamp.class);
     }
 
     public Instant getCreatedDate() {
@@ -25,7 +25,7 @@ public class DaoKeyHolder extends GeneratedKeyHolder {
         return null;
     }
 
-    private <T> T getField(String fieldName, Class<T> type) {
+    public <T> T getField(String fieldName, Class<T> type) {
         Map<String, Object> keys = getKeys();
         if (keys != null) {
             Object fieldObject = keys.get(fieldName);

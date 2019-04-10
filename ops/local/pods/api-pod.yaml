@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: data-repo-api
+  namespace: data-repo
   labels:
     app: data-repo
     component: data-repo-api

@@ -26,6 +26,7 @@ Grant your service account the storage and bigquery admin roles:
 ### Deploying in your own test account (not dev, integration, etc)
 #### Environment variables
     GOOGLE_CLOUD_PROJECT
+    GOOGLE_APPLICATION_CREDENTIALS
     ENVIRONMENT (local, dev)
 
 Add the service account key for your project to vault:

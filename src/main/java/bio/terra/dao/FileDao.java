@@ -17,7 +17,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -54,7 +54,7 @@ public class FileDao {
         String currentPath = "";
         boolean finding = true;
         for (String part : pathParts) {
-            currentPath = "/" + part;
+            currentPath = currentPath + "/" + part;
             if (finding) {
                 FSObject fsObject = retrieveFileByPathNoThrow(currentPath);
                 if (fsObject == null) {
@@ -252,11 +252,11 @@ public class FileDao {
             .addValue("description", fsObject.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID objectId = keyHolder.getId();
-        Timestamp createdDate = keyHolder.getTimestamp("created_date");
+        UUID objectId = keyHolder.getField("object_id", UUID.class);
+        Instant createdDate = keyHolder.getCreatedDate();
         fsObject
             .objectId(objectId)
-            .createdDate(createdDate.toInstant());
+            .createdDate(createdDate);
         return fsObject.getObjectId();
     }
 

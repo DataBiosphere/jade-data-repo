@@ -13,10 +13,10 @@ Once your cluster has finished creating, click the Connect button next to you cl
 ## Create a service account
 In the google cloud console, go to IAM & Admin -> Service accounts. Click create service account. Choose a name and add a description (this service account will be used to manage big query and postgres data for the datarepo).
 
-Give your service account access to the gcr:
-    
+Give your service account access to dev GCR:
+
     gsutil iam ch serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
-    
+
 Grant your service account the storage and bigquery admin roles:
 
     gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/bigquery.admin
@@ -27,34 +27,33 @@ Grant your service account the storage and bigquery admin roles:
 #### Environment variables
     GOOGLE_CLOUD_PROJECT
     ENVIRONMENT (local, dev)
-    
-    
+
 Add the service account key for your project to vault:
 
-    vault write secret/dsde/firecloud/local/datarepo/sa-key{project}.json @<localfilename>.json
-    
+    vault write secret/dsde/firecloud/local/datarepo/sa-key${PROJECT}.json @<localfilename>.json
+
 Deploy:
 
-    ./ops/local/run.sh
-    
+    ./ops/deploy.sh
+
 After you deploy, go to Kubernetes in the google cloud console, select services, and then add the IP address of the oidc-proxy-service to your /etc/hosts file as `jade.datarepo-dev.broadinstitute.org`
 
 ## Build and Run Locally
 
 ### Set up
-You must have authenticated with google for application-default credentials: 
-	
+You must have authenticated with google for application-default credentials:
+
 	gcloud auth application-default login
-and login with an account that has access to your project. This will save credentials locally. If you are using multiple accounts, you can switch to the correct one using this command: 
+and login with an account that has access to your project. This will save credentials locally. If you are using multiple accounts, you can switch to the correct one using this command:
 
     gcloud config set account <account email>
 
-Then you must specify a google project to use. Run this command: 
+Then you must specify a google project to use. Run this command:
 
 
     gcloud config set project <project-name>
-    
-    
+
+
 To see what you currently have set, use: `gcloud config list`
 
 When running locally, we are not using the proxy. Therefore, the system doesn't know your user email. Edit the `src/main/resources/application.properties` file and set the userEmail field. If you are running sam locally, set `sam.basePath` to `https://local.broadinstitute.org:50443`.

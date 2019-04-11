@@ -28,7 +28,8 @@ public class FileDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private static final String COLUMN_LIST =
-        "object_id,study_id,object_type,created_date,path,gspath,checksum,size,mime_type,description";
+        "object_id,study_id,object_type,created_date,path,gspath," +
+            "checksum,size,mime_type,description,creating_flight_id";
 
     @Autowired
     public FileDao(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -107,15 +108,36 @@ public class FileDao {
         return fsObject.getObjectId();
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFile(UUID objectId) {
+        return deleteFileWorker(objectId, null);
+    }
+
+    public boolean deleteFileForUndo(UUID objectId, String flightId) {
+        return deleteFileWorker(objectId, flightId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    private boolean deleteFileWorker(UUID objectId, String flightId) {
         FSObject fsObject = retrieveFileByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
-        if (fsObject.getObjectType() == FSObject.FSObjectType.DIRECTORY) {
-            throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
+        switch (fsObject.getObjectType()) {
+            case DIRECTORY:
+                throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
+
+            case FILE_NOT_PRESENT:
+                // Only the creating flight can delete the non-present file
+                if (!StringUtils.equals(flightId, fsObject.getCreatingFlightId())) {
+                    throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a not-present file");
+                }
+                break;
+
+            case FILE:
+            default:
+                break;
         }
+
         if (hasDatasetReferences(objectId)) {
             throw new FileSystemObjectDependencyException(
                 "File is used by at least one dataset and cannot be deleted");
@@ -187,7 +209,7 @@ public class FileDao {
         return fsObject;
     }
 
-    private FSObject retrieveFileByIdNoThrow(UUID objectId) {
+    FSObject retrieveFileByIdNoThrow(UUID objectId) {
         String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE object_id = :object_id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("object_id", objectId);
         return retrieveWorker(sql, params);
@@ -215,6 +237,7 @@ public class FileDao {
                     .studyId(rs.getObject("study_id", UUID.class))
                     .objectType(FSObject.FSObjectType.fromLetter(rs.getString("object_type")))
                     .createdDate(rs.getTimestamp("created_date").toInstant())
+                    .creatingFlightId(rs.getString("creating_flight_id"))
                     .path(rs.getString("path"))
                     .gspath(rs.getString("gspath"))
                     .checksum(rs.getString("checksum"))
@@ -238,12 +261,13 @@ public class FileDao {
     private UUID createObject(FSObject fsObject) {
         logger.debug("create " + fsObject.getObjectType() + ": " + fsObject.getPath());
         String sql = "INSERT INTO fs_object (" +
-            "study_id,object_type,path,gspath,checksum,size,mime_type,description)" +
+            "study_id,object_type,creating_flight_id,path,gspath,checksum,size,mime_type,description)" +
             " VALUES (" +
-            ":study_id,:object_type,:path,:gspath,:checksum,:size,:mime_type,:description)";
+            ":study_id,:object_type,:creating_flight_id,:path,:gspath,:checksum,:size,:mime_type,:description)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("study_id", fsObject.getStudyId())
             .addValue("object_type", fsObject.getObjectType().toLetter())
+            .addValue("creating_flight_id", fsObject.getCreatingFlightId())
             .addValue("path", fsObject.getPath())
             .addValue("gspath", fsObject.getGspath())
             .addValue("checksum", fsObject.getChecksum())
@@ -270,9 +294,5 @@ public class FileDao {
         int endIndex = pathParts.length - 1;
         return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
     }
-
-
-
-
 
 }

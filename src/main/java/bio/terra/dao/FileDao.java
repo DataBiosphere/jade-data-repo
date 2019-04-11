@@ -52,18 +52,18 @@ public class FileDao {
 
         // Walk down the path, one directory at a time. At the first non-existent directory,
         // construct and collect partial FSObjects.
-        String currentPath = "";
+        StringBuilder pathBuilder = new StringBuilder();
         boolean finding = true;
         for (String part : pathParts) {
-            currentPath = currentPath + "/" + part;
+            pathBuilder.append('/').append(part);
             if (finding) {
-                FSObject fsObject = retrieveFileByPathNoThrow(currentPath);
+                FSObject fsObject = retrieveFileByPathNoThrow(pathBuilder.toString());
                 if (fsObject == null) {
                     finding = false; // now we are creating
                 }
             }
             if (!finding) {
-                FSObject fsObject = makeObject(fileToCreate.getStudyId(), currentPath);
+                FSObject fsObject = makeObject(fileToCreate.getStudyId(), pathBuilder.toString());
                 createList.add(fsObject);
             }
         }

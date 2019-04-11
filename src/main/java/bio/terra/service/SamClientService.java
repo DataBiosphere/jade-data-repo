@@ -2,6 +2,7 @@ package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.PolicyModel;
+import bio.terra.model.UserStatusInfo;
 import bio.terra.model.sam.CreateResourceCorrectRequest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
@@ -10,6 +11,7 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.Pair;
 import org.broadinstitute.dsde.workbench.client.sam.api.GoogleApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
+import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.slf4j.Logger;
@@ -115,6 +117,10 @@ public class SamClientService {
 
     private GoogleApi samGoogleApi(String accessToken) {
         return new GoogleApi(getApiClient(accessToken));
+    }
+
+    private UsersApi samUsersApi(String accessToken) {
+        return new UsersApi(getApiClient(accessToken));
     }
 
     public String getBasePath() {
@@ -247,6 +253,14 @@ public class SamClientService {
             .name(policyName)
             .members(result.getMemberEmails());
 
+    }
+
+    public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) throws ApiException {
+        UsersApi samUsersApi = samUsersApi(userReq.getToken());
+        org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo samInfo = samUsersApi.getUserStatusInfo();
+        return new UserStatusInfo().userSubjectId(samInfo.getUserSubjectId())
+            .userEmail(samInfo.getUserEmail())
+            .enabled(samInfo.getEnabled());
     }
 
     private AccessPolicyMembership createAccessPolicy(String role, String email) {

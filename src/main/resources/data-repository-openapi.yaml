@@ -477,6 +477,19 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/register/user':
+    get:
+      description: |
+        Returns whether the user is registered with terra
+      operationId: user
+      tags:
+      - repository
+      responses:
+        200:
+          description: User Info
+          schema:
+            $ref: '#/definitions/UserStatusInfo'
+
   '/api/repository/v1/jobs':
     # '/api/repository/v1/jobs?offset=100&limit=50':
     get:  ## enumerate
@@ -1093,4 +1106,21 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/PolicyModel'
+
+  UserStatusInfo:
+    description: ''
+    required:
+    - userSubjectId
+    - userEmail
+    - enabled
+    properties:
+      userSubjectId:
+        type: string
+        description: user id
+      userEmail:
+        type: string
+        description: user email
+      enabled:
+        type: boolean
+        description: true if the user is enabled in ldap
 

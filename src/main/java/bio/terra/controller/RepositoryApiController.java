@@ -15,6 +15,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.model.UserStatusInfo;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobService;
 import bio.terra.service.SamClientService;
@@ -24,6 +25,8 @@ import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.StudyRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +46,8 @@ import java.util.UUID;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
+
+    private Logger logger = LoggerFactory.getLogger(RepositoryApiController.class);
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
@@ -233,9 +238,22 @@ public class RepositoryApiController implements RepositoryApi {
                     memberEmail)));
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (ApiException ex) {
+            logger.error("got error from sam", ex);
             throw new InternalServerErrorException(ex);
         }
     }
+
+    @Override
+    public ResponseEntity<UserStatusInfo> user() {
+        try {
+            UserStatusInfo info = samService.getUserInfo(getAuthenticatedInfo());
+            return new ResponseEntity<>(info, HttpStatus.OK);
+        } catch (ApiException ex) {
+            logger.error("got error from sam", ex);
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
     // -- jobs --
     @Override
     public ResponseEntity<List<JobModel>> enumerateJobs(

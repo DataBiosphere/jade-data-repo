@@ -41,10 +41,10 @@ command -v consul-template >/dev/null 2>&1 || {
 mkdir -p $SCRATCH
 
 # create a data-repo namespace to put everything in
-kubectl apply -f "${WD}/../kubernetes/namespace.yaml"
+kubectl apply -f "${WD}/k8s/namespace.yaml"
 
 # render secrets, create or update on kubernetes
-consul-template -template "${WD}/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
+consul-template -template "${WD}/k8s/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
 kubectl apply -f "${SCRATCH}/api-secrets.yaml"
 
 # update the service account key
@@ -59,25 +59,27 @@ kubectl get secret tls-cert && kubectl delete secret tls-cert
 kubectl create secret tls tls-cert --cert=${SCRATCH}/server.crt --key=${SCRATCH}/server.key
 
 # create or update postgres pod + service
-kubectl apply -f "${WD}/pods/psql-pod.yaml"
-kubectl apply -f "${WD}/services/psql-service.yaml"
+kubectl apply -f "${WD}/k8s/pods/psql-pod.yaml"
+kubectl apply -f "${WD}/k8s/services/psql-service.yaml"
+
+# wait for the db to be ready so that we can run commands against it
+kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
 
 # create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
-cat "${WD}/../../db/create-data-repo-db" | \
+cat "${WD}/../db/create-data-repo-db" | \
     kubectl --namespace data-repo run psql -i --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service -U postgres
 
-# prepare the code to be dockerized
-${WD}/../../gradlew dockerPush
+# build a docker container and push it to gcr
+${WD}/../gradlew dockerPush
 
 # create or update the api pod + service
-#kubectl get pod data-repo-api && kubectl delete pod data-repo-api
-kubectl apply -f "${WD}/pods/api-pod.yaml"
-kubectl apply -f "${WD}/services/api-service.yaml"
+kubectl apply -f "${WD}/k8s/deployments/api-deployment.yaml"
+kubectl apply -f "${WD}/k8s/services/api-service.yaml"
 
-kubectl --namespace data-repo set image pods/data-repo-api "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:latest${GOOGLE_CLOUD_PROJECT}"
+kubectl --namespace data-repo set image deployments/api-deployment "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:latest${GOOGLE_CLOUD_PROJECT}"
 
 # create or update oidc proxy pod + service, probably need to render secrets
-kubectl apply -f "${WD}/pods/oidc-proxy-no-ldap-pod.yaml"
-kubectl apply -f "${WD}/services/oidc-proxy-service.yaml"
+kubectl apply -f "${WD}/k8s/deployments/oidc-proxy-deployment.yaml"
+kubectl apply -f "${WD}/k8s/services/oidc-proxy-service.yaml"
 
 rm -r $SCRATCH

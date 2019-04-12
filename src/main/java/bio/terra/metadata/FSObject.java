@@ -38,7 +38,8 @@ public class FSObject {
     private Instant createdDate;
     private String path;
     private String gspath;
-    private String checksum;
+    private String checksumCrc32c;
+    private String checksumMd5;  // may be null if it can't be used to validate the file contents
     private Long size;
     private String mimeType;
     private String description;
@@ -98,12 +99,21 @@ public class FSObject {
         return this;
     }
 
-    public String getChecksum() {
-        return checksum;
+    public String getChecksumCrc32c() {
+        return checksumCrc32c;
     }
 
-    public FSObject checksum(String checksum) {
-        this.checksum = checksum;
+    public FSObject checksumCrc32c(String checksumCrc32c) {
+        this.checksumCrc32c = checksumCrc32c;
+        return this;
+    }
+
+    public String getChecksumMd5() {
+        return checksumMd5;
+    }
+
+    public FSObject checksumMd5(String checksumMd5) {
+        this.checksumMd5 = checksumMd5;
         return this;
     }
 

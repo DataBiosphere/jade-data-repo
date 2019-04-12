@@ -8,6 +8,7 @@ import bio.terra.model.AccessMethod;
 import bio.terra.model.Checksum;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
+import bio.terra.pdao.gcs.GcsConfiguration;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
@@ -18,7 +19,9 @@ import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 @Component
 public class FileService {
@@ -27,14 +30,17 @@ public class FileService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final GcsConfiguration gcsConfiguration;
 
     @Autowired
     public FileService(Stairway stairway,
                        StudyDao studyDao,
-                       DatasetDao datasetDao) {
+                       DatasetDao datasetDao,
+                       GcsConfiguration gcsConfiguration) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
+        this.gcsConfiguration = gcsConfiguration;
     }
 
     public String ingestFile(String studyId, FileLoadModel fileLoad) {
@@ -46,25 +52,26 @@ public class FileService {
     }
 
     public FileModel fileModelFromFSObject(FSObject fsObject) {
-        // TODO: For now, handle cases of missing data. In the finished scheme
-        // we should throw or just let the null pointer fly. It would indicate a
-        // coding mistake on our part.
-        String theChecksum = fsObject.getChecksum() == null ? "<null>" : fsObject.getChecksum();
-        String theGspath = fsObject.getGspath() == null ? "<null>" : fsObject.getGspath();
-
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         OffsetDateTime theTime = OffsetDateTime.ofInstant(fsObject.getCreatedDate(), ZoneId.of("Z"));
 
-        // TODO: Get the region from the application properties for now
         AccessMethod accessMethod = new AccessMethod()
             .type(AccessMethod.TypeEnum.GS)
-            .accessUrl(theGspath)
-            .region("theRegion");
+            .accessUrl(fsObject.getGspath())
+            .region(gcsConfiguration.getRegion());
 
-        // TODO: Figure out what to do about checksum
-        Checksum checksum = new Checksum()
-            .checksum(theChecksum)
-            .type("sha512");
+        List<Checksum> checksums = new ArrayList<>();
+        Checksum checksumCrc32 = new Checksum()
+            .checksum(fsObject.getChecksumCrc32c())
+            .type("crc32c");
+        checksums.add(checksumCrc32);
+
+        if (fsObject.getChecksumMd5() != null) {
+            Checksum checksumMd5 = new Checksum()
+                .checksum(fsObject.getChecksumMd5())
+                .type("md5");
+            checksums.add(checksumMd5);
+        }
 
         // TODO: consider whether to return the file path as an alias
         FileModel fileModel = new FileModel()
@@ -75,7 +82,7 @@ public class FileService {
             .updated(theTime)
             .version("1")
             .mimeType(fsObject.getMimeType())
-            .checksums(Collections.singletonList(checksum))
+            .checksums(checksums)
             .accessMethods(Collections.singletonList(accessMethod))
             .description(fsObject.getDescription())
             .aliases(Collections.emptyList());

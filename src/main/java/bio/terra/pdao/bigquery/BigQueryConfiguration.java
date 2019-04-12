@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Profile;
  * That way, implementation specifics can be separated from the interface. We'll see if it works out that way.
  */
 @Configuration
-@Profile("bigquery")
+@Profile("google")
 public class BigQueryConfiguration {
     @Bean
     public String bigQueryProjectId() {

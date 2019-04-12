@@ -29,7 +29,7 @@ public class FileDao {
 
     private static final String COLUMN_LIST =
         "object_id,study_id,object_type,created_date,path,gspath," +
-            "checksum,size,mime_type,description,creating_flight_id";
+            "checksum_crc32c,checksum_md5,size,mime_type,description,creating_flight_id";
 
     @Autowired
     public FileDao(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -96,13 +96,15 @@ public class FileDao {
         }
 
         String sql = "UPDATE fs_object" +
-            " SET object_type = :object_type, gspath = :gspath, checksum = :checksum, size = :size" +
+            " SET object_type = :object_type, gspath = :gspath," +
+            " checksum_crc32c = :checksum_crc32c, checksum_md5 = :checksum_md5, size = :size" +
             " WHERE object_id = :object_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("object_id", fsObject.getObjectId())
             .addValue("object_type", FSObject.FSObjectType.FILE.toLetter())
             .addValue("gspath", fsObject.getGspath())
-            .addValue("checksum", fsObject.getChecksum())
+            .addValue("checksum_crc32c", fsObject.getChecksumCrc32c())
+            .addValue("checksum_md5", fsObject.getChecksumMd5())
             .addValue("size", fsObject.getSize());
         jdbcTemplate.update(sql, params);
         return fsObject.getObjectId();
@@ -260,7 +262,8 @@ public class FileDao {
                     .creatingFlightId(rs.getString("creating_flight_id"))
                     .path(rs.getString("path"))
                     .gspath(rs.getString("gspath"))
-                    .checksum(rs.getString("checksum"))
+                    .checksumCrc32c(rs.getString("checksum_crc32c"))
+                    .checksumMd5(rs.getString("checksum_md5"))
                     .size(rs.getLong("size"))
                     .mimeType(rs.getString("mime_type"))
                     .description(rs.getString("description")));
@@ -281,16 +284,19 @@ public class FileDao {
     private UUID createObject(FSObject fsObject) {
         logger.debug("create " + fsObject.getObjectType() + ": " + fsObject.getPath());
         String sql = "INSERT INTO fs_object (" +
-            "study_id,object_type,creating_flight_id,path,gspath,checksum,size,mime_type,description)" +
+            "study_id,object_type,creating_flight_id,path,gspath," +
+            "checksum_crc32c,checksum_md5,size,mime_type,description)" +
             " VALUES (" +
-            ":study_id,:object_type,:creating_flight_id,:path,:gspath,:checksum,:size,:mime_type,:description)";
+            ":study_id,:object_type,:creating_flight_id,:path,:gspath," +
+            ":checksum_crc32c,:checksum_md5,:size,:mime_type,:description)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("study_id", fsObject.getStudyId())
             .addValue("object_type", fsObject.getObjectType().toLetter())
             .addValue("creating_flight_id", fsObject.getCreatingFlightId())
             .addValue("path", fsObject.getPath())
             .addValue("gspath", fsObject.getGspath())
-            .addValue("checksum", fsObject.getChecksum())
+            .addValue("checksum_crc32c", fsObject.getChecksumCrc32c())
+            .addValue("checksum_md5", fsObject.getChecksumMd5())
             .addValue("size", fsObject.getSize())
             .addValue("mime_type", fsObject.getMimeType())
             .addValue("description", fsObject.getDescription());

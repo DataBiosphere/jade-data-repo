@@ -83,7 +83,8 @@ public class FileDaoTest {
         // Dummy up the outputs of the primary data step
         fsObject
             .objectId(fileAId)
-            .checksum("myChecksum")
+            .checksumCrc32c("myChecksum")
+            .checksumMd5(null)
             .gspath("fs://mybucket/mystudy/myfile")
             .size(42L);
 

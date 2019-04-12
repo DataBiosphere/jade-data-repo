@@ -46,7 +46,10 @@ databaseChangeLog:
                   type: text
                   ## null for directories
               - column:
-                  name: checksum
+                  name: checksum_crc32c
+                  type: text
+              - column:
+                  name: checksum_md5
                   type: text
               - column:
                   name: size

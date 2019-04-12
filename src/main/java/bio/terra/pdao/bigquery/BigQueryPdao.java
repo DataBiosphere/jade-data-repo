@@ -11,7 +11,7 @@ import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.pdao.PdaoException;
+import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import com.google.cloud.bigquery.BigQuery;
@@ -55,7 +55,7 @@ import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 
 @Component
-@Profile("bigquery")
+@Profile("google")
 public class BigQueryPdao implements PrimaryDataAccess {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.pdao.bigquery");
 

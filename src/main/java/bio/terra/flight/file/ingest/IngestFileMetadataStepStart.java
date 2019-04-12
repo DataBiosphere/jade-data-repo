@@ -2,6 +2,7 @@ package bio.terra.flight.file.ingest;
 
 import bio.terra.dao.FileDao;
 import bio.terra.dao.exception.FileSystemObjectAlreadyExistsException;
+import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSObject;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
@@ -15,12 +16,12 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.UUID;
 
-public class IngestFileMetadataStep implements Step {
+public class IngestFileMetadataStepStart implements Step {
     private final FileDao fileDao;
     private final Study study;
     private final FileService fileService;
 
-    public IngestFileMetadataStep(FileDao fileDao, Study study, FileService fileService) {
+    public IngestFileMetadataStepStart(FileDao fileDao, Study study, FileService fileService) {
         this.fileDao = fileDao;
         this.study = study;
         this.fileService = fileService;
@@ -40,7 +41,7 @@ public class IngestFileMetadataStep implements Step {
             // OK, some file exists. If this flight created it, then we record it
             // and claim success. Otherwise someone else created it and we throw.
             if (StringUtils.equals(fsObject.getCreatingFlightId(), context.getFlightId())) {
-                workingMap.put("objectId", fsObject.getObjectId().toString());
+                workingMap.put(FileMapKeys.OBJECT_ID, fsObject.getObjectId().toString());
                 return StepResult.getStepResultSuccess();
             }
             throw new FileSystemObjectAlreadyExistsException("Path already exists: " + fsObject.getPath());
@@ -55,11 +56,7 @@ public class IngestFileMetadataStep implements Step {
             .creatingFlightId(context.getFlightId());
 
         UUID objectId = fileDao.createFileStart(fsObject);
-        workingMap.put("objectId", objectId.toString());
-
-        // TEMPORARY: generate a RESPONSE so that I can test just this one part.
-        // Response generation will have to wait until later in the process.
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
+        workingMap.put(FileMapKeys.OBJECT_ID, objectId.toString());
 
         return StepResult.getStepResultSuccess();
     }
@@ -76,7 +73,6 @@ public class IngestFileMetadataStep implements Step {
                 fileDao.deleteFile(fsObject.getObjectId());
             }
         }
-
         return StepResult.getStepResultSuccess();
     }
 

@@ -92,7 +92,7 @@ public class FileDao {
         }
         if (!StringUtils.equals(fileNotPresent.getCreatingFlightId(),
             fsObject.getCreatingFlightId())) {
-            throw new CorruptMetadataException("Unexpected file id on file");
+            throw new CorruptMetadataException("Unexpected flight id on file");
         }
 
         String sql = "UPDATE fs_object" +
@@ -106,6 +106,26 @@ public class FileDao {
             .addValue("size", fsObject.getSize());
         jdbcTemplate.update(sql, params);
         return fsObject.getObjectId();
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void createFileCompleteUndo(FSObject fsObject) {
+        // Reset to mark the file not preset
+        FSObject file = retrieveFileByIdNoThrow(fsObject.getObjectId());
+        if (!StringUtils.equals(file.getCreatingFlightId(),
+            fsObject.getCreatingFlightId())) {
+            throw new CorruptMetadataException("Unexpected flight id on file");
+        }
+
+        if (file.getObjectType() == FSObject.FSObjectType.FILE_NOT_PRESENT) {
+            return;
+        }
+
+        String sql = "UPDATE fs_object SET object_type = :object_type WHERE object_id = :object_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("object_id", fsObject.getObjectId())
+            .addValue("object_type", FSObject.FSObjectType.FILE_NOT_PRESENT.toLetter());
+        jdbcTemplate.update(sql, params);
     }
 
     public boolean deleteFile(UUID objectId) {

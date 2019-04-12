@@ -30,7 +30,9 @@ public class FileIngestFlight extends Flight {
         //    Create the file object in the database; marked as not present
         // 2. pdao does the file copy and returns file gspath, checksum and size
         // 3. Update the file object with the gspath, checksum and size and mark as present
-        addStep(new IngestFileMetadataStep(fileDao, study, fileService));
+        addStep(new IngestFileMetadataStepStart(fileDao, study, fileService));
+        addStep(new IngestFilePrimaryDataStep(fileDao, fileService));
+        addStep(new IngestFileMetadataStepComplete(fileDao, fileService));
     }
 
 }

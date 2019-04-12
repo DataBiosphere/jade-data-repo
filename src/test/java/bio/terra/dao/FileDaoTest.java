@@ -67,6 +67,38 @@ public class FileDaoTest {
         assertThat("Should be null", result, equalTo(null));
     }
 
+    @Test
+    public void fileStateTest() throws Exception {
+        FSObject fsObject = new FSObject()
+            .studyId(studyId)
+            .objectType(FSObject.FSObjectType.FILE_NOT_PRESENT)
+            .path(fileAPath)
+            .mimeType(mimeType)
+            .description(description)
+            .creatingFlightId(flightId);
+
+        UUID fileAId = fileDao.createFileStart(fsObject);
+        assertNotNull("File id not null", fileAId);
+
+        // Dummy up the outputs of the primary data step
+        fsObject
+            .objectId(fileAId)
+            .checksum("myChecksum")
+            .gspath("fs://mybucket/mystudy/myfile")
+            .size(42L);
+
+        UUID completeId = fileDao.createFileComplete(fsObject);
+        assertThat("Id matches", completeId, equalTo(fileAId));
+
+        FSObject typeObject = fileDao.retrieveFileByIdNoThrow(completeId);
+        assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FSObject.FSObjectType.FILE));
+
+        fileDao.createFileCompleteUndo(typeObject);
+
+        typeObject = fileDao.retrieveFileByIdNoThrow(completeId);
+        assertThat("Type is FILE_NOT_PRESENT", typeObject.getObjectType(),
+            equalTo(FSObject.FSObjectType.FILE_NOT_PRESENT));
+    }
 
     @Test
     public void deleteOnEmptyTest() throws Exception {

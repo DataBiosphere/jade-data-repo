@@ -3,6 +3,7 @@ package bio.terra.flight.file.ingest;
 import bio.terra.dao.FileDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
+import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.Flight;
@@ -20,6 +21,7 @@ public class FileIngestFlight extends Flight {
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         FileDao fileDao = (FileDao)appContext.getBean("fileDao");
         FileService fileService = (FileService)appContext.getBean("fileService");
+        GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
 
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
         Study study = studyDao.retrieve(UUID.fromString(studyId));
@@ -31,7 +33,7 @@ public class FileIngestFlight extends Flight {
         // 2. pdao does the file copy and returns file gspath, checksum and size
         // 3. Update the file object with the gspath, checksum and size and mark as present
         addStep(new IngestFileMetadataStepStart(fileDao, study, fileService));
-        addStep(new IngestFilePrimaryDataStep(fileDao, fileService));
+        addStep(new IngestFilePrimaryDataStep(fileDao, study, fileService, gcsPdao));
         addStep(new IngestFileMetadataStepComplete(fileDao, fileService));
     }
 

@@ -25,13 +25,15 @@ public class IngestFileMetadataStepComplete implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-        String checksum = workingMap.get(FileMapKeys.CHECKSUM, String.class);
+        String checksumMd5 = workingMap.get(FileMapKeys.CHECKSUM_MD5, String.class);
+        String checksumCrc32c = workingMap.get(FileMapKeys.CHECKSUM_CRC32C, String.class);
         String gspath = workingMap.get(FileMapKeys.GSPATH, String.class);
         Long size = workingMap.get(FileMapKeys.SIZE, Long.class);
 
         FSObject fsObject = fileDao.retrieveFile(objectId);
         fsObject
-            .checksum(checksum)
+            .checksumMd5(checksumMd5)
+            .checksumCrc32c(checksumCrc32c)
             .size(size)
             .gspath(gspath)
             .creatingFlightId(context.getFlightId());

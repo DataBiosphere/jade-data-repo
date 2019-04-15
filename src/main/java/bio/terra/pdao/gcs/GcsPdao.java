@@ -3,6 +3,7 @@ package bio.terra.pdao.gcs;
 import bio.terra.metadata.FSObject;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
+import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.exception.PdaoFileCopyException;
 import bio.terra.pdao.exception.PdaoInvalidUriException;
 import bio.terra.pdao.exception.PdaoSourceFileNotFoundException;
@@ -17,6 +18,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 @Component
 @Profile("google")
@@ -50,7 +52,7 @@ public class GcsPdao {
 
             }
             sourceBucket = sourceUri.getAuthority();
-            sourcePath = sourceUri.getPath();
+            sourcePath = StringUtils.removeStart(sourceUri.getPath(), "/");
         } catch (IllegalArgumentException ex) {
             throw new PdaoInvalidUriException("Invalid gs path: '" +
                 fileLoadModel.getSourcePath() + "'", ex);
@@ -68,7 +70,7 @@ public class GcsPdao {
         }
 
         // Our path is /<study-id>/<object-id>
-        String targetPath = "/" + study.getId().toString() + "/" + fsObject.getObjectId();
+        String targetPath = study.getId().toString() + "/" + fsObject.getObjectId();
 
         try {
             CopyWriter writer = sourceBlob.copyTo(BlobId.of(gcsConfiguration.getBucket(), targetPath));
@@ -81,8 +83,14 @@ public class GcsPdao {
                 checksumMd5 = targetBlob.getMd5ToHexString();
             }
 
+            URI gspath = new URI("gs",
+                gcsConfiguration.getBucket(),
+                "/" + targetPath,
+                null,
+                null);
+
             fsObject
-                .gspath("gs://" + gcsConfiguration.getBucket() + targetPath)
+                .gspath(gspath.toString())
                 .checksumMd5(checksumMd5)
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
                 .size(targetBlob.getSize());
@@ -92,6 +100,8 @@ public class GcsPdao {
             // derives from BadRequestException). I think there are several cases here. We might need to retry
             // for flaky google case or we might need to bail out if access is denied.
             throw new PdaoFileCopyException("File ingest failed", ex);
+        } catch (URISyntaxException ex) {
+            throw new PdaoException("Bad URI of our own making", ex);
         }
 
         return fsObject;

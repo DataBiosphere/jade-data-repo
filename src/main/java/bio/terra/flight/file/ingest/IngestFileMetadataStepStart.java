@@ -70,7 +70,7 @@ public class IngestFileMetadataStepStart implements Step {
         if (fsObject != null) {
             // OK, some file exists. If this flight created it, then we delete it
             if (StringUtils.equals(fsObject.getCreatingFlightId(), context.getFlightId())) {
-                fileDao.deleteFile(fsObject.getObjectId());
+                fileDao.deleteFileForUndo(fsObject.getObjectId(), context.getFlightId());
             }
         }
         return StepResult.getStepResultSuccess();

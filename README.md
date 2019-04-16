@@ -3,39 +3,75 @@ The repo for the terra data repository built by the jade team.
 
 See the DATABASE.md to set up the postgres database before you run jade.
 
-## Setup environment
-### Google project and account
-You must have authenticated with google for application-default credentials: 
-	
+## Create kubernetes cluster
+
+In the google cloud console, within your personal project, go to Kubernetes Engine -> Clusters and create a cluster. In the default pool section change nodes to 1 and click node pool options. Change boot disk size to 10G. At the bottom of the page, click the Advanced section and click the checkbox to enable VPC native. Then click create.
+
+Once your cluster has finished creating, click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
+
+
+## Create a service account
+In the google cloud console, go to IAM & Admin -> Service accounts. Click create service account. Choose a name and add a description (this service account will be used to manage big query and postgres data for the datarepo).
+
+Give your service account access to dev GCR:
+
+    gsutil iam ch serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
+
+Grant your service account the storage and bigquery admin roles:
+
+    gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/bigquery.admin
+    gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/storage.admin
+
+## Deploying to kubernetes
+### Deploying in your own test account (not dev, integration, etc)
+#### Environment variables
+    GOOGLE_CLOUD_PROJECT
+    ENVIRONMENT (local, dev)
+
+Add the service account key for your project to vault:
+
+    vault write secret/dsde/firecloud/local/datarepo/sa-key${PROJECT}.json @<localfilename>.json
+
+Deploy:
+
+    ./ops/deploy.sh
+
+After you deploy, go to Kubernetes in the google cloud console, select services, and then add the IP address of the oidc-proxy-service to your /etc/hosts file as `jade.datarepo-dev.broadinstitute.org`
+
+## Build and Run Locally
+
+### Set up
+You must have authenticated with google for application-default credentials:
+
 	gcloud auth application-default login
-and login with an account that has access to your project. This will save credentials locally. If you are using multiple accounts, you can switch to the correct one using this command: 
+and login with an account that has access to your project. This will save credentials locally. If you are using multiple accounts, you can switch to the correct one using this command:
 
     gcloud config set account <account email>
 
-Then you must specify a google project to use. Either run this command: 
+Then you must specify a google project to use. Run this command:
 
 
     gcloud config set project <project-name>
-    
-or specify your project in the environment variable: `GOOGLE_CLOUD_PROJECT`.
+
 
 To see what you currently have set, use: `gcloud config list`
 
-### OIDC Environment variables
+When running locally, we are not using the proxy. Therefore, the system doesn't know your user email. Edit the `src/main/resources/application.properties` file and set the userEmail field. If you are running sam locally, set `sam.basePath` to `https://local.broadinstitute.org:50443`.
+
+### Environment variables
 
 There are some secrets that need to be provided to the app and will not be checked in
-to github. If you are standing this up on your own, you will need to get an Oauth client
-id and secret. We got one in GCP from the cloud console by creating an
-[Oauth consent screen](https://console.cloud.google.com/apis/credentials/consent)
-and then an [Oauth web client id](https://console.cloud.google.com/apis/credentials).
+to github. If you are standing this up on your own, you will need to set the following environment variables to the values [here](https://console.cloud.google.com/apis/credentials/oauthclient/970791974390-1581mjhtp2b3jmg4avhor1vabs13b7ur.apps.googleusercontent.com?project=broad-jade-dev&organizationId=548622027621)
 
     OAUTH_CLIENT_ID
     OAUTH_CLIENT_SECRET
 
-## Build and Run
+### Run unit tests
 
 If you are making code changes, run:
 `./gradlew check`
+
+### Run jade locally
 
 To run jade locally:
 `./gradlew bootRun`

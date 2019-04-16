@@ -107,8 +107,8 @@ dependencies {
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.apache.commons:commons-dbcp2:2.5.0'     // For database connection support
     compile 'org.postgresql:postgresql:42.2.5'           // Postgres jdbc driver
-    compile 'com.google.cloud:google-cloud-bigquery:1.65.0'
-    compile 'com.google.cloud:google-cloud-storage:1.65.0'
+    compile 'com.google.cloud:google-cloud-bigquery:1.66.0'
+    compile 'com.google.cloud:google-cloud-storage:1.66.0'
     compile 'org.liquibase:liquibase-core:3.6.1'         // For upgrade
     compile 'org.slf4j:slf4j-api:1.7.25'                 // Logging facade
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
@@ -240,8 +240,9 @@ def getGitHash = { ->
     return stdout.toString().trim()
 }
 
+
 docker {
-    name "gcr.io/broad-jade-dev/${bootJar.baseName}:${getGitHash()}"
+    name "gcr.io/broad-jade-dev/${bootJar.baseName}:latest${System.env.GOOGLE_CLOUD_PROJECT}"
     copySpec.from(tasks.unpack.outputs).into("dependency")
     buildArgs(['DEPENDENCY': "dependency"])
 }

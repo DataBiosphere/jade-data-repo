@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oidc-proxy-deployment
+  namespace: data-repo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      component: data-repo-oidc-proxy
+  template:
+    metadata:
+      labels:
+        app: data-repo
+        component: data-repo-oidc-proxy
+    spec:
+      containers:
+      - name: oidc-proxy-container
+        image: broadinstitute/openidc-proxy:db_ldap_2_3_3
+        env:
+          - name: PROXY_URL
+            value: 'http://ui-service.data-repo:80/'
+          - name: PROXY_URL2
+            value: 'http://api-service.data-repo:8080/api'
+          - name: PROXY_URL3
+            value: 'http://api-service.data-repo:8080/register'
+          - name: CALLBACK_URI
+            value: 'https://jade.datarepo-dev.broadinstitute.org/oauth2callback'
+          - name: LOG_LEVEL
+            value: 'debug'
+          - name: SERVER_NAME
+            value: 'jade.datarepo-dev.broadinstitute.org'
+          - name: REMOTE_USER_CLAIM
+            value: 'sub'
+          - name: ENABLE_STACKDRIVER
+            value: 'yes'
+          - name: FILTER2
+            value: 'AddOutputFilterByType DEFLATE application/json text/plain text/html application/javascript application/x-javascript'

@@ -113,7 +113,9 @@ public class RepositoryApiController implements RepositoryApi {
         String token = req.getHeader("oidc_access_token");
 
         if (token == null) {
-            token = req.getHeader("Authorization").substring("Bearer ".length());
+            String authHeader = req.getHeader("Authorization");
+            if (authHeader != null)
+                token = authHeader.substring("Bearer ".length());
         }
         if (email == null) {
             email = appConfig.getUserEmail();

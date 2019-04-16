@@ -1,14 +1,19 @@
 package bio.terra.fixtures;
 
+import bio.terra.model.AccessMethod;
+import bio.terra.model.Checksum;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.CoreMatchers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -40,6 +45,7 @@ public class ConnectedOperations {
     private boolean deleteOnTeardown;
     private List<String> createdDatasetIds;
     private List<String> createdStudyIds;
+    private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
 
 
     public ConnectedOperations(MockMvc mvc,
@@ -51,6 +57,7 @@ public class ConnectedOperations {
 
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
+        createdFileIds = new ArrayList<>();
         deleteOnTeardown = true;
 
     }
@@ -144,6 +151,12 @@ public class ConnectedOperations {
         checkDeleteResponse(response);
     }
 
+    public void deleteTestFile(String studyId, String fileId) {
+        // TODO: complete when delete is implemented
+    }
+
+
+
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
             objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
@@ -151,6 +164,50 @@ public class ConnectedOperations {
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
+
+    public FileModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
+        String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
+        String url = "/api/repository/v1/studies/" + studyId + "/file";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+        FileModel fileModel = handleAsyncSuccessCase(response, FileModel.class);
+        assertThat("description matches", fileModel.getDescription(),
+            CoreMatchers.equalTo(fileLoadModel.getDescription()));
+        assertThat("mime type matches", fileModel.getMimeType(),
+            CoreMatchers.equalTo(fileLoadModel.getMimeType()));
+        assertThat("access is gs", fileModel.getAccessMethods().get(0).getType(),
+            CoreMatchers.equalTo(AccessMethod.TypeEnum.GS));
+
+        for (Checksum checksum : fileModel.getChecksums()) {
+            assertTrue("valid checksum type",
+                (StringUtils.equals(checksum.getType(), "crc32c") ||
+                    StringUtils.equals(checksum.getType(), "md5")));
+        }
+
+        addFile(studyId, fileModel.getId());
+
+        return fileModel;
+    }
+
+    public ErrorModel ingestFileFailure(String studyId, FileLoadModel fileLoadModel) throws Exception {
+        String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
+        String url = "/api/repository/v1/studies/" + studyId + "/file";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+        ErrorModel errorModel = handleAsyncFailureCase(response);
+        return errorModel;
+    }
+
 
     public MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
         MvcResult result = inResult;
@@ -199,6 +256,11 @@ public class ConnectedOperations {
         createdDatasetIds.add(id);
     }
 
+    public void addFile(String studyId, String fileId) {
+        String[] createdFile = new String[]{studyId, fileId};
+        createdFileIds.add(createdFile);
+    }
+
     public void setDeleteOnTeardown(boolean deleteOnTeardown) {
         this.deleteOnTeardown = deleteOnTeardown;
     }
@@ -211,6 +273,10 @@ public class ConnectedOperations {
 
             for (String studyId : createdStudyIds) {
                 deleteTestStudy(studyId);
+            }
+
+            for (String[] fileInfo : createdFileIds) {
+                deleteTestFile(fileInfo[0], fileInfo[1]);
             }
         }
     }

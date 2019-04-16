@@ -54,15 +54,17 @@ public class FileOperationTest {
     private static String testDescription = "test file description";
     private static String testMimeType = "application/pdf";
     private static String testPdfFile = "File Design Notes.pdf";
+    private static String testValidFile = "ValidFileName.pdf";
 
     @Test
     public void fileOperationsTest() throws Exception {
+        String targetDir = Names.randomizeName("dir");
         URI uri = new URI("gs",
             dataRepoConfiguration.getIngestbucket(),
             "/files/" + testPdfFile,
             null,
             null);
-        String targetPath = "/dd/files/" + Names.randomizeName("dir") + "/" + testPdfFile;
+        String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
 
         StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
 
@@ -80,17 +82,58 @@ public class FileOperationTest {
         assertThat("duplicate file error", errorModel.getMessage(),
             containsString("already exists"));
 
-/*
-These test cases won't work until we fix the deserialization bug
-
         // Error: Non-existent source file
+        String badfile = "/I am not a file";
+        URI uribadfile = new URI("gs",
+            dataRepoConfiguration.getIngestbucket(),
+            badfile,
+            null,
+            null);
+        String badPath = "/dd/files/" + Names.randomizeName("dir") + badfile;
 
-        // Error: Invalid gs path
-        //  case: not a gs:
-        //  case: port specified
-        //  case: no bucket or path
-*/
+        fileLoadModel = new FileLoadModel()
+            .sourcePath(uribadfile.toString())
+            .description(testDescription)
+            .mimeType(testMimeType)
+            .targetPath(badPath);
+
+        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        assertThat("source file does not exist", errorModel.getMessage(),
+            containsString("file not found"));
+
+        // Error: Invalid gs path - case 1: not gs
+        String validPath = "/dd/files/" + targetDir + "/" + testValidFile;
+        fileLoadModel = new FileLoadModel()
+            .sourcePath("http://jade_notabucket/foo/bar.txt")
+            .description(testDescription)
+            .mimeType(testMimeType)
+            .targetPath(validPath);
+
+        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        assertThat("Not a gs schema", errorModel.getMessage(),
+            containsString("not a gs"));
+
+        // Error: Invalid gs path - case 2: invalid bucket name
+        fileLoadModel = new FileLoadModel()
+            .sourcePath("gs://jade_notabucket:1234/foo/bar.txt")
+            .description(testDescription)
+            .mimeType(testMimeType)
+            .targetPath(validPath);
+
+        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        assertThat("Invalid bucket name", errorModel.getMessage(),
+            containsString("Invalid bucket name"));
+
+        // Error: Invalid gs path - case 3: no bucket or path
+        fileLoadModel = new FileLoadModel()
+            .sourcePath("gs:///")
+            .description(testDescription)
+            .mimeType(testMimeType)
+            .targetPath(validPath);
+
+        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        assertThat("No bucket or path", errorModel.getMessage(),
+            containsString("gs path"));
     }
-
 
 }

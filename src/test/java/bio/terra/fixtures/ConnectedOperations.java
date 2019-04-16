@@ -204,8 +204,7 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
-        ErrorModel errorModel = handleAsyncFailureCase(response);
-        return errorModel;
+        return handleAsyncFailureCase(response);
     }
 
 

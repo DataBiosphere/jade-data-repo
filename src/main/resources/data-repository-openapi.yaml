@@ -509,7 +509,7 @@ paths:
           schema:
             $ref: '#/definitions/UserStatusInfo'
 
-  '/api/repository/v1/studies/{id}/file':
+  '/api/repository/v1/studies/{id}/files':
     post:
       description: Ingest one file into the study file system
       operationId: ingestFile
@@ -554,7 +554,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/file/{fileid}':
+  '/api/repository/v1/studies/{id}/files/{fileid}':
     get:
       description: Lookup metadata for one file
       operationId: lookupfile
@@ -1551,7 +1551,7 @@ definitions:
         description: |-
           A string that can be optionally used to name a Data Object.
       size:
-        type: string
+        type: integer
         format: int64
         description: |-
           The computed size in bytes.

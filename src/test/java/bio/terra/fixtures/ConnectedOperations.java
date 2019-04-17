@@ -1,13 +1,13 @@
 package bio.terra.fixtures;
 
-import bio.terra.model.AccessMethod;
-import bio.terra.model.Checksum;
+import bio.terra.model.DRSAccessMethod;
+import bio.terra.model.DRSChecksum;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
@@ -165,9 +165,9 @@ public class ConnectedOperations {
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
-    public FileModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
+    public DRSObject ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/file";
+        String url = "/api/repository/v1/studies/" + studyId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
@@ -175,15 +175,15 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
-        FileModel fileModel = handleAsyncSuccessCase(response, FileModel.class);
+        DRSObject fileModel = handleAsyncSuccessCase(response, DRSObject.class);
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getMimeType(),
             CoreMatchers.equalTo(fileLoadModel.getMimeType()));
         assertThat("access is gs", fileModel.getAccessMethods().get(0).getType(),
-            CoreMatchers.equalTo(AccessMethod.TypeEnum.GS));
+            CoreMatchers.equalTo(DRSAccessMethod.TypeEnum.GS));
 
-        for (Checksum checksum : fileModel.getChecksums()) {
+        for (DRSChecksum checksum : fileModel.getChecksums()) {
             assertTrue("valid checksum type",
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));
@@ -196,7 +196,7 @@ public class ConnectedOperations {
 
     public ErrorModel ingestFileFailure(String studyId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/file";
+        String url = "/api/repository/v1/studies/" + studyId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))

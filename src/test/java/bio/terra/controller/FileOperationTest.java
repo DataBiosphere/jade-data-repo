@@ -7,7 +7,7 @@ import bio.terra.fixtures.Names;
 import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
+import bio.terra.model.DRSObject;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -88,7 +88,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(targetPath);
 
-        FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        DRSObject fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
         assertThat("file name matches", fileModel.getName(), equalTo(testPdfFile));
 
         // Error: Duplicate target file

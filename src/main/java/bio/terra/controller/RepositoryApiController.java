@@ -9,7 +9,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
+import bio.terra.model.DRSObject;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -184,7 +184,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<FileModel> lookupfile(@PathVariable("id") String id,
+    public ResponseEntity<DRSObject> lookupfile(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
         return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }

@@ -4,10 +4,11 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.FSObject;
-import bio.terra.model.AccessMethod;
-import bio.terra.model.Checksum;
+import bio.terra.model.DRSAccessMethod;
+import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSChecksum;
+import bio.terra.model.DRSObject;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
 import bio.terra.pdao.gcs.GcsConfiguration;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -51,30 +52,33 @@ public class FileService {
         return stairway.submit(FileIngestFlight.class, flightMap);
     }
 
-    public FileModel fileModelFromFSObject(FSObject fsObject) {
+    public DRSObject fileModelFromFSObject(FSObject fsObject) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         OffsetDateTime theTime = OffsetDateTime.ofInstant(fsObject.getCreatedDate(), ZoneId.of("Z"));
 
-        AccessMethod accessMethod = new AccessMethod()
-            .type(AccessMethod.TypeEnum.GS)
-            .accessUrl(fsObject.getGspath())
+        DRSAccessURL accessURL = new DRSAccessURL()
+            .url(fsObject.getGspath());
+
+        DRSAccessMethod accessMethod = new DRSAccessMethod()
+            .type(DRSAccessMethod.TypeEnum.GS)
+            .accessUrl(accessURL)
             .region(gcsConfiguration.getRegion());
 
-        List<Checksum> checksums = new ArrayList<>();
-        Checksum checksumCrc32 = new Checksum()
+        List<DRSChecksum> checksums = new ArrayList<>();
+        DRSChecksum checksumCrc32 = new DRSChecksum()
             .checksum(fsObject.getChecksumCrc32c())
             .type("crc32c");
         checksums.add(checksumCrc32);
 
         if (fsObject.getChecksumMd5() != null) {
-            Checksum checksumMd5 = new Checksum()
+            DRSChecksum checksumMd5 = new DRSChecksum()
                 .checksum(fsObject.getChecksumMd5())
                 .type("md5");
             checksums.add(checksumMd5);
         }
 
         // TODO: consider whether to return the file path as an alias
-        FileModel fileModel = new FileModel()
+        DRSObject fileModel = new DRSObject()
             .id(fsObject.getObjectId().toString())
             .name(getLastNameFromPath(fsObject.getPath()))
             .size(fsObject.getSize())

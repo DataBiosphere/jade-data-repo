@@ -15,9 +15,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     private final Logger logger =
@@ -85,10 +82,7 @@ public class GlobalExceptionHandler {
         for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
             logger.error("   cause: " + cause.toString());
         }
-        StringWriter sw = new StringWriter();
-        PrintWriter pw = new PrintWriter(sw);
-        ex.printStackTrace(pw);
-        return new ErrorModel().message(ex.getMessage()).stackTrace(sw.toString());
+        return new ErrorModel().message(ex.getMessage());
     }
 
 }

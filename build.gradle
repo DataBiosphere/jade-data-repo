@@ -16,7 +16,7 @@ import io.swagger.codegen.DefaultGenerator
 
 buildscript {
     ext {
-        springBootVersion = '2.0.5.RELEASE'
+        springBootVersion = '2.1.4.RELEASE'
     }
     repositories {
         mavenCentral()
@@ -99,19 +99,19 @@ configurations.all {
 
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
-    compile 'org.springframework.boot:spring-boot-starter-web'
-    compile 'org.springframework:spring-jdbc'
-    compile 'io.springfox:springfox-swagger2:2.7.0'
-    compile 'io.springfox:springfox-swagger-ui:2.7.0'
-    compile 'org.apache.commons:commons-lang3:3.8.1'
-    compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
-    compile 'org.apache.commons:commons-dbcp2:2.5.0'     // For database connection support
-    compile 'org.postgresql:postgresql:42.2.5'           // Postgres jdbc driver
+    compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
     compile 'com.google.cloud:google-cloud-bigquery:1.66.0'
     compile 'com.google.cloud:google-cloud-storage:1.66.0'
-    compile 'org.liquibase:liquibase-core:3.6.1'         // For upgrade
+    compile 'io.springfox:springfox-swagger-ui:2.7.0'
+    compile 'io.springfox:springfox-swagger2:2.7.0'
+    compile 'org.apache.commons:commons-dbcp2:2.5.0'     // For database connection support
+    compile 'org.apache.commons:commons-lang3:3.8.1'
+    compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
+    compile 'org.liquibase:liquibase-core:3.6.3'         // For upgrade
+    compile 'org.postgresql:postgresql:42.2.5'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.25'                 // Logging facade
-    compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
+    compile "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    compile 'org.springframework:spring-jdbc:5.1.6.RELEASE'
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
@@ -121,12 +121,12 @@ dependencies {
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
-    liquibaseRuntime 'org.liquibase:liquibase-core:3.6.1'
+    liquibaseRuntime 'org.liquibase:liquibase-core:3.6.3'
     liquibaseRuntime 'org.postgresql:postgresql:42.2.5'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile 'org.springframework.boot:spring-boot-starter-test'
+    testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
     testCompile 'org.postgresql:postgresql:42.2.5'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'

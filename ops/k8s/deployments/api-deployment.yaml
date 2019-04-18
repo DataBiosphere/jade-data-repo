@@ -14,6 +14,7 @@ spec:
         app: data-repo
         component: data-repo-api
     spec:
+      serviceAccountName: jade-sa
       volumes:
       - name: google-cloud-key
         secret:

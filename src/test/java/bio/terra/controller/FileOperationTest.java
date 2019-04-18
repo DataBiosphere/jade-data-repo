@@ -9,6 +9,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -27,6 +29,9 @@ import java.net.URI;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -39,10 +44,19 @@ public class FileOperationTest {
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DataRepoConfiguration dataRepoConfiguration;
 
+    @MockBean
+    private SamClientService samService;
+
     private ConnectedOperations connectedOperations;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        // Setup mock sam service
+        doNothing().when(samService).createStudyResource(any(), any());
+        when(samService.createDatasetResource(any(), any())).thenReturn("hi");
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
+
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
     }
 

@@ -5,7 +5,7 @@ See the DATABASE.md to set up the postgres database before you run jade.
 
 ## Create kubernetes cluster
 
-In the google cloud console, within your personal project, go to Kubernetes Engine -> Clusters and create a cluster. In the default pool section change nodes to 1 and click node pool options. Change boot disk size to 10G. At the bottom of the page, click the Advanced section and click the checkbox to enable VPC native. Then click create.
+In the google cloud console, within your personal project, go to Kubernetes Engine -> Clusters and create a cluster. In the default pool section change nodes to 1 and click "More node pool options". Change boot disk size to 10G and click Save. At the bottom of the page, click the "Availability, networking, security and additional features" link and click the checkbox to enable VPC native. Then click create.
 
 Once your cluster has finished creating, click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
 
@@ -26,6 +26,7 @@ Grant your service account the storage and bigquery admin roles:
 ### Deploying in your own test account (not dev, integration, etc)
 #### Environment variables
     GOOGLE_CLOUD_PROJECT
+    GOOGLE_APPLICATION_CREDENTIALS
     ENVIRONMENT (local, dev)
 
 Add the service account key for your project to vault:
@@ -76,9 +77,21 @@ If you are making code changes, run:
 To run jade locally:
 `./gradlew bootRun`
 
+To run jade locally and wait for debugger to attach on port 5005:
+`./gradlew bootRun --debug-jvm`
+
 To have the code hot reload, enable automatic builds in intellij, go to:
 `Preferences -> Build, Execution, Deployment -> Compiler`
 and select `Build project automatically`
+
+The swagger page is:
+https://local.broadinstitue.org:8080
+
+### MiniKube (local kubernetes w/ proxy)
+
+You must have authenticated with google for application-default credentials: ` gcloud auth application-default login` and login with your broad account - not your dev account. This will save credentials locally. 
+
+You must also set up the google project you want to use. Do not use dev for your own development. Dev will be used for system tests. 
 
 ## Swagger Codegen
 

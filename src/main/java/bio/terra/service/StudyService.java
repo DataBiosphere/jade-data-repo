@@ -6,6 +6,7 @@ import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.flight.study.ingest.IngestMapKeys;
 import bio.terra.flight.study.ingest.StudyIngestFlight;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.IngestRequestModel;
@@ -41,10 +42,11 @@ public class StudyService {
         this.jobService = jobService;
     }
 
-    public StudySummaryModel createStudy(StudyRequestModel studyRequest) {
+    public StudySummaryModel createStudy(StudyRequestModel studyRequest, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
+        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         return getResponse(flightId, StudySummaryModel.class);
     }
@@ -60,12 +62,13 @@ public class StudyService {
             .collect(Collectors.toList());
     }
 
-    public DeleteResponseModel delete(UUID id) {
+    public DeleteResponseModel delete(UUID id, AuthenticatedUserRequest userInfo) {
         List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
         if (referencedDatasets == null || referencedDatasets.isEmpty()) {
             FlightMap flightMap = new FlightMap();
             flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
             flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the study with ID " + id);
+            flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
             String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
             return getResponse(flightId, DeleteResponseModel.class);
         } else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);

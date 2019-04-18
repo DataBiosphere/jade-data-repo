@@ -5,6 +5,7 @@ import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.NotFoundException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.exception.JobResponseException;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -55,6 +56,13 @@ public class GlobalExceptionHandler {
     public ErrorModel jobResponseExceptionHandler(Exception ex) {
         Throwable nestedException = ex.getCause();
         return buildErrorModel(nestedException);
+    }
+
+    @ExceptionHandler(ApiException.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ErrorModel samApiExceptionHandler(ApiException ex) {
+        //TODO convert from sam exception to jade exception
+        return buildErrorModel(ex);
     }
 
     // -- catchall - log so we can understand what we have missed in the handlers above

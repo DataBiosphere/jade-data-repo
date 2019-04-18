@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
@@ -86,7 +87,8 @@ public class FileDaoTest {
             .checksumCrc32c("myChecksum")
             .checksumMd5(null)
             .gspath("fs://mybucket/mystudy/myfile")
-            .size(42L);
+            .size(42L)
+            .createdDate(Instant.now());
 
         UUID completeId = fileDao.createFileComplete(fsObject);
         assertThat("Id matches", completeId, equalTo(fileAId));

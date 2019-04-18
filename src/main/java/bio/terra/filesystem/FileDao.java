@@ -2,7 +2,6 @@ package bio.terra.filesystem;
 
 import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.dao.exception.FileSystemObjectDependencyException;
 import bio.terra.dao.exception.FileSystemObjectNotFoundException;
 import bio.terra.dao.exception.InvalidFileSystemObjectTypeException;
@@ -18,8 +17,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.UUID;
 
 @Repository
@@ -41,51 +40,55 @@ public class FileDao {
      * The file object is annotated as "ingesting file", so that it will not be looked up
      * by data repo clients while we are creating it.
      *
-     * Note that unlike other DAOs, we do not auto-fill the created_date. Instead, we
-     * fill that in on createFileComplete using the value from GCS. That way our created date and
-     * the date the client sees from interacting with GCS will be the same.
+     * Note the handling of created_date. We default the created_date to now() so there will always
+     * be a proper date in the field. However, on createFileComplete we overwrite it using the value
+     * from GCS. That way our created date and the date the client sees from interacting with
+     * GCS will be the same.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID createFileStart(FSObject fileToCreate) {
         if (fileToCreate.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
+
+        // We can think of the path in three parts:
+        // 1. The directories that exist; there might be none of these.
+        // 2. The directories that do not exist; there might be none of these either.
+        //    Once you get to the first directory that does not exist, you know that
+        //    no lower directory or file will exist.
+        // 3. The file itself.
+        //
+        // The code below follow those three steps.
+
         String[] pathParts = StringUtils.split(fileToCreate.getPath(), '/');
+        int pathDirectoryLength = pathParts.length - 1;
 
-        List<FSObject> createList = new ArrayList<>();
-
-        // Walk down the path, one directory at a time. At the first non-existent directory,
-        // construct and collect partial FSObjects.
+        // Find the first non-existent directory (if any)
+        int index = 0;
+        String existingDirectoryPath = "";
         StringBuilder pathBuilder = new StringBuilder();
-        boolean finding = true;
-        for (String part : pathParts) {
-            pathBuilder.append('/').append(part);
-            if (finding) {
-                FSObject fsObject = retrieveFileByPathNoThrow(pathBuilder.toString());
-                if (fsObject == null) {
-                    finding = false; // now we are creating
-                }
+        for (; index < pathDirectoryLength; index++) {
+            pathBuilder.append('/').append(pathParts[index]);
+            FSObject fsObject = retrieveFileByPathNoThrow(pathBuilder.toString());
+            if (fsObject == null) {
+                // We found a non-existent directory
+                break;
             }
-            if (!finding) {
-                FSObject fsObject = makeObject(fileToCreate.getStudyId(), pathBuilder.toString());
-                createList.add(fsObject);
-            }
+            existingDirectoryPath = pathBuilder.toString();
         }
 
-        // If the object list is empty, then we have a duplicate path.
-        // Otherwise, we replace the last element of the path (the file object)
-        // with the incoming file object and create the objects.
-        int lastIndex = createList.size() - 1;
-        if (lastIndex == -1) {
-            throw new FileSystemObjectAlreadyExistsException("Path already exists: " + fileToCreate.getPath());
+        // Create directories from index down (if any)
+        // We restart the string builder so it doesn't contain any non-existent
+        // directories.
+        pathBuilder = new StringBuilder(existingDirectoryPath);
+        for (; index < pathDirectoryLength; index++) {
+            pathBuilder.append('/').append(pathParts[index]);
+            FSObject fsObject = makeObject(fileToCreate.getStudyId(), pathBuilder.toString());
+            createObject(fsObject);
         }
-        createList.set(lastIndex, fileToCreate);
 
-        UUID id = null;  // set null to avoid warning, but due to the check above, we never return null
-        for (FSObject fsObject : createList) {
-            id = createObject(fsObject);
-        }
-        return id;
+        // Finally, create the file.
+        return createObject(fileToCreate);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -111,7 +114,7 @@ public class FileDao {
             .addValue("checksum_crc32c", fsObject.getChecksumCrc32c())
             .addValue("checksum_md5", fsObject.getChecksumMd5())
             .addValue("size", fsObject.getSize())
-            .addValue("created_date", fsObject.getCreatedDate());
+            .addValue("created_date", Timestamp.from(fsObject.getCreatedDate()));
 
         jdbcTemplate.update(sql, params);
         return fsObject.getObjectId();
@@ -310,12 +313,14 @@ public class FileDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID objectId = keyHolder.getField("object_id", UUID.class);
-        fsObject.objectId(objectId);
+        Instant createdDate = keyHolder.getCreatedDate();
+        fsObject
+            .objectId(objectId)
+            .createdDate(createdDate);
 
         return fsObject.getObjectId();
     }
 
-    // TODO: File path manipulation methods; maybe move to a Util class?
     public String getContainingDirectoryPath(String path) {
         String[] pathParts = StringUtils.split(path, '/');
         if (pathParts.length == 1) {

@@ -27,6 +27,9 @@ databaseChangeLog:
               - column:
                   name: created_date
                   type: timestamptz
+                  defaultValueComputed: now()
+                  constraints:
+                    nullable: false
               - column:
                   name: creating_flight_id
                   type: text

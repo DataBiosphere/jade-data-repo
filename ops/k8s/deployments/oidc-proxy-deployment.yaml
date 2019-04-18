@@ -14,9 +14,10 @@ spec:
         app: data-repo
         component: data-repo-oidc-proxy
     spec:
+      serviceAccountName: jade-sa
       containers:
       - name: oidc-proxy-container
-        image: broadinstitute/openidc-proxy:db_ldap_2_3_3
+        image: broadinstitute/openidc-proxy:bernick_tcell
         env:
           - name: PROXY_URL
             value: 'http://ui-service.data-repo:80/'

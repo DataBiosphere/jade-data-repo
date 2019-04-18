@@ -40,12 +40,19 @@ command -v consul-template >/dev/null 2>&1 || {
 # make a temporary directory for rendering, we'll delete it later
 mkdir -p $SCRATCH
 
+kubectl get namespace data-repo && kubectl delete namespace data-repo
+
 # create a data-repo namespace to put everything in
 kubectl apply -f "${WD}/k8s/namespace.yaml"
+
+# create the pod security policies and service accounts
+kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
 
 # render secrets, create or update on kubernetes
 consul-template -template "${WD}/k8s/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
 kubectl apply -f "${SCRATCH}/api-secrets.yaml"
+
+sleep 10
 
 # update the service account key
 vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key${GOOGLE_CLOUD_PROJECT}.json" -format=json | jq .data  > "${SCRATCH}/sa-key.json"
@@ -53,10 +60,10 @@ kubectl --namespace data-repo get secret sa-key && kubectl --namespace data-repo
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # set the tsl certificate
-vault read -field=value secret/dsp/certs/wildcard.datarepo-dev.broadinstitute.org/20210326/server.crt > "${SCRATCH}/server.crt"
-vault read -field=value secret/dsp/certs/wildcard.datarepo-dev.broadinstitute.org/20210326/server.key > "${SCRATCH}/server.key"
+vault read -field=value secret/dsde/datarepo/dev/common/server.crt > "${SCRATCH}/server.crt"
+vault read -field=value secret/dsde/datarepo/dev/common/server.key > "${SCRATCH}/server.key"
 kubectl get secret tls-cert && kubectl delete secret tls-cert
-kubectl create secret tls tls-cert --cert=${SCRATCH}/server.crt --key=${SCRATCH}/server.key
+kubectl --namespace=data-repo create secret tls tls-cert --cert=${SCRATCH}/server.crt --key=${SCRATCH}/server.key
 
 # create or update postgres pod + service
 kubectl apply -f "${WD}/k8s/pods/psql-pod.yaml"
@@ -65,9 +72,12 @@ kubectl apply -f "${WD}/k8s/services/psql-service.yaml"
 # wait for the db to be ready so that we can run commands against it
 kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
 
+echo 'waiting for 10 sec'
+sleep 10
+
 # create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
 cat "${WD}/../db/create-data-repo-db" | \
-    kubectl --namespace data-repo run psql -i --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service -U postgres
+    kubectl --namespace data-repo run psql -i --serviceaccount=jade-sa --restart=Never --rm --image=postgres:9.6 -- psql -h postgres-service.data-repo -U postgres
 
 # build a docker container and push it to gcr
 ${WD}/../gradlew dockerPush

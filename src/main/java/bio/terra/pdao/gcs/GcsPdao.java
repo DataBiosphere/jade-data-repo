@@ -19,6 +19,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Instant;
 
 @Component
 @Profile("google")
@@ -76,12 +77,19 @@ public class GcsPdao {
             CopyWriter writer = sourceBlob.copyTo(BlobId.of(gcsConfiguration.getBucket(), targetPath));
             Blob targetBlob = writer.getResult();
 
-            // Only supply the MD5 if it can be used to validate the entire contents of the file
+            // MD5 is computed per-component. So if there are multiple components, the MD5 here is
+            // not useful for validating the contents of the file on access. Therefore, we only
+            // return the MD5 if there is only a single component. For more details,
+            // see https://cloud.google.com/storage/docs/hashes-etags
             Integer componentCount = targetBlob.getComponentCount();
             String checksumMd5 = null;
             if (componentCount == null || componentCount == 1) {
                 checksumMd5 = targetBlob.getMd5ToHexString();
             }
+
+            // Grumble! It is not documented what the meaning of the Long is.
+            // I am assuming it is a standard POSIX seconds since Jan 1, 1970.
+            Instant createTime = Instant.ofEpochSecond(targetBlob.getCreateTime());
 
             URI gspath = new URI("gs",
                 gcsConfiguration.getBucket(),
@@ -93,7 +101,8 @@ public class GcsPdao {
                 .gspath(gspath.toString())
                 .checksumMd5(checksumMd5)
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
-                .size(targetBlob.getSize());
+                .size(targetBlob.getSize())
+                .createdDate(createTime);
 
         } catch (StorageException ex) {
             // For now, we assume that the storage exception is caused by bad input (the file copy exception

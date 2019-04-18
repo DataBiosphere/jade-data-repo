@@ -1,4 +1,4 @@
-package bio.terra.dao;
+package bio.terra.filesystem;
 
 import bio.terra.category.Unit;
 import bio.terra.dao.exception.FileSystemObjectDependencyException;
@@ -71,7 +71,7 @@ public class FileDaoTest {
     public void fileStateTest() throws Exception {
         FSObject fsObject = new FSObject()
             .studyId(studyId)
-            .objectType(FSObject.FSObjectType.FILE_NOT_PRESENT)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
@@ -97,15 +97,15 @@ public class FileDaoTest {
         fileDao.createFileCompleteUndo(typeObject);
 
         typeObject = fileDao.retrieveFileByIdNoThrow(completeId);
-        assertThat("Type is FILE_NOT_PRESENT", typeObject.getObjectType(),
-            equalTo(FSObject.FSObjectType.FILE_NOT_PRESENT));
+        assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
+            equalTo(FSObject.FSObjectType.INGESTING_FILE));
     }
 
     @Test
     public void deleteOnEmptyTest() throws Exception {
         FSObject fsObject = new FSObject()
             .studyId(studyId)
-            .objectType(FSObject.FSObjectType.FILE_NOT_PRESENT)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
@@ -117,7 +117,7 @@ public class FileDaoTest {
         FSObject topObject = getCheckPath(topPath, studyId, FSObject.FSObjectType.DIRECTORY);
         FSObject secondObject = getCheckPath(secondPath, studyId, FSObject.FSObjectType.DIRECTORY);
         FSObject thirdObject = getCheckPath(thirdPath, studyId, FSObject.FSObjectType.DIRECTORY);
-        FSObject fileAObject = getCheckPath(fileAPath, studyId, FSObject.FSObjectType.FILE_NOT_PRESENT);
+        FSObject fileAObject = getCheckPath(fileAPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
         // Try to delete a directory with the deleteFile method; should fail
         try {
@@ -142,7 +142,7 @@ public class FileDaoTest {
     public void dontDeleteOnNotEmptyTest() throws Exception {
         FSObject fsObject = new FSObject()
             .studyId(studyId)
-            .objectType(FSObject.FSObjectType.FILE_NOT_PRESENT)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
@@ -154,13 +154,13 @@ public class FileDaoTest {
         FSObject topObject = getCheckPath(topPath, studyId, FSObject.FSObjectType.DIRECTORY);
         FSObject secondObject = getCheckPath(secondPath, studyId, FSObject.FSObjectType.DIRECTORY);
         FSObject thirdObject = getCheckPath(thirdPath, studyId, FSObject.FSObjectType.DIRECTORY);
-        FSObject fileAObject = getCheckPath(fileAPath, studyId, FSObject.FSObjectType.FILE_NOT_PRESENT);
+        FSObject fileAObject = getCheckPath(fileAPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
         fsObject.path(fileBPath);
         UUID fileBId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileBId);
 
-        FSObject fileBObject = getCheckPath(fileBPath, studyId, FSObject.FSObjectType.FILE_NOT_PRESENT);
+        FSObject fileBObject = getCheckPath(fileBPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
         boolean existed = fileDao.deleteFileForUndo(fileAObject.getObjectId(), flightId);
         assertTrue("File existed", existed);

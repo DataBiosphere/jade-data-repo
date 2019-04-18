@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.dao.FileDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.gcs.GcsPdao;

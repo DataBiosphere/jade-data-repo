@@ -27,9 +27,6 @@ databaseChangeLog:
               - column:
                   name: created_date
                   type: timestamptz
-                  defaultValueComputed: now()
-                  constraints:
-                    nullable: false
               - column:
                   name: creating_flight_id
                   type: text
@@ -40,7 +37,6 @@ databaseChangeLog:
                   constraints:
                     nullable: false
                     unique: true
-                    ## the "unique: true" here creates a btree; we need that index for speed of lookups
               - column:
                   name: gspath
                   type: text
@@ -60,6 +56,11 @@ databaseChangeLog:
               - column:
                   name: description
                   type: text
+
+        - sql:
+            comment: Add a specific type of postgres
+            dbms: postgresql
+            sql: CREATE INDEX path_index ON fs_object (path text_pattern_ops);
 
         - createTable:
             tableName: fs_dataset

@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.dao.FileDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSObject;
 import bio.terra.service.FileService;

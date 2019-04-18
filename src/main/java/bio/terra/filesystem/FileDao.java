@@ -1,5 +1,6 @@
-package bio.terra.dao;
+package bio.terra.filesystem;
 
+import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.dao.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.dao.exception.FileSystemObjectDependencyException;
@@ -17,14 +18,13 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Repository
 public class FileDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.dao.DatasetDao");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FileDao");
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     private static final String COLUMN_LIST =
@@ -38,12 +38,16 @@ public class FileDao {
 
     /**
      * Part one of file create. This creates the directory path and file objects.
-     * The file object is annotated as not present, so that it will not be looked up
+     * The file object is annotated as "ingesting file", so that it will not be looked up
      * by data repo clients while we are creating it.
+     *
+     * Note that unlike other DAOs, we do not auto-fill the created_date. Instead, we
+     * fill that in on createFileComplete using the value from GCS. That way our created date and
+     * the date the client sees from interacting with GCS will be the same.
      */
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID createFileStart(FSObject fileToCreate) {
-        if (fileToCreate.getObjectType() != FSObject.FSObjectType.FILE_NOT_PRESENT) {
+        if (fileToCreate.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
         String[] pathParts = StringUtils.split(fileToCreate.getPath(), '/');
@@ -86,18 +90,19 @@ public class FileDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID createFileComplete(FSObject fsObject) {
-        FSObject fileNotPresent = retrieveFileByIdNoThrow(fsObject.getObjectId());
-        if (fileNotPresent.getObjectType() != FSObject.FSObjectType.FILE_NOT_PRESENT) {
+        FSObject fileToComplete = retrieveFileByIdNoThrow(fsObject.getObjectId());
+        if (fileToComplete.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new CorruptMetadataException("Unexpected file system object type");
         }
-        if (!StringUtils.equals(fileNotPresent.getCreatingFlightId(),
+        if (!StringUtils.equals(fileToComplete.getCreatingFlightId(),
             fsObject.getCreatingFlightId())) {
             throw new CorruptMetadataException("Unexpected flight id on file");
         }
 
         String sql = "UPDATE fs_object" +
             " SET object_type = :object_type, gspath = :gspath," +
-            " checksum_crc32c = :checksum_crc32c, checksum_md5 = :checksum_md5, size = :size" +
+            " checksum_crc32c = :checksum_crc32c, checksum_md5 = :checksum_md5, " +
+            "size = :size, created_date = :created_date" +
             " WHERE object_id = :object_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("object_id", fsObject.getObjectId())
@@ -105,7 +110,9 @@ public class FileDao {
             .addValue("gspath", fsObject.getGspath())
             .addValue("checksum_crc32c", fsObject.getChecksumCrc32c())
             .addValue("checksum_md5", fsObject.getChecksumMd5())
-            .addValue("size", fsObject.getSize());
+            .addValue("size", fsObject.getSize())
+            .addValue("created_date", fsObject.getCreatedDate());
+
         jdbcTemplate.update(sql, params);
         return fsObject.getObjectId();
     }
@@ -119,14 +126,14 @@ public class FileDao {
             throw new CorruptMetadataException("Unexpected flight id on file");
         }
 
-        if (file.getObjectType() == FSObject.FSObjectType.FILE_NOT_PRESENT) {
+        if (file.getObjectType() == FSObject.FSObjectType.INGESTING_FILE) {
             return;
         }
 
         String sql = "UPDATE fs_object SET object_type = :object_type WHERE object_id = :object_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("object_id", fsObject.getObjectId())
-            .addValue("object_type", FSObject.FSObjectType.FILE_NOT_PRESENT.toLetter());
+            .addValue("object_type", FSObject.FSObjectType.INGESTING_FILE.toLetter());
         jdbcTemplate.update(sql, params);
     }
 
@@ -148,7 +155,7 @@ public class FileDao {
             case DIRECTORY:
                 throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
 
-            case FILE_NOT_PRESENT:
+            case INGESTING_FILE:
                 // Only the creating flight can delete the non-present file
                 if (!StringUtils.equals(flightId, fsObject.getCreatingFlightId())) {
                     throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a not-present file");
@@ -303,10 +310,8 @@ public class FileDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID objectId = keyHolder.getField("object_id", UUID.class);
-        Instant createdDate = keyHolder.getCreatedDate();
-        fsObject
-            .objectId(objectId)
-            .createdDate(createdDate);
+        fsObject.objectId(objectId);
+
         return fsObject.getObjectId();
     }
 

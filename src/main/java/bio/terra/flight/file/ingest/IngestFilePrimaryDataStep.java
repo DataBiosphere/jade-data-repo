@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.dao.FileDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSObject;
 import bio.terra.metadata.Study;
@@ -49,6 +49,7 @@ public class IngestFilePrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        // TODO: delete the GCS file
         return StepResult.getStepResultSuccess();
     }
 

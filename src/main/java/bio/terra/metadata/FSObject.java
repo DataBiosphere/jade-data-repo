@@ -10,7 +10,7 @@ public class FSObject {
     public enum FSObjectType {
         DIRECTORY("D"),
         FILE("F"),
-        FILE_NOT_PRESENT("N");
+        INGESTING_FILE("N");
 
         private String letter;
 

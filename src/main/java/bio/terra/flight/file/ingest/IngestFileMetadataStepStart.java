@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.dao.FileDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.dao.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSObject;
@@ -49,7 +49,7 @@ public class IngestFileMetadataStepStart implements Step {
 
         fsObject = new FSObject()
             .studyId(study.getId())
-            .objectType(FSObject.FSObjectType.FILE_NOT_PRESENT)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
             .path(loadModel.getTargetPath())
             .mimeType(loadModel.getMimeType())
             .description(loadModel.getDescription())

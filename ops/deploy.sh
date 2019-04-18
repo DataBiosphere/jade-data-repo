@@ -63,7 +63,10 @@ kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.j
 vault read -field=value secret/dsde/datarepo/dev/common/server.crt > "${SCRATCH}/server.crt"
 vault read -field=value secret/dsde/datarepo/dev/common/server.key > "${SCRATCH}/server.key"
 kubectl get secret tls-cert && kubectl delete secret tls-cert
-kubectl --namespace=data-repo create secret tls tls-cert --cert=${SCRATCH}/server.crt --key=${SCRATCH}/server.key
+kubectl --namespace=data-repo create secret generic server-key --from-file=${SCRATCH}/server.key
+kubectl --namespace=data-repo create secret generic server-cert --from-file=${SCRATCH}/server.crt
+
+sleep 5
 
 # create or update postgres pod + service
 kubectl apply -f "${WD}/k8s/pods/psql-pod.yaml"

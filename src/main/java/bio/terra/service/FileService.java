@@ -44,6 +44,15 @@ public class FileService {
         this.gcsConfiguration = gcsConfiguration;
     }
 
+    public String deleteFile(String studyId, String fileId) {
+        FlightMap flightMap = new FlightMap();
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete file from study " + studyId + " file " + fileId);
+        flightMap.put(JobMapKeys.STUDY_ID.getKeyName(), studyId);
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileId);
+        return stairway.submit(FileDeleteFlight.class, flightMap);
+    }
+
+
     public String ingestFile(String studyId, FileLoadModel fileLoad) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Ingest file " + fileLoad.getTargetPath());
@@ -77,7 +86,6 @@ public class FileService {
             checksums.add(checksumMd5);
         }
 
-        // TODO: consider whether to return the file path as an alias
         DRSObject fileModel = new DRSObject()
             .id(fsObject.getObjectId().toString())
             .name(getLastNameFromPath(fsObject.getPath()))
@@ -89,7 +97,7 @@ public class FileService {
             .checksums(checksums)
             .accessMethods(Collections.singletonList(accessMethod))
             .description(fsObject.getDescription())
-            .aliases(Collections.emptyList());
+            .aliases(Collections.singletonList(fsObject.getGspath()));
 
         return fileModel;
     }

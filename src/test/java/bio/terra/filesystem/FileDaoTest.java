@@ -2,7 +2,7 @@ package bio.terra.filesystem;
 
 import bio.terra.category.Unit;
 import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.fixtures.Names;
 import bio.terra.metadata.FSObject;
 import org.junit.Test;

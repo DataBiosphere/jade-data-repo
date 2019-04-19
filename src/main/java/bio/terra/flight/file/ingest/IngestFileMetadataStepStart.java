@@ -1,7 +1,7 @@
 package bio.terra.flight.file.ingest;
 
 import bio.terra.filesystem.FileDao;
-import bio.terra.dao.exception.FileSystemObjectAlreadyExistsException;
+import bio.terra.filesystem.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSObject;
 import bio.terra.metadata.Study;

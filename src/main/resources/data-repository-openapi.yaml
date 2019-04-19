@@ -560,8 +560,6 @@ paths:
       operationId: lookupfile
       tags:
       - repository
-      consumes:
-      - application/json
       parameters:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/FileId'

@@ -2,9 +2,9 @@ package bio.terra.filesystem;
 
 import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.FileSystemObjectDependencyException;
-import bio.terra.dao.exception.FileSystemObjectNotFoundException;
-import bio.terra.dao.exception.InvalidFileSystemObjectTypeException;
+import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.metadata.FSObject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

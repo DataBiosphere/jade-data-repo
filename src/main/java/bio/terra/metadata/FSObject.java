@@ -1,6 +1,6 @@
 package bio.terra.metadata;
 
-import bio.terra.dao.exception.InvalidFileSystemObjectTypeException;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;

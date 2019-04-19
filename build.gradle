@@ -45,6 +45,18 @@ apply plugin: 'jacoco'
 
 apply plugin:'com.srcclr.gradle'
 
+// Enable devtools
+configurations {
+    developmentOnly
+    runtimeClasspath {
+        extendsFrom developmentOnly
+    }
+}
+dependencies {
+    developmentOnly("org.springframework.boot:spring-boot-devtools:${springBootVersion}")
+}
+
+
 tasks.withType(FindBugs) {
     reports {
         xml.enabled false

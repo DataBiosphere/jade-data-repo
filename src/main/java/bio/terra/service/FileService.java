@@ -2,6 +2,9 @@ package bio.terra.service;
 
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
+import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.FSObject;
@@ -24,6 +27,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
 @Component
 public class FileService {
@@ -32,16 +36,19 @@ public class FileService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final FileDao fileDao;
     private final GcsConfiguration gcsConfiguration;
 
     @Autowired
     public FileService(Stairway stairway,
                        StudyDao studyDao,
                        DatasetDao datasetDao,
+                       FileDao fileDao,
                        GcsConfiguration gcsConfiguration) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
+        this.fileDao = fileDao;
         this.gcsConfiguration = gcsConfiguration;
     }
 
@@ -60,6 +67,28 @@ public class FileService {
         flightMap.put(JobMapKeys.STUDY_ID.getKeyName(), studyId);
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileLoad);
         return stairway.submit(FileIngestFlight.class, flightMap);
+    }
+
+    public DRSObject lookupFile(String studyId, String fileId) {
+        FSObject fsObject = fileDao.retrieveFile(UUID.fromString(fileId));
+        if (!StringUtils.equals(fsObject.getStudyId().toString(), studyId)) {
+            throw new FileSystemObjectNotFoundException("File with id '" + fileId + "' not found in study with id '"
+                + studyId + "'");
+        }
+        switch (fsObject.getObjectType()) {
+            case FILE:
+                return fileModelFromFSObject(fsObject);
+
+            case DIRECTORY:
+                throw new InvalidFileSystemObjectTypeException("Attempt to lookup a directory");
+
+            // Don't show files that are coming or going
+            case INGESTING_FILE:
+            case DELETING_FILE:
+            default:
+                throw new FileSystemObjectNotFoundException("File with id '" + fileId + "' not found in study with id '"
+                    + studyId + "'");
+        }
     }
 
     public DRSObject fileModelFromFSObject(FSObject fsObject) {

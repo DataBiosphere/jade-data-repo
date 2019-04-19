@@ -187,7 +187,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<DRSObject> lookupfile(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+        DRSObject drsObject = fileService.lookupFile(id, fileid);
+        return new ResponseEntity<>(drsObject, HttpStatus.OK);
     }
 
     // -- dataset --

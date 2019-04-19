@@ -10,7 +10,8 @@ public class FSObject {
     public enum FSObjectType {
         DIRECTORY("D"),
         FILE("F"),
-        INGESTING_FILE("N");
+        INGESTING_FILE("N"),
+        DELETING_FILE("X");
 
         private String letter;
 
@@ -43,7 +44,7 @@ public class FSObject {
     private Long size;
     private String mimeType;
     private String description;
-    private String creatingFlightId;
+    private String flightId;
 
     public UUID getObjectId() {
         return objectId;
@@ -144,12 +145,12 @@ public class FSObject {
         return this;
     }
 
-    public String getCreatingFlightId() {
-        return creatingFlightId;
+    public String getFlightId() {
+        return flightId;
     }
 
-    public FSObject creatingFlightId(String creatingFlightId) {
-        this.creatingFlightId = creatingFlightId;
+    public FSObject flightId(String flightId) {
+        this.flightId = flightId;
         return this;
     }
 }

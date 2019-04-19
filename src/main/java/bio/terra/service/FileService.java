@@ -2,6 +2,7 @@ package bio.terra.service;
 
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
+import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.FSObject;
 import bio.terra.model.DRSAccessMethod;

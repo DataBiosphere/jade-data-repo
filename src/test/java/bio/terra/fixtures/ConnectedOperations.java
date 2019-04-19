@@ -151,11 +151,14 @@ public class ConnectedOperations {
         checkDeleteResponse(response);
     }
 
-    public void deleteTestFile(String studyId, String fileId) {
-        // TODO: complete when delete is implemented
+    public void deleteTestFile(String studyId, String fileId) throws Exception {
+        MvcResult result = mvc.perform(
+            delete("/api/repository/v1/studies/" + studyId + "/files/" + fileId))
+                .andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        checkDeleteResponse(response);
     }
-
-
 
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
@@ -266,16 +269,18 @@ public class ConnectedOperations {
 
     public void teardown() throws Exception {
         if (deleteOnTeardown) {
+            // Order is important: delete all the datasets first so we eliminate dependencies
+            // Then delete the files before the studies
             for (String datasetId : createdDatasetIds) {
                 deleteTestDataset(datasetId);
             }
 
-            for (String studyId : createdStudyIds) {
-                deleteTestStudy(studyId);
-            }
-
             for (String[] fileInfo : createdFileIds) {
                 deleteTestFile(fileInfo[0], fileInfo[1]);
+            }
+
+            for (String studyId : createdStudyIds) {
+                deleteTestStudy(studyId);
             }
         }
     }

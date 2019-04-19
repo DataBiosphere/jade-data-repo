@@ -5,9 +5,9 @@ import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.integration.DataRepoConfiguration;
+import bio.terra.model.DRSObject;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.DRSObject;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -95,6 +95,11 @@ public class FileOperationTest {
         ErrorModel errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("duplicate file error", errorModel.getMessage(),
             containsString("already exists"));
+
+        // Delete the file and we should be able to create it successfully again
+        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getId());
+        fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        assertThat("file name matches", fileModel.getName(), equalTo(testPdfFile));
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";

@@ -31,9 +31,9 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: creating_flight_id
+                  name: flight_id
                   type: text
-                  ## stairway flight id to prevent create race conditions
+                  ## stairway flight id to prevent race conditions
               - column:
                   name: path
                   type: text

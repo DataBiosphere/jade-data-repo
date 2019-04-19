@@ -40,7 +40,7 @@ public class IngestFileMetadataStepStart implements Step {
         if (fsObject != null) {
             // OK, some file exists. If this flight created it, then we record it
             // and claim success. Otherwise someone else created it and we throw.
-            if (StringUtils.equals(fsObject.getCreatingFlightId(), context.getFlightId())) {
+            if (StringUtils.equals(fsObject.getFlightId(), context.getFlightId())) {
                 workingMap.put(FileMapKeys.OBJECT_ID, fsObject.getObjectId().toString());
                 return StepResult.getStepResultSuccess();
             }
@@ -53,7 +53,7 @@ public class IngestFileMetadataStepStart implements Step {
             .path(loadModel.getTargetPath())
             .mimeType(loadModel.getMimeType())
             .description(loadModel.getDescription())
-            .creatingFlightId(context.getFlightId());
+            .flightId(context.getFlightId());
 
         UUID objectId = fileDao.createFileStart(fsObject);
         workingMap.put(FileMapKeys.OBJECT_ID, objectId.toString());
@@ -69,8 +69,8 @@ public class IngestFileMetadataStepStart implements Step {
         FSObject fsObject = fileDao.retrieveFileByPathNoThrow(loadModel.getTargetPath());
         if (fsObject != null) {
             // OK, some file exists. If this flight created it, then we delete it
-            if (StringUtils.equals(fsObject.getCreatingFlightId(), context.getFlightId())) {
-                fileDao.deleteFileForUndo(fsObject.getObjectId(), context.getFlightId());
+            if (StringUtils.equals(fsObject.getFlightId(), context.getFlightId())) {
+                fileDao.deleteFileForCreateUndo(fsObject.getObjectId(), context.getFlightId());
             }
         }
         return StepResult.getStepResultSuccess();

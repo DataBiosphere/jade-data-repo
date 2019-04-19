@@ -173,7 +173,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
                                                @PathVariable("fileid") String fileid) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+        String jobId = fileService.deleteFile(id, fileid);
+        return jobService.retrieveJob(jobId);
     }
 
     @Override

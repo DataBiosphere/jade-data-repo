@@ -79,21 +79,8 @@ public class FileOperationTest {
 
     @Test
     public void fileOperationsTest() throws Exception {
-        String targetDir = Names.randomizeName("dir");
-        URI uri = new URI("gs",
-            dataRepoConfiguration.getIngestbucket(),
-            "/files/" + testPdfFile,
-            null,
-            null);
-        String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
-
         StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
-
-        FileLoadModel fileLoadModel = new FileLoadModel()
-            .sourcePath(uri.toString())
-            .description(testDescription)
-            .mimeType(testMimeType)
-            .targetPath(targetPath);
+        FileLoadModel fileLoadModel = makeFileLoad();
 
         DRSObject fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
         assertThat("file name matches", fileModel.getName(), equalTo(testPdfFile));
@@ -139,7 +126,7 @@ public class FileOperationTest {
             containsString("file not found"));
 
         // Error: Invalid gs path - case 1: not gs
-        String validPath = "/dd/files/" + targetDir + "/" + testValidFile;
+        String validPath = "/dd/files/foo/" + testValidFile;
         fileLoadModel = new FileLoadModel()
             .sourcePath("http://jade_notabucket/foo/bar.txt")
             .description(testDescription)
@@ -172,5 +159,47 @@ public class FileOperationTest {
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
     }
+
+    @Test
+    public void drsOperationsTest() throws Exception {
+        StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
+        FileLoadModel fileLoadModel = makeFileLoad();
+        DRSObject fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+
+        // TODO: there is a problem here: the DRSObject should hold the
+        // drs object id, not the file id. For now, I'll magic up an id
+        // but this setup won't work IRL.
+
+        String drsObjectId = "v1_" + studySummary.getId() + "_dataset_" + fileModel.getId();
+        String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
+
+        MvcResult result = mvc.perform(get(url))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andReturn();
+        MockHttpServletResponse response = result.getResponse();
+        assertThat("DRS get object succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
+
+        DRSObject drsObject = objectMapper.readValue(response.getContentAsString(), DRSObject.class);
+        assertTrue("DRSObjects match", drsObject.equals(fileModel));
+    }
+
+    private FileLoadModel makeFileLoad() throws Exception {
+        String targetDir = Names.randomizeName("dir");
+        URI uri = new URI("gs",
+            dataRepoConfiguration.getIngestbucket(),
+            "/files/" + testPdfFile,
+            null,
+            null);
+        String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
+
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(uri.toString())
+            .description(testDescription)
+            .mimeType(testMimeType)
+            .targetPath(targetPath);
+
+        return fileLoadModel;
+    }
+
 
 }

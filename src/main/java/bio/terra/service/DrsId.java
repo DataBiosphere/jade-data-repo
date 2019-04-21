@@ -45,11 +45,15 @@ public class DrsId {
         return new DrsId.Builder();
     }
 
+    public String toDrsObjectId() {
+        return version + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
+    }
+
     @Override
     public String toString() {
-        String objectId = version + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
+        String path = "/" + toDrsObjectId();
         try {
-            URI uri = new URI("uri", dnsname, objectId, null, null);
+            URI uri = new URI("drs", dnsname, path, null, null);
             return uri.toString();
         } catch (URISyntaxException ex) {
             throw new InvalidDrsIdException("Invalid DRS syntax", ex);

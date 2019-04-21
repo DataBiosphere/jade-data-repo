@@ -387,8 +387,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return options;
     }
 
-
-
     public boolean deleteTable(String studyName, String tableName) {
         try {
             TableId tableId = TableId.of(projectId, prefixName(studyName), tableName);
@@ -399,6 +397,35 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    public List<String> getRefIds(String studyName, String tableName, String refColumnName) {
+        /*
+          SELECT refColumnName FROM stagingTable
+         */
+        List<String> refIdArray = new ArrayList<>();
+
+        String studyDatasetName = prefixName(studyName);
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(refColumnName)
+            .append(" FROM `")
+            .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
+            .append("`");
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQuery.query(queryConfig);
+
+            for (FieldValueList row : result.iterateAll()) {
+                String refId = row.get(0).getStringValue();
+                refIdArray.add(refId);
+            }
+
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Get ref ids query unexpectedly interrupted", ie);
+        }
+
+        return refIdArray;
+    }
 
     private boolean existenceCheck(String name) {
         try {
@@ -810,6 +837,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             case "BYTES":     return LegacySQLTypeName.BYTES;
             case "DATE":      return LegacySQLTypeName.DATE;
             case "DATETIME":  return LegacySQLTypeName.DATETIME;
+            case "DIRREF":    return LegacySQLTypeName.STRING;
             case "FILEREF":   return LegacySQLTypeName.STRING;
             case "FLOAT":     return LegacySQLTypeName.FLOAT;
             case "FLOAT64":   return LegacySQLTypeName.FLOAT;  // match the SQL type

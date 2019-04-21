@@ -19,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -372,6 +374,40 @@ public class FileDao {
                     .mimeType(rs.getString("mime_type"))
                     .description(rs.getString("description")));
             return fsObject;
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+
+    /**
+     * validate ids from a FILEREF or DIRREF column. Used during data ingest
+     *
+     * @param studyId - study we are checking in
+     * @param refIdArray - refIds to check
+     * @param objectType - type of ids we are checking
+     * @return array of invalid refIds
+     */
+    public List<String> validateRefIds(UUID studyId, List<String> refIdArray, FSObject.FSObjectType objectType) {
+        String sql = "SELECT object_id, (CASE WHEN object_id IN (:idlist) THEN 1 ELSE 0 ESAC) AS valid" +
+            " FROM fs_object WHERE study_id = :study_id AND object_type = :object_type";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("idlist", refIdArray)
+            .addValue("study_id", studyId.toString())
+            .addValue("object_type", objectType.toLetter());
+
+        try {
+            List<String> invalidRefIdList = new ArrayList<>();
+
+            jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
+                String objectId = rs.getObject("object_id", UUID.class).toString();
+                Integer valid = rs.getInt("valid");
+                if (valid == 0) {
+                    invalidRefIdList.add(objectId);
+                }
+                return invalidRefIdList;
+            });
+
+            return invalidRefIdList;
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }

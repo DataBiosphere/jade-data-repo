@@ -46,7 +46,8 @@ public class DrsId {
     }
 
     public String toDrsObjectId() {
-        return version + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
+        String vv = version == null ? "v1" : version;
+        return vv + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
     }
 
     @Override
@@ -58,6 +59,30 @@ public class DrsId {
         } catch (URISyntaxException ex) {
             throw new InvalidDrsIdException("Invalid DRS syntax", ex);
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        DrsId drsId = (DrsId) o;
+
+        if (dnsname != null ? !dnsname.equals(drsId.dnsname) : drsId.dnsname != null) return false;
+        if (version != null ? !version.equals(drsId.version) : drsId.version != null) return false;
+        if (studyId != null ? !studyId.equals(drsId.studyId) : drsId.studyId != null) return false;
+        if (datasetId != null ? !datasetId.equals(drsId.datasetId) : drsId.datasetId != null) return false;
+        return fsObjectId != null ? fsObjectId.equals(drsId.fsObjectId) : drsId.fsObjectId == null;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = dnsname != null ? dnsname.hashCode() : 0;
+        result = 31 * result + (version != null ? version.hashCode() : 0);
+        result = 31 * result + (studyId != null ? studyId.hashCode() : 0);
+        result = 31 * result + (datasetId != null ? datasetId.hashCode() : 0);
+        result = 31 * result + (fsObjectId != null ? fsObjectId.hashCode() : 0);
+        return result;
     }
 
     public static class Builder {

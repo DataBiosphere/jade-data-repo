@@ -70,7 +70,7 @@ public class ApplicationConfiguration {
     @Value("${datarepo.dnsname")
     private String datarepoDnsName;
 
-    @Bean
+    @Bean("datarepoDnsName")
     public String datarepoDnsName() {
         return datarepoDnsName;
     }

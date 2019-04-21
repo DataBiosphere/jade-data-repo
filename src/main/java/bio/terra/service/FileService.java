@@ -13,6 +13,7 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.pdao.gcs.GcsConfiguration;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -68,7 +69,7 @@ public class FileService {
         return stairway.submit(FileIngestFlight.class, flightMap);
     }
 
-    public DRSObject lookupFile(String studyId, String fileId) {
+    public FSObject lookupFSObject(String studyId, String fileId) {
         FSObject fsObject = fileDao.retrieveFile(UUID.fromString(fileId));
 
         if (!StringUtils.equals(fsObject.getStudyId().toString(), studyId)) {
@@ -78,12 +79,12 @@ public class FileService {
 
         switch (fsObject.getObjectType()) {
             case FILE:
-                return fileModelFromFSObject(fsObject);
+                return fsObject;
 
             case DIRECTORY:
                 throw new InvalidFileSystemObjectTypeException("Attempt to lookup a directory");
 
-            // Don't show files that are coming or going
+                // Don't show files that are coming or going
             case INGESTING_FILE:
             case DELETING_FILE:
             default:
@@ -92,7 +93,31 @@ public class FileService {
         }
     }
 
-    public DRSObject fileModelFromFSObject(FSObject fsObject) {
+    public FileModel lookupFile(String studyId, String fileId) {
+        return fileModelFromFSObject(lookupFSObject(studyId, fileId));
+    }
+
+    public DRSObject lookupDrsObject(String studyId, String fileId) {
+        return drsObjectFromFSObject(lookupFSObject(studyId, fileId));
+    }
+
+    public FileModel fileModelFromFSObject(FSObject fsObject) {
+        FileModel fileModel = new FileModel()
+            .fileId(fsObject.getObjectId().toString())
+            .studyId(fsObject.getStudyId().toString())
+            .path(fsObject.getPath())
+            .size(fsObject.getSize())
+            .created(fsObject.getCreatedDate().toString())
+            .mimeType(fsObject.getMimeType())
+            .checksums(makeChecksums(fsObject))
+            .accessUrl(fsObject.getGspath())
+            .description(fsObject.getDescription());
+
+        return fileModel;
+    }
+
+    // TODO: fix this: a dataset is required. This wont' work coming from the FSObject.
+    public DRSObject drsObjectFromFSObject(FSObject fsObject) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         OffsetDateTime theTime = OffsetDateTime.ofInstant(fsObject.getCreatedDate(), ZoneId.of("Z"));
 
@@ -104,6 +129,29 @@ public class FileService {
             .accessUrl(accessURL)
             .region(gcsConfiguration.getRegion());
 
+        DrsId drsId = DrsId.builder()
+            .studyId(fsObject.getStudyId().toString())
+            .datasetId("dataset")
+            .fsObjectId(fsObject.getObjectId().toString())
+            .build();
+
+        DRSObject fileModel = new DRSObject()
+            .id(drsId.toDrsObjectId())
+            .name(getLastNameFromPath(fsObject.getPath()))
+            .size(fsObject.getSize())
+            .created(theTime)
+            .updated(theTime)
+            .version("1")
+            .mimeType(fsObject.getMimeType())
+            .checksums(makeChecksums(fsObject))
+            .accessMethods(Collections.singletonList(accessMethod))
+            .description(fsObject.getDescription())
+            .aliases(Collections.singletonList(fsObject.getGspath()));
+
+        return fileModel;
+    }
+
+    private List<DRSChecksum> makeChecksums(FSObject fsObject) {
         List<DRSChecksum> checksums = new ArrayList<>();
         DRSChecksum checksumCrc32 = new DRSChecksum()
             .checksum(fsObject.getChecksumCrc32c())
@@ -117,23 +165,9 @@ public class FileService {
             checksums.add(checksumMd5);
         }
 
-        DRSObject fileModel = new DRSObject()
-            .id(fsObject.getObjectId().toString())
-            .name(getLastNameFromPath(fsObject.getPath()))
-            .size(fsObject.getSize())
-            .created(theTime)
-            .updated(theTime)
-            .version("1")
-            .mimeType(fsObject.getMimeType())
-            .checksums(checksums)
-            .accessMethods(Collections.singletonList(accessMethod))
-            .description(fsObject.getDescription())
-            .aliases(Collections.singletonList(fsObject.getGspath()));
-
-        return fileModel;
+        return checksums;
     }
 
-    // TODO: Maybe this should go in a path utils class
     private String getLastNameFromPath(String path) {
         String[] pathParts = StringUtils.split(path, '/');
         return pathParts[pathParts.length - 1];

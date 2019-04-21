@@ -41,7 +41,7 @@ public class DrsService {
 
         // TODO: validate dataset and check permissions. For temporary testing let that be junk
 
-        DRSObject drsObject = fileService.lookupFile(drsId.getStudyId(), drsId.getFsObjectId());
+        DRSObject drsObject = fileService.lookupDrsObject(drsId.getStudyId(), drsId.getFsObjectId());
         return drsObject;
     }
 
@@ -87,7 +87,5 @@ public class DrsService {
             .datasetId(idParts[2])
             .fsObjectId(idParts[3]);
     }
-
-
 
 }

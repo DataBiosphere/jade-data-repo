@@ -3,12 +3,12 @@ package bio.terra.controller;
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -169,10 +169,10 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<DRSObject> lookupfile(@PathVariable("id") String id,
+    public ResponseEntity<FileModel> lookupfile(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
-        DRSObject drsObject = fileService.lookupFile(id, fileid);
-        return new ResponseEntity<>(drsObject, HttpStatus.OK);
+        FileModel fileModel = fileService.lookupFile(id, fileid);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     // -- dataset --

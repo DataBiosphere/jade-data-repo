@@ -8,7 +8,10 @@ import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.DRSObject;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.DrsId;
+import bio.terra.service.DrsService;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
@@ -50,6 +53,7 @@ public class FileOperationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DataRepoConfiguration dataRepoConfiguration;
+    @Autowired private DrsService drsService;
 
     @MockBean
     private SamClientService samService;
@@ -82,18 +86,18 @@ public class FileOperationTest {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
-        DRSObject fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
-        assertThat("file name matches", fileModel.getName(), equalTo(testPdfFile));
+        FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // lookup the file we just created
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getId();
+        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getFileId();
         MvcResult result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
-        DRSObject lookupModel = objectMapper.readValue(response.getContentAsString(), DRSObject.class);
+        FileModel lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
@@ -102,9 +106,9 @@ public class FileOperationTest {
             containsString("already exists"));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getId());
+        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
-        assertThat("file name matches", fileModel.getName(), equalTo(testPdfFile));
+        assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";
@@ -164,13 +168,13 @@ public class FileOperationTest {
     public void drsOperationsTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
-        DRSObject fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
 
         // TODO: there is a problem here: the DRSObject should hold the
         // drs object id, not the file id. For now, I'll magic up an id
         // but this setup won't work IRL.
 
-        String drsObjectId = "v1_" + studySummary.getId() + "_dataset_" + fileModel.getId();
+        String drsObjectId = "v1_" + studySummary.getId() + "_dataset_" + fileModel.getFileId();
         String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
 
         MvcResult result = mvc.perform(get(url))
@@ -180,7 +184,15 @@ public class FileOperationTest {
         assertThat("DRS get object succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
         DRSObject drsObject = objectMapper.readValue(response.getContentAsString(), DRSObject.class);
-        assertTrue("DRSObjects match", drsObject.equals(fileModel));
+
+        // Validate that it matches the file model data
+        DrsId getDrsId = drsService.fromObjectId(drsObjectId);
+        DrsId gotDrsId = drsService.fromObjectId(drsObject.getId());
+        assertTrue("DRS Object ids match", getDrsId.equals(gotDrsId));
+        assertThat("Size matches", drsObject.getSize(), equalTo(fileModel.getSize()));
+        assertThat("mimeType matches", drsObject.getMimeType(), equalTo(fileModel.getMimeType()));
+        assertTrue("checksums match", drsObject.getChecksums().equals(fileModel.getChecksums()));
+        assertThat("descriptions match", drsObject.getDescription(), equalTo(fileModel.getDescription()));
     }
 
     private FileLoadModel makeFileLoad() throws Exception {
@@ -200,6 +212,5 @@ public class FileOperationTest {
 
         return fileLoadModel;
     }
-
 
 }

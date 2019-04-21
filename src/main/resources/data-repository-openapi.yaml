@@ -511,7 +511,7 @@ paths:
 
   '/api/repository/v1/studies/{id}/files':
     post:
-      description: Ingest one file into the study file system
+      description: Ingest one file into the study file system; async returns a FileModel
       operationId: ingestFile
       tags:
       - repository
@@ -567,7 +567,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/DRSObject'
+            $ref: '#/definitions/FileModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -1215,6 +1215,40 @@ definitions:
         type: string
         description: |-
           A human readable description of the contents of the Data Object.
+
+  FileModel:
+    description: File in the data repository
+    type: object
+    properties:
+      fileId:
+        type: string
+        description: Unique id of the file within the study
+      studyId:
+        type: string
+        description: Study holding the file
+      path:
+        type: string
+        description: full path of the file in the study
+      size:
+        type: integer
+        format: int64
+        description: file size in bytes
+      created:
+        type: string
+        description: timestamp of object creation in RFC3339
+      mimeType:
+        type: string
+      checksums:
+        type: array
+        items:
+          $ref: '#/definitions/DRSChecksum'
+        description: checksums; always includes crc32c. May include md5.
+      accessUrl:
+        type: string
+        description: URL of the file in cloud storage
+      description:
+        type: string
+        description: Human readable description of the file
 
   ## Dataset Definitions ##
 

@@ -14,12 +14,12 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("google")
 public class BigQueryConfiguration {
-    @Bean
+    @Bean("bigQueryProjectId")
     public String bigQueryProjectId() {
         return BigQueryOptions.getDefaultProjectId();
     }
 
-    @Bean
+    @Bean("bigQuery")
     public BigQuery bigQuery() {
         return BigQueryOptions.getDefaultInstance().getService();
     }

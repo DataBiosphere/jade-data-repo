@@ -2,14 +2,13 @@ package bio.terra.controller;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.exception.BadRequestException;
 import bio.terra.exception.InternalServerErrorException;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.DRSObject;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -111,22 +110,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     private AuthenticatedUserRequest getAuthenticatedInfo() {
-        if (!getRequest().isPresent()) {
-            throw new BadRequestException("No valid request found.");
-        }
-        HttpServletRequest req = getRequest().get();
-        String email = req.getHeader("oidc_claim_email");
-        String token = req.getHeader("oidc_access_token");
-
-        if (token == null) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null)
-                token = authHeader.substring("Bearer ".length());
-        }
-        if (email == null) {
-            email = appConfig.getUserEmail();
-        }
-        return new AuthenticatedUserRequest(email, token);
+        return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
     }
 
     // -- study --

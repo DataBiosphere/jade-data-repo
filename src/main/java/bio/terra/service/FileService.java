@@ -60,7 +60,6 @@ public class FileService {
         return stairway.submit(FileDeleteFlight.class, flightMap);
     }
 
-
     public String ingestFile(String studyId, FileLoadModel fileLoad) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Ingest file " + fileLoad.getTargetPath());
@@ -71,10 +70,12 @@ public class FileService {
 
     public DRSObject lookupFile(String studyId, String fileId) {
         FSObject fsObject = fileDao.retrieveFile(UUID.fromString(fileId));
+
         if (!StringUtils.equals(fsObject.getStudyId().toString(), studyId)) {
             throw new FileSystemObjectNotFoundException("File with id '" + fileId + "' not found in study with id '"
                 + studyId + "'");
         }
+
         switch (fsObject.getObjectType()) {
             case FILE:
                 return fileModelFromFSObject(fsObject);

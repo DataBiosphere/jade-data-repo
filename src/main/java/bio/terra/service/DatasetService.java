@@ -16,6 +16,7 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestContentsModel;
@@ -68,10 +69,11 @@ public class DatasetService {
      * @param datasetRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createDataset(DatasetRequestModel datasetRequestModel) {
+    public String createDataset(DatasetRequestModel datasetRequestModel, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequestModel);
+        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
         return stairway.submit(DatasetCreateFlight.class, flightMap);
     }
 
@@ -81,10 +83,14 @@ public class DatasetService {
      * @param id dataset id to delete
      * @returns jobId (flightId) of the job
      */
-    public String deleteDataset(String id) {
+    public String deleteDataset(UUID id, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
+        // TODO talk about conventions for naming data in the input map
+        // and in the step whether to pass data from input map to steps or let each step retrieve what they need
+//        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
         flightMap.put("id", id);
+        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
         return stairway.submit(DatasetDeleteFlight.class, flightMap);
     }
 

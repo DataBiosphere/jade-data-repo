@@ -11,6 +11,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
+import java.util.UUID;
+
 public class CreateStudyMetadataStep implements Step {
 
     private StudyDao studyDao;
@@ -25,7 +27,8 @@ public class CreateStudyMetadataStep implements Step {
         FlightMap inputParameters = context.getInputParameters();
         StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
         Study newStudy = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        studyDao.create(newStudy);
+        UUID studyId = studyDao.create(newStudy);
+        workingMap.put("studyId", studyId);
         StudySummaryModel studySummary = StudyJsonConversion.studySummaryModelFromStudySummary(newStudy);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), studySummary);
         return StepResult.getStepResultSuccess();

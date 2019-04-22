@@ -170,10 +170,6 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad();
         FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
 
-        // TODO: there is a problem here: the DRSObject should hold the
-        // drs object id, not the file id. For now, I'll magic up an id
-        // but this setup won't work IRL.
-
         String drsObjectId = "v1_" + studySummary.getId() + "_dataset_" + fileModel.getFileId();
         String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
 

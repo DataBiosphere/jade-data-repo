@@ -421,6 +421,26 @@ public class FileDao {
         return invalidRefIds;
     }
 
+    public void storeDatasetFileDependencies(UUID datasetId, List<String> refIds) {
+        // The ON CONFLICT clause will quietly skip the insert if the
+        // (object_id, dataset_id) pair already exists.
+        String sql = "INSERT INTO fs_dataset (object_id, dataset_id)" +
+            " VALUES (:object_id, :dataset_id)" +
+            " ON CONFLICT DO NOTHING";
+        for (String refId : refIds) {
+            UUID refUUID = UUID.fromString(refId);
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("object_id", refUUID)
+                .addValue("dataset_id", datasetId);
+            jdbcTemplate.update(sql, params);
+        }
+    }
+
+    public void deleteDatasetFileDependencies(UUID datasetId) {
+        jdbcTemplate.update("DELETE FROM fs_dataset WHERE dataset_id = :dataset_id",
+            new MapSqlParameterSource().addValue("dataset_id", datasetId));
+    }
+
     // Make an FSObject with the path filled in. We set it as a directory.
     private FSObject makeObject(UUID studyId, String path) {
         return new FSObject()

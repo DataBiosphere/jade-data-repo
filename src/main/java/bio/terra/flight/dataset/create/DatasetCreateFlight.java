@@ -1,6 +1,7 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.dao.DatasetDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
@@ -18,11 +19,12 @@ public class DatasetCreateFlight extends Flight {
         DatasetDao datasetDao = (DatasetDao)appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
+        FileDao fileDao = (FileDao)appContext.getBean("fileDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
 
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetService));
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService, datasetDao));
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService, datasetDao, fileDao));
         addStep(new CreateDatasetAuthzResource(samClient));
     }
 }

@@ -77,3 +77,9 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
+
+        - addPrimaryKey:
+            tableName: fs_dataset
+            columnNames: object_id, dataset_id
+            constraintName: pk_fs_dataset
+

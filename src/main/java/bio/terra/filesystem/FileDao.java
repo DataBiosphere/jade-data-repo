@@ -71,7 +71,7 @@ public class FileDao {
         StringBuilder pathBuilder = new StringBuilder();
         for (; index < pathDirectoryLength; index++) {
             pathBuilder.append('/').append(pathParts[index]);
-            FSObject fsObject = retrieveFileByPathNoThrow(fileToCreate.getStudyId(), pathBuilder.toString());
+            FSObject fsObject = retrieveByPathNoThrow(fileToCreate.getStudyId(), pathBuilder.toString());
             if (fsObject == null) {
                 // We found a non-existent directory
                 break;
@@ -95,7 +95,7 @@ public class FileDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID createFileComplete(FSObject fsObject) {
-        FSObject fileToComplete = retrieveFileByIdNoThrow(fsObject.getObjectId());
+        FSObject fileToComplete = retrieveByIdNoThrow(fsObject.getObjectId());
         if (fileToComplete.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new CorruptMetadataException("Unexpected file system object type");
         }
@@ -125,7 +125,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public void createFileCompleteUndo(FSObject fsObject) {
         // Reset to mark the file not preset
-        FSObject file = retrieveFileByIdNoThrow(fsObject.getObjectId());
+        FSObject file = retrieveByIdNoThrow(fsObject.getObjectId());
         if (!StringUtils.equals(file.getFlightId(),
             fsObject.getFlightId())) {
             throw new CorruptMetadataException("Unexpected flight id on file");
@@ -144,7 +144,7 @@ public class FileDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFileForCreateUndo(UUID objectId, String flightId) {
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
@@ -170,7 +170,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFileStart(UUID objectId, String flightId) {
         // Validate existence and state
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
@@ -209,7 +209,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFileComplete(UUID objectId, String flightId) {
         // Validate existence and state
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
@@ -235,7 +235,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public void deleteFileStartUndo(UUID objectId, String flightId) {
         // If we are the ones that put the file in DELETING_FILE state, then we revert it to FILE state.
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return;
         }
@@ -299,7 +299,7 @@ public class FileDao {
             return;
         }
 
-        FSObject fsObject = retrieveFileByPathNoThrow(studyId, parentPath);
+        FSObject fsObject = retrieveByPathNoThrow(studyId, parentPath);
         if (hasDatasetReferences(fsObject.getObjectId())) {
             return;
         }
@@ -331,30 +331,30 @@ public class FileDao {
         return (datasetCount > 0);
     }
 
-    public FSObject retrieveFile(UUID objectId) {
+    public FSObject retrieve(UUID objectId) {
         logger.debug("retrieve file id: " + objectId);
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("File not id: " + objectId);
         }
         return fsObject;
     }
 
-    FSObject retrieveFileByIdNoThrow(UUID objectId) {
+    FSObject retrieveByIdNoThrow(UUID objectId) {
         String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE object_id = :object_id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("object_id", objectId);
         return retrieveWorker(sql, params);
     }
 
-    public FSObject rerieveFileByPath(UUID studyId, String path) {
-        FSObject fsObject = retrieveFileByPathNoThrow(studyId, path);
+    public FSObject retrieveByPath(UUID studyId, String path) {
+        FSObject fsObject = retrieveByPathNoThrow(studyId, path);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("File not found - path: '" + path + "'");
         }
         return fsObject;
     }
 
-    public FSObject retrieveFileByPathNoThrow(UUID studyId, String path) {
+    public FSObject retrieveByPathNoThrow(UUID studyId, String path) {
         String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path AND study_id = :study_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("path", path)
@@ -383,6 +383,10 @@ public class FileDao {
             return null;
         }
     }
+
+
+
+
 
     /**
      * validate ids from a FILEREF or DIRREF column. Used during data ingest

@@ -30,7 +30,7 @@ public class IngestFileMetadataStepComplete implements Step {
         String gspath = workingMap.get(FileMapKeys.GSPATH, String.class);
         Long size = workingMap.get(FileMapKeys.SIZE, Long.class);
 
-        FSObject fsObject = fileDao.retrieveFile(objectId);
+        FSObject fsObject = fileDao.retrieve(objectId);
         fsObject
             .checksumMd5(checksumMd5)
             .checksumCrc32c(checksumCrc32c)
@@ -47,7 +47,7 @@ public class IngestFileMetadataStepComplete implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-        FSObject fsObject = fileDao.retrieveFile(objectId);
+        FSObject fsObject = fileDao.retrieve(objectId);
         fsObject.flightId(context.getFlightId());
         fileDao.createFileCompleteUndo(fsObject);
         return StepResult.getStepResultSuccess();

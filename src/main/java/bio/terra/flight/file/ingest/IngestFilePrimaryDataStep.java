@@ -36,7 +36,7 @@ public class IngestFilePrimaryDataStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
 
-        FSObject fsObject = fileDao.retrieveFile(objectId);
+        FSObject fsObject = fileDao.retrieve(objectId);
 
         fsObject = gcsPdao.copyFile(study, fileLoadModel, fsObject);
 

@@ -11,7 +11,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.DrsId;
-import bio.terra.service.DrsService;
+import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
@@ -53,7 +53,7 @@ public class FileOperationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DataRepoConfiguration dataRepoConfiguration;
-    @Autowired private DrsService drsService;
+    @Autowired private DrsIdService drsService;
 
     @MockBean
     private SamClientService samService;

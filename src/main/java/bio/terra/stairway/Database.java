@@ -2,17 +2,23 @@ package bio.terra.stairway;
 
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
+import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.storage.StorageException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.postgresql.util.PSQLException;
 
 import javax.sql.DataSource;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -351,12 +357,45 @@ public class Database {
             String exceptionJson = null;
             if (flightContext.getResult().getException().isPresent()) {
                 Exception exception = flightContext.getResult().getException().get();
+
+                if (!isSafeToDeserialize(exception)) {
+                    exception = rewriteException(exception);
+                }
                 exceptionJson = getObjectMapper().writeValueAsString(exception);
             }
             return exceptionJson;
         } catch (JsonProcessingException ex) {
             throw new DatabaseOperationException("Failed to convert exception to JSON", ex);
         }
+    }
+
+    private boolean isSafeToDeserialize(Throwable inException) {
+        if (inException != null) {
+            if (!isSafeToDeserialize(inException.getCause())) {
+                // If someone under us isn't safe, it doesn't matter what we are.
+                return false;
+            }
+
+            if (inException instanceof StorageException ||
+                inException instanceof BigQueryException ||
+                inException instanceof  PSQLException ||
+                inException instanceof URISyntaxException) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private Exception rewriteException(Throwable inException) {
+        // It turns out you cannot rewrite a cause in an existing exception
+        // stack, so to make the exception safe for serialize/deserialize, we
+        // have to rewrite the stack into flight exceptions.
+        if (inException != null) {
+            Exception under = rewriteException(inException.getCause());
+            return new FlightException(inException.toString(), under);
+        }
+        return null;
     }
 
     private Exception getExceptionFromJson(String exceptionJson) {
@@ -376,7 +415,8 @@ public class Database {
                 .registerModule(new ParameterNamesModule())
                 .registerModule(new Jdk8Module())
                 .registerModule(new JavaTimeModule())
-                .enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+                .enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL)
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         }
         return objectMapper;
     }

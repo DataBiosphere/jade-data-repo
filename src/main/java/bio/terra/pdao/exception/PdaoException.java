@@ -1,9 +1,5 @@
-package bio.terra.pdao;
+package bio.terra.pdao.exception;
 
-/**
- * StairwayExecutionException indicates that something is wrong in the Stairway execution code; an invalid state
- * or similar.
- */
 public class PdaoException extends RuntimeException {
     public PdaoException(String message) {
         super(message);

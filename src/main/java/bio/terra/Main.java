@@ -26,7 +26,7 @@ public class Main implements CommandLineRunner {
         SpringApplication theApp = new SpringApplication(Main.class);
         // Initially, Jade runs only with bigquery, so we set the profile here.
         // ITFOT, we can parameterize the profile to include the appropriate pdao implementation.
-        theApp.setAdditionalProfiles("bigquery");
+        theApp.setAdditionalProfiles("google");
         theApp.run(args);
     }
 

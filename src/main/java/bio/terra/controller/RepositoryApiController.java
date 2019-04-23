@@ -8,6 +8,8 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -17,6 +19,7 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.DatasetService;
+import bio.terra.service.FileService;
 import bio.terra.service.JobService;
 import bio.terra.service.SamClientService;
 import bio.terra.service.StudyService;
@@ -58,6 +61,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final DatasetService datasetService;
     private final SamClientService samService;
     private final IngestRequestValidator ingestRequestValidator;
+    private final FileService fileService;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -73,7 +77,8 @@ public class RepositoryApiController implements RepositoryApi {
             DatasetService datasetService,
             SamClientService samService,
             IngestRequestValidator ingestRequestValidator,
-            ApplicationConfiguration appConfig
+            ApplicationConfiguration appConfig,
+            FileService fileService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -85,6 +90,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.samService = samService;
         this.ingestRequestValidator = ingestRequestValidator;
         this.appConfig = appConfig;
+        this.fileService = fileService;
     }
 
     @InitBinder
@@ -161,6 +167,26 @@ public class RepositoryApiController implements RepositoryApi {
                                                 @Valid @RequestBody IngestRequestModel ingest) {
         String jobId = studyService.ingestStudy(id, ingest);
         return jobService.retrieveJob(jobId);
+    }
+
+    // -- study-file --
+    @Override
+    public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
+                                               @PathVariable("fileid") String fileid) {
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> ingestFile(@PathVariable("id") String id,
+                                               @Valid @RequestBody FileLoadModel ingestFile) {
+        String jobId = fileService.ingestFile(id, ingestFile);
+        return jobService.retrieveJob(jobId);
+    }
+
+    @Override
+    public ResponseEntity<FileModel> lookupfile(@PathVariable("id") String id,
+                                                @PathVariable("fileid") String fileid) {
+        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
     }
 
     // -- dataset --

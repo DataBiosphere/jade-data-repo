@@ -24,7 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Category(Connected.class)
-@ActiveProfiles("bigquery")
+@ActiveProfiles("google")
 public class BigQueryPdaoTest {
 
     @Autowired

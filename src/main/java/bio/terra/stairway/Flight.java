@@ -181,6 +181,11 @@ public class Flight implements Callable<FlightState> {
             } catch (Exception ex) {
                 // The purpose of this catch is to relieve steps of implementing their own repetitive try-catch
                 // simply to turn exceptions into StepResults.
+                logger.info("Caught exception executing flight id: " + context().getFlightId() +
+                    " step: " + context().getStepIndex() +
+                    " direction: " + (context().isDoing() ? "doing" : "undoing"));
+                ex.printStackTrace();
+
                 StepStatus stepStatus = (ex instanceof RetryException)
                     ? StepStatus.STEP_RESULT_FAILURE_RETRY
                     : StepStatus.STEP_RESULT_FAILURE_FATAL;

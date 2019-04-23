@@ -34,6 +34,7 @@ public class IngestValidateRefsStep implements Step {
     public StepResult doStep(FlightContext context) {
         Study study = IngestUtils.getStudy(context, studyDao);
         Table table = IngestUtils.getStudyTable(context, study);
+        String stagingTableName = IngestUtils.getStagingTableName(context);
 
         // For each fileref column, scan the staging table and build an array of file ids
         // Then probe the file system tables to validate that the file exists and is part
@@ -42,20 +43,20 @@ public class IngestValidateRefsStep implements Step {
         List<String> invalidRefIds = new ArrayList<>();
         for (Column column : table.getColumns()) {
             if (StringUtils.equalsIgnoreCase(column.getType(), "FILEREF")) {
-                List<String> refIdArray = bigQueryPdao.getRefIds(study.getName(), table.getName(), column.getName());
+                List<String> refIdArray = bigQueryPdao.getRefIds(study.getName(), stagingTableName, column.getName());
                 List<String> badRefIds = fileDao.validateRefIds(study.getId(), refIdArray, FSObject.FSObjectType.FILE);
                 if (badRefIds != null) {
-                    refIdArray.addAll(badRefIds);
+                    invalidRefIds.addAll(badRefIds);
                 }
             }
         }
 
         if (invalidRefIds.size() != 0) {
             // TODO: improve when we have multi-item error model
-            String badRefIds =
+            String badRefIdMessage =
                 invalidRefIds.stream().limit(MAX_ERROR_REF_IDS).collect(Collectors.joining(", "));
             throw new InvalidFileRefException("Invalid file ids found during ingest (up to first " +
-                MAX_ERROR_REF_IDS + "shown): "+ badRefIds);
+                MAX_ERROR_REF_IDS + "shown): " + badRefIdMessage);
         }
 
         return StepResult.getStepResultSuccess();

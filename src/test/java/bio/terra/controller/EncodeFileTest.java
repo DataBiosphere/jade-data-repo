@@ -7,6 +7,7 @@ import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,9 +38,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.util.UUID;
 
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
@@ -96,9 +94,12 @@ public class EncodeFileTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
             .andReturn();
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
-        MockHttpServletResponse response = result.getResponse();
-        assertThat("load files success", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
+        IngestResponseModel ingestResponse =
+            connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
+        // TODO: remove
+        System.out.println(ingestResponse);
 
         // Load donor success
         ingestRequest
@@ -110,8 +111,11 @@ public class EncodeFileTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
             .andReturn();
-        response = result.getResponse();
-        assertThat("load donor success", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
+        response = connectedOperations.validateJobModelAndWait(result);
+
+        ingestResponse = connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
+        // TODO: remove
+        System.out.println(ingestResponse);
     }
 
     private String loadFiles(String studyId) throws Exception {
@@ -122,7 +126,10 @@ public class EncodeFileTest {
         // Generate JSON and write the line to scratch
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
 
-        Blob sourceBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), "encodetest/file.json"));
+        // For a bigger test use encodetest/file.json (1000+ files)
+        // For normal testing encodetest/file_small.json (10 files)
+        Blob sourceBlob = storage.get(
+            BlobId.of(dataRepoConfiguration.getIngestbucket(), "encodetest/file_small.json"));
         assertNotNull("source blob not null", sourceBlob);
 
         BlobInfo targetBlobInfo = BlobInfo
@@ -134,20 +141,26 @@ public class EncodeFileTest {
 
             String line = null;
             while ((line = reader.readLine()) != null) {
-                EncodeFile encodeFile = objectMapper.readValue(line, EncodeFile.class);
+                EncodeFileIn encodeFileIn = objectMapper.readValue(line, EncodeFileIn.class);
 
-                FileLoadModel fileLoadModel = makeFileLoadModel(encodeFile.getFile_ref());
-                FileModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                String bamFileId = null;
+                String bamiFileId = null;
 
-                fileLoadModel = makeFileLoadModel(encodeFile.getFile_index_ref());
-                FileModel bamiFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                if (encodeFileIn.getFile_gs_path() != null) {
+                    FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
+                    FileModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    bamFileId = bamFile.getFileId();
+                }
 
-                encodeFile
-                    .file_ref(bamFile.getFileId())
-                    .file_index_ref(bamiFile.getFileId());
+                if (encodeFileIn.getFile_index_gs_path() != null) {
+                    FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_index_gs_path());
+                    FileModel bamiFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    bamiFileId = bamiFile.getFileId();
+                }
 
-                String fileLine = objectMapper.writeValueAsString(encodeFile) + "\n";
-                writer.write(ByteBuffer.wrap(fileLine.getBytes()));
+                EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
+                String fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
+                writer.write(ByteBuffer.wrap(fileLine.getBytes("UTF-8")));
             }
         }
 

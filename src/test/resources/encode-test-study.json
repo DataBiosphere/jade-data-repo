@@ -34,7 +34,7 @@
                     {"name": "experiments", "datatype": "string"},
                     {"name": "file_available_in_gcs", "datatype": "boolean"},
                     {"name": "file_format", "datatype": "string"},
-                    {"name": "file_format_subtype˜", "datatype": "string"},
+                    {"name": "file_format_subtype", "datatype": "string"},
                     {"name": "file_ref", "datatype": "fileref"},
                     {"name": "file_index_ref", "datatype": "fileref"},
                     {"name": "file_size_mb", "datatype": "integer"},
@@ -68,7 +68,7 @@
                     {"name": "donor", "columns": []},
                     {"name": "file", "columns": []}
                 ],
-                "follow": ["donor_asset"]
+                "follow": ["donor_file"]
             }
         ]
     }

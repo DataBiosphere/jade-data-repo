@@ -71,7 +71,7 @@ public class FileDao {
         StringBuilder pathBuilder = new StringBuilder();
         for (; index < pathDirectoryLength; index++) {
             pathBuilder.append('/').append(pathParts[index]);
-            FSObject fsObject = retrieveFileByPathNoThrow(pathBuilder.toString());
+            FSObject fsObject = retrieveFileByPathNoThrow(fileToCreate.getStudyId(), pathBuilder.toString());
             if (fsObject == null) {
                 // We found a non-existent directory
                 break;
@@ -271,12 +271,12 @@ public class FileDao {
                 "File is used by at least one dataset and cannot be deleted");
         }
         if (deleteObject(fsObject.getObjectId())) {
-            deleteEmptyParents(fsObject.getPath());
+            deleteEmptyParents(fsObject.getStudyId(), fsObject.getPath());
         }
         return true;
     }
 
-    void deleteEmptyParents(String path) {
+    void deleteEmptyParents(UUID studyId, String path) {
         String parentPath = getContainingDirectoryPath(path);
         if (parentPath == null) {
             // We are at the '/'. Nowhere else to go.
@@ -284,8 +284,11 @@ public class FileDao {
         }
 
         String matcher = parentPath + '%';
-        String sql = "SELECT COUNT(*) AS match_count FROM fs_object WHERE path LIKE :matcher";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("matcher", matcher);
+        String sql = "SELECT COUNT(*) AS match_count FROM fs_object" +
+            " WHERE study_id = :study_id AND path LIKE :matcher";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("study_id", studyId)
+            .addValue("matcher", matcher);
         Long matchCount  = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
             rs.getLong("match_count"));
         if (matchCount == null) {
@@ -296,13 +299,13 @@ public class FileDao {
             return;
         }
 
-        FSObject fsObject = retrieveFileByPathNoThrow(parentPath);
+        FSObject fsObject = retrieveFileByPathNoThrow(studyId, parentPath);
         if (hasDatasetReferences(fsObject.getObjectId())) {
             return;
         }
 
         if (deleteObject(fsObject.getObjectId())) {
-            deleteEmptyParents(parentPath);
+            deleteEmptyParents(studyId, parentPath);
         }
     }
 
@@ -343,17 +346,19 @@ public class FileDao {
         return retrieveWorker(sql, params);
     }
 
-    public FSObject rerieveFileByPath(String path) {
-        FSObject fsObject = retrieveFileByPathNoThrow(path);
+    public FSObject rerieveFileByPath(UUID studyId, String path) {
+        FSObject fsObject = retrieveFileByPathNoThrow(studyId, path);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("File not found - path: '" + path + "'");
         }
         return fsObject;
     }
 
-    public FSObject retrieveFileByPathNoThrow(String path) {
-        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("path", path);
+    public FSObject retrieveFileByPathNoThrow(UUID studyId, String path) {
+        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path AND study_id = :study_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("path", path)
+            .addValue("study_id", studyId);
         return retrieveWorker(sql, params);
     }
 
@@ -388,29 +393,32 @@ public class FileDao {
      * @return array of invalid refIds
      */
     public List<String> validateRefIds(UUID studyId, List<String> refIdArray, FSObject.FSObjectType objectType) {
-        String sql = "SELECT object_id, (CASE WHEN object_id IN (:idlist) THEN 1 ELSE 0 ESAC) AS valid" +
-            " FROM fs_object WHERE study_id = :study_id AND object_type = :object_type";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("idlist", refIdArray)
-            .addValue("study_id", studyId.toString())
-            .addValue("object_type", objectType.toLetter());
+        String sql = "SELECT COUNT(*) AS match_count FROM fs_object " +
+            " WHERE study_id = :study_id AND object_type = :object_type" +
+            " AND object_id::text = :test_id";
 
-        try {
-            List<String> invalidRefIdList = new ArrayList<>();
+        List<String> invalidRefIds = new ArrayList<>();
 
-            jdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
-                String objectId = rs.getObject("object_id", UUID.class).toString();
-                Integer valid = rs.getInt("valid");
-                if (valid == 0) {
-                    invalidRefIdList.add(objectId);
+        // Brute force, but I really want to be able to generate the list of invalid ids and
+        // this is simple. Alternately, could implement a sort-merge join in code here... guk!
+        for (String testId : refIdArray) {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("test_id", testId)
+                .addValue("study_id", studyId)
+                .addValue("object_type", objectType.toLetter());
+
+            try {
+                Long matchCount = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                    rs.getLong("match_count"));
+                if (matchCount == null || matchCount > 1) {
+                    invalidRefIds.add(testId);
                 }
-                return invalidRefIdList;
-            });
-
-            return invalidRefIdList;
-        } catch (EmptyResultDataAccessException ex) {
-            return null;
+            } catch (EmptyResultDataAccessException ex) {
+                invalidRefIds.add(testId);
+            }
         }
+
+        return invalidRefIds;
     }
 
     // Make an FSObject with the path filled in. We set it as a directory.
@@ -451,7 +459,7 @@ public class FileDao {
         return fsObject.getObjectId();
     }
 
-    public String getContainingDirectoryPath(String path) {
+    String getContainingDirectoryPath(String path) {
         String[] pathParts = StringUtils.split(path, '/');
         if (pathParts.length == 1) {
             // We are at the root; no containing directory

@@ -414,10 +414,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
             TableResult result = bigQuery.query(queryConfig);
-
             for (FieldValueList row : result.iterateAll()) {
-                String refId = row.get(0).getStringValue();
-                refIdArray.add(refId);
+                if (!row.get(0).isNull()) {
+                    String refId = row.get(0).getStringValue();
+                    refIdArray.add(refId);
+                }
             }
 
         } catch (InterruptedException ie) {

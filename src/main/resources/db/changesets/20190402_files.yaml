@@ -39,7 +39,6 @@ databaseChangeLog:
                   type: text
                   constraints:
                     nullable: false
-                    unique: true
               - column:
                   name: gspath
                   type: text

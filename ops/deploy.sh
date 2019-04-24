@@ -23,8 +23,14 @@ fi
 # the paths we'll use will be relative to this script
 WD=$( dirname "${BASH_SOURCE[0]}" )
 NOW=$(date +%Y-%m-%d_%H-%M-%S)
-TAG="${GOOGLE_CLOUD_PROJECT}_${NOW}"
+DATA_REPO_TAG="${GOOGLE_CLOUD_PROJECT}_${NOW}"
 SCRATCH=/tmp/deploy-scratch
+
+# Install jq
+command -v jq >/dev/null 2>&1 || {
+    echo "jq not found, installing";
+    brew install jq;
+}
 
 # Install kubectl
 command -v kubectl >/dev/null 2>&1 || {
@@ -32,12 +38,28 @@ command -v kubectl >/dev/null 2>&1 || {
     brew install kubernetes-cli;
 }
 
+# Make sure kubectl is at least the right version to support `kubectl wait ...`
+KUBECTL_VERSION=$(kubectl version --output=json --client=True | jq -r .clientVersion.gitVersion)
+function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
+if version_gt "v1.14.0" $KUBECTL_VERSION; then
+    echo "kubectl needs to be at least version 1.14.0, trying to update"
+    brew upgrade kubernetes-cli
+fi
+
 # Install consul-template (note this didn't work with 0.20.0, I kept getting 403 errors)
 command -v consul-template >/dev/null 2>&1 || {
     echo "consul-template not found, installing";
     curl https://releases.hashicorp.com/consul-template/0.19.5/consul-template_0.19.5_darwin_386.tgz | tar xzv;
     mv consul-template /usr/local/bin/;
 }
+
+# Make sure kubectl is pointing at the right project
+KUBECTL_CONTEXT=$(kubectl config current-context)
+if [[ $KUBECTL_CONTEXT != *${GOOGLE_CLOUD_PROJECT}* ]]; then
+    echo "the kubernetes context (${KUBECTL_CONTEXT}) does not match your GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT}"
+    echo "the easiest way to change it is using the context menu after clicking on the Docker icon in your top bar"
+    exit 1
+fi
 
 # make a temporary directory for rendering, we'll delete it later
 mkdir -p $SCRATCH
@@ -91,10 +113,10 @@ cat "${WD}/../db/create-data-repo-db" | \
 kubectl apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
-TAG=$TAG ${WD}/../gradlew dockerPush
+GCR_TAG=$DATA_REPO_TAG ${WD}/../gradlew dockerPush
 
 kubectl --namespace data-repo set image deployments/api-deployment \
-    "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:${TAG}"
+    "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:${DATA_REPO_TAG}"
 
 # try to deploy the ui, assuming that the jade-data-repo-ui directory is a sibling of this jade-data-repo directory
 UI_DIR="${WD}/../../jade-data-repo-ui"

@@ -24,6 +24,7 @@ spec:
           secretName: server-key
       containers:
       - name: oidc-proxy-container
+        # Based on the latest security review this is the recommended version of the proxy to use.
         image: broadinstitute/openidc-proxy:bernick_tcell
         volumeMounts:
         - name: server-cert

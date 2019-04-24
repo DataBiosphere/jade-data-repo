@@ -33,8 +33,6 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -139,7 +137,7 @@ public class FileService {
 
 
             // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
-            OffsetDateTime theTime = OffsetDateTime.ofInstant(dirObject.getCreatedDate(), ZoneId.of("Z"));
+            String theTime = dirObject.getCreatedDate().toString();
 
             DRSBundle bundle = new DRSBundle()
                 .id(drsBundleId)
@@ -292,7 +290,7 @@ public class FileService {
 
     private DRSObject drsObjectFromFSObject(FSObject fsObject, String datasetId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
-        OffsetDateTime theTime = OffsetDateTime.ofInstant(fsObject.getCreatedDate(), ZoneId.of("Z"));
+        String theTime = fsObject.getCreatedDate().toString();
 
         DRSAccessURL accessURL = new DRSAccessURL()
             .url(fsObject.getGspath());

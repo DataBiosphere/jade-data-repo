@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: oidc-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
+  namespace: data-repo
+spec:
+  tls:
+    - hosts:
+      - datarepo.datarepo-integration.broadinstitute.org
+      secretName: wildwildcard.datarepo.broadinstitute.org
+  backend:
+    serviceName: oidc-proxy-service
+    servicePort: http
+  rules:
+  - host: "datarepo.datarepo-integration.broadinstitute.org"
+    http:
+      paths:
+      - backend:
+          serviceName: oidc-proxy-service
+          servicePort: http

@@ -4,9 +4,6 @@ metadata:
   namespace: data-repo
   name: oidc-proxy-service
 spec:
-  type: LoadBalancer
-  selector:
-    component: data-repo-oidc-proxy
   ports:
   - protocol: TCP
     name: http
@@ -16,3 +13,8 @@ spec:
     name: https
     port: 443
     targetPort: 443
+  type: NodePort
+  selector:
+    service: oidc
+    environment: integration
+    project: datarepo

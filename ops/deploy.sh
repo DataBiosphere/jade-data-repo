@@ -73,7 +73,7 @@ kubectl apply -f "${WD}/k8s/namespace.yaml"
 kubectl apply --namespace data-repo -f "${WD}/k8s/psp/service-account.yaml"
 
 # TODO: I have a hunch that this only works on terraformed CIS k8s clusters, leaving commented out for now
-#kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
+kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
 
 # render secrets, create or update on kubernetes
 consul-template -template "${WD}/k8s/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
@@ -84,15 +84,15 @@ echo 'waiting 5 sec for secrets to be ready'
 sleep 5
 
 # update the service account key
-vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key${GOOGLE_CLOUD_PROJECT}.json" -format=json | \
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key${GOOGLE_CLOUD_PROJECT}.json" -format=json | \
     jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # set the tsl certificate
-vault read -field=value secret/dsde/datarepo/dev/common/server.crt > "${SCRATCH}/server.crt"
-vault read -field=value secret/dsde/datarepo/dev/common/server.key > "${SCRATCH}/server.key"
-kubectl --namespace=data-repo create secret generic server-key --from-file=${SCRATCH}/server.key
-kubectl --namespace=data-repo create secret generic server-cert --from-file=${SCRATCH}/server.crt
+vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/server.crt"
+vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/server.key"
+kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/server.key --from-file=${SCRATCH}/server.crt
+
 
 # create or update postgres pod + service
 kubectl apply -f "${WD}/k8s/services"
@@ -113,7 +113,9 @@ cat "${WD}/../db/create-data-repo-db" | \
 kubectl apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
-GCR_TAG=$DATA_REPO_TAG ${WD}/../gradlew dockerPush
+pushd ${WD}/..
+GCR_TAG=$DATA_REPO_TAG ./gradlew dockerPush
+popd
 
 kubectl --namespace data-repo set image deployments/api-deployment \
     "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:${DATA_REPO_TAG}"

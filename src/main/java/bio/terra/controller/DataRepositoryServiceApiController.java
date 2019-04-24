@@ -2,7 +2,10 @@ package bio.terra.controller;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
+import bio.terra.exception.BadRequestException;
+import bio.terra.exception.NotFoundException;
 import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.DatasetService;
@@ -21,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.servlet.http.HttpServletRequest;
@@ -94,6 +98,24 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
 
     private AuthenticatedUserRequest getAuthenticatedInfo() {
         return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> badRequestExceptionHandler(BadRequestException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> notFoundExceptionHandler(NotFoundException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.NOT_FOUND.value());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @Override

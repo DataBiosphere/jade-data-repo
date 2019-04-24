@@ -36,6 +36,7 @@ public class IngestFileMetadataStepComplete implements Step {
             .checksumCrc32c(checksumCrc32c)
             .size(size)
             .gspath(gspath)
+
             .flightId(context.getFlightId());
 
         fileDao.createFileComplete(fsObject);

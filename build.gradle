@@ -113,7 +113,7 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.6.3'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.5'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.25'                 // Logging facade
-    compile "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    compile "org.springframework.boot:spring-boot-starter-web"
     compile 'org.springframework:spring-jdbc:5.1.6.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-37bc074'
 
@@ -131,7 +131,7 @@ dependencies {
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
-    testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
+    testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.5'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
@@ -247,7 +247,7 @@ def getGitHash = { ->
 
 
 docker {
-    name "gcr.io/broad-jade-dev/${bootJar.baseName}:latest${System.env.GOOGLE_CLOUD_PROJECT}"
+    name "gcr.io/broad-jade-dev/${bootJar.baseName}:${System.env.GCR_TAG ?: "latest"}"
     copySpec.from(tasks.unpack.outputs).into("dependency")
     buildArgs(['DEPENDENCY': "dependency"])
 }

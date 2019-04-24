@@ -14,9 +14,25 @@ spec:
         app: data-repo
         component: data-repo-oidc-proxy
     spec:
+      serviceAccountName: jade-sa
+      volumes:
+      - name: server-cert
+        secret:
+          secretName: server-cert
+      - name: server-key
+        secret:
+          secretName: server-key
       containers:
       - name: oidc-proxy-container
-        image: broadinstitute/openidc-proxy:db_ldap_2_3_3
+        # Based on the latest security review this is the recommended version of the proxy to use.
+        image: broadinstitute/openidc-proxy:bernick_tcell
+        volumeMounts:
+        - name: server-cert
+          mountPath: /etc/ssl/certs/server.crt
+          subPath: server.crt
+        - name: server-key
+          mountPath: /etc/ssl/private/server.key
+          subPath: server.key
         env:
           - name: PROXY_URL
             value: 'http://ui-service.data-repo:80/'

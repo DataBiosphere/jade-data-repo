@@ -67,4 +67,12 @@ public class ApplicationConfiguration {
         this.userEmail = userEmail;
     }
 
+    @Value("${datarepo.dnsname")
+    private String datarepoDnsName;
+
+    @Bean("datarepoDnsName")
+    public String datarepoDnsName() {
+        return datarepoDnsName;
+    }
+
 }

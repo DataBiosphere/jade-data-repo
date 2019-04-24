@@ -36,7 +36,8 @@ public class IngestFileMetadataStepComplete implements Step {
             .checksumCrc32c(checksumCrc32c)
             .size(size)
             .gspath(gspath)
-            .creatingFlightId(context.getFlightId());
+
+            .flightId(context.getFlightId());
 
         fileDao.createFileComplete(fsObject);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
@@ -48,7 +49,7 @@ public class IngestFileMetadataStepComplete implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
         FSObject fsObject = fileDao.retrieveFile(objectId);
-        fsObject.creatingFlightId(context.getFlightId());
+        fsObject.flightId(context.getFlightId());
         fileDao.createFileCompleteUndo(fsObject);
         return StepResult.getStepResultSuccess();
     }

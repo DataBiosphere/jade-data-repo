@@ -2,9 +2,9 @@ package bio.terra.filesystem;
 
 import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.FileSystemObjectDependencyException;
-import bio.terra.dao.exception.FileSystemObjectNotFoundException;
-import bio.terra.dao.exception.InvalidFileSystemObjectTypeException;
+import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.metadata.FSObject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -28,7 +28,7 @@ public class FileDao {
 
     private static final String COLUMN_LIST =
         "object_id,study_id,object_type,created_date,path,gspath," +
-            "checksum_crc32c,checksum_md5,size,mime_type,description,creating_flight_id";
+            "checksum_crc32c,checksum_md5,size,mime_type,description,flight_id";
 
     @Autowired
     public FileDao(NamedParameterJdbcTemplate jdbcTemplate) {
@@ -97,8 +97,8 @@ public class FileDao {
         if (fileToComplete.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new CorruptMetadataException("Unexpected file system object type");
         }
-        if (!StringUtils.equals(fileToComplete.getCreatingFlightId(),
-            fsObject.getCreatingFlightId())) {
+        if (!StringUtils.equals(fileToComplete.getFlightId(),
+            fsObject.getFlightId())) {
             throw new CorruptMetadataException("Unexpected flight id on file");
         }
 
@@ -124,8 +124,8 @@ public class FileDao {
     public void createFileCompleteUndo(FSObject fsObject) {
         // Reset to mark the file not preset
         FSObject file = retrieveFileByIdNoThrow(fsObject.getObjectId());
-        if (!StringUtils.equals(file.getCreatingFlightId(),
-            fsObject.getCreatingFlightId())) {
+        if (!StringUtils.equals(file.getFlightId(),
+            fsObject.getFlightId())) {
             throw new CorruptMetadataException("Unexpected flight id on file");
         }
 
@@ -140,41 +140,135 @@ public class FileDao {
         jdbcTemplate.update(sql, params);
     }
 
-    public boolean deleteFile(UUID objectId) {
-        return deleteFileWorker(objectId, null);
-    }
-
-    public boolean deleteFileForUndo(UUID objectId, String flightId) {
-        return deleteFileWorker(objectId, flightId);
-    }
-
     @Transactional(propagation = Propagation.REQUIRED)
-    private boolean deleteFileWorker(UUID objectId, String flightId) {
+    public boolean deleteFileForCreateUndo(UUID objectId, String flightId) {
         FSObject fsObject = retrieveFileByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
         switch (fsObject.getObjectType()) {
-            case DIRECTORY:
-                throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
-
             case INGESTING_FILE:
                 // Only the creating flight can delete the non-present file
-                if (!StringUtils.equals(flightId, fsObject.getCreatingFlightId())) {
-                    throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a not-present file");
+                if (!StringUtils.equals(flightId, fsObject.getFlightId())) {
+                    throw new InvalidFileSystemObjectTypeException(
+                        "Invalid attempt to delete a file being ingested by a different flight");
                 }
                 break;
 
+            case DIRECTORY:
+            case DELETING_FILE:
             case FILE:
             default:
+                throw new CorruptMetadataException("Attempt to deleteFileForCreateUndo with bad file object type");
+        }
+
+        return deleteFileWorker(fsObject);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public boolean deleteFileStart(UUID objectId, String flightId) {
+        // Validate existence and state
+        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        if (fsObject == null) {
+            return false;
+        }
+        switch (fsObject.getObjectType()) {
+            case FILE:
                 break;
+            case DIRECTORY:
+                throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
+            case DELETING_FILE:
+                if (!StringUtils.equals(fsObject.getFlightId(), flightId)) {
+                    throw new InvalidFileSystemObjectTypeException("File is being deleted by someone else");
+                }
+                break;
+            case INGESTING_FILE:
+                throw new InvalidFileSystemObjectTypeException("Cannot delete a file that is being ingested");
+            default:
+                throw new CorruptMetadataException("Unknown file system object type");
         }
 
         if (hasDatasetReferences(objectId)) {
             throw new FileSystemObjectDependencyException(
                 "File is used by at least one dataset and cannot be deleted");
         }
-        if (deleteObject(objectId)) {
+
+        String sql = "UPDATE fs_object" +
+            " SET object_type = :object_type, flight_id = :flight_id" +
+            " WHERE object_id = :object_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("object_id", fsObject.getObjectId())
+            .addValue("object_type", FSObject.FSObjectType.DELETING_FILE.toLetter())
+            .addValue("flight_id", flightId);
+        jdbcTemplate.update(sql, params);
+        return true;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public boolean deleteFileComplete(UUID objectId, String flightId) {
+        // Validate existence and state
+        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        if (fsObject == null) {
+            return false;
+        }
+        switch (fsObject.getObjectType()) {
+            case FILE:
+                throw new CorruptMetadataException("File is not marked for deletion");
+            case DIRECTORY:
+                throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
+            case DELETING_FILE:
+                if (!StringUtils.equals(fsObject.getFlightId(), flightId)) {
+                    throw new InvalidFileSystemObjectTypeException("File is being deleted by someone else");
+                }
+                break;
+            case INGESTING_FILE:
+                throw new InvalidFileSystemObjectTypeException("Cannot delete a file that is being ingested");
+            default:
+                throw new CorruptMetadataException("Unknown file system object type");
+        }
+
+        return deleteFileWorker(fsObject);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void deleteFileStartUndo(UUID objectId, String flightId) {
+        // If we are the ones that put the file in DELETING_FILE state, then we revert it to FILE state.
+        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        if (fsObject == null) {
+            return;
+        }
+        switch (fsObject.getObjectType()) {
+            case DELETING_FILE:
+                if (!StringUtils.equals(fsObject.getFlightId(), flightId)) {
+                    return;
+                }
+                break;
+
+            case FILE:
+            case DIRECTORY:
+            case INGESTING_FILE:
+                return;
+            default:
+                throw new CorruptMetadataException("Unknown file system object type");
+        }
+
+        String sql = "UPDATE fs_object" +
+            " SET object_type = :object_type" +
+            " WHERE object_id = :object_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("object_id", fsObject.getObjectId())
+            .addValue("object_type", FSObject.FSObjectType.FILE.toLetter());
+        jdbcTemplate.update(sql, params);
+    }
+
+    // The worker assumes all object type checks have been done by the caller. If verifies that the file is
+    // not used in a dataset and performs the delete of the object and any empty parents.
+    private boolean deleteFileWorker(FSObject fsObject) {
+        if (hasDatasetReferences(fsObject.getObjectId())) {
+            throw new FileSystemObjectDependencyException(
+                "File is used by at least one dataset and cannot be deleted");
+        }
+        if (deleteObject(fsObject.getObjectId())) {
             deleteEmptyParents(fsObject.getPath());
         }
         return true;
@@ -269,7 +363,7 @@ public class FileDao {
                     .studyId(rs.getObject("study_id", UUID.class))
                     .objectType(FSObject.FSObjectType.fromLetter(rs.getString("object_type")))
                     .createdDate(rs.getTimestamp("created_date").toInstant())
-                    .creatingFlightId(rs.getString("creating_flight_id"))
+                    .flightId(rs.getString("flight_id"))
                     .path(rs.getString("path"))
                     .gspath(rs.getString("gspath"))
                     .checksumCrc32c(rs.getString("checksum_crc32c"))
@@ -294,15 +388,15 @@ public class FileDao {
     private UUID createObject(FSObject fsObject) {
         logger.debug("create " + fsObject.getObjectType() + ": " + fsObject.getPath());
         String sql = "INSERT INTO fs_object (" +
-            "study_id,object_type,creating_flight_id,path,gspath," +
+            "study_id,object_type,flight_id,path,gspath," +
             "checksum_crc32c,checksum_md5,size,mime_type,description)" +
             " VALUES (" +
-            ":study_id,:object_type,:creating_flight_id,:path,:gspath," +
+            ":study_id,:object_type,:flight_id,:path,:gspath," +
             ":checksum_crc32c,:checksum_md5,:size,:mime_type,:description)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("study_id", fsObject.getStudyId())
             .addValue("object_type", fsObject.getObjectType().toLetter())
-            .addValue("creating_flight_id", fsObject.getCreatingFlightId())
+            .addValue("flight_id", fsObject.getFlightId())
             .addValue("path", fsObject.getPath())
             .addValue("gspath", fsObject.getGspath())
             .addValue("checksum_crc32c", fsObject.getChecksumCrc32c())

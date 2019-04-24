@@ -91,7 +91,7 @@ public class DatasetOperationTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private BigQuery bigQuery;
-    @Autowired private String projectId;
+    @Autowired private String bigQueryProjectId;
     @Autowired private JsonLoader jsonLoader;
 
     @MockBean
@@ -511,7 +511,7 @@ public class DatasetOperationTest {
     private long queryForCount(String datasetName, String tableName) throws Exception {
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT COUNT(*) FROM `")
-                .append(projectId).append('.').append(datasetName).append('.').append(tableName).append('`');
+                .append(bigQueryProjectId).append('.').append(datasetName).append('.').append(tableName).append('`');
         String sql = builder.toString();
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
         TableResult result = bigQuery.query(queryConfig);

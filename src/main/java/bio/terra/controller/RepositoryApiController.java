@@ -2,7 +2,6 @@ package bio.terra.controller;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.exception.BadRequestException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -111,22 +110,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     private AuthenticatedUserRequest getAuthenticatedInfo() {
-        if (!getRequest().isPresent()) {
-            throw new BadRequestException("No valid request found.");
-        }
-        HttpServletRequest req = getRequest().get();
-        String email = req.getHeader("oidc_claim_email");
-        String token = req.getHeader("oidc_access_token");
-
-        if (token == null) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null)
-                token = authHeader.substring("Bearer ".length());
-        }
-        if (email == null) {
-            email = appConfig.getUserEmail();
-        }
-        return new AuthenticatedUserRequest(email, token);
+        return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
     }
 
     // -- study --
@@ -173,7 +157,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
                                                @PathVariable("fileid") String fileid) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+        String jobId = fileService.deleteFile(id, fileid);
+        return jobService.retrieveJob(jobId);
     }
 
     @Override
@@ -186,7 +171,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<FileModel> lookupfile(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
-        return new ResponseEntity<>(HttpStatus.NOT_IMPLEMENTED);
+        FileModel fileModel = fileService.lookupFile(id, fileid);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     // -- dataset --

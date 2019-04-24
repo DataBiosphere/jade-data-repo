@@ -1,8 +1,8 @@
 package bio.terra.filesystem;
 
 import bio.terra.category.Unit;
-import bio.terra.dao.exception.FileSystemObjectDependencyException;
-import bio.terra.dao.exception.InvalidFileSystemObjectTypeException;
+import bio.terra.dao.exception.CorruptMetadataException;
+import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.fixtures.Names;
 import bio.terra.metadata.FSObject;
 import org.junit.Test;
@@ -76,7 +76,7 @@ public class FileDaoTest {
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
-            .creatingFlightId(flightId);
+            .flightId(flightId);
 
         UUID fileAId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileAId);
@@ -111,7 +111,7 @@ public class FileDaoTest {
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
-            .creatingFlightId(flightId);
+            .flightId(flightId);
 
         UUID fileAId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileAId);
@@ -123,14 +123,14 @@ public class FileDaoTest {
 
         // Try to delete a directory with the deleteFile method; should fail
         try {
-            fileDao.deleteFileForUndo(secondObject.getObjectId(), flightId);
+            fileDao.deleteFileForCreateUndo(secondObject.getObjectId(), flightId);
             fail("Should not have successfully deleted a directory");
         } catch (Exception ex) {
-            assertTrue("Expected exception", ex instanceof InvalidFileSystemObjectTypeException);
-            assertThat("Check expected error", ex.getMessage(), containsString("directory"));
+            assertTrue("Expected exception", ex instanceof CorruptMetadataException);
+            assertThat("Check expected error", ex.getMessage(), containsString("bad file object type"));
         }
 
-        boolean existed = fileDao.deleteFileForUndo(fileAObject.getObjectId(), flightId);
+        boolean existed = fileDao.deleteFileForCreateUndo(fileAObject.getObjectId(), flightId);
         assertTrue("File existed", existed);
 
         // Now verify that the objects are gone.
@@ -148,7 +148,7 @@ public class FileDaoTest {
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
-            .creatingFlightId(flightId);
+            .flightId(flightId);
 
         UUID fileAId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileAId);
@@ -164,7 +164,7 @@ public class FileDaoTest {
 
         FSObject fileBObject = getCheckPath(fileBPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
-        boolean existed = fileDao.deleteFileForUndo(fileAObject.getObjectId(), flightId);
+        boolean existed = fileDao.deleteFileForCreateUndo(fileAObject.getObjectId(), flightId);
         assertTrue("File existed", existed);
 
         // Directories and file B should still all be in place
@@ -178,7 +178,7 @@ public class FileDaoTest {
         addDatasetDependency(fileBId);
 
         try {
-            fileDao.deleteFileForUndo(fileBId, flightId);
+            fileDao.deleteFileForCreateUndo(fileBId, flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
@@ -187,7 +187,7 @@ public class FileDaoTest {
 
         removeDatasetDependency(fileBId);
 
-        existed = fileDao.deleteFileForUndo(fileBObject.getObjectId(), flightId);
+        existed = fileDao.deleteFileForCreateUndo(fileBObject.getObjectId(), flightId);
         assertTrue("File B existed", existed);
     }
 

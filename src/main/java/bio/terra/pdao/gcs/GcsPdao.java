@@ -116,4 +116,14 @@ public class GcsPdao {
         return fsObject;
     }
 
+    public boolean deleteFile(Study study, String fileId) {
+        String dataBucket = gcsConfiguration.getBucket();
+        String filePath = study.getId().toString() + "/" + fileId;
+
+        Blob blob = storage.get(BlobId.of(dataBucket, filePath));
+        if (blob == null) {
+            return false;
+        }
+        return blob.delete();
+    }
 }

@@ -1,7 +1,6 @@
 package bio.terra.fixtures;
 
-import bio.terra.model.AccessMethod;
-import bio.terra.model.Checksum;
+import bio.terra.model.DRSChecksum;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
@@ -151,11 +150,14 @@ public class ConnectedOperations {
         checkDeleteResponse(response);
     }
 
-    public void deleteTestFile(String studyId, String fileId) {
-        // TODO: complete when delete is implemented
+    public void deleteTestFile(String studyId, String fileId) throws Exception {
+        MvcResult result = mvc.perform(
+            delete("/api/repository/v1/studies/" + studyId + "/files/" + fileId))
+                .andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        checkDeleteResponse(response);
     }
-
-
 
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
@@ -167,7 +169,7 @@ public class ConnectedOperations {
 
     public FileModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/file";
+        String url = "/api/repository/v1/studies/" + studyId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
@@ -180,23 +182,21 @@ public class ConnectedOperations {
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getMimeType(),
             CoreMatchers.equalTo(fileLoadModel.getMimeType()));
-        assertThat("access is gs", fileModel.getAccessMethods().get(0).getType(),
-            CoreMatchers.equalTo(AccessMethod.TypeEnum.GS));
 
-        for (Checksum checksum : fileModel.getChecksums()) {
+        for (DRSChecksum checksum : fileModel.getChecksums()) {
             assertTrue("valid checksum type",
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));
         }
 
-        addFile(studyId, fileModel.getId());
+        addFile(studyId, fileModel.getFileId());
 
         return fileModel;
     }
 
     public ErrorModel ingestFileFailure(String studyId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/file";
+        String url = "/api/repository/v1/studies/" + studyId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
@@ -266,16 +266,18 @@ public class ConnectedOperations {
 
     public void teardown() throws Exception {
         if (deleteOnTeardown) {
+            // Order is important: delete all the datasets first so we eliminate dependencies
+            // Then delete the files before the studies
             for (String datasetId : createdDatasetIds) {
                 deleteTestDataset(datasetId);
             }
 
-            for (String studyId : createdStudyIds) {
-                deleteTestStudy(studyId);
-            }
-
             for (String[] fileInfo : createdFileIds) {
                 deleteTestFile(fileInfo[0], fileInfo[1]);
+            }
+
+            for (String studyId : createdStudyIds) {
+                deleteTestStudy(studyId);
             }
         }
     }

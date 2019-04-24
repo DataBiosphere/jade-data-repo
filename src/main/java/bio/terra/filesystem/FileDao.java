@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -384,9 +385,52 @@ public class FileDao {
         }
     }
 
+    public List<FSObject> enumerateDirectory(FSObject dirObject) {
+        if (dirObject.getObjectType() != FSObject.FSObjectType.DIRECTORY) {
+            throw new InvalidFileSystemObjectTypeException("You can only enumerate directories");
+        }
 
+        List<UUID> objectIdList = enumerateDirectoryIds(dirObject);
+        List<FSObject> fsObjectList = new ArrayList<>();
+        for (UUID objectId : objectIdList) {
+            if (objectId != null) {
+                FSObject fsObject = retrieve(objectId);
+                fsObjectList.add(fsObject);
+            }
+        }
+        return fsObjectList;
+    }
 
+    private List<UUID> enumerateDirectoryIds(FSObject dirObject) {
+        // Build list of objects ids of object that are in the immediate directory
+        // Note that the resulting list has nulls for objects that are on this path
+        // but not in this directory.
+        try {
+            String sql = "SELECT object_id, path FROM fs_object WHERE study_id = :study_id AND path LIKE :pattern";
+            String pathPrefix = dirObject.getPath() + "/";
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("study_id", dirObject.getStudyId())
+                .addValue("pattern", pathPrefix + "%");
+            List<UUID> objectIdList = jdbcTemplate.query(
+                sql,
+                params,
+                (rs, rowNum) -> {
+                    String objectPath = rs.getString("path");
+                    String remaining = StringUtils.removeStart(objectPath, pathPrefix);
+                    if (StringUtils.contains(remaining, '/')) {
+                        // If the remaining string has a /, that means it is below this directory
+                        // and shouldn't be included.
+                        return null;
+                    }
+                    return rs.getObject("object_id", UUID.class);
+                });
+            return objectIdList;
+        } catch (EmptyResultDataAccessException ex) {
+            // it is OK if there are no matches
+        }
 
+        return Collections.emptyList();
+    }
 
     /**
      * validate ids from a FILEREF or DIRREF column. Used during data ingest

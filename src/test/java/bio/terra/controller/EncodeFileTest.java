@@ -4,6 +4,7 @@ import bio.terra.category.Connected;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoConfiguration;
+import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
@@ -56,6 +57,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 @RunWith(SpringRunner.class)
@@ -90,7 +92,7 @@ public class EncodeFileTest {
 
     @After
     public void teardown() throws Exception {
-        connectedOperations.teardown();
+//        connectedOperations.teardown();
     }
 
     @Test
@@ -150,7 +152,31 @@ public class EncodeFileTest {
         ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
         assertThat("correct dependency error message",
             errorModel.getMessage(), containsString("used by at least one dataset"));
+
     }
+
+/*
+    // HACK - left data around from before so I can test the bundle fetch coe
+    @Test
+    public void getBundle() throws Exception {
+        getOneBundle("v1_b3cf2b52-1ba0-4b98-b095-57448d5abb54_" +
+            "4d89fac6-7d1a-473a-8a76-088e07218a9e_ad50d752-7657-435c-83fb-f9ba0fbc08a2");
+
+        getOneBundle("v1_b3cf2b52-1ba0-4b98-b095-57448d5abb54_" +
+            "4d89fac6-7d1a-473a-8a76-088e07218a9e_95a3eace-1423-401a-968a-899691c01903");
+    }
+*/
+
+    private void getOneBundle(String bundleId) throws Exception {
+        String url = "/ga4gh/drs/v1/bundles/" + bundleId;
+        MvcResult result = mvc.perform(get(url)).andReturn();
+        MockHttpServletResponse response = result.getResponse();
+        if (response.getStatus() == 200) {
+            DRSBundle bundle = objectMapper.readValue(response.getContentAsString(), DRSBundle.class);
+            System.out.println(bundle);
+        }
+    }
+
 
     private String loadFiles(String studyId) throws Exception {
         // Open the source data from the bucket

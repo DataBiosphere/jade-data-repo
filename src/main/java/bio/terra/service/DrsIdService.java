@@ -21,15 +21,23 @@ public class DrsIdService {
     }
 
     public String toDrsUri(String studyId, String datasetId, String fsObjectId) {
+        return fromParts(studyId, datasetId, fsObjectId).toString();
+    }
+
+    public String toDrsObjectId(String studyId, String datasetId, String fsObjectId) {
+        return fromParts(studyId, datasetId, fsObjectId).toDrsObjectId();
+    }
+
+    private DrsId fromParts(String studyId, String datasetId, String fsObjectId) {
         return DrsId.builder()
             .dnsname(datarepoDnsName)
             .version("v1")
             .studyId(studyId)
             .datasetId(datasetId)
             .fsObjectId(fsObjectId)
-            .build()
-            .toString();
+            .build();
     }
+
 
     public DrsId fromUri(String drsuri) {
         URI uri = URI.create(drsuri);
@@ -43,8 +51,8 @@ public class DrsIdService {
         return parseObjectId(objectId).dnsname(uri.getAuthority()).build();
     }
 
-    public DrsId fromObjectId(String objectId) {
-        return parseObjectId(objectId).build();
+    public DrsId fromObjectId(String drsObjectId) {
+        return parseObjectId(drsObjectId).build();
     }
 
     private DrsId.Builder parseObjectId(String objectId) {

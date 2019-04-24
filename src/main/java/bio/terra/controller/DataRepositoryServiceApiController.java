@@ -94,7 +94,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
             .version("0.0.1")
             .title("Jade")
             .description("Jade Data Repository - a Broad/Verily open source project")
-            .contact("jhert@broadinstitute.org")
+            .contact("cbernard@broadinstitute.org")
             .license("Apache 2.0");
         return new ResponseEntity<>(info, HttpStatus.OK);
     }

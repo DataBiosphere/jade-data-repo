@@ -7,10 +7,16 @@ spec:
   replicas: 1
   selector:
     matchLabels:
+      service: oidc
+      environment: integration
+      project: datarepo
       component: data-repo-oidc-proxy
   template:
     metadata:
       labels:
+        service: oidc
+        environment: integration
+        project: datarepo
         app: data-repo
         component: data-repo-oidc-proxy
     spec:

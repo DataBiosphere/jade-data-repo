@@ -19,6 +19,14 @@ spec:
       - name: oidc-proxy-container
         # Based on the latest security review this is the recommended version of the proxy to use.
         image: broadinstitute/openidc-proxy:bernick_tcell
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          timeoutSeconds: 10
+          failureThreshold: 3
         env:
           - name: PROXY_URL
             value: 'http://ui-service.data-repo:80/'

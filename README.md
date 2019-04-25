@@ -10,34 +10,25 @@ In the google cloud console, within your personal project, go to Kubernetes Engi
 Once your cluster has finished creating, click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
 
 
-## Create a service account
+## Deploying to kubernetes
+### Deploying in your own test account (not dev, integration, etc)
+### Create a service account
 In the google cloud console, go to IAM & Admin -> Service accounts. Click create service account. Choose a name and add a description (this service account will be used to manage big query and postgres data for the datarepo).
 
 Give your service account access to dev GCR:
 
     gsutil iam ch serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
 
-Grant your service account the storage and bigquery admin roles:
-
-    gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/bigquery.admin
-    gcloud projects add-iam-policy-binding ${PROJECT} --member serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com --role roles/storage.admin
-
-## Deploying to kubernetes
-### Deploying in your own test account (not dev, integration, etc)
 #### Environment variables
     GOOGLE_CLOUD_PROJECT
-    GOOGLE_APPLICATION_CREDENTIALS
     ENVIRONMENT (local, dev)
 
-Add the service account key for your project to vault:
-
-    vault write secret/dsde/firecloud/local/datarepo/sa-key${PROJECT}.json @<localfilename>.json
 
 Deploy:
 
     ./ops/deploy.sh
 
-After you deploy, go to Kubernetes in the google cloud console, select services, and then add the IP address of the oidc-proxy-service to your /etc/hosts file as `jade.datarepo-dev.broadinstitute.org`
+After you deploy, go to Kubernetes in the google cloud console, select services, and then add the IP address of the oidc-proxy-service to your /etc/hosts file as `local.datarepo-dev.broadinstitute.org`
 
 ## Build and Run Locally
 
@@ -86,12 +77,6 @@ and select `Build project automatically`
 
 The swagger page is:
 https://local.broadinstitue.org:8080
-
-### MiniKube (local kubernetes w/ proxy)
-
-You must have authenticated with google for application-default credentials: ` gcloud auth application-default login` and login with your broad account - not your dev account. This will save credentials locally. 
-
-You must also set up the google project you want to use. Do not use dev for your own development. Dev will be used for system tests. 
 
 ## Swagger Codegen
 

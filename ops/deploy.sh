@@ -88,9 +88,9 @@ vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # set the tsl certificate
-vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/server.crt"
-vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/server.key"
-kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/server.key --from-file=${SCRATCH}/server.crt
+vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
+vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/tls.key"
+kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
 
 
 # create or update postgres pod + service
@@ -113,7 +113,7 @@ kubectl apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
 pushd ${WD}/..
-GCR_TAG=$DATA_REPO_TAG ./gradlew dockerPush
+GCR_TAG=$DATA_REPO_TAG .x/gradlew dockerPush
 popd
 
 kubectl --namespace data-repo set image deployments/api-deployment \

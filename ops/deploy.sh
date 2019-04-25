@@ -84,7 +84,7 @@ echo 'waiting 5 sec for secrets to be ready'
 sleep 5
 
 # update the service account key
-vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key${GOOGLE_CLOUD_PROJECT}.json" -format=json | \
+vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key.json" -format=json | \
     jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
@@ -113,7 +113,7 @@ cat "${WD}/../db/create-data-repo-db" | \
 kubectl apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
-GCR_TAG=$DATA_REPO_TAG ${WD}/../gradlew dockerPush
+GCR_TAG=$DATA_REPO_TAG ${WD}/../gradlew clean dockerPush
 
 kubectl --namespace data-repo set image deployments/api-deployment \
     "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:${DATA_REPO_TAG}"

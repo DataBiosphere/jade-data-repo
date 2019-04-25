@@ -8,13 +8,13 @@ metadata:
 spec:
   tls:
     - hosts:
-      - datarepo.datarepo-integration.broadinstitute.org
-      secretName: wildwildcard.datarepo.broadinstitute.org
+      - jade.datarepo-integration.broadinstitute.org
+      secretName: wildcard.datarepo.broadinstitute.org
   backend:
     serviceName: oidc-proxy-service
     servicePort: http
   rules:
-  - host: "datarepo.datarepo-integration.broadinstitute.org"
+  - host: "jade.datarepo-integration.broadinstitute.org"
     http:
       paths:
       - backend:

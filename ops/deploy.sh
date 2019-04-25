@@ -32,6 +32,12 @@ command -v jq >/dev/null 2>&1 || {
     brew install jq;
 }
 
+# Install node
+#command -v node >/dev/null 2>&1 || {
+#    echo "node not found, installing";
+#    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash && source ~/.bash_profile && nvm install 10.15.1 && nvm use 10.15.1;
+#}
+
 # Install kubectl
 command -v kubectl >/dev/null 2>&1 || {
     echo "kubectl not found, installing";

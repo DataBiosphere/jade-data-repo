@@ -113,7 +113,7 @@ kubectl apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
 pushd ${WD}/..
-GCR_TAG=$DATA_REPO_TAG .x/gradlew dockerPush
+GCR_TAG=$DATA_REPO_TAG ./gradlew dockerPush
 popd
 
 kubectl --namespace data-repo set image deployments/api-deployment \

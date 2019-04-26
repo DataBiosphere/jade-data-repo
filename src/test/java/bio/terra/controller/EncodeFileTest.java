@@ -92,9 +92,11 @@ public class EncodeFileTest {
 
     @After
     public void teardown() throws Exception {
-//        connectedOperations.teardown();
+        connectedOperations.teardown();
     }
 
+    // NOTES ABOUT THIS TEST: this test requires create access to the jade-testdata bucket in order to
+    // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
@@ -116,8 +118,6 @@ public class EncodeFileTest {
 
         IngestResponseModel ingestResponse =
             connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
-        // TODO: remove
-        System.out.println(ingestResponse);
 
         // Load donor success
         ingestRequest
@@ -132,8 +132,6 @@ public class EncodeFileTest {
         response = connectedOperations.validateJobModelAndWait(result);
 
         ingestResponse = connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
-        // TODO: remove
-        System.out.println(ingestResponse);
 
         // At this point, we have files and tabular data. Let's make a dataset!
 
@@ -155,18 +153,7 @@ public class EncodeFileTest {
 
     }
 
-/*
-    // HACK - left data around from before so I can test the bundle fetch coe
-    @Test
-    public void getBundle() throws Exception {
-        getOneBundle("v1_b3cf2b52-1ba0-4b98-b095-57448d5abb54_" +
-            "4d89fac6-7d1a-473a-8a76-088e07218a9e_ad50d752-7657-435c-83fb-f9ba0fbc08a2");
-
-        getOneBundle("v1_b3cf2b52-1ba0-4b98-b095-57448d5abb54_" +
-            "4d89fac6-7d1a-473a-8a76-088e07218a9e_95a3eace-1423-401a-968a-899691c01903");
-    }
-*/
-
+    // TODO: Bundle testing - complete when we have a method for getting a bundle id
     private void getOneBundle(String bundleId) throws Exception {
         String url = "/ga4gh/drs/v1/bundles/" + bundleId;
         MvcResult result = mvc.perform(get(url)).andReturn();
@@ -176,7 +163,6 @@ public class EncodeFileTest {
             System.out.println(bundle);
         }
     }
-
 
     private String loadFiles(String studyId) throws Exception {
         // Open the source data from the bucket

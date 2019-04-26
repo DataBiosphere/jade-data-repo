@@ -75,6 +75,9 @@ kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-rep
 # create a data-repo namespace to put everything in
 kubectl apply -f "${WD}/k8s/namespace.yaml"
 
+#configMap site.conf
+kubectl create --namespace data-repo configmap siteconf --from-file=site.conf=site.conf
+
 # create the pod security policies and service account
 kubectl apply --namespace data-repo -f "${WD}/k8s/psp/service-account.yaml"
 

@@ -15,8 +15,3 @@ spec:
     servicePort: http
   rules:
   - host: "jade.datarepo-integration.broadinstitute.org"
-    http:
-      paths:
-      - backend:
-          serviceName: oidc-proxy-service
-          servicePort: http

@@ -29,9 +29,17 @@ spec:
           httpGet:
             path: /status
             port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 80
           initialDelaySeconds: 30
-          periodSeconds: 20
-          timeoutSeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
           failureThreshold: 3
         env:
           - name: PROXY_URL
@@ -45,10 +53,18 @@ spec:
           - name: LOG_LEVEL
             value: 'debug'
           - name: SERVER_NAME
-            value: 'jade.datarepo-dev.broadinstitute.org'
+            value: 'jade.datarepo-integration.broadinstitute.org'
           - name: REMOTE_USER_CLAIM
             value: 'sub'
           - name: ENABLE_STACKDRIVER
             value: 'yes'
           - name: FILTER2
             value: 'AddOutputFilterByType DEFLATE application/json text/plain text/html application/javascript application/x-javascript'
+        volumeMounts:
+          - mountPath: /etc/apache2/sites-available/site.conf
+            name: config
+            subPath: site.conf
+      volumes:
+        - name: "config"
+          configMap:
+            name: "siteconf"

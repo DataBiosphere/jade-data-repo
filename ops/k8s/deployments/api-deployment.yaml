@@ -14,6 +14,7 @@ spec:
         app: data-repo
         component: data-repo-api
     spec:
+      serviceAccountName: jade-sa
       volumes:
       - name: google-cloud-key
         secret:
@@ -45,6 +46,11 @@ spec:
             secretKeyRef:
               name: api-secrets
               key: drop-all-on-start
+        - name: SAM_STEWARDS_GROUP_EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: sam-stewards-group-email
         - name: DB_DATAREPO_URI
           valueFrom:
             secretKeyRef:

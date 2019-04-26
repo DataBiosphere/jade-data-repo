@@ -1,6 +1,7 @@
 package bio.terra.pdao.gcs;
 
 
+import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -19,6 +20,8 @@ public class GcsConfiguration {
 
     private String bucket;
     private String region;
+    private int connectTimeoutSeconds;
+    private int readTimeoutSeconds;
 
     public String getBucket() {
         return bucket;
@@ -36,9 +39,35 @@ public class GcsConfiguration {
         this.region = region;
     }
 
+    public int getConnectTimeoutSeconds() {
+        return connectTimeoutSeconds;
+    }
+
+    public void setConnectTimeoutSeconds(int connectTimeoutSeconds) {
+        this.connectTimeoutSeconds = connectTimeoutSeconds;
+    }
+
+    public int getReadTimeoutSeconds() {
+        return readTimeoutSeconds;
+    }
+
+    public void setReadTimeoutSeconds(int readTimeoutSeconds) {
+        this.readTimeoutSeconds = readTimeoutSeconds;
+    }
+
     @Bean
     public Storage storage() {
-        return StorageOptions.getDefaultInstance().getService();
+        // NOTE: it is also possible to set retry options here with RetrySettings.Builder to make
+        // settings and the .setRetryOptions() setter below. For now, just extend the timeouts
+        HttpTransportOptions transportOptions = StorageOptions.getDefaultHttpTransportOptions();
+        transportOptions = transportOptions.toBuilder()
+            .setConnectTimeout(connectTimeoutSeconds * 1000)
+            .setReadTimeout(readTimeoutSeconds * 1000)
+            .build();
+        StorageOptions storageOptions = StorageOptions.newBuilder()
+            .setTransportOptions(transportOptions)
+            .build();
+        return storageOptions.getService();
     }
 
 }

@@ -118,6 +118,9 @@ public class EncodeFileTest {
 
         IngestResponseModel ingestResponse =
             connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
+        assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
+
+        // TODO: Delete the scratch file from the ingest
 
         // Load donor success
         ingestRequest
@@ -132,6 +135,7 @@ public class EncodeFileTest {
         response = connectedOperations.validateJobModelAndWait(result);
 
         ingestResponse = connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
+        assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
 
         // At this point, we have files and tabular data. Let's make a dataset!
 
@@ -150,7 +154,6 @@ public class EncodeFileTest {
         ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
         assertThat("correct dependency error message",
             errorModel.getMessage(), containsString("used by at least one dataset"));
-
     }
 
     // TODO: Bundle testing - complete when we have a method for getting a bundle id

@@ -2,8 +2,11 @@ package bio.terra.controller;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
+import bio.terra.exception.BadRequestException;
+import bio.terra.exception.NotFoundException;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSBundle;
+import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.FileService;
@@ -14,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import javax.servlet.http.HttpServletRequest;
@@ -65,25 +69,38 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
     }
 
+    @ExceptionHandler
+    public ResponseEntity<DRSError> badRequestExceptionHandler(BadRequestException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> notFoundExceptionHandler(NotFoundException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.NOT_FOUND.value());
+        return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler
+    public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @Override
     public ResponseEntity<DRSAccessURL> getAccessURL(@PathVariable("object_id") String objectId,
                                                      @PathVariable("access_id") String accessId) {
-        // TODO: this has to return DRSError - not an ErrorModel
-        // Have to figure out how to do that
-
         // We never give out access ids, so by definition, the input is invalid.
         throw new ValidationException("Invalid access_id: '" + accessId + "'");
     }
 
     @Override
     public ResponseEntity<DRSBundle> getBundle(@PathVariable("bundle_id") String bundleId) {
-        // TODO: this has to return DRSError on error - not an ErrorModel
         return new ResponseEntity<>(fileService.lookupBundleByDrsId(bundleId), HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<DRSObject> getObject(@PathVariable("object_id") String objectId) {
-        // TODO: this has to return DRSError on error - not an ErrorModel
         // The incoming object id is a DRS object id, not a file id.
         return new ResponseEntity<>(fileService.lookupObjectByDrsId(objectId), HttpStatus.OK);
     }

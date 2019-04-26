@@ -1531,7 +1531,6 @@ definitions:
       checksums:
         type: array
         description: |-
-        description: |-
           The checksum of the Data Bundle. At least one checksum must be provided.
 
           The Data Bundle checksum is computed over a sorted concatenation of all
@@ -1677,6 +1676,7 @@ definitions:
         type: string
         description: >-
           An arbitrary string to be passed to the `/access` path to get an `AccessURL`.
+
           This must be unique per object.
           Note that at least one of `access_url` and `access_id` must be provided.
       region:

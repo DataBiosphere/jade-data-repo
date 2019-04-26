@@ -74,7 +74,16 @@ public class GcsPdao {
         String targetPath = study.getId().toString() + "/" + fsObject.getObjectId();
 
         try {
+            // The documentation is vague whether or not it is important to copy by chunk. One set of
+            // examples does it and another doesn't.
+            //
+            // I have been seeing timeouts and I think they are due to particularly large files,
+            // so I changed exported the timeouts to application.properties to allow for tuning
+            // and I am changing this to copy chunks.
             CopyWriter writer = sourceBlob.copyTo(BlobId.of(gcsConfiguration.getBucket(), targetPath));
+            while (!writer.isDone()) {
+                writer.copyChunk();
+            }
             Blob targetBlob = writer.getResult();
 
             // MD5 is computed per-component. So if there are multiple components, the MD5 here is

@@ -11,9 +11,10 @@ import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
+import bio.terra.pdao.exception.PdaoException;
+import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -48,6 +49,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
@@ -188,7 +190,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
+    public BigQueryContainerInfo createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
         String datasetName = dataset.getName();
         try {
             // Idempotency: delete possibly partial create.
@@ -196,7 +198,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 deleteContainer(datasetName);
             }
 
-            createContainer(datasetName, dataset.getDescription());
+            // for the dataset, set the authorized view info
+            DatasetId bqDatasetId = createContainer(datasetName, dataset.getDescription());
+            BigQueryContainerInfo bqInfo = new BigQueryContainerInfo().bqDatasetId(bqDatasetId.getDataset());
 
             // create the row id table
             createRowIdTable(datasetName);
@@ -215,10 +219,18 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
 
-            createViews(studyDatasetName, datasetName, dataset);
+            // create the views
+            List<Acl> acls = createViews(studyDatasetName, datasetName, dataset);
+            bqInfo.addViewAcls(studyDatasetName, acls);
+            return bqInfo;
+
         } catch (Exception ex) {
             throw new PdaoException("createDataset failed", ex);
         }
+    }
+
+    public void updateDataset(DatasetInfo info) {
+        bigQuery.update(info);
     }
 
     @Override
@@ -493,11 +505,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private void createContainer(String name, String description) {
+    private DatasetId createContainer(String name, String description) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
             .setDescription(description)
             .build();
-        bigQuery.create(datasetInfo);
+        Dataset bqContainer = bigQuery.create(datasetInfo);
+        return bqContainer.getDatasetId();
     }
 
     private boolean deleteContainer(String name) {
@@ -745,37 +758,39 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private void createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
-        for (Table table : dataset.getTables()) {
-            StringBuilder builder = new StringBuilder();
+    private List<Acl> createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
+        return dataset.getTables().stream().map(table -> {
+                StringBuilder builder = new StringBuilder();
 
-            /*
-            Building this SQL:
-                SELECT <column list from dataset table> FROM
-                  (SELECT <column list mapping study to dataset columns>
-                   FROM <study table> S, datarepo_row_ids R
-                   WHERE S.datarepo_row_id = R.datarepo_row_id
-                     AND R.datarepo_table_id = '<study table id>')
-             */
+                /*
+                Building this SQL:
+                    SELECT <column list from dataset table> FROM
+                      (SELECT <column list mapping study to dataset columns>
+                       FROM <study table> S, datarepo_row_ids R
+                       WHERE S.datarepo_row_id = R.datarepo_row_id
+                         AND R.datarepo_table_id = '<study table id>')
+                 */
 
-            builder.append("SELECT ");
-            buildColumnList(builder, table, false);
-            builder.append(" FROM ");
+                builder.append("SELECT ");
+                buildColumnList(builder, table, false);
+                builder.append(" FROM ");
 
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
             DatasetSource source = dataset.getDatasetSources().get(0);
             buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
 
-            // create the view
-            String tableName = table.getName();
-            String sql = builder.toString();
+                // create the view
+                String tableName = table.getName();
+                String sql = builder.toString();
 
-            logger.debug("Creating view" + datasetName + "." + tableName + " as " + sql);
-            TableId tableId = TableId.of(datasetName, tableName);
-            TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
-            bigQuery.create(tableInfo);
-        }
+                logger.debug("Creating view" + datasetName + "." + tableName + " as " + sql);
+                TableId tableId = TableId.of(datasetName, tableName);
+                TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
+                com.google.cloud.bigquery.Table bqTable = bigQuery.create(tableInfo);
+                return Acl.of(new Acl.View(tableId));
+            }
+        ).collect(Collectors.toList());
     }
 
     private void buildColumnList(StringBuilder builder, Table table, boolean addRowIdColumn) {

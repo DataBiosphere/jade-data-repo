@@ -4,6 +4,7 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
+import bio.terra.pdao.bigquery.BigQueryContainerInfo;
 
 import java.util.List;
 
@@ -77,11 +78,10 @@ public interface PrimaryDataAccess {
     /**
      * Create the container, tables and views for a dataset.
      * BigQuery: container is a BigQuery dataset
-     *
-     * @param dataset
+     *  @param dataset
      * @param rowIds - row ids for the root table
      */
-    void createDataset(Dataset dataset, List<String> rowIds);
+    BigQueryContainerInfo createDataset(Dataset dataset, List<String> rowIds);
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted

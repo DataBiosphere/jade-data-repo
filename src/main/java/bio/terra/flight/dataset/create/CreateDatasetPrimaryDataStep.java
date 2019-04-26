@@ -10,6 +10,7 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.pdao.bigquery.BigQueryContainerInfo;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
@@ -69,6 +70,9 @@ public class CreateDatasetPrimaryDataStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
 
+
+        BigQueryContainerInfo bqInfo = bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
+        context.getWorkingMap().put(JobMapKeys.BQ_DATASET_INFO.getKeyName(), bqInfo);
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:

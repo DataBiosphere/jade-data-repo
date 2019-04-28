@@ -1,9 +1,9 @@
 package bio.terra.integration;
 
+import bio.terra.SwaggerDocumentationConfig;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -17,6 +17,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLContext;
@@ -32,15 +34,22 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 public class DataRepoClient {
-    @Autowired
     private DataRepoConfiguration dataRepoConfiguration;
+    private SwaggerDocumentationConfig swaggerConfig;
 
     private RestTemplate restTemplate;
     private ObjectMapper objectMapper;
     private HttpHeaders headers;
+    private String stewardAccessToken;
 
-    public DataRepoClient() throws Exception {
-        // configure the http client to work with ssl but not verify certs since this is for testing
+    @Autowired
+    public DataRepoClient(
+        DataRepoConfiguration dataRepoConfiguration,
+        SwaggerDocumentationConfig swaggerConfig
+    ) throws Exception {
+        this.dataRepoConfiguration = dataRepoConfiguration;
+        this.swaggerConfig = swaggerConfig;
+        // configure the http client to work with ssl but not verify certs
         TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
         SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
                 .loadTrustMaterial(null, acceptingTrustStrategy)
@@ -54,8 +63,9 @@ public class DataRepoClient {
         restTemplate = new RestTemplate(requestFactory);
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
         objectMapper = new ObjectMapper();
-
+        stewardAccessToken = refresh(dataRepoConfiguration.getStewardRefreshToken());
         headers = new HttpHeaders();
+        headers.setBearerAuth(stewardAccessToken);
         headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
     }
@@ -143,5 +153,22 @@ public class DataRepoClient {
             dataRepoConfiguration.getServer(),
             dataRepoConfiguration.getPort(),
             path);
+    }
+
+    private String refresh(String refreshToken) {
+        String url = "https://www.googleapis.com/oauth2/v4/token";
+        MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+        map.add("refresh_token", refreshToken);
+        map.add("client_id", swaggerConfig.getClientId());
+        map.add("client_secret", swaggerConfig.getClientSecret());
+        map.add("grant_type", "refresh_token");
+
+        headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(map, headers);
+
+        ResponseEntity<RefreshTokenResponse> response = restTemplate.postForEntity(url, entity,
+            RefreshTokenResponse.class);
+        return response.getBody().getAccessToken();
     }
 }

@@ -43,3 +43,6 @@ src/generated/
 
 # Mac directory metadata
 .DS_Store
+
+# .env file for EnvFile
+local.env

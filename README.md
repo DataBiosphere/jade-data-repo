@@ -58,6 +58,14 @@ to github. If you are standing this up on your own, you will need to set the fol
     OAUTH_CLIENT_ID
     OAUTH_CLIENT_SECRET
 
+To make it easier to set these, there is a local.env.ctmpl file that you can render with Vault secrets:
+
+    consul-template -template "local.env.ctmpl:local.env" -once
+
+You can then use [EnvFile](https://plugins.jetbrains.com/plugin/7861-envfile) with IntelliJ to updated your Run/Debug
+Configurations to use this by going to the EnvFile tab and clicking the '+' icon, then selecting local.env in the
+project root level directory.
+
 ### Run unit tests
 
 If you are making code changes, run:

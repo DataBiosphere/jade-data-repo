@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -12,6 +13,15 @@ public class DataRepoConfiguration {
     private String server;
     private String protocol;
     private String ingestbucket;
+    private String stewardRefreshToken;
+
+    public String getStewardRefreshToken() {
+        return stewardRefreshToken;
+    }
+
+    public void setStewardRefreshToken(String stewardRefreshToken) {
+        this.stewardRefreshToken = stewardRefreshToken;
+    }
 
     public String getPort() {
         return port;

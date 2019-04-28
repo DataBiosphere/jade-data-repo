@@ -100,7 +100,8 @@ public class EncodeFileTest {
     @Test
     public void encodeFileTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String gsPath = loadFiles(studySummary.getId());
+        String targetPath = loadFiles(studySummary.getId());
+        String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -120,7 +121,11 @@ public class EncodeFileTest {
             connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
         assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
 
-        // TODO: Delete the scratch file from the ingest
+        // Delete the scratch blob
+        Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
+        if (scratchBlob != null) {
+            scratchBlob.delete();
+        }
 
         // Load donor success
         ingestRequest
@@ -213,7 +218,7 @@ public class EncodeFileTest {
             }
         }
 
-        return "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
+        return targetPath;
     }
 
     private String getFileRefIdFromDataset(String datasetName) {

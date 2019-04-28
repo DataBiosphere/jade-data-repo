@@ -48,7 +48,9 @@ public class IngestFilePrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // TODO: delete the GSPATH
+        FlightMap workingMap = context.getWorkingMap();
+        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+        gcsPdao.deleteFile(study, objectId);
         return StepResult.getStepResultSuccess();
     }
 

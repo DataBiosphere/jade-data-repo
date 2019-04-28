@@ -5,6 +5,7 @@ set -e
 # Prerequisites:
 # - Docker (https://www.docker.com/products/docker-desktop)
 # - Homebrew (https://brew.sh/)
+# - Node 10.5 (https://nodejs.org)
 
 # check to make sure vault and cloud env vars are set correctly
 # these commands below check to make sure that an environment variable is set to a non-empty thing
@@ -48,8 +49,8 @@ command -v kubectl >/dev/null 2>&1 || {
 KUBECTL_VERSION=$(kubectl version --output=json --client=True | jq -r .clientVersion.gitVersion)
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 if version_gt "v1.14.0" $KUBECTL_VERSION; then
-    echo "kubectl needs to be at least version 1.14.0, trying to update"
-    brew upgrade kubernetes-cli
+    echo "kubectl needs to be at least version 1.14.0, please upgrade it using brew"
+    exit 1
 fi
 
 # Install consul-template (note this didn't work with 0.20.0, I kept getting 403 errors)
@@ -75,13 +76,10 @@ kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-rep
 # create a data-repo namespace to put everything in
 kubectl apply -f "${WD}/k8s/namespace.yaml"
 
-#configMap site.conf
-kubectl create --namespace data-repo configmap siteconf --from-file=site.conf=site.conf
+# put site.conf in the configMap
+kubectl create --namespace data-repo configmap siteconf --from-file=${WD}/site.conf
 
-# create the pod security policies and service account
-kubectl apply --namespace data-repo -f "${WD}/k8s/psp/service-account.yaml"
-
-# TODO: I have a hunch that this only works on terraformed CIS k8s clusters, leaving commented out for now
+# create service account and pod security policy
 kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
 
 # render secrets, create or update on kubernetes
@@ -101,16 +99,21 @@ vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > 
 vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/tls.key"
 kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
 
-
-# create or update postgres pod + service
+# create pods + services
 kubectl apply -f "${WD}/k8s/services"
-kubectl apply -f "${WD}/k8s/pods/psql-pod.yaml"
+kubectl apply -f "${WD}/k8s/pods"
+
+# render environment-specific oidc deployment and ingress configs then create them
+consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
+consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
+kubectl apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl apply -f "${SCRATCH}/oidc-ingress.yaml"
 
 # wait for the db to be ready so that we can run commands against it
 echo 'waiting 10 sec for database to be up'
 sleep 10
 # TODO: add readiness probe to postgres pod def to check for port 5432 to be available
-kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
+#kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
 
 # create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
 cat "${WD}/../db/create-data-repo-db" | \

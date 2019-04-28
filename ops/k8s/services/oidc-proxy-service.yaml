@@ -16,5 +16,4 @@ spec:
   type: NodePort
   selector:
     service: oidc
-    environment: integration
     project: datarepo

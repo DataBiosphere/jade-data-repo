@@ -1,3 +1,5 @@
+{{ with $environment := env "ENVIRONMENT" }}
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -8,14 +10,12 @@ spec:
   selector:
     matchLabels:
       service: oidc
-      environment: integration
       project: datarepo
       component: data-repo-oidc-proxy
   template:
     metadata:
       labels:
         service: oidc
-        environment: integration
         project: datarepo
         app: data-repo
         component: data-repo-oidc-proxy
@@ -48,12 +48,10 @@ spec:
             value: 'http://api-service.data-repo:8080/api'
           - name: PROXY_URL3
             value: 'http://api-service.data-repo:8080/register'
-          - name: CALLBACK_URI
-            value: 'https://jade.datarepo-dev.broadinstitute.org/oauth2callback'
           - name: LOG_LEVEL
             value: 'debug'
           - name: SERVER_NAME
-            value: 'jade.datarepo-integration.broadinstitute.org'
+            value: {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
           - name: REMOTE_USER_CLAIM
             value: 'sub'
           - name: ENABLE_STACKDRIVER
@@ -68,3 +66,5 @@ spec:
         - name: "config"
           configMap:
             name: "siteconf"
+
+{{end}}

@@ -1,3 +1,5 @@
+{{ with $environment := env "ENVIRONMENT" }}
+
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -8,10 +10,12 @@ metadata:
 spec:
   tls:
     - hosts:
-      - jade.datarepo-integration.broadinstitute.org
+      - {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
       secretName: wildcard.datarepo.broadinstitute.org
   backend:
     serviceName: oidc-proxy-service
     servicePort: http
   rules:
-  - host: "jade.datarepo-integration.broadinstitute.org"
+  - host: {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
+
+{{ end }}

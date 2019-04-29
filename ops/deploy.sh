@@ -5,6 +5,7 @@ set -e
 # Prerequisites:
 # - Docker (https://www.docker.com/products/docker-desktop)
 # - Homebrew (https://brew.sh/)
+# - Node 10.5 (https://nodejs.org)
 
 # check to make sure vault and cloud env vars are set correctly
 # these commands below check to make sure that an environment variable is set to a non-empty thing
@@ -32,6 +33,12 @@ command -v jq >/dev/null 2>&1 || {
     brew install jq;
 }
 
+# Install node
+#command -v node >/dev/null 2>&1 || {
+#    echo "node not found, installing";
+#    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash && source ~/.bash_profile && nvm install 10.15.1 && nvm use 10.15.1;
+#}
+
 # Install kubectl
 command -v kubectl >/dev/null 2>&1 || {
     echo "kubectl not found, installing";
@@ -42,8 +49,8 @@ command -v kubectl >/dev/null 2>&1 || {
 KUBECTL_VERSION=$(kubectl version --output=json --client=True | jq -r .clientVersion.gitVersion)
 function version_gt() { test "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1"; }
 if version_gt "v1.14.0" $KUBECTL_VERSION; then
-    echo "kubectl needs to be at least version 1.14.0, trying to update"
-    brew upgrade kubernetes-cli
+    echo "kubectl needs to be at least version 1.14.0, please upgrade it using brew"
+    exit 1
 fi
 
 # Install consul-template (note this didn't work with 0.20.0, I kept getting 403 errors)
@@ -69,11 +76,11 @@ kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-rep
 # create a data-repo namespace to put everything in
 kubectl apply -f "${WD}/k8s/namespace.yaml"
 
-# create the pod security policies and service account
-kubectl apply --namespace data-repo -f "${WD}/k8s/psp/service-account.yaml"
+# put site.conf in the configMap
+kubectl create --namespace data-repo configmap siteconf --from-file=${WD}/site.conf
 
-# TODO: I have a hunch that this only works on terraformed CIS k8s clusters, leaving commented out for now
-#kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
+# create service account and pod security policy
+kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
 
 # render secrets, create or update on kubernetes
 consul-template -template "${WD}/k8s/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
@@ -84,25 +91,29 @@ echo 'waiting 5 sec for secrets to be ready'
 sleep 5
 
 # update the service account key
-vault read "secret/dsde/firecloud/${ENVIRONMENT}/datarepo/sa-key.json" -format=json | \
-    jq .data > "${SCRATCH}/sa-key.json"
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # set the tsl certificate
-vault read -field=value secret/dsde/datarepo/dev/common/server.crt > "${SCRATCH}/server.crt"
-vault read -field=value secret/dsde/datarepo/dev/common/server.key > "${SCRATCH}/server.key"
-kubectl --namespace=data-repo create secret generic server-key --from-file=${SCRATCH}/server.key
-kubectl --namespace=data-repo create secret generic server-cert --from-file=${SCRATCH}/server.crt
+vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
+vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/tls.key"
+kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
 
-# create or update postgres pod + service
+# create pods + services
 kubectl apply -f "${WD}/k8s/services"
-kubectl apply -f "${WD}/k8s/pods/psql-pod.yaml"
+kubectl apply -f "${WD}/k8s/pods"
+
+# render environment-specific oidc deployment and ingress configs then create them
+consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
+consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
+kubectl apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl apply -f "${SCRATCH}/oidc-ingress.yaml"
 
 # wait for the db to be ready so that we can run commands against it
 echo 'waiting 10 sec for database to be up'
 sleep 10
 # TODO: add readiness probe to postgres pod def to check for port 5432 to be available
-kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
+#kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
 
 # create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
 cat "${WD}/../db/create-data-repo-db" | \
@@ -113,7 +124,9 @@ cat "${WD}/../db/create-data-repo-db" | \
 kubectl apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
-GCR_TAG=$DATA_REPO_TAG ${WD}/../gradlew clean dockerPush
+pushd ${WD}/..
+GCR_TAG=$DATA_REPO_TAG ./gradlew dockerPush
+popd
 
 kubectl --namespace data-repo set image deployments/api-deployment \
     "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:${DATA_REPO_TAG}"

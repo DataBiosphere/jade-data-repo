@@ -1,0 +1,21 @@
+{{ with $environment := env "ENVIRONMENT" }}
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: oidc-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
+  namespace: data-repo
+spec:
+  tls:
+    - hosts:
+      - {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
+      secretName: wildcard.datarepo.broadinstitute.org
+  backend:
+    serviceName: oidc-proxy-service
+    servicePort: http
+  rules:
+  - host: {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
+
+{{ end }}

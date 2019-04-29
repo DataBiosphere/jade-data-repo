@@ -268,7 +268,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Dataset to create
+        description: Dataset to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -587,8 +587,8 @@ parameters:
     required: true
     type: string
     enum:
-      - read
-      - discover
+      - reader
+      - discoverer
 
 ##########################################################################################
 # DEFINITIONS

@@ -32,6 +32,7 @@ public class CreateDatasetAuthzResource implements Step {
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
             sam.createDatasetResource(userReq, datasetId);
+            //TODO make sam call to add readers
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }

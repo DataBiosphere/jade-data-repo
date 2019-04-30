@@ -161,7 +161,7 @@ paths:
               type: string
               description: url for the job polling
         200:
-          description: Redirect for dataset suNccessful creation
+          description: Redirect for dataset successful creation
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -169,7 +169,7 @@ paths:
               type: string
               description: url for the job result
         400:
-          description: Bad request - invalid name, badly formed
+          description: Bad request - invalid name, badly formed or user email not found
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
@@ -287,7 +287,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Dataset to create
+        description: Dataset to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -298,7 +298,7 @@ paths:
           schema:
             $ref: '#/definitions/PolicyResponse'
         400:
-          description: Bad request - invalid id, badly formed
+          description: Bad request - invalid id, badly formed, or email not found
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
@@ -860,8 +860,8 @@ parameters:
     required: true
     type: string
     enum:
-      - read
-      - discover
+      - reader
+      - discoverer
 
   FileId:
     name: fileid
@@ -1257,7 +1257,8 @@ definitions:
       Request for creating a dataset.
       For now, the API only supports datasets defined as a single study asset and
       row ids for the root table of that asset. The dataset has exactly the tables
-      and columns of the asset.
+      and columns of the asset. An optional list of users can be provided to set as
+      readers on the dataset.
       In the future, we will need to extend this to handle cross-study datasets
       from disparate assets, so we will need to support column and datatype
       mapping from asset tables to the target dataset tables.
@@ -1275,6 +1276,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/DatasetRequestContentsModel'
+      readers:
+        type: array
+        items:
+          type: string
 
   DatasetRequestContentsModel:
     description: |

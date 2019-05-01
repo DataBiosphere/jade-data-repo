@@ -4,6 +4,7 @@ import bio.terra.category.Unit;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.StudyRequestModel;
@@ -17,8 +18,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,6 +32,7 @@ import static bio.terra.fixtures.StudyFixtures.buildAssetSampleTable;
 import static bio.terra.fixtures.StudyFixtures.buildParticipantSampleRelationship;
 import static bio.terra.fixtures.StudyFixtures.buildSampleTerm;
 import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,11 +49,21 @@ public class StudyValidationsTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private void expectBadStudyCreateRequest(StudyRequestModel studyRequest) throws Exception {
-        mvc.perform(post("/api/repository/v1/studies")
+    private ErrorModel expectBadStudyCreateRequest(StudyRequestModel studyRequest) throws Exception {
+        MvcResult result = mvc.perform(post("/api/repository/v1/studies")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(studyRequest)))
-            .andExpect(status().is4xxClientError());
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseBody = response.getContentAsString();
+
+        assertTrue("Error model was returned on failure",
+            StringUtils.contains(responseBody, "message"));
+
+        ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+        return errorModel;
     }
 
 

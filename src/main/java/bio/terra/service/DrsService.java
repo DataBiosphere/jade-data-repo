@@ -118,7 +118,7 @@ public class DrsService {
     private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObject> fsObjectList, String datasetId) {
         // TODO: this computation does not conform to the current spec. With fine-grain access
         // control, we cannot pre-compute the sizes or checksums of contained bundles. I have raised
-        // the question in the
+        // the question in the GA4GH cloud stream.
         boolean md5IsValid = true;
         List<String> md5List = new ArrayList<>();
         List<String> crc32cList = new ArrayList<>();

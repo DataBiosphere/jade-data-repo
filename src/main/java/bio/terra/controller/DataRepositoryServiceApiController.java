@@ -9,7 +9,7 @@ import bio.terra.model.DRSBundle;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
-import bio.terra.service.FileService;
+import bio.terra.service.DrsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +30,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
 
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
-    private final FileService fileService;
+    private final DrsService drsService;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -39,21 +39,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     public DataRepositoryServiceApiController(
             ObjectMapper objectMapper,
             HttpServletRequest request,
-            FileService fileService,
+            DrsService drsService,
             ApplicationConfiguration appConfig
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.appConfig = appConfig;
-        this.fileService = fileService;
+        this.drsService = drsService;
     }
-
-/*
-    @InitBinder
-    protected void initBinder(final WebDataBinder binder) {
-        binder.addValidators();
-    }
-*/
 
     @Override
     public Optional<ObjectMapper> getObjectMapper() {
@@ -96,13 +89,13 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
 
     @Override
     public ResponseEntity<DRSBundle> getBundle(@PathVariable("bundle_id") String bundleId) {
-        return new ResponseEntity<>(fileService.lookupBundleByDrsId(bundleId), HttpStatus.OK);
+        return new ResponseEntity<>(drsService.lookupBundleByDrsId(bundleId), HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<DRSObject> getObject(@PathVariable("object_id") String objectId) {
         // The incoming object id is a DRS object id, not a file id.
-        return new ResponseEntity<>(fileService.lookupObjectByDrsId(objectId), HttpStatus.OK);
+        return new ResponseEntity<>(drsService.lookupObjectByDrsId(objectId), HttpStatus.OK);
     }
 
     @Override

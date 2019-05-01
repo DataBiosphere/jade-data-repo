@@ -26,8 +26,8 @@ public class DrsIdTest {
         assertThat("drsid constructor succeeds - studyId",  drsId.getStudyId(), equalTo("study"));
         assertThat("drsid constructor succeeds - datasetId",  drsId.getDatasetId(), equalTo("dataset"));
         assertThat("drsid constructor succeeds - fileId",  drsId.getFsObjectId(), equalTo("file"));
-
-        assertThat("drsid toString works", drsId.toString(), equalTo("drs://dns/vv_study_dataset_file"));
+        assertThat("drsid toDrsUri works", drsId.toDrsUri(), equalTo("drs://dns/vv_study_dataset_file"));
+        assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("vv_study_dataset_file"));
     }
 
     @Test(expected = InvalidDrsIdException.class)
@@ -40,7 +40,7 @@ public class DrsIdTest {
             .fsObjectId("file")
             .build();
 
-        drsId.toString(); // should throw
+        drsId.toDrsUri(); // should throw
     }
 
 }

@@ -21,7 +21,7 @@ public class DrsIdService {
     }
 
     public String toDrsUri(String studyId, String datasetId, String fsObjectId) {
-        return fromParts(studyId, datasetId, fsObjectId).toString();
+        return fromParts(studyId, datasetId, fsObjectId).toDrsUri();
     }
 
     public String toDrsObjectId(String studyId, String datasetId, String fsObjectId) {

@@ -100,7 +100,7 @@ public class EncodeFileTest {
     @Test
     public void encodeFileTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId());
+        String targetPath = loadFiles(studySummary.getId(), false);
         String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -161,7 +161,38 @@ public class EncodeFileTest {
             errorModel.getMessage(), containsString("used by at least one dataset"));
     }
 
-    // TODO: Bundle testing - complete when we have a method for getting a bundle id
+    @Test
+    public void encodeFileBadFileId() throws Exception {
+        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        String targetPath = loadFiles(studySummary.getId(), true);
+        String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
+
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("file")
+            .path(gsPath);
+
+        String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
+        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
+
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+        ErrorModel ingestError = connectedOperations.handleAsyncFailureCase(response);
+        assertThat("correctly found bad file id",
+            ingestError.getMessage(), containsString("Invalid file ids found"));
+
+        // Delete the scratch blob
+        Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
+        if (scratchBlob != null) {
+            scratchBlob.delete();
+        }
+    }
+
+        // TODO: Bundle testing - complete when we have a method for getting a bundle id
     private void getOneBundle(String bundleId) throws Exception {
         String url = "/ga4gh/drs/v1/bundles/" + bundleId;
         MvcResult result = mvc.perform(get(url)).andReturn();
@@ -172,7 +203,7 @@ public class EncodeFileTest {
         }
     }
 
-    private String loadFiles(String studyId) throws Exception {
+    private String loadFiles(String studyId, boolean insertBadId) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -193,6 +224,7 @@ public class EncodeFileTest {
         try (WriteChannel writer = storage.writer(targetBlobInfo);
              BufferedReader reader = new BufferedReader(Channels.newReader(sourceBlob.reader(), "UTF-8"))) {
 
+            boolean badIdInserted = false;
             String line = null;
             while ((line = reader.readLine()) != null) {
                 EncodeFileIn encodeFileIn = objectMapper.readValue(line, EncodeFileIn.class);
@@ -203,7 +235,14 @@ public class EncodeFileTest {
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
                     FileModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
-                    bamFileId = bamFile.getFileId();
+                    // Fault insertion on request: we corrupt one id if requested to do so.
+                    if (insertBadId && !badIdInserted) {
+                        bamFileId = bamFile.getFileId() + "A";
+                        badIdInserted = true;
+                    } else {
+                        bamFileId = bamFile.getFileId();
+                    }
+
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {

@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.service.exception.InvalidDrsIdException;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -50,8 +51,7 @@ public class DrsId {
         return vv + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
     }
 
-    @Override
-    public String toString() {
+    public String toDrsUri() {
         String path = "/" + toDrsObjectId();
         try {
             URI uri = new URI("drs", dnsname, path, null, null);
@@ -59,6 +59,17 @@ public class DrsId {
         } catch (URISyntaxException ex) {
             throw new InvalidDrsIdException("Invalid DRS syntax", ex);
         }
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+            .append("dnsname", dnsname)
+            .append("version", version)
+            .append("studyId", studyId)
+            .append("datasetId", datasetId)
+            .append("fsObjectId", fsObjectId)
+            .toString();
     }
 
     @Override

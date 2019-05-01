@@ -86,7 +86,7 @@ public class FileDao {
         pathBuilder = new StringBuilder(existingDirectoryPath);
         for (; index < pathDirectoryLength; index++) {
             pathBuilder.append('/').append(pathParts[index]);
-            FSObject fsObject = makeObject(fileToCreate.getStudyId(), pathBuilder.toString());
+            FSObject fsObject = makeDirectory(fileToCreate.getStudyId(), pathBuilder.toString());
             createObject(fsObject);
         }
 
@@ -265,7 +265,9 @@ public class FileDao {
     }
 
     // The worker assumes all object type checks have been done by the caller. If verifies that the file is
-    // not used in a dataset and performs the delete of the object and any empty parents.
+    // not used in a dataset and performs the delete of the object and any empty parents. Some paths to this
+    // worker may have already checked the dataset references. For instance the file delete flight checks for
+    // dependencies in its start step and this will re-check in its complete step.
     private boolean deleteFileWorker(FSObject fsObject) {
         if (hasDatasetReferences(fsObject.getObjectId())) {
             throw new FileSystemObjectDependencyException(
@@ -333,10 +335,10 @@ public class FileDao {
     }
 
     public FSObject retrieve(UUID objectId) {
-        logger.debug("retrieve file id: " + objectId);
+        logger.debug("retrieve object id: " + objectId);
         FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("File not id: " + objectId);
+            throw new FileSystemObjectNotFoundException("Object not found. Requested id is: " + objectId);
         }
         return fsObject;
     }
@@ -350,7 +352,7 @@ public class FileDao {
     public FSObject retrieveByPath(UUID studyId, String path) {
         FSObject fsObject = retrieveByPathNoThrow(studyId, path);
         if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("File not found - path: '" + path + "'");
+            throw new FileSystemObjectNotFoundException("Object not found - path: '" + path + "'");
         }
         return fsObject;
     }
@@ -458,7 +460,7 @@ public class FileDao {
             try {
                 Long matchCount = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
                     rs.getLong("match_count"));
-                if (matchCount == null || matchCount > 1) {
+                if (matchCount == null || matchCount == 0) {
                     invalidRefIds.add(testId);
                 }
             } catch (EmptyResultDataAccessException ex) {
@@ -472,6 +474,10 @@ public class FileDao {
     public void storeDatasetFileDependencies(UUID datasetId, List<String> refIds) {
         // The ON CONFLICT clause will quietly skip the insert if the
         // (object_id, dataset_id) pair already exists.
+        // TODO: We will need to revisit this when we do steward operations for modifying references
+        // to files in tabular data. One thing we could do is include the row id and column name
+        // of the row/column making the reference. That would make this table a lot bigger and
+        // very exact.
         String sql = "INSERT INTO fs_dataset (object_id, dataset_id)" +
             " VALUES (:object_id, :dataset_id)" +
             " ON CONFLICT DO NOTHING";
@@ -490,7 +496,7 @@ public class FileDao {
     }
 
     // Make an FSObject with the path filled in. We set it as a directory.
-    private FSObject makeObject(UUID studyId, String path) {
+    private FSObject makeDirectory(UUID studyId, String path) {
         return new FSObject()
             .studyId(studyId)
             .objectType(FSObject.FSObjectType.DIRECTORY)

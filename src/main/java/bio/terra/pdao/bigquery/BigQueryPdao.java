@@ -48,7 +48,11 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -220,13 +224,70 @@ public class BigQueryPdao implements PrimaryDataAccess {
             walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
 
             // create the views
-            List<Acl> acls = createViews(studyDatasetName, datasetName, dataset);
-            bqInfo.addViewAcls(studyDatasetName, acls);
+            List<String> bqTableNames = createViews(studyDatasetName, datasetName, dataset);
+            bqInfo.addTables(studyDatasetName, bqTableNames);
             return bqInfo;
 
         } catch (Exception ex) {
             throw new PdaoException("createDataset failed", ex);
         }
+    }
+
+    // for each study that is a part of the dataset, we will add Acls for the
+    // dataset tables from that study
+    public void authorizeDatasetViewsForStudies(BigQueryContainerInfo bqInfo) {
+        convertToStudyAndViewAcls(bqInfo.getBqDatasetId(), bqInfo.getStudyToBQTableNames())
+            .entrySet().stream().forEach(entry -> {
+                addAclsToBQDataset(entry.getKey(), entry.getValue());
+            }
+            );
+    }
+
+    public void removeDatasetAuthorizationFromStudies(BigQueryContainerInfo bqInfo) {
+        convertToStudyAndViewAcls(bqInfo.getBqDatasetId(), bqInfo.getStudyToBQTableNames())
+            .entrySet().stream().forEach(entry -> {
+                removeAclsFromBQDataset(entry.getKey(), entry.getValue());
+            }
+            );
+    }
+
+    public Map<String, List<Acl>> convertToStudyAndViewAcls(
+        String datasetName, Map<String, List<String>> studyToListTables) {
+        return studyToListTables.entrySet().stream().collect(Collectors.toMap(
+            entry -> entry.getKey(),
+            entry -> entry.getValue().stream().map(tableName ->
+                makeViewAcl(datasetName, tableName)).collect(Collectors.toList())
+        ));
+    }
+
+    private Acl makeViewAcl(String datasetName, String tableName) {
+        TableId tableId = TableId.of(projectId, datasetName, tableName);
+        return Acl.of(new Acl.View(tableId));
+    }
+
+    public void addReaderGroupToDataset(String datasetId, String readersEmail) {
+        // add the reader group to the list of Acls on the jade dataset
+        addAclsToBQDataset(datasetId, Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
+    }
+
+    private void addAclsToBQDataset(String datasetId, List<Acl> acls) {
+        Dataset dataset = bigQuery.getDataset(datasetId);
+        List<Acl> beforeAcls = dataset.getAcl();
+        ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);
+        newAcls.addAll(acls);
+        logger.debug("before als: " + beforeAcls.toString());
+        logger.debug("acls after: " + newAcls.toString());
+        logger.debug("acls added: " + acls.toString());
+        updateDataset(dataset.toBuilder().setAcl(newAcls).build());
+    }
+
+    private void removeAclsFromBQDataset(String datasetId, List<Acl> acls) {
+        Dataset dataset = bigQuery.getDataset(datasetId);
+        Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
+        datasetAcls.removeAll(acls);
+        logger.debug("new bq acls: " + datasetAcls.toString());
+        logger.debug("acls removed: " + acls.toString());
+        updateDataset(dataset.toBuilder().setAcl(new ArrayList(datasetAcls)).build());
     }
 
     public void updateDataset(DatasetInfo info) {
@@ -501,7 +562,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private String prefixName(String name) {
+    public String prefixName(String name) {
         return PDAO_PREFIX + name;
     }
 
@@ -758,7 +819,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private List<Acl> createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
+    private List<String> createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
         return dataset.getTables().stream().map(table -> {
                 StringBuilder builder = new StringBuilder();
 
@@ -788,7 +849,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 TableId tableId = TableId.of(datasetName, tableName);
                 TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
                 com.google.cloud.bigquery.Table bqTable = bigQuery.create(tableInfo);
-                return Acl.of(new Acl.View(tableId));
+                return tableName;
             }
         ).collect(Collectors.toList());
     }

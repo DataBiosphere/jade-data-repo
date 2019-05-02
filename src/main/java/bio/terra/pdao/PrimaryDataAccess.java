@@ -48,6 +48,8 @@ public interface PrimaryDataAccess {
      */
     void createStudy(Study study);
 
+//    void addAuthorziedViewsToStudy(Study study, )
+
     /**
      * Delete the study. All tables within the container and the container are deleted
      *

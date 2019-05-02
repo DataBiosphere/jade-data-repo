@@ -1,6 +1,5 @@
 package bio.terra.pdao.bigquery;
 
-import com.google.cloud.bigquery.Acl;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -10,17 +9,29 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+// TODO reviewers: i hate the name of this class. it's holding the info needed to authorize the views on the study
+// i'm wondering if i should move this to the flight package for create dataset?
 public class BigQueryContainerInfo {
+    private String projectId;
     private String bqDatasetId;
-    private Map<String, List<Acl>> studyToViewAcls = new HashMap();
+    private Map<String, List<String>> studyToBQTableNames = new HashMap<>();
     private String readersEmail;
 
-    public BigQueryContainerInfo addViewAcls(String studyId, List<Acl> acls) {
-        if (studyToViewAcls.containsKey(studyId)) {
-            studyToViewAcls.get(studyId).addAll(acls);
+    public BigQueryContainerInfo addTables(String studyName, List<String> tables) {
+        if (studyToBQTableNames.containsKey(studyName)) {
+            studyToBQTableNames.get(studyName).addAll(tables);
         } else {
-            studyToViewAcls.put(studyId, new ArrayList<>(acls));
+            studyToBQTableNames.put(studyName, new ArrayList<>(tables));
         }
+        return this;
+    }
+
+    public String getProjectId() {
+        return projectId;
+    }
+
+    public BigQueryContainerInfo projectId(String projectId) {
+        this.projectId = projectId;
         return this;
     }
 
@@ -33,14 +44,15 @@ public class BigQueryContainerInfo {
         return this;
     }
 
-    public Map<String, List<Acl>> getStudyToViewAcls() {
-        return studyToViewAcls;
+    public Map<String, List<String>> getStudyToBQTableNames() {
+        return studyToBQTableNames;
     }
 
-    public BigQueryContainerInfo studyToViewAcls(Map<String, List<Acl>> studyToViewAcls) {
-        this.studyToViewAcls = studyToViewAcls;
+    public BigQueryContainerInfo studyToBQTableNames(Map<String, List<String>> studyToBQTableNames) {
+        this.studyToBQTableNames = studyToBQTableNames;
         return this;
     }
+
     public String getReadersEmail() {
         return readersEmail;
     }
@@ -62,7 +74,7 @@ public class BigQueryContainerInfo {
 
         return new EqualsBuilder()
             .append(bqDatasetId, that.bqDatasetId)
-            .append(studyToViewAcls, that.studyToViewAcls)
+            .append(studyToBQTableNames, that.studyToBQTableNames)
             .append(readersEmail, that.readersEmail)
             .isEquals();
     }
@@ -71,7 +83,7 @@ public class BigQueryContainerInfo {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
             .append(bqDatasetId)
-            .append(studyToViewAcls)
+            .append(studyToBQTableNames)
             .append(readersEmail)
             .toHashCode();
     }
@@ -80,7 +92,7 @@ public class BigQueryContainerInfo {
     public String toString() {
         return new ToStringBuilder(this)
             .append("bqDatasetId", bqDatasetId)
-            .append("studyToViewAcls", studyToViewAcls)
+            .append("studyToBQTableNames", studyToBQTableNames)
             .append("readersEmail", readersEmail)
             .toString();
     }

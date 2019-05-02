@@ -61,11 +61,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private final BigQuery bigQuery;
     private final String projectId;
+    private final String datarepoDnsName;
 
     @Autowired
-    public BigQueryPdao(BigQuery bigQuery, String bigQueryProjectId) {
+    public BigQueryPdao(BigQuery bigQuery, String bigQueryProjectId, String datarepoDnsName) {
         this.bigQuery = bigQuery;
         this.projectId = bigQueryProjectId;
+        this.datarepoDnsName = datarepoDnsName;
     }
 
     @Override
@@ -213,9 +215,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
 
-            // create the views
             createViews(studyDatasetName, datasetName, dataset);
-
         } catch (Exception ex) {
             throw new PdaoException("createDataset failed", ex);
         }
@@ -387,8 +387,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return options;
     }
 
-
-
     public boolean deleteTable(String studyName, String tableName) {
         try {
             TableId tableId = TableId.of(projectId, prefixName(studyName), tableName);
@@ -397,6 +395,87 @@ public class BigQueryPdao implements PrimaryDataAccess {
             throw new PdaoException("Failed attempt delete of study: " +
                 studyName + " table: " + tableName, ex);
         }
+    }
+
+    public List<String> getRefIds(String studyName, String tableName, String refColumnName) {
+        /*
+          SELECT refColumnName FROM stagingTable
+         */
+        List<String> refIdArray = new ArrayList<>();
+
+        String studyDatasetName = prefixName(studyName);
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(refColumnName)
+            .append(" FROM `")
+            .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
+            .append("`");
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQuery.query(queryConfig);
+            for (FieldValueList row : result.iterateAll()) {
+                if (!row.get(0).isNull()) {
+                    String refId = row.get(0).getStringValue();
+                    refIdArray.add(refId);
+                }
+            }
+
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Get ref ids query unexpectedly interrupted", ie);
+        }
+
+        return refIdArray;
+    }
+
+    public List<String> getDatasetRefIds(String studyName,
+                                         String datasetName,
+                                         String tableName,
+                                         String tableId,
+                                         String refColumnName) {
+        /*
+          SELECT refColumnName
+          FROM <study table> S, datarepo_row_ids R
+          WHERE S.datarepo_row_id = R.datarepo_row_id
+          AND R.datarepo_table_id = '<study table id>')
+         */
+        List<String> refIdArray = new ArrayList<>();
+
+        String studyDatasetName = prefixName(studyName);
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(refColumnName)
+            .append(" FROM `")
+            .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
+            .append("` S, `")
+            .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
+            .append("` R WHERE S.")
+            // where row_id matches and table_id matches
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" = R.")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" AND R.")
+            .append(PDAO_TABLE_ID_COLUMN)
+            .append(" = '")
+            .append(tableId)
+            .append("'");
+
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQuery.query(queryConfig);
+            for (FieldValueList row : result.iterateAll()) {
+                if (!row.get(0).isNull()) {
+                    String refId = row.get(0).getStringValue();
+                    refIdArray.add(refId);
+                }
+            }
+
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Get dataset ref ids query unexpectedly interrupted", ie);
+        }
+
+        return refIdArray;
     }
 
 
@@ -686,7 +765,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
             DatasetSource source = dataset.getDatasetSources().get(0);
-            buildSource(builder, studyDatasetName, datasetName, table, source);
+            buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
 
             // create the view
             String tableName = table.getName();
@@ -716,7 +795,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
                              String studyDatasetName,
                              String datasetName,
                              Table table,
-                             DatasetSource source) {
+                             DatasetSource source,
+                             bio.terra.metadata.Dataset dataset) {
 
         // Find the table map for the table. If there is none, we skip it.
         // NOTE: for now, we know that there will be one, because we generate it directly.
@@ -728,7 +808,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         // Build this as a sub-select so it is easily extended to multiple sources in the future.
         builder.append("(SELECT ");
-        buildSourceSelectList(builder, table, mapTable);
+        buildSourceSelectList(builder, table, mapTable, dataset, source);
 
         builder.append(" FROM `")
                 // base study table
@@ -757,7 +837,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .append("')");
     }
 
-    private void buildSourceSelectList(StringBuilder builder, Table targetTable, DatasetMapTable mapTable) {
+    private void buildSourceSelectList(StringBuilder builder,
+                                       Table targetTable,
+                                       DatasetMapTable mapTable,
+                                       bio.terra.metadata.Dataset dataset,
+                                       DatasetSource source) {
         String prefix = "";
 
         for (Column targetColumn : targetTable.getColumns()) {
@@ -767,13 +851,27 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // In the future, there may not be a column map for a given target column; it might not exist
             // in the table. The logic here covers three cases:
             // 1) no source column: supply NULL
-            // 2) source and target column with same name: supply name
-            // 3) source and target column with different names: supply target name with AS
+            // 2) source is datatype FILEREF or DIRREF: generate the expression to construct the DRS URI: supply name
+            // 3) source and target column with same name: supply name
+            // 4) source and target column with different names: supply target name with AS
             String targetColumnName = targetColumn.getName();
 
             DatasetMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
             if (mapColumn == null) {
                 builder.append("NULL AS ").append(targetColumnName);
+            } else if (StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "FILEREF") ||
+                StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "DIRREF")) {
+                // CONCAT('drs://datarepodnsname/v1_studyid_datasetid_', fromColumnName) AS target
+                builder.append("CONCAT('drs://")
+                    .append(datarepoDnsName)
+                    .append("/v1_")
+                    .append(source.getStudy().getId().toString())
+                    .append("_")
+                    .append(dataset.getId().toString())
+                    .append("_',")
+                    .append(mapColumn.getFromColumn().getName())
+                    .append(") AS ")
+                    .append(targetColumnName);
             } else if (StringUtils.equals(mapColumn.getFromColumn().getName(), targetColumnName)) {
                 builder.append(targetColumnName);
             } else {
@@ -810,6 +908,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             case "BYTES":     return LegacySQLTypeName.BYTES;
             case "DATE":      return LegacySQLTypeName.DATE;
             case "DATETIME":  return LegacySQLTypeName.DATETIME;
+            case "DIRREF":    return LegacySQLTypeName.STRING;
             case "FILEREF":   return LegacySQLTypeName.STRING;
             case "FLOAT":     return LegacySQLTypeName.FLOAT;
             case "FLOAT64":   return LegacySQLTypeName.FLOAT;  // match the SQL type

@@ -1,6 +1,7 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.Flight;
@@ -17,6 +18,7 @@ public class DatasetDeleteFlight extends Flight {
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         DatasetDao datasetDao = (DatasetDao)appContext.getBean("datasetDao");
+        FileDao fileDao = (FileDao)appContext.getBean("fileDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
 
@@ -27,6 +29,6 @@ public class DatasetDeleteFlight extends Flight {
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // dataset object from the metadata to know what to delete.
         addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, datasetDao, datasetId));
-        addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
+        addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId, fileDao));
     }
 }

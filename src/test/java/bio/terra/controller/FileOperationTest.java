@@ -5,13 +5,11 @@ import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.integration.DataRepoConfiguration;
-import bio.terra.model.DRSObject;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.service.DrsId;
-import bio.terra.service.DrsService;
+import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
@@ -53,7 +51,7 @@ public class FileOperationTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DataRepoConfiguration dataRepoConfiguration;
-    @Autowired private DrsService drsService;
+    @Autowired private DrsIdService drsService;
 
     @MockBean
     private SamClientService samService;
@@ -162,37 +160,6 @@ public class FileOperationTest {
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
-    }
-
-    @Test
-    public void drsOperationsTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
-        FileLoadModel fileLoadModel = makeFileLoad();
-        FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
-
-        // TODO: there is a problem here: the DRSObject should hold the
-        // drs object id, not the file id. For now, I'll magic up an id
-        // but this setup won't work IRL.
-
-        String drsObjectId = "v1_" + studySummary.getId() + "_dataset_" + fileModel.getFileId();
-        String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
-
-        MvcResult result = mvc.perform(get(url))
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
-            .andReturn();
-        MockHttpServletResponse response = result.getResponse();
-        assertThat("DRS get object succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
-
-        DRSObject drsObject = objectMapper.readValue(response.getContentAsString(), DRSObject.class);
-
-        // Validate that it matches the file model data
-        DrsId getDrsId = drsService.fromObjectId(drsObjectId);
-        DrsId gotDrsId = drsService.fromObjectId(drsObject.getId());
-        assertTrue("DRS Object ids match", getDrsId.equals(gotDrsId));
-        assertThat("Size matches", drsObject.getSize(), equalTo(fileModel.getSize()));
-        assertThat("mimeType matches", drsObject.getMimeType(), equalTo(fileModel.getMimeType()));
-        assertTrue("checksums match", drsObject.getChecksums().equals(fileModel.getChecksums()));
-        assertThat("descriptions match", drsObject.getDescription(), equalTo(fileModel.getDescription()));
     }
 
     private FileLoadModel makeFileLoad() throws Exception {

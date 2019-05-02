@@ -1,8 +1,11 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.dao.DatasetDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetMapColumn;
+import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
@@ -15,20 +18,26 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
+
+import java.util.List;
 
 public class CreateDatasetPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
     private DatasetDao datasetDao;
+    private FileDao fileDao;
 
     public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                         DatasetService datasetService,
-                                        DatasetDao datasetDao) {
+                                        DatasetDao datasetDao,
+                                        FileDao fileDao) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.datasetDao = datasetDao;
+        this.fileDao = fileDao;
     }
 
     DatasetRequestModel getRequestModel(FlightContext context) {
@@ -61,6 +70,36 @@ public class CreateDatasetPrimaryDataStep implements Step {
         }
 
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
+
+        // Add file references to the dependency table. The algorithm is:
+        // Loop through sources, loop through map tables, loop through map columns
+        // if from column is FILEREF or DIRREF, ask pdao to get the ids from that
+        // column that are in the dataset; tell fileDao to store them. FileDao removes duplicates.
+        //
+        // NOTE: This is brute force doing a column at a time. Depending on how much memory and
+        // swap we want to use, we could extract all row ids in one go. Doing it column-by-column
+        // bounds the intermediate size in a way. I think this all becomes easier if we move
+        // the filesystem stuff into DataStore or similar. Then bigquery can stream this
+        // this without landing in memory and transferring it to postgres.
+        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            for (DatasetMapTable mapTable : datasetSource.getDatasetMapTables()) {
+                for (DatasetMapColumn mapColumn : mapTable.getDatasetMapColumns()) {
+                    String fromDatatype = mapColumn.getFromColumn().getType();
+                    if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
+                        StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
+
+                        List<String> refIds = bigQueryPdao.getDatasetRefIds(datasetSource.getStudy().getName(),
+                            dataset.getName(),
+                            mapTable.getFromTable().getName(),
+                            mapTable.getFromTable().getId().toString(),
+                            mapColumn.getFromColumn().getName());
+
+                        fileDao.storeDatasetFileDependencies(dataset.getId(), refIds);
+                    }
+                }
+            }
+        }
+
         return StepResult.getStepResultSuccess();
     }
 

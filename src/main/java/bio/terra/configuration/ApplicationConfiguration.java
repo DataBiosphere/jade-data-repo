@@ -67,7 +67,7 @@ public class ApplicationConfiguration {
         this.userEmail = userEmail;
     }
 
-    @Value("${datarepo.dnsname")
+    @Value("${datarepo.dnsname}")
     private String datarepoDnsName;
 
     @Bean("datarepoDnsName")

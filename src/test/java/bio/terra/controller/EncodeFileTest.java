@@ -47,9 +47,11 @@ import java.io.BufferedReader;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -73,6 +75,8 @@ public class EncodeFileTest {
     @Autowired private Storage storage;
     @Autowired private BigQuery bigQuery;
     @Autowired private String bigQueryProjectId;
+
+    private static final String ID_GARBAGE = "GARBAGE";
 
     @MockBean
     private SamClientService samService;
@@ -185,6 +189,10 @@ public class EncodeFileTest {
         assertThat("correctly found bad file id",
             ingestError.getMessage(), containsString("Invalid file ids found"));
 
+        List<String> errorDetails = ingestError.getErrorDetail();
+        assertNotNull("Error details were returned", errorDetails);
+        assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
+
         // Delete the scratch blob
         Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
         if (scratchBlob != null) {
@@ -192,7 +200,7 @@ public class EncodeFileTest {
         }
     }
 
-        // TODO: Bundle testing - complete when we have a method for getting a bundle id
+    // TODO: Bundle testing - complete when we have a method for getting a bundle id
     private void getOneBundle(String bundleId) throws Exception {
         String url = "/ga4gh/drs/v1/bundles/" + bundleId;
         MvcResult result = mvc.perform(get(url)).andReturn();
@@ -237,7 +245,7 @@ public class EncodeFileTest {
                     FileModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
-                        bamFileId = bamFile.getFileId() + "A";
+                        bamFileId = bamFile.getFileId() + ID_GARBAGE;
                         badIdInserted = true;
                     } else {
                         bamFileId = bamFile.getFileId();

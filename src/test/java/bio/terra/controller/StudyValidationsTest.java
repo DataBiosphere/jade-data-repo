@@ -254,7 +254,7 @@ public class StudyValidationsTest {
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(Collections.singletonList(noRoot));
         ErrorModel errorModel = expectBadStudyCreateRequest(req);
-        checkValidationErrorModel("noRootTable", errorModel, new String[]{"NotNull","NotNull","NoRootTable"});
+        checkValidationErrorModel("noRootTable", errorModel, new String[]{"NotNull", "NotNull", "NoRootTable"});
     }
 
     @Test

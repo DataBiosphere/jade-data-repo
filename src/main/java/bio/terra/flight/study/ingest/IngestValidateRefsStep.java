@@ -15,7 +15,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class IngestValidateRefsStep implements Step {
     private static int MAX_ERROR_REF_IDS = 20;
@@ -51,12 +50,22 @@ public class IngestValidateRefsStep implements Step {
             }
         }
 
-        if (invalidRefIds.size() != 0) {
-            // TODO: improve when we have multi-item error model
-            String badRefIdMessage =
-                invalidRefIds.stream().limit(MAX_ERROR_REF_IDS).collect(Collectors.joining(", "));
-            throw new InvalidFileRefException("Invalid file ids found during ingest (up to first " +
-                MAX_ERROR_REF_IDS + "shown): " + badRefIdMessage);
+        int invalidIdCount = invalidRefIds.size();
+        if (invalidIdCount != 0) {
+            String errorMessage = "Invalid file ids found during ingest (";
+
+            List<String> errorDetails = new ArrayList<>();
+            int count = 0;
+            for (String badId : invalidRefIds) {
+                errorDetails.add(badId);
+                count++;
+                if (count > MAX_ERROR_REF_IDS) {
+                    errorMessage += MAX_ERROR_REF_IDS + "out of ";
+                    break;
+                }
+            }
+            errorMessage += invalidIdCount + " returned in details)";
+            throw new InvalidFileRefException(errorMessage, errorDetails);
         }
 
         return StepResult.getStepResultSuccess();

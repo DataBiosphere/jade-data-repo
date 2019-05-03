@@ -48,8 +48,6 @@ public interface PrimaryDataAccess {
      */
     void createStudy(Study study);
 
-//    void addAuthorziedViewsToStudy(Study study, )
-
     /**
      * Delete the study. All tables within the container and the container are deleted
      *
@@ -93,5 +91,25 @@ public interface PrimaryDataAccess {
      */
     boolean deleteDataset(Dataset dataset);
 
+
+    /**
+     * Add the google group for the dataset readers to the BQ dataset
+     *
+     * @param datasetId bigquery dataset name
+     * @param readersEmail email address for readers group (as returned by SAM)
+     */
+    void addReaderGroupToDataset(String datasetId, String readersEmail);
+
+    /**
+     * Update the athorized views on the study to include the tables in the dataset
+     * @param bqInfo object with study and tables names to update
+     */
+    void authorizeDatasetViewsForStudies(BigQueryContainerInfo bqInfo);
+
+    /**
+     * Remove the athorized views for the dataset from the study
+     * @param bqInfo object with study and tables names to remove
+     */
+    void removeDatasetAuthorizationFromStudies(BigQueryContainerInfo bqInfo);
 
 }

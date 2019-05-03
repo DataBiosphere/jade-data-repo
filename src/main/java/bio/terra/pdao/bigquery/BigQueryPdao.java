@@ -235,6 +235,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     // for each study that is a part of the dataset, we will add Acls for the
     // dataset tables from that study
+    @Override
     public void authorizeDatasetViewsForStudies(BigQueryContainerInfo bqInfo) {
         convertToStudyAndViewAcls(bqInfo.getBqDatasetId(), bqInfo.getStudyToBQTableNames())
             .entrySet().stream().forEach(entry -> {
@@ -243,6 +244,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             );
     }
 
+    @Override
     public void removeDatasetAuthorizationFromStudies(BigQueryContainerInfo bqInfo) {
         convertToStudyAndViewAcls(bqInfo.getBqDatasetId(), bqInfo.getStudyToBQTableNames())
             .entrySet().stream().forEach(entry -> {
@@ -251,7 +253,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             );
     }
 
-    public Map<String, List<Acl>> convertToStudyAndViewAcls(
+    private Map<String, List<Acl>> convertToStudyAndViewAcls(
         String datasetName, Map<String, List<String>> studyToListTables) {
         return studyToListTables.entrySet().stream().collect(Collectors.toMap(
             entry -> entry.getKey(),
@@ -265,6 +267,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return Acl.of(new Acl.View(tableId));
     }
 
+    @Override
     public void addReaderGroupToDataset(String datasetId, String readersEmail) {
         // add the reader group to the list of Acls on the jade dataset
         addAclsToBQDataset(datasetId, Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));

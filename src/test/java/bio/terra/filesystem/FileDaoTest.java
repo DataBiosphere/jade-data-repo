@@ -93,12 +93,12 @@ public class FileDaoTest {
         UUID completeId = fileDao.createFileComplete(fsObject);
         assertThat("Id matches", completeId, equalTo(fileAId));
 
-        FSObject typeObject = fileDao.retrieveFileByIdNoThrow(completeId);
+        FSObject typeObject = fileDao.retrieveByIdNoThrow(completeId);
         assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FSObject.FSObjectType.FILE));
 
         fileDao.createFileCompleteUndo(typeObject);
 
-        typeObject = fileDao.retrieveFileByIdNoThrow(completeId);
+        typeObject = fileDao.retrieveByIdNoThrow(completeId);
         assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
             equalTo(FSObject.FSObjectType.INGESTING_FILE));
     }
@@ -210,22 +210,22 @@ public class FileDaoTest {
     }
 
     private void checkObjectPresent(FSObject fsObject) {
-        FSObject thereObject = fileDao.retrieveFileByPathNoThrow(fsObject.getPath());
+        FSObject thereObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId(), fsObject.getPath());
         assertNotNull("Object is there by path", thereObject);
-        thereObject = fileDao.retrieveFileByIdNoThrow(fsObject.getObjectId());
+        thereObject = fileDao.retrieveByIdNoThrow(fsObject.getObjectId());
         assertNotNull("Object is there by id", thereObject);
     }
 
 
     private void checkObjectGone(FSObject fsObject) {
-        FSObject goneObject = fileDao.retrieveFileByPathNoThrow(fsObject.getPath());
+        FSObject goneObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId(), fsObject.getPath());
         assertNull("Object is gone by path", goneObject);
-        goneObject = fileDao.retrieveFileByIdNoThrow(fsObject.getObjectId());
+        goneObject = fileDao.retrieveByIdNoThrow(fsObject.getObjectId());
         assertNull("Object is gone by id", goneObject);
     }
 
     private FSObject getCheckPath(String path, UUID studyId, FSObject.FSObjectType objectType) {
-        FSObject fsObject = fileDao.retrieveFileByPathNoThrow(path);
+        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyId, path);
         assertNotNull("Object not null", fsObject);
         assertThat("Object has correct path", fsObject.getPath(), equalTo(path));
         assertThat("Correct study", fsObject.getStudyId(), equalTo(studyId));

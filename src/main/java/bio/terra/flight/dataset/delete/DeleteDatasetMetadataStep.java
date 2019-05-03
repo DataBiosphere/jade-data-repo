@@ -1,6 +1,7 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
+import bio.terra.filesystem.FileDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
@@ -15,14 +16,17 @@ public class DeleteDatasetMetadataStep implements Step {
 
     private DatasetDao datasetDao;
     private UUID datasetId;
+    private FileDao fileDao;
 
-    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId) {
+    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId, FileDao fileDao) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
+        this.fileDao = fileDao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
+        fileDao.deleteDatasetFileDependencies(datasetId);
         boolean found = datasetDao.delete(datasetId);
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;

@@ -207,7 +207,6 @@ public class ConnectedOperations {
         return handleAsyncFailureCase(response);
     }
 
-
     public MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
         MvcResult result = inResult;
         while (true) {

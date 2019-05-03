@@ -31,12 +31,14 @@ public class IngestFileMetadataStepStart implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        UUID studyUUID = UUID.fromString(studyId);
 
         FlightMap workingMap = context.getWorkingMap();
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FSObject fsObject = fileDao.retrieveFileByPathNoThrow(loadModel.getTargetPath());
+        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyUUID, loadModel.getTargetPath());
         if (fsObject != null) {
             // OK, some file exists. If this flight created it, then we record it
             // and claim success. Otherwise someone else created it and we throw.
@@ -65,8 +67,10 @@ public class IngestFileMetadataStepStart implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        UUID studyUUID = UUID.fromString(studyId);
 
-        FSObject fsObject = fileDao.retrieveFileByPathNoThrow(loadModel.getTargetPath());
+        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyUUID, loadModel.getTargetPath());
         if (fsObject != null) {
             // OK, some file exists. If this flight created it, then we delete it
             if (StringUtils.equals(fsObject.getFlightId(), context.getFlightId())) {

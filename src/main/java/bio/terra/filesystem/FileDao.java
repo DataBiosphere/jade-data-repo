@@ -19,6 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -69,7 +72,7 @@ public class FileDao {
         StringBuilder pathBuilder = new StringBuilder();
         for (; index < pathDirectoryLength; index++) {
             pathBuilder.append('/').append(pathParts[index]);
-            FSObject fsObject = retrieveFileByPathNoThrow(pathBuilder.toString());
+            FSObject fsObject = retrieveByPathNoThrow(fileToCreate.getStudyId(), pathBuilder.toString());
             if (fsObject == null) {
                 // We found a non-existent directory
                 break;
@@ -83,7 +86,7 @@ public class FileDao {
         pathBuilder = new StringBuilder(existingDirectoryPath);
         for (; index < pathDirectoryLength; index++) {
             pathBuilder.append('/').append(pathParts[index]);
-            FSObject fsObject = makeObject(fileToCreate.getStudyId(), pathBuilder.toString());
+            FSObject fsObject = makeDirectory(fileToCreate.getStudyId(), pathBuilder.toString());
             createObject(fsObject);
         }
 
@@ -93,7 +96,7 @@ public class FileDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID createFileComplete(FSObject fsObject) {
-        FSObject fileToComplete = retrieveFileByIdNoThrow(fsObject.getObjectId());
+        FSObject fileToComplete = retrieveByIdNoThrow(fsObject.getObjectId());
         if (fileToComplete.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new CorruptMetadataException("Unexpected file system object type");
         }
@@ -123,7 +126,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public void createFileCompleteUndo(FSObject fsObject) {
         // Reset to mark the file not preset
-        FSObject file = retrieveFileByIdNoThrow(fsObject.getObjectId());
+        FSObject file = retrieveByIdNoThrow(fsObject.getObjectId());
         if (!StringUtils.equals(file.getFlightId(),
             fsObject.getFlightId())) {
             throw new CorruptMetadataException("Unexpected flight id on file");
@@ -142,7 +145,7 @@ public class FileDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFileForCreateUndo(UUID objectId, String flightId) {
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
@@ -168,7 +171,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFileStart(UUID objectId, String flightId) {
         // Validate existence and state
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
@@ -207,7 +210,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public boolean deleteFileComplete(UUID objectId, String flightId) {
         // Validate existence and state
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return false;
         }
@@ -233,7 +236,7 @@ public class FileDao {
     @Transactional(propagation = Propagation.REQUIRED)
     public void deleteFileStartUndo(UUID objectId, String flightId) {
         // If we are the ones that put the file in DELETING_FILE state, then we revert it to FILE state.
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
             return;
         }
@@ -262,19 +265,21 @@ public class FileDao {
     }
 
     // The worker assumes all object type checks have been done by the caller. If verifies that the file is
-    // not used in a dataset and performs the delete of the object and any empty parents.
+    // not used in a dataset and performs the delete of the object and any empty parents. Some paths to this
+    // worker may have already checked the dataset references. For instance the file delete flight checks for
+    // dependencies in its start step and this will re-check in its complete step.
     private boolean deleteFileWorker(FSObject fsObject) {
         if (hasDatasetReferences(fsObject.getObjectId())) {
             throw new FileSystemObjectDependencyException(
                 "File is used by at least one dataset and cannot be deleted");
         }
         if (deleteObject(fsObject.getObjectId())) {
-            deleteEmptyParents(fsObject.getPath());
+            deleteEmptyParents(fsObject.getStudyId(), fsObject.getPath());
         }
         return true;
     }
 
-    void deleteEmptyParents(String path) {
+    void deleteEmptyParents(UUID studyId, String path) {
         String parentPath = getContainingDirectoryPath(path);
         if (parentPath == null) {
             // We are at the '/'. Nowhere else to go.
@@ -282,8 +287,11 @@ public class FileDao {
         }
 
         String matcher = parentPath + '%';
-        String sql = "SELECT COUNT(*) AS match_count FROM fs_object WHERE path LIKE :matcher";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("matcher", matcher);
+        String sql = "SELECT COUNT(*) AS match_count FROM fs_object" +
+            " WHERE study_id = :study_id AND path LIKE :matcher";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("study_id", studyId)
+            .addValue("matcher", matcher);
         Long matchCount  = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
             rs.getLong("match_count"));
         if (matchCount == null) {
@@ -294,13 +302,13 @@ public class FileDao {
             return;
         }
 
-        FSObject fsObject = retrieveFileByPathNoThrow(parentPath);
+        FSObject fsObject = retrieveByPathNoThrow(studyId, parentPath);
         if (hasDatasetReferences(fsObject.getObjectId())) {
             return;
         }
 
         if (deleteObject(fsObject.getObjectId())) {
-            deleteEmptyParents(parentPath);
+            deleteEmptyParents(studyId, parentPath);
         }
     }
 
@@ -326,32 +334,34 @@ public class FileDao {
         return (datasetCount > 0);
     }
 
-    public FSObject retrieveFile(UUID objectId) {
-        logger.debug("retrieve file id: " + objectId);
-        FSObject fsObject = retrieveFileByIdNoThrow(objectId);
+    public FSObject retrieve(UUID objectId) {
+        logger.debug("retrieve object id: " + objectId);
+        FSObject fsObject = retrieveByIdNoThrow(objectId);
         if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("File not id: " + objectId);
+            throw new FileSystemObjectNotFoundException("Object not found. Requested id is: " + objectId);
         }
         return fsObject;
     }
 
-    FSObject retrieveFileByIdNoThrow(UUID objectId) {
+    FSObject retrieveByIdNoThrow(UUID objectId) {
         String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE object_id = :object_id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("object_id", objectId);
         return retrieveWorker(sql, params);
     }
 
-    public FSObject rerieveFileByPath(String path) {
-        FSObject fsObject = retrieveFileByPathNoThrow(path);
+    public FSObject retrieveByPath(UUID studyId, String path) {
+        FSObject fsObject = retrieveByPathNoThrow(studyId, path);
         if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("File not found - path: '" + path + "'");
+            throw new FileSystemObjectNotFoundException("Object not found - path: '" + path + "'");
         }
         return fsObject;
     }
 
-    public FSObject retrieveFileByPathNoThrow(String path) {
-        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("path", path);
+    public FSObject retrieveByPathNoThrow(UUID studyId, String path) {
+        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path AND study_id = :study_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("path", path)
+            .addValue("study_id", studyId);
         return retrieveWorker(sql, params);
     }
 
@@ -377,8 +387,116 @@ public class FileDao {
         }
     }
 
+    public List<FSObject> enumerateDirectory(FSObject dirObject) {
+        if (dirObject.getObjectType() != FSObject.FSObjectType.DIRECTORY) {
+            throw new InvalidFileSystemObjectTypeException("You can only enumerate directories");
+        }
+
+        List<UUID> objectIdList = enumerateDirectoryIds(dirObject);
+        List<FSObject> fsObjectList = new ArrayList<>();
+        for (UUID objectId : objectIdList) {
+            if (objectId != null) {
+                FSObject fsObject = retrieve(objectId);
+                fsObjectList.add(fsObject);
+            }
+        }
+        return fsObjectList;
+    }
+
+    private List<UUID> enumerateDirectoryIds(FSObject dirObject) {
+        // Build list of objects ids of object that are in the immediate directory
+        // Note that the resulting list has nulls for objects that are on this path
+        // but not in this directory.
+        try {
+            String sql = "SELECT object_id, path FROM fs_object WHERE study_id = :study_id AND path LIKE :pattern";
+            String pathPrefix = dirObject.getPath() + "/";
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("study_id", dirObject.getStudyId())
+                .addValue("pattern", pathPrefix + "%");
+            List<UUID> objectIdList = jdbcTemplate.query(
+                sql,
+                params,
+                (rs, rowNum) -> {
+                    String objectPath = rs.getString("path");
+                    String remaining = StringUtils.removeStart(objectPath, pathPrefix);
+                    if (StringUtils.contains(remaining, '/')) {
+                        // If the remaining string has a /, that means it is below this directory
+                        // and shouldn't be included.
+                        return null;
+                    }
+                    return rs.getObject("object_id", UUID.class);
+                });
+            return objectIdList;
+        } catch (EmptyResultDataAccessException ex) {
+            // it is OK if there are no matches
+        }
+
+        return Collections.emptyList();
+    }
+
+    /**
+     * validate ids from a FILEREF or DIRREF column. Used during data ingest
+     *
+     * @param studyId - study we are checking in
+     * @param refIdArray - refIds to check
+     * @param objectType - type of ids we are checking
+     * @return array of invalid refIds
+     */
+    public List<String> validateRefIds(UUID studyId, List<String> refIdArray, FSObject.FSObjectType objectType) {
+        String sql = "SELECT COUNT(*) AS match_count FROM fs_object " +
+            " WHERE study_id = :study_id AND object_type = :object_type" +
+            " AND object_id::text = :test_id";
+
+        List<String> invalidRefIds = new ArrayList<>();
+
+        // Brute force, but I really want to be able to generate the list of invalid ids and
+        // this is simple. Alternately, could implement a sort-merge join in code here... guk!
+        for (String testId : refIdArray) {
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("test_id", testId)
+                .addValue("study_id", studyId)
+                .addValue("object_type", objectType.toLetter());
+
+            try {
+                Long matchCount = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                    rs.getLong("match_count"));
+                if (matchCount == null || matchCount == 0) {
+                    invalidRefIds.add(testId);
+                }
+            } catch (EmptyResultDataAccessException ex) {
+                invalidRefIds.add(testId);
+            }
+        }
+
+        return invalidRefIds;
+    }
+
+    public void storeDatasetFileDependencies(UUID datasetId, List<String> refIds) {
+        // The ON CONFLICT clause will quietly skip the insert if the
+        // (object_id, dataset_id) pair already exists.
+        // TODO: We will need to revisit this when we do steward operations for modifying references
+        // to files in tabular data. One thing we could do is include the row id and column name
+        // of the row/column making the reference. That would make this table a lot bigger and
+        // very exact.
+        String sql = "INSERT INTO fs_dataset (object_id, dataset_id)" +
+            " VALUES (:object_id, :dataset_id)" +
+            " ON CONFLICT DO NOTHING";
+        for (String refId : refIds) {
+            UUID refUUID = UUID.fromString(refId);
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("object_id", refUUID)
+                .addValue("dataset_id", datasetId);
+            jdbcTemplate.update(sql, params);
+        }
+    }
+
+    public void deleteDatasetFileDependencies(UUID datasetId) {
+        jdbcTemplate.update("DELETE FROM fs_dataset WHERE dataset_id = :dataset_id",
+            new MapSqlParameterSource().addValue("dataset_id", datasetId));
+    }
+
     // Make an FSObject with the path filled in. We set it as a directory.
-    private FSObject makeObject(UUID studyId, String path) {
+    private FSObject makeDirectory(UUID studyId, String path) {
         return new FSObject()
             .studyId(studyId)
             .objectType(FSObject.FSObjectType.DIRECTORY)
@@ -415,7 +533,7 @@ public class FileDao {
         return fsObject.getObjectId();
     }
 
-    public String getContainingDirectoryPath(String path) {
+    String getContainingDirectoryPath(String path) {
         String[] pathParts = StringUtils.split(path, '/');
         if (pathParts.length == 1) {
             // We are at the root; no containing directory

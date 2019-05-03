@@ -1,0 +1,75 @@
+{
+    "name":        "EncodeTest",
+    "description": "Subset encode for test and demo",
+    "schema":      {
+        "tables": [
+            {
+                "name": "donor",
+                "columns": [
+                    {"name": "donor_id", "datatype": "string"},
+                    {"name": "age", "datatype": "integer"},
+                    {"name": "age_units", "datatype": "string"},
+                    {"name": "health_status", "datatype": "string"},
+                    {"name": "more_info", "datatype": "string"},
+                    {"name": "sex", "datatype": "string"}
+                ]
+            },
+            {
+                "name": "file",
+                "columns": [
+                    {"name": "file_id", "datatype": "string"},
+                    {"name": "assay_type", "datatype": "string"},
+                    {"name": "biosamples", "datatype": "string"},
+                    {"name": "biosample_term_id", "datatype": "string"},
+                    {"name": "biosample_type", "datatype": "string"},
+                    {"name": "cell_type", "datatype": "string"},
+                    {"name": "data_quality_category", "datatype": "string"},
+                    {"name": "data_source", "datatype": "string"},
+                    {"name": "data_type", "datatype": "string"},
+                    {"name": "date_file_created", "datatype": "timestamp"},
+                    {"name": "derived_from_exp", "datatype": "string"},
+                    {"name": "derived_from_ref", "datatype": "string"},
+                    {"name": "dna_library_ids", "datatype": "string"},
+                    {"name": "donor_id", "datatype": "string"},
+                    {"name": "experiments", "datatype": "string"},
+                    {"name": "file_available_in_gcs", "datatype": "boolean"},
+                    {"name": "file_format", "datatype": "string"},
+                    {"name": "file_format_subtype", "datatype": "string"},
+                    {"name": "file_ref", "datatype": "fileref"},
+                    {"name": "file_index_ref", "datatype": "fileref"},
+                    {"name": "file_size_mb", "datatype": "integer"},
+                    {"name": "labs_generating_data", "datatype": "string"},
+                    {"name": "md5sum", "datatype": "string"},
+                    {"name": "more_info", "datatype": "string"},
+                    {"name": "paired_end_sequencing", "datatype": "boolean"},
+                    {"name": "percent_aligned_reads", "datatype": "float"},
+                    {"name": "percent_duplicated_reads", "datatype": "float"},
+                    {"name": "read_count", "datatype": "integer"},
+                    {"name": "read_length", "datatype": "integer"},
+                    {"name": "reference_genome_assembly", "datatype": "string"},
+                    {"name": "replicate_ids", "datatype": "string"},
+                    {"name": "target_of_assay", "datatype": "string"}
+                ]
+            }
+        ],
+        "relationships": [
+            {
+                "name": "donor_file",
+                "from": {"table": "donor", "column": "donor_id", "cardinality": "one"},
+                "to":   {"table": "file", "column": "donor_id", "cardinality": "many"}
+            }
+        ],
+        "assets":        [
+            {
+                "name":   "donor_asset",
+                "rootTable": "donor",
+                "rootColumn": "donor_id",
+                "tables": [
+                    {"name": "donor", "columns": []},
+                    {"name": "file", "columns": []}
+                ],
+                "follow": ["donor_file"]
+            }
+        ]
+    }
+}

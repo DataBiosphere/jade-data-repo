@@ -36,8 +36,7 @@ public class IngestFilePrimaryDataStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
 
-        FSObject fsObject = fileDao.retrieveFile(objectId);
-
+        FSObject fsObject = fileDao.retrieve(objectId);
         fsObject = gcsPdao.copyFile(study, fileLoadModel, fsObject);
 
         workingMap.put(FileMapKeys.CHECKSUM_MD5, fsObject.getChecksumMd5());
@@ -49,7 +48,9 @@ public class IngestFilePrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // TODO: delete the GCS file
+        FlightMap workingMap = context.getWorkingMap();
+        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+        gcsPdao.deleteFile(study, objectId);
         return StepResult.getStepResultSuccess();
     }
 

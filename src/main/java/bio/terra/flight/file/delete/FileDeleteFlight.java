@@ -28,10 +28,8 @@ public class FileDeleteFlight extends Flight {
         // 2. pdao does the file delete
         // 3. Metadata complete step: delete the file metadata
 
-        // TODO REVIEWERS: One choice I made that I'd like opinions on. The start step may find that
-        // the file does not exist. In that case, I still execute the rest of the steps. I could put the
-        // existence state into the working map and have the other steps skip doing anything. My thought
-        // is that if the file system data and the bucket storage are out of sync, we can fix it by
+        // NOTE: The start step may find that the file does not exist. In that case, we still execute the rest
+        // of the steps. If the file system data and the bucket storage are out of sync, we can fix it by
         // performing this delete-by-id and it will clean up the bucket or the file system even if they
         // are inconsistent.
         addStep(new DeleteFileMetadataStepStart(fileDao, fileId));

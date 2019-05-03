@@ -25,6 +25,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static bio.terra.fixtures.StudyFixtures.buildAsset;
 import static bio.terra.fixtures.StudyFixtures.buildAssetParticipantTable;
@@ -32,6 +33,10 @@ import static bio.terra.fixtures.StudyFixtures.buildAssetSampleTable;
 import static bio.terra.fixtures.StudyFixtures.buildParticipantSampleRelationship;
 import static bio.terra.fixtures.StudyFixtures.buildSampleTerm;
 import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.startsWith;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -66,12 +71,29 @@ public class StudyValidationsTest {
         return errorModel;
     }
 
+    private void expectBadStudyEnumerateRequest(
+        Integer offset,
+        Integer limit,
+        String expectedMessage) throws Exception {
 
-    private void expectBadStudyEnumerateRequest(Integer offset, Integer limit) throws Exception {
-        mvc.perform(get("/api/repository/v1/studies/{offset}/{limit}", offset, limit)
+        MvcResult result = mvc.perform(get("/api/repository/v1/studies")
+            .param("offset", offset.toString())
+            .param("limit", limit.toString())
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(buildStudyRequest())))
-            .andExpect(status().is4xxClientError());
+            .andExpect(status().is4xxClientError())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseBody = response.getContentAsString();
+
+        assertTrue("Error model was returned on failure",
+            StringUtils.contains(responseBody, "message"));
+
+        ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+        assertThat("correct error message", errorModel.getMessage(), equalTo(expectedMessage));
+        assertTrue("No details expected",
+            (errorModel.getErrorDetail() == null || errorModel.getErrorDetail().size() == 0));
     }
 
     @Test
@@ -91,7 +113,11 @@ public class StudyValidationsTest {
 
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().tables(Arrays.asList(table, table));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("duplicateTableNames", errorModel,
+            new String[]{"DuplicateTableNames", "InvalidRelationshipTermTableColumn",
+                "InvalidRelationshipTermTableColumn", "InvalidAssetTable",
+                "InvalidAssetTableColumn", "InvalidAssetTableColumn", "InvalidRootColumn"});
     }
 
     @Test
@@ -103,24 +129,34 @@ public class StudyValidationsTest {
 
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().tables(Collections.singletonList(table));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("duplicateColumnNames", errorModel,
+            new String[]{"DuplicateColumnNames", "InvalidRelationshipTermTableColumn",
+                "InvalidRelationshipTermTableColumn", "InvalidAssetTable",
+                "InvalidAssetTableColumn", "InvalidAssetTableColumn", "InvalidRootColumn"});
     }
 
     @Test
     public void testMissingAssets() throws Exception {
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(null);
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("missingAssets", errorModel,
+            new String[]{"NotNull"});
 
         req.getSchema().assets(Collections.emptyList());
-        expectBadStudyCreateRequest(req);
+        errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("missingAssets", errorModel,
+            new String[]{"NoAssets"});
     }
 
     @Test
     public void testDuplicateAssetNames() throws Exception {
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("duplicateAssetNames", errorModel,
+            new String[]{"DuplicateAssetNames"});
     }
 
     @Test
@@ -128,7 +164,9 @@ public class StudyValidationsTest {
         StudyRequestModel req = buildStudyRequest();
         RelationshipModel relationship = buildParticipantSampleRelationship();
         req.getSchema().relationships(Arrays.asList(relationship, relationship));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("duplicateRelationshipNames", errorModel,
+            new String[]{"DuplicateRelationshipNames"});
     }
 
     @Test
@@ -145,7 +183,9 @@ public class StudyValidationsTest {
 
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(Collections.singletonList(asset));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("invalidAssetTable", errorModel,
+            new String[]{"NotNull", "InvalidAssetTable", "InvalidRootColumn"});
     }
 
     @Test
@@ -164,7 +204,9 @@ public class StudyValidationsTest {
 
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(Collections.singletonList(asset));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("invalidAssetTableColumn", errorModel,
+            new String[]{"InvalidAssetTableColumn", "InvalidRootColumn"});
     }
 
     @Test
@@ -176,7 +218,9 @@ public class StudyValidationsTest {
 
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(Collections.singletonList(asset));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("invalidFollowsRelationship", errorModel,
+            new String[]{"NotNull", "NotNull", "NoRootTable", "InvalidFollowsRelationship"});
     }
 
     @Test
@@ -194,7 +238,9 @@ public class StudyValidationsTest {
 
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("invalidRelationshipTermTableColumn", errorModel,
+            new String[]{"InvalidRelationshipTermTableColumn"});
     }
 
 
@@ -207,29 +253,40 @@ public class StudyValidationsTest {
             .follow(Collections.singletonList("participant_sample"));
         StudyRequestModel req = buildStudyRequest();
         req.getSchema().assets(Collections.singletonList(noRoot));
-        expectBadStudyCreateRequest(req);
+        ErrorModel errorModel = expectBadStudyCreateRequest(req);
+        checkValidationErrorModel("noRootTable", errorModel, new String[]{"NotNull","NotNull","NoRootTable"});
     }
 
     @Test
     public void testStudyNameInvalid() throws Exception {
-        expectBadStudyCreateRequest(buildStudyRequest().name("no spaces"));
-        expectBadStudyCreateRequest(buildStudyRequest().name("no-dashes"));
-        expectBadStudyCreateRequest(buildStudyRequest().name(""));
+        ErrorModel errorModel = expectBadStudyCreateRequest(buildStudyRequest().name("no spaces"));
+        checkValidationErrorModel("studyNameInvalid", errorModel, new String[]{"StudyNameInvalid"});
+
+        errorModel = expectBadStudyCreateRequest(buildStudyRequest().name("no-dashes"));
+        checkValidationErrorModel("studyNameInvalid", errorModel, new String[]{"StudyNameInvalid"});
+
+        errorModel = expectBadStudyCreateRequest(buildStudyRequest().name(""));
+        checkValidationErrorModel("studyNameInvalid", errorModel, new String[]{"StudyNameInvalid"});
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        expectBadStudyCreateRequest(buildStudyRequest().name(tooLong));
+        errorModel = expectBadStudyCreateRequest(buildStudyRequest().name(tooLong));
+        checkValidationErrorModel("studyNameInvalid", errorModel, new String[]{"StudyNameInvalid"});
     }
 
     @Test
     public void testStudyNameMissing() throws Exception {
-        expectBadStudyCreateRequest(buildStudyRequest().name(null));
+        ErrorModel errorModel = expectBadStudyCreateRequest(buildStudyRequest().name(null));
+        checkValidationErrorModel("studyNameMissing", errorModel,
+            new String[]{"NotNull", "StudyNameMissing"});
     }
 
     @Test
     public void testStudyEnumerateValidations() throws Exception {
-        expectBadStudyEnumerateRequest(-1, 3);
-        expectBadStudyEnumerateRequest(0, 1);
+        expectBadStudyEnumerateRequest(-1, 3, "Offset must be greater than or equal to 0.");
+        expectBadStudyEnumerateRequest(1, 0, " Limit must be greater than or equal to 1.");
+        expectBadStudyEnumerateRequest(-1, 0,
+            "Offset must be greater than or equal to 0. Limit must be greater than or equal to 1.");
 
         mvc.perform(get("/api/repository/v1/studies/")
             .contentType(MediaType.APPLICATION_JSON)
@@ -237,4 +294,18 @@ public class StudyValidationsTest {
             .andExpect(status().isOk());
     }
 
+    private void checkValidationErrorModel(String context,
+                                           ErrorModel errorModel,
+                                           String[] messageCodes) {
+        List<String> details = errorModel.getErrorDetail();
+        int requiredDetailSize = messageCodes.length;
+        assertThat("Got the expected error details", details.size(), equalTo(requiredDetailSize));
+        assertThat("Main message is right",
+            errorModel.getMessage(), containsString("Validation errors - see error details"));
+        for (int i = 0; i < messageCodes.length; i++) {
+            String code = messageCodes[i];
+            assertThat(context + ": correct message code (" + i + ")",
+                details.get(i), startsWith(messageCodes[i]));
+        }
+    }
 }

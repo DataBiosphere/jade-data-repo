@@ -52,7 +52,8 @@ public class IngestValidateRefsStep implements Step {
 
         int invalidIdCount = invalidRefIds.size();
         if (invalidIdCount != 0) {
-            String errorMessage = "Invalid file ids found during ingest (";
+            // Made a string buffer to appease findbugs; it saw + in the loop and said "bad!"
+            StringBuffer errorMessage = new StringBuffer("Invalid file ids found during ingest (");
 
             List<String> errorDetails = new ArrayList<>();
             int count = 0;
@@ -60,12 +61,12 @@ public class IngestValidateRefsStep implements Step {
                 errorDetails.add(badId);
                 count++;
                 if (count > MAX_ERROR_REF_IDS) {
-                    errorMessage += MAX_ERROR_REF_IDS + "out of ";
+                    errorMessage.append(MAX_ERROR_REF_IDS + "out of ");
                     break;
                 }
             }
-            errorMessage += invalidIdCount + " returned in details)";
-            throw new InvalidFileRefException(errorMessage, errorDetails);
+            errorMessage.append(invalidIdCount + " returned in details)");
+            throw new InvalidFileRefException(errorMessage.toString(), errorDetails);
         }
 
         return StepResult.getStepResultSuccess();

@@ -15,8 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -131,7 +129,7 @@ public class StudyDao {
                     .id(rs.getObject("id", UUID.class))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
-                    .createdDate(Instant.from(rs.getObject("created_date", OffsetDateTime.class)));
+                    .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }
 }

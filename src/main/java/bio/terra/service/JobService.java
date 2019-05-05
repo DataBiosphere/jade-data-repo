@@ -8,7 +8,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
-import org.apache.commons.lang3.time.FastDateFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,22 +32,17 @@ public class JobService {
     }
 
     private final Stairway stairway;
-    private final FastDateFormat modelDateFormat;
 
     @Autowired
-    public JobService(
-            Stairway stairway,
-            FastDateFormat modelDateFormat
-    ) {
+    public JobService(Stairway stairway) {
         this.stairway = stairway;
-        this.modelDateFormat = modelDateFormat;
     }
 
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
         FlightMap inputParameters = flightState.getInputParameters();
         String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
         FlightStatus flightStatus = flightState.getFlightStatus();
-        String submittedDate = modelDateFormat.format(flightState.getSubmitted());
+        String submittedDate = flightState.getSubmitted().toString();
         JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
 
         String completedDate = null;
@@ -63,7 +57,7 @@ public class JobService {
                 statusCode = HttpStatus.OK;
             }
 
-            completedDate = modelDateFormat.format(flightState.getCompleted().get());
+            completedDate = flightState.getCompleted().get().toString();
         }
 
         JobModel jobModel = new JobModel()

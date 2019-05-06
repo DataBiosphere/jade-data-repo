@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
@@ -16,7 +17,6 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
-import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestContentsModel;
@@ -29,7 +29,6 @@ import bio.terra.model.TableModel;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
-import org.apache.commons.lang3.time.FastDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,17 +48,14 @@ public class DatasetService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
-    private final FastDateFormat modelDateFormat;
 
     @Autowired
     public DatasetService(Stairway stairway,
                           StudyDao studyDao,
-                          DatasetDao datasetDao,
-                          FastDateFormat modelDateFormat) {
+                          DatasetDao datasetDao) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
-        this.modelDateFormat = modelDateFormat;
     }
 
     /**
@@ -230,14 +226,11 @@ public class DatasetService {
     }
 
     public DatasetSummaryModel makeSummaryModelFromSummary(DatasetSummary datasetSummary) {
-        logger.debug("makeSummaryModelFromSummary");
-        String createdDateString = modelDateFormat.format(datasetSummary.getCreatedDate());
-
         DatasetSummaryModel summaryModel = new DatasetSummaryModel()
                 .id(datasetSummary.getId().toString())
                 .name(datasetSummary.getName())
                 .description(datasetSummary.getDescription())
-                .createdDate(createdDateString);
+                .createdDate(datasetSummary.getCreatedDate().toString());
         return summaryModel;
     }
 
@@ -246,7 +239,7 @@ public class DatasetService {
                 .id(dataset.getId().toString())
                 .name(dataset.getName())
                 .description(dataset.getDescription())
-                .createdDate(modelDateFormat.format(dataset.getCreatedDate()))
+                .createdDate(dataset.getCreatedDate().toString())
                 .source(dataset.getDatasetSources()
                         .stream()
                         .map(source -> makeSourceModelFromSource(source))

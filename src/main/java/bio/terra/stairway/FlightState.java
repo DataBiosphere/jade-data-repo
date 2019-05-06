@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Optional;
 
 /**
@@ -11,8 +11,8 @@ public class FlightState {
     private String flightId;
     private FlightStatus flightStatus;
     private FlightMap inputParameters;
-    private Timestamp submitted;
-    private Optional<Timestamp> completed;
+    private Instant submitted;
+    private Optional<Instant> completed;
     private Optional<FlightMap> resultMap;  // filled in when flightStatus is SUCCESS
     private Optional<Exception> exception;  // filled in when flightStatus is ERROR or FATAL
 
@@ -44,21 +44,20 @@ public class FlightState {
         this.inputParameters.makeImmutable();
     }
 
-    public Timestamp getSubmitted() {
-        // Return an immutable copy of the timestamp - just for findbugs
-        return new Timestamp(submitted.getTime());
+    public Instant getSubmitted() {
+        return submitted;
     }
 
-    public void setSubmitted(Timestamp submitted) {
+    public void setSubmitted(Instant submitted) {
         // Make our own copy of the incoming object
-        this.submitted = new Timestamp(submitted.getTime());
+        this.submitted = submitted;
     }
 
-    public Optional<Timestamp> getCompleted() {
+    public Optional<Instant> getCompleted() {
         return completed;
     }
 
-    public void setCompleted(Optional<Timestamp> completed) {
+    public void setCompleted(Optional<Instant> completed) {
         this.completed = completed;
     }
 

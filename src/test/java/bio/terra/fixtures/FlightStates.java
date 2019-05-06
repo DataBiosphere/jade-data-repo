@@ -7,8 +7,6 @@ import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import org.springframework.http.HttpStatus;
 
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -19,12 +17,10 @@ public final class FlightStates {
     private FlightStates() {}
 
     public static final String testFlightId = "test-flight-id";
-    public static final Timestamp submittedTime = Timestamp.from(Instant.now());
-    public static final String submittedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-            .format(submittedTime);
-    public static final Timestamp completedTime = Timestamp.from(Instant.now());
-    public static final String completedTimeFormatted = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS")
-            .format(completedTime);
+    public static final Instant submittedTime = Instant.now();
+    public static final String submittedTimeFormatted = submittedTime.toString();
+    public static final Instant completedTime = Instant.now();
+    public static final String completedTimeFormatted = completedTime.toString();
 
 
     public static FlightState makeFlightSimpleState() {
@@ -36,10 +32,10 @@ public final class FlightStates {
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
         flightState.setFlightStatus(FlightStatus.SUCCESS);
-        flightState.setSubmitted(Timestamp.from(Instant.now()));
+        flightState.setSubmitted(Instant.now());
         flightState.setInputParameters(resultMap); // unused
         flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.of(Timestamp.from(Instant.now())));
+        flightState.setCompleted(Optional.of(Instant.now()));
         flightState.setException(Optional.empty());
         return flightState;
     }

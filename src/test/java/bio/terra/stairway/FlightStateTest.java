@@ -4,7 +4,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -21,7 +20,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class FlightStateTest {
     private static String bad = "bad bad bad";
     private FlightState result;
-    private Timestamp timestamp;
+    private Instant timestamp;
 
     @Before
     public void setup() {
@@ -35,7 +34,7 @@ public class FlightStateTest {
         outputs.put(skey, strValue);
         outputs.put(fkey, dubValue);
 
-        timestamp = Timestamp.from(Instant.now());
+        timestamp = Instant.now();
 
         result = new FlightState();
         result.setFlightId(flightId);

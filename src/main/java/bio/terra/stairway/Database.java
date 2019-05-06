@@ -319,7 +319,7 @@ public class Database {
             // Flight data that is always present
             flightState.setFlightId(rs.getString("flightid"));
             flightState.setFlightStatus(FlightStatus.valueOf(rs.getString("status")));
-            flightState.setSubmitted(rs.getTimestamp("submit_time"));
+            flightState.setSubmitted(rs.getTimestamp("submit_time").toInstant());
 
             FlightMap inputParameters = new FlightMap();
             inputParameters.fromJson(rs.getString("input_parameters"));
@@ -333,7 +333,7 @@ public class Database {
                 flightState.setResultMap(Optional.empty());
             } else {
                 // If the optional flight data is present, then we fill it in
-                flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time")));
+                flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time").toInstant()));
                 flightState.setException(Optional.ofNullable(
                     getExceptionFromJson(rs.getString("exception"))));
                 String outputParamsJson = rs.getString("output_parameters");

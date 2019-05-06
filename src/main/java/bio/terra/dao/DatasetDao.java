@@ -17,7 +17,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -55,9 +54,9 @@ public class DatasetDao {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID datasetId = keyHolder.getId();
-        Timestamp createdDate = keyHolder.getTimestamp("created_date");
-        dataset.id(datasetId)
-                .createdDate(createdDate);
+        dataset
+            .id(datasetId)
+            .createdDate(keyHolder.getCreatedDate());
         datasetTableDao.createTables(datasetId, dataset.getTables());
 
         for (DatasetSource datasetSource : dataset.getDatasetSources()) {
@@ -124,7 +123,7 @@ public class DatasetDao {
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
-                            .createdDate(rs.getTimestamp("created_date")));
+                            .createdDate(rs.getTimestamp("created_date").toInstant()));
             // needed for fix bugs. but really can't be null
             if (dataset != null) {
                 // retrieve the dataset tables
@@ -192,17 +191,14 @@ public class DatasetDao {
                 " ORDER BY created_date OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("offset", offset)
                 .addValue("limit", limit);
-        List<DatasetSummary> summaries = jdbcTemplate.query(
-            sql,
-            params,
-            (rs, rowNum) -> {
-                DatasetSummary summary = new DatasetSummary()
-                        .id(UUID.fromString(rs.getString("id")))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .createdDate(rs.getTimestamp("created_date"));
-                return summary;
-            });
+        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            DatasetSummary summary = new DatasetSummary()
+                .id(UUID.fromString(rs.getString("id")))
+                .name(rs.getString("name"))
+                .description(rs.getString("description"))
+                .createdDate(rs.getTimestamp("created_date").toInstant());
+            return summary;
+        });
         return summaries;
     }
 
@@ -217,7 +213,7 @@ public class DatasetDao {
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
-                            .createdDate(rs.getTimestamp("created_date")));
+                            .createdDate(rs.getTimestamp("created_date").toInstant()));
             return datasetSummary;
         } catch (EmptyResultDataAccessException ex) {
             throw new DatasetNotFoundException("Dataset not found - id: " + id);
@@ -238,7 +234,7 @@ public class DatasetDao {
                         .id(UUID.fromString(rs.getString("id")))
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))
-                        .createdDate(rs.getTimestamp("created_date"));
+                        .createdDate(rs.getTimestamp("created_date").toInstant());
                     return summary;
                 });
             return summaries;

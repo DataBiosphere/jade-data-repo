@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import org.apache.commons.lang3.time.FastDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,11 +40,6 @@ public class ApplicationConfiguration {
     @Bean("jdbcTemplate")
     public NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(DataRepoJdbcConfiguration jdbcConfiguration) {
         return new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-    }
-
-    @Bean("modelDateFormat")
-    public FastDateFormat modelDateFormat() {
-        return FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss.SSS");
     }
 
     @Bean("objectMapper")

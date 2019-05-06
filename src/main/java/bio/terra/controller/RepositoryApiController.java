@@ -175,6 +175,59 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
+    // --study policies --
+    @Override
+    public ResponseEntity<PolicyResponse> addStudyPolicyMember(
+        @PathVariable("id") String id,
+        /*@Valid*/ @PathVariable("policyName") String policyName,
+        /*@Valid*/ @RequestBody PolicyMemberRequest policyMember) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.addPolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    UUID.fromString(id),
+                    policyName,
+                    policyMember.getEmail())));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> retrieveStudyPolicies(@PathVariable("id") String id) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(
+                samService.retrievePolicies(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    UUID.fromString(id)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> deleteStudyPolicyMember(
+        @PathVariable("id") String id,
+        /*@Valid*/ @PathVariable("policyName") String policyName,
+        @PathVariable("memberEmail") String memberEmail) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.deletePolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    UUID.fromString(id),
+                    policyName,
+                    memberEmail)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            logger.error("got error from sam", ex);
+            throw new InternalServerErrorException(ex);
+        }
+    }
     // -- dataset --
     @Override
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {

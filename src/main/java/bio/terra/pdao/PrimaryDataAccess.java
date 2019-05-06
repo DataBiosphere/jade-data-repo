@@ -4,7 +4,6 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
-import bio.terra.pdao.bigquery.BigQueryContainerInfo;
 
 import java.util.List;
 
@@ -78,10 +77,11 @@ public interface PrimaryDataAccess {
     /**
      * Create the container, tables and views for a dataset.
      * BigQuery: container is a BigQuery dataset
-     *  @param dataset
+     * @param dataset
      * @param rowIds - row ids for the root table
+     * @param readersGroup - the email for the readers group for the dataset
      */
-    BigQueryContainerInfo createDataset(Dataset dataset, List<String> rowIds);
+    void createDataset(Dataset dataset, List<String> rowIds, String readersGroup);
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted
@@ -102,14 +102,18 @@ public interface PrimaryDataAccess {
 
     /**
      * Update the athorized views on the study to include the tables in the dataset
-     * @param bqInfo object with study and tables names to update
+     * @param datasetName
+     * @param studyName
+     * @param tableNames
      */
-    void authorizeDatasetViewsForStudies(BigQueryContainerInfo bqInfo);
+    void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames);
 
     /**
      * Remove the athorized views for the dataset from the study
-     * @param bqInfo object with study and tables names to remove
+     * @param datasetName
+     * @param studyName
+     * @param tableNames
      */
-    void removeDatasetAuthorizationFromStudies(BigQueryContainerInfo bqInfo);
+    void removeDatasetAuthorizationFromStudy(String datasetName, String studyName, List<String> tableNames);
 
 }

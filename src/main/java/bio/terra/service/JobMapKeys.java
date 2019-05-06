@@ -8,7 +8,7 @@ public enum JobMapKeys {
     STATUS_CODE("status_code"),
     USER_INFO("user_info"),
     STUDY_ID("studyId"),
-    BQ_DATASET_INFO("bqDatasetInfo");
+    READERS_GROUP("readersGroup");
 
     private String keyName;
 

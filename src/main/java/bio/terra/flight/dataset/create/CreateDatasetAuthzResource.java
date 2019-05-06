@@ -3,7 +3,6 @@ package bio.terra.flight.dataset.create;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
-import bio.terra.pdao.bigquery.BigQueryContainerInfo;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
@@ -30,13 +29,10 @@ public class CreateDatasetAuthzResource implements Step {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
-        BigQueryContainerInfo bqInfo = context.getWorkingMap().get(
-            JobMapKeys.BQ_DATASET_INFO.getKeyName(), BigQueryContainerInfo.class);
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
             String readersEmail = sam.createDatasetResource(userReq, datasetId);
-            bqInfo.readersEmail(readersEmail);
-            context.getWorkingMap().put(JobMapKeys.BQ_DATASET_INFO.getKeyName(), bqInfo);
+            workingMap.put(JobMapKeys.READERS_GROUP.getKeyName(), readersEmail);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }

@@ -51,7 +51,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -194,7 +193,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public BigQueryContainerInfo createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
+    public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds, String readersGroup) {
         String datasetName = dataset.getName();
         try {
             // Idempotency: delete possibly partial create.
@@ -204,7 +203,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             // for the dataset, set the authorized view info
             DatasetId bqDatasetId = createContainer(datasetName, dataset.getDescription());
-            BigQueryContainerInfo bqInfo = new BigQueryContainerInfo().bqDatasetId(bqDatasetId.getDataset());
 
             // create the row id table
             createRowIdTable(datasetName);
@@ -225,9 +223,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             // create the views
             List<String> bqTableNames = createViews(studyDatasetName, datasetName, dataset);
-            bqInfo.addTables(studyDatasetName, bqTableNames);
-            return bqInfo;
 
+            // set authorization on views
+            authorizeDatasetViewsForStudy(studyDatasetName, studyDatasetName, bqTableNames);
+            addReaderGroupToDataset(datasetName, readersGroup);
         } catch (Exception ex) {
             throw new PdaoException("createDataset failed", ex);
         }
@@ -236,30 +235,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // for each study that is a part of the dataset, we will add Acls for the
     // dataset tables from that study
     @Override
-    public void authorizeDatasetViewsForStudies(BigQueryContainerInfo bqInfo) {
-        convertToStudyAndViewAcls(bqInfo.getBqDatasetId(), bqInfo.getStudyToBQTableNames())
-            .entrySet().stream().forEach(entry -> {
-                addAclsToBQDataset(entry.getKey(), entry.getValue());
-            }
-            );
+    public void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames) {
+        addAclsToBQDataset(studyName, convertToViewAcls(datasetName, tableNames));
     }
 
     @Override
-    public void removeDatasetAuthorizationFromStudies(BigQueryContainerInfo bqInfo) {
-        convertToStudyAndViewAcls(bqInfo.getBqDatasetId(), bqInfo.getStudyToBQTableNames())
-            .entrySet().stream().forEach(entry -> {
-                removeAclsFromBQDataset(entry.getKey(), entry.getValue());
-            }
-            );
+    public void removeDatasetAuthorizationFromStudy(String datasetName, String studyName, List<String> tableNames) {
+        removeAclsFromBQDataset(studyName, convertToViewAcls(datasetName, tableNames));
     }
 
-    private Map<String, List<Acl>> convertToStudyAndViewAcls(
-        String datasetName, Map<String, List<String>> studyToListTables) {
-        return studyToListTables.entrySet().stream().collect(Collectors.toMap(
-            entry -> entry.getKey(),
-            entry -> entry.getValue().stream().map(tableName ->
-                makeViewAcl(datasetName, tableName)).collect(Collectors.toList())
-        ));
+    private List<Acl> convertToViewAcls(
+        String datasetName, List<String> tableNames) {
+        return tableNames.stream().map(tableName ->
+                makeViewAcl(datasetName, tableName)).collect(Collectors.toList());
     }
 
     private Acl makeViewAcl(String datasetName, String tableName) {
@@ -299,6 +287,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
+        List<DatasetSource> sources = dataset.getDatasetSources();
+        sources.stream().forEach(dsSource ->
+                removeDatasetAuthorizationFromStudy(dataset.getName(), dsSource.getStudy().getName(),
+                dsSource.getAssetSpecification().getAssetTables().stream().map(assetTable ->
+                    assetTable.getTable().getName()).collect(Collectors.toList())));
         return deleteContainer(dataset.getName());
     }
 
@@ -565,7 +558,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    public String prefixName(String name) {
+    private String prefixName(String name) {
         return PDAO_PREFIX + name;
     }
 
@@ -839,10 +832,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 buildColumnList(builder, table, false);
                 builder.append(" FROM ");
 
-            // Build the FROM clause from the source
-            // NOTE: we can put this in a loop when we do multiple sources
-            DatasetSource source = dataset.getDatasetSources().get(0);
-            buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
+                // Build the FROM clause from the source
+                // NOTE: we can put this in a loop when we do multiple sources
+                DatasetSource source = dataset.getDatasetSources().get(0);
+                buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
 
                 // create the view
                 String tableName = table.getName();

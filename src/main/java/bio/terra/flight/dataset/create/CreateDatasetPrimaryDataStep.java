@@ -10,7 +10,6 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.pdao.bigquery.BigQueryContainerInfo;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
@@ -51,6 +50,10 @@ public class CreateDatasetPrimaryDataStep implements Step {
         return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
     }
 
+    String getReadersGroup(FlightContext context) {
+        return context.getWorkingMap().get(JobMapKeys.READERS_GROUP.getKeyName(), String.class);
+    }
+
     @Override
     public StepResult doStep(FlightContext context) {
         /*
@@ -71,9 +74,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         }
 
 
-        BigQueryContainerInfo bqInfo = bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
-        context.getWorkingMap().put(JobMapKeys.BQ_DATASET_INFO.getKeyName(), bqInfo);
-        bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
+        bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds(), getReadersGroup(context));
 
         // Add file references to the dependency table. The algorithm is:
         // Loop through sources, loop through map tables, loop through map columns

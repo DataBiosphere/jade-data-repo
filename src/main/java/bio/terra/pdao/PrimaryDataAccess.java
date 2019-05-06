@@ -79,9 +79,8 @@ public interface PrimaryDataAccess {
      * BigQuery: container is a BigQuery dataset
      * @param dataset
      * @param rowIds - row ids for the root table
-     * @param readersGroup - the email for the readers group for the dataset
      */
-    void createDataset(Dataset dataset, List<String> rowIds, String readersGroup);
+    void createDataset(Dataset dataset, List<String> rowIds);
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted

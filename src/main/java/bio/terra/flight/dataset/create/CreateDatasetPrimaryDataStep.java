@@ -50,10 +50,6 @@ public class CreateDatasetPrimaryDataStep implements Step {
         return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
     }
 
-    String getReadersGroup(FlightContext context) {
-        return context.getWorkingMap().get(JobMapKeys.READERS_GROUP.getKeyName(), String.class);
-    }
-
     @Override
     public StepResult doStep(FlightContext context) {
         /*
@@ -74,7 +70,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         }
 
 
-        bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds(), getReadersGroup(context));
+        bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:
         // Loop through sources, loop through map tables, loop through map columns

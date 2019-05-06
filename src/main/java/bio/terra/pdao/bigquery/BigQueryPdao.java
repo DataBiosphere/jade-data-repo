@@ -193,7 +193,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds, String readersGroup) {
+    public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
         String datasetName = dataset.getName();
         try {
             // Idempotency: delete possibly partial create.
@@ -201,8 +201,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 deleteContainer(datasetName);
             }
 
-            // for the dataset, set the authorized view info
-            DatasetId bqDatasetId = createContainer(datasetName, dataset.getDescription());
+            createContainer(datasetName, dataset.getDescription());
 
             // create the row id table
             createRowIdTable(datasetName);
@@ -225,8 +224,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             List<String> bqTableNames = createViews(studyDatasetName, datasetName, dataset);
 
             // set authorization on views
-            authorizeDatasetViewsForStudy(studyDatasetName, studyDatasetName, bqTableNames);
-            addReaderGroupToDataset(datasetName, readersGroup);
+            authorizeDatasetViewsForStudy(datasetName, studyDatasetName, bqTableNames);
         } catch (Exception ex) {
             throw new PdaoException("createDataset failed", ex);
         }
@@ -274,11 +272,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private void removeAclsFromBQDataset(String datasetId, List<Acl> acls) {
         Dataset dataset = bigQuery.getDataset(datasetId);
-        Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
-        datasetAcls.removeAll(acls);
-        logger.debug("new bq acls: " + datasetAcls.toString());
-        logger.debug("acls removed: " + acls.toString());
-        updateDataset(dataset.toBuilder().setAcl(new ArrayList(datasetAcls)).build());
+        if (dataset != null) {  // can be null if create dataset step failed before it was created
+            Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
+            datasetAcls.removeAll(acls);
+            logger.debug("new bq acls: " + datasetAcls.toString());
+            logger.debug("acls removed: " + acls.toString());
+            updateDataset(dataset.toBuilder().setAcl(new ArrayList(datasetAcls)).build());
+        }
     }
 
     public void updateDataset(DatasetInfo info) {

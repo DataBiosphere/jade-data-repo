@@ -10,8 +10,10 @@ import bio.terra.model.FileModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -29,6 +31,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -46,6 +51,13 @@ public class ConnectedOperations {
     private List<String> createdStudyIds;
     private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
 
+
+    public static void stubOutSamCalls(SamClientService samService) throws ApiException {
+        when(samService.createDatasetResource(any(), any())).thenReturn("hi@hi.com");
+        doNothing().when(samService).createStudyResource(any(), any());
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
+    }
 
     public ConnectedOperations(MockMvc mvc,
                                ObjectMapper objectMapper,

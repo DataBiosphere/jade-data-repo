@@ -47,9 +47,11 @@ import java.io.BufferedReader;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -73,6 +75,8 @@ public class EncodeFileTest {
     @Autowired private Storage storage;
     @Autowired private BigQuery bigQuery;
     @Autowired private String bigQueryProjectId;
+
+    private static final String ID_GARBAGE = "GARBAGE";
 
     @MockBean
     private SamClientService samService;
@@ -100,7 +104,7 @@ public class EncodeFileTest {
     @Test
     public void encodeFileTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), false);
+        String targetPath = loadFiles(studySummary.getId(), false, false);
         String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -164,7 +168,7 @@ public class EncodeFileTest {
     @Test
     public void encodeFileBadFileId() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), true);
+        String targetPath = loadFiles(studySummary.getId(), true, false);
         String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -185,6 +189,10 @@ public class EncodeFileTest {
         assertThat("correctly found bad file id",
             ingestError.getMessage(), containsString("Invalid file ids found"));
 
+        List<String> errorDetails = ingestError.getErrorDetail();
+        assertNotNull("Error details were returned", errorDetails);
+        assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
+
         // Delete the scratch blob
         Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
         if (scratchBlob != null) {
@@ -192,7 +200,48 @@ public class EncodeFileTest {
         }
     }
 
-        // TODO: Bundle testing - complete when we have a method for getting a bundle id
+    @Test
+    public void encodeFileBadRowTest() throws Exception {
+        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        String targetPath = loadFiles(studySummary.getId(), false, true);
+        String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
+
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("file")
+            .path(gsPath);
+
+        String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
+        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
+
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+        ErrorModel ingestError = connectedOperations.handleAsyncFailureCase(response);
+        assertThat("correctly found bad row",
+            ingestError.getMessage(), equalTo("Ingest failed with 2 errors - see error details"));
+
+        List<String> errorDetails = ingestError.getErrorDetail();
+        assertNotNull("Error details were returned", errorDetails);
+        assertThat("Big query returned in details 0", errorDetails.get(0),
+            equalTo("BigQueryError: reason=invalid message=Error while reading data, error message: " +
+                "JSON table encountered too many errors, giving up. Rows: 1; errors: 1. Please look into the " +
+                "errors[] collection for more details."));
+        assertThat("Big query returned in details 1", errorDetails.get(1),
+            equalTo("BigQueryError: reason=invalid message=Error while reading data, error message: " +
+                "JSON parsing error in row starting at position 0: Parser terminated before end of string"));
+
+        // Delete the scratch blob
+        Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
+        if (scratchBlob != null) {
+            scratchBlob.delete();
+        }
+    }
+
+    // TODO: Bundle testing - complete when we have a method for getting a bundle id
     private void getOneBundle(String bundleId) throws Exception {
         String url = "/ga4gh/drs/v1/bundles/" + bundleId;
         MvcResult result = mvc.perform(get(url)).andReturn();
@@ -203,7 +252,7 @@ public class EncodeFileTest {
         }
     }
 
-    private String loadFiles(String studyId, boolean insertBadId) throws Exception {
+    private String loadFiles(String studyId, boolean insertBadId, boolean insertBadRow) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -225,6 +274,7 @@ public class EncodeFileTest {
              BufferedReader reader = new BufferedReader(Channels.newReader(sourceBlob.reader(), "UTF-8"))) {
 
             boolean badIdInserted = false;
+            boolean badRowInserted = false;
             String line = null;
             while ((line = reader.readLine()) != null) {
                 EncodeFileIn encodeFileIn = objectMapper.readValue(line, EncodeFileIn.class);
@@ -237,7 +287,7 @@ public class EncodeFileTest {
                     FileModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
-                        bamFileId = bamFile.getFileId() + "A";
+                        bamFileId = bamFile.getFileId() + ID_GARBAGE;
                         badIdInserted = true;
                     } else {
                         bamFileId = bamFile.getFileId();
@@ -252,7 +302,12 @@ public class EncodeFileTest {
                 }
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
-                String fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
+                String fileLine;
+                if (insertBadRow && !badRowInserted) {
+                    fileLine = "{\"fribbitz\";\"ABCDEFG\"}\n";
+                } else {
+                    fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
+                }
                 writer.write(ByteBuffer.wrap(fileLine.getBytes("UTF-8")));
             }
         }

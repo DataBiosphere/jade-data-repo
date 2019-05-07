@@ -269,14 +269,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         if (loadJob.getStatus().getError() != null) {
-            // TODO: DR-263:
-            //List<BigQueryError> errors = loadJob.getStatus().getExecutionErrors();
-            // For now, we just throw an error based on the last error reported from the
-            // load job.
-            // TODO: also, understand what reasons are. Some might be retryable by Stairway.
-            // Others are not, like bad input data.
-            BigQueryError lastError = loadJob.getStatus().getError();
-            throw new IngestFailureException("Ingest failed: " + lastError.toString());
+            List<String> loadErrors = new ArrayList<>();
+            List<BigQueryError> bigQueryErrors = loadJob.getStatus().getExecutionErrors();
+            for (BigQueryError bigQueryError : bigQueryErrors) {
+                loadErrors.add("BigQueryError: reason=" + bigQueryError.getReason() +
+                    " message=" + bigQueryError.getMessage());
+            }
+            throw new IngestFailureException(
+                "Ingest failed with " + loadErrors.size() + " errors - see error details",
+                loadErrors);
         }
 
         // Job completed successfully

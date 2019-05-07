@@ -1,6 +1,7 @@
 package bio.terra.validation;
 
 import bio.terra.model.IngestRequestModel;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -26,11 +27,13 @@ public class IngestRequestValidator implements Validator {
     }
 
     @Override
+    @SuppressFBWarnings(
+        value = "UC_USELESS_VOID_METHOD",
+        justification = "FB mistake - this clearly validates and returns data in errors")
     public void validate(@NotNull Object target, Errors errors) {
-        if (target != null && target instanceof IngestRequestModel) {
+        if (target instanceof IngestRequestModel) {
             IngestRequestModel ingestRequest = (IngestRequestModel) target;
             validateTableName(ingestRequest.getTable(), errors);
-            // TODO: validate format?
         }
     }
 }

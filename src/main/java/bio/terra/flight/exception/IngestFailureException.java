@@ -2,6 +2,8 @@ package bio.terra.flight.exception;
 
 import bio.terra.exception.BadRequestException;
 
+import java.util.List;
+
 public class IngestFailureException extends BadRequestException {
     public IngestFailureException(String message) {
         super(message);
@@ -13,5 +15,9 @@ public class IngestFailureException extends BadRequestException {
 
     public IngestFailureException(Throwable cause) {
         super(cause);
+    }
+
+    public IngestFailureException(String message, List<String> errorDetail) {
+        super(message, errorDetail);
     }
 }

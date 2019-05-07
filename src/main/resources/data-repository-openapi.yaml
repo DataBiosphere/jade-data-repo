@@ -1410,13 +1410,20 @@ definitions:
 
   ErrorModel:
     description: |
-      representation of an error that occurred while processing a request
+      Representation of an error that occurred while processing a request.
+      Some errors provide error details. For example, validation of input may report several problems.
+      Each of those are reported in a separate error detail.
     type: object
+    required:
+      - message
     properties:
       message:
         type: string
-      stackTrace:
-        type: string
+      errorDetail:
+        type: array
+        items:
+          type: string
+
 
   DeleteResponseModel:
     description: |

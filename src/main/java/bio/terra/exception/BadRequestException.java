@@ -1,6 +1,8 @@
 package bio.terra.exception;
 
-public class BadRequestException extends RuntimeException {
+import java.util.List;
+
+public class BadRequestException extends DataRepoException {
     public BadRequestException(String message) {
         super(message);
     }
@@ -11,5 +13,13 @@ public class BadRequestException extends RuntimeException {
 
     public BadRequestException(Throwable cause) {
         super(cause);
+    }
+
+    public BadRequestException(String message, List<String> errorDetails) {
+        super(message, errorDetails);
+    }
+
+    public BadRequestException(String message, Throwable cause, List<String> errorDetails) {
+        super(message, cause, errorDetails);
     }
 }

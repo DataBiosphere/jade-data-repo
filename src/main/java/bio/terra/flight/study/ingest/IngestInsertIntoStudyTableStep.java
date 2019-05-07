@@ -38,7 +38,7 @@ public class IngestInsertIntoStudyTableStep implements Step {
             .loadTag(ingestRequest.getLoadTag())
             .badRowCount(loadStatistics.getBadRecords())
             .rowCount(loadStatistics.getRowCount());
-        context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
+        context.getWorkingMap().put(JobMapKeys.RESPONSE, ingestResponse);
 
         bigQueryPdao.insertIntoStudyTable(study, targetTable, stagingTableName);
 

@@ -23,7 +23,7 @@ public class DeleteStudyPrimaryDataStep implements Step {
 
     Study getStudy(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
+        UUID studyId = inputParameters.get(JobMapKeys.REQUEST, UUID.class);
         return studyDao.retrieve(studyId);
     }
 
@@ -32,7 +32,7 @@ public class DeleteStudyPrimaryDataStep implements Step {
         Study study = getStudy(context);
         bigQueryPdao.deleteStudy(study);
         FlightMap map = context.getWorkingMap();
-        map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
+        map.put(JobMapKeys.STATUS_CODE, HttpStatus.NO_CONTENT);
         return StepResult.getStepResultSuccess();
     }
 

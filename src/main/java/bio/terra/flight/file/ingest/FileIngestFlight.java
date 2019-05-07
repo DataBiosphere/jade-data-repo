@@ -23,7 +23,7 @@ public class FileIngestFlight extends Flight {
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
 
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID, String.class);
         Study study = studyDao.retrieve(UUID.fromString(studyId));
 
         // The flight plan:

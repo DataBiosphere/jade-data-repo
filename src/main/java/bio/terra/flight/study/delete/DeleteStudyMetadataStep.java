@@ -22,7 +22,7 @@ public class DeleteStudyMetadataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
+        UUID studyId = inputParameters.get(JobMapKeys.REQUEST, UUID.class);
         boolean success = studyDao.delete(studyId);
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (success) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;

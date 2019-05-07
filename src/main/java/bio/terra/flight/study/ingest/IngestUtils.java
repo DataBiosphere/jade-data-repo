@@ -53,7 +53,7 @@ public final class IngestUtils {
 
     public static IngestRequestModel getIngestRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
+        return inputParameters.get(JobMapKeys.REQUEST, IngestRequestModel.class);
     }
 
     public static Table getStudyTable(FlightContext context, Study study) {

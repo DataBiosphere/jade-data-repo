@@ -44,9 +44,9 @@ public class StudyService {
 
     public StudySummaryModel createStudy(StudyRequestModel studyRequest, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a study");
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
+        flightMap.put(JobMapKeys.REQUEST, studyRequest);
+        flightMap.put(JobMapKeys.DESCRIPTION, "Creating a study");
+        flightMap.put(JobMapKeys.USER_INFO, userInfo);
         String flightId = stairway.submit(StudyCreateFlight.class, flightMap);
         return getResponse(flightId, StudySummaryModel.class);
     }
@@ -66,9 +66,9 @@ public class StudyService {
         List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
         if (referencedDatasets == null || referencedDatasets.isEmpty()) {
             FlightMap flightMap = new FlightMap();
-            flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
-            flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the study with ID " + id);
-            flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
+            flightMap.put(JobMapKeys.REQUEST, id);
+            flightMap.put(JobMapKeys.DESCRIPTION, "Deleting the study with ID " + id);
+            flightMap.put(JobMapKeys.USER_INFO, userInfo);
             String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
             return getResponse(flightId, DeleteResponseModel.class);
         } else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);
@@ -82,11 +82,11 @@ public class StudyService {
         }
 
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(),
+        flightMap.put(JobMapKeys.DESCRIPTION,
             "Ingest from " + ingestRequestModel.getPath() +
                 " to " + ingestRequestModel.getTable() +
                 " in study id " + id);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
+        flightMap.put(JobMapKeys.REQUEST, ingestRequestModel);
         flightMap.put(IngestMapKeys.STUDY_ID, id);
         return stairway.submit(StudyIngestFlight.class, flightMap);
     }

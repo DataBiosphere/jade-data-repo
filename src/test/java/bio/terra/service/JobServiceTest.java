@@ -118,7 +118,7 @@ public class JobServiceTest {
     // Submit a flight; wait for it to finish; return the flight id
     private String runFlight(String description) {
         FlightMap inputs = new FlightMap();
-        inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
+        inputs.put(JobMapKeys.DESCRIPTION, description);
 
         String flightId = stairway.submit(JobServiceTestFlight.class, inputs);
         stairway.waitForFlight(flightId);

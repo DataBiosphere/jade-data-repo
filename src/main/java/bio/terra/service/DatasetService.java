@@ -71,9 +71,9 @@ public class DatasetService {
      */
     public String createDataset(DatasetRequestModel datasetRequestModel, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequestModel);
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
+        flightMap.put(JobMapKeys.DESCRIPTION, "Create dataset " + datasetRequestModel.getName());
+        flightMap.put(JobMapKeys.REQUEST, datasetRequestModel);
+        flightMap.put(JobMapKeys.USER_INFO, userInfo);
         return stairway.submit(DatasetCreateFlight.class, flightMap);
     }
 
@@ -85,12 +85,12 @@ public class DatasetService {
      */
     public String deleteDataset(UUID id, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
+        flightMap.put(JobMapKeys.DESCRIPTION, "Delete dataset " + id);
         // TODO talk about conventions for naming data in the input map
         // and in the step whether to pass data from input map to steps or let each step retrieve what they need
-//        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
+//        flightMap.put(JobMapKeys.REQUEST, id);
         flightMap.put("id", id);
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
+        flightMap.put(JobMapKeys.USER_INFO, userInfo);
         return stairway.submit(DatasetDeleteFlight.class, flightMap);
     }
 

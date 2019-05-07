@@ -18,8 +18,8 @@ public class FileDeleteFlight extends Flight {
         FileDao fileDao = (FileDao)appContext.getBean("fileDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
 
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        String fileId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), String.class);
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID, String.class);
+        String fileId = inputParameters.get(JobMapKeys.REQUEST, String.class);
 
         // The flight plan:
         // 1. Metadata start step:

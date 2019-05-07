@@ -91,7 +91,7 @@ public class StudyCreateFlightTest {
     @Test
     public void testHappyPath() {
         FlightMap map = new FlightMap();
-        map.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
+        map.put(JobMapKeys.REQUEST, studyRequest);
         String flightId = stairway.submit(StudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
 
@@ -99,7 +99,7 @@ public class StudyCreateFlightTest {
         assertEquals(FlightStatus.SUCCESS, result.getFlightStatus());
         Optional<FlightMap> resultMap = result.getResultMap();
         assertTrue(resultMap.isPresent());
-        StudySummaryModel response = resultMap.get().get(JobMapKeys.RESPONSE.getKeyName(), StudySummaryModel.class);
+        StudySummaryModel response = resultMap.get().get(JobMapKeys.RESPONSE, StudySummaryModel.class);
         assertEquals(studyName, response.getName());
 
         Study createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
@@ -111,7 +111,7 @@ public class StudyCreateFlightTest {
     @Test
     public void testUndoAfterPrimaryDataStep() {
         FlightMap map = new FlightMap();
-        map.put(JobMapKeys.REQUEST.getKeyName(), studyRequest);
+        map.put(JobMapKeys.REQUEST, studyRequest);
         String flightId = stairway.submit(UndoStudyCreateFlight.class, map);
         stairway.waitForFlight(flightId);
 

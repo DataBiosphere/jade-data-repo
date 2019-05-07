@@ -27,8 +27,8 @@ public class DeleteStudyAuthzResource implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
+            JobMapKeys.USER_INFO, AuthenticatedUserRequest.class);
+        UUID studyId = inputParameters.get(JobMapKeys.REQUEST, UUID.class);
         try {
             sam.deleteStudyResource(userReq, studyId);
         } catch (ApiException ex) {
@@ -41,7 +41,7 @@ public class DeleteStudyAuthzResource implements Step {
     public StepResult undoStep(FlightContext context) {
         // can't undo delete
         FlightMap inputParameters = context.getInputParameters();
-        UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
+        UUID studyId = inputParameters.get(JobMapKeys.REQUEST, UUID.class);
         logger.warn("Trying to undo delete resource for study " + studyId.toString());
         return StepResult.getStepResultSuccess();
     }

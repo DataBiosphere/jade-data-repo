@@ -46,7 +46,7 @@ public class JobService {
 
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
         FlightMap inputParameters = flightState.getInputParameters();
-        String description = inputParameters.get(JobMapKeys.DESCRIPTION.getKeyName(), String.class);
+        String description = inputParameters.get(JobMapKeys.DESCRIPTION, String.class);
         FlightStatus flightStatus = flightState.getFlightStatus();
         String submittedDate = modelDateFormat.format(flightState.getSubmitted());
         JobModel.JobStatusEnum jobStatus = getJobStatus(flightStatus);
@@ -58,7 +58,7 @@ public class JobService {
             FlightMap resultMap = getResultMap(flightState);
             // The STATUS_CODE return only needs to be used to return alternate success responses.
             // If it is not present, then we set it to the default OK status.
-            statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+            statusCode = resultMap.get(JobMapKeys.STATUS_CODE, HttpStatus.class);
             if (statusCode == null) {
                 statusCode = HttpStatus.OK;
             }
@@ -182,13 +182,13 @@ public class JobService {
 
             case SUCCESS:
                 if (statusContainer != null) {
-                    HttpStatus statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+                    HttpStatus statusCode = resultMap.get(JobMapKeys.STATUS_CODE, HttpStatus.class);
                     if (statusCode == null) {
                         statusCode = HttpStatus.OK;
                     }
                     statusContainer.setStatusCode(statusCode);
                 }
-                return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
+                return resultMap.get(JobMapKeys.RESPONSE, resultClass);
 
             case RUNNING:
                 throw new JobNotCompleteException("Attempt to retrieve job result before job is complete; job id: "

@@ -42,7 +42,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     DatasetRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        return inputParameters.get(JobMapKeys.REQUEST, DatasetRequestModel.class);
     }
 
     Dataset getDataset(FlightContext context) {

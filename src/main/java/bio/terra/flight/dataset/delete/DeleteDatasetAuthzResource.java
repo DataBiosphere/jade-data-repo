@@ -29,7 +29,7 @@ public class DeleteDatasetAuthzResource implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+            JobMapKeys.USER_INFO, AuthenticatedUserRequest.class);
         try {
             sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
@@ -42,7 +42,7 @@ public class DeleteDatasetAuthzResource implements Step {
     public StepResult undoStep(FlightContext context) {
         // can't undo delete
         FlightMap inputParameters = context.getInputParameters();
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
+        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST, UUID.class);
         logger.warn("Trying to undo delete resource for dataset " + datasetId.toString());
         return StepResult.getStepResultSuccess();
     }

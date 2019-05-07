@@ -30,14 +30,14 @@ public class AuthorizeDataset implements Step {
 
     DatasetRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        return inputParameters.get(JobMapKeys.REQUEST, DatasetRequestModel.class);
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+            JobMapKeys.USER_INFO, AuthenticatedUserRequest.class);
         DatasetRequestModel datasetReq = getRequestModel(context);
         String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
@@ -55,7 +55,7 @@ public class AuthorizeDataset implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+            JobMapKeys.USER_INFO, AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {

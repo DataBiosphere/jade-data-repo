@@ -31,7 +31,7 @@ public class IngestFilePrimaryDataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST, FileLoadModel.class);
 
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));

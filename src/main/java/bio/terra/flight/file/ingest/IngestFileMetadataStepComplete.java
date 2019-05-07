@@ -39,7 +39,7 @@ public class IngestFileMetadataStepComplete implements Step {
             .flightId(context.getFlightId());
 
         fileDao.createFileComplete(fsObject);
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
+        workingMap.put(JobMapKeys.RESPONSE, fileService.fileModelFromFSObject(fsObject));
         return StepResult.getStepResultSuccess();
     }
 

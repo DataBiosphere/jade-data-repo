@@ -30,7 +30,7 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
+        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST,
                 DatasetRequestModel.class);
         try {
             Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
@@ -49,7 +49,7 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
+        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST,
                 DatasetRequestModel.class);
         String datasetName = datasetRequest.getName();
         datasetDao.deleteByName(datasetName);

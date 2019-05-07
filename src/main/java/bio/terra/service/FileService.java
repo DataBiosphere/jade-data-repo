@@ -39,17 +39,17 @@ public class FileService {
 
     public String deleteFile(String studyId, String fileId) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete file from study " + studyId + " file " + fileId);
-        flightMap.put(JobMapKeys.STUDY_ID.getKeyName(), studyId);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileId);
+        flightMap.put(JobMapKeys.DESCRIPTION, "Delete file from study " + studyId + " file " + fileId);
+        flightMap.put(JobMapKeys.STUDY_ID, studyId);
+        flightMap.put(JobMapKeys.REQUEST, fileId);
         return stairway.submit(FileDeleteFlight.class, flightMap);
     }
 
     public String ingestFile(String studyId, FileLoadModel fileLoad) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Ingest file " + fileLoad.getTargetPath());
-        flightMap.put(JobMapKeys.STUDY_ID.getKeyName(), studyId);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileLoad);
+        flightMap.put(JobMapKeys.DESCRIPTION, "Ingest file " + fileLoad.getTargetPath());
+        flightMap.put(JobMapKeys.STUDY_ID, studyId);
+        flightMap.put(JobMapKeys.REQUEST, fileLoad);
         return stairway.submit(FileIngestFlight.class, flightMap);
     }
 

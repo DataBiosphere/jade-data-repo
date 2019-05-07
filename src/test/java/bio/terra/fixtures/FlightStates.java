@@ -30,8 +30,8 @@ public final class FlightStates {
     public static FlightState makeFlightSimpleState() {
         // Construct a mock FlightState
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), buildMinimalStudySummary());
-        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
+        resultMap.put(JobMapKeys.RESPONSE, buildMinimalStudySummary());
+        resultMap.put(JobMapKeys.STATUS_CODE, HttpStatus.I_AM_A_TEAPOT);
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
@@ -47,9 +47,9 @@ public final class FlightStates {
     public static FlightState makeFlightRunningState() {
         StudySummaryModel req = buildMinimalStudySummary();
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
-        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
-        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), req.getDescription());
+        resultMap.put(JobMapKeys.RESPONSE, req);
+        resultMap.put(JobMapKeys.STATUS_CODE, HttpStatus.I_AM_A_TEAPOT);
+        resultMap.put(JobMapKeys.DESCRIPTION, req.getDescription());
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
@@ -65,9 +65,9 @@ public final class FlightStates {
     public static FlightState makeFlightCompletedState() {
         StudySummaryModel req = buildMinimalStudySummary();
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
-        resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
-        resultMap.put(JobMapKeys.DESCRIPTION.getKeyName(), req.getDescription());
+        resultMap.put(JobMapKeys.RESPONSE, req);
+        resultMap.put(JobMapKeys.STATUS_CODE, HttpStatus.I_AM_A_TEAPOT);
+        resultMap.put(JobMapKeys.DESCRIPTION, req.getDescription());
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);

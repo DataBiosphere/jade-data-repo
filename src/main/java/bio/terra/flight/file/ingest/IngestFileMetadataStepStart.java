@@ -30,8 +30,8 @@ public class IngestFileMetadataStepStart implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST, FileLoadModel.class);
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID, String.class);
         UUID studyUUID = UUID.fromString(studyId);
 
         FlightMap workingMap = context.getWorkingMap();
@@ -66,8 +66,8 @@ public class IngestFileMetadataStepStart implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST, FileLoadModel.class);
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID, String.class);
         UUID studyUUID = UUID.fromString(studyId);
 
         FSObject fsObject = fileDao.retrieveByPathNoThrow(studyUUID, loadModel.getTargetPath());

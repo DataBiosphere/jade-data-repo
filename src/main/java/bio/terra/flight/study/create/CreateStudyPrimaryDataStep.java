@@ -21,7 +21,7 @@ public class CreateStudyPrimaryDataStep implements Step {
 
     Study getStudy(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
+        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST, StudyRequestModel.class);
         return StudyJsonConversion.studyRequestToStudy(studyRequest);
     }
 
@@ -30,7 +30,7 @@ public class CreateStudyPrimaryDataStep implements Step {
         Study study = getStudy(context);
         bigQueryPdao.createStudy(study);
         FlightMap map = context.getWorkingMap();
-        map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+        map.put(JobMapKeys.STATUS_CODE, HttpStatus.CREATED);
         return StepResult.getStepResultSuccess();
     }
 

@@ -25,19 +25,19 @@ public class CreateStudyMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
+        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST, StudyRequestModel.class);
         Study newStudy = StudyJsonConversion.studyRequestToStudy(studyRequest);
         UUID studyId = studyDao.create(newStudy);
         workingMap.put("studyId", studyId);
         StudySummaryModel studySummary = StudyJsonConversion.studySummaryModelFromStudySummary(newStudy);
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), studySummary);
+        workingMap.put(JobMapKeys.RESPONSE, studySummary);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
+        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST, StudyRequestModel.class);
         String studyName = studyRequest.getName();
         studyDao.deleteByName(studyName);
         return StepResult.getStepResultSuccess();

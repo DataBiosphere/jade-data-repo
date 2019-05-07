@@ -27,7 +27,7 @@ public class CreateStudyAuthzResource implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+            JobMapKeys.USER_INFO, AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID studyId = workingMap.get("studyId", UUID.class);
         try {
@@ -42,7 +42,7 @@ public class CreateStudyAuthzResource implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+            JobMapKeys.USER_INFO, AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID studyId = workingMap.get("studyId", UUID.class);
         try {

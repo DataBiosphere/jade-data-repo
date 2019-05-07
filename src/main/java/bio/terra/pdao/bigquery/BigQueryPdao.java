@@ -11,9 +11,10 @@ import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
+import bio.terra.pdao.exception.PdaoException;
+import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
@@ -47,7 +48,11 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
@@ -215,14 +220,78 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
 
-            createViews(studyDatasetName, datasetName, dataset);
+            // create the views
+            List<String> bqTableNames = createViews(studyDatasetName, datasetName, dataset);
+
+            // set authorization on views
+            authorizeDatasetViewsForStudy(datasetName, studyDatasetName, bqTableNames);
         } catch (Exception ex) {
             throw new PdaoException("createDataset failed", ex);
         }
     }
 
+    // for each study that is a part of the dataset, we will add Acls for the
+    // dataset tables from that study
+    @Override
+    public void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames) {
+        addAclsToBQDataset(studyName, convertToViewAcls(datasetName, tableNames));
+    }
+
+    @Override
+    public void removeDatasetAuthorizationFromStudy(String datasetName, String studyName, List<String> tableNames) {
+        removeAclsFromBQDataset(studyName, convertToViewAcls(datasetName, tableNames));
+    }
+
+    private List<Acl> convertToViewAcls(
+        String datasetName, List<String> tableNames) {
+        return tableNames.stream().map(tableName ->
+                makeViewAcl(datasetName, tableName)).collect(Collectors.toList());
+    }
+
+    private Acl makeViewAcl(String datasetName, String tableName) {
+        TableId tableId = TableId.of(projectId, datasetName, tableName);
+        return Acl.of(new Acl.View(tableId));
+    }
+
+    @Override
+    public void addReaderGroupToDataset(String datasetId, String readersEmail) {
+        // add the reader group to the list of Acls on the jade dataset
+        addAclsToBQDataset(datasetId, Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
+    }
+
+    private void addAclsToBQDataset(String datasetId, List<Acl> acls) {
+        Dataset dataset = bigQuery.getDataset(datasetId);
+        List<Acl> beforeAcls = dataset.getAcl();
+        ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);
+        newAcls.addAll(acls);
+        logger.debug("before als: " + beforeAcls.toString());
+        logger.debug("acls after: " + newAcls.toString());
+        logger.debug("acls added: " + acls.toString());
+        updateDataset(dataset.toBuilder().setAcl(newAcls).build());
+    }
+
+    private void removeAclsFromBQDataset(String datasetId, List<Acl> acls) {
+        Dataset dataset = bigQuery.getDataset(datasetId);
+        if (dataset != null) {  // can be null if create dataset step failed before it was created
+            Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
+            datasetAcls.removeAll(acls);
+            logger.debug("new bq acls: " + datasetAcls.toString());
+            logger.debug("acls removed: " + acls.toString());
+            updateDataset(dataset.toBuilder().setAcl(new ArrayList(datasetAcls)).build());
+        }
+    }
+
+    public void updateDataset(DatasetInfo info) {
+        bigQuery.update(info);
+    }
+
     @Override
     public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
+        List<DatasetSource> sources = dataset.getDatasetSources();
+        sources.stream().forEach(dsSource ->
+                removeDatasetAuthorizationFromStudy(dataset.getName(), dsSource.getStudy().getName(),
+                dsSource.getAssetSpecification().getAssetTables().stream().map(assetTable ->
+                    assetTable.getTable().getName()).collect(Collectors.toList())));
         return deleteContainer(dataset.getName());
     }
 
@@ -494,11 +563,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private void createContainer(String name, String description) {
+    private DatasetId createContainer(String name, String description) {
         DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
             .setDescription(description)
             .build();
-        bigQuery.create(datasetInfo);
+        Dataset bqContainer = bigQuery.create(datasetInfo);
+        return bqContainer.getDatasetId();
     }
 
     private boolean deleteContainer(String name) {
@@ -746,37 +816,39 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private void createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
-        for (Table table : dataset.getTables()) {
-            StringBuilder builder = new StringBuilder();
+    private List<String> createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
+        return dataset.getTables().stream().map(table -> {
+                StringBuilder builder = new StringBuilder();
 
-            /*
-            Building this SQL:
-                SELECT <column list from dataset table> FROM
-                  (SELECT <column list mapping study to dataset columns>
-                   FROM <study table> S, datarepo_row_ids R
-                   WHERE S.datarepo_row_id = R.datarepo_row_id
-                     AND R.datarepo_table_id = '<study table id>')
-             */
+                /*
+                Building this SQL:
+                    SELECT <column list from dataset table> FROM
+                      (SELECT <column list mapping study to dataset columns>
+                       FROM <study table> S, datarepo_row_ids R
+                       WHERE S.datarepo_row_id = R.datarepo_row_id
+                         AND R.datarepo_table_id = '<study table id>')
+                 */
 
-            builder.append("SELECT ");
-            buildColumnList(builder, table, false);
-            builder.append(" FROM ");
+                builder.append("SELECT ");
+                buildColumnList(builder, table, false);
+                builder.append(" FROM ");
 
-            // Build the FROM clause from the source
-            // NOTE: we can put this in a loop when we do multiple sources
-            DatasetSource source = dataset.getDatasetSources().get(0);
-            buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
+                // Build the FROM clause from the source
+                // NOTE: we can put this in a loop when we do multiple sources
+                DatasetSource source = dataset.getDatasetSources().get(0);
+                buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
 
-            // create the view
-            String tableName = table.getName();
-            String sql = builder.toString();
+                // create the view
+                String tableName = table.getName();
+                String sql = builder.toString();
 
-            logger.debug("Creating view" + datasetName + "." + tableName + " as " + sql);
-            TableId tableId = TableId.of(datasetName, tableName);
-            TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
-            bigQuery.create(tableInfo);
-        }
+                logger.debug("Creating view" + datasetName + "." + tableName + " as " + sql);
+                TableId tableId = TableId.of(datasetName, tableName);
+                TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
+                com.google.cloud.bigquery.Table bqTable = bigQuery.create(tableInfo);
+                return tableName;
+            }
+        ).collect(Collectors.toList());
     }
 
     private void buildColumnList(StringBuilder builder, Table table, boolean addRowIdColumn) {

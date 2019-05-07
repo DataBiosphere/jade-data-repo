@@ -69,6 +69,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
 
+
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:

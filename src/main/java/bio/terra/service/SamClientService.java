@@ -177,6 +177,7 @@ public class SamClientService {
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
     }
 
+    // returns the email of the synced google group for readers
     public String createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());

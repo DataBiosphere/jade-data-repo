@@ -3,6 +3,8 @@ package bio.terra.flight.dataset.create;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
@@ -15,24 +17,34 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
-public class CreateDatasetAuthzResource implements Step {
+public class AuthorizeDataset implements Step {
     private SamClientService sam;
-    public CreateDatasetAuthzResource(SamClientService sam) {
+    private BigQueryPdao bigQueryPdao;
+
+    public AuthorizeDataset(BigQueryPdao bigQueryPdao, SamClientService sam) {
+        this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
     }
 
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
+
+    DatasetRequestModel getRequestModel(FlightContext context) {
+        FlightMap inputParameters = context.getInputParameters();
+        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+    }
 
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        DatasetRequestModel datasetReq = getRequestModel(context);
+        String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
-            sam.createDatasetResource(userReq, datasetId);
-            //TODO make sam call to add readers
+            String readersEmail = sam.createDatasetResource(userReq, datasetId);
+            bigQueryPdao.addReaderGroupToDataset(datasetName, readersEmail);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }

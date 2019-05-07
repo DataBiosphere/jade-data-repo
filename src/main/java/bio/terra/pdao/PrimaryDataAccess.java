@@ -77,7 +77,6 @@ public interface PrimaryDataAccess {
     /**
      * Create the container, tables and views for a dataset.
      * BigQuery: container is a BigQuery dataset
-     *
      * @param dataset
      * @param rowIds - row ids for the root table
      */
@@ -91,5 +90,29 @@ public interface PrimaryDataAccess {
      */
     boolean deleteDataset(Dataset dataset);
 
+
+    /**
+     * Add the google group for the dataset readers to the BQ dataset
+     *
+     * @param datasetId bigquery dataset name
+     * @param readersEmail email address for readers group (as returned by SAM)
+     */
+    void addReaderGroupToDataset(String datasetId, String readersEmail);
+
+    /**
+     * Update the athorized views on the study to include the tables in the dataset
+     * @param datasetName
+     * @param studyName
+     * @param tableNames
+     */
+    void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames);
+
+    /**
+     * Remove the athorized views for the dataset from the study
+     * @param datasetName
+     * @param studyName
+     * @param tableNames
+     */
+    void removeDatasetAuthorizationFromStudy(String datasetName, String studyName, List<String> tableNames);
 
 }

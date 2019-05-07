@@ -291,7 +291,7 @@ paths:
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/PolicyName'
+      - $ref: '#/parameters/DatasetPolicyName'
       responses:
         200:
           description: PolicyResponse
@@ -319,7 +319,7 @@ paths:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/PolicyName'
+      - $ref: '#/parameters/DatasetPolicyName'
       - name: memberEmail
         description: The email of the user to remove
         required: true
@@ -493,7 +493,7 @@ paths:
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/PolicyName'
+      - $ref: '#/parameters/StudyPolicyName'
       responses:
         200:
           description: PolicyResponse
@@ -521,7 +521,7 @@ paths:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/PolicyName'
+      - $ref: '#/parameters/StudyPolicyName'
       - name: memberEmail
         description: The email of the user to remove
         required: true
@@ -952,7 +952,7 @@ parameters:
     required: true
     type: string
     in: path
-  PolicyName:
+  DatasetPolicyName:
     name: policyName
     in: path
     description: The relevant policy
@@ -961,6 +961,16 @@ parameters:
     enum:
       - reader
       - discoverer
+  StudyPolicyName:
+    name: policyName
+    in: path
+    description: The relevant policy
+    required: true
+    type: string
+    enum:
+    - steward
+    - custodian
+    - ingester
 
   FileId:
     name: fileid

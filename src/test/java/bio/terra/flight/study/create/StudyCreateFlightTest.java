@@ -2,7 +2,6 @@ package bio.terra.flight.study.create;
 
 import bio.terra.category.Connected;
 import bio.terra.dao.StudyDao;
-import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
@@ -38,6 +37,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -77,7 +79,10 @@ public class StudyCreateFlightTest {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
         studyRequest = makeStudyRequest(studyName);
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        ConnectedOperations.stubOutSamCalls(samService);
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        doNothing().when(samService).createStudyResource(any(), any());
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
     @After

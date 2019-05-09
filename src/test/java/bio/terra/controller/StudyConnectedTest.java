@@ -1,7 +1,6 @@
 package bio.terra.controller;
 
 import bio.terra.category.Connected;
-import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.model.DeleteResponseModel;
@@ -26,6 +25,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -42,7 +44,10 @@ public class StudyConnectedTest {
 
     @Test
     public void testCreateOmopStudy() throws Exception {
-        ConnectedOperations.stubOutSamCalls(samService);
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        doNothing().when(samService).createStudyResource(any(), any());
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
 
         StudyRequestModel studyRequest = jsonLoader.loadObject("it-study-omop.json", StudyRequestModel.class);
         studyRequest.name(Names.randomizeName(studyRequest.getName()));

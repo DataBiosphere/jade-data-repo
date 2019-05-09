@@ -35,6 +35,9 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
@@ -58,7 +61,11 @@ public class FileOperationTest {
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
-        ConnectedOperations.stubOutSamCalls(samService);
+        doNothing().when(samService).createStudyResource(any(), any());
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
+
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
     }
 

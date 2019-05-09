@@ -2,8 +2,10 @@ package bio.terra.service;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.model.sam.CreateResourceCorrectRequest;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
+import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequest;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -12,6 +14,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +37,7 @@ public class SamClientServiceTest {
     @Test(expected = ApiException.class)
     public void testCreateStudyResourceException() throws Exception {
         UUID studyId = UUID.randomUUID();
+        // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.STUDY.toString()), any());
@@ -41,10 +47,30 @@ public class SamClientServiceTest {
     @Test(expected = ApiException.class)
     public void testCreateDatasetResourceException() throws Exception {
         UUID datasetId = UUID.randomUUID();
+        // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.DATASET.toString()), any());
-        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
+        Optional<List<String>> readerList = Optional.of(Collections.singletonList("email@email.com"));
+        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId, readerList);
+    }
+
+    @Test(expected = ApiException.class)
+    public void testCreateDatasetResourceExceptionWithReaders() throws Exception {
+        UUID datasetId = UUID.randomUUID();
+        Optional<List<String>> readersList = Optional.of(Collections.singletonList("email@email.com"));
+        CreateResourceRequest createResourceRequest = new CreateResourceRequest();
+        CreateResourceCorrectRequest createResourceCorrectRequest = new CreateResourceCorrectRequest();
+        createResourceCorrectRequest.addPoliciesItem(
+            SamClientService.DataRepoRole.READER.getPolicyName(),
+            sam.createAccessPolicy(SamClientService.DataRepoRole.READER.getRoleName(), readersList.get()));
+
+        // TODO this code below is not mocked correctly
+        willThrow(new ApiException("test"))
+            .given(samResourceApi)
+            .createResource(eq(SamClientService.ResourceType.DATASET.toString()), eq(createResourceRequest));
+
+        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId, readersList);
     }
 
     @Test(expected = ApiException.class)

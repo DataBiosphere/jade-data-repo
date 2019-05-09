@@ -62,7 +62,7 @@ public class FileOperationTest {
     public void setup() throws Exception {
         // Setup mock sam service
         doNothing().when(samService).createStudyResource(any(), any());
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
         doNothing().when(samService).deleteDatasetResource(any(), any());
         doNothing().when(samService).deleteStudyResource(any(), any());
 

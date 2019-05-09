@@ -79,7 +79,7 @@ public class StudyCreateFlightTest {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
         studyRequest = makeStudyRequest(studyName);
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
         doNothing().when(samService).createStudyResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
         doNothing().when(samService).deleteStudyResource(any(), any());

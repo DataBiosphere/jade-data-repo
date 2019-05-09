@@ -107,7 +107,7 @@ public class DatasetOperationTest {
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
         doNothing().when(samService).createStudyResource(any(), any());
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
         doNothing().when(samService).deleteDatasetResource(any(), any());
         doNothing().when(samService).deleteStudyResource(any(), any());
     }

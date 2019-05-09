@@ -44,7 +44,7 @@ public class StudyConnectedTest {
 
     @Test
     public void testCreateOmopStudy() throws Exception {
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi");
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
         doNothing().when(samService).createStudyResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
         doNothing().when(samService).deleteStudyResource(any(), any());

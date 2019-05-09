@@ -1,6 +1,7 @@
 package bio.terra.controller;
 
 import bio.terra.category.Connected;
+import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.model.DatasetModel;
@@ -64,9 +65,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -106,10 +104,7 @@ public class DatasetOperationTest {
     public void setup() throws Exception {
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
-        doNothing().when(samService).createStudyResource(any(), any());
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
-        doNothing().when(samService).deleteDatasetResource(any(), any());
-        doNothing().when(samService).deleteStudyResource(any(), any());
+        ConnectedOperations.stubOutSamCalls(samService);
     }
 
     @After

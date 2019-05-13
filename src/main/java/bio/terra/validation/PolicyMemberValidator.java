@@ -16,10 +16,10 @@ public class PolicyMemberValidator implements Validator {
     }
 
     private void ValidateEmail(String email, Errors errors) {
-    if (email == null || email.isEmpty())
-        errors.rejectValue("email", "EmailNotSupplied");
-    else if (!ValidationUtils.isValidEmail(email))
-        errors.rejectValue("email", "InvalidEmailFormat");
+        if (email == null || email.isEmpty())
+            errors.rejectValue("email", "EmailNotSupplied", "No email was supplied.");
+        else if (!ValidationUtils.isValidEmail(email))
+            errors.rejectValue("email", "InvalidEmailFormat", "The email supplied is not valid.");
     }
 
     @Override

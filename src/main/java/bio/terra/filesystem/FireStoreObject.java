@@ -1,7 +1,5 @@
 package bio.terra.filesystem;
 
-import org.apache.commons.lang3.StringUtils;
-
 /**
  * POJO for writing file system object entries to FireStore. This object is used
  * for both directories and files. Fields not used for directories are left as null.
@@ -155,11 +153,4 @@ public class FireStoreObject {
     public String getFullPath() {
         return getPath() + '/' + getName();
     }
-
-    private static final char DOCNAME_SEPARATOR = '\u001c';
-    public String getDocumentName() {
-        return StringUtils.replaceChars(getFullPath(), '/', DOCNAME_SEPARATOR);
-    }
-
-
 }

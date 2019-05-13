@@ -23,10 +23,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -53,17 +55,17 @@ import java.util.concurrent.ExecutionException;
  */
 
 
-@Repository
+@Component
 public class FireStoreFileDao {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreFileDao");
 
-    private static final char DOCNAME_SEPARATOR = '\u001c';
-
     private Firestore firestore;
+    private FireStoreDependencyDao dependencyDao;
 
     @Autowired
-    public FireStoreFileDao(Firestore firestore) {
+    public FireStoreFileDao(Firestore firestore, FireStoreDependencyDao dependencyDao) {
         this.firestore = firestore;
+        this.dependencyDao = dependencyDao;
     }
 
     public UUID createFileStart(FSObject fileToCreate) {
@@ -104,8 +106,7 @@ public class FireStoreFileDao {
                 throw new FileSystemCorruptException("Attempt to deleteFileForCreateUndo with bad file object type");
             }
 
-            xn.delete(docSnap.getReference());
-            // TODO: delete empty parent directories
+            deleteFileWorker(studyId.toString(), docSnap.getReference(), currentObject.getPath(), xn);
             return true;
         });
 
@@ -176,7 +177,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (hasDatasetReferences(objectId)) {
+            if (dependencyDao.hasDatasetReference(studyId, objectId)) {
                 throw new FileSystemObjectDependencyException(
                     "File is used by at least one dataset and cannot be deleted");
             }
@@ -216,13 +217,12 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (hasDatasetReferences(objectId)) {
+            if (dependencyDao.hasDatasetReference(studyId, objectId)) {
                 throw new FileSystemObjectDependencyException(
                     "File is used by at least one dataset and cannot be deleted");
             }
 
-            xn.delete(docSnap.getReference());
-            // TODO: delete empty directories
+            deleteFileWorker(studyId.toString(),docSnap.getReference(), currentObject.getPath(), xn);
             return true;
         });
 
@@ -261,8 +261,92 @@ public class FireStoreFileDao {
         transactionGet("delete start undo", transaction);
     }
 
+    public FSObject retrieve(UUID studyId, UUID objectId) {
+        FSObject fsObject = retrieveByIdNoThrow(studyId, objectId);
+        if (fsObject == null) {
+            throw new FileSystemObjectNotFoundException("Object not found. Requested id is: " + objectId);
+        }
+        return fsObject;
+    }
 
-// TODO: ------ PRIVATES ------
+    public FSObject retrieveByIdNoThrow(UUID studyId, UUID objectId) {
+        ApiFuture<FSObject> transaction = firestore.runTransaction(xn -> {
+            QueryDocumentSnapshot docSnap = lookupByObjectId(studyId.toString(), objectId.toString(), xn);
+            if (docSnap == null) {
+                return null;
+            }
+            FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
+            return makeFSObjectFromFileObject(currentObject);
+        });
+
+        return transactionGet("retrieve by id", transaction);
+    }
+
+    public FSObject retrieveByPath(UUID studyId, String path) {
+        FSObject fsObject = retrieveByPathNoThrow(studyId, path);
+        if (fsObject == null) {
+            throw new FileSystemObjectNotFoundException("Object not found - path: '" + path + "'");
+        }
+        return fsObject;
+    }
+
+    public FSObject retrieveByPathNoThrow(UUID studyId, String path) {
+        DocumentReference docRef = firestore
+            .collection(studyId.toString())
+            .document(getDocumentName(path));
+
+        ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
+        try {
+            DocumentSnapshot docSnap = docSnapFuture.get();
+            if (!docSnap.exists()) {
+                return null;
+            }
+            FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
+            return makeFSObjectFromFileObject(currentObject);
+
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException(" - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException(op + " - execution exception", ex);
+        }
+    }
+
+
+
+        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path AND study_id = :study_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("path", path)
+            .addValue("study_id", studyId);
+        return retrieveWorker(sql, params);
+    }
+
+
+
+
+
+    private FSObject makeFSObjectFromFileObject(FireStoreObject fireStoreObject) {
+        Instant createdDate = (fireStoreObject.getFileCreatedDate() == null) ? null :
+            Instant.parse(fireStoreObject.getFileCreatedDate());
+
+        return new FSObject()
+            .objectId(UUID.fromString(fireStoreObject.getObjectId()))
+            .studyId(UUID.fromString(fireStoreObject.getStudyId()))
+            .objectType(FSObject.FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter()))
+            .createdDate(createdDate)
+            .path(fireStoreObject.getFullPath())
+            .gspath(fireStoreObject.getGspath())
+            .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
+            .checksumMd5(fireStoreObject.getChecksumMd5())
+            .size(fireStoreObject.getSize())
+            .mimeType(fireStoreObject.getMimeType())
+            .description(fireStoreObject.getDescription())
+            .flightId(fireStoreObject.getFlightId());
+    }
+
+
+
+// TODO: ------ PRIVATES IN ALPHA ORDER ------
 
     // Returns null if object exists; returns new UUID when object is created
     private UUID createObject(FireStoreObject fireStoreObject) {
@@ -282,24 +366,69 @@ public class FireStoreFileDao {
         return transactionGet("create directory", transaction);
     }
 
-    private DocumentReference getDocRef(FireStoreObject fireStoreObject) {
-        return firestore.collection(fireStoreObject.getStudyId()).document(fireStoreObject.getDocumentName());
+    private void deleteFileWorker(String studyId, DocumentReference fileDocRef, String path, Transaction xn) {
+        // We must do all reads before any writes, so we collect the document references that we need to delete
+        // first and then perform the deletes afterward. This must be the last part of a transaction that performs
+        // a read.
+        List<DocumentReference> docRefList = new ArrayList<>();
+        docRefList.add(fileDocRef);
+
+        CollectionReference studyCollection = firestore.collection(studyId);
+
+        try {
+            while (path != null) {
+                // Count the number of objects with this path as their directory path
+                // A value of 1 means that the directory will be empty after its child is
+                // deleted, so we should delete it also.
+                Query query = studyCollection.whereEqualTo("path", path);
+                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+
+                List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+                if (documents.size() > 1) {
+                    break;
+                }
+                DocumentReference docRef = studyCollection.document(getDocumentName(path));
+                docRefList.add(docRef);
+                path = getDirectoryPath(path);
+            }
+
+            for (DocumentReference docRef : docRefList) {
+                xn.delete(docRef);
+            }
+
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("delete worker - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("delete worker - execution exception", ex);
+        }
     }
 
-        private String getObjectName(String path) {
-            String[] pathParts = StringUtils.split(path, '/');
-            return pathParts[pathParts.length - 1];
-        }
+    private final char DOCNAME_SEPARATOR = '\u001c';
+    private String getDocumentName(String path) {
+        return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
+    }
 
-        private String getDirectoryPath(String path) {
-            String[] pathParts = StringUtils.split(path, '/');
-            if (pathParts.length == 1) {
-                // We are at the root; no containing directory
-                return null;
-            }
-            int endIndex = pathParts.length - 1;
-            return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
+    private DocumentReference getDocRef(FireStoreObject fireStoreObject) {
+        return firestore
+            .collection(fireStoreObject.getStudyId())
+            .document(getDocumentName(fireStoreObject.getFullPath()));
+    }
+
+    private String getObjectName(String path) {
+        String[] pathParts = StringUtils.split(path, '/');
+        return pathParts[pathParts.length - 1];
+    }
+
+    private String getDirectoryPath(String path) {
+        String[] pathParts = StringUtils.split(path, '/');
+        if (pathParts.length == 1) {
+            // We are at the root; no containing directory
+            return null;
         }
+        int endIndex = pathParts.length - 1;
+        return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
+    }
 
     // Returns null if not found
     private QueryDocumentSnapshot lookupByObjectId(String studyId, String objectId, Transaction xn) {
@@ -368,130 +497,6 @@ public class FireStoreFileDao {
 
 // TODO: -----------------------------------------------------------------------------------------------
 
-
-    // The worker assumes all object type checks have been done by the caller. If verifies that the file is
-    // not used in a dataset and performs the delete of the object and any empty parents. Some paths to this
-    // worker may have already checked the dataset references. For instance the file delete flight checks for
-    // dependencies in its start step and this will re-check in its complete step.
-    private boolean deleteFileWorker(FSObject fsObject) {
-        if (hasDatasetReferences(fsObject.getObjectId())) {
-            throw new FileSystemObjectDependencyException(
-                "File is used by at least one dataset and cannot be deleted");
-        }
-        if (deleteObject(fsObject.getObjectId())) {
-            deleteEmptyParents(fsObject.getStudyId(), fsObject.getPath());
-        }
-        return true;
-    }
-
-    void deleteEmptyParents(UUID studyId, String path) {
-        String parentPath = getContainingDirectoryPath(path);
-        if (parentPath == null) {
-            // We are at the '/'. Nowhere else to go.
-            return;
-        }
-
-        String matcher = parentPath + '%';
-        String sql = "SELECT COUNT(*) AS match_count FROM fs_object" +
-            " WHERE study_id = :study_id AND path LIKE :matcher";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("study_id", studyId)
-            .addValue("matcher", matcher);
-        Long matchCount  = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-            rs.getLong("match_count"));
-        if (matchCount == null) {
-            throw new CorruptMetadataException("Match count query returned no data");
-        }
-        if (matchCount > 1) {
-            // There is an object other than directory with the path; that means the directory is not empty
-            return;
-        }
-
-        FSObject fsObject = retrieveByPathNoThrow(studyId, parentPath);
-        if (hasDatasetReferences(fsObject.getObjectId())) {
-            return;
-        }
-
-        if (deleteObject(fsObject.getObjectId())) {
-            deleteEmptyParents(studyId, parentPath);
-        }
-    }
-
-    private boolean deleteObject(UUID objectId) {
-        int rowsAffected = jdbcTemplate.update("DELETE FROM fs_object WHERE object_id = :object_id",
-            new MapSqlParameterSource().addValue("object_id", objectId));
-        return rowsAffected > 0;
-    }
-
-    /**
-     * @param objectId
-     * @return true if the object is referenced in any dataset; false otherwise
-     */
-    boolean hasDatasetReferences(UUID objectId) {
-        String sql = "SELECT COUNT(*) AS dataset_count FROM fs_dataset WHERE object_id = :object_id";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("object_id", objectId);
-        Long datasetCount = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-            rs.getLong("dataset_count"));
-        if (datasetCount == null) {
-            throw new CorruptMetadataException("Dataset count query returned no data");
-        }
-
-        return (datasetCount > 0);
-    }
-
-    public FSObject retrieve(UUID objectId) {
-        logger.debug("retrieve object id: " + objectId);
-        FSObject fsObject = retrieveByIdNoThrow(objectId);
-        if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("Object not found. Requested id is: " + objectId);
-        }
-        return fsObject;
-    }
-
-    FSObject retrieveByIdNoThrow(UUID objectId) {
-        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE object_id = :object_id";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("object_id", objectId);
-        return retrieveWorker(sql, params);
-    }
-
-    public FSObject retrieveByPath(UUID studyId, String path) {
-        FSObject fsObject = retrieveByPathNoThrow(studyId, path);
-        if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("Object not found - path: '" + path + "'");
-        }
-        return fsObject;
-    }
-
-    public FSObject retrieveByPathNoThrow(UUID studyId, String path) {
-        String sql = "SELECT " + COLUMN_LIST + " FROM fs_object WHERE path = :path AND study_id = :study_id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("path", path)
-            .addValue("study_id", studyId);
-        return retrieveWorker(sql, params);
-    }
-
-    private FSObject retrieveWorker(String sql, MapSqlParameterSource params) {
-        try {
-            FSObject fsObject = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                new FSObject()
-                    .objectId(rs.getObject("object_id", UUID.class))
-                    .studyId(rs.getObject("study_id", UUID.class))
-                    .objectType(FSObject.FSObjectType.fromLetter(rs.getString("object_type")))
-                    .createdDate(rs.getTimestamp("created_date").toInstant())
-                    .flightId(rs.getString("flight_id"))
-                    .path(rs.getString("path"))
-                    .gspath(rs.getString("gspath"))
-                    .checksumCrc32c(rs.getString("checksum_crc32c"))
-                    .checksumMd5(rs.getString("checksum_md5"))
-                    .size(rs.getLong("size"))
-                    .mimeType(rs.getString("mime_type"))
-                    .description(rs.getString("description")));
-            return fsObject;
-        } catch (EmptyResultDataAccessException ex) {
-            return null;
-        }
-    }
-
     public List<FSObject> enumerateDirectory(FSObject dirObject) {
         if (dirObject.getObjectType() != FSObject.FSObjectType.DIRECTORY) {
             throw new InvalidFileSystemObjectTypeException("You can only enumerate directories");
@@ -537,86 +542,6 @@ public class FireStoreFileDao {
         }
 
         return Collections.emptyList();
-    }
-
-    /**
-     * validate ids from a FILEREF or DIRREF column. Used during data ingest
-     *
-     * @param studyId - study we are checking in
-     * @param refIdArray - refIds to check
-     * @param objectType - type of ids we are checking
-     * @return array of invalid refIds
-     */
-    public List<String> validateRefIds(UUID studyId, List<String> refIdArray, FSObject.FSObjectType objectType) {
-        String sql = "SELECT COUNT(*) AS match_count FROM fs_object " +
-            " WHERE study_id = :study_id AND object_type = :object_type" +
-            " AND object_id::text = :test_id";
-
-        List<String> invalidRefIds = new ArrayList<>();
-
-        // Brute force, but I really want to be able to generate the list of invalid ids and
-        // this is simple. Alternately, could implement a sort-merge join in code here... guk!
-        for (String testId : refIdArray) {
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("test_id", testId)
-                .addValue("study_id", studyId)
-                .addValue("object_type", objectType.toLetter());
-
-            try {
-                Long matchCount = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                    rs.getLong("match_count"));
-                if (matchCount == null || matchCount == 0) {
-                    invalidRefIds.add(testId);
-                }
-            } catch (EmptyResultDataAccessException ex) {
-                invalidRefIds.add(testId);
-            }
-        }
-
-        return invalidRefIds;
-    }
-
-    public void storeDatasetFileDependencies(UUID datasetId, List<String> refIds) {
-        // The ON CONFLICT clause will quietly skip the insert if the
-        // (object_id, dataset_id) pair already exists.
-        // TODO: We will need to revisit this when we do steward operations for modifying references
-        // to files in tabular data. One thing we could do is include the row id and column name
-        // of the row/column making the reference. That would make this table a lot bigger and
-        // very exact.
-        String sql = "INSERT INTO fs_dataset (object_id, dataset_id)" +
-            " VALUES (:object_id, :dataset_id)" +
-            " ON CONFLICT DO NOTHING";
-        for (String refId : refIds) {
-            UUID refUUID = UUID.fromString(refId);
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("object_id", refUUID)
-                .addValue("dataset_id", datasetId);
-            jdbcTemplate.update(sql, params);
-        }
-    }
-
-    public void deleteDatasetFileDependencies(UUID datasetId) {
-        jdbcTemplate.update("DELETE FROM fs_dataset WHERE dataset_id = :dataset_id",
-            new MapSqlParameterSource().addValue("dataset_id", datasetId));
-    }
-
-    // Make an FSObject with the path filled in. We set it as a directory.
-    private FSObject makeDirectory(UUID studyId, String path) {
-        return new FSObject()
-            .studyId(studyId)
-            .objectType(FSObject.FSObjectType.DIRECTORY)
-            .path(path);
-    }
-
-
-    String getContainingDirectoryPath(String path) {
-        String[] pathParts = StringUtils.split(path, '/');
-        if (pathParts.length == 1) {
-            // We are at the root; no containing directory
-            return null;
-        }
-        int endIndex = pathParts.length - 1;
-        return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
     }
 
 }

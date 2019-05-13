@@ -798,9 +798,34 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .append("` AS R WHERE R.")
                 .append(PDAO_TABLE_ID_COLUMN).append(" = '").append(relationship.getFromTableId())
                 .append("' AND R.")
-                .append(PDAO_ROW_ID_COLUMN).append(" = F.").append(PDAO_ROW_ID_COLUMN)
-                .append(" AND T.").append(relationship.getToColumnName())
-                .append(" = F.").append(relationship.getFromColumnName());
+                .append(PDAO_ROW_ID_COLUMN).append(" = F.").append(PDAO_ROW_ID_COLUMN);
+
+        String fromColumn = relationship.getFromColumnName();
+        String toColumn = relationship.getToColumnName();
+        Boolean fromArray = relationship.getFromColumnIsArray();
+        Boolean toArray = relationship.getToColumnIsArray();
+
+        if (fromArray && toArray) {
+            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(F.")
+                    .append(fromColumn)
+                    .append(") AS flat_from JOIN UNNEST(T.")
+                    .append(toColumn)
+                    .append(") AS flat_to ON flat_from = flat_to)");
+        } else if (fromArray) {
+            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(F.")
+                    .append(fromColumn)
+                    .append(") AS flat_from WHERE flat_from = T.")
+                    .append(toColumn)
+                    .append(")");
+        } else if (toArray) {
+            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(T.")
+                    .append(toColumn)
+                    .append(") AS flat_to WHERE flat_to = F.")
+                    .append(fromColumn)
+                    .append(")");
+        } else {
+            builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
+        }
 
         String sql = builder.toString();
         try {

@@ -1,7 +1,8 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.flight.file.FileMapKeys;
+import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObject;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
@@ -10,13 +11,11 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.UUID;
-
 public class IngestFileMetadataStepComplete implements Step {
-    private final FileDao fileDao;
+    private final FireStoreFileDao fileDao;
     private final FileService fileService;
 
-    public IngestFileMetadataStepComplete(FileDao fileDao, FileService fileService) {
+    public IngestFileMetadataStepComplete(FireStoreFileDao fileDao, FileService fileService) {
         this.fileDao = fileDao;
         this.fileService = fileService;
     }
@@ -24,32 +23,22 @@ public class IngestFileMetadataStepComplete implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-        String checksumMd5 = workingMap.get(FileMapKeys.CHECKSUM_MD5, String.class);
-        String checksumCrc32c = workingMap.get(FileMapKeys.CHECKSUM_CRC32C, String.class);
-        String gspath = workingMap.get(FileMapKeys.GSPATH, String.class);
-        Long size = workingMap.get(FileMapKeys.SIZE, Long.class);
+        FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
+        fsFileInfo.flightId(context.getFlightId());
 
-        FSObject fsObject = fileDao.retrieve(objectId);
-        fsObject
-            .checksumMd5(checksumMd5)
-            .checksumCrc32c(checksumCrc32c)
-            .size(size)
-            .gspath(gspath)
-            .flightId(context.getFlightId());
-
-        fileDao.createFileComplete(fsObject);
+        FSObject fsObject = fileDao.createFileComplete(fsFileInfo);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        FlightMap inputParameters = context.getInputParameters();
+        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
         FlightMap workingMap = context.getWorkingMap();
-        UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-        FSObject fsObject = fileDao.retrieve(objectId);
-        fsObject.flightId(context.getFlightId());
-        fileDao.createFileCompleteUndo(fsObject);
+        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+
+        fileDao.createFileCompleteUndo(studyId, objectId);
         return StepResult.getStepResultSuccess();
     }
 

@@ -1,8 +1,10 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSource;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -16,17 +18,25 @@ public class DeleteDatasetMetadataStep implements Step {
 
     private DatasetDao datasetDao;
     private UUID datasetId;
-    private FileDao fileDao;
+    private FireStoreDependencyDao dependencyDao;
 
-    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId, FileDao fileDao) {
+    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId, FireStoreDependencyDao dependencyDao) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
-        this.fileDao = fileDao;
+        this.dependencyDao = dependencyDao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        fileDao.deleteDatasetFileDependencies(datasetId);
+        Dataset dataset = datasetDao.retrieveDataset(datasetId);
+
+        // Remove dataset file references from the underlying studies
+        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            dependencyDao.deleteDatasetFileDependencies(
+                datasetSource.getStudy().getId().toString(),
+                datasetId.toString());
+        }
+
         boolean found = datasetDao.delete(datasetId);
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;

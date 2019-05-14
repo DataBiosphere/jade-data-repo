@@ -4,7 +4,7 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.StudyNotFoundException;
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSObject;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
@@ -38,7 +38,7 @@ public class DrsService {
 
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
-    private final FileDao fileDao;
+    private final FireStoreFileDao fileDao;
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
@@ -46,7 +46,7 @@ public class DrsService {
     @Autowired
     public DrsService(StudyDao studyDao,
                       DatasetDao datasetDao,
-                      FileDao fileDao,
+                      FireStoreFileDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration) {
@@ -71,12 +71,11 @@ public class DrsService {
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
 
-        FSObject dirObject = fileService.lookupFSObject(
-            drsId.getStudyId(),
-            drsId.getFsObjectId(),
-            FSObject.FSObjectType.DIRECTORY);
+        FSObject dirObject = fileDao.retrieve(
+            UUID.fromString(drsId.getStudyId()),
+            UUID.fromString(drsId.getFsObjectId()));
 
-        List<FSObject> fsObjectList = fileDao.enumerateDirectory(dirObject);
+        List<FSObject> fsObjectList = fileDao.enumerateDirectory(dirObject.getStudyId(), dirObject.getObjectId());
 
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = dirObject.getCreatedDate().toString();

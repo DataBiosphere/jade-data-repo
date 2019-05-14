@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.filesystem.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSObject;
@@ -17,11 +17,11 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.UUID;
 
 public class IngestFileMetadataStepStart implements Step {
-    private final FileDao fileDao;
+    private final FireStoreFileDao fileDao;
     private final Study study;
     private final FileService fileService;
 
-    public IngestFileMetadataStepStart(FileDao fileDao, Study study, FileService fileService) {
+    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Study study, FileService fileService) {
         this.fileDao = fileDao;
         this.study = study;
         this.fileService = fileService;
@@ -68,15 +68,7 @@ public class IngestFileMetadataStepStart implements Step {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        UUID studyUUID = UUID.fromString(studyId);
-
-        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyUUID, loadModel.getTargetPath());
-        if (fsObject != null) {
-            // OK, some file exists. If this flight created it, then we delete it
-            if (StringUtils.equals(fsObject.getFlightId(), context.getFlightId())) {
-                fileDao.deleteFileForCreateUndo(fsObject.getObjectId(), context.getFlightId());
-            }
-        }
+        fileDao.createFileStartUndo(studyId, loadModel.getTargetPath(), context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

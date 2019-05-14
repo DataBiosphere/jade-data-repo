@@ -1,7 +1,7 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FileDao;
 import bio.terra.dao.StudyDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.FileService;
@@ -19,7 +19,7 @@ public class FileIngestFlight extends Flight {
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
-        FileDao fileDao = (FileDao)appContext.getBean("fileDao");
+        FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
 

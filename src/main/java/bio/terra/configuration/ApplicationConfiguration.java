@@ -22,17 +22,13 @@ import java.util.concurrent.Executors;
 public class ApplicationConfiguration {
     private Logger logger = LoggerFactory.getLogger("bio.terra.configuration.ApplicationConfiguration");
 
-
-    @Value("${db.stairway.forceClean}")
-    private String stairwayForceClean;
-
     @Bean("stairway")
     public Stairway getStairway(Migrate migrate, ApplicationContext applicationContext) {
         StairwayJdbcConfiguration jdbcConfiguration = migrate.getStairwayJdbcConfiguration();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         DataSource dataSource = jdbcConfiguration.getDataSource();
-        boolean forceClean = Boolean.parseBoolean(stairwayForceClean);
-        logger.debug("ApplicationConfiguration stairwayForceClean is '" + stairwayForceClean +
+        boolean forceClean = Boolean.parseBoolean(jdbcConfiguration.getStairwayForceClean());
+        logger.debug("ApplicationConfiguration stairwayForceClean is '" + jdbcConfiguration.getStairwayForceClean() +
                 "'; forceClean is " + forceClean);
         return new Stairway(executorService, dataSource, forceClean, applicationContext);
     }

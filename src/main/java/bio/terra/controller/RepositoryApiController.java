@@ -24,7 +24,9 @@ import bio.terra.service.SamClientService;
 import bio.terra.service.StudyService;
 import bio.terra.validation.DatasetRequestValidator;
 import bio.terra.validation.IngestRequestValidator;
+import bio.terra.validation.PolicyMemberValidator;
 import bio.terra.validation.StudyRequestValidator;
+import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -61,6 +63,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final SamClientService samService;
     private final IngestRequestValidator ingestRequestValidator;
     private final FileService fileService;
+    private final PolicyMemberValidator policyMemberValidator;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -77,7 +80,8 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService samService,
             IngestRequestValidator ingestRequestValidator,
             ApplicationConfiguration appConfig,
-            FileService fileService
+            FileService fileService,
+            PolicyMemberValidator policyMemberValidator
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -90,6 +94,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.ingestRequestValidator = ingestRequestValidator;
         this.appConfig = appConfig;
         this.fileService = fileService;
+        this.policyMemberValidator = policyMemberValidator;
     }
 
     @InitBinder
@@ -97,6 +102,7 @@ public class RepositoryApiController implements RepositoryApi {
         binder.addValidators(studyRequestValidator);
         binder.addValidators(datasetRequestValidator);
         binder.addValidators(ingestRequestValidator);
+        binder.addValidators(policyMemberValidator);
     }
 
     @Override
@@ -127,22 +133,9 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
-            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        String errors = "";
-        offset = (offset == null) ? offset = 0 : offset;
-        if (offset < 0) {
-            errors = "Offset must be greater than or equal to 0.";
-        }
-
-        limit =  (limit == null) ? limit = 10 : limit;
-        if (limit < 1) {
-            errors += " Limit must be greater than or equal to 1.";
-        }
-        if (!errors.isEmpty()) {
-            throw new ValidationException(errors);
-        }
-
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        validiateOffsetAndLimit(offset, limit);
         return new ResponseEntity<>(studyService.enumerate(offset, limit), HttpStatus.OK);
     }
 
@@ -175,6 +168,62 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
+    // --study policies --
+    @Override
+    public ResponseEntity<PolicyResponse> addStudyPolicyMember(
+        @PathVariable("id") String id,
+        @PathVariable("policyName") String policyName,
+        @Valid @RequestBody PolicyMemberRequest policyMember) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.addPolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    UUID.fromString(id),
+                    policyName,
+                    policyMember.getEmail())));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> retrieveStudyPolicies(@PathVariable("id") String id) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(
+                samService.retrievePolicies(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    UUID.fromString(id)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> deleteStudyPolicyMember(
+        @PathVariable("id") String id,
+        @PathVariable("policyName") String policyName,
+        @PathVariable("memberEmail") String memberEmail) {
+        // member email can't be null since it is part of the URL
+        if (!ValidationUtils.isValidEmail(memberEmail))
+            throw new ValidationException("InvalidMemberEmail");
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.deletePolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    UUID.fromString(id),
+                    policyName,
+                    memberEmail)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            logger.error("got error from sam", ex);
+            throw new InternalServerErrorException(ex);
+        }
+    }
     // -- dataset --
     @Override
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
@@ -190,9 +239,9 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
-            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        validiateOffsetAndLimit(offset, limit);
         List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
         return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
     }
@@ -207,8 +256,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<PolicyResponse> addDatasetPolicyMember(
         @PathVariable("id") String id,
-        /*@Valid*/ @PathVariable("policyName") String policyName,
-        /*@Valid*/ @RequestBody PolicyMemberRequest policyMember) {
+        @PathVariable("policyName") String policyName,
+        @Valid @RequestBody PolicyMemberRequest policyMember) {
         try {
             PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
                 samService.addPolicyMember(
@@ -240,8 +289,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<PolicyResponse> deleteDatasetPolicyMember(
         @PathVariable("id") String id,
-        /*@Valid*/ @PathVariable("policyName") String policyName,
+        @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
+        // member email can't be null since it is part of the URL
+        if (!ValidationUtils.isValidEmail(memberEmail))
+            throw new ValidationException("InvalidMemberEmail");
         try {
             PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
                 samService.deletePolicyMember(
@@ -271,8 +323,9 @@ public class RepositoryApiController implements RepositoryApi {
     // -- jobs --
     @Override
     public ResponseEntity<List<JobModel>> enumerateJobs(
-            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        validiateOffsetAndLimit(offset, limit);
         return jobService.enumerateJobs(offset, limit);
     }
 
@@ -284,5 +337,22 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         return jobService.retrieveJobResultResponse(id);
+    }
+
+    private void validiateOffsetAndLimit(Integer offset, Integer limit) {
+        String errors = "";
+        offset = (offset == null) ? offset = 0 : offset;
+        if (offset < 0) {
+            errors = "Offset must be greater than or equal to 0.";
+        }
+
+        limit =  (limit == null) ? limit = 10 : limit;
+        if (limit < 1) {
+            errors += " Limit must be greater than or equal to 1.";
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException(errors);
+        }
+
     }
 }

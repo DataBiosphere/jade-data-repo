@@ -114,9 +114,9 @@ public class StudyDao {
     }
 
     // does not return sub-objects with studies
-    public List<StudySummary> enumerate(int offset, int limit) {
+    public List<StudySummary> enumerate(int offset, int limit, String sort, String direction) {
         String sql = "SELECT id, name, description, created_date FROM study " +
-            "ORDER BY created_date OFFSET :offset LIMIT :limit";
+            DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("offset", offset)
             .addValue("limit", limit);

@@ -96,8 +96,8 @@ public class DatasetService {
      * @param limit
      * @return list of summary models of dataset
      */
-    public List<DatasetSummaryModel> enumerateDatasets(int offset, int limit) {
-        return datasetDao.retrieveDatasets(offset, limit)
+    public List<DatasetSummaryModel> enumerateDatasets(int offset, int limit, String sort, String direction) {
+        return datasetDao.retrieveDatasets(offset, limit, sort, direction)
                 .stream()
                 .map(summary -> makeSummaryModelFromSummary(summary))
                 .collect(Collectors.toList());

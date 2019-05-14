@@ -43,6 +43,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +69,10 @@ public class RepositoryApiController implements RepositoryApi {
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
+
+    // constant used for validation
+    private static final List<String> VALID_SORT_OPTIONS = Arrays.asList("name", "description", "created_date");
+    private static final List<String> VALID_DIRECTION_OPTIONS = Arrays.asList("asc", "desc");
 
     @Autowired
     public RepositoryApiController(
@@ -132,11 +138,32 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
+    private void validateEnumerateParams(Integer offset, Integer limit, String sort, String direction) {
+        List<String> errors = new ArrayList<>();
+        if (offset < 0) {
+            errors.add("offset must be greater than or equal to 0.");
+        }
+        if (limit < 1) {
+            errors.add("limit must be greater than or equal to 1.");
+        }
+        if (sort != null && sort.length() > 0 && !VALID_SORT_OPTIONS.contains(sort)) {
+            errors.add(String.format("sort must be one of: (%s).", String.join(", ", VALID_SORT_OPTIONS)));
+        }
+        if (direction != null && direction.length() > 0 && !VALID_DIRECTION_OPTIONS.contains(direction)) {
+            errors.add("direction must be one of: (asc, desc).");
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException("Invalid enumerate parameter(s).", errors);
+        }
+    }
+
     public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        validiateOffsetAndLimit(offset, limit);
-        return new ResponseEntity<>(studyService.enumerate(offset, limit), HttpStatus.OK);
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction) {
+        validateEnumerateParams(offset, limit, sort, direction);
+        return new ResponseEntity<>(studyService.enumerate(offset, limit, sort, direction), HttpStatus.OK);
     }
 
     @Override
@@ -239,10 +266,13 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        validiateOffsetAndLimit(offset, limit);
-        List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction) {
+        validateEnumerateParams(offset, limit, sort, direction);
+        List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit, sort,
+            direction);
         return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
     }
 

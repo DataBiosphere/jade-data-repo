@@ -130,6 +130,23 @@ paths:
         type: integer
         description: The numbers of items to return.
         default: 10
+      - in: query
+        name: sort
+        type: string
+        default: created_date
+        enum:
+        - name
+        - description
+        - created_date
+        description: The field to use for sorting.
+      - in: query
+        name: direction
+        type: string
+        default: desc
+        enum:
+        - asc
+        - desc
+        description: The direction to sort.
       responses:
         200:
           description: List of datasets
@@ -361,6 +378,23 @@ paths:
         type: integer
         description: The numbers studies to retrieve and return.
         default: 10
+      - in: query
+        name: sort
+        type: string
+        default: created_date
+        enum:
+        - name
+        - description
+        - created_date
+        description: The field to use for sorting.
+      - in: query
+        name: direction
+        type: string
+        default: desc
+        enum:
+        - asc
+        - desc
+        description: The direction to sort.
       responses:
         200:
           description: List of studies

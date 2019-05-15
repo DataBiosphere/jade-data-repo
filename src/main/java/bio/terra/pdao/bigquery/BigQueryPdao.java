@@ -770,12 +770,32 @@ public class BigQueryPdao implements PrimaryDataAccess {
         // NOTE: this will have to be re-written when we support relationships that include
         // more than one column.
         /*
-            Building this SQL:
+            The constructed SQL varies depending on if the from/to column is an array.
+
+            Common SQL is:
                 SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
                 FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
                 WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
                   AND R.PDAO_ROW_ID_COLUMN = F.PDAO_ROW_ID_COLUMN
+
+            If neither column is an array, add:
                   AND T.toColumnName = F.fromColumnName
+
+            If 'from' is an array, add:
+                  AND EXISTS (SELECT 1
+                              FROM UNNEST(F.fromColumnName) AS flat_from
+                              WHERE flat_from = T.toColumnName)
+
+            If 'to' is an array, add:
+                  AND EXISTS (SELECT 1
+                              FROM UNNEST(T.toColumnName) AS flat_to
+                              WHERE flat_to = F.fromColumnName)
+
+            If both are an array, add:
+                  AND EXISTS (SELECT 1
+                              FROM UNNEST(F.fromColumnName) AS flat_from
+                              JOIN UNNEST(T.toColumnName) AS flat_to
+                              ON flat_from = flat_to)
          */
 
         StringBuilder builder = new StringBuilder();

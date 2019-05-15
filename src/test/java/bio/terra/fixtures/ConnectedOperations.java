@@ -1,12 +1,15 @@
 package bio.terra.fixtures;
 
 import bio.terra.model.DRSChecksum;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
@@ -112,6 +115,12 @@ public class ConnectedOperations {
         return validateJobModelAndWait(result);
     }
 
+    public DatasetModel getDataset(String datasetId) throws Exception {
+        MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        MockHttpServletResponse response = result.getResponse();
+        return objectMapper.readValue(response.getContentAsString(), DatasetModel.class);
+    }
+
     public DatasetSummaryModel handleCreateDatasetSuccessCase(MockHttpServletResponse response) throws Exception {
         DatasetSummaryModel summaryModel = handleAsyncSuccessCase(response, DatasetSummaryModel.class);
         addDataset(summaryModel.getId());
@@ -177,6 +186,23 @@ public class ConnectedOperations {
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
+    }
+
+    public IngestResponseModel ingestTableSuccess(String studyId, IngestRequestModel ingestRequestModel) throws Exception {
+        String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
+        String url = "/api/repository/v1/studies/" + studyId + "/ingest";
+
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+        IngestResponseModel ingestResponse =
+            handleAsyncSuccessCase(response, IngestResponseModel.class);
+        assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
+
+        return ingestResponse;
     }
 
     public FileModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {

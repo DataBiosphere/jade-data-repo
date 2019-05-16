@@ -139,6 +139,8 @@ public class BigQueryPdaoTest {
             DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(datasetResponse);
             DatasetModel dataset = connectedOperations.getDataset(datasetSummary.getId());
 
+            // TODO: Assert that the dataset contains the rows we expect.
+            // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(dataset.getTables().size(), is(equalTo(3)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());

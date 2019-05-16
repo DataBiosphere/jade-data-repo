@@ -16,7 +16,7 @@ public class WalkRelationship {
     }
 
     private String[] columnNames;
-    private Boolean[] columnIsArrayOf;
+    private boolean[] columnIsArrayOf;
     private String[] tableNames;
     private String[] tableIds;
     private boolean visited; // marks that we have been here before
@@ -43,7 +43,7 @@ public class WalkRelationship {
 
     public WalkRelationship() {
         columnNames = new String[2];
-        columnIsArrayOf = new Boolean[2];
+        columnIsArrayOf = new boolean[2];
         tableNames = new String[2];
         tableIds = new String[2];
         visited = false;

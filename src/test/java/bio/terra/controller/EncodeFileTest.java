@@ -10,7 +10,6 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
@@ -106,18 +105,7 @@ public class EncodeFileTest {
             .table("file")
             .path(gsPath);
 
-        String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
-
-        MvcResult result = mvc.perform(post(url)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(jsonRequest))
-            .andReturn();
-        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
-
-        IngestResponseModel ingestResponse =
-            connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
-        assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
+        connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
 
         // Delete the scratch blob
         Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
@@ -130,25 +118,18 @@ public class EncodeFileTest {
             .table("donor")
             .path("gs://" + dataRepoConfiguration.getIngestbucket() + "/encodetest/donor.json");
 
-        jsonRequest = objectMapper.writeValueAsString(ingestRequest);
-        result = mvc.perform(post(url)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(jsonRequest))
-            .andReturn();
-        response = connectedOperations.validateJobModelAndWait(result);
-
-        ingestResponse = connectedOperations.handleAsyncSuccessCase(response, IngestResponseModel.class);
-        assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
+        connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
 
         // At this point, we have files and tabular data. Let's make a dataset!
 
-        response = connectedOperations.launchCreateDataset(studySummary, "encodefiletest-dataset.json", "");
+        MockHttpServletResponse response = connectedOperations.launchCreateDataset(
+            studySummary, "encodefiletest-dataset.json", "");
         DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(response);
 
         String datasetFileId = getFileRefIdFromDataset(datasetSummary.getName());
 
         // Try to delete a file with a dependency
-        result = mvc.perform(
+        MvcResult result = mvc.perform(
             delete("/api/repository/v1/studies/" + studySummary.getId() + "/files/" + datasetFileId))
             .andReturn();
         response = connectedOperations.validateJobModelAndWait(result);

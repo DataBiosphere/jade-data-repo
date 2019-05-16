@@ -69,7 +69,7 @@ public class FireStoreFileDao {
 
         // Walk up the directory path, creating directories as necessary until we get to an existing one
         for (String testPath = getDirectoryPath(fileToCreate.getPath());
-             testPath != null;
+             !testPath.isEmpty();
              testPath = getDirectoryPath(testPath)) {
 
             FireStoreObject dirToCreate = makeDirectoryObject(fileToCreate.getStudyId(), testPath);
@@ -91,13 +91,14 @@ public class FireStoreFileDao {
             }
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
+            // This needs to be a file being ingested
+            if (!StringUtils.equals(FSObject.FSObjectType.INGESTING_FILE.toLetter(),
+                currentObject.getObjectTypeLetter())) {
+                throw new FileSystemCorruptException("Attempt to createFileStartUndo with bad file object type");
+            }
             if (!StringUtils.equals(flightId, currentObject.getFlightId())) {
                 throw new InvalidFileSystemObjectTypeException(
                     "Invalid attempt to delete a file being ingested by a different flight");
-            }
-            if (!StringUtils.equals(FSObject.FSObjectType.INGESTING_FILE.toLetter(),
-                currentObject.getObjectTypeLetter())) {
-                throw new FileSystemCorruptException("Attempt to deleteFileForCreateUndo with bad file object type");
             }
 
             deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
@@ -267,7 +268,7 @@ public class FireStoreFileDao {
                 throw new InvalidFileSystemObjectTypeException("Only a directory can be enumerated");
             }
 
-            Query query =  firestore.collection(studyId.toString()).whereEqualTo("path", dirObject.getFullPath());
+            Query query =  firestore.collection(studyId.toString()).whereEqualTo("path", getFullPath(dirObject));
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
 
@@ -366,7 +367,7 @@ public class FireStoreFileDao {
         CollectionReference studyCollection = firestore.collection(studyId);
 
         try {
-            while (path != null) {
+            while (!path.isEmpty()) {
                 // Count the number of objects with this path as their directory path
                 // A value of 1 means that the directory will be empty after its child is
                 // deleted, so we should delete it also.
@@ -402,7 +403,7 @@ public class FireStoreFileDao {
     private DocumentReference getDocRef(FireStoreObject fireStoreObject) {
         return firestore
             .collection(fireStoreObject.getStudyId())
-            .document(getDocumentName(fireStoreObject.getFullPath()));
+            .document(getDocumentName(getFullPath(fireStoreObject)));
     }
 
     private String getObjectName(String path) {
@@ -414,10 +415,17 @@ public class FireStoreFileDao {
         String[] pathParts = StringUtils.split(path, '/');
         if (pathParts.length == 1) {
             // We are at the root; no containing directory
-            return null;
+            return StringUtils.EMPTY;
         }
         int endIndex = pathParts.length - 1;
         return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
+    }
+
+    private String getFullPath(FireStoreObject fireStoreObject) {
+        // Originally, this was a method in FireStoreObject, but the Firestore client complained about it,
+        // because it was not a set/get for an actual class member. Very picky, that!
+        String path = (fireStoreObject.getPath() == null) ? StringUtils.EMPTY : fireStoreObject.getPath();
+        return path + '/' + fireStoreObject.getName();
     }
 
     private DocumentSnapshot lookupByObjectPath(String studyId, String path, Transaction xn) {
@@ -470,11 +478,12 @@ public class FireStoreFileDao {
 
     private FireStoreObject makeFileObjectFromFSObject(FSObject fsObject) {
         String objectId = (fsObject.getObjectId() == null) ? null : fsObject.getObjectId().toString();
+        String fileCreatedDate = (fsObject.getCreatedDate() == null) ? null : fsObject.getCreatedDate().toString();
         return new FireStoreObject()
             .objectId(objectId)
             .studyId(fsObject.getStudyId().toString())
             .objectTypeLetter(fsObject.getObjectType().toLetter())
-            .fileCreatedDate(fsObject.getCreatedDate().toString())
+            .fileCreatedDate(fileCreatedDate)
             .path(getDirectoryPath(fsObject.getPath()))
             .name(getObjectName(fsObject.getPath()))
             .gspath(fsObject.getGspath())
@@ -495,7 +504,7 @@ public class FireStoreFileDao {
             .studyId(UUID.fromString(fireStoreObject.getStudyId()))
             .objectType(FSObject.FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter()))
             .createdDate(createdDate)
-            .path(fireStoreObject.getFullPath())
+            .path(getFullPath(fireStoreObject))
             .gspath(fireStoreObject.getGspath())
             .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
             .checksumMd5(fireStoreObject.getChecksumMd5())
@@ -512,9 +521,15 @@ public class FireStoreFileDao {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException(op + " - execution interrupted", ex);
         } catch (ExecutionException ex) {
+            // If this exception has a cause that is a runtime exception, then we rethrow the cause.
+            // Typically, the cause is one of our file system messages we want to see.
+            // If there is no cause or it is not runtime, we wrap the exception in a generic one of ours.
+            Throwable throwable = ex.getCause();
+            if (throwable instanceof RuntimeException) {
+                throw (RuntimeException)throwable;
+            }
             throw new FileSystemExecutionException(op + " - execution exception", ex);
         }
-
     }
 
 }

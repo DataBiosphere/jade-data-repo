@@ -1,8 +1,9 @@
 package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
-import bio.terra.dao.exception.CorruptMetadataException;
+import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.fixtures.Names;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObject;
@@ -95,7 +96,7 @@ public class FileDaoTest {
             .flightId(flightId);
 
         FSObject typeObject = fileDao.createFileComplete(fsFileInfo);
-        assertThat("Id matches", typeObject.getObjectId(), equalTo(fileAId.toString()));
+        assertThat("Id matches", typeObject.getObjectId(), equalTo(fileAId));
         assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FSObject.FSObjectType.FILE));
 
         fileDao.createFileCompleteUndo(studyId.toString(), fileAId.toString());
@@ -125,18 +126,35 @@ public class FileDaoTest {
 
         // Try to delete a directory with the deleteFile method; should fail
         try {
-            fileDao.createFileStartUndo(studyId.toString(), secondObject.getObjectId().toString(), flightId);
+            fileDao.createFileStartUndo(studyId.toString(), secondObject.getPath(), flightId);
             fail("Should not have successfully deleted a directory");
         } catch (Exception ex) {
-            assertTrue("Expected exception", ex instanceof CorruptMetadataException);
+            assertTrue("Expected exception", ex instanceof FileSystemCorruptException);
             assertThat("Check expected error", ex.getMessage(), containsString("bad file object type"));
         }
 
-        boolean existed = fileDao.createFileStartUndo(
-            studyId.toString(),
-            fileAObject.getObjectId().toString(),
-            flightId);
-        assertTrue("File existed", existed);
+        FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+
+        boolean exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File exists", exists);
+
+        try {
+            fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), "badFlightId");
+        } catch (Exception ex) {
+            assertTrue("Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
+            assertThat("Delete reason", ex.getMessage(), containsString("being deleted by someone else"));
+        }
+
+        try {
+            fileDao.deleteFileComplete(studyId.toString(), secondObject.getObjectId().toString(), flightId);
+        } catch (Exception ex) {
+            assertTrue( "Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
+            assertThat("Delete reason", ex.getMessage(),containsString("attempt to delete a directory"));
+        }
+
+        exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File existed", exists);
 
         // Now verify that the objects are gone.
         checkObjectGone(topObject);
@@ -169,10 +187,7 @@ public class FileDaoTest {
 
         FSObject fileBObject = getCheckPath(fileBPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
-        boolean existed = fileDao.createFileStartUndo(
-            studyId.toString(),
-            fileAObject.getObjectId().toString(),
-            flightId);
+        boolean existed = fileDao.createFileStartUndo(studyId.toString(), fileAObject.getPath(), flightId);
         assertTrue("File existed", existed);
 
         // Directories and file B should still all be in place
@@ -245,5 +260,16 @@ public class FileDaoTest {
         return fsObject;
     }
 
+    private FSFileInfo makeFsFileInfo(String objectId) {
+        return new FSFileInfo()
+            .objectId(objectId)
+            .studyId(studyId.toString())
+            .createdDate(Instant.now().toString())
+            .gspath("gs://mybucket/mystudy/myfile")
+            .checksumCrc32c("myChecksum")
+            .checksumMd5(null)
+            .size(42L)
+            .flightId(flightId);
+    }
 
 }

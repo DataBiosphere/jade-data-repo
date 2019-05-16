@@ -149,8 +149,4 @@ public class FireStoreObject {
         this.flightId = flightId;
         return this;
     }
-
-    public String getFullPath() {
-        return getPath() + '/' + getName();
-    }
 }

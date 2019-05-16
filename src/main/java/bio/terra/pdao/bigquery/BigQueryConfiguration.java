@@ -44,7 +44,7 @@ public class BigQueryConfiguration {
 
     @Bean("firestore")
     public Firestore firestore() {
-        return FirestoreOptions.getDefaultInstance().toBuilder()
+        return FirestoreOptions.newBuilder()
             .setProjectId(projectId)
             .build()
             .getService();

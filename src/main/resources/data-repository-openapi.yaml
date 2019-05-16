@@ -291,7 +291,7 @@ paths:
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/PolicyName'
+      - $ref: '#/parameters/DatasetPolicyName'
       responses:
         200:
           description: PolicyResponse
@@ -319,7 +319,7 @@ paths:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/PolicyName'
+      - $ref: '#/parameters/DatasetPolicyName'
       - name: memberEmail
         description: The email of the user to remove
         required: true
@@ -448,6 +448,100 @@ paths:
             $ref: '#/definitions/ErrorModel'
         409:
           description: Study in use by at least one dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/studies/{id}/policies':
+    get:  ## retrieve
+      description: Retrieve the read and discover policies for the dataset
+      operationId: retrieveStudyPolicies
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Policy
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to see policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
+  '/api/repository/v1/studies/{id}/policies/{policyName}/members':
+    post:  ## retrieve
+      description: Adds a member to the specified policy for the dataset
+      operationId: addStudyPolicyMember
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: policyMember
+        description: Dataset to change the policy of
+        schema:
+          $ref: '#/definitions/PolicyMemberRequest'
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/StudyPolicyName'
+      responses:
+        200:
+          description: PolicyResponse
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed, or email not found
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to update policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
+  '/api/repository/v1/studies/{id}/policies/{policyName}/members/{memberEmail}':
+    delete:  ## retrieve
+      description: Adds a member to the specified policy for the dataset
+      operationId: deleteStudyPolicyMember
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/StudyPolicyName'
+      - name: memberEmail
+        description: The email of the user to remove
+        required: true
+        in: path
+        type: string
+      responses:
+        200:
+          description: PolicyResponse
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to update policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -858,7 +952,7 @@ parameters:
     required: true
     type: string
     in: path
-  PolicyName:
+  DatasetPolicyName:
     name: policyName
     in: path
     description: The relevant policy
@@ -867,6 +961,16 @@ parameters:
     enum:
       - reader
       - discoverer
+  StudyPolicyName:
+    name: policyName
+    in: path
+    description: The relevant policy
+    required: true
+    type: string
+    enum:
+    - steward
+    - custodian
+    - ingester
 
   FileId:
     name: fileid

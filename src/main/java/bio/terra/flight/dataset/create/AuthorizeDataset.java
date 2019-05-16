@@ -15,6 +15,8 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class AuthorizeDataset implements Step {
@@ -42,9 +44,11 @@ public class AuthorizeDataset implements Step {
         String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
+        Optional<List<String>> readersList = Optional.ofNullable(datasetReq.getReaders());
         try {
-            String readersEmail = sam.createDatasetResource(userReq, datasetId);
-            bigQueryPdao.addReaderGroupToDataset(datasetName, readersEmail);
+            // This returns the policy email created by Google to correspond to the readers list in SAM
+            String readersPolicyEmail = sam.createDatasetResource(userReq, datasetId, readersList);
+            bigQueryPdao.addReaderGroupToDataset(datasetName, readersPolicyEmail);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }

@@ -7,18 +7,14 @@ import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
 import liquibase.resource.ClassLoaderResourceAccessor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Provides methods for upgrading the data repository metadata and stairway databases.
@@ -26,30 +22,21 @@ import org.slf4j.LoggerFactory;
  * Migration Notes</a></a>
  */
 @Component
-@EnableConfigurationProperties
-@ConfigurationProperties(prefix = "db")
 public class Migrate {
     private Logger logger = LoggerFactory.getLogger("bio.terra.upgrade");
     private DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
     private StairwayJdbcConfiguration stairwayJdbcConfiguration;
-    private boolean dropAllOnStart;
-
-    public boolean getDropAllOnStart() {
-        return dropAllOnStart;
-    }
-
-    public void setDropAllOnStart(boolean dropAllOnStart) {
-        this.dropAllOnStart = dropAllOnStart;
-    }
+    private MigrateConfiguration migrateConfiguration;
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
-                   StairwayJdbcConfiguration stairwayJdbcConfiguration) {
+                   StairwayJdbcConfiguration stairwayJdbcConfiguration,
+                   MigrateConfiguration migrateConfiguration) {
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
+        this.migrateConfiguration = migrateConfiguration;
     }
 
-    @PostConstruct
     public void migrateAllDatabases() {
         migrateDatabase(dataRepoJdbcConfiguration.getChangesetFile(), dataRepoJdbcConfiguration.getDataSource());
         migrateDatabase(stairwayJdbcConfiguration.getChangesetFile(), stairwayJdbcConfiguration.getDataSource());
@@ -60,25 +47,16 @@ public class Migrate {
             Liquibase liquibase = new Liquibase(changesetFile,
                     new ClassLoaderResourceAccessor(),
                     new JdbcConnection(connection));
-            logger.info(String.format("dropAllOnStart is set to %s", dropAllOnStart));
-            if (dropAllOnStart) {
+            logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
+            if (migrateConfiguration.getDropAllOnStart()) {
                 liquibase.dropAll();
             }
-            liquibase.update(new Contexts()); // Run all migrations - no context filtering
+            logger.info(String.format("updateAllOnStart is set to %s", migrateConfiguration.getUpdateAllOnStart()));
+            if (migrateConfiguration.getUpdateAllOnStart()) {
+                liquibase.update(new Contexts()); // Run all migrations - no context filtering
+            }
         } catch (LiquibaseException | SQLException ex) {
             throw new MigrateException("Failed to migrate database from " + changesetFile, ex);
         }
-    }
-
-    // Some modules require db migrations to run before they access the database. By having those modules receive their
-    // JDBC configurations from this component, it will guarantee that migrations are run before they attempt to use
-    // the configuration to connect to the database and start performing operations. This probably won't be a permanent
-    // fix but it will help us along. See DR-127
-    public StairwayJdbcConfiguration getStairwayJdbcConfiguration() {
-        return stairwayJdbcConfiguration;
-    }
-
-    public DataRepoJdbcConfiguration getDataRepoJdbcConfiguration() {
-        return dataRepoJdbcConfiguration;
     }
 }

@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -164,10 +165,10 @@ public class SamClientService {
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.getPolicyName(),
-            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), stewardsGroupEmail));
+            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), Collections.singletonList(stewardsGroupEmail)));
         req.addPoliciesItem(
             DataRepoRole.CUSTODIAN.getPolicyName(),
-            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), userReq.getEmail()));
+            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
             DataRepoRole.INGESTER.getPolicyName(),
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.INGESTER.getRoleName())));
@@ -177,19 +178,24 @@ public class SamClientService {
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
     }
 
-    // returns the email of the synced google group for readers
-    public String createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
+    public String createDatasetResource(
+        AuthenticatedUserRequest userReq,
+        UUID datasetId,
+        Optional<List<String>> readersList
+    ) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
+
+
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.getPolicyName(),
-            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), stewardsGroupEmail));
+            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), Collections.singletonList(stewardsGroupEmail)));
         req.addPoliciesItem(
             DataRepoRole.CUSTODIAN.getPolicyName(),
-            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), userReq.getEmail()));
+            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
             DataRepoRole.READER.getPolicyName(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.READER.getRoleName())));
+            createAccessPolicy(DataRepoRole.READER.getRoleName(), readersList.orElse(Collections.emptyList())));
         req.addPoliciesItem(
             DataRepoRole.DISCOVERER.getPolicyName(),
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.DISCOVERER.getRoleName())));
@@ -264,17 +270,17 @@ public class SamClientService {
             .enabled(samInfo.getEnabled());
     }
 
-    private AccessPolicyMembership createAccessPolicy(String role, String email) {
+    public AccessPolicyMembership createAccessPolicy(String role, List<String> emails) {
         return new AccessPolicyMembership()
             .roles(Collections.singletonList(role))
-            .memberEmails(Collections.singletonList(email));
+            .memberEmails(emails);
     }
 
 
     // This is a work around for https://broadworkbench.atlassian.net/browse/AP-149
     // This is a copy of the ApiClient.createResourceCall but adds in the validation and
     // the actual execution of the call. And doesn't allow listener callbacks
-    private void createResourceCorrectCall(
+    public void createResourceCorrectCall(
         ApiClient localVarApiClient,
         String resourceTypeName,
         CreateResourceCorrectRequest resourceCreate) throws ApiException {

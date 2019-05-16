@@ -188,7 +188,10 @@ public class ConnectedOperations {
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
-    public IngestResponseModel ingestTableSuccess(String studyId, IngestRequestModel ingestRequestModel) throws Exception {
+    public IngestResponseModel ingestTableSuccess(
+        String studyId,
+        IngestRequestModel ingestRequestModel) throws Exception {
+
         String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
         String url = "/api/repository/v1/studies/" + studyId + "/ingest";
 

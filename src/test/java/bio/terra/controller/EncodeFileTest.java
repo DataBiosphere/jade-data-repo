@@ -122,7 +122,8 @@ public class EncodeFileTest {
 
         // At this point, we have files and tabular data. Let's make a dataset!
 
-        MockHttpServletResponse response = connectedOperations.launchCreateDataset(studySummary, "encodefiletest-dataset.json", "");
+        MockHttpServletResponse response = connectedOperations.launchCreateDataset(
+            studySummary, "encodefiletest-dataset.json", "");
         DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(response);
 
         String datasetFileId = getFileRefIdFromDataset(datasetSummary.getName());

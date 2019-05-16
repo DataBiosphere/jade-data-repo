@@ -13,7 +13,6 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -52,10 +51,14 @@ public class FileDaoTest {
 
     private UUID studyId = UUID.randomUUID();
     private String flightId = UUID.randomUUID().toString();
+    private String datasetId = UUID.randomUUID().toString();
 
 
     @Autowired
     private FireStoreFileDao fileDao;
+
+    @Autowired
+    private FireStoreDependencyDao dependencyDao;
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -150,7 +153,7 @@ public class FileDaoTest {
             fileDao.deleteFileComplete(studyId.toString(), secondObject.getObjectId().toString(), flightId);
         } catch (Exception ex) {
             assertTrue( "Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
-            assertThat("Delete reason", ex.getMessage(),containsString("attempt to delete a directory"));
+            assertThat("Delete reason", ex.getMessage(), containsString("attempt to delete a directory"));
         }
 
         exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
@@ -187,7 +190,15 @@ public class FileDaoTest {
 
         FSObject fileBObject = getCheckPath(fileBPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
-        boolean existed = fileDao.createFileStartUndo(studyId.toString(), fileAObject.getPath(), flightId);
+        FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+        fsFileInfo = makeFsFileInfo(fileBId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+
+
+        boolean existed = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File existed", existed);
+        existed = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", existed);
 
         // Directories and file B should still all be in place
@@ -201,7 +212,7 @@ public class FileDaoTest {
         addDatasetDependency(fileBId);
 
         try {
-            fileDao.createFileStartUndo(studyId.toString(), fileBId.toString(), flightId);
+            fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
@@ -210,26 +221,30 @@ public class FileDaoTest {
 
         removeDatasetDependency(fileBId);
 
-        existed = fileDao.createFileStartUndo(studyId.toString(), fileBObject.getObjectId().toString(), flightId);
+        fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+
+        addDatasetDependency(fileBId);
+
+        try {
+            fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
+            fail("Should not have successfully deleted");
+        } catch (Exception ex) {
+            assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
+            assertThat("Correct message", ex.getMessage(), containsString("dataset"));
+        }
+
+        removeDatasetDependency(fileBId);
+
+        existed = fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
         assertTrue("File B existed", existed);
     }
 
     private void addDatasetDependency(UUID objectId) {
-        // We reuse the random study id for the dataset id; it doesn't matter what it is here
-        String sql = "INSERT INTO fs_dataset (dataset_id,object_id) VALUES (:dataset_id,:object_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("dataset_id", studyId)
-            .addValue("object_id", objectId);
-        jdbcTemplate.update(sql, params);
+        dependencyDao.storeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
     }
 
     private void removeDatasetDependency(UUID objectId) {
-        // We reuse the random study id for the dataset id; it doesn't matter what it is here
-        String sql = "DELETE FROM fs_dataset WHERE dataset_id = :dataset_id AND object_id = :object_id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("dataset_id", studyId)
-            .addValue("object_id", objectId);
-        jdbcTemplate.update(sql, params);
+        dependencyDao.removeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
     }
 
     private void checkObjectPresent(FSObject fsObject) {

@@ -1,7 +1,7 @@
 package bio.terra.flight.study.ingest;
 
 import bio.terra.dao.StudyDao;
-import bio.terra.filesystem.FireStoreDependencyDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.flight.exception.InvalidFileRefException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.FSObject;
@@ -21,12 +21,12 @@ public class IngestValidateRefsStep implements Step {
 
     private StudyDao studyDao;
     private BigQueryPdao bigQueryPdao;
-    private FireStoreDependencyDao dependencyDao;
+    private FireStoreFileDao fileDao;
 
-    public IngestValidateRefsStep(StudyDao studyDao, BigQueryPdao bigQueryPdao, FireStoreDependencyDao dependencyDao) {
+    public IngestValidateRefsStep(StudyDao studyDao, BigQueryPdao bigQueryPdao, FireStoreFileDao fileDao) {
         this.studyDao = studyDao;
         this.bigQueryPdao = bigQueryPdao;
-        this.dependencyDao = dependencyDao;
+        this.fileDao = fileDao;
     }
 
     @Override
@@ -44,7 +44,7 @@ public class IngestValidateRefsStep implements Step {
             if (StringUtils.equalsIgnoreCase(column.getType(), "FILEREF")) {
                 List<String> refIdArray = bigQueryPdao.getRefIds(study.getName(), stagingTableName, column.getName());
                 List<String> badRefIds =
-                    dependencyDao.validateRefIds(study.getId().toString(), refIdArray, FSObject.FSObjectType.FILE);
+                    fileDao.validateRefIds(study.getId().toString(), refIdArray, FSObject.FSObjectType.FILE);
                 if (badRefIds != null) {
                     invalidRefIds.addAll(badRefIds);
                 }

@@ -54,11 +54,13 @@ public class FireStoreFileDao {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreFileDao");
 
     private Firestore firestore;
+    private FireStoreUtils fireStoreUtils;
     private FireStoreDependencyDao dependencyDao;
 
     @Autowired
-    public FireStoreFileDao(Firestore firestore, FireStoreDependencyDao dependencyDao) {
+    public FireStoreFileDao(Firestore firestore, FireStoreUtils fireStoreUtils, FireStoreDependencyDao dependencyDao) {
         this.firestore = firestore;
+        this.fireStoreUtils = fireStoreUtils;
         this.dependencyDao = dependencyDao;
     }
 
@@ -105,7 +107,7 @@ public class FireStoreFileDao {
             return true;
         });
 
-        return transactionGet("create start undo", transaction);
+        return fireStoreUtils.transactionGet("create start undo", transaction);
     }
 
     public FSObject createFileComplete(FSFileInfo fsFileInfo) {
@@ -128,7 +130,7 @@ public class FireStoreFileDao {
             return makeFSObjectFromFileObject(currentObject);
         });
 
-        return transactionGet("create complete", transaction);
+        return fireStoreUtils.transactionGet("create complete", transaction);
     }
 
     public void createFileCompleteUndo(String studyId, String objectId) {
@@ -144,7 +146,7 @@ public class FireStoreFileDao {
             return null;
         });
 
-        transactionGet("create complete undo", transaction);
+        fireStoreUtils.transactionGet("create complete undo", transaction);
     }
 
     public boolean deleteFileStart(String studyId, String objectId, String flightId) {
@@ -184,7 +186,7 @@ public class FireStoreFileDao {
             return true;
         });
 
-        return transactionGet("delete file start", transaction);
+        return fireStoreUtils.transactionGet("delete file start", transaction);
     }
 
     public boolean deleteFileComplete(String studyId, String objectId, String flightId) {
@@ -221,7 +223,7 @@ public class FireStoreFileDao {
             return true;
         });
 
-        return transactionGet("delete file start", transaction);
+        return fireStoreUtils.transactionGet("delete file start", transaction);
     }
 
     public void deleteFileStartUndo(String studyId, String objectId, String flightId) {
@@ -253,7 +255,7 @@ public class FireStoreFileDao {
             return null;
         });
 
-        transactionGet("delete start undo", transaction);
+        fireStoreUtils.transactionGet("delete start undo", transaction);
     }
 
     public List<FSObject> enumerateDirectory(UUID studyId, UUID objectId) {
@@ -282,7 +284,7 @@ public class FireStoreFileDao {
             return fsObjectList;
         });
 
-        return transactionGet("enumerate directory", transaction);
+        return fireStoreUtils.transactionGet("enumerate directory", transaction);
     }
 
     public FSObject retrieve(UUID studyId, UUID objectId) {
@@ -303,7 +305,7 @@ public class FireStoreFileDao {
             return makeFSObjectFromFileObject(currentObject);
         });
 
-        return transactionGet("retrieve by id", transaction);
+        return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
     public FSObject retrieveByPath(UUID studyId, String path) {
@@ -336,6 +338,15 @@ public class FireStoreFileDao {
         }
     }
 
+    public List<String> validateRefIds(String studyId, List<String> refIdArray, FSObject.FSObjectType objectType) {
+        List<String> missingIds = new ArrayList<>();
+        for (String objectId : refIdArray) {
+            if (!lookupByIdAndType(studyId, objectId, objectType)) {
+                missingIds.add(objectId);
+            }
+        }
+        return missingIds;
+    }
 
     // -- private methods --
 
@@ -354,7 +365,7 @@ public class FireStoreFileDao {
             return objectId;
         });
 
-        return transactionGet("create directory", transaction);
+        return fireStoreUtils.transactionGet("create object", transaction);
     }
 
     private void deleteFileWorker(String studyId, DocumentReference fileDocRef, String path, Transaction xn) {
@@ -466,6 +477,32 @@ public class FireStoreFileDao {
         }
     }
 
+    // Returns true if the object exists
+    private boolean lookupByIdAndType(String studyId, String objectId, FSObject.FSObjectType objectType) {
+        try {
+            CollectionReference studyCollection = firestore.collection(studyId);
+            Query query = studyCollection
+                .whereEqualTo("objectId", objectId)
+                .whereEqualTo("objectTypeLetter", objectType.toLetter());
+            ApiFuture<QuerySnapshot> querySnapshot = query.get();
+            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+            if (documents.size() == 0) {
+                return false;
+            }
+            if (documents.size() != 1) {
+                throw new FileSystemCorruptException("lookup by object id found too many objects");
+            }
+
+            return true;
+
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("lookup id and type - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("lookup id and type - execution exception", ex);
+        }
+    }
+
     private FireStoreObject makeDirectoryObject(UUID studyId, String dirPath) {
         return new FireStoreObject()
             .studyId(studyId.toString())
@@ -512,24 +549,6 @@ public class FireStoreFileDao {
             .mimeType(fireStoreObject.getMimeType())
             .description(fireStoreObject.getDescription())
             .flightId(fireStoreObject.getFlightId());
-    }
-
-    private <T> T transactionGet(String op, ApiFuture<T> transaction) {
-        try {
-            return transaction.get();
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException(op + " - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            // If this exception has a cause that is a runtime exception, then we rethrow the cause.
-            // Typically, the cause is one of our file system messages we want to see.
-            // If there is no cause or it is not runtime, we wrap the exception in a generic one of ours.
-            Throwable throwable = ex.getCause();
-            if (throwable instanceof RuntimeException) {
-                throw (RuntimeException)throwable;
-            }
-            throw new FileSystemExecutionException(op + " - execution exception", ex);
-        }
     }
 
 }

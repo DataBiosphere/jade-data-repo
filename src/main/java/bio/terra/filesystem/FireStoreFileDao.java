@@ -74,7 +74,10 @@ public class FireStoreFileDao {
              !testPath.isEmpty();
              testPath = getDirectoryPath(testPath)) {
 
-            FireStoreObject dirToCreate = makeDirectoryObject(fileToCreate.getStudyId(), testPath);
+            FireStoreObject dirToCreate = makeDirectoryObject(
+                fileToCreate.getStudyId(),
+                testPath,
+                fileToCreate.getFlightId());
             UUID objectId = createObject(dirToCreate);
             if (objectId == null) {
                 break;
@@ -93,14 +96,15 @@ public class FireStoreFileDao {
             }
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
-            // This needs to be a file being ingested
+            // If another flight created this object, then we leave it be.
+            if (!StringUtils.equals(flightId, currentObject.getFlightId())) {
+                return true;
+            }
+
+            // It is ours. Double check that it is in the right state
             if (!StringUtils.equals(FSObject.FSObjectType.INGESTING_FILE.toLetter(),
                 currentObject.getObjectTypeLetter())) {
                 throw new FileSystemCorruptException("Attempt to createFileStartUndo with bad file object type");
-            }
-            if (!StringUtils.equals(flightId, currentObject.getFlightId())) {
-                throw new InvalidFileSystemObjectTypeException(
-                    "Invalid attempt to delete a file being ingested by a different flight");
             }
 
             deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
@@ -503,14 +507,15 @@ public class FireStoreFileDao {
         }
     }
 
-    private FireStoreObject makeDirectoryObject(UUID studyId, String dirPath) {
+    private FireStoreObject makeDirectoryObject(UUID studyId, String dirPath, String flightId) {
         return new FireStoreObject()
             .studyId(studyId.toString())
             .objectTypeLetter(FSObject.FSObjectType.DIRECTORY.toLetter())
             .path(getDirectoryPath(dirPath))
             .name(getObjectName(dirPath))
             .size(0L)
-            .fileCreatedDate(Instant.now().toString());
+            .fileCreatedDate(Instant.now().toString())
+            .flightId(flightId);
     }
 
     private FireStoreObject makeFileObjectFromFSObject(FSObject fsObject) {

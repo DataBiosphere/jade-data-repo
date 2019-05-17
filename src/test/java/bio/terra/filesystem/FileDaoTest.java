@@ -7,6 +7,7 @@ import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.fixtures.Names;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObject;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -72,7 +73,7 @@ public class FileDaoTest {
         assertThat("Valid path", result, equalTo("/foo"));
 
         result = fileDao.getDirectoryPath("/foo");
-        assertThat("Should be null", result, equalTo(null));
+        assertThat("Should be empty", result, equalTo(StringUtils.EMPTY));
     }
 
     @Test
@@ -152,7 +153,7 @@ public class FileDaoTest {
         try {
             fileDao.deleteFileComplete(studyId.toString(), secondObject.getObjectId().toString(), flightId);
         } catch (Exception ex) {
-            assertTrue( "Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
+            assertTrue("Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
             assertThat("Delete reason", ex.getMessage(), containsString("attempt to delete a directory"));
         }
 

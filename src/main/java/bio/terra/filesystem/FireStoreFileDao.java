@@ -68,24 +68,44 @@ public class FireStoreFileDao {
         if (fileToCreate.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
+        UUID studyId = fileToCreate.getStudyId();
+        FireStoreObject createObject = makeFileObjectFromFSObject(fileToCreate);
 
-        // Walk up the directory path, creating directories as necessary until we get to an existing one
-        for (String testPath = getDirectoryPath(fileToCreate.getPath());
-             !testPath.isEmpty();
-             testPath = getDirectoryPath(testPath)) {
+        ApiFuture<UUID> transaction = firestore.runTransaction(xn -> {
+            List<FireStoreObject> createList = new ArrayList<>();
 
-            FireStoreObject dirToCreate = makeDirectoryObject(
-                fileToCreate.getStudyId(),
-                testPath,
-                fileToCreate.getFlightId());
-            UUID objectId = createObject(dirToCreate);
-            if (objectId == null) {
-                break;
+            // Walk up the directory path, finding missing directories we get to an existing one
+            for (String testPath = getDirectoryPath(fileToCreate.getPath());
+                 !testPath.isEmpty();
+                 testPath = getDirectoryPath(testPath)) {
+
+                DocumentSnapshot docSnap = lookupByObjectPath(studyId.toString(), testPath, xn);
+                if (docSnap.exists()) {
+                    break;
+                }
+
+                FireStoreObject dirToCreate = makeDirectoryObject(
+                    studyId,
+                    testPath,
+                    createObject.getFlightId());
+
+                createList.add(dirToCreate);
             }
-        }
 
-        FireStoreObject fireStoreFile = makeFileObjectFromFSObject(fileToCreate);
-        return createObject(fireStoreFile);
+            for (FireStoreObject dirToCreate : createList) {
+                dirToCreate.objectId(UUID.randomUUID().toString());
+                xn.set(getDocRef(dirToCreate), dirToCreate);
+            }
+
+            UUID objectId = UUID.randomUUID();
+            createObject.objectId(objectId.toString());
+            DocumentReference docRef = getDocRef(createObject);
+            xn.set(getDocRef(createObject), createObject);
+
+            return objectId;
+        });
+
+        return fireStoreUtils.transactionGet("create start", transaction);
     }
 
     public boolean createFileStartUndo(String studyId, String targetPath, String flightId) {
@@ -353,24 +373,6 @@ public class FireStoreFileDao {
     }
 
     // -- private methods --
-
-    // Returns null if object exists; returns new UUID when object is created
-    private UUID createObject(FireStoreObject fireStoreObject) {
-        DocumentReference docRef = getDocRef(fireStoreObject);
-
-        ApiFuture<UUID> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot snapshot = xn.get(docRef).get();
-            if (snapshot.exists()) {
-                return null;
-            }
-            UUID objectId = UUID.randomUUID();
-            fireStoreObject.objectId(objectId.toString());
-            xn.set(docRef, fireStoreObject);
-            return objectId;
-        });
-
-        return fireStoreUtils.transactionGet("create object", transaction);
-    }
 
     private void deleteFileWorker(String studyId, DocumentReference fileDocRef, String path, Transaction xn) {
         // We must do all reads before any writes, so we collect the document references that we need to delete

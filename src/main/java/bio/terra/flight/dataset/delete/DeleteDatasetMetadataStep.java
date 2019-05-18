@@ -1,6 +1,7 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
+import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
@@ -28,16 +29,22 @@ public class DeleteDatasetMetadataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Dataset dataset = datasetDao.retrieveDataset(datasetId);
+        Dataset dataset = null;
+        boolean found = false;
+        try {
+            dataset = datasetDao.retrieveDataset(datasetId);
 
-        // Remove dataset file references from the underlying studies
-        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
-            dependencyDao.deleteDatasetFileDependencies(
-                datasetSource.getStudy().getId().toString(),
-                datasetId.toString());
+            // Remove dataset file references from the underlying studies
+            for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+                dependencyDao.deleteDatasetFileDependencies(
+                    datasetSource.getStudy().getId().toString(),
+                    datasetId.toString());
+            }
+            found = datasetDao.delete(datasetId);
+        } catch (DatasetNotFoundException ex) {
+            found = false;
         }
 
-        boolean found = datasetDao.delete(datasetId);
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
         DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);

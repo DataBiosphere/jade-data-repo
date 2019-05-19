@@ -208,10 +208,6 @@ public class DatasetDao {
         return summaries;
     }
 
-    public List<DatasetSummary> retrieveDatasets(int offset, int limit) {
-        return retrieveDatasets(offset, limit, null, null, null);
-    }
-
     public DatasetSummary retrieveDatasetSummary(UUID id) {
         logger.debug("retrieve dataset summary for id: " + id);
         try {

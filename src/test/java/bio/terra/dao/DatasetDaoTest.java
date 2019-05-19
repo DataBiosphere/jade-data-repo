@@ -184,7 +184,8 @@ public class DatasetDaoTest {
                                        int offset,
                                        int limit) {
         // We expect the datasets to be returned in their created order
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit);
+        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit, "created_date",
+            "asc", null);
         int index = offset;
         for (DatasetSummary summary : summaryList) {
             assertThat("correct dataset id",
@@ -198,7 +199,8 @@ public class DatasetDaoTest {
     }
 
     private void deleteAllDatasets() {
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 1000);
+        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 1000, null,
+            null, null);
         for (DatasetSummary summary : summaryList) {
             datasetDao.delete(summary.getId());
         }

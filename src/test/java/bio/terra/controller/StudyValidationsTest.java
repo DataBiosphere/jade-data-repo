@@ -36,6 +36,7 @@ import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.startsWith;
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -74,7 +75,9 @@ public class StudyValidationsTest {
     private void expectBadStudyEnumerateRequest(
         Integer offset,
         Integer limit,
-        String expectedMessage) throws Exception {
+        String expectedMessage,
+        List<String> errors
+    ) throws Exception {
 
         MvcResult result = mvc.perform(get("/api/repository/v1/studies")
             .param("offset", offset.toString())
@@ -92,9 +95,24 @@ public class StudyValidationsTest {
 
         ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
         assertThat("correct error message", errorModel.getMessage(), equalTo(expectedMessage));
-        assertTrue("No details expected",
-            (errorModel.getErrorDetail() == null || errorModel.getErrorDetail().size() == 0));
+        List<String> responseErrors = errorModel.getErrorDetail();
+        if (errors == null || errors.isEmpty()) {
+            assertTrue("No details expected", (responseErrors == null || responseErrors.size() == 0));
+        } else {
+            assertTrue("Same number of errors", responseErrors.size() == errors.size());
+            assertArrayEquals("Error details match", responseErrors.toArray(), errors.toArray());
+        }
     }
+
+    private void expectBadStudyEnumerateRequest(
+        Integer offset,
+        Integer limit,
+        String expectedMessage
+    ) throws Exception {
+        expectBadStudyEnumerateRequest(offset, limit, expectedMessage, null);
+    }
+
+    //Invalid enumerate parameter(s).
 
     @Test
     public void testInvalidStudyRequest() throws Exception {
@@ -283,10 +301,13 @@ public class StudyValidationsTest {
 
     @Test
     public void testStudyEnumerateValidations() throws Exception {
-        expectBadStudyEnumerateRequest(-1, 3, "Offset must be greater than or equal to 0.");
-        expectBadStudyEnumerateRequest(1, 0, " Limit must be greater than or equal to 1.");
-        expectBadStudyEnumerateRequest(-1, 0,
-            "Offset must be greater than or equal to 0. Limit must be greater than or equal to 1.");
+        String expected = "Invalid enumerate parameter(s).";
+        expectBadStudyEnumerateRequest(-1, 3, expected,
+            Collections.singletonList("offset must be greater than or equal to 0."));
+        expectBadStudyEnumerateRequest(1, 0, expected,
+            Collections.singletonList("limit must be greater than or equal to 1."));
+        expectBadStudyEnumerateRequest(-1, 0, expected,
+            Arrays.asList("offset must be greater than or equal to 0.", "limit must be greater than or equal to 1."));
 
         mvc.perform(get("/api/repository/v1/studies/")
             .contentType(MediaType.APPLICATION_JSON)

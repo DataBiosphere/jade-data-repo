@@ -91,7 +91,8 @@ public class StudyDaoTest {
     public void enumerateTest() throws Exception {
         UUID study1 = createMinimalStudy();
 
-        List<StudySummary> studies = studyDao.enumerate(0, 2);
+        List<StudySummary> studies = studyDao.enumerate(0, 2, "created_date", "asc",
+            null);
         assertThat("study enumerate limit param works",
             studies.size(),
             equalTo(2));
@@ -103,7 +104,7 @@ public class StudyDaoTest {
         // this is skipping the first item returned above
         // so compare the id from the previous retrieve
         assertThat("study enumerate offset param works",
-            studyDao.enumerate(1, 1).get(0).getId(),
+            studyDao.enumerate(1, 1, null, null, null).get(0).getId(),
             equalTo(studies.get(1).getId()));
 
         studyDao.delete(study1);

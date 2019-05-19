@@ -127,10 +127,6 @@ public class StudyDao {
         return jdbcTemplate.query(sql, params, new StudySummaryMapper());
     }
 
-    public List<StudySummary> enumerate(int offset, int limit) {
-        return enumerate(offset, limit, null, null, null);
-    }
-
 
     private static class StudySummaryMapper implements RowMapper<StudySummary> {
         public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {

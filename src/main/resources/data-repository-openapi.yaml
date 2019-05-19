@@ -147,6 +147,10 @@ paths:
         - asc
         - desc
         description: The direction to sort.
+      - in: query
+        name: filter
+        type: string
+        description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
           description: List of datasets
@@ -395,6 +399,10 @@ paths:
         - asc
         - desc
         description: The direction to sort.
+      - in: query
+        name: filter
+        type: string
+        description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
           description: List of studies

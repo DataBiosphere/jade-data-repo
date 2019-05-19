@@ -55,8 +55,8 @@ public class StudyService {
         return StudyJsonConversion.studyModelFromStudy(studyDao.retrieve(id));
     }
 
-    public List<StudySummaryModel> enumerate(int offset, int limit, String sort, String direction) {
-        return studyDao.enumerate(offset, limit, sort, direction)
+    public List<StudySummaryModel> enumerate(int offset, int limit, String sort, String direction, String filter) {
+        return studyDao.enumerate(offset, limit, sort, direction, filter)
             .stream()
             .map(summary -> StudyJsonConversion.studySummaryModelFromStudySummary(summary))
             .collect(Collectors.toList());

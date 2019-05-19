@@ -161,9 +161,10 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction) {
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+            @Valid @RequestParam(value = "filter", required = false) String filter) {
         validateEnumerateParams(offset, limit, sort, direction);
-        return new ResponseEntity<>(studyService.enumerate(offset, limit, sort, direction), HttpStatus.OK);
+        return new ResponseEntity<>(studyService.enumerate(offset, limit, sort, direction, filter), HttpStatus.OK);
     }
 
     @Override
@@ -269,10 +270,11 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction) {
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+            @Valid @RequestParam(value = "filter", required = false) String filter) {
         validateEnumerateParams(offset, limit, sort, direction);
         List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit, sort,
-            direction);
+            direction, filter);
         return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
     }
 

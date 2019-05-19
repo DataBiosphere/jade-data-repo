@@ -185,14 +185,18 @@ public class DatasetDao {
         return datasetSources;
     }
 
-    public List<DatasetSummary> retrieveDatasets(int offset, int limit, String sort, String direction) {
+    public List<DatasetSummary> retrieveDatasets(int offset, int limit, String sort, String direction, String filter) {
         logger.debug("retrieve datasets offset: " + offset + " limit: " + limit + " sort: " + sort +
-            " direction: " + direction);
-        String sql = "SELECT id, name, description, created_date FROM dataset " +
+            " direction: " + direction + " filter:" + filter);
+        String where = DaoUtils.whereClause(filter);
+        String sql = "SELECT id, name, description, created_date FROM dataset " + where +
                 DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("offset", offset)
             .addValue("limit", limit);
+        if (!where.isEmpty()) {
+            params.addValue("filter", "%" + filter + "%");
+        }
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             DatasetSummary summary = new DatasetSummary()
                 .id(UUID.fromString(rs.getString("id")))
@@ -202,6 +206,10 @@ public class DatasetDao {
             return summary;
         });
         return summaries;
+    }
+
+    public List<DatasetSummary> retrieveDatasets(int offset, int limit) {
+        return retrieveDatasets(offset, limit, null, null, null);
     }
 
     public DatasetSummary retrieveDatasetSummary(UUID id) {

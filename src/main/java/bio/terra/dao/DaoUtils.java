@@ -13,4 +13,11 @@ public final class DaoUtils {
             .append(direction).append(" ")
             .toString();
     }
+
+    public static String whereClause(String filter) {
+        if (filter == null || filter.isEmpty()) {
+            return "";
+        }
+        return " WHERE name ILIKE :filter OR description ILIKE :filter ";
+    }
 }

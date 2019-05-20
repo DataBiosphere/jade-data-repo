@@ -9,6 +9,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSourceModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
@@ -207,7 +208,9 @@ public class DatasetOperationTest {
             datasetList.add(summaryModel);
         }
 
-        DatasetSummaryModel[] enumeratedArray = enumerateTestDatasets();
+        EnumerateDatasetModel enumResponse = enumerateTestDatasets();
+        List<DatasetSummaryModel> enumeratedArray = enumResponse.getItems();
+        assertThat("total is correct", enumResponse.getTotal(), equalTo(5));
 
         // The enumeratedArray may contain more datasets than just the set we created,
         // but ours should be in order in the enumeration. So we do a merge waiting until we match
@@ -224,7 +227,7 @@ public class DatasetOperationTest {
         assertThat("we found all datasets", compareIndex, equalTo(5));
 
         for (int i = 0; i < 5; i++) {
-            deleteTestDataset(enumeratedArray[i].getId());
+            deleteTestDataset(enumeratedArray.get(i).getId());
         }
     }
 
@@ -421,15 +424,15 @@ public class DatasetOperationTest {
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
-    private DatasetSummaryModel[] enumerateTestDatasets() throws Exception {
+    private EnumerateDatasetModel enumerateTestDatasets() throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets?offset=0&limit=100"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        DatasetSummaryModel[] summaryArray =
-                objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel[].class);
-        return summaryArray;
+        EnumerateDatasetModel summary =
+                objectMapper.readValue(response.getContentAsString(), EnumerateDatasetModel.class);
+        return summary;
     }
 
     private DatasetModel getTestDataset(String id,

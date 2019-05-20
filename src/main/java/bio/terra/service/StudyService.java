@@ -62,6 +62,10 @@ public class StudyService {
             .collect(Collectors.toList());
     }
 
+    public Integer total() {
+        return studyDao.total();
+    }
+
     public DeleteResponseModel delete(UUID id, AuthenticatedUserRequest userInfo) {
         List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
         if (referencedDatasets == null || referencedDatasets.isEmpty()) {

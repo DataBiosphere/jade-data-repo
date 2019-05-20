@@ -127,6 +127,12 @@ public class StudyDao {
         return jdbcTemplate.query(sql, params, new StudySummaryMapper());
     }
 
+    public Integer total() {
+        String sql = "SELECT count(id) AS total FROM study";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        return jdbcTemplate.queryForObject(sql, params, Integer.class);
+    }
+
 
     private static class StudySummaryMapper implements RowMapper<StudySummary> {
         public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {

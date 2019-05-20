@@ -208,6 +208,13 @@ public class DatasetDao {
         return summaries;
     }
 
+
+    public Integer total() {
+        String sql = "SELECT count(id) AS total FROM dataset";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        return jdbcTemplate.queryForObject(sql, params, Integer.class);
+    }
+
     public DatasetSummary retrieveDatasetSummary(UUID id) {
         logger.debug("retrieve dataset summary for id: " + id);
         try {

@@ -7,6 +7,8 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
@@ -157,14 +159,17 @@ public class RepositoryApiController implements RepositoryApi {
         }
     }
 
-    public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
+    public ResponseEntity<EnumerateStudyModel> enumerateStudies(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         validateEnumerateParams(offset, limit, sort, direction);
-        return new ResponseEntity<>(studyService.enumerate(offset, limit, sort, direction, filter), HttpStatus.OK);
+        List<StudySummaryModel> studies = studyService.enumerate(offset, limit, sort, direction, filter);
+        Integer totalStudies = studyService.total();
+        EnumerateStudyModel esm = new EnumerateStudyModel().items(studies).total(totalStudies);
+        return new ResponseEntity<>(esm, HttpStatus.OK);
     }
 
     @Override
@@ -266,7 +271,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
+    public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
@@ -275,7 +280,9 @@ public class RepositoryApiController implements RepositoryApi {
         validateEnumerateParams(offset, limit, sort, direction);
         List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit, sort,
             direction, filter);
-        return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
+        Integer total = datasetService.total();
+        EnumerateDatasetModel edm = new EnumerateDatasetModel().items(datasetSummaryModels).total(total);
+        return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 
     @Override

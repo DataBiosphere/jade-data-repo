@@ -155,9 +155,7 @@ paths:
         200:
           description: List of datasets
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/DatasetSummaryModel'
+            $ref: '#/definitions/EnumerateDatasetModel'
 
     post:
       description: Create a new dataset
@@ -407,9 +405,7 @@ paths:
         200:
           description: List of studies
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/StudySummaryModel'
+            $ref: '#/definitions/EnumerateStudyModel'
 
     post:
       description: Create a new study
@@ -1110,6 +1106,20 @@ definitions:
       schema:
         $ref: '#/definitions/StudySpecificationModel'
 
+  EnumerateStudyModel:
+    description: |
+      The total number of studies available and a page of summaries
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of studies
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/StudySummaryModel'
+
+
   ## Schema Definitions ##
 
   ColumnModel:
@@ -1480,6 +1490,19 @@ definitions:
       createdDate:
         type: string
         description: Date the dataset was created
+
+  EnumerateDatasetModel:
+    description: |
+      The total number of datasets available and a page of summaries
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of datasets
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/DatasetSummaryModel'
 
   DatasetModel:
     description: |

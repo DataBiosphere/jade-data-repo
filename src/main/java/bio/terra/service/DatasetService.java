@@ -296,4 +296,8 @@ public class DatasetService {
             .collect(Collectors.toList());
 
     }
+
+    public Integer total() {
+        return datasetDao.total();
+    }
 }

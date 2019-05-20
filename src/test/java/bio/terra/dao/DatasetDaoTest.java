@@ -208,11 +208,11 @@ public class DatasetDaoTest {
     private void testSortingNames(List<UUID> datasetIds, String datasetName, int offset, int limit, String direction) {
         List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit, "name",
             direction, null);
-        int index = (direction == "asc") ? offset : datasetIds.size() - offset - 1;
+        int index = (direction.equals("asc")) ? offset : datasetIds.size() - offset - 1;
         for (DatasetSummary summary : summaryList) {
             assertThat("correct id", datasetIds.get(index), equalTo(summary.getId()));
             assertThat("correct name", makeName(datasetName, index), equalTo(summary.getName()));
-            index += (direction == "asc") ? 1 : -1;
+            index += (direction.equals("asc")) ? 1 : -1;
         }
     }
 
@@ -223,7 +223,7 @@ public class DatasetDaoTest {
         String previous = summaryList.get(0).getDescription();
         for (int i = 1; i < summaryList.size(); i++) {
             String next = summaryList.get(i).getDescription();
-            if (direction == "asc") {
+            if (direction.equals("asc")) {
                 assertThat("ascending order", previous, lessThan(next));
             } else {
                 assertThat("descending order", previous, greaterThan(next));

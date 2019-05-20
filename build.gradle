@@ -217,6 +217,10 @@ jar {
 
 jib {
     extraDirectories.paths = ['build/gen-expanded']
+    to {
+        image = "gcr.io/broad-jade-dev/jade-data-repo"
+        tags = [(System.env.GCR_TAG ?: "latest")]
+    }
 }
 task setupGeneratedDir(type: Copy) {
     from file('build/classes/java/generated')

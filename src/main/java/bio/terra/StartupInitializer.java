@@ -10,7 +10,7 @@ import org.springframework.context.ApplicationContext;
 import javax.sql.DataSource;
 
 public final class StartupInitializer {
-    private static final Logger logger = LoggerFactory.getLogger("bio.terra.configuration.ApplicationConfiguration");
+    private static final Logger logger = LoggerFactory.getLogger("bio.terra.configuration.StartupInitializer");
 
     private StartupInitializer() {
 

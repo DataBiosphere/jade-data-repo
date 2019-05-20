@@ -19,7 +19,6 @@ import java.util.concurrent.Executors;
 
 @Configuration
 public class ApplicationConfiguration {
-//    private Logger logger = LoggerFactory.getLogger("bio.terra.configuration.ApplicationConfiguration");
 
     @Bean("stairway")
     public Stairway getStairway(Migrate migrate, ApplicationContext applicationContext) {

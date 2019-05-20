@@ -211,6 +211,19 @@ public class FileDaoTest {
 
         // Don't delete file with dependencies
         addDatasetDependency(fileBId);
+        addDatasetDependency(fileBId);
+        addDatasetDependency(fileBId);
+
+        try {
+            fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+            fail("Should not have successfully deleted");
+        } catch (Exception ex) {
+            assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
+            assertThat("Correct message", ex.getMessage(), containsString("dataset"));
+        }
+
+        removeDatasetDependency(fileBId);
+        removeDatasetDependency(fileBId);
 
         try {
             fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
@@ -230,8 +243,8 @@ public class FileDaoTest {
             fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
-            assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
-            assertThat("Correct message", ex.getMessage(), containsString("dataset"));
+            assertTrue("Correct dependency exception", ex instanceof FileSystemCorruptException);
+            assertThat("Correct message", ex.getMessage(), containsString("any references"));
         }
 
         removeDatasetDependency(fileBId);

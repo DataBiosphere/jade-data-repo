@@ -116,6 +116,7 @@ public class FireStoreDependencyDao {
                     FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
                     fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
                     xn.set(docSnap.getReference(), fireStoreDependency);
+                    break;
                 }
 
                 default:

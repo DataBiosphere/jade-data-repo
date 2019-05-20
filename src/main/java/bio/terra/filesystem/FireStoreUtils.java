@@ -12,15 +12,6 @@ import java.util.concurrent.ExecutionException;
 public class FireStoreUtils {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreUtils");
 
-/*
-    private Firestore firestore;
-
-    @Autowired
-    public FireStoreUtils(Firestore firestore) {
-        this.firestore = firestore;
-    }
-*/
-
     public <T> T transactionGet(String op, ApiFuture<T> transaction) {
         try {
             return transaction.get();

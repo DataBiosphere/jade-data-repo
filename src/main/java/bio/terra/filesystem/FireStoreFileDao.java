@@ -92,6 +92,8 @@ public class FireStoreFileDao {
                 createList.add(dirToCreate);
             }
 
+            // transition point from reading to writing in the transaction
+
             for (FireStoreObject dirToCreate : createList) {
                 dirToCreate.objectId(UUID.randomUUID().toString());
                 xn.set(getDocRef(dirToCreate), dirToCreate);
@@ -127,6 +129,7 @@ public class FireStoreFileDao {
                 throw new FileSystemCorruptException("Attempt to createFileStartUndo with bad file object type");
             }
 
+            // transition point from reading to writing is inside of deleteFileWorker
             deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
             return true;
         });
@@ -150,6 +153,8 @@ public class FireStoreFileDao {
                 .size(fsFileInfo.getSize())
                 .fileCreatedDate(fsFileInfo.getCreatedDate());
 
+            // transition point from reading to writing in the transaction
+
             xn.set(docSnap.getReference(), currentObject);
             return makeFSObjectFromFileObject(currentObject);
         });
@@ -166,6 +171,9 @@ public class FireStoreFileDao {
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
             currentObject.objectTypeLetter(FSObject.FSObjectType.INGESTING_FILE.toLetter());
+
+            // transition point from reading to writing in the transaction
+
             xn.set(docSnap.getReference(), currentObject);
             return null;
         });
@@ -189,7 +197,8 @@ public class FireStoreFileDao {
                     throw new InvalidFileSystemObjectTypeException("Invalid attempt to delete a directory");
                 case DELETING_FILE:
                     if (!StringUtils.equals(currentObject.getFlightId(), flightId)) {
-                        throw new InvalidFileSystemObjectTypeException("File is being deleted by someone else");
+                        throw new
+                            InvalidFileSystemObjectTypeException("File is already being deleted by flight " + flightId);
                     }
                     break;
                 case INGESTING_FILE:
@@ -206,6 +215,9 @@ public class FireStoreFileDao {
             currentObject
                 .objectTypeLetter(FSObject.FSObjectType.DELETING_FILE.toLetter())
                 .flightId(flightId);
+
+            // transition point from reading to writing in the transaction
+
             xn.set(docSnap.getReference(), currentObject);
             return true;
         });
@@ -239,10 +251,10 @@ public class FireStoreFileDao {
             }
 
             if (dependencyDao.hasDatasetReference(studyId, objectId)) {
-                throw new FileSystemObjectDependencyException(
-                    "File is used by at least one dataset and cannot be deleted");
+                throw new FileSystemCorruptException("File should not have any references at this point");
             }
 
+            // transition point from reading to writing is inside of deleteFileWorker
             deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
             return true;
         });
@@ -275,6 +287,8 @@ public class FireStoreFileDao {
             }
 
             currentObject.objectTypeLetter(FSObject.FSObjectType.FILE.toLetter());
+
+            // transition point from reading to writing in the transaction
             xn.set(docSnap.getReference(), currentObject);
             return null;
         });
@@ -283,6 +297,8 @@ public class FireStoreFileDao {
     }
 
     public List<FSObject> enumerateDirectory(UUID studyId, UUID objectId) {
+        // We don't strictly need a transaction here. Having one provides a consistent snapshot of the
+        // file system.
         ApiFuture<List<FSObject>> transaction = firestore.runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(studyId.toString(), objectId.toString(), xn);
             if (docSnap == null) {
@@ -301,8 +317,19 @@ public class FireStoreFileDao {
             List<FSObject> fsObjectList = new ArrayList<>();
             for (QueryDocumentSnapshot document : documents) {
                 FireStoreObject fireStoreObject = document.toObject(FireStoreObject.class);
-                FSObject fsObject = makeFSObjectFromFileObject(fireStoreObject);
-                fsObjectList.add(fsObject);
+                switch (FSObject.FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter())) {
+                    case FILE:
+                    case DIRECTORY:
+                        FSObject fsObject = makeFSObjectFromFileObject(fireStoreObject);
+                        fsObjectList.add(fsObject);
+                        break;
+
+                    // Don't show files being added or deleted
+                    case INGESTING_FILE:
+                    case DELETING_FILE:
+                    default:
+                        break;
+                }
             }
 
             return fsObjectList;
@@ -343,7 +370,7 @@ public class FireStoreFileDao {
     public FSObject retrieveByPathNoThrow(UUID studyId, String path) {
         DocumentReference docRef = firestore
             .collection(studyId.toString())
-            .document(getDocumentName(path));
+            .document(encodePathAsFirestoreDocumentName(path));
 
         ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
         try {
@@ -395,7 +422,7 @@ public class FireStoreFileDao {
                 if (documents.size() > 1) {
                     break;
                 }
-                DocumentReference docRef = studyCollection.document(getDocumentName(path));
+                DocumentReference docRef = studyCollection.document(encodePathAsFirestoreDocumentName(path));
                 docRefList.add(docRef);
                 path = getDirectoryPath(path);
             }
@@ -412,15 +439,17 @@ public class FireStoreFileDao {
         }
     }
 
+    // As mentioned at the top of the module, we can't use forward slash in a FireStore document
+    // name, so we do this encoding.
     private static final char DOCNAME_SEPARATOR = '\u001c';
-    private String getDocumentName(String path) {
+    private String encodePathAsFirestoreDocumentName(String path) {
         return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
     }
 
     private DocumentReference getDocRef(FireStoreObject fireStoreObject) {
         return firestore
             .collection(fireStoreObject.getStudyId())
-            .document(getDocumentName(getFullPath(fireStoreObject)));
+            .document(encodePathAsFirestoreDocumentName(getFullPath(fireStoreObject)));
     }
 
     private String getObjectName(String path) {
@@ -447,7 +476,7 @@ public class FireStoreFileDao {
 
     private DocumentSnapshot lookupByObjectPath(String studyId, String path, Transaction xn) {
         try {
-            DocumentReference docRef = firestore.collection(studyId).document(getDocumentName(path));
+            DocumentReference docRef = firestore.collection(studyId).document(encodePathAsFirestoreDocumentName(path));
             ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
             return docSnapFuture.get();
         } catch (InterruptedException ex) {

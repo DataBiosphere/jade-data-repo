@@ -75,13 +75,16 @@ public class StudyValidationsTest {
     private void expectBadStudyEnumerateRequest(
         Integer offset,
         Integer limit,
+        String sort,
+        String direction,
         String expectedMessage,
         List<String> errors
     ) throws Exception {
-
         MvcResult result = mvc.perform(get("/api/repository/v1/studies")
             .param("offset", offset.toString())
             .param("limit", limit.toString())
+            .param("sort", sort)
+            .param("direction", direction)
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(buildStudyRequest())))
             .andExpect(status().is4xxClientError())
@@ -103,16 +106,6 @@ public class StudyValidationsTest {
             assertArrayEquals("Error details match", responseErrors.toArray(), errors.toArray());
         }
     }
-
-    private void expectBadStudyEnumerateRequest(
-        Integer offset,
-        Integer limit,
-        String expectedMessage
-    ) throws Exception {
-        expectBadStudyEnumerateRequest(offset, limit, expectedMessage, null);
-    }
-
-    //Invalid enumerate parameter(s).
 
     @Test
     public void testInvalidStudyRequest() throws Exception {
@@ -302,12 +295,16 @@ public class StudyValidationsTest {
     @Test
     public void testStudyEnumerateValidations() throws Exception {
         String expected = "Invalid enumerate parameter(s).";
-        expectBadStudyEnumerateRequest(-1, 3, expected,
+        expectBadStudyEnumerateRequest(-1, 3, null, null, expected,
             Collections.singletonList("offset must be greater than or equal to 0."));
-        expectBadStudyEnumerateRequest(1, 0, expected,
+        expectBadStudyEnumerateRequest(1, 0, null, null, expected,
             Collections.singletonList("limit must be greater than or equal to 1."));
-        expectBadStudyEnumerateRequest(-1, 0, expected,
+        expectBadStudyEnumerateRequest(-1, 0, null, null, expected,
             Arrays.asList("offset must be greater than or equal to 0.", "limit must be greater than or equal to 1."));
+        expectBadStudyEnumerateRequest(0, 10, "invalid", null, expected,
+            Collections.singletonList("sort must be one of: (name, description, created_date)."));
+        expectBadStudyEnumerateRequest(0, 10, "name", "invalid", expected,
+            Collections.singletonList("direction must be one of: (asc, desc)."));
 
         mvc.perform(get("/api/repository/v1/studies/")
             .contentType(MediaType.APPLICATION_JSON)

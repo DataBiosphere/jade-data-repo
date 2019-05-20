@@ -51,6 +51,8 @@ final class TestUtil {
         PoolingDataSource<PoolableConnection> dataSource;
         dataSource = TestUtil.setupDataSource(jdbcConfiguration);
         ExecutorService executorService = Executors.newFixedThreadPool(2);
-        return new Stairway(executorService, dataSource, true, null);
+        Stairway stairway = new Stairway(executorService, null);
+        stairway.initialize(dataSource, true);
+        return stairway;
     }
 }

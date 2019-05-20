@@ -66,19 +66,30 @@ public class Stairway {
     private Object applicationContext;
 
     /**
+     * We do initialization in two steps. The constructor does the first step of constructing the object
+     * and remembering the inputs. It does not do any database activity. That lets the rest of the
+     * application come up and do any database configuration.
+     *
+     * The second step is the 'initialize' call (below) that sets up the database and performs
+     * any recovery needed.
+     *
      * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
-     * @param dataSource dataSource where stairway stores its log
-     * @param forceCleanStart true will drop any existing stairway database tables and recreate them from scratch.
-     *                        false will validate the schema version matches, and recovery any incomplete flights.
      */
     public Stairway(ExecutorService threadPool,
-                    DataSource dataSource,
-                    boolean forceCleanStart,
                     Object applicationContext) {
         this.threadPool = threadPool;
-        this.dataSource = dataSource;
         this.applicationContext = applicationContext;
         this.taskContextMap = new ConcurrentHashMap<>();
+    }
+
+    /**
+     * Second step of initialization
+     * @param dataSource dataSource where stairway stores its log
+     * @param forceCleanStart true will drop any existing stairway data. Otherwise existing flights are
+     *                        recovered during initilization.
+     */
+    public void initialize(DataSource dataSource, boolean forceCleanStart) {
+        this.dataSource = dataSource;
         this.database = new Database(dataSource, forceCleanStart);
         if (!forceCleanStart) {
             recoverFlights();

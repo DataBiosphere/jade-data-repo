@@ -8,4 +8,17 @@ import org.springframework.stereotype.Component;
 @EnableConfigurationProperties
 @ConfigurationProperties(prefix = "db.stairway")
 public class StairwayJdbcConfiguration extends JdbcConfiguration {
+    private String forceClean;
+
+    public String getForceClean() {
+        return forceClean;
+    }
+
+    public void setForceClean(String forceClean) {
+        this.forceClean = forceClean;
+    }
+
+    public boolean isForceClean() {
+        return Boolean.parseBoolean(forceClean);
+    }
 }

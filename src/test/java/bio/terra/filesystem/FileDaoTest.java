@@ -251,6 +251,41 @@ public class FileDaoTest {
 
         existed = fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
         assertTrue("File B existed", existed);
+
+        // Now verify that the objects are gone.
+        checkObjectGone(topObject);
+        checkObjectGone(secondObject);
+        checkObjectGone(thirdObject);
+        checkObjectGone(fileAObject);
+        checkObjectGone(fileBObject);
+    }
+
+    @Test
+    public void testStudyDelete() throws Exception {
+        // Make 1001 files and then delete the study
+        FSObject fsObject = new FSObject()
+            .studyId(studyId)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
+            .mimeType(mimeType)
+            .description(description)
+            .flightId(flightId);
+
+        FSFileInfo fsFileInfo = makeFsFileInfo("later");
+
+        for (int i = 0; i < 1001; i++) {
+            fsObject.path("/file_" + i);
+            UUID objectId = fileDao.createFileStart(fsObject);
+            fsFileInfo.objectId(objectId.toString());
+            fileDao.createFileComplete(fsFileInfo);
+        }
+
+        fileDao.deleteFilesFromStudy(studyId.toString());
+
+        // Make sure they are all gone
+        for (int i = 0; i < 1001; i++) {
+            FSObject noObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            assertNull("Object is deleted", noObject);
+        }
     }
 
     private void addDatasetDependency(UUID objectId) {

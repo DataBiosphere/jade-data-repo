@@ -207,7 +207,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.hasDatasetReference(studyId, objectId)) {
+            if (dependencyDao.objectHasDatasetReference(studyId, objectId)) {
                 throw new FileSystemObjectDependencyException(
                     "File is used by at least one dataset and cannot be deleted");
             }
@@ -250,7 +250,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.hasDatasetReference(studyId, objectId)) {
+            if (dependencyDao.objectHasDatasetReference(studyId, objectId)) {
                 throw new FileSystemCorruptException("File should not have any references at this point");
             }
 
@@ -294,6 +294,47 @@ public class FireStoreFileDao {
         });
 
         fireStoreUtils.transactionGet("delete start undo", transaction);
+    }
+
+
+    /**
+     * This code is pretty ugly, but here is why...
+     * (from https://cloud.google.com/firestore/docs/solutions/delete-collections)
+     * <ul>
+     * <li>There is no operation that atomically deletes a collection.</li>
+     * <li>Deleting a document does not delete the documents in its subcollections.</li>
+     * <li>If your documents have dynamic subcollections, (we don't do this!)
+     *     it can be hard to know what data to delete for a given path.</li>
+     * <li>Deleting a collection of more than 500 documents requires multiple batched
+     *     write operations or hundreds of single deletes.</li>
+     * </ul>
+     *
+     * Our objects are small, so I think we can use the maximum batch size without
+     * concern for using too much memory.
+     *
+     * @param studyId
+     */
+    private static final int DELETE_BATCH_SIZE = 500;
+    public void deleteFilesFromStudy(String studyId) {
+        CollectionReference studyCollection = firestore.collection(studyId);
+        try {
+            int deleted;
+            do {
+                deleted = 0;
+                ApiFuture<QuerySnapshot> future = studyCollection.limit(DELETE_BATCH_SIZE).get();
+                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                for (QueryDocumentSnapshot document : documents) {
+                    document.getReference().delete();
+                    deleted++;
+                }
+            } while (deleted >= DELETE_BATCH_SIZE);
+
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("delete study - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("delete study - execution exception", ex);
+        }
     }
 
     public List<FSObject> enumerateDirectory(UUID studyId, UUID objectId) {

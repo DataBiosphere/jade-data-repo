@@ -1,13 +1,11 @@
 package bio.terra.service;
 
-import bio.terra.controller.exception.ValidationException;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.StudyDao;
 import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.flight.study.ingest.IngestMapKeys;
 import bio.terra.flight.study.ingest.StudyIngestFlight;
-import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudyJsonConversion;
@@ -31,14 +29,12 @@ import java.util.stream.Collectors;
 public class StudyService {
     private final StudyDao studyDao;
     private final Stairway stairway;
-    private final DatasetService datasetService;
     private final JobService jobService; // for handling flight response
 
     @Autowired
-    public StudyService(StudyDao studyDao, Stairway stairway, DatasetService datasetService, JobService jobService) {
+    public StudyService(StudyDao studyDao, Stairway stairway, JobService jobService) {
         this.studyDao = studyDao;
         this.stairway = stairway;
-        this.datasetService = datasetService;
         this.jobService = jobService;
     }
 
@@ -63,15 +59,12 @@ public class StudyService {
     }
 
     public DeleteResponseModel delete(UUID id, AuthenticatedUserRequest userInfo) {
-        List<DatasetSummaryModel> referencedDatasets = datasetService.getDatasetsReferencingStudy(id);
-        if (referencedDatasets == null || referencedDatasets.isEmpty()) {
-            FlightMap flightMap = new FlightMap();
-            flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
-            flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the study with ID " + id);
-            flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
-            String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
-            return getResponse(flightId, DeleteResponseModel.class);
-        } else throw new ValidationException("Can not delete study being used by datasets " + referencedDatasets);
+        FlightMap flightMap = new FlightMap();
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the study with ID " + id);
+        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
+        String flightId = stairway.submit(StudyDeleteFlight.class, flightMap);
+        return getResponse(flightId, DeleteResponseModel.class);
     }
 
     public String ingestStudy(String id, IngestRequestModel ingestRequestModel) {

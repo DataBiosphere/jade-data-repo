@@ -8,6 +8,7 @@ import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.exception.PdaoFileCopyException;
 import bio.terra.pdao.exception.PdaoInvalidUriException;
 import bio.terra.pdao.exception.PdaoSourceFileNotFoundException;
+import com.google.api.gax.paging.Page;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.CopyWriter;
@@ -136,5 +137,17 @@ public class GcsPdao {
             return false;
         }
         return blob.delete();
+    }
+
+    public void deleteFilesFromStudy(Study study) {
+        String dataBucket = gcsConfiguration.getBucket();
+        String directory = study.getId().toString() + "/";
+        Page<Blob> blobs = storage.list(
+            dataBucket,
+            Storage.BlobListOption.currentDirectory(),
+            Storage.BlobListOption.prefix(directory));
+        for (Blob blob : blobs.iterateAll()) {
+            blob.delete();
+        }
     }
 }

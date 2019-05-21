@@ -20,4 +20,15 @@ public final class DaoUtils {
         }
         return " WHERE name ILIKE :filter OR description ILIKE :filter ";
     }
+
+    public static String escapeFilter(String filter) {
+        StringBuilder builder = new StringBuilder("%");
+        for (char c : filter.toCharArray()) {
+            if (c == '_' || c == '%') {
+                builder.append('\\');
+            }
+            builder.append(c);
+        }
+        return builder.append('%').toString();
+    }
 }

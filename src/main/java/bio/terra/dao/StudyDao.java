@@ -129,7 +129,7 @@ public class StudyDao {
             .addValue("offset", offset)
             .addValue("limit", limit);
         if (!where.isEmpty()) {
-            params.addValue("filter", "%" + filter + "%");
+            params.addValue("filter", DaoUtils.escapeFilter(filter));
         }
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
         sql = "SELECT count(id) AS total FROM study";

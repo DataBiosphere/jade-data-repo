@@ -166,7 +166,7 @@ public class DatasetDaoTest {
                 .name(makeName(datasetName, i))
                 // set the description to a random string so we can verify the sorting is working independently of the
                 // study name or created_date. add a suffix to filter on for the even datasets
-                .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "__foo__" : ""));
+                .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
             datasetId = datasetDao.create(dataset);
             datasetIds.add(datasetId);
@@ -191,13 +191,17 @@ public class DatasetDaoTest {
 
 
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6, null,
-            null, "__foo__");
+            null, "==foo==");
         List<DatasetSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered 3 datasets", summaryList.size(), equalTo(3));
         assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
         for (int i = 0; i < 3; i++) {
             assertThat("ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
         }
+
+        MetadataEnumeration<DatasetSummary> emptyEnum = datasetDao.retrieveDatasets(0, 6, null,
+            null, "__");
+        assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
 
         for (UUID datasetId : datasetIds) {
             datasetDao.delete(datasetId);

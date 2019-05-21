@@ -202,7 +202,7 @@ public class DatasetDao {
             .addValue("offset", offset)
             .addValue("limit", limit);
         if (!where.isEmpty()) {
-            params.addValue("filter", "%" + filter + "%");
+            params.addValue("filter", DaoUtils.escapeFilter(filter));
         }
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             DatasetSummary summary = new DatasetSummary()

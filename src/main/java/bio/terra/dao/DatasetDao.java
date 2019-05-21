@@ -6,10 +6,8 @@ import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
-import bio.terra.metadata.Enumeration;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateDatasetModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -188,7 +186,13 @@ public class DatasetDao {
         return datasetSources;
     }
 
-    public Enumeration<DatasetSummary> retrieveDatasets(int offset, int limit, String sort, String direction, String filter) {
+    public MetadataEnumeration<DatasetSummary> retrieveDatasets(
+        int offset,
+        int limit,
+        String sort,
+        String direction,
+        String filter
+    ) {
         logger.debug("retrieve datasets offset: " + offset + " limit: " + limit + " sort: " + sort +
             " direction: " + direction + " filter:" + filter);
         String where = DaoUtils.whereClause(filter);
@@ -210,9 +214,10 @@ public class DatasetDao {
         });
         sql = "SELECT count(id) AS total FROM dataset";
         params = new MapSqlParameterSource();
-        int total = jdbcTemplate.queryForObject(sql, params, Integer.class);
-        // TODO: turn this into something that can handle summaries
-        return new Enumeration<DatasetSummary>().items(summaries).total(total);
+        Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
+        return new MetadataEnumeration<DatasetSummary>()
+            .items(summaries)
+            .total(total == null ? -1 : total);
     }
 
     public DatasetSummary retrieveDatasetSummary(UUID id) {

@@ -15,7 +15,7 @@ import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
-import bio.terra.metadata.Enumeration;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
@@ -105,7 +105,8 @@ public class DatasetService {
         String direction,
         String filter
     ) {
-        Enumeration<DatasetSummary> enumeration = datasetDao.retrieveDatasets(offset, limit, sort, direction, filter);
+        MetadataEnumeration<DatasetSummary> enumeration = datasetDao.retrieveDatasets(offset, limit, sort, direction,
+            filter);
         List<DatasetSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(summary -> makeSummaryModelFromSummary(summary))

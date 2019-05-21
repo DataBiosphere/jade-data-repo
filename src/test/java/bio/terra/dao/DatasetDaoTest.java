@@ -7,6 +7,7 @@ import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.DatasetRequestModel;
@@ -189,9 +190,11 @@ public class DatasetDaoTest {
         testSortingDescriptions("asc");
 
 
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 6, null, null,
-            "__foo__");
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6, null,
+            null, "__foo__");
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered 3 datasets", summaryList.size(), equalTo(3));
+        assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
         for (int i = 0; i < 3; i++) {
             assertThat("ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
         }
@@ -206,8 +209,9 @@ public class DatasetDaoTest {
     }
 
     private void testSortingNames(List<UUID> datasetIds, String datasetName, int offset, int limit, String direction) {
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit, "name",
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "name",
             direction, null);
+        List<DatasetSummary>  summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : datasetIds.size() - offset - 1;
         for (DatasetSummary summary : summaryList) {
             assertThat("correct id", datasetIds.get(index), equalTo(summary.getId()));
@@ -217,8 +221,9 @@ public class DatasetDaoTest {
     }
 
     private void testSortingDescriptions(String direction) {
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 6, "description",
-            direction, null);
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6,
+            "description", direction, null);
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
         for (int i = 1; i < summaryList.size(); i++) {
@@ -238,8 +243,9 @@ public class DatasetDaoTest {
                                        int offset,
                                        int limit) {
         // We expect the datasets to be returned in their created order
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit, "created_date",
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "created_date",
             "asc", null);
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (DatasetSummary summary : summaryList) {
             assertThat("correct dataset id",
@@ -253,8 +259,9 @@ public class DatasetDaoTest {
     }
 
     private void deleteAllDatasets() {
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 1000, null,
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 1000, null,
             null, null);
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
         for (DatasetSummary summary : summaryList) {
             datasetDao.delete(summary.getId());
         }

@@ -2,6 +2,7 @@ package bio.terra.dao;
 
 import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,7 +115,13 @@ public class StudyDao {
     }
 
     // does not return sub-objects with studies
-    public List<StudySummary> enumerate(int offset, int limit, String sort, String direction, String filter) {
+    public MetadataEnumeration<StudySummary> enumerate(
+        int offset,
+        int limit,
+        String sort,
+        String direction,
+        String filter
+    ) {
         String where = DaoUtils.whereClause(filter);
         String sql = "SELECT id, name, description, created_date FROM study " + where +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
@@ -124,15 +131,14 @@ public class StudyDao {
         if (!where.isEmpty()) {
             params.addValue("filter", "%" + filter + "%");
         }
-        return jdbcTemplate.query(sql, params, new StudySummaryMapper());
+        List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
+        sql = "SELECT count(id) AS total FROM study";
+        params = new MapSqlParameterSource();
+        Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
+        return new MetadataEnumeration<StudySummary>()
+            .items(summaries)
+            .total(total == null ? -1 : total);
     }
-
-    public Integer total() {
-        String sql = "SELECT count(id) AS total FROM study";
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        return jdbcTemplate.queryForObject(sql, params, Integer.class);
-    }
-
 
     private static class StudySummaryMapper implements RowMapper<StudySummary> {
         public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {

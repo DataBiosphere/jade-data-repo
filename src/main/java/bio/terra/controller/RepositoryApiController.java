@@ -5,7 +5,6 @@ import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateStudyModel;
@@ -166,9 +165,7 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         validateEnumerateParams(offset, limit, sort, direction);
-        List<StudySummaryModel> studies = studyService.enumerate(offset, limit, sort, direction, filter);
-        Integer totalStudies = studyService.total();
-        EnumerateStudyModel esm = new EnumerateStudyModel().items(studies).total(totalStudies);
+        EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter);
         return new ResponseEntity<>(esm, HttpStatus.OK);
     }
 

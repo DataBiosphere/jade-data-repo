@@ -2,7 +2,7 @@ package bio.terra.metadata;
 
 import java.util.List;
 
-public class Enumeration<T> {
+public class MetadataEnumeration<T> {
     private int total;
     private List<T> items;
 
@@ -10,7 +10,7 @@ public class Enumeration<T> {
         return total;
     }
 
-    public Enumeration<T> total(int total) {
+    public MetadataEnumeration<T> total(int total) {
         this.total = total;
         return this;
     }
@@ -19,7 +19,7 @@ public class Enumeration<T> {
         return items;
     }
 
-    public Enumeration<T> items(List<T> items) {
+    public MetadataEnumeration<T> items(List<T> items) {
         this.items = items;
         return this;
     }

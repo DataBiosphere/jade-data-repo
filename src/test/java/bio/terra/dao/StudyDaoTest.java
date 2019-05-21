@@ -3,6 +3,7 @@ package bio.terra.dao;
 import bio.terra.category.Unit;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.AssetSpecification;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.Table;
@@ -91,8 +92,9 @@ public class StudyDaoTest {
     public void enumerateTest() throws Exception {
         UUID study1 = createMinimalStudy();
 
-        List<StudySummary> studies = studyDao.enumerate(0, 2, "created_date", "asc",
-            null);
+        MetadataEnumeration<StudySummary> summaryEnum = studyDao.enumerate(0, 2, "created_date",
+            "asc", null);
+        List<StudySummary> studies = summaryEnum.getItems();
         assertThat("study enumerate limit param works",
             studies.size(),
             equalTo(2));
@@ -104,7 +106,8 @@ public class StudyDaoTest {
         // this is skipping the first item returned above
         // so compare the id from the previous retrieve
         assertThat("study enumerate offset param works",
-            studyDao.enumerate(1, 1, null, null, null).get(0).getId(),
+            studyDao.enumerate(1, 1, "created_date", "asc", null)
+                .getItems().get(0).getId(),
             equalTo(studies.get(1).getId()));
 
         studyDao.delete(study1);

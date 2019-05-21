@@ -29,6 +29,7 @@ import bio.terra.validation.PolicyMemberValidator;
 import bio.terra.validation.StudyRequestValidator;
 import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import liquibase.util.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -147,10 +148,10 @@ public class RepositoryApiController implements RepositoryApi {
         if (limit < 1) {
             errors.add("limit must be greater than or equal to 1.");
         }
-        if (sort != null && sort.length() > 0 && !VALID_SORT_OPTIONS.contains(sort)) {
+        if (!StringUtils.isEmpty(sort) && !VALID_SORT_OPTIONS.contains(sort)) {
             errors.add(String.format("sort must be one of: (%s).", String.join(", ", VALID_SORT_OPTIONS)));
         }
-        if (direction != null && direction.length() > 0 && !VALID_DIRECTION_OPTIONS.contains(direction)) {
+        if (!StringUtils.isEmpty(direction) && !VALID_DIRECTION_OPTIONS.contains(direction)) {
             errors.add("direction must be one of: (asc, desc).");
         }
         if (!errors.isEmpty()) {

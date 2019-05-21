@@ -38,13 +38,13 @@ public class FSObject {
     private FSObjectType objectType;
     private Instant createdDate;
     private String path;
-    private String gspath;
-    private String checksumCrc32c;
-    private String checksumMd5;  // may be null if it can't be used to validate the file contents
-    private Long size;
-    private String mimeType;
-    private String description;
-    private String flightId;
+    private String gspath;          // null for directory
+    private String checksumCrc32c;  // null for directory
+    private String checksumMd5;     // may be null if it can't be used to validate the file contents
+    private Long size;              // 0 for directory
+    private String mimeType;        // null for directory
+    private String description;     // null for directory
+    private String flightId;        // always null for directory
 
     public UUID getObjectId() {
         return objectId;

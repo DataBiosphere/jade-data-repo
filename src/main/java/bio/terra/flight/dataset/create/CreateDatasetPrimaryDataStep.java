@@ -1,7 +1,7 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
@@ -28,16 +28,16 @@ public class CreateDatasetPrimaryDataStep implements Step {
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
     private DatasetDao datasetDao;
-    private FileDao fileDao;
+    private FireStoreDependencyDao dependencyDao;
 
     public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                         DatasetService datasetService,
                                         DatasetDao datasetDao,
-                                        FileDao fileDao) {
+                                        FireStoreDependencyDao dependencyDao) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.datasetDao = datasetDao;
-        this.fileDao = fileDao;
+        this.dependencyDao = dependencyDao;
     }
 
     DatasetRequestModel getRequestModel(FlightContext context) {
@@ -75,7 +75,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         // Add file references to the dependency table. The algorithm is:
         // Loop through sources, loop through map tables, loop through map columns
         // if from column is FILEREF or DIRREF, ask pdao to get the ids from that
-        // column that are in the dataset; tell fileDao to store them. FileDao removes duplicates.
+        // column that are in the dataset; tell file DAO to store them.
         //
         // NOTE: This is brute force doing a column at a time. Depending on how much memory and
         // swap we want to use, we could extract all row ids in one go. Doing it column-by-column
@@ -95,7 +95,10 @@ public class CreateDatasetPrimaryDataStep implements Step {
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn().getName());
 
-                        fileDao.storeDatasetFileDependencies(dataset.getId(), refIds);
+                        dependencyDao.storeDatasetFileDependencies(
+                            datasetSource.getStudy().getId().toString(),
+                            dataset.getId().toString(),
+                            refIds);
                     }
                 }
             }

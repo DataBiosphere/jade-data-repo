@@ -1,18 +1,21 @@
 package bio.terra.filesystem;
 
-import bio.terra.category.Unit;
-import bio.terra.dao.exception.CorruptMetadataException;
+import bio.terra.category.Connected;
+import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.fixtures.Names;
+import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObject;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.time.Instant;
@@ -29,7 +32,8 @@ import static org.junit.Assert.fail;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@Category(Unit.class)
+@ActiveProfiles("google")
+@Category(Connected.class)
 public class FileDaoTest {
     private static final String mimeType = "application/octet-string";
     private static final String description = "dummy description";
@@ -48,24 +52,28 @@ public class FileDaoTest {
 
     private UUID studyId = UUID.randomUUID();
     private String flightId = UUID.randomUUID().toString();
+    private String datasetId = UUID.randomUUID().toString();
 
 
     @Autowired
-    private FileDao fileDao;
+    private FireStoreFileDao fileDao;
+
+    @Autowired
+    private FireStoreDependencyDao dependencyDao;
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
     @Test
     public void pathMiscTest() throws Exception {
-        String result = fileDao.getContainingDirectoryPath("/foo/bar/fribble");
+        String result = fileDao.getDirectoryPath("/foo/bar/fribble");
         assertThat("Valid path", result, equalTo("/foo/bar"));
 
-        result = fileDao.getContainingDirectoryPath("/foo/bar");
+        result = fileDao.getDirectoryPath("/foo/bar");
         assertThat("Valid path", result, equalTo("/foo"));
 
-        result = fileDao.getContainingDirectoryPath("/foo");
-        assertThat("Should be null", result, equalTo(null));
+        result = fileDao.getDirectoryPath("/foo");
+        assertThat("Should be empty", result, equalTo(StringUtils.EMPTY));
     }
 
     @Test
@@ -81,24 +89,23 @@ public class FileDaoTest {
         UUID fileAId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileAId);
 
-        // Dummy up the outputs of the primary data step
-        fsObject
-            .objectId(fileAId)
+        FSFileInfo fsFileInfo = new FSFileInfo()
+            .objectId(fileAId.toString())
+            .studyId(studyId.toString())
+            .createdDate(Instant.now().toString())
+            .gspath("gs://mybucket/mystudy/myfile")
             .checksumCrc32c("myChecksum")
             .checksumMd5(null)
-            .gspath("fs://mybucket/mystudy/myfile")
             .size(42L)
-            .createdDate(Instant.now());
+            .flightId(flightId);
 
-        UUID completeId = fileDao.createFileComplete(fsObject);
-        assertThat("Id matches", completeId, equalTo(fileAId));
-
-        FSObject typeObject = fileDao.retrieveByIdNoThrow(completeId);
+        FSObject typeObject = fileDao.createFileComplete(fsFileInfo);
+        assertThat("Id matches", typeObject.getObjectId(), equalTo(fileAId));
         assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FSObject.FSObjectType.FILE));
 
-        fileDao.createFileCompleteUndo(typeObject);
+        fileDao.createFileCompleteUndo(studyId.toString(), fileAId.toString());
 
-        typeObject = fileDao.retrieveByIdNoThrow(completeId);
+        typeObject = fileDao.retrieveByIdNoThrow(typeObject.getStudyId(), typeObject.getObjectId());
         assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
             equalTo(FSObject.FSObjectType.INGESTING_FILE));
     }
@@ -123,15 +130,35 @@ public class FileDaoTest {
 
         // Try to delete a directory with the deleteFile method; should fail
         try {
-            fileDao.deleteFileForCreateUndo(secondObject.getObjectId(), flightId);
+            fileDao.createFileStartUndo(studyId.toString(), secondObject.getPath(), flightId);
             fail("Should not have successfully deleted a directory");
         } catch (Exception ex) {
-            assertTrue("Expected exception", ex instanceof CorruptMetadataException);
+            assertTrue("Expected exception", ex instanceof FileSystemCorruptException);
             assertThat("Check expected error", ex.getMessage(), containsString("bad file object type"));
         }
 
-        boolean existed = fileDao.deleteFileForCreateUndo(fileAObject.getObjectId(), flightId);
-        assertTrue("File existed", existed);
+        FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+
+        boolean exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File exists", exists);
+
+        try {
+            fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), "badFlightId");
+        } catch (Exception ex) {
+            assertTrue("Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
+            assertThat("Delete reason", ex.getMessage(), containsString("being deleted by someone else"));
+        }
+
+        try {
+            fileDao.deleteFileComplete(studyId.toString(), secondObject.getObjectId().toString(), flightId);
+        } catch (Exception ex) {
+            assertTrue("Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
+            assertThat("Delete reason", ex.getMessage(), containsString("attempt to delete a directory"));
+        }
+
+        exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File existed", exists);
 
         // Now verify that the objects are gone.
         checkObjectGone(topObject);
@@ -164,7 +191,15 @@ public class FileDaoTest {
 
         FSObject fileBObject = getCheckPath(fileBPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
 
-        boolean existed = fileDao.deleteFileForCreateUndo(fileAObject.getObjectId(), flightId);
+        FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+        fsFileInfo = makeFsFileInfo(fileBId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+
+
+        boolean existed = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File existed", existed);
+        existed = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", existed);
 
         // Directories and file B should still all be in place
@@ -176,9 +211,22 @@ public class FileDaoTest {
 
         // Don't delete file with dependencies
         addDatasetDependency(fileBId);
+        addDatasetDependency(fileBId);
+        addDatasetDependency(fileBId);
 
         try {
-            fileDao.deleteFileForCreateUndo(fileBId, flightId);
+            fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+            fail("Should not have successfully deleted");
+        } catch (Exception ex) {
+            assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
+            assertThat("Correct message", ex.getMessage(), containsString("dataset"));
+        }
+
+        removeDatasetDependency(fileBId);
+        removeDatasetDependency(fileBId);
+
+        try {
+            fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
@@ -187,32 +235,36 @@ public class FileDaoTest {
 
         removeDatasetDependency(fileBId);
 
-        existed = fileDao.deleteFileForCreateUndo(fileBObject.getObjectId(), flightId);
+        fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+
+        addDatasetDependency(fileBId);
+
+        try {
+            fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
+            fail("Should not have successfully deleted");
+        } catch (Exception ex) {
+            assertTrue("Correct dependency exception", ex instanceof FileSystemCorruptException);
+            assertThat("Correct message", ex.getMessage(), containsString("any references"));
+        }
+
+        removeDatasetDependency(fileBId);
+
+        existed = fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
         assertTrue("File B existed", existed);
     }
 
     private void addDatasetDependency(UUID objectId) {
-        // We reuse the random study id for the dataset id; it doesn't matter what it is here
-        String sql = "INSERT INTO fs_dataset (dataset_id,object_id) VALUES (:dataset_id,:object_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("dataset_id", studyId)
-            .addValue("object_id", objectId);
-        jdbcTemplate.update(sql, params);
+        dependencyDao.storeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
     }
 
     private void removeDatasetDependency(UUID objectId) {
-        // We reuse the random study id for the dataset id; it doesn't matter what it is here
-        String sql = "DELETE FROM fs_dataset WHERE dataset_id = :dataset_id AND object_id = :object_id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("dataset_id", studyId)
-            .addValue("object_id", objectId);
-        jdbcTemplate.update(sql, params);
+        dependencyDao.removeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
     }
 
     private void checkObjectPresent(FSObject fsObject) {
         FSObject thereObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId(), fsObject.getPath());
         assertNotNull("Object is there by path", thereObject);
-        thereObject = fileDao.retrieveByIdNoThrow(fsObject.getObjectId());
+        thereObject = fileDao.retrieveByIdNoThrow(fsObject.getStudyId(), fsObject.getObjectId());
         assertNotNull("Object is there by id", thereObject);
     }
 
@@ -220,7 +272,7 @@ public class FileDaoTest {
     private void checkObjectGone(FSObject fsObject) {
         FSObject goneObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId(), fsObject.getPath());
         assertNull("Object is gone by path", goneObject);
-        goneObject = fileDao.retrieveByIdNoThrow(fsObject.getObjectId());
+        goneObject = fileDao.retrieveByIdNoThrow(fsObject.getStudyId(), fsObject.getObjectId());
         assertNull("Object is gone by id", goneObject);
     }
 
@@ -237,5 +289,16 @@ public class FileDaoTest {
         return fsObject;
     }
 
+    private FSFileInfo makeFsFileInfo(String objectId) {
+        return new FSFileInfo()
+            .objectId(objectId)
+            .studyId(studyId.toString())
+            .createdDate(Instant.now().toString())
+            .gspath("gs://mybucket/mystudy/myfile")
+            .checksumCrc32c("myChecksum")
+            .checksumMd5(null)
+            .size(42L)
+            .flightId(flightId);
+    }
 
 }

@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
@@ -29,10 +29,10 @@ public class FileService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
 
     private final Stairway stairway;
-    private final FileDao fileDao;
+    private final FireStoreFileDao fileDao;
 
     @Autowired
-    public FileService(Stairway stairway, FileDao fileDao) {
+    public FileService(Stairway stairway, FireStoreFileDao fileDao) {
         this.stairway = stairway;
         this.fileDao = fileDao;
     }
@@ -58,7 +58,7 @@ public class FileService {
     }
 
     FSObject lookupFSObject(String studyId, String fileId, FSObject.FSObjectType objectType) {
-        FSObject fsObject = fileDao.retrieve(UUID.fromString(fileId));
+        FSObject fsObject = fileDao.retrieve(UUID.fromString(studyId), UUID.fromString(fileId));
 
         if (!StringUtils.equals(fsObject.getStudyId().toString(), studyId)) {
             throw new FileSystemObjectNotFoundException("File with id '" + fileId + "' not found in study with id '"

@@ -278,10 +278,8 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         validateEnumerateParams(offset, limit, sort, direction);
-        List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit, sort,
+        EnumerateDatasetModel edm = datasetService.enumerateDatasets(offset, limit, sort,
             direction, filter);
-        Integer total = datasetService.total();
-        EnumerateDatasetModel edm = new EnumerateDatasetModel().items(datasetSummaryModels).total(total);
         return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 

@@ -7,6 +7,7 @@ import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.DatasetRequestModel;
@@ -30,6 +31,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -159,7 +162,11 @@ public class DatasetDaoTest {
         String datasetName = datasetRequest.getName() + UUID.randomUUID().toString();
 
         for (int i = 0; i < 6; i++) {
-            datasetRequest.name(makeName(datasetName, i));
+            datasetRequest
+                .name(makeName(datasetName, i))
+                // set the description to a random string so we can verify the sorting is working independently of the
+                // study name or created_date. add a suffix to filter on for the even datasets
+                .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
             datasetId = datasetDao.create(dataset);
             datasetIds.add(datasetId);
@@ -170,6 +177,32 @@ public class DatasetDaoTest {
         testOneEnumerateRange(datasetIds, datasetName, 3, 5);
         testOneEnumerateRange(datasetIds, datasetName, 4, 7);
 
+        testSortingNames(datasetIds, datasetName, 0, 10, "asc");
+        testSortingNames(datasetIds, datasetName, 0, 3, "asc");
+        testSortingNames(datasetIds, datasetName, 1, 3, "asc");
+        testSortingNames(datasetIds, datasetName, 2, 5, "asc");
+        testSortingNames(datasetIds, datasetName, 0, 10, "desc");
+        testSortingNames(datasetIds, datasetName, 0, 3, "desc");
+        testSortingNames(datasetIds, datasetName, 1, 3, "desc");
+        testSortingNames(datasetIds, datasetName, 2, 5, "desc");
+
+        testSortingDescriptions("desc");
+        testSortingDescriptions("asc");
+
+
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6, null,
+            null, "==foo==");
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
+        assertThat("filtered 3 datasets", summaryList.size(), equalTo(3));
+        assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
+        for (int i = 0; i < 3; i++) {
+            assertThat("ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
+        }
+
+        MetadataEnumeration<DatasetSummary> emptyEnum = datasetDao.retrieveDatasets(0, 6, null,
+            null, "__");
+        assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
+
         for (UUID datasetId : datasetIds) {
             datasetDao.delete(datasetId);
         }
@@ -179,12 +212,44 @@ public class DatasetDaoTest {
         return baseName + "-" + index;
     }
 
+    private void testSortingNames(List<UUID> datasetIds, String datasetName, int offset, int limit, String direction) {
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "name",
+            direction, null);
+        List<DatasetSummary>  summaryList = summaryEnum.getItems();
+        int index = (direction.equals("asc")) ? offset : datasetIds.size() - offset - 1;
+        for (DatasetSummary summary : summaryList) {
+            assertThat("correct id", datasetIds.get(index), equalTo(summary.getId()));
+            assertThat("correct name", makeName(datasetName, index), equalTo(summary.getName()));
+            index += (direction.equals("asc")) ? 1 : -1;
+        }
+    }
+
+    private void testSortingDescriptions(String direction) {
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6,
+            "description", direction, null);
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
+        assertThat("the full list comes back", summaryList.size(), equalTo(6));
+        String previous = summaryList.get(0).getDescription();
+        for (int i = 1; i < summaryList.size(); i++) {
+            String next = summaryList.get(i).getDescription();
+            if (direction.equals("asc")) {
+                assertThat("ascending order", previous, lessThan(next));
+            } else {
+                assertThat("descending order", previous, greaterThan(next));
+            }
+            previous = next;
+        }
+
+    }
+
     private void testOneEnumerateRange(List<UUID> datasetIds,
                                        String datasetName,
                                        int offset,
                                        int limit) {
         // We expect the datasets to be returned in their created order
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(offset, limit);
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "created_date",
+            "asc", null);
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (DatasetSummary summary : summaryList) {
             assertThat("correct dataset id",
@@ -198,7 +263,9 @@ public class DatasetDaoTest {
     }
 
     private void deleteAllDatasets() {
-        List<DatasetSummary> summaryList = datasetDao.retrieveDatasets(0, 1000);
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 1000, null,
+            null, null);
+        List<DatasetSummary> summaryList = summaryEnum.getItems();
         for (DatasetSummary summary : summaryList) {
             datasetDao.delete(summary.getId());
         }

@@ -1,5 +1,6 @@
 package bio.terra.pdao.gcs;
 
+import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObject;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
@@ -34,9 +35,9 @@ public class GcsPdao {
     }
 
     // We return the incoming FSObject with the blob information filled in
-    public FSObject copyFile(Study study,
-                         FileLoadModel fileLoadModel,
-                         FSObject fsObject) {
+    public FSFileInfo copyFile(Study study,
+                               FileLoadModel fileLoadModel,
+                               FSObject fsObject) {
 
         String sourceBucket;
         String sourcePath;
@@ -106,13 +107,16 @@ public class GcsPdao {
                 null,
                 null);
 
-            fsObject
+            FSFileInfo fsFileInfo = new FSFileInfo()
+                .objectId(fsObject.getObjectId().toString())
+                .studyId(fsObject.getStudyId().toString())
+                .createdDate(createTime.toString())
                 .gspath(gspath.toString())
-                .checksumMd5(checksumMd5)
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
-                .size(targetBlob.getSize())
-                .createdDate(createTime);
+                .checksumMd5(checksumMd5)
+                .size(targetBlob.getSize());
 
+            return fsFileInfo;
         } catch (StorageException ex) {
             // For now, we assume that the storage exception is caused by bad input (the file copy exception
             // derives from BadRequestException). I think there are several cases here. We might need to retry
@@ -121,8 +125,6 @@ public class GcsPdao {
         } catch (URISyntaxException ex) {
             throw new PdaoException("Bad URI of our own making", ex);
         }
-
-        return fsObject;
     }
 
     public boolean deleteFile(Study study, String fileId) {

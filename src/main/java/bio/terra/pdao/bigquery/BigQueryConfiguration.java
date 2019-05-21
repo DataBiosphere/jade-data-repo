@@ -3,6 +3,8 @@ package bio.terra.pdao.bigquery;
 
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.FirestoreOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,4 +41,13 @@ public class BigQueryConfiguration {
             .build()
             .getService();
     }
+
+    @Bean("firestore")
+    public Firestore firestore() {
+        return FirestoreOptions.newBuilder()
+            .setProjectId(projectId)
+            .build()
+            .getService();
+    }
+
 }

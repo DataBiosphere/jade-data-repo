@@ -1,7 +1,7 @@
 package bio.terra.flight.study.ingest;
 
 import bio.terra.dao.StudyDao;
-import bio.terra.filesystem.FileDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -16,7 +16,7 @@ public class StudyIngestFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        FileDao fileDao = (FileDao)appContext.getBean("fileDao");
+        FireStoreFileDao fileDao  = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
 
         addStep(new IngestSetupStep(studyDao));
         addStep(new IngestLoadTableStep(studyDao, bigQueryPdao));

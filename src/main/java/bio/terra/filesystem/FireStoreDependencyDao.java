@@ -60,7 +60,6 @@ public class FireStoreDependencyDao {
         }
     }
 
-
     public void storeDatasetFileDependencies(String studyId, String datasetId, List<String> refIds) {
         // TODO: REVIEWERS: Right now storing and deleting (below) are not done in a single
         // transaction. That is possible, but more complicated. The assumption is that at a higher layer

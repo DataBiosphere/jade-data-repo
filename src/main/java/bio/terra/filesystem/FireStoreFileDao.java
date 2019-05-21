@@ -296,7 +296,6 @@ public class FireStoreFileDao {
         fireStoreUtils.transactionGet("delete start undo", transaction);
     }
 
-
     /**
      * This code is pretty ugly, but here is why...
      * (from https://cloud.google.com/firestore/docs/solutions/delete-collections)

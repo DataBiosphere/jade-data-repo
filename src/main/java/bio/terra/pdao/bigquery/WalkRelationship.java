@@ -16,6 +16,7 @@ public class WalkRelationship {
     }
 
     private String[] columnNames;
+    private boolean[] columnIsArrayOf;
     private String[] tableNames;
     private String[] tableIds;
     private boolean visited; // marks that we have been here before
@@ -42,6 +43,7 @@ public class WalkRelationship {
 
     public WalkRelationship() {
         columnNames = new String[2];
+        columnIsArrayOf = new boolean[2];
         tableNames = new String[2];
         tableIds = new String[2];
         visited = false;
@@ -58,6 +60,7 @@ public class WalkRelationship {
 
     public WalkRelationship fromColumn(Column column) {
         this.columnNames[0] = column.getName();
+        this.columnIsArrayOf[0] = column.isArrayOf();
         return this;
     }
 
@@ -69,6 +72,7 @@ public class WalkRelationship {
 
     public WalkRelationship toColumn(Column column) {
         this.columnNames[1] = column.getName();
+        this.columnIsArrayOf[1] = column.isArrayOf();
         return this;
     }
 
@@ -102,6 +106,10 @@ public class WalkRelationship {
         return columnNames[fromIndex];
     }
 
+    public Boolean getFromColumnIsArray() {
+        return columnIsArrayOf[fromIndex];
+    }
+
     public String getToTableName() {
         return tableNames[toIndex];
     }
@@ -112,5 +120,9 @@ public class WalkRelationship {
 
     public String getToColumnName() {
         return columnNames[toIndex];
+    }
+
+    public Boolean getToColumnIsArray() {
+        return columnIsArrayOf[toIndex];
     }
 }

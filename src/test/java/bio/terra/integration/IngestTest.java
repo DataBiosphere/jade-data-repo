@@ -63,7 +63,7 @@ public class IngestTest {
     public void ingestParticipants() throws Exception {
         IngestResponseModel ingestResponse =
             testOperations.ingestJsonData(studyId, "participant", "ingest-test-participant.json");
-        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
+        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
 
     @Test
@@ -73,7 +73,10 @@ public class IngestTest {
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
 
         ingestResponse = testOperations.ingestJsonData(studyId, "sample", "ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(5L));
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+
+        ingestResponse = testOperations.ingestJsonData(studyId, "file", "ingest-test-file.json");
+        assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         DatasetSummaryModel datasetSummary =
             testOperations.createTestDataset(studySummaryModel, "ingest-test-dataset.json");

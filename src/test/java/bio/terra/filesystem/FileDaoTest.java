@@ -279,6 +279,12 @@ public class FileDaoTest {
             fileDao.createFileComplete(fsFileInfo);
         }
 
+        // Make sure the files are all there.
+        for (int i = 0; i < 1001; i++) {
+            FSObject testObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            assertNotNull(testObject);
+        }
+
         fileDao.deleteFilesFromStudy(studyId.toString());
 
         // Make sure they are all gone

@@ -2,6 +2,8 @@ package bio.terra.metadata;
 
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -152,5 +154,47 @@ public class FSObject {
     public FSObject flightId(String flightId) {
         this.flightId = flightId;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FSObject fsObject = (FSObject) o;
+
+        return new EqualsBuilder()
+            .append(objectId, fsObject.objectId)
+            .append(studyId, fsObject.studyId)
+            .append(objectType, fsObject.objectType)
+            .append(createdDate, fsObject.createdDate)
+            .append(path, fsObject.path)
+            .append(gspath, fsObject.gspath)
+            .append(checksumCrc32c, fsObject.checksumCrc32c)
+            .append(checksumMd5, fsObject.checksumMd5)
+            .append(size, fsObject.size)
+            .append(mimeType, fsObject.mimeType)
+            .append(description, fsObject.description)
+            .append(flightId, fsObject.flightId)
+            .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+            .append(objectId)
+            .append(studyId)
+            .append(objectType)
+            .append(createdDate)
+            .append(path)
+            .append(gspath)
+            .append(checksumCrc32c)
+            .append(checksumMd5)
+            .append(size)
+            .append(mimeType)
+            .append(description)
+            .append(flightId)
+            .toHashCode();
     }
 }

@@ -96,6 +96,16 @@ public class FileOperationTest {
         assertThat("duplicate file error", errorModel.getMessage(),
             containsString("already exists"));
 
+        // Lookup the file by path
+        url = "/api/repository/v1/studies/" + studySummary.getId() + "/paths?path=" + fileModel.getPath();
+        result = mvc.perform(get(url))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andReturn();
+        response = result.getResponse();
+        assertThat("Lookup file by succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
+        lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
+
         // Delete the file and we should be able to create it successfully again
         connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);

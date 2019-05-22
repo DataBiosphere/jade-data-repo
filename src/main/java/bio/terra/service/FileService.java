@@ -11,7 +11,6 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,34 +56,48 @@ public class FileService {
         return fileModelFromFSObject(lookupFSObject(studyId, fileId, FSObject.FSObjectType.FILE));
     }
 
+    public FileModel lookupPath(String studyId, String path) {
+        return fileModelFromFSObject(lookupFSObjectByPath(studyId, path, FSObject.FSObjectType.FILE));
+    }
+
     FSObject lookupFSObject(String studyId, String fileId, FSObject.FSObjectType objectType) {
         FSObject fsObject = fileDao.retrieve(UUID.fromString(studyId), UUID.fromString(fileId));
+        checkFSObject(fsObject, studyId, fileId, objectType);
+        return fsObject;
+    }
 
-        if (!StringUtils.equals(fsObject.getStudyId().toString(), studyId)) {
-            throw new FileSystemObjectNotFoundException("File with id '" + fileId + "' not found in study with id '"
+    FSObject lookupFSObjectByPath(String studyId, String path, FSObject.FSObjectType objectType) {
+        FSObject fsObject = fileDao.retrieveByPath(studyId, path);
+        checkFSObject(fsObject, studyId, path, objectType);
+        return fsObject;
+    }
+
+    private void checkFSObject(FSObject fsObject, String studyId, String objectRef, FSObject.FSObjectType objectType) {
+        if (fsObject == null) {
+            throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in study with id '"
                 + studyId + "'");
         }
 
         switch (fsObject.getObjectType()) {
             case FILE:
                 if (objectType == FILE) {
-                    return fsObject;
+                    break;
                 } else {
                     throw new InvalidFileSystemObjectTypeException("Attempt to lookup a file");
                 }
 
             case DIRECTORY:
                 if (objectType == DIRECTORY) {
-                    return fsObject;
+                    break;
                 } else {
                     throw new InvalidFileSystemObjectTypeException("Attempt to lookup a directory");
                 }
 
-            // Don't reveal files that are coming or going
+                // Don't reveal files that are coming or going
             case INGESTING_FILE:
             case DELETING_FILE:
             default:
-                throw new FileSystemObjectNotFoundException("File with id '" + fileId + "' not found in study with id '"
+                throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in study with id '"
                     + studyId + "'");
         }
     }

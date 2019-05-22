@@ -168,6 +168,16 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
+    @Override
+    public ResponseEntity<FileModel> lookuppath(@PathVariable("id") String id,
+                                                @RequestParam(value = "path", required = true) String path) {
+        if (!ValidationUtils.isValidPath(path)) {
+            throw new ValidationException("InvalidPath");
+        }
+        FileModel fileModel = fileService.lookupPath(id, path);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    }
+
     // --study policies --
     @Override
     public ResponseEntity<PolicyResponse> addStudyPolicyMember(

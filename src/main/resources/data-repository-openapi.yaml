@@ -719,6 +719,37 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/studies/{id}/paths':
+    get:
+      description: Lookup metadata for one file
+      operationId: lookuppath
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/Path'
+      responses:
+        200:
+          description: File exists
+          schema:
+            $ref: '#/definitions/FileModel'
+        400:
+          description: Bad request - not sure this will ever happen
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - file id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: No idea if we will generate this error code
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
   '/api/repository/v1/jobs':
     # '/api/repository/v1/jobs?offset=100&limit=50':
     get:  ## enumerate
@@ -971,13 +1002,19 @@ parameters:
     - steward
     - custodian
     - ingester
-
   FileId:
     name: fileid
     description: A file id
     required: true
     type: string
     in: path
+  Path:
+    name: path
+    description: Full path to a file or directory
+    required: true
+    type: string
+    allowReserved: true
+    in: query
 
 ##########################################################################################
 # DEFINITIONS

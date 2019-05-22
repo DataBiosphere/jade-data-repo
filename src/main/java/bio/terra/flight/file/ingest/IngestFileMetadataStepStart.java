@@ -32,13 +32,12 @@ public class IngestFileMetadataStepStart implements Step {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        UUID studyUUID = UUID.fromString(studyId);
 
         FlightMap workingMap = context.getWorkingMap();
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyUUID, loadModel.getTargetPath());
+        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyId, loadModel.getTargetPath());
         if (fsObject != null) {
             // OK, some file exists. If this flight created it, then we record it
             // and claim success. Otherwise someone else created it and we throw.

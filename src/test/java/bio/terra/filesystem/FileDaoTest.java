@@ -3,6 +3,7 @@ package bio.terra.filesystem;
 import bio.terra.category.Connected;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.fixtures.Names;
 import bio.terra.metadata.FSFileInfo;
@@ -18,7 +19,6 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.nio.file.FileSystemNotFoundException;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -265,18 +265,18 @@ public class FileDaoTest {
             .flightId(flightId);
 
         UUID fileAId = fileDao.createFileStart(fsObject);
-        FSObject fileAObject = getCheckPath(fileAPath, studyId, FSObject.FSObjectType.INGESTING_FILE);
         FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
         fileDao.createFileComplete(fsFileInfo);
 
+        FSObject fileAObject = fileDao.retrieve(studyId, fileAId);
         FSObject testObject = fileDao.retrieveByPath(studyId.toString(), fileAPath);
         assertThat("Path lookup matched fileid lookup", fileAObject, equalTo(testObject));
 
         try {
-            fileDao.retrieveByPath(studyId.toString(), thirdPath);
+            fileDao.retrieveByPath(studyId.toString(), thirdPath + "/not-there");
             fail("Should not have successfully retrieved");
         } catch (Exception ex) {
-            assertTrue("Correct path not found exception", ex instanceof FileSystemNotFoundException);
+            assertTrue("Correct path not found exception", ex instanceof FileSystemObjectNotFoundException);
             assertThat("Correct message", ex.getMessage(), containsString("Object not found"));
         }
 

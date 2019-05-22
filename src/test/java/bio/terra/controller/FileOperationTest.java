@@ -102,7 +102,7 @@ public class FileOperationTest {
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
         response = result.getResponse();
-        assertThat("Lookup file by succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
+        assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
         lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 

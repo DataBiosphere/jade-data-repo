@@ -651,7 +651,7 @@ paths:
   '/api/repository/v1/studies/{id}/files/{fileid}':
     get:
       description: Lookup metadata for one file
-      operationId: lookupfile
+      operationId: lookupFileObjectById
       tags:
       - repository
       parameters:
@@ -722,7 +722,7 @@ paths:
   '/api/repository/v1/studies/{id}/paths':
     get:
       description: Lookup metadata for one file
-      operationId: lookuppath
+      operationId: lookupFileObjectByPath
       tags:
       - repository
       parameters:

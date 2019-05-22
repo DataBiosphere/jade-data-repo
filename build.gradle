@@ -222,6 +222,8 @@ jib {
         tags = [(System.env.GCR_TAG ?: "latest")]
     }
 }
+// jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
+// setting above will ensure that the generated classes end up in the right place when jib builds.
 task setupGeneratedDir(type: Copy) {
     from file('build/classes/java/generated')
     into file('build/gen-expanded/app/classes')

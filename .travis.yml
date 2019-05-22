@@ -43,7 +43,7 @@ script:
   - ./gradlew assemble
   - ./gradlew check
   - ./gradlew testConnected
-  - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew dockerPush
+  - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image
     deployments/api-deployment
     "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"

@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
@@ -13,6 +14,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
@@ -23,10 +25,11 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@ActiveProfiles({ "google", "integrationtest"} )
 @Category(Integration.class)
 public class IngestTest {
     @Autowired
-    private DataRepoConfiguration dataRepoConfiguration;
+    private TestConfiguration testConfig;
 
     @Autowired
     private DataRepoClient dataRepoClient;

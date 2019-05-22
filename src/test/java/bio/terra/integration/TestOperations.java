@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
@@ -27,7 +28,7 @@ public class TestOperations {
     private DataRepoClient dataRepoClient;
 
     @Autowired
-    private DataRepoConfiguration dataRepoConfiguration;
+    private TestConfiguration testConfig;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -123,7 +124,7 @@ public class TestOperations {
             .append("{").append('"').append("table").append('"').append(':').append('"').append(table).append('"')
             .append(", ").append('"').append("format").append('"').append(':').append('"').append("json").append('"')
             .append(", ").append('"').append("path").append('"').append(':').append('"')
-            .append("gs://").append(dataRepoConfiguration.getIngestbucket()).append("/").append(filename)
+            .append("gs://").append(testConfig.getIngestbucket()).append("/").append(filename)
             .append('"').append('}');
 
         return ingestBuilder.toString();

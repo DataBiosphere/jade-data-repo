@@ -1,9 +1,9 @@
 package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
+import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
@@ -67,10 +67,10 @@ public class EncodeFileTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
-    @Autowired private DataRepoConfiguration dataRepoConfiguration;
     @Autowired private Storage storage;
     @Autowired private BigQuery bigQuery;
     @Autowired private String bigQueryProjectId;
+    @Autowired private ConnectedTestConfiguration testConfig;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
@@ -98,7 +98,7 @@ public class EncodeFileTest {
     public void encodeFileTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), false, false);
-        String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -108,7 +108,7 @@ public class EncodeFileTest {
         connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
 
         // Delete the scratch blob
-        Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
+        Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
         if (scratchBlob != null) {
             scratchBlob.delete();
         }
@@ -116,7 +116,7 @@ public class EncodeFileTest {
         // Load donor success
         ingestRequest
             .table("donor")
-            .path("gs://" + dataRepoConfiguration.getIngestbucket() + "/encodetest/donor.json");
+            .path("gs://" + testConfig.getIngestbucket() + "/encodetest/donor.json");
 
         connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
 
@@ -144,7 +144,7 @@ public class EncodeFileTest {
     public void encodeFileBadFileId() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), true, false);
-        String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -169,7 +169,7 @@ public class EncodeFileTest {
         assertThat("Bad id was returned in details", errorDetails.get(0), endsWith(ID_GARBAGE));
 
         // Delete the scratch blob
-        Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
+        Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
         if (scratchBlob != null) {
             scratchBlob.delete();
         }
@@ -179,7 +179,7 @@ public class EncodeFileTest {
     public void encodeFileBadRowTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), false, true);
-        String gsPath = "gs://" + dataRepoConfiguration.getIngestbucket() + "/" + targetPath;
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
@@ -210,7 +210,7 @@ public class EncodeFileTest {
                 "JSON parsing error in row starting at position 0: Parser terminated before end of string"));
 
         // Delete the scratch blob
-        Blob scratchBlob = storage.get(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath));
+        Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
         if (scratchBlob != null) {
             scratchBlob.delete();
         }
@@ -238,11 +238,11 @@ public class EncodeFileTest {
         // For a bigger test use encodetest/file.json (1000+ files)
         // For normal testing encodetest/file_small.json (10 files)
         Blob sourceBlob = storage.get(
-            BlobId.of(dataRepoConfiguration.getIngestbucket(), "encodetest/file_small.json"));
+            BlobId.of(testConfig.getIngestbucket(), "encodetest/file_small.json"));
         assertNotNull("source blob not null", sourceBlob);
 
         BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(dataRepoConfiguration.getIngestbucket(), targetPath))
+            .newBuilder(BlobId.of(testConfig.getIngestbucket(), targetPath))
             .build();
 
         try (WriteChannel writer = storage.writer(targetBlobInfo);

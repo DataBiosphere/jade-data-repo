@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -24,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 @Component
 public class DataRepoClient {
     @Autowired
-    private DataRepoConfiguration dataRepoConfiguration;
+    private TestConfiguration testConfig;
 
     private RestTemplate restTemplate;
     private ObjectMapper objectMapper;
@@ -93,7 +94,7 @@ public class DataRepoClient {
                                                         Class<T> responseClass) throws Exception {
 
         ResponseEntity<String> response = restTemplate.exchange(
-            makeUrl(path),
+            testConfig.getJadeApiUrl()+path,
             method,
             entity,
             String.class);
@@ -117,11 +118,4 @@ public class DataRepoClient {
         return drResponse;
     }
 
-    private String makeUrl(String path) {
-        return String.format("%s://%s:%s%s",
-            dataRepoConfiguration.getProtocol(),
-            dataRepoConfiguration.getServer(),
-            dataRepoConfiguration.getPort(),
-            path);
-    }
 }

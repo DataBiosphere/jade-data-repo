@@ -317,11 +317,14 @@ public class FireStoreFileDao {
     public void deleteFilesFromStudy(String studyId) {
         CollectionReference studyCollection = firestore.collection(studyId);
         try {
+            int batchCount = 0;
             int deleted;
             do {
                 deleted = 0;
                 ApiFuture<QuerySnapshot> future = studyCollection.limit(DELETE_BATCH_SIZE).get();
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                batchCount++;
+                logger.info("Deleting batch " + batchCount + " of ~" + DELETE_BATCH_SIZE + " documents");
                 for (QueryDocumentSnapshot document : documents) {
                     document.getReference().delete();
                     deleted++;

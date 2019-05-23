@@ -113,12 +113,12 @@ public class FileDaoTest {
         assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
             equalTo(FSObject.FSObjectType.INGESTING_FILE));
 
-        fileDao.createFileCompleteUndo(studyId.toString(), fileAId.toString());
+        fileDao.createFileComplete(fsFileInfo);
 
         boolean exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
-        assertTrue("File exists", exists);
-        exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
-        assertTrue("File exists", exists);
+        assertTrue("File exists - start", exists);
+        exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File exists - complete", exists);
     }
 
     @Test

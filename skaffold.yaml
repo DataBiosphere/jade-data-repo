@@ -1,0 +1,13 @@
+apiVersion: skaffold/v1beta10
+kind: Config
+build:
+  artifacts:
+  - image: gcr.io/broad-jade-dev/jade-data-repo
+    jibGradle:
+      args:
+      - jib
+deploy:
+  kubectl:
+    manifests:
+    - ops/k8s/deployments/api-deployment.yaml
+

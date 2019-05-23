@@ -5,8 +5,9 @@ import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
@@ -28,6 +29,7 @@ import bio.terra.validation.PolicyMemberValidator;
 import bio.terra.validation.StudyRequestValidator;
 import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import liquibase.util.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +45,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -67,6 +71,10 @@ public class RepositoryApiController implements RepositoryApi {
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
+
+    // constant used for validation
+    private static final List<String> VALID_SORT_OPTIONS = Arrays.asList("name", "description", "created_date");
+    private static final List<String> VALID_DIRECTION_OPTIONS = Arrays.asList("asc", "desc");
 
     @Autowired
     public RepositoryApiController(
@@ -132,11 +140,34 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
-    public ResponseEntity<List<StudySummaryModel>> enumerateStudies(
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        validiateOffsetAndLimit(offset, limit);
-        return new ResponseEntity<>(studyService.enumerate(offset, limit), HttpStatus.OK);
+    private void validateEnumerateParams(Integer offset, Integer limit, String sort, String direction) {
+        List<String> errors = new ArrayList<>();
+        if (offset < 0) {
+            errors.add("offset must be greater than or equal to 0.");
+        }
+        if (limit < 1) {
+            errors.add("limit must be greater than or equal to 1.");
+        }
+        if (!StringUtils.isEmpty(sort) && !VALID_SORT_OPTIONS.contains(sort)) {
+            errors.add(String.format("sort must be one of: (%s).", String.join(", ", VALID_SORT_OPTIONS)));
+        }
+        if (!StringUtils.isEmpty(direction) && !VALID_DIRECTION_OPTIONS.contains(direction)) {
+            errors.add("direction must be one of: (asc, desc).");
+        }
+        if (!errors.isEmpty()) {
+            throw new ValidationException("Invalid enumerate parameter(s).", errors);
+        }
+    }
+
+    public ResponseEntity<EnumerateStudyModel> enumerateStudies(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+            @Valid @RequestParam(value = "filter", required = false) String filter) {
+        validateEnumerateParams(offset, limit, sort, direction);
+        EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter);
+        return new ResponseEntity<>(esm, HttpStatus.OK);
     }
 
     @Override
@@ -238,12 +269,16 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<DatasetSummaryModel>> enumerateDatasets(
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        validiateOffsetAndLimit(offset, limit);
-        List<DatasetSummaryModel> datasetSummaryModels = datasetService.enumerateDatasets(offset, limit);
-        return new ResponseEntity<>(datasetSummaryModels, HttpStatus.OK);
+    public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+            @Valid @RequestParam(value = "filter", required = false) String filter) {
+        validateEnumerateParams(offset, limit, sort, direction);
+        EnumerateDatasetModel edm = datasetService.enumerateDatasets(offset, limit, sort,
+            direction, filter);
+        return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 
     @Override

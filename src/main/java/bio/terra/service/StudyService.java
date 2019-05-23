@@ -6,7 +6,10 @@ import bio.terra.flight.study.create.StudyCreateFlight;
 import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.flight.study.ingest.IngestMapKeys;
 import bio.terra.flight.study.ingest.StudyIngestFlight;
+import bio.terra.metadata.MetadataEnumeration;
+import bio.terra.metadata.StudySummary;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
@@ -51,11 +54,13 @@ public class StudyService {
         return StudyJsonConversion.studyModelFromStudy(studyDao.retrieve(id));
     }
 
-    public List<StudySummaryModel> enumerate(int offset, int limit) {
-        return studyDao.enumerate(offset, limit)
+    public EnumerateStudyModel enumerate(int offset, int limit, String sort, String direction, String filter) {
+        MetadataEnumeration<StudySummary> studyEnum = studyDao.enumerate(offset, limit, sort, direction, filter);
+        List<StudySummaryModel> summaries = studyEnum.getItems()
             .stream()
             .map(summary -> StudyJsonConversion.studySummaryModelFromStudySummary(summary))
             .collect(Collectors.toList());
+        return new EnumerateStudyModel().items(summaries).total(studyEnum.getTotal());
     }
 
     public DeleteResponseModel delete(UUID id, AuthenticatedUserRequest userInfo) {

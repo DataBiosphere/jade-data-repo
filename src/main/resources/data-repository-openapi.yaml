@@ -130,13 +130,32 @@ paths:
         type: integer
         description: The numbers of items to return.
         default: 10
+      - in: query
+        name: sort
+        type: string
+        default: created_date
+        enum:
+        - name
+        - description
+        - created_date
+        description: The field to use for sorting.
+      - in: query
+        name: direction
+        type: string
+        default: desc
+        enum:
+        - asc
+        - desc
+        description: The direction to sort.
+      - in: query
+        name: filter
+        type: string
+        description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
           description: List of datasets
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/DatasetSummaryModel'
+            $ref: '#/definitions/EnumerateDatasetModel'
 
     post:
       description: Create a new dataset
@@ -361,13 +380,32 @@ paths:
         type: integer
         description: The numbers studies to retrieve and return.
         default: 10
+      - in: query
+        name: sort
+        type: string
+        default: created_date
+        enum:
+        - name
+        - description
+        - created_date
+        description: The field to use for sorting.
+      - in: query
+        name: direction
+        type: string
+        default: desc
+        enum:
+        - asc
+        - desc
+        description: The direction to sort.
+      - in: query
+        name: filter
+        type: string
+        description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
           description: List of studies
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/StudySummaryModel'
+            $ref: '#/definitions/EnumerateStudyModel'
 
     post:
       description: Create a new study
@@ -1068,6 +1106,20 @@ definitions:
       schema:
         $ref: '#/definitions/StudySpecificationModel'
 
+  EnumerateStudyModel:
+    description: |
+      The total number of studies available and a page of summaries
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of studies
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/StudySummaryModel'
+
+
   ## Schema Definitions ##
 
   ColumnModel:
@@ -1438,6 +1490,19 @@ definitions:
       createdDate:
         type: string
         description: Date the dataset was created
+
+  EnumerateDatasetModel:
+    description: |
+      The total number of datasets available and a page of summaries
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of datasets
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/DatasetSummaryModel'
 
   DatasetModel:
     description: |

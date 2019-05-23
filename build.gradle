@@ -29,7 +29,7 @@ buildscript {
 }
 
 plugins {
-  id 'com.palantir.docker' version '0.20.1'
+  id "com.google.cloud.tools.jib" version "1.2.0"
   id 'org.liquibase.gradle' version '2.0.1'
 }
 
@@ -37,7 +37,6 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
-apply plugin: 'com.palantir.docker'
 
 apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
@@ -217,6 +216,21 @@ jar {
     from sourceSets.generated.output
 }
 
+jib {
+    extraDirectories.paths = ['build/gen-expanded']
+    to {
+        image = "gcr.io/broad-jade-dev/jade-data-repo"
+        tags = [(System.env.GCR_TAG ?: "latest")]
+    }
+}
+// jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
+// setting above will ensure that the generated classes end up in the right place when jib builds.
+task setupGeneratedDir(type: Copy) {
+    from file('build/classes/java/generated')
+    into file('build/gen-expanded/app/classes')
+}
+tasks.jib.dependsOn setupGeneratedDir
+
 liquibase {
     activities {
         datarepo {
@@ -245,12 +259,6 @@ def getGitHash = { ->
     return stdout.toString().trim()
 }
 
-
-docker {
-    name "gcr.io/broad-jade-dev/${bootJar.baseName}:${System.env.GCR_TAG ?: "latest"}"
-    copySpec.from(tasks.unpack.outputs).into("dependency")
-    buildArgs(['DEPENDENCY': "dependency"])
-}
 
 // -- Test tasks --
 // The default 'test' task runs all of the tests.

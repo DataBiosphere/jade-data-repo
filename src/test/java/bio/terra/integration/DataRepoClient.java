@@ -4,6 +4,12 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.conn.ssl.TrustStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -11,10 +17,13 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import javax.net.ssl.SSLContext;
 import java.net.URI;
+import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -27,12 +36,14 @@ public class DataRepoClient {
     @Autowired
     private TestConfiguration testConfig;
 
+    private static Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
     private RestTemplate restTemplate;
     private ObjectMapper objectMapper;
     private HttpHeaders headers;
 
     public DataRepoClient() {
-        restTemplate = new RestTemplate();
+//        restTemplate = new RestTemplate();
+        restTemplate = getTrustingRestTemplate();
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
         objectMapper = new ObjectMapper();
 
@@ -41,22 +52,50 @@ public class DataRepoClient {
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
     }
 
-    public <T> DataRepoResponse<T> get(String path, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+    private HttpHeaders getHeaders(String authToken) {
+        HttpHeaders copy = new HttpHeaders(headers);
+        copy.setBearerAuth(authToken);
+        return copy;
+    }
+
+    private RestTemplate getTrustingRestTemplate() {
+        // configure the http client to work with ssl but not verify certs since this is for testing
+        try {
+            TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
+            SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
+                .loadTrustMaterial(null, acceptingTrustStrategy)
+                .build();
+            SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext);
+            CloseableHttpClient httpClient = HttpClients.custom()
+                .setSSLSocketFactory(csf)
+                .build();
+            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
+            requestFactory.setHttpClient(httpClient);
+            return new RestTemplate(requestFactory);
+        } catch (Exception ex) {
+            logger.warn("exception when trying to create trusting rest template - " +
+                "only for testing! should not be included in released code!!!!", ex);
+        }
+        return new RestTemplate();
+    }
+
+    public <T> DataRepoResponse<T> get(String authToken, String path, Class<T> responseClass) throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> post(String path, String json, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(json, headers);
+    public <T> DataRepoResponse<T> post(String authToken, String path, String json, Class<T> responseClass) throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> delete(String path, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+    public <T> DataRepoResponse<T> delete(String authToken, String path, Class<T> responseClass) throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> waitForResponse(DataRepoResponse<JobModel> jobModelResponse,
+    public <T> DataRepoResponse<T> waitForResponse(String authToken,
+                                                   DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
         try {
             while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
@@ -64,7 +103,7 @@ public class DataRepoClient {
 
                 // TODO: tune this. Maybe use exponential backoff?
                 TimeUnit.SECONDS.sleep(10);
-                jobModelResponse = get(location, JobModel.class);
+                jobModelResponse = get(authToken, location, JobModel.class);
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -76,7 +115,7 @@ public class DataRepoClient {
         }
 
         String location = getLocationHeader(jobModelResponse);
-        DataRepoResponse<T> resultResponse = get(location, responseClass);
+        DataRepoResponse<T> resultResponse = get(authToken, location, responseClass);
 
         return resultResponse;
     }

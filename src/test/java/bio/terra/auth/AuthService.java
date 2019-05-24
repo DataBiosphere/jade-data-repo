@@ -22,33 +22,21 @@ public class AuthService {
     private static Logger logger = LoggerFactory.getLogger(AuthService.class);
     // the list of scopes we request from end users when they log in.
     // this should always match exactly what the UI requests, so our tests represent actual user behavior:
-    private List<String> userLoginScopes = Arrays.asList(new String[]{"profile", "email", "openid"});
+    private List<String> userLoginScopes = Arrays.asList(new String[]{"openid", "email", "profile"});
 
 //    private TestConfiguration testConfig;
     private NetHttpTransport httpTransport;
     private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
     private File pemfile;
-    private String saEmail = "jade-k8-sa@broad-jade-dev.iam.gserviceaccount.com";
+    private String saEmail;
 
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
-//        this.testConfig = testConfig;
         pemfile = new File(testConfig.getJadePemFile());
+        saEmail = testConfig.getJadeSAEmail();
         httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
-
-//    public NetHttpTransport getHttpTransport() {
-//        return httpTransport;
-//    }
-//
-//    public List<String> getUserLoginScopes() {
-//        return userLoginScopes;
-//    }
-
-//    public TestConfiguration getTestConfig() {
-//        return testConfig;
-//    }
 
     public String getAuthToken(Credentials userCred) {
         return makeToken(userCred);
@@ -68,8 +56,6 @@ public class AuthService {
 
 
     private String makeToken(Credentials userCred) {
-//    Retry.retry(5.seconds, 1.minute)({
-
         try {
             GoogleCredential cred = buildCredential(userCred.email);
             cred.refreshToken();
@@ -82,14 +68,5 @@ public class AuthService {
         throw new RuntimeException("unable to get access token");
     }
 
-//    private String buildBaseLogMessage(GoogleCredential cred) {
-//        return "Details: \n" +
-//            "Service Account: " + cred.getServiceAccountId() + "\n" +
-//            "User: " + cred.getServiceAccountUser() + "\n" +
-//            "Scopes: " + cred.getServiceAccountScopesAsString() + "\n" +
-//            "Access Token: " + cred.getAccessToken() + "\n" +
-//            "Token Expires: in " + cred.getExpiresInSeconds() + "seconds \n" +
-//            "SA Private Key ID: " + cred.getServiceAccountPrivateKeyId() + "\n";
-//    }
 }
 

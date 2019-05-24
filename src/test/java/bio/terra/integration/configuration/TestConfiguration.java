@@ -13,6 +13,7 @@ import java.util.List;
 public class TestConfiguration {
     private String jadeApiUrl;
     private String jadePemFile;
+    private String jadeSAEmail;
     private String notSoSecretPassword;
     private String ingestbucket;
     private List<User> users = new ArrayList<>();
@@ -61,6 +62,14 @@ public class TestConfiguration {
 
     public void setJadePemFile(String jadePemFile) {
         this.jadePemFile = jadePemFile;
+    }
+
+    public String getJadeSAEmail() {
+        return jadeSAEmail;
+    }
+
+    public void setJadeSAEmail(String jadeSAEmail) {
+        this.jadeSAEmail = jadeSAEmail;
     }
 
     public String getNotSoSecretPassword() {

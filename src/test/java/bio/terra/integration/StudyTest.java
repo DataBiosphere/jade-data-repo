@@ -14,6 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -37,38 +38,44 @@ public class StudyTest {
 
     @Test
     public void studyHappyPath() throws Exception {
-        StudySummaryModel summaryModel = testOperations.createTestStudy("it-study-omop.json");
-        assertThat(summaryModel.getName(), equalTo(omopStudyName));
-        assertThat(summaryModel.getDescription(), equalTo(omopStudyDesc));
+        Credentials user = users.getUserCredentialsForRole("steward");
+        String authToken = authService.getAuthToken(user);
+        StudySummaryModel summaryModel = testOperations.createTestStudy(authToken, "it-study-omop.json");
+        try {
+            assertThat(summaryModel.getName(), startsWith(omopStudyName));
+            assertThat(summaryModel.getDescription(), equalTo(omopStudyDesc));
 
-        String studyPath = "/api/repository/v1/studies/" + summaryModel.getId();
-        DataRepoResponse<StudyModel> getResponse = dataRepoClient.get(studyPath, StudyModel.class);
+            String studyPath = "/api/repository/v1/studies/" + summaryModel.getId();
+            DataRepoResponse<StudyModel> getResponse = dataRepoClient.get(authToken, studyPath, StudyModel.class);
 
-        assertThat("study is successfully retrieved", getResponse.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", getResponse.getResponseObject().isPresent());
-        StudyModel studyModel = getResponse.getResponseObject().get();
-        assertThat(studyModel.getName(), equalTo(omopStudyName));
-        assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
+            assertThat("study is successfully retrieved", getResponse.getStatusCode(), equalTo(HttpStatus.OK));
+            assertTrue("study get response is present", getResponse.getResponseObject().isPresent());
+            StudyModel studyModel = getResponse.getResponseObject().get();
+            assertThat(studyModel.getName(), startsWith(omopStudyName));
+            assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
 
-        DataRepoResponse<StudySummaryModel[]> enumResponse = dataRepoClient.get(
-            "/api/repository/v1/studies?offset=0&items=1000",
-            StudySummaryModel[].class);
+            DataRepoResponse<StudySummaryModel[]> enumResponse = dataRepoClient.get(
+                authToken,
+                "/api/repository/v1/studies?offset=0&items=1000",
+                StudySummaryModel[].class);
 
-        assertThat("study enumeration is successful", enumResponse.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", enumResponse.getResponseObject().isPresent());
-        StudySummaryModel[] summaryArray = enumResponse.getResponseObject().get();
-        boolean found = false;
-        for (StudySummaryModel oneStudy : summaryArray) {
-            if (oneStudy.getId().equals(studyModel.getId())) {
-                assertThat(oneStudy.getName(), equalTo(omopStudyName));
-                assertThat(oneStudy.getDescription(), equalTo(omopStudyDesc));
-                found = true;
-                break;
+            assertThat("study enumeration is successful", enumResponse.getStatusCode(), equalTo(HttpStatus.OK));
+            assertTrue("study get response is present", enumResponse.getResponseObject().isPresent());
+            StudySummaryModel[] summaryArray = enumResponse.getResponseObject().get();
+            boolean found = false;
+            for (StudySummaryModel oneStudy : summaryArray) {
+                if (oneStudy.getId().equals(studyModel.getId())) {
+                    assertThat(oneStudy.getName(), startsWith(omopStudyName));
+                    assertThat(oneStudy.getDescription(), equalTo(omopStudyDesc));
+                    found = true;
+                    break;
+                }
             }
-        }
-        assertTrue("study was found in enumeration", found);
+            assertTrue("study was found in enumeration", found);
 
-        testOperations.deleteTestStudy(summaryModel.getId());
+        } finally {
+            testOperations.deleteTestStudy(authToken, summaryModel.getId());
+        }
     }
 
 }

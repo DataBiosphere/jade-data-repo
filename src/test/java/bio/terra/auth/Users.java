@@ -13,14 +13,11 @@ import java.util.Map;
 public class Users {
 
 
-    private TestConfiguration testConfig;
     private Map<String, List<Credentials>> userCredentialsByRole = new HashMap<>();
     private String password;
-    private Users singleton;
 
     @Autowired
     public Users(TestConfiguration testConfig) {
-        this.testConfig = testConfig;
         this.password = testConfig.getNotSoSecretPassword();
         buildUsersByRole(testConfig.getUsers());
     }

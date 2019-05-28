@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @EnableConfigurationProperties
-@ConfigurationProperties(prefix = "connected")
+@ConfigurationProperties(prefix = "ct")
 public class ConnectedTestConfiguration {
 
     private String ingestbucket;

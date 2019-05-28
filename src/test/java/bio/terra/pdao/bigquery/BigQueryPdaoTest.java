@@ -1,12 +1,12 @@
 package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
+import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.integration.DataRepoConfiguration;
+import bio.terra.metadata.Column;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
-import bio.terra.metadata.Column;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
@@ -50,7 +50,7 @@ public class BigQueryPdaoTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
-    @Autowired private DataRepoConfiguration dataRepoConfiguration;
+    @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
 
@@ -105,7 +105,7 @@ public class BigQueryPdaoTest {
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
 
-        String bucket = dataRepoConfiguration.getIngestbucket();
+        String bucket = testConfig.getIngestbucket();
 
         BlobInfo participantBlob = BlobInfo
             .newBuilder(bucket, targetPath + "ingest-test-participant.json")

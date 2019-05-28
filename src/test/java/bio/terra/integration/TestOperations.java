@@ -51,7 +51,7 @@ public class TestOperations {
 
     public void deleteTestStudy(String authToken, String studyId) throws Exception {
         DataRepoResponse<DeleteResponseModel> deleteResponse =
-            dataRepoClient.delete(authToken,"/api/repository/v1/studies/" + studyId, DeleteResponseModel.class);
+            dataRepoClient.delete(authToken, "/api/repository/v1/studies/" + studyId, DeleteResponseModel.class);
         assertGoodDeleteResponse(deleteResponse);
     }
 
@@ -80,7 +80,7 @@ public class TestOperations {
 
     public void deleteTestDataset(String authToken, String datasetId) throws Exception {
         DataRepoResponse<JobModel> jobResponse =
-            dataRepoClient.delete(authToken,"/api/repository/v1/datasets/" + datasetId, JobModel.class);
+            dataRepoClient.delete(authToken, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
 
         assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
@@ -99,7 +99,8 @@ public class TestOperations {
      * @return ingest response
      * @throws Exception
      */
-    public IngestResponseModel ingestJsonData(String authToken, String studyId, String tableName, String datafile) throws Exception {
+    public IngestResponseModel ingestJsonData(String authToken, String studyId, String tableName, String datafile)
+        throws Exception {
         String ingestBody = buildSimpleIngest(tableName, datafile);
         DataRepoResponse<JobModel> postResponse = dataRepoClient.post(
             authToken,

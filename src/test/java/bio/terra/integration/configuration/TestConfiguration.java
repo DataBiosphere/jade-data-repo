@@ -19,9 +19,9 @@ public class TestConfiguration {
     private List<User> users = new ArrayList<>();
 
     public static class User {
-        String role;
-        String name;
-        String email;
+        private String role;
+        private String name;
+        private String email;
 
         public String getRole() {
             return role;

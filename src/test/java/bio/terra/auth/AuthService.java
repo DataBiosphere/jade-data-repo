@@ -34,7 +34,7 @@ public class AuthService {
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
         pemfile = new File(testConfig.getJadePemFile());
-        saEmail = testConfig.getJadeSAEmail();
+        saEmail = testConfig.getJadeEmail();
         httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
 
@@ -57,7 +57,7 @@ public class AuthService {
 
     private String makeToken(Credentials userCred) {
         try {
-            GoogleCredential cred = buildCredential(userCred.email);
+            GoogleCredential cred = buildCredential(userCred.getEmail());
             cred.refreshToken();
             return cred.getAccessToken();
         } catch (TokenResponseException e) {

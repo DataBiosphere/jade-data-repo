@@ -84,7 +84,8 @@ public class DataRepoClient {
         return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> post(String authToken, String path, String json, Class<T> responseClass) throws Exception {
+    public <T> DataRepoResponse<T> post(String authToken, String path, String json, Class<T> responseClass)
+        throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
@@ -133,7 +134,7 @@ public class DataRepoClient {
                                                         Class<T> responseClass) throws Exception {
 
         ResponseEntity<String> response = restTemplate.exchange(
-            testConfig.getJadeApiUrl()+path,
+            testConfig.getJadeApiUrl() + path,
             method,
             entity,
             String.class);

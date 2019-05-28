@@ -1,4 +1,4 @@
-#!/bin/bash
+4#!/bin/bash
 
 set -e
 
@@ -94,10 +94,20 @@ sleep 5
 vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
-# set the tsl certificate
-vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
+# set the tls certificate
+#vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
+server_crt=$(vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt)
+server_intermediate=$(vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.intermediate.crt)
+ca_bundle="$(cat <<EOF
+${server_crt}
+${server_intermediate}
+EOF
+)"
+echo "${ca_bundle}" > "${SCRATCH}/tls.crt"
 vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/tls.key"
 kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
+
+rm tls.crt tls.key
 
 # create pods + services
 kubectl apply -f "${WD}/k8s/services"

@@ -107,7 +107,7 @@ echo "${ca_bundle}" > "${SCRATCH}/tls.crt"
 vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/tls.key"
 kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
 
-rm tls.crt tls.key
+rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
 
 # create pods + services
 kubectl apply -f "${WD}/k8s/services"

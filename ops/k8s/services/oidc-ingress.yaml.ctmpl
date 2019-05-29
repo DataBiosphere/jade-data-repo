@@ -10,12 +10,12 @@ metadata:
 spec:
   tls:
     - hosts:
-      - {{ (printf "jade-jh.datarepo-%s.broadinstitute.org" $environment) }}
+      - {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
       secretName: wildcard.datarepo.broadinstitute.org
   backend:
     serviceName: oidc-proxy-service
     servicePort: http
   rules:
-  - host: {{ (printf "jade-jh.datarepo-%s.broadinstitute.org" $environment) }}
+  - host: {{ (printf "jade.datarepo-%s.broadinstitute.org" $environment) }}
 
 {{ end }}

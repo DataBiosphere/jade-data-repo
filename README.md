@@ -11,13 +11,15 @@ Once your cluster has finished creating, click the Connect button next to you cl
 
 
 ## Deploying to kubernetes
+
+
 ### Deploying in your own test account (not dev, integration, etc)
-### Create a service account
-In the google cloud console, go to IAM & Admin -> Service accounts. Click create service account. Choose a name and add a description (this service account will be used to manage big query and postgres data for the datarepo).
+
+When a k8s cluster gets terraformed it will be running under the default compute service account for the project. This account is used by Google Kubernetes Engine to pull container images clusters by default. It is in the form [PROJECT_NUMBER]-compute@developer.gserviceaccount.com, where [PROJECT-NUMBER] is the GCP project number of the project that is running the Google Kubernetes Engine cluster.
 
 Give your service account access to dev GCR:
 
-    gsutil iam ch serviceAccount:jade-k8-sa@${PROJECT}.iam.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
+    gsutil iam ch serviceAccount:[PROJECT_NUMBER]-compute@developer.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
 
 #### Environment variables
     GOOGLE_CLOUD_PROJECT

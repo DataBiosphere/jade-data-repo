@@ -300,7 +300,7 @@ public class FileDaoTest {
         // Make sure some of the files are there.
         logger.info("testStudyDelete:Reading:");
         for (int i = 1; i <= 1001; i++) {
-            FSObject testObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            FSObject testObject = fileDao.retrieveByPathNoThrow(studyId.toString(), "/file_" + i);
             assertNotNull(testObject);
             if (i % 100 == 0) {
                 logger.info(".." + i);
@@ -313,7 +313,7 @@ public class FileDaoTest {
         // Make sure they are all gone
         logger.info("testStudyDelete:Check deleted:");
         for (int i = 1; i <= 1001; i++) {
-            FSObject noObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            FSObject noObject = fileDao.retrieveByPathNoThrow(studyId.toString(), "/file_" + i);
             assertNull("Object is deleted", noObject);
             if (i % 100 == 0) {
                 logger.info(".." + i);

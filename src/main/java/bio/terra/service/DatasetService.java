@@ -293,12 +293,4 @@ public class DatasetService {
                 .name(column.getName())
                 .datatype(column.getType());
     }
-
-    public List<DatasetSummaryModel> getDatasetsReferencingStudy(UUID studyId) {
-        return datasetDao.retrieveDatasetsForStudy(studyId)
-            .stream()
-            .map(dataset -> makeSummaryModelFromSummary(dataset))
-            .collect(Collectors.toList());
-
-    }
 }

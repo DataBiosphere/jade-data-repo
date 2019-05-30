@@ -11,6 +11,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,6 +37,8 @@ import static org.junit.Assert.fail;
 @ActiveProfiles("google")
 @Category(Connected.class)
 public class FileDaoTest {
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FileDaoTest");
+
     private static final String mimeType = "application/octet-string";
     private static final String description = "dummy description";
 
@@ -108,6 +112,13 @@ public class FileDaoTest {
         typeObject = fileDao.retrieveByIdNoThrow(typeObject.getStudyId(), typeObject.getObjectId());
         assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
             equalTo(FSObject.FSObjectType.INGESTING_FILE));
+
+        fileDao.createFileComplete(fsFileInfo);
+
+        boolean exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File exists - start", exists);
+        exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File exists - complete", exists);
     }
 
     @Test
@@ -251,6 +262,63 @@ public class FileDaoTest {
 
         existed = fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
         assertTrue("File B existed", existed);
+
+        // Now verify that the objects are gone.
+        checkObjectGone(topObject);
+        checkObjectGone(secondObject);
+        checkObjectGone(thirdObject);
+        checkObjectGone(fileAObject);
+        checkObjectGone(fileBObject);
+    }
+
+    // Note: this test does logging because it runs for several minutes. Travis gets impatient if it hasn't seen
+    // output for 10 minutes. Sometimes if things are slow, this test can take longer than that.
+    @Test
+    public void testStudyDelete() throws Exception {
+        // Make 1001 files and then delete the study
+        FSObject fsObject = new FSObject()
+            .studyId(studyId)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
+            .mimeType(mimeType)
+            .description(description)
+            .flightId(flightId);
+
+        FSFileInfo fsFileInfo = makeFsFileInfo("later");
+
+        logger.info("testStudyDelete:Creating:");
+        for (int i = 1; i <= 1001; i++) {
+            fsObject.path("/file_" + i);
+            UUID objectId = fileDao.createFileStart(fsObject);
+            fsFileInfo.objectId(objectId.toString());
+            fileDao.createFileComplete(fsFileInfo);
+            if (i % 100 == 0) {
+                logger.info(".." + i);
+            }
+        }
+
+        // Make sure some of the files are there.
+        logger.info("testStudyDelete:Reading:");
+        for (int i = 1; i <= 1001; i++) {
+            FSObject testObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            assertNotNull(testObject);
+            if (i % 100 == 0) {
+                logger.info(".." + i);
+            }
+        }
+
+        logger.info("testStudyDelete:Deleting...");
+        fileDao.deleteFilesFromStudy(studyId.toString());
+
+        // Make sure they are all gone
+        logger.info("testStudyDelete:Check deleted:");
+        for (int i = 1; i <= 1001; i++) {
+            FSObject noObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            assertNull("Object is deleted", noObject);
+            if (i % 100 == 0) {
+                logger.info(".." + i);
+            }
+        }
+        logger.info("testStudyDelete:Done");
     }
 
     private void addDatasetDependency(UUID objectId) {

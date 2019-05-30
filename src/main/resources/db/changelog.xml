@@ -13,5 +13,4 @@
 
     <include file="changesets/20181203_studytable.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20190214_datasets.yaml" relativeToChangelogFile="true"/>
-    <include file="changesets/20190402_files.yaml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

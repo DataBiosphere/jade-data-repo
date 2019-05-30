@@ -1,5 +1,8 @@
 package bio.terra.controller;
 
+import java.util.ArrayList;
+import java.util.List;
+
 // POJO for mapping to and from /jade-testdata/encodetest/file.json
 public class EncodeFileOut {
     private String file_id;
@@ -22,6 +25,7 @@ public class EncodeFileOut {
     private String file_format_subtype;
     private String file_ref;
     private String file_index_ref;
+    private List<String> file_array;
     private long file_size_mb;
     private String labs_generating_data;
     private String md5sum;
@@ -59,6 +63,13 @@ public class EncodeFileOut {
         file_format_subtype = encodeFileIn.getFile_format_subtype();
         file_ref = bamRef;
         file_index_ref = bamiRef;
+        file_array = new ArrayList<>();
+        if (bamRef != null) {
+            file_array.add(bamRef);
+        }
+        if (bamiRef != null) {
+            file_array.add(bamiRef);
+        }
         file_size_mb = encodeFileIn.getFile_size_mb();
         labs_generating_data = encodeFileIn.getLabs_generating_data();
         md5sum = encodeFileIn.getMd5sum();
@@ -250,6 +261,15 @@ public class EncodeFileOut {
 
     public EncodeFileOut file_index_ref(String file_index_ref) {
         this.file_index_ref = file_index_ref;
+        return this;
+    }
+
+    public List<String> getFile_array() {
+        return file_array;
+    }
+
+    public EncodeFileOut file_array(List<String> file_array) {
+        this.file_array = file_array;
         return this;
     }
 

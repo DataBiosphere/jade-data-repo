@@ -212,15 +212,12 @@ public class DatasetService {
             List<DatasetMapColumn> mapColumnList = new ArrayList<>();
 
             for (AssetColumn assetColumn : assetTable.getColumns()) {
-                Column column = new Column()
-                        .table(table)
-                        .name(assetColumn.getStudyColumn().getName())
-                        .type(assetColumn.getStudyColumn().getType());
+                Column column = new Column(assetColumn.getStudyColumn());
                 columnList.add(column);
 
                 mapColumnList.add(new DatasetMapColumn()
-                        .fromColumn(assetColumn.getStudyColumn())
-                        .toColumn(column));
+                    .fromColumn(assetColumn.getStudyColumn())
+                    .toColumn(column));
             }
 
             table.name(assetTable.getTable().getName())
@@ -290,8 +287,9 @@ public class DatasetService {
 
     private ColumnModel makeColumnModelFromColumn(Column column) {
         return new ColumnModel()
-                .name(column.getName())
-                .datatype(column.getType());
+            .name(column.getName())
+            .datatype(column.getType())
+            .arrayOf(column.isArrayOf());
     }
 
     public List<DatasetSummaryModel> getDatasetsReferencingStudy(UUID studyId) {

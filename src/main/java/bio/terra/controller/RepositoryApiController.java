@@ -193,9 +193,19 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<FileModel> lookupfile(@PathVariable("id") String id,
+    public ResponseEntity<FileModel> lookupFileObjectById(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
         FileModel fileModel = fileService.lookupFile(id, fileid);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<FileModel> lookupFileObjectByPath(@PathVariable("id") String id,
+                                                @RequestParam(value = "path", required = true) String path) {
+        if (!ValidationUtils.isValidPath(path)) {
+            throw new ValidationException("InvalidPath");
+        }
+        FileModel fileModel = fileService.lookupPath(id, path);
         return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 

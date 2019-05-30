@@ -13,6 +13,9 @@ public final class ValidationUtils {
             "(?:.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?",
         Pattern.CASE_INSENSITIVE);
 
+    // path needs to start with a leading forward slash
+    private static final String VALID_PATH = "/.*";
+
     private ValidationUtils() {
     }
 
@@ -32,4 +35,7 @@ public final class ValidationUtils {
         return VALID_EMAIL_REGEX.matcher(email).matches();
     }
 
+    public static boolean isValidPath(String path) {
+        return Pattern.matches(VALID_PATH, path);
+    }
 }

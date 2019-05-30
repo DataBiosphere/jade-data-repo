@@ -3,6 +3,7 @@ package bio.terra.filesystem;
 import bio.terra.category.Connected;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.fixtures.Names;
 import bio.terra.metadata.FSFileInfo;
@@ -299,7 +300,7 @@ public class FileDaoTest {
         // Make sure some of the files are there.
         logger.info("testStudyDelete:Reading:");
         for (int i = 1; i <= 1001; i++) {
-            FSObject testObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            FSObject testObject = fileDao.retrieveByPathNoThrow(studyId.toString(), "/file_" + i);
             assertNotNull(testObject);
             if (i % 100 == 0) {
                 logger.info(".." + i);
@@ -312,7 +313,7 @@ public class FileDaoTest {
         // Make sure they are all gone
         logger.info("testStudyDelete:Check deleted:");
         for (int i = 1; i <= 1001; i++) {
-            FSObject noObject = fileDao.retrieveByPathNoThrow(studyId, "/file_" + i);
+            FSObject noObject = fileDao.retrieveByPathNoThrow(studyId.toString(), "/file_" + i);
             assertNull("Object is deleted", noObject);
             if (i % 100 == 0) {
                 logger.info(".." + i);
@@ -320,6 +321,39 @@ public class FileDaoTest {
         }
         logger.info("testStudyDelete:Done");
     }
+
+    @Test
+    public void pathLookupTest() throws Exception {
+        FSObject fsObject = new FSObject()
+            .studyId(studyId)
+            .objectType(FSObject.FSObjectType.INGESTING_FILE)
+            .path(fileAPath)
+            .mimeType(mimeType)
+            .description(description)
+            .flightId(flightId);
+
+        UUID fileAId = fileDao.createFileStart(fsObject);
+        FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
+        fileDao.createFileComplete(fsFileInfo);
+
+        FSObject fileAObject = fileDao.retrieve(studyId, fileAId);
+        FSObject testObject = fileDao.retrieveByPath(studyId.toString(), fileAPath);
+        assertThat("Path lookup matched fileid lookup", fileAObject, equalTo(testObject));
+
+        try {
+            fileDao.retrieveByPath(studyId.toString(), thirdPath + "/not-there");
+            fail("Should not have successfully retrieved");
+        } catch (Exception ex) {
+            assertTrue("Correct path not found exception", ex instanceof FileSystemObjectNotFoundException);
+            assertThat("Correct message", ex.getMessage(), containsString("Object not found"));
+        }
+
+        boolean existed = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File existed", existed);
+        existed = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        assertTrue("File existed", existed);
+    }
+
 
     private void addDatasetDependency(UUID objectId) {
         dependencyDao.storeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
@@ -330,7 +364,7 @@ public class FileDaoTest {
     }
 
     private void checkObjectPresent(FSObject fsObject) {
-        FSObject thereObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId(), fsObject.getPath());
+        FSObject thereObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId().toString(), fsObject.getPath());
         assertNotNull("Object is there by path", thereObject);
         thereObject = fileDao.retrieveByIdNoThrow(fsObject.getStudyId(), fsObject.getObjectId());
         assertNotNull("Object is there by id", thereObject);
@@ -338,14 +372,14 @@ public class FileDaoTest {
 
 
     private void checkObjectGone(FSObject fsObject) {
-        FSObject goneObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId(), fsObject.getPath());
+        FSObject goneObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId().toString(), fsObject.getPath());
         assertNull("Object is gone by path", goneObject);
         goneObject = fileDao.retrieveByIdNoThrow(fsObject.getStudyId(), fsObject.getObjectId());
         assertNull("Object is gone by id", goneObject);
     }
 
     private FSObject getCheckPath(String path, UUID studyId, FSObject.FSObjectType objectType) {
-        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyId, path);
+        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyId.toString(), path);
         assertNotNull("Object not null", fsObject);
         assertThat("Object has correct path", fsObject.getPath(), equalTo(path));
         assertThat("Correct study", fsObject.getStudyId(), equalTo(studyId));

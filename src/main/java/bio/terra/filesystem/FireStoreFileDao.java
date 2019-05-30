@@ -402,7 +402,7 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
-    public FSObject retrieveByPath(UUID studyId, String path) {
+    public FSObject retrieveByPath(String studyId, String path) {
         FSObject fsObject = retrieveByPathNoThrow(studyId, path);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("Object not found - path: '" + path + "'");
@@ -410,9 +410,9 @@ public class FireStoreFileDao {
         return fsObject;
     }
 
-    public FSObject retrieveByPathNoThrow(UUID studyId, String path) {
+    public FSObject retrieveByPathNoThrow(String studyId, String path) {
         DocumentReference docRef = firestore
-            .collection(studyId.toString())
+            .collection(studyId)
             .document(encodePathAsFirestoreDocumentName(path));
 
         ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();

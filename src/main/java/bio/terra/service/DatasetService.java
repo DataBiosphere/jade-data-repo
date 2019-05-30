@@ -15,6 +15,7 @@ import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
@@ -24,6 +25,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetRequestSourceModel;
 import bio.terra.model.DatasetSourceModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.exception.AssetNotFoundException;
@@ -96,11 +98,20 @@ public class DatasetService {
      * @param limit
      * @return list of summary models of dataset
      */
-    public List<DatasetSummaryModel> enumerateDatasets(int offset, int limit) {
-        return datasetDao.retrieveDatasets(offset, limit)
+    public EnumerateDatasetModel enumerateDatasets(
+        int offset,
+        int limit,
+        String sort,
+        String direction,
+        String filter
+    ) {
+        MetadataEnumeration<DatasetSummary> enumeration = datasetDao.retrieveDatasets(offset, limit, sort, direction,
+            filter);
+        List<DatasetSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(summary -> makeSummaryModelFromSummary(summary))
                 .collect(Collectors.toList());
+        return new EnumerateDatasetModel().items(models).total(enumeration.getTotal());
     }
 
     /**
@@ -281,13 +292,5 @@ public class DatasetService {
         return new ColumnModel()
                 .name(column.getName())
                 .datatype(column.getType());
-    }
-
-    public List<DatasetSummaryModel> getDatasetsReferencingStudy(UUID studyId) {
-        return datasetDao.retrieveDatasetsForStudy(studyId)
-            .stream()
-            .map(dataset -> makeSummaryModelFromSummary(dataset))
-            .collect(Collectors.toList());
-
     }
 }

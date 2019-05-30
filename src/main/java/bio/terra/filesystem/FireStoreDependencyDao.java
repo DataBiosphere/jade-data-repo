@@ -34,9 +34,19 @@ public class FireStoreDependencyDao {
         this.fireStoreUtils = fireStoreUtils;
     }
 
-    public boolean hasDatasetReference(String studyId, String objectId) {
+    public boolean objectHasDatasetReference(String studyId, String objectId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
         Query query = depColl.whereEqualTo("studyId", studyId).whereEqualTo("objectId", objectId);
+        return hasReference(query);
+    }
+
+    public boolean studyHasDatasetReference(String studyId) {
+        CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
+        Query query = depColl.whereEqualTo("studyId", studyId);
+        return hasReference(query);
+    }
+
+    private boolean hasReference(Query query) {
         ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
         try {

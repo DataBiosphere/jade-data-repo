@@ -6,6 +6,7 @@ import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -185,12 +186,24 @@ public class DatasetDao {
         return datasetSources;
     }
 
-    public List<DatasetSummary> retrieveDatasets(int offset, int limit) {
-        logger.debug("retrieve datasets offset: " + offset + " limit: " + limit);
-        String sql = "SELECT id, name, description, created_date FROM dataset" +
-                " ORDER BY created_date OFFSET :offset LIMIT :limit";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("offset", offset)
-                .addValue("limit", limit);
+    public MetadataEnumeration<DatasetSummary> retrieveDatasets(
+        int offset,
+        int limit,
+        String sort,
+        String direction,
+        String filter
+    ) {
+        logger.debug("retrieve datasets offset: " + offset + " limit: " + limit + " sort: " + sort +
+            " direction: " + direction + " filter:" + filter);
+        String where = DaoUtils.whereClause(filter);
+        String sql = "SELECT id, name, description, created_date FROM dataset " + where +
+                DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("offset", offset)
+            .addValue("limit", limit);
+        if (!where.isEmpty()) {
+            params.addValue("filter", DaoUtils.escapeFilter(filter));
+        }
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             DatasetSummary summary = new DatasetSummary()
                 .id(UUID.fromString(rs.getString("id")))
@@ -199,7 +212,12 @@ public class DatasetDao {
                 .createdDate(rs.getTimestamp("created_date").toInstant());
             return summary;
         });
-        return summaries;
+        sql = "SELECT count(id) AS total FROM dataset";
+        params = new MapSqlParameterSource();
+        Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
+        return new MetadataEnumeration<DatasetSummary>()
+            .items(summaries)
+            .total(total == null ? -1 : total);
     }
 
     public DatasetSummary retrieveDatasetSummary(UUID id) {

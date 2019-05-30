@@ -719,7 +719,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/paths':
+  '/api/repository/v1/studies/{id}/filesystem/objects':
     get:
       description: Lookup metadata for one file
       operationId: lookupFileObjectByPath

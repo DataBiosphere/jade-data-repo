@@ -97,7 +97,7 @@ public class FileOperationTest {
             containsString("already exists"));
 
         // Lookup the file by path
-        url = "/api/repository/v1/studies/" + studySummary.getId() + "/paths?path=" + fileModel.getPath();
+        url = "/api/repository/v1/studies/" + studySummary.getId() + "/filesystem/objects?path=" + fileModel.getPath();
         result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();

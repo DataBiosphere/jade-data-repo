@@ -110,6 +110,7 @@ dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
     compile 'com.google.apis:google-api-services-cloudbilling:v1-rev36-1.25.0'
+    compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.66.0'
     compile 'com.google.cloud:google-cloud-storage:1.66.0'
     compile 'com.google.cloud:google-cloud-firestore:1.11.0'
@@ -146,6 +147,7 @@ dependencies {
     generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
 
     developmentOnly("org.springframework.boot:spring-boot-devtools")
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
 
 def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'

@@ -2,7 +2,6 @@ package bio.terra.flight.study.create;
 
 import bio.terra.dao.StudyDao;
 import bio.terra.pdao.PrimaryDataAccess;
-import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;

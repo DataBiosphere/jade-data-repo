@@ -1,6 +1,7 @@
 package bio.terra.service.google;
 
 import bio.terra.metadata.BillingProfile;
+import bio.terra.metadata.google.GoogleProject;
 import bio.terra.service.BillingService;
 import bio.terra.service.exception.BillingServiceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -10,6 +11,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudbilling.Cloudbilling;
+import com.google.api.services.cloudbilling.model.ProjectBillingInfo;
 import com.google.api.services.cloudbilling.model.TestIamPermissionsRequest;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
@@ -89,6 +91,23 @@ public class GoogleBillingService implements BillingService {
             throw new BillingServiceException(message, e);
         } catch (IOException e) {
             String message = String.format("Could not check permissions on: %s", accountId);
+            throw new BillingServiceException(message, e);
+        }
+    }
+
+    public boolean assignProjectBilling(BillingProfile billingProfile, GoogleProject project) {
+        String billingAccountId = billingProfile.getBillingAccountId();
+        String projectId = project.getGoogleProjectId();
+        ProjectBillingInfo content = new ProjectBillingInfo()
+            .setBillingAccountName("billingAccounts/" + billingAccountId);
+        try {
+            Cloudbilling.Projects.UpdateBillingInfo billingRequest = cloudbilling().projects()
+                .updateBillingInfo("projects/" + projectId, content);
+            ProjectBillingInfo billingResponse = billingRequest.execute();
+            return billingResponse.getBillingEnabled();
+        } catch(IOException e) {
+            String message = String.format("Could not assign billing account '%s' to project: %s", billingAccountId,
+                projectId);
             throw new BillingServiceException(message, e);
         }
     }

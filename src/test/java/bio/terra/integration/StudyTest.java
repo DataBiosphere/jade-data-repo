@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
+import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
 import org.junit.Test;
@@ -54,16 +55,16 @@ public class StudyTest {
             assertThat(studyModel.getName(), startsWith(omopStudyName));
             assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
 
-            DataRepoResponse<StudySummaryModel[]> enumResponse = dataRepoClient.get(
+            DataRepoResponse<EnumerateStudyModel> enumResponse = dataRepoClient.get(
                 authToken,
                 "/api/repository/v1/studies?offset=0&items=1000",
-                StudySummaryModel[].class);
+                EnumerateStudyModel.class);
 
             assertThat("study enumeration is successful", enumResponse.getStatusCode(), equalTo(HttpStatus.OK));
             assertTrue("study get response is present", enumResponse.getResponseObject().isPresent());
-            StudySummaryModel[] summaryArray = enumResponse.getResponseObject().get();
+            EnumerateStudyModel enumerateStudyModel = enumResponse.getResponseObject().get();
             boolean found = false;
-            for (StudySummaryModel oneStudy : summaryArray) {
+            for (StudySummaryModel oneStudy : enumerateStudyModel.getItems()) {
                 if (oneStudy.getId().equals(studyModel.getId())) {
                     assertThat(oneStudy.getName(), startsWith(omopStudyName));
                     assertThat(oneStudy.getDescription(), equalTo(omopStudyDesc));

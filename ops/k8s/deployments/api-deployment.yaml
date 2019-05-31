@@ -30,18 +30,18 @@ spec:
           httpGet:
             path: /status
             port: 8080
-          initialDelaySeconds: 15
+          initialDelaySeconds: 5
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 3
+          failureThreshold: 2
         livenessProbe:
           httpGet:
             path: /status
             port: 8080
-          initialDelaySeconds: 30
+          initialDelaySeconds: 10
           periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
+          timeoutSeconds: 3
+          failureThreshold: 2
         volumeMounts:
         - name: google-cloud-key
           mountPath: /var/secrets/google

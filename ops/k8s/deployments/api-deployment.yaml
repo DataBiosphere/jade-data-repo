@@ -15,6 +15,10 @@ spec:
         component: data-repo-api
     spec:
       serviceAccountName: jade-sa
+      initContainers:
+      - name: check-db-ready
+        image: postgres:9.6.5
+        command: ['sh', '-c','until pg_isready -h postgres-service.data-repo -p 5432;do echo waiting for database; sleep 2; done;']
       volumes:
       - name: google-cloud-key
         secret:

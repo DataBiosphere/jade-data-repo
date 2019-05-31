@@ -78,20 +78,20 @@ public class IngestTest {
     @Test
     public void ingestParticipants() throws Exception {
         IngestResponseModel ingestResponse =
-            testOperations.ingestJsonData(stewardToken, studyId, "participant", "ingest-test-participant.json");
+            testOperations.ingestJsonData(stewardToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
 
     @Test
     public void ingestBuildDataset() throws Exception {
         IngestResponseModel ingestResponse =
-            testOperations.ingestJsonData(stewardToken, studyId, "participant", "ingest-test-participant.json");
+            testOperations.ingestJsonData(stewardToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
 
-        ingestResponse = testOperations.ingestJsonData(stewardToken, studyId, "sample", "ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+        ingestResponse = testOperations.ingestJsonData(stewardToken, studyId, "sample", "ingest-test/ingest-test-sample.json");
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(5L));
 
-        ingestResponse = testOperations.ingestJsonData(stewardToken, studyId, "file", "ingest-test-file.json");
+        ingestResponse = testOperations.ingestJsonData(stewardToken, studyId, "file", "ingest-test/ingest-test-file.json");
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         Credentials cred = users.getUserCredentialsForRole("custodian");

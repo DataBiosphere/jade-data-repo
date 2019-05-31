@@ -33,7 +33,8 @@ public class AuthService {
 
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
-        pemfile = new File(testConfig.getJadePemFile());
+        String pemfilename = testConfig.getJadePemFileName();
+        pemfile = new File(pemfilename);
         saEmail = testConfig.getJadeEmail();
         httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }

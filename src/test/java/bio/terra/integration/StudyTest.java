@@ -20,7 +20,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ActiveProfiles({ "google", "integrationtest"})
+@ActiveProfiles({ "google", "integrationtest", "secrets"})
 @Category(Integration.class)
 public class StudyTest {
     private static final String omopStudyName = "it_study_omop";

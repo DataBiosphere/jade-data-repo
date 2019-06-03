@@ -1,4 +1,4 @@
-package bio.terra.controller;
+package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
 import bio.terra.fixtures.ConnectedOperations;

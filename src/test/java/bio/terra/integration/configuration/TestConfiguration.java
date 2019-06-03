@@ -2,21 +2,20 @@ package bio.terra.integration.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
 @EnableConfigurationProperties
-@Profile("integrationtest")
+@ActiveProfiles({"google", "integrationtest"})
 @ConfigurationProperties(prefix = "it")
 public class TestConfiguration {
     private String jadeApiUrl;
     private String jadePemFileName;
     private String jadeEmail;
-    private String notSoSecretPassword;
     private String ingestbucket;
     private List<User> users = new ArrayList<>();
 
@@ -72,14 +71,6 @@ public class TestConfiguration {
 
     public void setJadeEmail(String jadeSAEmail) {
         this.jadeEmail = jadeSAEmail;
-    }
-
-    public String getNotSoSecretPassword() {
-        return notSoSecretPassword;
-    }
-
-    public void setNotSoSecretPassword(String notSoSecretPassword) {
-        this.notSoSecretPassword = notSoSecretPassword;
     }
 
     public String getIngestbucket() {

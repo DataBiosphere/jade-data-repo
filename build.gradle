@@ -283,9 +283,6 @@ test {
 }
 
 task testConnected(type: Test) {
-    doFirst {
-        systemProperty 'spring.profiles.include', 'connectedtest'
-    }
     useJUnit {
         includeCategories 'bio.terra.category.Connected'
         excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
@@ -300,9 +297,6 @@ task testConnected(type: Test) {
 }
 
 task testIntegration(type: Test) {
-    doFirst {
-        systemProperty 'spring.profiles.active', 'google,integrationtest'
-    }
     useJUnit {
         includeCategories 'bio.terra.category.Integration'
         excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit', 'bio.terra.category.Connected'

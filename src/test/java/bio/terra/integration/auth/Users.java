@@ -2,8 +2,8 @@ package bio.terra.integration.auth;
 
 import bio.terra.integration.configuration.TestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,16 +11,16 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@Profile("integrationtest")
+@ActiveProfiles({"google", "integrationtest"})
 public class Users {
 
 
     private Map<String, List<Credentials>> userCredentialsByRole = new HashMap<>();
-    private String password;
+//    private String password;
 
     @Autowired
     public Users(TestConfiguration testConfig) {
-        this.password = testConfig.getNotSoSecretPassword();
+//        this.password = testConfig.getNotSoSecretPassword();
         buildUsersByRole(testConfig.getUsers());
     }
 
@@ -31,7 +31,7 @@ public class Users {
 
             if (userCredentialsByRole.containsKey(role))
                 newList = userCredentialsByRole.get(role);
-            newList.add(new Credentials(user, password));
+            newList.add(new Credentials(user));
             userCredentialsByRole.put(role, newList);
         });
     }

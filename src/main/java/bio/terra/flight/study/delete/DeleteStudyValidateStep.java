@@ -34,7 +34,7 @@ public class DeleteStudyValidateStep implements Step {
         // Sanity check - validate that there are no stray file references. There should be none left
         // if there are no datasets returned from retrieveDatasetsForStudy.
         if (dependencyDao.studyHasDatasetReference(studyId.toString())) {
-            throw new FileSystemCorruptException("File system has study dependencies; metadata does not");
+            throw new FileSystemCorruptException("File system has dataset dependencies; metadata does not");
         }
         return StepResult.getStepResultSuccess();
     }

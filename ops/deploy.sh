@@ -94,10 +94,21 @@ sleep 5
 vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
-# set the tsl certificate
-vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
-vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.key > "${SCRATCH}/tls.key"
+# set the tls certificate
+#vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
+server_crt=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt | jq -r .data.value | tr -d '\r')
+# TODO: For each env, move intermediate crt from secret/dsp/certs/wildcard.dsde-<env>.broadinstitute.org/<expiration>/server.intermediate.crt secret/dsde/firecloud/${ENVIRONMENT}/common/server.intermediate.crt so that you  don't have to guess the date (20200608) to get it for any environment
+server_intermediate=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.intermediate.crt | jq -r .data.value | tr -d '\r')
+ca_bundle="$(cat <<EOF
+${server_crt}
+${server_intermediate}
+EOF
+)"
+echo "${ca_bundle}" > ${SCRATCH}/tls.crt
+docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.key | jq -r .data.value | tr -d '\r' > ${SCRATCH}/tls.key
 kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
+
+rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
 
 # create pods + services
 kubectl apply -f "${WD}/k8s/services"

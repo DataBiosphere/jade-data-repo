@@ -37,6 +37,7 @@
                     {"name": "file_format_subtype", "datatype": "string"},
                     {"name": "file_ref", "datatype": "fileref"},
                     {"name": "file_index_ref", "datatype": "fileref"},
+                    {"name": "file_array", "datatype": "fileref", "array_of": true},
                     {"name": "file_size_mb", "datatype": "integer"},
                     {"name": "labs_generating_data", "datatype": "string"},
                     {"name": "md5sum", "datatype": "string"},

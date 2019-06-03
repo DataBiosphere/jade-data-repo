@@ -93,7 +93,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
                             dataset.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
-                            mapColumn.getFromColumn().getName());
+                            mapColumn.getFromColumn());
 
                         dependencyDao.storeDatasetFileDependencies(
                             datasetSource.getStudy().getId().toString(),

@@ -301,7 +301,7 @@ task testConnected(type: Test) {
 
 task testIntegration(type: Test) {
     doFirst {
-        systemProperty 'spring.profiles.include', 'integrationtest'
+        systemProperty 'spring.profiles.active', 'google,integrationtest'
     }
     useJUnit {
         includeCategories 'bio.terra.category.Integration'

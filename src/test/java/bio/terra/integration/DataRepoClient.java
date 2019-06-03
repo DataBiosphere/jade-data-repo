@@ -4,26 +4,20 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-import javax.net.ssl.SSLContext;
 import java.net.URI;
-import java.security.cert.X509Certificate;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +26,7 @@ import java.util.concurrent.TimeUnit;
  * This class holds a Spring RestTemplate
  */
 @Component
+@Profile("integrationtest")
 public class DataRepoClient {
     @Autowired
     private TestConfiguration testConfig;
@@ -42,8 +37,7 @@ public class DataRepoClient {
     private HttpHeaders headers;
 
     public DataRepoClient() {
-//        restTemplate = new RestTemplate();
-        restTemplate = getTrustingRestTemplate();
+        restTemplate = new RestTemplate();
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
         objectMapper = new ObjectMapper();
 
@@ -56,27 +50,6 @@ public class DataRepoClient {
         HttpHeaders copy = new HttpHeaders(headers);
         copy.setBearerAuth(authToken);
         return copy;
-    }
-
-    private RestTemplate getTrustingRestTemplate() {
-        // configure the http client to work with ssl but not verify certs since this is for testing
-        try {
-            TrustStrategy acceptingTrustStrategy = (X509Certificate[] chain, String authType) -> true;
-            SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom()
-                .loadTrustMaterial(null, acceptingTrustStrategy)
-                .build();
-            SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext);
-            CloseableHttpClient httpClient = HttpClients.custom()
-                .setSSLSocketFactory(csf)
-                .build();
-            HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-            requestFactory.setHttpClient(httpClient);
-            return new RestTemplate(requestFactory);
-        } catch (Exception ex) {
-            logger.warn("exception when trying to create trusting rest template - " +
-                "only for testing! should not be included in released code!!!!", ex);
-        }
-        return new RestTemplate();
     }
 
     public <T> DataRepoResponse<T> get(String authToken, String path, Class<T> responseClass) throws Exception {

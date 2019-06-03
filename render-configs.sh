@@ -11,3 +11,4 @@ render () {
 
 render application-secrets.properties.ctmpl application-secrets.properties
 render jade-dev-account.pem.ctmpl jade-dev-account.pem
+cp ${PWD}/src/main/resources/jade-dev-account.pem /tmp/jade-dev-account.pem

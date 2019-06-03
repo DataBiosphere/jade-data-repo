@@ -1,4 +1,4 @@
-package bio.terra.auth;
+package bio.terra.integration.auth;
 
 import bio.terra.integration.configuration.TestConfiguration;
 import com.google.api.client.auth.oauth2.TokenResponseException;
@@ -9,6 +9,7 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -18,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
+@Profile({"integrationtest"})
 public class AuthService {
     private static Logger logger = LoggerFactory.getLogger(AuthService.class);
     // the list of scopes we request from end users when they log in.

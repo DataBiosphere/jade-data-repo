@@ -1,4 +1,4 @@
-package bio.terra.auth;
+package bio.terra.integration.auth;
 
 import bio.terra.integration.configuration.TestConfiguration;
 

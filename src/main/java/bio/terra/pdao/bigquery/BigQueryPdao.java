@@ -467,19 +467,33 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    public List<String> getRefIds(String studyName, String tableName, String refColumnName) {
+    public List<String> getRefIds(String studyName, String tableName, Column refColumn) {
         /*
-          SELECT refColumnName FROM stagingTable
+          For simple columns:
+            SELECT refColumnName FROM stagingTable
+          For repeating columns this flattens all of the arrays into one result column:
+            SELECT x
+            FROM stagingTable
+            CROSS JOIN UNNEST(refColumnName) AS x
          */
         List<String> refIdArray = new ArrayList<>();
 
         String studyDatasetName = prefixName(studyName);
         StringBuilder builder = new StringBuilder();
-        builder.append("SELECT ")
-            .append(refColumnName)
-            .append(" FROM `")
-            .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
-            .append("`");
+
+        if (refColumn.isArrayOf()) {
+            builder.append("SELECT x FROM `")
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
+                .append("` CROSS JOIN UNNEST(")
+                .append(refColumn.getName())
+                .append(") AS x");
+        } else {
+            builder.append("SELECT ")
+                .append(refColumn.getName())
+                .append(" FROM `")
+                .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
+                .append("`");
+        }
         String sql = builder.toString();
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
@@ -502,16 +516,27 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                          String datasetName,
                                          String tableName,
                                          String tableId,
-                                         String refColumnName) {
+                                         Column refColumn) {
         /*
-          SELECT refColumnName
-          FROM <study table> S, datarepo_row_ids R
-          WHERE S.datarepo_row_id = R.datarepo_row_id
-          AND R.datarepo_table_id = '<study table id>')
+          For scalar columns we do this:
+            SELECT refColumnName
+            FROM <study table> S, datarepo_row_ids R
+            WHERE S.datarepo_row_id = R.datarepo_row_id
+            AND R.datarepo_table_id = '<study table id>'
+
+          For array columns we flatten the ref column by adding the cross join:
+            SELECT refColumnName
+            FROM <study table> S, datarepo_row_ids R
+
+            CROSS JOIN UNNEST(S.refColumnName) AS refColumnName
+
+            WHERE S.datarepo_row_id = R.datarepo_row_id
+            AND R.datarepo_table_id = '<study table id>'
          */
         List<String> refIdArray = new ArrayList<>();
 
         String studyDatasetName = prefixName(studyName);
+        String refColumnName = refColumn.getName();
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT ")
             .append(refColumnName)
@@ -519,7 +544,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(projectId).append('.').append(studyDatasetName).append('.').append(tableName)
             .append("` S, `")
             .append(projectId).append('.').append(datasetName).append('.').append(PDAO_ROW_ID_TABLE)
-            .append("` R WHERE S.")
+            .append("` R");
+
+        if (refColumn.isArrayOf()) {
+            builder.append(" CROSS JOIN UNNEST(S.")
+                .append(refColumnName)
+                .append(") ")
+                .append(refColumnName);
+        }
+
+        builder.append(" WHERE S.")
             // where row_id matches and table_id matches
             .append(PDAO_ROW_ID_COLUMN)
             .append(" = R.")
@@ -866,7 +900,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 StringBuilder builder = new StringBuilder();
 
                 /*
-                Building this SQL:
+                  Building this SQL:
                     SELECT <column list from dataset table> FROM
                       (SELECT <column list mapping study to dataset columns>
                        FROM <study table> S, datarepo_row_ids R
@@ -887,7 +921,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 String tableName = table.getName();
                 String sql = builder.toString();
 
-                logger.debug("Creating view" + datasetName + "." + tableName + " as " + sql);
+                logger.info("Creating view" + datasetName + "." + tableName + " as " + sql);
                 TableId tableId = TableId.of(datasetName, tableName);
                 TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
                 com.google.cloud.bigquery.Table bqTable = bigQuery.create(tableInfo);
@@ -967,11 +1001,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
             prefix = ",";
 
             // In the future, there may not be a column map for a given target column; it might not exist
-            // in the table. The logic here covers three cases:
+            // in the table. The logic here covers these cases:
             // 1) no source column: supply NULL
-            // 2) source is datatype FILEREF or DIRREF: generate the expression to construct the DRS URI: supply name
-            // 3) source and target column with same name: supply name
-            // 4) source and target column with different names: supply target name with AS
+            // 2) source is simple datatype FILEREF or DIRREF:
+            //       generate the expression to construct the DRS URI: supply AS target name
+            // 3) source is a repeating FILEREF or DIRREF:
+            //       generate the unnest/re-nest to construct array of DRS URI: supply AS target name
+            // 4) source and target column with same name, just list source name
+            // 5) If source and target column with different names: supply AS target name
             String targetColumnName = targetColumn.getName();
 
             DatasetMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
@@ -979,17 +1016,32 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 builder.append("NULL AS ").append(targetColumnName);
             } else if (StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "FILEREF") ||
                 StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "DIRREF")) {
-                // CONCAT('drs://datarepodnsname/v1_studyid_datasetid_', fromColumnName) AS target
-                builder.append("CONCAT('drs://")
-                    .append(datarepoDnsName)
-                    .append("/v1_")
-                    .append(source.getStudy().getId().toString())
-                    .append("_")
-                    .append(dataset.getId().toString())
-                    .append("_',")
-                    .append(mapColumn.getFromColumn().getName())
-                    .append(") AS ")
-                    .append(targetColumnName);
+                if (targetColumn.isArrayOf()) {
+                    // ARRAY( SELECT CONCAT('drs://datarepodnsname/v1_studyid_datasetid_', x)
+                    //        FROM UNNEST(fromColumnName) AS x ) AS target
+                    builder.append("ARRAY( SELECT CONCAT('drs://")
+                        .append(datarepoDnsName)
+                        .append("/v1_")
+                        .append(source.getStudy().getId().toString())
+                        .append("_")
+                        .append(dataset.getId().toString())
+                        .append("_',x) FROM UNNEST(")
+                        .append(mapColumn.getFromColumn().getName())
+                        .append(") AS x ) AS ")
+                        .append(targetColumnName);
+                } else {
+                    // CONCAT('drs://datarepodnsname/v1_studyid_datasetid_', fromColumnName) AS target
+                    builder.append("CONCAT('drs://")
+                        .append(datarepoDnsName)
+                        .append("/v1_")
+                        .append(source.getStudy().getId().toString())
+                        .append("_")
+                        .append(dataset.getId().toString())
+                        .append("_',")
+                        .append(mapColumn.getFromColumn().getName())
+                        .append(") AS ")
+                        .append(targetColumnName);
+                }
             } else if (StringUtils.equals(mapColumn.getFromColumn().getName(), targetColumnName)) {
                 builder.append(targetColumnName);
             } else {

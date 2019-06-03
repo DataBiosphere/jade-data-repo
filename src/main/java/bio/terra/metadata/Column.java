@@ -9,6 +9,17 @@ public class Column {
     private String type;
     private boolean arrayOf;
 
+    public Column() {
+    }
+
+    public Column(Column fromColumn) {
+        this.id = fromColumn.id;
+        this.table = fromColumn.table;
+        this.name = fromColumn.name;
+        this.type = fromColumn.type;
+        this.arrayOf = fromColumn.arrayOf;
+    }
+
     public UUID getId() {
         return id;
     }

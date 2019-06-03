@@ -15,6 +15,10 @@ spec:
         component: data-repo-api
     spec:
       serviceAccountName: jade-sa
+      initContainers:
+      - name: check-db-ready
+        image: postgres:9.6.5
+        command: ['sh', '-c','until pg_isready -h postgres-service.data-repo -p 5432;do echo waiting for database; sleep 2; done;']
       volumes:
       - name: google-cloud-key
         secret:
@@ -22,6 +26,22 @@ spec:
       containers:
       - name: data-repo-api-container
         image: gcr.io/broad-jade-dev/jade-data-repo:latest
+        readinessProbe:
+          httpGet:
+            path: /status
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        livenessProbe:
+          httpGet:
+            path: /status
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
         volumeMounts:
         - name: google-cloud-key
           mountPath: /var/secrets/google

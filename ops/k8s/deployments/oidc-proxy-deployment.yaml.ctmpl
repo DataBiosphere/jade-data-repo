@@ -29,17 +29,17 @@ spec:
           httpGet:
             path: /status
             port: 80
-          initialDelaySeconds: 15
+          initialDelaySeconds: 10
           periodSeconds: 10
-          timeoutSeconds: 5
+          timeoutSeconds: 3
           failureThreshold: 3
         livenessProbe:
           httpGet:
             path: /status
             port: 80
-          initialDelaySeconds: 30
+          initialDelaySeconds: 20
           periodSeconds: 10
-          timeoutSeconds: 5
+          timeoutSeconds: 3
           failureThreshold: 3
         env:
           - name: PROXY_URL

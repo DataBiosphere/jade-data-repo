@@ -109,6 +109,15 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        // Remove any file dependencies created
+        DatasetRequestModel requestModel = getRequestModel(context);
+        Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
+        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            dependencyDao.deleteDatasetFileDependencies(
+                datasetSource.getStudy().getId().toString(),
+                dataset.getId().toString());
+        }
+
         bigQueryPdao.deleteDataset(getDataset(context));
         return StepResult.getStepResultSuccess();
     }

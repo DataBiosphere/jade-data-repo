@@ -2,10 +2,8 @@ package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
-import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -19,12 +17,10 @@ public class DeleteDatasetMetadataStep implements Step {
 
     private DatasetDao datasetDao;
     private UUID datasetId;
-    private FireStoreDependencyDao dependencyDao;
 
-    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId, FireStoreDependencyDao dependencyDao) {
+    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
-        this.dependencyDao = dependencyDao;
     }
 
     @Override
@@ -32,14 +28,7 @@ public class DeleteDatasetMetadataStep implements Step {
         Dataset dataset = null;
         boolean found = false;
         try {
-            dataset = datasetDao.retrieveDataset(datasetId);
 
-            // Remove dataset file references from the underlying studies
-            for (DatasetSource datasetSource : dataset.getDatasetSources()) {
-                dependencyDao.deleteDatasetFileDependencies(
-                    datasetSource.getStudy().getId().toString(),
-                    datasetId.toString());
-            }
             found = datasetDao.delete(datasetId);
         } catch (DatasetNotFoundException ex) {
             found = false;

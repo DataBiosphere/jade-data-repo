@@ -1148,7 +1148,7 @@ definitions:
       biller:
         type: string
         description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
-      hasAccess:
+      accessible:
         type: boolean
         description: true if the repository SA is a billing account user on this billing account, false o/w
 

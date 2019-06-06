@@ -9,6 +9,7 @@ import bio.terra.pdao.exception.PdaoFileCopyException;
 import bio.terra.pdao.exception.PdaoInvalidUriException;
 import bio.terra.pdao.exception.PdaoSourceFileNotFoundException;
 import com.google.api.gax.paging.Page;
+import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.CopyWriter;
@@ -22,6 +23,7 @@ import org.springframework.stereotype.Component;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
+import java.util.List;
 
 @Component
 @Profile("google")
@@ -148,6 +150,38 @@ public class GcsPdao {
             Storage.BlobListOption.prefix(directory));
         for (Blob blob : blobs.iterateAll()) {
             blob.delete();
+        }
+    }
+
+    private enum AclOp {
+        ACL_OP_CREATE,
+        ACL_OP_DELETE
+    };
+
+    public void setAclOnFiles(String studyId, List<String> fileIds, String readersPolicyEmail) {
+        fileAclOp(AclOp.ACL_OP_CREATE, studyId, fileIds, readersPolicyEmail);
+    }
+
+    public void removeAclOnFiles(String studyId, List<String> fileIds, String readersPolicyEmail) {
+        fileAclOp(AclOp.ACL_OP_DELETE, studyId, fileIds, readersPolicyEmail);
+    }
+
+    private void fileAclOp(AclOp op, String studyId, List<String> fileIds, String readersPolicyEmail) {
+        String dataBucket = gcsConfiguration.getBucket();
+        String directory = studyId + "/";
+        Acl.Group readerGroup = new Acl.Group(readersPolicyEmail);
+        Acl acl = Acl.newBuilder(readerGroup, Acl.Role.READER).build();
+        for (String fileId : fileIds) {
+            String blobName = directory + fileId;
+            BlobId blobId = BlobId.of(dataBucket, blobName);
+            switch (op) {
+                case ACL_OP_CREATE:
+                    storage.createAcl(blobId, acl);
+                    break;
+                case ACL_OP_DELETE:
+                    storage.deleteAcl(blobId, readerGroup);
+                    break;
+            }
         }
     }
 }

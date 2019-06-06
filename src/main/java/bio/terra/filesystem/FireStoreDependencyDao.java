@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -57,6 +58,27 @@ public class FireStoreDependencyDao {
             throw new FileSystemExecutionException("has reference - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("has reference - execution exception", ex);
+        }
+    }
+
+    public List<String> getStudyDatasetFileIds(String studyId, String datasetId) {
+        CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
+        Query query = depColl.whereEqualTo("studyId", studyId).whereEqualTo("datasetId", datasetId);
+        ApiFuture<QuerySnapshot> querySnapshot = query.get();
+        List<String> fileIds = new ArrayList<>();
+
+        try {
+            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+            for (DocumentSnapshot docSnap : documents) {
+                FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
+                fileIds.add(fireStoreDependency.getObjectId());
+            }
+            return fileIds;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("get file ids - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("get file ids - execution exception", ex);
         }
     }
 

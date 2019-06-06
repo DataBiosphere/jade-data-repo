@@ -3,8 +3,8 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
-import bio.terra.integration.auth.Credentials;
 import bio.terra.integration.auth.Users;
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
@@ -42,8 +42,8 @@ public class StudyTest {
 
     @Test
     public void studyHappyPath() throws Exception {
-        Credentials user = users.getUserCredentialsForRole("steward");
-        String authToken = authService.getAuthToken(user);
+        TestConfiguration.User steward = users.getUserForRole("steward");
+        String authToken = authService.getAuthToken(steward.getEmail());
         StudySummaryModel summaryModel = testOperations.createTestStudy(authToken, "it-study-omop.json");
         try {
             assertThat(summaryModel.getName(), startsWith(omopStudyName));

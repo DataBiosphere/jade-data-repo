@@ -3,7 +3,6 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
-import bio.terra.integration.auth.Credentials;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
@@ -57,8 +56,10 @@ public class IngestTest {
 
     @Before
     public void setup() throws Exception {
-        Credentials user = users.getUserCredentialsForRole("steward");
-        stewardToken = authService.getAuthToken(user);
+        TestConfiguration.User steward = users.getUserForRole("steward");
+        stewardToken = authService.getAuthToken(steward.getEmail());
+        TestConfiguration.User custodian = users.getUserForRole("custodian");
+        custodianToken = authService.getAuthToken(custodian.getEmail());
         studySummaryModel = testOperations.createTestStudy(stewardToken, "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
@@ -98,8 +99,6 @@ public class IngestTest {
             stewardToken, studyId, "file", "ingest-test/ingest-test-file.json");
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
-        Credentials cred = users.getUserCredentialsForRole("custodian");
-        custodianToken = authService.getAuthToken(cred);
         DatasetSummaryModel datasetSummary =
             testOperations.createTestDataset(custodianToken, studySummaryModel, "ingest-test-dataset.json");
         createdDatasetIds.add(datasetSummary.getId());

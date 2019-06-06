@@ -41,8 +41,8 @@ public class AuthService {
         httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
 
-    public String getAuthToken(Credentials userCred) {
-        return makeToken(userCred);
+    public String getAuthToken(String userEmail) {
+        return makeToken(userEmail);
     }
 
 
@@ -58,9 +58,9 @@ public class AuthService {
     }
 
 
-    private String makeToken(Credentials userCred) {
+    private String makeToken(String userEmail) {
         try {
-            GoogleCredential cred = buildCredential(userCred.getEmail());
+            GoogleCredential cred = buildCredential(userEmail);
             cred.refreshToken();
             return cred.getAccessToken();
         } catch (TokenResponseException e) {

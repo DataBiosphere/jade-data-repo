@@ -312,7 +312,7 @@ paths:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/DatasetPolicyName'
       responses:
-        200:
+        201:
           description: PolicyResponse
           schema:
             $ref: '#/definitions/PolicyResponse'
@@ -517,7 +517,7 @@ paths:
 
 
   '/api/repository/v1/studies/{id}/policies/{policyName}/members':
-    post:  ## retrieve
+    post:
       description: Adds a member to the specified policy for the dataset
       operationId: addStudyPolicyMember
       tags:
@@ -533,7 +533,7 @@ paths:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/StudyPolicyName'
       responses:
-        200:
+        201:
           description: PolicyResponse
           schema:
             $ref: '#/definitions/PolicyResponse'

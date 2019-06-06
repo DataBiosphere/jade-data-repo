@@ -110,6 +110,37 @@ paths:
           description: service is broken
       security: []
 
+  ## Resources interface
+
+  '/api/resources/v1/profiles':
+    post:
+      description: |
+        Creates a new profile associated with a billing account
+      operationId: createProfile
+      tags:
+        - resources
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: billingProfileRequest
+        schema:
+          $ref: '#/definitions/BillingProfileRequestModel'
+      responses:
+        201:
+          description: Successfully created the new profile associated with the billing account
+          schema:
+            $ref: '#/definitions/BillingProfileModel'
+        400:
+          description: Bad request - see error message
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to create profiles
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
   ## Repository Interface
 
   '/api/repository/v1/datasets':
@@ -1077,6 +1108,49 @@ definitions:
     type: string
     pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
 
+
+
+  ## Billing ##
+  BillingProfileRequestModel:
+    description: |
+      Describes a profile that references a billing account.
+    type: object
+    required:
+      - billingAccountId
+      - profileName
+      - biller
+    properties:
+      billingAccountId:
+        type: string
+        description: unique identifier of the billing account from Google
+      profileName:
+        type: string
+        description: display name to be used for the profile
+      biller:
+        type: string
+        description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
+
+  BillingProfileModel:
+    type: object
+    required:
+    - billingAccountId
+    - profileName
+    - biller
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+      billingAccountId:
+        type: string
+        description: unique identifier of the billing account from Google
+      profileName:
+        type: string
+        description: display name to be used for the profile
+      biller:
+        type: string
+        description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
+      hasAccess:
+        type: boolean
+        description: true if the repository SA is a billing account user on this billing account, false o/w
 
 
   ## Study ##

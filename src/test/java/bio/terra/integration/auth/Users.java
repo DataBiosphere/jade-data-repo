@@ -2,8 +2,8 @@ package bio.terra.integration.auth;
 
 import bio.terra.integration.configuration.TestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@ActiveProfiles({"google", "integrationtest"})
+@Profile("integrationtest")
 public class Users {
 
 

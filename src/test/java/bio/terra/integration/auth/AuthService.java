@@ -9,8 +9,8 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,7 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
-@ActiveProfiles({"google", "integrationtest"})
+@Profile("integrationtest")
 public class AuthService {
     private static Logger logger = LoggerFactory.getLogger(AuthService.class);
     // the list of scopes we request from end users when they log in.

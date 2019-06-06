@@ -40,6 +40,12 @@ public class StudyTest {
     @Autowired
     private TestOperations testOperations;
 
+    @Autowired
+    private Users users;
+
+    @Autowired
+    private AuthService authService;
+
     @Test
     public void studyHappyPath() throws Exception {
         TestConfiguration.User steward = users.getUserForRole("steward");

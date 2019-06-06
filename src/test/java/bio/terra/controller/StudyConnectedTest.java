@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("google")
+@ActiveProfiles({"google", "connected"})
 @Category(Connected.class)
 public class StudyConnectedTest {
     @Autowired private MockMvc mvc;

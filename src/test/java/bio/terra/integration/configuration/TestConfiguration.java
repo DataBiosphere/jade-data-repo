@@ -2,15 +2,15 @@ package bio.terra.integration.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import org.springframework.test.context.ActiveProfiles;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
 @EnableConfigurationProperties
-@ActiveProfiles({"google", "integrationtest"})
+@Profile("integrationtest")
 @ConfigurationProperties(prefix = "it")
 public class TestConfiguration {
     private String jadeApiUrl;

@@ -61,7 +61,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "connected"})
+@ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class EncodeFileTest {
     @Autowired private MockMvc mvc;

@@ -43,7 +43,7 @@ import static org.hamcrest.Matchers.equalTo;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "connected"})
+@ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class BigQueryPdaoTest {
 

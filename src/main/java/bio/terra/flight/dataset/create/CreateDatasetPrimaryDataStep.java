@@ -60,6 +60,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
 
+
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:
@@ -99,9 +100,18 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        DatasetRequestModel datasetRequestModel = getRequestModel(context);
-        Dataset dataset = datasetDao.retrieveDatasetByName(datasetRequestModel.getName());
+        // Remove any file dependencies created
+        DatasetRequestModel requestModel = getRequestModel(context);
+        Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
+        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            dependencyDao.deleteDatasetFileDependencies(
+                datasetSource.getStudy().getId().toString(),
+                dataset.getId().toString());
+        }
+
         bigQueryPdao.deleteDataset(dataset);
         return StepResult.getStepResultSuccess();
     }
+
 }
+

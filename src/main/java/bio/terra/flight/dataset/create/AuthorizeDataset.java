@@ -3,10 +3,13 @@ package bio.terra.flight.dataset.create;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.exception.InternalServerErrorException;
+import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSource;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
@@ -23,16 +26,23 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class AuthorizeDataset implements Step {
+    private SamClientService sam;
+    private BigQueryPdao bigQueryPdao;
+    private FireStoreDependencyDao dependencyDao;
+    private DatasetDao datasetDao;
+    private GcsPdao gcsPdao;
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
-    private final SamClientService sam;
-    private final BigQueryPdao bigQueryPdao;
-    private final DatasetDao datasetDao;
-
-    public AuthorizeDataset(BigQueryPdao bigQueryPdao, SamClientService sam, DatasetDao datasetDao) {
+    public AuthorizeDataset(BigQueryPdao bigQueryPdao,
+                            SamClientService sam,
+                            FireStoreDependencyDao dependencyDao,
+                            DatasetDao datasetDao,
+                            GcsPdao gcsPdao) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
+        this.dependencyDao = dependencyDao;
         this.datasetDao = datasetDao;
+        this.gcsPdao = gcsPdao;
     }
 
     DatasetRequestModel getRequestModel(FlightContext context) {
@@ -46,6 +56,7 @@ public class AuthorizeDataset implements Step {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         DatasetRequestModel datasetReq = getRequestModel(context);
+        String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         Dataset dataset = datasetDao.retrieveDataset(datasetId);
@@ -54,6 +65,16 @@ public class AuthorizeDataset implements Step {
             // This returns the policy email created by Google to correspond to the readers list in SAM
             String readersPolicyEmail = sam.createDatasetResource(userReq, datasetId, readersList);
             bigQueryPdao.addReaderGroupToDataset(dataset, readersPolicyEmail);
+
+            // Each study may keep its dependencies in its own scope. Therefore,
+            // we have to iterate through the studies in the dataset and ask each one
+            // to give us its list of file ids. Then we set acls on the files for that
+            // study used by the dataset.
+            for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+                String studyId = datasetSource.getStudy().getId().toString();
+                List<String> fileIds = dependencyDao.getStudyDatasetFileIds(studyId, datasetId.toString());
+                gcsPdao.setAclOnFiles(studyId, fileIds, readersPolicyEmail);
+            }
         } catch (ApiException ex) {
             throw new InternalServerErrorException("Couldn't add readers", ex);
         }
@@ -69,6 +90,8 @@ public class AuthorizeDataset implements Step {
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
             sam.deleteDatasetResource(userReq, datasetId);
+            // We do not need to remove the ACL from the files or BigQuery. It disappears
+            // when SAM deletes the ACL. How 'bout that!
         } catch (ApiException ex) {
             if (ex.getCode() == HttpStatusCodes.STATUS_CODE_UNAUTHORIZED) {
                 // suppress exception

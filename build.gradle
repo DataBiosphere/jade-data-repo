@@ -271,7 +271,7 @@ def getGitHash = { ->
 test {
     useJUnit {
         includeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
-        excludeCategories 'bio.terra.category.Connected'
+        excludeCategories 'bio.terra.category.Connected', 'bio.terra.category.Integration'
     }
     testLogging {
         outputs.upToDateWhen {false}
@@ -285,7 +285,7 @@ test {
 task testConnected(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Connected'
-        excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
+        excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit', 'bio.terra.category.Integration'
     }
     testLogging {
         outputs.upToDateWhen {false}

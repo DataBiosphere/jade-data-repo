@@ -2,6 +2,9 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
+import bio.terra.integration.auth.AuthService;
+import bio.terra.integration.auth.Users;
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
@@ -13,6 +16,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
@@ -23,10 +27,11 @@ import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class IngestTest {
     @Autowired
-    private DataRepoConfiguration dataRepoConfiguration;
+    private TestConfiguration testConfig;
 
     @Autowired
     private DataRepoClient dataRepoClient;
@@ -37,24 +42,36 @@ public class IngestTest {
     @Autowired
     private TestOperations testOperations;
 
+    @Autowired
+    private Users users;
+
+    @Autowired
+    private AuthService authService;
+
     private StudySummaryModel studySummaryModel;
     private String studyId;
+    private String stewardToken;
+    private String custodianToken;
     private List<String> createdDatasetIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
-        studySummaryModel = testOperations.createTestStudy("ingest-test-study.json");
+        TestConfiguration.User steward = users.getUserForRole("steward");
+        stewardToken = authService.getAuthToken(steward.getEmail());
+        TestConfiguration.User custodian = users.getUserForRole("custodian");
+        custodianToken = authService.getAuthToken(custodian.getEmail());
+        studySummaryModel = testOperations.createTestStudy(stewardToken, "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
 
     @After
     public void teardown() throws Exception {
         for (String datasetId : createdDatasetIds) {
-            testOperations.deleteTestDataset(datasetId);
+            testOperations.deleteTestDataset(custodianToken, datasetId);
         }
 
         if (studyId != null) {
-            testOperations.deleteTestStudy(studyId);
+            testOperations.deleteTestStudy(stewardToken, studyId);
         }
     }
 
@@ -62,24 +79,28 @@ public class IngestTest {
     @Test
     public void ingestParticipants() throws Exception {
         IngestResponseModel ingestResponse =
-            testOperations.ingestJsonData(studyId, "participant", "ingest-test-participant.json");
+            testOperations.ingestJsonData(
+                stewardToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
 
     @Test
     public void ingestBuildDataset() throws Exception {
         IngestResponseModel ingestResponse =
-            testOperations.ingestJsonData(studyId, "participant", "ingest-test-participant.json");
+            testOperations.ingestJsonData(
+                stewardToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
 
-        ingestResponse = testOperations.ingestJsonData(studyId, "sample", "ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+        ingestResponse = testOperations.ingestJsonData(
+            stewardToken, studyId, "sample", "ingest-test/ingest-test-sample.json");
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(5L));
 
-        ingestResponse = testOperations.ingestJsonData(studyId, "file", "ingest-test-file.json");
+        ingestResponse = testOperations.ingestJsonData(
+            stewardToken, studyId, "file", "ingest-test/ingest-test-file.json");
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         DatasetSummaryModel datasetSummary =
-            testOperations.createTestDataset(studySummaryModel, "ingest-test-dataset.json");
+            testOperations.createTestDataset(custodianToken, studySummaryModel, "ingest-test-dataset.json");
         createdDatasetIds.add(datasetSummary.getId());
     }
 

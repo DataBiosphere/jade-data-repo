@@ -21,6 +21,9 @@ Give your service account access to dev GCR:
 
     gsutil iam ch serviceAccount:[PROJECT_NUMBER]-compute@developer.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
 
+Give you user admin access:
+    kubectl create clusterrolebinding <username>-cluster-admin-binding --clusterrole cluster-admin --user <username>@broadinstitute.org
+
 #### Environment variables
     GOOGLE_CLOUD_PROJECT
     ENVIRONMENT (local, dev)

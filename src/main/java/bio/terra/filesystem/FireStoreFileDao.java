@@ -613,7 +613,8 @@ public class FireStoreFileDao {
             .objectTypeLetter(fsObject.getObjectType().toLetter())
             .fileCreatedDate(fileCreatedDate)
             .path(getDirectoryPath(fsObject.getPath()))
-            .name(getObjectName(fsObject.getPath()));
+            .name(getObjectName(fsObject.getPath()))
+            .description(fsObject.getDescription());
 
         switch (fsObject.getObjectType()) {
             case FILE:

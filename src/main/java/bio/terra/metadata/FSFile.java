@@ -1,5 +1,7 @@
 package bio.terra.metadata;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -100,6 +102,36 @@ public class FSFile extends FSObjectBase {
     public FSFile description(String description) {
         super.description(description);
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FSFile fsFile = (FSFile) o;
+
+        return new EqualsBuilder()
+            .appendSuper(super.equals(o))
+            .append(gspath, fsFile.gspath)
+            .append(checksumCrc32c, fsFile.checksumCrc32c)
+            .append(checksumMd5, fsFile.checksumMd5)
+            .append(mimeType, fsFile.mimeType)
+            .append(flightId, fsFile.flightId)
+            .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+            .appendSuper(super.hashCode())
+            .append(gspath)
+            .append(checksumCrc32c)
+            .append(checksumMd5)
+            .append(mimeType)
+            .append(flightId)
+            .toHashCode();
     }
 
     @Override

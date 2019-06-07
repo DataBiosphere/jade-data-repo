@@ -1,5 +1,7 @@
 package bio.terra.metadata;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.time.Instant;
@@ -98,6 +100,38 @@ public class FSObjectBase {
     public FSObjectBase description(String description) {
         this.description = description;
         return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+
+        if (o == null || getClass() != o.getClass()) return false;
+
+        FSObjectBase that = (FSObjectBase) o;
+
+        return new EqualsBuilder()
+            .append(objectId, that.objectId)
+            .append(studyId, that.studyId)
+            .append(objectType, that.objectType)
+            .append(createdDate, that.createdDate)
+            .append(path, that.path)
+            .append(size, that.size)
+            .append(description, that.description)
+            .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder(17, 37)
+            .append(objectId)
+            .append(studyId)
+            .append(objectType)
+            .append(createdDate)
+            .append(path)
+            .append(size)
+            .append(description)
+            .toHashCode();
     }
 
     @Override

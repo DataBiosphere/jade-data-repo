@@ -31,7 +31,6 @@ before_install:
   - gcloud config set project $INTEGRATION_PROJECT
   - gcloud config set compute/zone $INTEGRATION_ZONE
   - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS
-  - echo "${SA_JSON}" | jq -r .private_key > /tmp/jade-dev-account.pem
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth configure-docker
   - gcloud components install kubectl

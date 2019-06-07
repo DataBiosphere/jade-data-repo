@@ -7,7 +7,7 @@ import bio.terra.fixtures.Names;
 import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
+import bio.terra.model.FSObjectModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
@@ -77,18 +77,18 @@ public class FileOperationTest {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
-        FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        FSObjectModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // lookup the file we just created
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getFileId();
+        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getObjectId();
         MvcResult result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
-        FileModel lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        FSObjectModel lookupModel = objectMapper.readValue(response.getContentAsString(), FSObjectModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
@@ -103,11 +103,11 @@ public class FileOperationTest {
             .andReturn();
         response = result.getResponse();
         assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
-        lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        lookupModel = objectMapper.readValue(response.getContentAsString(), FSObjectModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getFileId());
+        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getObjectId());
         fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 

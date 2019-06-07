@@ -3,6 +3,9 @@ package bio.terra.metadata;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
+import java.time.Instant;
+import java.util.UUID;
+
 /**
  * This provides the base class for all file system objects. There are three specializations:
  * <ul>
@@ -61,6 +64,41 @@ public class FSFile extends FSObjectBase {
 
     public FSFile flightId(String flightId) {
         this.flightId = flightId;
+        return this;
+    }
+
+    public FSFile objectId(UUID objectId) {
+        super.objectId(objectId);
+        return this;
+    }
+
+    public FSFile studyId(UUID studyId) {
+        super.studyId(studyId);
+        return this;
+    }
+
+    public FSFile objectType(FSObjectType objectType) {
+        super.objectType(objectType);
+        return this;
+    }
+
+    public FSFile createdDate(Instant createdDate) {
+        super.createdDate(createdDate);
+        return this;
+    }
+
+    public FSFile path(String path) {
+        super.path(path);
+        return this;
+    }
+
+    public FSFile size(Long size) {
+        super.size(size);
+        return this;
+    }
+
+    public FSFile description(String description) {
+        super.description(description);
         return this;
     }
 

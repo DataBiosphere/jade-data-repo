@@ -7,8 +7,8 @@ import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.exception.PdaoException;
@@ -259,21 +259,21 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
-                    FileModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    FSObjectModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
-                        bamFileId = bamFile.getFileId() + ID_GARBAGE;
+                        bamFileId = bamFile.getObjectId() + ID_GARBAGE;
                         badIdInserted = true;
                     } else {
-                        bamFileId = bamFile.getFileId();
+                        bamFileId = bamFile.getObjectId();
                     }
 
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_index_gs_path());
-                    FileModel bamiFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
-                    bamiFileId = bamiFile.getFileId();
+                    FSObjectModel bamiFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    bamiFileId = bamiFile.getObjectId();
                 }
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);

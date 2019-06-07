@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
@@ -106,12 +107,18 @@ public class FileService {
             .description(fsObject.getDescription());
 
         if (fsObject.getObjectType() == FSObjectType.FILE) {
+            if (!(fsObject instanceof FSFile)) {
+                throw new FileSystemCorruptException("Mismatched object type");
+            }
             FSFile fsFile = (FSFile)fsObject;
             fsObjectModel.fileDetail(new FileDetailModel()
                 .checksums(makeChecksums(fsFile))
                 .accessUrl(fsFile.getGspath())
                 .mimeType(fsFile.getMimeType()));
         } else {
+            if (!(fsObject instanceof FSEnumDir)) {
+                throw new FileSystemCorruptException("Object type/class mistake");
+            }
             FSEnumDir fsEnumDir = (FSEnumDir)fsObject;
             DirectoryDetailModel directoryDetail = new DirectoryDetailModel();
             for (FSObjectBase fsItem : fsEnumDir.getContents()) {

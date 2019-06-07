@@ -23,6 +23,9 @@ public class FSObjectBase {
     private Long size;              // 0 for directory
     private String description;
 
+    public FSObjectBase() {
+    }
+
     // copy constructor
     public FSObjectBase(FSObjectBase other) {
         this.objectId = other.objectId;

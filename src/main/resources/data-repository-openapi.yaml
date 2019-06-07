@@ -643,7 +643,7 @@ paths:
 
   '/api/repository/v1/studies/{id}/files':
     post:
-      description: Ingest one file into the study file system; async returns a FileModel
+      description: Ingest one file into the study file system; async returns a FSObjectModel
       operationId: ingestFile
       tags:
       - repository
@@ -699,7 +699,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/FileModel'
+            $ref: '#/definitions/FSObjectModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -770,7 +770,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/FileModel'
+            $ref: '#/definitions/FSObjectModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -1414,13 +1414,13 @@ definitions:
         description: |-
           A human readable description of the contents of the Data Object.
 
-  FileModel:
-    description: File in the data repository
+  FSObjectModel:
+    description: A file or directory in the data repository
     type: object
     properties:
-      fileId:
+      objectId:
         type: string
-        description: Unique id of the file within the study
+        description: Unique id of the filesystem object within the study
       studyId:
         type: string
         description: Study holding the file
@@ -1430,23 +1430,63 @@ definitions:
       size:
         type: integer
         format: int64
-        description: file size in bytes
+        description: file size in bytes of sum of file sizes in a directory
       created:
         type: string
         description: timestamp of object creation in RFC3339
-      mimeType:
+      description:
         type: string
+        description: Human readable description of the file
+      objectType:
+        $ref: '#/definitions/FSObjectModelType'
+      fileDetail:
+        $ref: '#/definitions/FileDetailModel'
+      directoryDetail:
+        $ref: '#/definitions/DirectoryDetailModel'
+
+  FSObjectModelType:
+    type: string
+    enum:
+      - file
+      - directory
+
+  FileDetailModel:
+    description: File in the data repository
+    type: object
+    properties:
       checksums:
         type: array
         items:
           $ref: '#/definitions/DRSChecksum'
         description: checksums; always includes crc32c. May include md5.
+      mimeType:
+        type: string
       accessUrl:
         type: string
         description: URL of the file in cloud storage
-      description:
+
+  DirectoryDetailModel:
+    description: Directory in the data repository
+    type: object
+    properties:
+      contents:
+        type: array
+        description: Array of directory contents
+        items:
+          $ref: '#/definitions/DirectoryItemModel'
+
+  DirectoryItemModel:
+    description: One entry in a directory
+    type: object
+    properties:
+      name:
         type: string
-        description: Human readable description of the file
+        description: simple name of the entry - not a path
+      objectId:
+        type: string
+        description: object id of a filesystem object
+      objectType:
+        $ref: '#/definitions/FSObjectModelType'
 
   ## Dataset Definitions ##
 

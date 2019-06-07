@@ -6,8 +6,12 @@ import bio.terra.filesystem.exception.FileSystemExecutionException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
+import bio.terra.metadata.FSDir;
+import bio.terra.metadata.FSEnumDir;
+import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -28,6 +32,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+
+import static bio.terra.metadata.FSObjectType.DELETING_FILE;
+import static bio.terra.metadata.FSObjectType.FILE;
+import static bio.terra.metadata.FSObjectType.INGESTING_FILE;
 
 /**
  * Paths and document names
@@ -64,8 +72,8 @@ public class FireStoreFileDao {
         this.dependencyDao = dependencyDao;
     }
 
-    public UUID createFileStart(FSObject fileToCreate) {
-        if (fileToCreate.getObjectType() != FSObject.FSObjectType.INGESTING_FILE) {
+    public UUID createFileStart(FSFile fileToCreate) {
+        if (fileToCreate.getObjectType() != INGESTING_FILE) {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
         UUID studyId = fileToCreate.getStudyId();
@@ -124,7 +132,7 @@ public class FireStoreFileDao {
             }
 
             // It is ours. Double check that it is in the right state
-            if (!StringUtils.equals(FSObject.FSObjectType.INGESTING_FILE.toLetter(),
+            if (!StringUtils.equals(INGESTING_FILE.toLetter(),
                 currentObject.getObjectTypeLetter())) {
                 throw new FileSystemCorruptException("Attempt to createFileStartUndo with bad file object type");
             }
@@ -137,8 +145,8 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("create start undo", transaction);
     }
 
-    public FSObject createFileComplete(FSFileInfo fsFileInfo) {
-        ApiFuture<FSObject> transaction = firestore.runTransaction(xn -> {
+    public FSObjectBase createFileComplete(FSFileInfo fsFileInfo) {
+        ApiFuture<FSObjectBase> transaction = firestore.runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(fsFileInfo.getStudyId(), fsFileInfo.getObjectId(), xn);
             if (docSnap == null) {
                 throw new FileSystemCorruptException("File should exist");
@@ -146,7 +154,7 @@ public class FireStoreFileDao {
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
             currentObject
-                .objectTypeLetter(FSObject.FSObjectType.FILE.toLetter())
+                .objectTypeLetter(FILE.toLetter())
                 .gspath(fsFileInfo.getGspath())
                 .checksumMd5(fsFileInfo.getChecksumMd5())
                 .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
@@ -170,7 +178,7 @@ public class FireStoreFileDao {
             }
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
-            currentObject.objectTypeLetter(FSObject.FSObjectType.INGESTING_FILE.toLetter());
+            currentObject.objectTypeLetter(INGESTING_FILE.toLetter());
 
             // transition point from reading to writing in the transaction
 
@@ -190,7 +198,7 @@ public class FireStoreFileDao {
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
 
-            switch (FSObject.FSObjectType.fromLetter(currentObject.getObjectTypeLetter())) {
+            switch (FSObjectType.fromLetter(currentObject.getObjectTypeLetter())) {
                 case FILE:
                     break;
                 case DIRECTORY:
@@ -213,7 +221,7 @@ public class FireStoreFileDao {
             }
 
             currentObject
-                .objectTypeLetter(FSObject.FSObjectType.DELETING_FILE.toLetter())
+                .objectTypeLetter(DELETING_FILE.toLetter())
                 .flightId(flightId);
 
             // transition point from reading to writing in the transaction
@@ -234,7 +242,7 @@ public class FireStoreFileDao {
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
 
-            switch (FSObject.FSObjectType.fromLetter(currentObject.getObjectTypeLetter())) {
+            switch (FSObjectType.fromLetter(currentObject.getObjectTypeLetter())) {
                 case FILE:
                     throw new CorruptMetadataException("File is not marked for deletion");
                 case DIRECTORY:
@@ -271,7 +279,7 @@ public class FireStoreFileDao {
 
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
 
-            switch (FSObject.FSObjectType.fromLetter(currentObject.getObjectTypeLetter())) {
+            switch (FSObjectType.fromLetter(currentObject.getObjectTypeLetter())) {
                 case DELETING_FILE:
                     if (!StringUtils.equals(currentObject.getFlightId(), flightId)) {
                         return null;
@@ -286,7 +294,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            currentObject.objectTypeLetter(FSObject.FSObjectType.FILE.toLetter());
+            currentObject.objectTypeLetter(FILE.toLetter());
 
             // transition point from reading to writing in the transaction
             xn.set(docSnap.getReference(), currentObject);
@@ -339,58 +347,21 @@ public class FireStoreFileDao {
         }
     }
 
-    public List<FSObject> enumerateDirectory(UUID studyId, UUID objectId) {
-        // We don't strictly need a transaction here. Having one provides a consistent snapshot of the
-        // file system.
-        ApiFuture<List<FSObject>> transaction = firestore.runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(studyId.toString(), objectId.toString(), xn);
-            if (docSnap == null) {
-                throw new FileSystemObjectNotFoundException("Directory not found");
-            }
-
-            FireStoreObject dirObject = docSnap.toObject(FireStoreObject.class);
-            if (FSObject.FSObjectType.fromLetter(dirObject.getObjectTypeLetter()) != FSObject.FSObjectType.DIRECTORY) {
-                throw new InvalidFileSystemObjectTypeException("Only a directory can be enumerated");
-            }
-
-            Query query =  firestore.collection(studyId.toString()).whereEqualTo("path", getFullPath(dirObject));
-            ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-
-            List<FSObject> fsObjectList = new ArrayList<>();
-            for (QueryDocumentSnapshot document : documents) {
-                FireStoreObject fireStoreObject = document.toObject(FireStoreObject.class);
-                switch (FSObject.FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter())) {
-                    case FILE:
-                    case DIRECTORY:
-                        FSObject fsObject = makeFSObjectFromFileObject(fireStoreObject);
-                        fsObjectList.add(fsObject);
-                        break;
-
-                    // Don't show files being added or deleted
-                    case INGESTING_FILE:
-                    case DELETING_FILE:
-                    default:
-                        break;
-                }
-            }
-
-            return fsObjectList;
-        });
-
-        return fireStoreUtils.transactionGet("enumerate directory", transaction);
+    public FSObjectBase retrieveEnum(UUID studyId, UUID objectId) {
+        FSObjectBase fsObject = retrieve(studyId, objectId);
+        return enumerateDirectory(fsObject);
     }
 
-    public FSObject retrieve(UUID studyId, UUID objectId) {
-        FSObject fsObject = retrieveByIdNoThrow(studyId, objectId);
+    public FSObjectBase retrieve(UUID studyId, UUID objectId) {
+        FSObjectBase fsObject = retrieveByIdNoThrow(studyId, objectId);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("Object not found. Requested id is: " + objectId);
         }
         return fsObject;
     }
 
-    public FSObject retrieveByIdNoThrow(UUID studyId, UUID objectId) {
-        ApiFuture<FSObject> transaction = firestore.runTransaction(xn -> {
+    public FSObjectBase retrieveByIdNoThrow(UUID studyId, UUID objectId) {
+        ApiFuture<FSObjectBase> transaction = firestore.runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(studyId.toString(), objectId.toString(), xn);
             if (docSnap == null) {
                 return null;
@@ -402,15 +373,20 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
-    public FSObject retrieveByPath(String studyId, String path) {
-        FSObject fsObject = retrieveByPathNoThrow(studyId, path);
+    public FSObjectBase retrieveEnumByPath(UUID studyId, String path) {
+        FSObjectBase fsObject = retrieveByPath(studyId.toString(), path);
+        return enumerateDirectory(fsObject);
+    }
+
+    public FSObjectBase retrieveByPath(String studyId, String path) {
+        FSObjectBase fsObject = retrieveByPathNoThrow(studyId, path);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("Object not found - path: '" + path + "'");
         }
         return fsObject;
     }
 
-    public FSObject retrieveByPathNoThrow(String studyId, String path) {
+    public FSObjectBase retrieveByPathNoThrow(String studyId, String path) {
         DocumentReference docRef = firestore
             .collection(studyId)
             .document(encodePathAsFirestoreDocumentName(path));
@@ -432,7 +408,7 @@ public class FireStoreFileDao {
         }
     }
 
-    public List<String> validateRefIds(String studyId, List<String> refIdArray, FSObject.FSObjectType objectType) {
+    public List<String> validateRefIds(String studyId, List<String> refIdArray, FSObjectType objectType) {
         List<String> missingIds = new ArrayList<>();
         for (String objectId : refIdArray) {
             if (!lookupByIdAndType(studyId, objectId, objectType)) {
@@ -480,6 +456,41 @@ public class FireStoreFileDao {
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("delete worker - execution exception", ex);
         }
+    }
+
+    private FSObjectBase enumerateDirectory(FSObjectBase fsObject) {
+        if (fsObject.getObjectType() == FSObjectType.FILE) {
+            return fsObject;
+        }
+
+        ApiFuture<List<FSObjectBase>> transaction = firestore.runTransaction(xn -> {
+            Query query = firestore.collection(fsObject.getStudyId().toString())
+                .whereEqualTo("path", fsObject.getPath());
+            ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
+            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
+
+            List<FSObjectBase> fsObjectList = new ArrayList<>();
+            for (QueryDocumentSnapshot document : documents) {
+                FireStoreObject fireStoreObject = document.toObject(FireStoreObject.class);
+                switch (FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter())) {
+                    case FILE:
+                    case DIRECTORY:
+                        FSObjectBase fsItem = makeFSObjectFromFileObject(fireStoreObject);
+                        fsObjectList.add(fsItem);
+                        break;
+
+                    // Don't show files being added or deleted
+                    case INGESTING_FILE:
+                    case DELETING_FILE:
+                    default:
+                        break;
+                }
+            }
+            return fsObjectList;
+        });
+
+        List<FSObjectBase> contents = fireStoreUtils.transactionGet("enumerate directory", transaction);
+        return new FSEnumDir(fsObject, contents);
     }
 
     // As mentioned at the top of the module, we can't use forward slash in a FireStore document
@@ -555,8 +566,8 @@ public class FireStoreFileDao {
         }
     }
 
-    // Returns true if the object exists
-    private boolean lookupByIdAndType(String studyId, String objectId, FSObject.FSObjectType objectType) {
+    // Returns true if the object of the requested type exists
+    private boolean lookupByIdAndType(String studyId, String objectId, FSObjectType objectType) {
         try {
             CollectionReference studyCollection = firestore.collection(studyId);
             Query query = studyCollection
@@ -575,16 +586,16 @@ public class FireStoreFileDao {
 
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("lookup id and type - execution interrupted", ex);
+            throw new FileSystemExecutionException(" id and type - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("lookup id and type - execution exception", ex);
+            throw new FileSystemExecutionException(" id and type - execution exception", ex);
         }
     }
 
     private FireStoreObject makeDirectoryObject(UUID studyId, String dirPath, String flightId) {
         return new FireStoreObject()
             .studyId(studyId.toString())
-            .objectTypeLetter(FSObject.FSObjectType.DIRECTORY.toLetter())
+            .objectTypeLetter(FSObjectType.DIRECTORY.toLetter())
             .path(getDirectoryPath(dirPath))
             .name(getObjectName(dirPath))
             .size(0L)
@@ -592,42 +603,78 @@ public class FireStoreFileDao {
             .flightId(flightId);
     }
 
-    private FireStoreObject makeFileObjectFromFSObject(FSObject fsObject) {
+    private FireStoreObject makeFileObjectFromFSObject(FSObjectBase fsObject) {
         String objectId = (fsObject.getObjectId() == null) ? null : fsObject.getObjectId().toString();
         String fileCreatedDate = (fsObject.getCreatedDate() == null) ? null : fsObject.getCreatedDate().toString();
-        return new FireStoreObject()
+
+        FireStoreObject fireStoreObject = new FireStoreObject()
             .objectId(objectId)
             .studyId(fsObject.getStudyId().toString())
             .objectTypeLetter(fsObject.getObjectType().toLetter())
             .fileCreatedDate(fileCreatedDate)
             .path(getDirectoryPath(fsObject.getPath()))
-            .name(getObjectName(fsObject.getPath()))
-            .gspath(fsObject.getGspath())
-            .checksumCrc32c(fsObject.getChecksumCrc32c())
-            .checksumMd5(fsObject.getChecksumMd5())
-            .size(fsObject.getSize())
-            .mimeType(fsObject.getMimeType())
-            .description(fsObject.getDescription())
-            .flightId(fsObject.getFlightId());
+            .name(getObjectName(fsObject.getPath()));
+
+        switch (fsObject.getObjectType()) {
+            case FILE:
+            case DELETING_FILE:
+            case INGESTING_FILE:
+                FSFile fsFile = (FSFile) fsObject;
+                fireStoreObject
+                    .gspath(fsFile.getGspath())
+                    .checksumCrc32c(fsFile.getChecksumCrc32c())
+                    .checksumMd5(fsFile.getChecksumMd5())
+                    .mimeType(fsFile.getMimeType())
+                    .flightId(fsFile.getFlightId());
+                break;
+
+            case DIRECTORY:
+                break;
+
+            default:
+                throw new FileSystemCorruptException("Invalid object type found");
+        }
+
+        return fireStoreObject;
     }
 
-    private FSObject makeFSObjectFromFileObject(FireStoreObject fireStoreObject) {
+    private FSObjectBase makeFSObjectFromFileObject(FireStoreObject fireStoreObject) {
         Instant createdDate = (fireStoreObject.getFileCreatedDate() == null) ? null :
             Instant.parse(fireStoreObject.getFileCreatedDate());
 
-        return new FSObject()
-            .objectId(UUID.fromString(fireStoreObject.getObjectId()))
-            .studyId(UUID.fromString(fireStoreObject.getStudyId()))
-            .objectType(FSObject.FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter()))
-            .createdDate(createdDate)
-            .path(getFullPath(fireStoreObject))
-            .gspath(fireStoreObject.getGspath())
-            .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
-            .checksumMd5(fireStoreObject.getChecksumMd5())
-            .size(fireStoreObject.getSize())
-            .mimeType(fireStoreObject.getMimeType())
-            .description(fireStoreObject.getDescription())
-            .flightId(fireStoreObject.getFlightId());
+        FSObjectType objectType = FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter());
+        switch (objectType) {
+            case FILE:
+            case DELETING_FILE:
+            case INGESTING_FILE:
+                return new FSFile()
+                    .gspath(fireStoreObject.getGspath())
+                    .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
+                    .checksumMd5(fireStoreObject.getChecksumMd5())
+                    .mimeType(fireStoreObject.getMimeType())
+                    .flightId(fireStoreObject.getFlightId())
+                    // -- base setters --
+                    .objectId(UUID.fromString(fireStoreObject.getObjectId()))
+                    .studyId(UUID.fromString(fireStoreObject.getStudyId()))
+                    .objectType(objectType)
+                    .createdDate(createdDate)
+                    .path(getFullPath(fireStoreObject))
+                    .size(fireStoreObject.getSize())
+                    .description(fireStoreObject.getDescription());
+
+            case DIRECTORY:
+                return new FSDir()
+                    .objectId(UUID.fromString(fireStoreObject.getObjectId()))
+                    .studyId(UUID.fromString(fireStoreObject.getStudyId()))
+                    .objectType(objectType)
+                    .createdDate(createdDate)
+                    .path(getFullPath(fireStoreObject))
+                    .size(fireStoreObject.getSize())
+                    .description(fireStoreObject.getDescription());
+
+            default:
+                throw new FileSystemCorruptException("Invalid object type found");
+        }
     }
 
 }

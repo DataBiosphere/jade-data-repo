@@ -29,7 +29,7 @@ spec:
           httpGet:
             path: /status
             port: 80
-          initialDelaySeconds: 10
+          initialDelaySeconds: 15
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 3

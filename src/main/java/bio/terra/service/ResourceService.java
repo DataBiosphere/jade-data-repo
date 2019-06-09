@@ -5,6 +5,7 @@ import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateBillingProfileModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -65,5 +66,12 @@ public class ResourceService {
 
     private BillingProfile updateAccessibility(BillingProfile billingProfile) {
         return billingProfile.accessible(billingService.canAccess(billingProfile));
+    }
+
+    public DeleteResponseModel deleteProfileById(UUID id) {
+        // TODO: ensure there aren't dependencies
+        boolean deleted = resourceDao.deleteBillingProfileById(id);
+        return new DeleteResponseModel().objectState(deleted ? DeleteResponseModel.ObjectStateEnum.DELETED :
+            DeleteResponseModel.ObjectStateEnum.NOT_FOUND);
     }
 }

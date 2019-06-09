@@ -55,6 +55,12 @@ public class ResourceDao {
         return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
     }
 
+    public boolean deleteBillingProfileById(UUID id) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM billing_profile WHERE id = :id",
+            new MapSqlParameterSource().addValue("id", id));
+        return rowsAffected > 0;
+    }
+
     private static class BillingProfileMapper implements RowMapper<BillingProfile> {
         public BillingProfile mapRow(ResultSet rs, int rowNum) throws SQLException {
             return new BillingProfile()

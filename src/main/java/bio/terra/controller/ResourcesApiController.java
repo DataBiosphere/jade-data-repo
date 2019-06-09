@@ -53,7 +53,8 @@ public class ResourcesApiController implements ResourcesApi {
 
     @Override
     public ResponseEntity<DeleteResponseModel> deleteProfile(String id) {
-        return null;
+        UUID profileId = UUID.fromString(id);
+        return new ResponseEntity<>(resourceService.deleteProfileById(profileId), HttpStatus.OK);
     }
 
     @Override

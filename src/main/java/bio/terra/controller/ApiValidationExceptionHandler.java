@@ -2,10 +2,12 @@ package bio.terra.controller;
 
 
 import bio.terra.model.ErrorModel;
+import liquibase.util.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -30,7 +32,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
         List<String> errorDetails = bindingResult
             .getFieldErrors()
             .stream()
-            .map(err -> err.getCode() + " error on '" + err.getObjectName() + "': " + err.getDefaultMessage())
+            .map(this::formatFieldError)
             .collect(toList());
 
         ErrorModel errorModel = new ErrorModel()
@@ -38,6 +40,16 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
             .errorDetail(errorDetails);
 
         return new ResponseEntity<>(errorModel, HttpStatus.BAD_REQUEST);
+    }
+
+    private String formatFieldError(FieldError error) {
+        StringBuilder builder = new StringBuilder()
+            .append(String.format("%s: %s", error.getField(), error.getCode()));
+        String defaultMessage = error.getDefaultMessage();
+        if (StringUtils.isNotEmpty(defaultMessage)) {
+            builder.append(String.format(" (%s)", defaultMessage));
+        }
+        return builder.toString();
     }
 }
 

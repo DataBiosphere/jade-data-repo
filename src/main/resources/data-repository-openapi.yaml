@@ -140,6 +140,85 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the billing profiles
+      operationId: enumerateProfiles
+      tags:
+      - resources
+      parameters:
+      - in: query
+        name: offset
+        type: integer
+        default: 0
+        description: The number of items to skip before starting to collect the result set.
+      - in: query
+        name: limit
+        type: integer
+        description: The numbers of items to return.
+        default: 10
+      responses:
+        200:
+          description: List of billing profiles
+          schema:
+            $ref: '#/definitions/EnumerateBillingProfileModel'
+
+
+  '/api/resources/v1/profiles/{id}':
+    get:  ## retrieve
+      description: Retrieve a billing profile by id
+      operationId: retrieveProfile
+      tags:
+      - resources
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Billing profile
+          schema:
+            $ref: '#/definitions/BillingProfileModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to see billing profile
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - billing profile id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+    delete: ## delete
+      description: Delete a billing profile by id
+      operationId: deleteProfile
+      tags:
+      - resources
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Successful deletion
+          schema:
+            $ref: '#/definitions/DeleteResponseModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to delete profile
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - profile id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Profile in use by at least one study
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
 
   ## Repository Interface
 
@@ -1132,10 +1211,6 @@ definitions:
 
   BillingProfileModel:
     type: object
-    required:
-    - billingAccountId
-    - profileName
-    - biller
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
@@ -1152,6 +1227,18 @@ definitions:
         type: boolean
         description: true if the repository SA is a billing account user on this billing account, false o/w
 
+  EnumerateBillingProfileModel:
+    description: |
+      The total number of billing profiles available and a page of profiles
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of billing profiles
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/BillingProfileModel'
 
   ## Study ##
 

@@ -2,6 +2,8 @@ package bio.terra.controller;
 
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateBillingProfileModel;
 import bio.terra.service.ResourceService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,10 +11,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import java.util.Optional;
 
 @Controller
@@ -39,13 +40,32 @@ public class ResourcesApiController implements ResourcesApi {
     }
 
     @Override
+    public Optional<HttpServletRequest> getRequest() {
+        return Optional.ofNullable(request);
+    }
+
+    @Override
     public ResponseEntity<BillingProfileModel> createProfile(
         @RequestBody BillingProfileRequestModel billingProfileRequest) { // TODO add validation and @Valid
         return new ResponseEntity<>(resourceService.createProfile(billingProfileRequest), HttpStatus.CREATED);
     }
 
     @Override
-    public Optional<HttpServletRequest> getRequest() {
-        return Optional.ofNullable(request);
+    public ResponseEntity<DeleteResponseModel> deleteProfile(String id) {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity<EnumerateBillingProfileModel> enumerateProfiles(
+            @Valid Integer offset,
+            @Valid Integer limit) {
+        ControllerUtils.validateEnumerateParams(offset, limit);
+        EnumerateBillingProfileModel ebpm = resourceService.enumerateProfiles(offset, limit);
+        return new ResponseEntity<>(ebpm, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<BillingProfileModel> retrieveProfile(String id) {
+        return null;
     }
 }

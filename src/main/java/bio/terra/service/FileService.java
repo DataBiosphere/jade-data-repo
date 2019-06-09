@@ -110,6 +110,8 @@ public class FileService {
             if (!(fsObject instanceof FSFile)) {
                 throw new FileSystemCorruptException("Mismatched object type");
             }
+            fsObjectModel.objectType(FSObjectModelType.FILE);
+
             FSFile fsFile = (FSFile)fsObject;
             fsObjectModel.fileDetail(new FileDetailModel()
                 .checksums(makeChecksums(fsFile))
@@ -119,6 +121,8 @@ public class FileService {
             if (!(fsObject instanceof FSEnumDir)) {
                 throw new FileSystemCorruptException("Object type/class mistake");
             }
+            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
+
             FSEnumDir fsEnumDir = (FSEnumDir)fsObject;
             DirectoryDetailModel directoryDetail = new DirectoryDetailModel();
             for (FSObjectBase fsItem : fsEnumDir.getContents()) {

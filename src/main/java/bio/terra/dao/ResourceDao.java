@@ -48,6 +48,12 @@ public class ResourceDao {
             .total(total == null ? -1 : total);
     }
 
+    public BillingProfile getBillingProfileById(UUID id) {
+        String sql = "SELECT * FROM billing_profile WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", id);
+        return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
+    }
 
     private static class BillingProfileMapper implements RowMapper<BillingProfile> {
         public BillingProfile mapRow(ResultSet rs, int rowNum) throws SQLException {

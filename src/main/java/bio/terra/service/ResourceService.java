@@ -40,9 +40,8 @@ public class ResourceService {
             .biller(billingProfileRequest.getBiller())
             .billingAccountId(billingProfileRequest.getBillingAccountId());
         UUID profileId = resourceDao.createBillingProfile(profile);
-        profile
-            .id(profileId)
-            .accessible(billingService.canAccess(profile));
+        profile.id(profileId);
+        updateAccessibility(profile);
         return makeModelFromBillingProfile(profile);
     }
 
@@ -50,10 +49,21 @@ public class ResourceService {
         MetadataEnumeration<BillingProfile> profileEnumeration = resourceDao.enumerateBillingProfiles(offset, limit);
         List<BillingProfileModel> profileModels = profileEnumeration.getItems()
             .stream()
+            .map(this::updateAccessibility)
             .map(this::makeModelFromBillingProfile)
             .collect(Collectors.toList());
         return new EnumerateBillingProfileModel()
             .items(profileModels)
             .total(profileEnumeration.getTotal());
+    }
+
+    public BillingProfileModel getProfileById(UUID id) {
+        BillingProfile profile = resourceDao.getBillingProfileById(id);
+        updateAccessibility(profile);
+        return makeModelFromBillingProfile(profile);
+    }
+
+    private BillingProfile updateAccessibility(BillingProfile billingProfile) {
+        return billingProfile.accessible(billingService.canAccess(billingProfile));
     }
 }

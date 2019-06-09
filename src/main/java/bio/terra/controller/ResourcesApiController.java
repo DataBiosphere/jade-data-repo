@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.Optional;
+import java.util.UUID;
 
 @Controller
 public class ResourcesApiController implements ResourcesApi {
@@ -66,6 +67,8 @@ public class ResourcesApiController implements ResourcesApi {
 
     @Override
     public ResponseEntity<BillingProfileModel> retrieveProfile(String id) {
-        return null;
+        UUID profileId = UUID.fromString(id);
+        BillingProfileModel profileModel = resourceService.getProfileById(profileId);
+        return new ResponseEntity<>(profileModel, HttpStatus.OK);
     }
 }

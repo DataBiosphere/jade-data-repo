@@ -323,7 +323,7 @@ public class StudyValidationsTest {
         for (int i = 0; i < messageCodes.length; i++) {
             String code = messageCodes[i];
             assertThat(context + ": correct message code (" + i + ")",
-                details.get(i), startsWith(messageCodes[i]));
+                details.get(i), containsString(messageCodes[i]));
         }
     }
 }

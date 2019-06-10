@@ -8,6 +8,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +49,13 @@ public class CreateStudyAuthzResource implements Step {
         try {
             sam.deleteStudyResource(userReq, studyId);
         } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
+            if (ex.getCode() == HttpStatusCodes.STATUS_CODE_UNAUTHORIZED) {
+                // suppress exception
+                logger.error("NEEDS CLEANUP: delete sam resource for study " + studyId.toString());
+                logger.warn(ex.getMessage());
+            } else {
+                throw new InternalServerErrorException(ex);
+            }
         }
         return StepResult.getStepResultSuccess();
     }

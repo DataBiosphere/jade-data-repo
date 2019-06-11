@@ -304,11 +304,6 @@ public class StudyValidationsTest {
             Collections.singletonList("sort must be one of: (name, description, created_date)."));
         expectBadStudyEnumerateRequest(0, 10, "name", "invalid", expected,
             Collections.singletonList("direction must be one of: (asc, desc)."));
-
-        mvc.perform(get("/api/repository/v1/studies/")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(buildStudyRequest())))
-            .andExpect(status().isOk());
     }
 
     private void checkValidationErrorModel(String context,

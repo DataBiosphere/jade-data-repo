@@ -122,14 +122,29 @@ public class RepositoryApiController implements RepositoryApi {
 
     // -- study --
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATA_REPO,
+            appConfig.datarepoId(),
+            SamClientService.DataRepoAction.CREATE_STUDY);
         return new ResponseEntity<>(studyService.createStudy(studyRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
     }
 
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            appConfig.datarepoId(),
+            SamClientService.DataRepoAction.READ_STUDY);
         return new ResponseEntity<>(studyService.retrieve(UUID.fromString(id)), HttpStatus.OK);
     }
 
     public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            appConfig.datarepoId(),
+            SamClientService.DataRepoAction.DELETE_STUDY);
         return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
@@ -140,6 +155,11 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            appConfig.datarepoId(),
+            SamClientService.DataRepoAction.READ_STUDY);
         EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter);
         return new ResponseEntity<>(esm, HttpStatus.OK);
     }

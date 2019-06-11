@@ -1,6 +1,7 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
+import bio.terra.exception.UnauthorizedException;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
@@ -8,8 +9,10 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -85,6 +89,26 @@ public class StudyTest {
 
         } finally {
             testOperations.deleteTestStudy(authToken, summaryModel.getId());
+        }
+    }
+
+    @Rule
+    public ExpectedException exceptionGrabber = ExpectedException.none();
+
+    @Test
+    public void studyUnauthorizedPermissionsTest() throws Exception {
+        TestConfiguration.User custodian = users.getUserForRole("custodian");
+        String custodianToken = authService.getAuthToken(custodian.getEmail());
+        TestConfiguration.User reader = users.getUserForRole("reader");
+        String readerToken = authService.getAuthToken(reader.getEmail());
+
+        exceptionGrabber.expect(UnauthorizedException.class);
+        StudySummaryModel summaryModel = testOperations.createTestStudy(custodianToken, "study-minimal.json");
+        try {
+            exceptionGrabber.expect(UnauthorizedException.class);
+            testOperations.deleteTestStudy(readerToken, summaryModel.getId());
+        } finally {
+            testOperations.deleteTestStudy(custodianToken, summaryModel.getId());
         }
     }
 

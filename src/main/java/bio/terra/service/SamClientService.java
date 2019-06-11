@@ -1,6 +1,8 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.exception.InternalServerErrorException;
+import bio.terra.exception.UnauthorizedException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.model.sam.CreateResourceCorrectRequest;
@@ -35,7 +37,7 @@ import java.util.stream.Collectors;
 public class SamClientService {
 
     public enum ResourceType {
-        DATA_REPOSITORY("data_repository"),
+        DATA_REPO("datarepo"),
         STUDY("study"),
         DATASET("dataset");
 
@@ -91,12 +93,62 @@ public class SamClientService {
             }
             return null;
         }
-
         public String getRoleName() {
             return this.value;
         }
 
         public String getPolicyName() {
+            return this.value;
+        }
+    }
+
+
+    public enum DataRepoAction {
+        // common
+        CREATE("create"),
+        DELETE("delete"),
+        SHARE_POLICY("share_policy"),
+        READ_POLICY("read_policy"),
+        READ_POLICIES("read_policies"),
+        ALTER_POLICIES("alter_policies"),
+        // datarepo
+        CREATE_STUDY("create_study"),
+        // study
+        EDIT_STUDY("edit_study"),
+        READ_STUDY("read_study"),
+        DELETE_STUDY("delete_study"),
+        INGEST_DATA("ingest_data"),
+        UPDATE_DATA("update_data"),
+        // datasets
+        CREATE_DATASET("create_dataset"),
+        EDIT_DATASET("edit_dataset"),
+        DELETE_DATASET("delete_dataset"),
+        READ_DATA("read_data"),
+        DISCOVER_DATA("discover_data");
+
+        private String value;
+
+        DataRepoAction(String value) {
+            this.value = value;
+        }
+
+        @Override
+        @JsonValue
+        public String toString() {
+            return String.valueOf(value);
+        }
+
+        @JsonCreator
+        public static ResourceType fromValue(String text) {
+            for (ResourceType b : ResourceType.values()) {
+                if (String.valueOf(b.value).equals(text)) {
+                    return b;
+                }
+            }
+            return null;
+        }
+
+        public String getAction() {
             return this.value;
         }
     }
@@ -138,6 +190,23 @@ public class SamClientService {
 
     public void setStewardsGroupEmail(String stewardsGroupEmail) {
         this.stewardsGroupEmail = stewardsGroupEmail;
+    }
+
+    public void verifyAuthorization(
+        AuthenticatedUserRequest userReq,
+        SamClientService.ResourceType resourceType,
+        String resourceId,
+        SamClientService.DataRepoAction action) {
+        try {
+            if (!checkResourceAction(
+                userReq,
+                resourceType.toString(),
+                resourceId,
+                action.toString()))
+                throw new UnauthorizedException("User does not have required action: " + action);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
     }
 
     public boolean checkResourceAction(

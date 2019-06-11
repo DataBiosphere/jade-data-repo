@@ -23,7 +23,7 @@ public final class ResourceFixtures {
         return Collections.nCopies(3, 6)
             .stream()
             .map(ResourceFixtures::randomHex)
-            .collect(Collectors.joining("-"));
+            .collect(Collectors.joining("-")).toUpperCase();
     }
 
     public static BillingProfile randomBillingProfile() {

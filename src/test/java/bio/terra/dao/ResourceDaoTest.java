@@ -1,25 +1,12 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
+import bio.terra.dao.exception.AccountAlreadyExistsException;
+import bio.terra.dao.exception.ResourceNotFoundException;
 import bio.terra.fixtures.ResourceFixtures;
 import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetMapColumn;
-import bio.terra.metadata.DatasetMapTable;
-import bio.terra.metadata.DatasetSource;
-import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Study;
-import bio.terra.metadata.Table;
-import bio.terra.model.BillingProfileRequestModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.StudyJsonConversion;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.service.DatasetService;
 import bio.terra.service.ResourceService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,8 +24,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -92,6 +77,20 @@ public class ResourceDaoTest {
         assertThat("profile biller set correctly",
                 fromDB.getBiller(),
                 equalTo(billingProfile.getBiller()));
+    }
+
+    @Test(expected = ResourceNotFoundException.class)
+    public void profileDeleteTest() {
+        UUID profileId = makeProfile(billingProfile);
+        boolean deleted = resourceDao.deleteBillingProfileById(profileId);
+        assertThat("able to delete", deleted, equalTo(true));
+        resourceDao.getBillingProfileById(profileId);
+    }
+
+    @Test(expected = AccountAlreadyExistsException.class)
+    public void profileDuplicateIdTest() {
+        makeProfile(billingProfile);
+        makeProfile(billingProfile);
     }
 
     @Test

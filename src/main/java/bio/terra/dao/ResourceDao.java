@@ -1,8 +1,12 @@
 package bio.terra.dao;
 
+import bio.terra.dao.exception.AccountAlreadyExistsException;
+import bio.terra.dao.exception.ResourceNotFoundException;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -23,15 +27,19 @@ public class ResourceDao {
     }
 
     public UUID createBillingProfile(BillingProfile billingProfile) {
-        String sql = "INSERT INTO billing_profile (name, biller, billing_account_id) VALUES " +
-            "(:name, :biller, :billing_account_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", billingProfile.getName())
-            .addValue("biller", billingProfile.getBiller())
-            .addValue("billing_account_id", billingProfile.getBillingAccountId());
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        return keyHolder.getId();
+        try {
+            String sql = "INSERT INTO billing_profile (name, biller, billing_account_id) VALUES " +
+                "(:name, :biller, :billing_account_id)";
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("name", billingProfile.getName())
+                .addValue("biller", billingProfile.getBiller())
+                .addValue("billing_account_id", billingProfile.getBillingAccountId());
+            DaoKeyHolder keyHolder = new DaoKeyHolder();
+            jdbcTemplate.update(sql, params, keyHolder);
+            return keyHolder.getId();
+        } catch (DuplicateKeyException ex) {
+            throw new AccountAlreadyExistsException("Account in use: " + billingProfile.getBillingAccountId(), ex);
+        }
     }
 
     public MetadataEnumeration<BillingProfile> enumerateBillingProfiles(Integer offset, Integer limit) {
@@ -49,10 +57,14 @@ public class ResourceDao {
     }
 
     public BillingProfile getBillingProfileById(UUID id) {
-        String sql = "SELECT * FROM billing_profile WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("id", id);
-        return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
+        try {
+            String sql = "SELECT * FROM billing_profile WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", id);
+            return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new ResourceNotFoundException("Profile not found for id " + id.toString());
+        }
     }
 
     public boolean deleteBillingProfileById(UUID id) {

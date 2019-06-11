@@ -101,6 +101,7 @@ public class FireStoreFileDao {
                  !testPath.isEmpty();
                  testPath = getDirectoryPath(testPath)) {
 
+                // !!! In this case we are using a lookup path
                 DocumentSnapshot docSnap = lookupByObjectPath(studyId.toString(), testPath, xn);
                 if (docSnap.exists()) {
                     break;
@@ -133,6 +134,7 @@ public class FireStoreFileDao {
 
     public boolean createFileStartUndo(String studyId, String fullPath, String flightId) {
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
+            String lookupPath = makeLookupPath(fullPath);
             DocumentSnapshot docSnap = lookupByObjectPath(studyId, fullPath, xn);
             if (!docSnap.exists()) {
                 return false;
@@ -548,8 +550,7 @@ public class FireStoreFileDao {
         return path + '/' + fireStoreObject.getName();
     }
 
-    private DocumentSnapshot lookupByObjectPath(String studyId, String fullPath, Transaction xn) {
-        String lookupPath = makeLookupPath(fullPath);
+    private DocumentSnapshot lookupByObjectPath(String studyId, String lookupPath, Transaction xn) {
         try {
             DocumentReference docRef =
                 firestore.collection(studyId).document(encodePathAsFirestoreDocumentName(lookupPath));

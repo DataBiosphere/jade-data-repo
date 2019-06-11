@@ -1473,20 +1473,7 @@ definitions:
         type: array
         description: Array of directory contents
         items:
-          $ref: '#/definitions/DirectoryItemModel'
-
-  DirectoryItemModel:
-    description: One entry in a directory
-    type: object
-    properties:
-      name:
-        type: string
-        description: simple name of the entry - not a path
-      objectId:
-        type: string
-        description: object id of a filesystem object
-      objectType:
-        $ref: '#/definitions/FSObjectModelType'
+          $ref: '#/definitions/FSObjectModel'
 
   ## Dataset Definitions ##
 

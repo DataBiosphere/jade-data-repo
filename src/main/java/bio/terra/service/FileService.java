@@ -11,7 +11,6 @@ import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
-import bio.terra.model.DirectoryItemModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FSObjectModelType;
 import bio.terra.model.FileDetailModel;
@@ -126,18 +125,8 @@ public class FileService {
             FSEnumDir fsEnumDir = (FSEnumDir)fsObject;
             DirectoryDetailModel directoryDetail = new DirectoryDetailModel();
             for (FSObjectBase fsItem : fsEnumDir.getContents()) {
-                FSObjectModelType objectModelType;
-                if (fsItem.getObjectType() == FSObjectType.FILE) {
-                    objectModelType = FSObjectModelType.FILE;
-                } else {
-                    objectModelType = FSObjectModelType.DIRECTORY;
-                }
-
-                DirectoryItemModel directoryItem = new DirectoryItemModel()
-                    .name(getObjectName(fsItem.getPath()))
-                    .objectId(fsItem.getObjectId().toString())
-                    .objectType(objectModelType);
-                directoryDetail.addContentsItem(directoryItem);
+                FSObjectModel itemModel = fileModelFromFSObject(fsItem);
+                directoryDetail.addContentsItem(itemModel);
             }
             fsObjectModel.directoryDetail(directoryDetail);
         }

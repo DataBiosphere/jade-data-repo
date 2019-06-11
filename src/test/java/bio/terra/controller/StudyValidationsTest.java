@@ -35,7 +35,6 @@ import static bio.terra.fixtures.StudyFixtures.buildSampleTerm;
 import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;

@@ -57,7 +57,7 @@ public class ResourcesApiController implements ResourcesApi {
 
     @Override
     public ResponseEntity<BillingProfileModel> createProfile(
-        /*@Valid*/ @RequestBody BillingProfileRequestModel billingProfileRequest) {
+        @RequestBody BillingProfileRequestModel billingProfileRequest) {
         return new ResponseEntity<>(resourceService.createProfile(billingProfileRequest), HttpStatus.CREATED);
     }
 

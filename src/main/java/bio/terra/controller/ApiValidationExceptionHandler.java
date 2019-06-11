@@ -2,7 +2,7 @@ package bio.terra.controller;
 
 
 import bio.terra.model.ErrorModel;
-import liquibase.util.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

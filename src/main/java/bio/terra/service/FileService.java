@@ -5,6 +5,7 @@ import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
+import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSEnumDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
@@ -61,7 +62,8 @@ public class FileService {
     }
 
     public FSObjectModel lookupPath(String studyId, String path) {
-        return fileModelFromFSObject(lookupFSObjectByPath(studyId, path));
+        FSObjectBase fsObject = lookupFSObjectByPath(studyId, path);
+        return fileModelFromFSObject(fsObject);
     }
 
     FSObjectBase lookupFSObject(String studyId, String fileId) {
@@ -116,19 +118,21 @@ public class FileService {
                 .checksums(makeChecksums(fsFile))
                 .accessUrl(fsFile.getGspath())
                 .mimeType(fsFile.getMimeType()));
-        } else {
-            if (!(fsObject instanceof FSEnumDir)) {
-                throw new FileSystemCorruptException("Object type/class mistake");
-            }
+        } else if (fsObject instanceof FSDir) {
+            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
+        } else if (fsObject instanceof FSEnumDir) {
+            // must be FSEnumDir, but findbugs insists we check...
             fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
 
             FSEnumDir fsEnumDir = (FSEnumDir)fsObject;
-            DirectoryDetailModel directoryDetail = new DirectoryDetailModel();
+            DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
             for (FSObjectBase fsItem : fsEnumDir.getContents()) {
                 FSObjectModel itemModel = fileModelFromFSObject(fsItem);
                 directoryDetail.addContentsItem(itemModel);
             }
             fsObjectModel.directoryDetail(directoryDetail);
+        } else {
+            throw new FileSystemCorruptException("Object type instance is totally wrong; we shouldn't be here");
         }
 
         return fsObjectModel;

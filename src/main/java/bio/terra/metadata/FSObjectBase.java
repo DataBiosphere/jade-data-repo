@@ -28,17 +28,6 @@ public class FSObjectBase {
     public FSObjectBase() {
     }
 
-    // copy constructor
-    public FSObjectBase(FSObjectBase other) {
-        this.objectId = other.objectId;
-        this.studyId = other.studyId;
-        this.objectType = other.objectType;
-        this.createdDate = other.createdDate;
-        this.path = other.path;
-        this.size = other.size;
-        this.description = other.description;
-    }
-
     public UUID getObjectId() {
         return objectId;
     }

@@ -10,9 +10,7 @@ import java.util.List;
 public class FSEnumDir extends FSObjectBase {
     private List<FSObjectBase> contents;
 
-    public FSEnumDir(FSObjectBase base, List<FSObjectBase> contents) {
-        super(base);
-        this.contents = contents;
+    public FSEnumDir() {
     }
 
     public List<FSObjectBase> getContents() {

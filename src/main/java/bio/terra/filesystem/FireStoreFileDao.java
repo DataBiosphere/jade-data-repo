@@ -507,7 +507,16 @@ public class FireStoreFileDao {
         });
 
         List<FSObjectBase> contents = fireStoreUtils.transactionGet("enumerate directory", transaction);
-        return new FSEnumDir(fsObject, contents);
+
+        return new FSEnumDir()
+            .contents(contents)
+            .objectId(fsObject.getObjectId())
+            .studyId(fsObject.getStudyId())
+            .objectType(fsObject.getObjectType())
+            .createdDate(fsObject.getCreatedDate())
+            .path(fsObject.getPath())
+            .size(fsObject.getSize())
+            .description(fsObject.getDescription());
     }
 
     // As mentioned at the top of the module, we can't use forward slash in a FireStore document
@@ -545,8 +554,15 @@ public class FireStoreFileDao {
     private String getFullPath(FireStoreObject fireStoreObject) {
         // Originally, this was a method in FireStoreObject, but the Firestore client complained about it,
         // because it was not a set/get for an actual class member. Very picky, that!
-
-        String path = (fireStoreObject.getPath() == null) ? StringUtils.EMPTY : fireStoreObject.getPath();
+        // There are three cases here:
+        // - the path and name are empty: that is the root. Full path is "/"
+        // - the path is "/" and the name is not empty: dir in the root. Full path is "/name"
+        // - the path is "/name" and the name is not empty: Full path is path + "/" + name
+        String path = StringUtils.EMPTY;
+        if (StringUtils.isNotEmpty(fireStoreObject.getPath()) &&
+            !StringUtils.equals(fireStoreObject.getPath(), "/")) {
+            path = fireStoreObject.getPath();
+        }
         return path + '/' + fireStoreObject.getName();
     }
 
@@ -616,12 +632,24 @@ public class FireStoreFileDao {
     }
 
     private FireStoreObject makeDirectoryObject(UUID studyId, String lookupDirPath, String flightId) {
-        String dirPath = makePathFromLookupPath(lookupDirPath);
+        // We have some special cases to deal with at the top of the directory tree.
+        String fullPath = makePathFromLookupPath(lookupDirPath);
+        String dirPath = getDirectoryPath(fullPath);
+        String objName = getObjectName(fullPath);
+        if (StringUtils.isEmpty(fullPath)) {
+            // This is the root directory - it doesn't have a path or a name
+            dirPath = StringUtils.EMPTY;
+            objName = StringUtils.EMPTY;
+        } else if (StringUtils.isEmpty(dirPath)) {
+            // This is an object in the root directory - it needs to have the root path.
+            dirPath = "/";
+        }
+
         return new FireStoreObject()
             .studyId(studyId.toString())
             .objectTypeLetter(FSObjectType.DIRECTORY.toLetter())
-            .path(getDirectoryPath(dirPath))
-            .name(getObjectName(dirPath))
+            .path(dirPath)
+            .name(objName)
             .size(0L)
             .fileCreatedDate(Instant.now().toString())
             .flightId(flightId);

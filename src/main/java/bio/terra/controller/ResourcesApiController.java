@@ -30,10 +30,10 @@ public class ResourcesApiController implements ResourcesApi {
 
     @Autowired
     public ResourcesApiController(
-        ObjectMapper objectMapper,
-        HttpServletRequest request,
-        ProfileService profileService,
-        BillingProfileRequestValidator billingProfileRequestValidator) {
+            ObjectMapper objectMapper,
+            HttpServletRequest request,
+            ProfileService profileService,
+            BillingProfileRequestValidator billingProfileRequestValidator) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.profileService = profileService;

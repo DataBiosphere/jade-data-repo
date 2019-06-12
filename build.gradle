@@ -262,23 +262,12 @@ def getGitHash = { ->
 
 
 // -- Test tasks --
-// The default 'test' task runs all of the tests.
+// The default 'test' task runs all of the unit tests.
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
-//
-// Configure test logging to stun - these settings mean that we get sufficient debug data when tests fail
-// during travis run.
-// TODO: I looked for a simple way to avoid redundancy in these tasks and didn't find it.
 test {
     useJUnit {
         includeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
-    }
-    testLogging {
-        outputs.upToDateWhen {false}
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
     }
 }
 
@@ -286,25 +275,11 @@ task testConnected(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Connected'
     }
-    testLogging {
-        outputs.upToDateWhen {false}
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
-    }
 }
 
 task testIntegration(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Integration'
-    }
-    testLogging {
-        outputs.upToDateWhen {false}
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
     }
 }
 
@@ -319,13 +294,6 @@ task testAll(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit',
             'bio.terra.category.Integration'
-    }
-    testLogging {
-        outputs.upToDateWhen { false }
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
     }
 }
 

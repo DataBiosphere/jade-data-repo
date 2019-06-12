@@ -42,8 +42,8 @@ before_script:
 script:
   - ./render-configs.sh $TRAVIS_TOKEN
   - ./gradlew assemble
-  - ./gradlew check
-  - ./gradlew testConnected
+  - ./gradlew check --scan -s
+  - ./gradlew testConnected --scan -s
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image
     deployments/api-deployment

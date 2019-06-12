@@ -40,6 +40,7 @@ before_script:
   - psql -U postgres -f db/create-data-repo-db
 
 script:
+  - set -e
   - ./render-configs.sh $TRAVIS_TOKEN
   - ./gradlew assemble
   - ./gradlew check --scan -s

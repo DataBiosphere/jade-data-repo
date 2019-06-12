@@ -40,7 +40,7 @@ public class IngestTest {
     private JsonLoader jsonLoader;
 
     @Autowired
-    private TestOperations testOperations;
+    private ValidateTestOperations testOperations;
 
     @Autowired
     private Users users;
@@ -60,7 +60,7 @@ public class IngestTest {
         stewardToken = authService.getAuthToken(steward.getEmail());
         TestConfiguration.User custodian = users.getUserForRole("custodian");
         custodianToken = authService.getAuthToken(custodian.getEmail());
-        studySummaryModel = testOperations.createTestStudy(stewardToken, "ingest-test-study.json");
+        studySummaryModel = testOperations.createTestStudyAndValidate(stewardToken, "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
 

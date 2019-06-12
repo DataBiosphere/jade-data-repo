@@ -4,6 +4,7 @@ import bio.terra.exception.BadRequestException;
 import bio.terra.exception.DataRepoException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.NotFoundException;
+import bio.terra.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.exception.JobResponseException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestControllerAdvice
@@ -49,6 +51,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorModel validationExceptionHandler(Exception ex) {
         return buildErrorModel(ex);
+    }
+
+    // -- auth errors from sam
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorModel samAthorizationException(UnauthorizedException ex) {
+        return buildErrorModel(ex, Collections.emptyList());
     }
 
     // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions

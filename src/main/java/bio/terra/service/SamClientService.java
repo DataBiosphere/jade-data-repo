@@ -197,16 +197,19 @@ public class SamClientService {
         SamClientService.ResourceType resourceType,
         String resourceId,
         SamClientService.DataRepoAction action) {
+        boolean authorized = false;
         try {
-            if (!checkResourceAction(
+            authorized = checkResourceAction(
                 userReq,
                 resourceType.toString(),
                 resourceId,
-                action.toString()))
-                throw new UnauthorizedException("User does not have required action: " + action);
+                action.toString());
+            logger.info("authorized is " + authorized);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }
+        if (!authorized)
+            throw new UnauthorizedException("User does not have required action: " + action);
     }
 
     public boolean checkResourceAction(

@@ -1,7 +1,6 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
-import bio.terra.exception.UnauthorizedException;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
@@ -42,7 +41,7 @@ public class StudyTest {
     private JsonLoader jsonLoader;
 
     @Autowired
-    private TestOperations testOperations;
+    private DataRepoFixtures dataRepoFixtures;
 
     @Autowired
     private Users users;
@@ -54,7 +53,11 @@ public class StudyTest {
     public void studyHappyPath() throws Exception {
         TestConfiguration.User steward = users.getUserForRole("steward");
         String authToken = authService.getAuthToken(steward.getEmail());
-        StudySummaryModel summaryModel = testOperations.createTestStudy(authToken, "it-study-omop.json");
+        DataRepoResponse<StudySummaryModel> createResponse = dataRepoFixtures.createStudyRaw(
+            authToken, "it-study-omop.json");
+        assertThat("study is successfully created", createResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("study create response is present", createResponse.getResponseObject().isPresent());
+        StudySummaryModel summaryModel = createResponse.getResponseObject().get();
         try {
             assertThat(summaryModel.getName(), startsWith(omopStudyName));
             assertThat(summaryModel.getDescription(), equalTo(omopStudyDesc));
@@ -88,7 +91,7 @@ public class StudyTest {
             assertTrue("study was found in enumeration", found);
 
         } finally {
-            testOperations.deleteTestStudy(authToken, summaryModel.getId());
+            dataRepoFixtures.deleteStudyRaw(authToken, summaryModel.getId());
         }
     }
 
@@ -97,18 +100,28 @@ public class StudyTest {
 
     @Test
     public void studyUnauthorizedPermissionsTest() throws Exception {
+        TestConfiguration.User steward = users.getUserForRole("steward");
+        String stewardToken = authService.getAuthToken(steward.getEmail());
         TestConfiguration.User custodian = users.getUserForRole("custodian");
         String custodianToken = authService.getAuthToken(custodian.getEmail());
+        System.out.println("custodian is " + custodian.getEmail());
         TestConfiguration.User reader = users.getUserForRole("reader");
         String readerToken = authService.getAuthToken(reader.getEmail());
+        System.out.println("reader is " + reader.getEmail());
 
-        exceptionGrabber.expect(UnauthorizedException.class);
-        StudySummaryModel summaryModel = testOperations.createTestStudy(custodianToken, "study-minimal.json");
+        DataRepoResponse<StudySummaryModel> response = dataRepoFixtures.createStudyRaw(
+            custodianToken, "study-minimal.json");
+        assertThat("Custodian is not authorized to create a study", 401, equalTo(response.getStatusCode().value()));
+
+        DataRepoResponse<> enumStudies = dataRepoFixtures.enumerateStudiesRaw(readerToken);
+
         try {
-            exceptionGrabber.expect(UnauthorizedException.class);
-            testOperations.deleteTestStudy(readerToken, summaryModel.getId());
+            StudySummaryModel summaryModel = dataRepoFixtures.createStudyRaw(
+                stewardToken, "study-minimal.json");
+
+            dataRepoFixtures.deleteTestStudy(readerToken, summaryModel.getId());
         } finally {
-            testOperations.deleteTestStudy(custodianToken, summaryModel.getId());
+            dataRepoFixtures.deleteTestStudy(custodianToken, summaryModel.getId());
         }
     }
 

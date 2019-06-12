@@ -1,15 +1,10 @@
 package bio.terra.integration;
 
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.fixtures.Names;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -22,7 +17,7 @@ import static org.junit.Assert.assertTrue;
 
 @Component
 @Profile("integrationtest")
-public class TestOperations {
+public class ValidateTestOperations {
     @Autowired
     private JsonLoader jsonLoader;
 
@@ -35,64 +30,12 @@ public class TestOperations {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private DataRepoFixtures dataRepoFixtures;
+
+
     // Create a test study; expect successful creation
-    public StudySummaryModel createTestStudy(String authToken, String filename) throws Exception {
-        StudyRequestModel requestModel = jsonLoader.loadObject(filename, StudyRequestModel.class);
-        requestModel.setName(Names.randomizeName(requestModel.getName()));
-        String json = objectMapper.writeValueAsString(requestModel);
-
-        DataRepoResponse<StudySummaryModel> postResponse = dataRepoClient.post(
-            authToken,
-            "/api/repository/v1/studies",
-            json,
-            StudySummaryModel.class);
-        assertThat("study is successfully created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("study create response is present", postResponse.getResponseObject().isPresent());
-        return postResponse.getResponseObject().get();
-    }
-
-    public void deleteTestStudy(String authToken, String studyId) throws Exception {
-        DataRepoResponse<DeleteResponseModel> deleteResponse =
-            dataRepoClient.delete(authToken, "/api/repository/v1/studies/" + studyId, DeleteResponseModel.class);
-        assertGoodDeleteResponse(deleteResponse);
-    }
-
-    // Create a test dataset; expect successful creation
-    public DatasetSummaryModel createTestDataset(String authToken, StudySummaryModel studySummaryModel,
-                                                 String filename) throws Exception {
-        DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
-        requestModel.setName(Names.randomizeName(requestModel.getName()));
-        requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
-        String json = objectMapper.writeValueAsString(requestModel);
-
-        DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
-            authToken,
-            "/api/repository/v1/datasets",
-            json,
-            JobModel.class);
-        assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
-
-        DataRepoResponse<DatasetSummaryModel> datasetResponse =
-            dataRepoClient.waitForResponse(authToken, jobResponse, DatasetSummaryModel.class);
-        assertThat("dataset create is successful", datasetResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("dataset create response is present", datasetResponse.getResponseObject().isPresent());
-        return datasetResponse.getResponseObject().get();
-    }
-
-    public void deleteTestDataset(String authToken, String datasetId) throws Exception {
-        DataRepoResponse<JobModel> jobResponse =
-            dataRepoClient.delete(authToken, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
-
-        assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
-
-        DataRepoResponse<DeleteResponseModel> deleteResponse =
-            dataRepoClient.waitForResponse(authToken, jobResponse, DeleteResponseModel.class);
-        assertGoodDeleteResponse(deleteResponse);
-    }
-
-    /**
+   /**
      * Ingests JSON data taking the defaults for the ingest specification
      *
      * @param studyId    - id of study to load

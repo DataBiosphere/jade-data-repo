@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.dao.ResourceDao;
+import bio.terra.dao.ProfileDao;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.model.BillingProfileModel;
@@ -15,14 +15,14 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-public class ResourceService {
+public class ProfileService {
 
-    private final ResourceDao resourceDao;
+    private final ProfileDao profileDao;
     private final BillingService billingService;
 
     @Autowired
-    public ResourceService(ResourceDao resourceDao, BillingService billingService) {
-        this.resourceDao = resourceDao;
+    public ProfileService(ProfileDao profileDao, BillingService billingService) {
+        this.profileDao = profileDao;
         this.billingService = billingService;
     }
 
@@ -40,14 +40,14 @@ public class ResourceService {
             .name(billingProfileRequest.getProfileName())
             .biller(billingProfileRequest.getBiller())
             .billingAccountId(billingProfileRequest.getBillingAccountId());
-        UUID profileId = resourceDao.createBillingProfile(profile);
+        UUID profileId = profileDao.createBillingProfile(profile);
         profile.id(profileId);
         updateAccessibility(profile);
         return makeModelFromBillingProfile(profile);
     }
 
     public EnumerateBillingProfileModel enumerateProfiles(Integer offset, Integer limit) {
-        MetadataEnumeration<BillingProfile> profileEnumeration = resourceDao.enumerateBillingProfiles(offset, limit);
+        MetadataEnumeration<BillingProfile> profileEnumeration = profileDao.enumerateBillingProfiles(offset, limit);
         List<BillingProfileModel> profileModels = profileEnumeration.getItems()
             .stream()
             .map(this::updateAccessibility)
@@ -59,7 +59,7 @@ public class ResourceService {
     }
 
     public BillingProfileModel getProfileById(UUID id) {
-        BillingProfile profile = resourceDao.getBillingProfileById(id);
+        BillingProfile profile = profileDao.getBillingProfileById(id);
         updateAccessibility(profile);
         return makeModelFromBillingProfile(profile);
     }
@@ -70,7 +70,7 @@ public class ResourceService {
 
     public DeleteResponseModel deleteProfileById(UUID id) {
         // TODO: ensure there aren't dependencies
-        boolean deleted = resourceDao.deleteBillingProfileById(id);
+        boolean deleted = profileDao.deleteBillingProfileById(id);
         return new DeleteResponseModel().objectState(deleted ? DeleteResponseModel.ObjectStateEnum.DELETED :
             DeleteResponseModel.ObjectStateEnum.NOT_FOUND);
     }

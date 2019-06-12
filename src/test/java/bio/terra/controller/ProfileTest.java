@@ -2,7 +2,7 @@ package bio.terra.controller;
 
 import bio.terra.category.Unit;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.fixtures.ResourceFixtures;
+import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.ErrorModel;
@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class ResourceTest {
+public class ProfileTest {
 
     @Autowired
     private MockMvc mvc;
@@ -63,7 +63,7 @@ public class ResourceTest {
 
     @Test
     public void testCreateReadDelete() throws Exception {
-        String accountId = ResourceFixtures.randomBillingAccountId();
+        String accountId = ProfileFixtures.randomBillingAccountId();
         billingProfileRequest.billingAccountId(accountId);
         String responseJson = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)

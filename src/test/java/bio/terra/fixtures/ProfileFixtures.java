@@ -2,12 +2,12 @@ package bio.terra.fixtures;
 
 import bio.terra.metadata.BillingProfile;
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
-public final class ResourceFixtures {
-    private ResourceFixtures() {}
+public final class ProfileFixtures {
+    private ProfileFixtures() {}
 
     public static String randomHex(int n) {
         Random r = new Random();
@@ -20,10 +20,11 @@ public final class ResourceFixtures {
 
     // Google billing account ids are three sets of six capitalized hex characters separated by dashes
     public static String randomBillingAccountId() {
-        return Collections.nCopies(3, 6)
-            .stream()
-            .map(ResourceFixtures::randomHex)
-            .collect(Collectors.joining("-")).toUpperCase();
+        List<String> groups = new ArrayList<>();
+        for (int i = 0; i < 3; i++) {
+            groups.add(randomHex(6));
+        }
+        return String.join("-", groups).toUpperCase();
     }
 
     public static BillingProfile randomBillingProfile() {

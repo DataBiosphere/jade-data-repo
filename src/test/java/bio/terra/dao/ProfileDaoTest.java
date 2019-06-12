@@ -2,11 +2,11 @@ package bio.terra.dao;
 
 import bio.terra.category.Unit;
 import bio.terra.dao.exception.AccountAlreadyExistsException;
-import bio.terra.dao.exception.ResourceNotFoundException;
-import bio.terra.fixtures.ResourceFixtures;
+import bio.terra.dao.exception.ProfileNotFoundException;
+import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.service.ResourceService;
+import bio.terra.service.ProfileService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,33 +30,33 @@ import static org.junit.Assert.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class ResourceDaoTest {
+public class ProfileDaoTest {
 
     @Autowired
-    private ResourceDao resourceDao;
+    private ProfileDao profileDao;
 
     @Autowired
-    private ResourceService resourceService;
+    private ProfileService profileService;
 
     private BillingProfile billingProfile;
     private ArrayList<UUID> profileIds;
 
     @Before
     public void setup() throws Exception {
-        billingProfile = ResourceFixtures.randomBillingProfile();
+        billingProfile = ProfileFixtures.randomBillingProfile();
         profileIds = new ArrayList<>();
     }
 
     @After
     public void teardown() throws Exception {
         for (UUID profileId : profileIds) {
-            resourceDao.deleteBillingProfileById(profileId);
+            profileDao.deleteBillingProfileById(profileId);
         }
     }
 
     // keeps track of the profiles that are made so they can be cleaned up
     private UUID makeProfile(BillingProfile profile) {
-        UUID profileId = resourceDao.createBillingProfile(profile);
+        UUID profileId = profileDao.createBillingProfile(profile);
         profileIds.add(profileId);
         return profileId;
     }
@@ -64,7 +64,7 @@ public class ResourceDaoTest {
     @Test
     public void happyProfileInOutTest() throws Exception {
         UUID profileId = makeProfile(billingProfile);
-        BillingProfile fromDB = resourceDao.getBillingProfileById(profileId);
+        BillingProfile fromDB = profileDao.getBillingProfileById(profileId);
 
         assertThat("profile name set correctly",
                 fromDB.getName(),
@@ -79,12 +79,12 @@ public class ResourceDaoTest {
                 equalTo(billingProfile.getBiller()));
     }
 
-    @Test(expected = ResourceNotFoundException.class)
+    @Test(expected = ProfileNotFoundException.class)
     public void profileDeleteTest() {
         UUID profileId = makeProfile(billingProfile);
-        boolean deleted = resourceDao.deleteBillingProfileById(profileId);
+        boolean deleted = profileDao.deleteBillingProfileById(profileId);
         assertThat("able to delete", deleted, equalTo(true));
-        resourceDao.getBillingProfileById(profileId);
+        profileDao.getBillingProfileById(profileId);
     }
 
     @Test(expected = AccountAlreadyExistsException.class)
@@ -97,12 +97,12 @@ public class ResourceDaoTest {
     public void profileEnumerateTest() throws Exception {
         Map<UUID, String> profileIdToAccountId = new HashMap<>();
         for (int i = 0; i < 6; i++) {
-            BillingProfile enumProfile = ResourceFixtures.randomBillingProfile();
+            BillingProfile enumProfile = ProfileFixtures.randomBillingProfile();
             UUID enumProfileId = makeProfile(enumProfile);
             profileIdToAccountId.put(enumProfileId, enumProfile.getBillingAccountId());
         }
 
-        MetadataEnumeration<BillingProfile> profileEnumeration = resourceDao.enumerateBillingProfiles(0, 1);
+        MetadataEnumeration<BillingProfile> profileEnumeration = profileDao.enumerateBillingProfiles(0, 1);
         int total = profileEnumeration.getTotal();
         testOneEnumerateRange(profileIdToAccountId, 0, total);
         testOneEnumerateRange(profileIdToAccountId, 0, total + 10);
@@ -113,7 +113,7 @@ public class ResourceDaoTest {
 
     private void testOneEnumerateRange(Map<UUID, String> profileIdToAccountId, int offset, int limit) {
         MetadataEnumeration<BillingProfile> profileMetadataEnumeration =
-            resourceDao.enumerateBillingProfiles(offset, limit);
+            profileDao.enumerateBillingProfiles(offset, limit);
 
         // We expect the datasets to be returned in their created order
         List<BillingProfile> profiles = profileMetadataEnumeration.getItems();

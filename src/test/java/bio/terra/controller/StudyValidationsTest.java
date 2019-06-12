@@ -322,7 +322,14 @@ public class StudyValidationsTest {
         for (int i = 0; i < messageCodes.length; i++) {
             String code = messageCodes[i];
             assertThat(context + ": correct message code (" + i + ")",
-                details.get(i), containsString(messageCodes[i]));
+                /**
+                 * The global exception handler logs in this format:
+                 *
+                 * <fieldName>: '<messageCode>' (<defaultMessage>)
+                 *
+                 * We check to see if the code is wrapped in quotes to prevent matching on substrings.
+                 */
+                details.get(i), containsString("'" + messageCodes[i] + "'"));
         }
     }
 }

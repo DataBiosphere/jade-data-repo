@@ -1,7 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.metadata.BillingProfile;
-import bio.terra.service.exception.ExternalServiceException;
+import bio.terra.service.exception.BillingServiceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -22,27 +22,31 @@ import java.util.List;
 @Profile("google")
 public class GoogleBillingService implements BillingService {
 
-    private final Cloudbilling cloudbilling;
+    private static Cloudbilling cloudbilling() {
+        try {
+            // Authentication is provided by the 'gcloud' tool when running locally
+            // and by built-in service accounts when running on GAE, GCE, or GKE.
+            GoogleCredential credential = GoogleCredential.getApplicationDefault();
 
-    public GoogleBillingService() throws IOException, GeneralSecurityException {
-        // Authentication is provided by the 'gcloud' tool when running locally
-        // and by built-in service accounts when running on GAE, GCE, or GKE.
-        GoogleCredential credential = GoogleCredential.getApplicationDefault();
+            // The createScopedRequired method returns true when running on GAE or a local developer
+            // machine. In that case, the desired scopes must be passed in manually. When the code is
+            // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
+            // See https://developers.google.com/identity/protocols/application-default-credentials
+            // for more information.
+            if (credential.createScopedRequired()) {
+                credential = credential.createScoped(
+                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+            }
 
-        // The createScopedRequired method returns true when running on GAE or a local developer
-        // machine. In that case, the desired scopes must be passed in manually. When the code is
-        // running in GCE, GKE or a Managed VM, the scopes are pulled from the GCE metadata server.
-        // See https://developers.google.com/identity/protocols/application-default-credentials for more information.
-        if (credential.createScopedRequired()) {
-            credential = credential.createScoped(
-                Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+            HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
+            JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+            return new Cloudbilling.Builder(httpTransport, jsonFactory, credential)
+                .setApplicationName("jade-data-repository")
+                .build();
+        } catch (IOException | GeneralSecurityException e) {
+            String message = String.format("Could not build Cloudbilling instance: %s", e.getMessage());
+            throw new BillingServiceException(message, e);
         }
-
-        HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
-        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-        cloudbilling  = new Cloudbilling.Builder(httpTransport, jsonFactory, credential)
-            .setApplicationName("jade-data-repository")
-            .build();
     }
 
     /**
@@ -71,7 +75,7 @@ public class GoogleBillingService implements BillingService {
         TestIamPermissionsRequest permissionsRequest = new TestIamPermissionsRequest().setPermissions(permissions);
         try {
             Cloudbilling.BillingAccounts.TestIamPermissions testIamPermissions =
-                cloudbilling.billingAccounts().testIamPermissions(accountId, permissionsRequest);
+                cloudbilling().billingAccounts().testIamPermissions(accountId, permissionsRequest);
             List<String> actualPermissions = testIamPermissions.execute().getPermissions();
             return actualPermissions != null && actualPermissions.equals(permissions);
         } catch (GoogleJsonResponseException e) {
@@ -81,10 +85,10 @@ public class GoogleBillingService implements BillingService {
                 return false;
             }
             String message = String.format("%s Error, Could not check permissions on: %s", status, accountId);
-            throw new ExternalServiceException(message, e);
+            throw new BillingServiceException(message, e);
         } catch (IOException e) {
             String message = String.format("Could not check permissions on: %s", accountId);
-            throw new ExternalServiceException(message, e);
+            throw new BillingServiceException(message, e);
         }
     }
 }

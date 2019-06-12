@@ -44,7 +44,7 @@ public class ApiValidationExceptionHandler extends ResponseEntityExceptionHandle
 
     private String formatFieldError(FieldError error) {
         StringBuilder builder = new StringBuilder()
-            .append(String.format("%s: %s", error.getField(), error.getCode()));
+            .append(String.format("%s: '%s'", error.getField(), error.getCode()));
         String defaultMessage = error.getDefaultMessage();
         if (StringUtils.isNotEmpty(defaultMessage)) {
             builder.append(String.format(" (%s)", defaultMessage));

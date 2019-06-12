@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.dao.exception.AccountAlreadyExistsException;
-import bio.terra.dao.exception.ResourceNotFoundException;
+import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,11 +18,11 @@ import java.util.List;
 import java.util.UUID;
 
 @Repository
-public class ResourceDao {
+public class ProfileDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public ResourceDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public ProfileDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -63,7 +63,7 @@ public class ResourceDao {
                 .addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
         } catch (EmptyResultDataAccessException ex) {
-            throw new ResourceNotFoundException("Profile not found for id " + id.toString());
+            throw new ProfileNotFoundException("Profile not found for id " + id.toString());
         }
     }
 

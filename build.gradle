@@ -282,6 +282,10 @@ task testConnected(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Connected'
     }
+    testLogging {
+        events = ["passed", "failed", "skipped"]
+        showStandardStreams = true
+    }
 }
 
 task testIntegration(type: Test) {

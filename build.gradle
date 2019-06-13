@@ -297,14 +297,12 @@ task testIntegration(type: Test) {
 task testUnit(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Unit'
-            'bio.terra.category.Integration'
     }
 }
 
 task testAll(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit',
-            'bio.terra.category.Integration'
+        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
     }
 }
 

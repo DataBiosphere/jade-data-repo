@@ -1,6 +1,6 @@
 package bio.terra.dao;
 
-import bio.terra.dao.exception.AccountAlreadyExistsException;
+import bio.terra.dao.exception.AccountAlreadyInUse;
 import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +39,15 @@ public class ProfileDao {
             jdbcTemplate.update(sql, params, keyHolder);
             return keyHolder.getId();
         } catch (DuplicateKeyException ex) {
-            throw new AccountAlreadyExistsException("Account in use: " + billingProfile.getBillingAccountId(), ex);
+            String billingAccountId = billingProfile.getBillingAccountId();
+            List<String> details = new ArrayList<>();
+            try {
+                BillingProfile profile = getBillingProfileByAccount(billingAccountId);
+                details.add("Account being used by profile with id: " + profile.getId());
+            } catch (ProfileNotFoundException e) {
+                details.add("Unable to find profile using this billing account. Something bad has happened.");
+            }
+            throw new AccountAlreadyInUse("Account in use: " + billingAccountId, ex, details);
         }
     }
 
@@ -63,7 +72,18 @@ public class ProfileDao {
                 .addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
         } catch (EmptyResultDataAccessException ex) {
-            throw new ProfileNotFoundException("Profile not found for id " + id.toString());
+            throw new ProfileNotFoundException("Profile not found for id: " + id.toString());
+        }
+    }
+
+    public BillingProfile getBillingProfileByAccount(String billingAccountId) {
+        try {
+            String sql = "SELECT * FROM billing_profile WHERE billing_account_id = :billing_account_id";
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("billing_account_id", billingAccountId);
+            return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new ProfileNotFoundException("Profile not found for billing account: " + billingAccountId);
         }
     }
 

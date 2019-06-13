@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.dao.exception.AccountAlreadyExistsException;
+import bio.terra.dao.exception.AccountAlreadyInUse;
 import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.BillingProfile;
@@ -65,6 +65,7 @@ public class ProfileDaoTest {
     public void happyProfileInOutTest() throws Exception {
         UUID profileId = makeProfile(billingProfile);
         BillingProfile fromDB = profileDao.getBillingProfileById(profileId);
+        BillingProfile byBillingAccountId = profileDao.getBillingProfileByAccount(billingProfile.getBillingAccountId());
 
         assertThat("profile name set correctly",
                 fromDB.getName(),
@@ -77,6 +78,10 @@ public class ProfileDaoTest {
         assertThat("profile biller set correctly",
                 fromDB.getBiller(),
                 equalTo(billingProfile.getBiller()));
+
+        assertThat("able to lookup by account id",
+            byBillingAccountId.getId(),
+            equalTo(profileId));
     }
 
     @Test(expected = ProfileNotFoundException.class)
@@ -87,7 +92,7 @@ public class ProfileDaoTest {
         profileDao.getBillingProfileById(profileId);
     }
 
-    @Test(expected = AccountAlreadyExistsException.class)
+    @Test(expected = AccountAlreadyInUse.class)
     public void profileDuplicateIdTest() {
         makeProfile(billingProfile);
         makeProfile(billingProfile);

@@ -1,9 +1,13 @@
 package bio.terra.integration;
 
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -22,10 +26,12 @@ import java.util.concurrent.TimeUnit;
  * This class holds a Spring RestTemplate
  */
 @Component
+@Profile("integrationtest")
 public class DataRepoClient {
     @Autowired
-    private DataRepoConfiguration dataRepoConfiguration;
+    private TestConfiguration testConfig;
 
+    private static Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
     private RestTemplate restTemplate;
     private ObjectMapper objectMapper;
     private HttpHeaders headers;
@@ -40,22 +46,30 @@ public class DataRepoClient {
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
     }
 
-    public <T> DataRepoResponse<T> get(String path, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+    private HttpHeaders getHeaders(String authToken) {
+        HttpHeaders copy = new HttpHeaders(headers);
+        copy.setBearerAuth(authToken);
+        return copy;
+    }
+
+    public <T> DataRepoResponse<T> get(String authToken, String path, Class<T> responseClass) throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> post(String path, String json, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(json, headers);
+    public <T> DataRepoResponse<T> post(String authToken, String path, String json, Class<T> responseClass)
+        throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> delete(String path, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(headers);
+    public <T> DataRepoResponse<T> delete(String authToken, String path, Class<T> responseClass) throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(authToken));
         return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> waitForResponse(DataRepoResponse<JobModel> jobModelResponse,
+    public <T> DataRepoResponse<T> waitForResponse(String authToken,
+                                                   DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
         try {
             while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
@@ -63,7 +77,7 @@ public class DataRepoClient {
 
                 // TODO: tune this. Maybe use exponential backoff?
                 TimeUnit.SECONDS.sleep(10);
-                jobModelResponse = get(location, JobModel.class);
+                jobModelResponse = get(authToken, location, JobModel.class);
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -75,7 +89,7 @@ public class DataRepoClient {
         }
 
         String location = getLocationHeader(jobModelResponse);
-        DataRepoResponse<T> resultResponse = get(location, responseClass);
+        DataRepoResponse<T> resultResponse = get(authToken, location, responseClass);
 
         return resultResponse;
     }
@@ -93,7 +107,7 @@ public class DataRepoClient {
                                                         Class<T> responseClass) throws Exception {
 
         ResponseEntity<String> response = restTemplate.exchange(
-            makeUrl(path),
+            testConfig.getJadeApiUrl() + path,
             method,
             entity,
             String.class);
@@ -117,11 +131,4 @@ public class DataRepoClient {
         return drResponse;
     }
 
-    private String makeUrl(String path) {
-        return String.format("%s://%s:%s%s",
-            dataRepoConfiguration.getProtocol(),
-            dataRepoConfiguration.getServer(),
-            dataRepoConfiguration.getPort(),
-            path);
-    }
 }

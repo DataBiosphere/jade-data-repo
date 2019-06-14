@@ -110,6 +110,116 @@ paths:
           description: service is broken
       security: []
 
+  ## Resources interface
+
+  '/api/resources/v1/profiles':
+    post:
+      description: |
+        Creates a new profile associated with a billing account
+      operationId: createProfile
+      tags:
+        - resources
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: billingProfileRequest
+        schema:
+          $ref: '#/definitions/BillingProfileRequestModel'
+      responses:
+        201:
+          description: Successfully created the new profile associated with the billing account
+          schema:
+            $ref: '#/definitions/BillingProfileModel'
+        400:
+          description: Bad request - see error message
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to create profiles
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the billing profiles
+      operationId: enumerateProfiles
+      tags:
+      - resources
+      parameters:
+      - in: query
+        name: offset
+        type: integer
+        default: 0
+        description: The number of items to skip before starting to collect the result set.
+      - in: query
+        name: limit
+        type: integer
+        description: The numbers of items to return.
+        default: 10
+      responses:
+        200:
+          description: List of billing profiles
+          schema:
+            $ref: '#/definitions/EnumerateBillingProfileModel'
+
+
+  '/api/resources/v1/profiles/{id}':
+    get:  ## retrieve
+      description: Retrieve a billing profile by id
+      operationId: retrieveProfile
+      tags:
+      - resources
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Billing profile
+          schema:
+            $ref: '#/definitions/BillingProfileModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to see billing profile
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - billing profile id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+    delete: ## delete
+      description: Delete a billing profile by id
+      operationId: deleteProfile
+      tags:
+      - resources
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Successful deletion
+          schema:
+            $ref: '#/definitions/DeleteResponseModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to delete profile
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - profile id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Profile in use by at least one study
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
   ## Repository Interface
 
   '/api/repository/v1/datasets':
@@ -312,7 +422,7 @@ paths:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/DatasetPolicyName'
       responses:
-        200:
+        201:
           description: PolicyResponse
           schema:
             $ref: '#/definitions/PolicyResponse'
@@ -517,7 +627,7 @@ paths:
 
 
   '/api/repository/v1/studies/{id}/policies/{policyName}/members':
-    post:  ## retrieve
+    post:
       description: Adds a member to the specified policy for the dataset
       operationId: addStudyPolicyMember
       tags:
@@ -533,7 +643,7 @@ paths:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/StudyPolicyName'
       responses:
-        200:
+        201:
           description: PolicyResponse
           schema:
             $ref: '#/definitions/PolicyResponse'
@@ -1078,6 +1188,57 @@ definitions:
     pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
 
 
+
+  ## Billing ##
+  BillingProfileRequestModel:
+    description: |
+      Describes a profile that references a billing account.
+    type: object
+    required:
+      - billingAccountId
+      - profileName
+      - biller
+    properties:
+      billingAccountId:
+        type: string
+        description: unique identifier of the billing account from Google
+      profileName:
+        type: string
+        description: display name to be used for the profile
+      biller:
+        type: string
+        description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
+
+  BillingProfileModel:
+    type: object
+    properties:
+      id:
+        $ref: '#/definitions/UniqueIdProperty'
+      billingAccountId:
+        type: string
+        description: unique identifier of the billing account from Google
+      profileName:
+        type: string
+        description: display name to be used for the profile
+      biller:
+        type: string
+        description: either “direct” or the reseller of the sub-account that sends the bill (like “on_spend”)
+      accessible:
+        type: boolean
+        description: true if the repository SA is a billing account user on this billing account, false o/w
+
+  EnumerateBillingProfileModel:
+    description: |
+      The total number of billing profiles available and a page of profiles
+    type: object
+    properties:
+      total:
+        type: integer
+        description: Total number of billing profiles
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/BillingProfileModel'
 
   ## Study ##
 

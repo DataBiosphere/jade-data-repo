@@ -1,10 +1,10 @@
 package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
+import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
-import bio.terra.integration.DataRepoConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -41,13 +41,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("google")
+@ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FileOperationTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
-    @Autowired private DataRepoConfiguration dataRepoConfiguration;
+    @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DrsIdService drsService;
 
     @MockBean
@@ -114,7 +114,7 @@ public class FileOperationTest {
         // Error: Non-existent source file
         String badfile = "/I am not a file";
         URI uribadfile = new URI("gs",
-            dataRepoConfiguration.getIngestbucket(),
+            testConfig.getIngestbucket(),
             badfile,
             null,
             null);
@@ -168,7 +168,7 @@ public class FileOperationTest {
     private FileLoadModel makeFileLoad() throws Exception {
         String targetDir = Names.randomizeName("dir");
         URI uri = new URI("gs",
-            dataRepoConfiguration.getIngestbucket(),
+            testConfig.getIngestbucket(),
             "/files/" + testPdfFile,
             null,
             null);

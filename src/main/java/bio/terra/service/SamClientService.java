@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -192,7 +193,7 @@ public class SamClientService {
         this.stewardsGroupEmail = stewardsGroupEmail;
     }
 
-    public void verifyAuthorization(
+    public boolean isAuthorized(
         AuthenticatedUserRequest userReq,
         SamClientService.ResourceType resourceType,
         String resourceId,
@@ -208,8 +209,28 @@ public class SamClientService {
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }
-        if (!authorized)
+        return authorized;
+    }
+
+    public void verifyAuthorization(
+        AuthenticatedUserRequest userReq,
+        SamClientService.ResourceType resourceType,
+        String resourceId,
+        SamClientService.DataRepoAction action) {
+        if (!isAuthorized(userReq, resourceType, resourceId, action))
             throw new UnauthorizedException("User does not have required action: " + action);
+    }
+
+    public <T> List<T> filterAuthorizedResources(
+        AuthenticatedUserRequest userReq,
+        SamClientService.ResourceType resourceType,
+        SamClientService.DataRepoAction action,
+        List<T> resources,
+        Function<T,String> getId
+    ) {
+        return resources.stream()
+            .filter(resource -> isAuthorized(userReq, resourceType, getId.apply(resource), action))
+            .collect(Collectors.toList());
     }
 
     public boolean checkResourceAction(

@@ -161,12 +161,20 @@ public class RepositoryApiController implements RepositoryApi {
             appConfig.datarepoId(),
             SamClientService.DataRepoAction.READ_STUDY);
         EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter);
+        List<StudySummaryModel> authorizedResults = samService.filterAuthorizedResources(getAuthenticatedInfo(), SamClientService.ResourceType.STUDY,
+            SamClientService.DataRepoAction.READ_STUDY, esm.getItems(), (StudySummaryModel sm) -> sm.getId());
+        esm.setItems(authorizedResults);
         return new ResponseEntity<>(esm, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
                                                 @Valid @RequestBody IngestRequestModel ingest) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = studyService.ingestStudy(id, ingest);
         return jobService.retrieveJob(jobId);
     }

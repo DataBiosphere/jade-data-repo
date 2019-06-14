@@ -16,7 +16,9 @@ import java.io.File;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 @Profile("integrationtest")
@@ -25,13 +27,11 @@ public class AuthService {
     // the list of scopes we request from end users when they log in.
     // this should always match exactly what the UI requests, so our tests represent actual user behavior:
     private List<String> userLoginScopes = Arrays.asList(new String[]{"openid", "email", "profile"});
-
-//    private TestConfiguration testConfig;
     private NetHttpTransport httpTransport;
     private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-
     private File pemfile;
     private String saEmail;
+    private Map<String,String> userTokens = new HashMap<>();
 
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
@@ -42,7 +42,10 @@ public class AuthService {
     }
 
     public String getAuthToken(String userEmail) {
-        return makeToken(userEmail);
+        if (!userTokens.containsKey(userEmail)) {
+            userTokens.put(userEmail, makeToken(userEmail));
+        }
+        return userTokens.get(userEmail);
     }
 
 

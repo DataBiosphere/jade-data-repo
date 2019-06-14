@@ -122,8 +122,12 @@ public class DataRepoClient {
         drResponse.setLocationHeader((uri == null) ? Optional.empty() : Optional.of(uri.toString()));
 
         if (response.getStatusCode().is2xxSuccessful()) {
-            T responseObject = objectMapper.readValue(response.getBody(), responseClass);
-            drResponse.setResponseObject(Optional.of(responseObject));
+            if (responseClass != null) {
+                T responseObject = objectMapper.readValue(response.getBody(), responseClass);
+                drResponse.setResponseObject(Optional.of(responseObject));
+            } else {
+                drResponse.setResponseObject(Optional.empty());
+            }
             drResponse.setErrorModel(Optional.empty());
         } else {
             ErrorModel errorModel = objectMapper.readValue(response.getBody(), ErrorModel.class);

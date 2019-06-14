@@ -35,7 +35,6 @@ import static bio.terra.fixtures.StudyFixtures.buildSampleTerm;
 import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -323,7 +322,14 @@ public class StudyValidationsTest {
         for (int i = 0; i < messageCodes.length; i++) {
             String code = messageCodes[i];
             assertThat(context + ": correct message code (" + i + ")",
-                details.get(i), startsWith(messageCodes[i]));
+                /**
+                 * The global exception handler logs in this format:
+                 *
+                 * <fieldName>: '<messageCode>' (<defaultMessage>)
+                 *
+                 * We check to see if the code is wrapped in quotes to prevent matching on substrings.
+                 */
+                details.get(i), containsString("'" + messageCodes[i] + "'"));
         }
     }
 }

@@ -1259,9 +1259,12 @@ definitions:
       description:
         type: string
         description: Description of the study
-      profiles:
+      defaultProfile:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: This is the ID of the profile used for core study resources
+      additionalProfiles:
         type: array
-        description: Profile IDs for this study
+        description: Additional profile IDs to be used for this study
         items:
           $ref: '#/definitions/UniqueIdProperty'
       defaultDatasetId:
@@ -1295,8 +1298,7 @@ definitions:
     type: object
     required:
     - name
-    - description
-    - profiles
+    - defaultProfile
     - schema
     properties:
       name:
@@ -1304,9 +1306,12 @@ definitions:
       description:
         type: string
         description: Description of the study
-      profiles:
+      defaultProfile:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: This is the ID of the profile used for core study resources
+      additionalProfiles:
         type: array
-        description: Profile IDs to be used for this study. The first ID is considered the default profile.
+        description: Additional profile IDs to be used for this study
         items:
           $ref: '#/definitions/UniqueIdProperty'
       schema:

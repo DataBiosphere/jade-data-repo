@@ -4,6 +4,7 @@ import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudySummary;
@@ -16,6 +17,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class StudyJsonConversion {
@@ -27,6 +29,10 @@ public final class StudyJsonConversion {
         Map<String, Table> tablesMap = new HashMap<>();
         Map<String, StudyRelationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
+        List<UUID> profileIds = studyRequest.getProfiles()
+            .stream()
+            .map(UUID::fromString)
+            .collect(Collectors.toList());
 
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         studySpecification.getTables().forEach(tableModel ->
@@ -44,6 +50,7 @@ public final class StudyJsonConversion {
         return new Study(new StudySummary()
                 .name(studyRequest.getName())
                 .description(studyRequest.getDescription()))
+                .profileIds(profileIds)
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
@@ -58,10 +65,15 @@ public final class StudyJsonConversion {
     }
 
     public static StudyModel studyModelFromStudy(Study study) {
+        List<String> profileIds = study.getProfileIds()
+            .stream()
+            .map(UUID::toString)
+            .collect(Collectors.toList());
         return new StudyModel()
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
+                .profiles(profileIds)
                 .createdDate(study.getCreatedDate().toString())
                 .schema(studySpecificationModelFromStudySchema(study));
     }

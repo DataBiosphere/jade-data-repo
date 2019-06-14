@@ -1,0 +1,79 @@
+databaseChangeLog:
+  - changeSet:
+      id: billing_profile_tables
+      author: jh
+      changes:
+        - createTable:
+            tableName: study_resource
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: study_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_resource_study
+                    references: study(id)
+                    deleteCascade: true
+              - column:
+                  name: profile
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_resource_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: true
+              - column:
+                  name: resource_type
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: resource_id
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+
+        - createTable:
+            tableName: study_resource_attribute
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: study_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_resource_attribute_study_resource
+                    references: study_resource(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: varchar(32)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: value
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+
+        - addColumn:
+            tableName: study
+            columns:
+              - column:
+                  name: profile_id
+                  type: ${uuid_type} []
+                  constraints:
+                    nullable: false

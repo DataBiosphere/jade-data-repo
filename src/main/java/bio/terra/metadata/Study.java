@@ -14,6 +14,7 @@ public class Study extends StudySummary {
     private List<Table> tables = Collections.emptyList();
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
+    private List<UUID> profileIds = Collections.emptyList();
 
     public Study() {
     }
@@ -23,7 +24,7 @@ public class Study extends StudySummary {
     }
 
     public List<Table> getTables() {
-        return tables;
+        return Collections.unmodifiableList(tables);
     }
 
     public Study tables(List<Table> tables) {
@@ -32,7 +33,7 @@ public class Study extends StudySummary {
     }
 
     public List<StudyRelationship> getRelationships() {
-        return relationships;
+        return Collections.unmodifiableList(relationships);
     }
 
     public Study relationships(List<StudyRelationship> relationships) {
@@ -41,11 +42,20 @@ public class Study extends StudySummary {
     }
 
     public List<AssetSpecification> getAssetSpecifications() {
-        return assetSpecifications;
+        return Collections.unmodifiableList(assetSpecifications);
     }
 
     public Study assetSpecifications(List<AssetSpecification> assetSpecifications) {
         this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
+        return this;
+    }
+
+    public List<UUID> getProfileIds() {
+        return Collections.unmodifiableList(profileIds);
+    }
+
+    public Study profileIds(List<UUID> profileIds) {
+        this.profileIds = Collections.unmodifiableList(profileIds);
         return this;
     }
 

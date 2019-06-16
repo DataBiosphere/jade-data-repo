@@ -17,30 +17,6 @@ import org.springframework.context.annotation.Profile;
 @Configuration
 @Profile("google")
 public class BigQueryConfiguration {
-    // TODO: This is temporary. When we do the resource manager, the project id will via there
-    // for a given study. This project id is used here and in the file system (FireStore) to
-    // allocate the accessing instance.
-
-    @Value("${google.projectid}")
-    private String projectId;
-
-    @Bean("googleProjectId")
-    public String googleProjectId() {
-        return projectId;
-    }
-
-    @Bean("bigQueryProjectId")
-    public String bigQueryProjectId() {
-        return projectId;
-    }
-
-    @Bean("bigQuery")
-    public BigQuery bigQuery() {
-        return BigQueryOptions.newBuilder()
-            .setProjectId(projectId)
-            .build()
-            .getService();
-    }
 
     @Bean("firestore")
     public Firestore firestore() {

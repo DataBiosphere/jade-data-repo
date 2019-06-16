@@ -10,14 +10,17 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
+import bio.terra.metadata.google.GoogleProject;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.pdao.exception.PdaoException;
+import bio.terra.service.google.GoogleResourceService;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
@@ -64,15 +67,20 @@ import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 public class BigQueryPdao implements PrimaryDataAccess {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.pdao.bigquery");
 
-    private final BigQuery bigQuery;
-    private final String projectId;
     private final String datarepoDnsName;
+    private final GoogleResourceService googleResourceService;
 
     @Autowired
-    public BigQueryPdao(BigQuery bigQuery, String bigQueryProjectId, String datarepoDnsName) {
-        this.bigQuery = bigQuery;
-        this.projectId = bigQueryProjectId;
+    public BigQueryPdao(String datarepoDnsName, GoogleResourceService googleResourceService) {
         this.datarepoDnsName = datarepoDnsName;
+        this.googleResourceService = googleResourceService;
+    }
+
+    private static BigQuery bigQueryService(String projectId) {
+        return BigQueryOptions.newBuilder()
+            .setProjectId(projectId)
+            .build()
+            .getService();
     }
 
     @Override
@@ -82,7 +90,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void createStudy(Study study) {
+        GoogleProject project = googleResourceService.getProject(study.getId(), study.getDefaultProfileId());
+        BigQuery bigQuery = bigQueryService(project.getGoogleProjectId());
+
         // Keep the study name from colliding with a dataset name by prefixing it.
+        // TODO: validate against people using the prefix for datasets
         String studyName = prefixName(study.getName());
         try {
             // For idempotency, if we find the study exists, we assume that we started to

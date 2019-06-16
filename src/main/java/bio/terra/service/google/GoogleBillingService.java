@@ -1,6 +1,7 @@
-package bio.terra.service;
+package bio.terra.service.google;
 
 import bio.terra.metadata.BillingProfile;
+import bio.terra.service.BillingService;
 import bio.terra.service.exception.BillingServiceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;

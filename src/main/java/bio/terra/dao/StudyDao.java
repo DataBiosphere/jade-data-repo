@@ -17,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Repository
 public class StudyDao {
@@ -28,24 +30,30 @@ public class StudyDao {
     private final StudyTableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
+    private final ProfileDao profileDao;
 
     @Autowired
     public StudyDao(NamedParameterJdbcTemplate jdbcTemplate,
                     StudyTableDao tableDao,
                     RelationshipDao relationshipDao,
-                    AssetDao assetDao) {
+                    AssetDao assetDao,
+                    ProfileDao profileDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
+        this.profileDao = profileDao;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
-        String sql = "INSERT INTO study (name, description) VALUES (:name, :description)";
+        String sql = "INSERT INTO study (name, description, default_profile_id, additional_profile_ids) VALUES " +
+            "(:name, :description, :default_profile_id, :additional_profile_ids)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", study.getName())
-                .addValue("description", study.getDescription());
+            .addValue("name", study.getName())
+            .addValue("description", study.getDescription())
+            .addValue("default_profile_id", study.getDefaultProfileId())
+            .addValue("additional_profile_ids", study.getAdditionalProfileIds());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID studyId = keyHolder.getId();
@@ -89,6 +97,14 @@ public class StudyDao {
                 study.tables(tableDao.retrieveTables(study.getId()));
                 relationshipDao.retrieve(study);
                 assetDao.retrieve(study);
+                study.defaultProfile(profileDao.getBillingProfileById(summary.getId()));
+                List<UUID> additionalProfileIds = summary.getAdditionalProfileIds();
+                if (additionalProfileIds != null) {
+                    study.additionalProfiles(additionalProfileIds
+                        .stream()
+                        .map(profileDao::getBillingProfileById)
+                        .collect(Collectors.toList()));
+                }
             }
             return study;
         } catch (EmptyResultDataAccessException ex) {
@@ -98,7 +114,7 @@ public class StudyDao {
 
     public StudySummary retrieveSummaryById(UUID id) {
         try {
-            String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
+            String sql = "SELECT * FROM study WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -108,7 +124,7 @@ public class StudyDao {
 
     public StudySummary retrieveSummaryByName(String name) {
         try {
-            String sql = "SELECT id, name, description, created_date FROM study WHERE name = :name";
+            String sql = "SELECT * FROM study WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -140,7 +156,7 @@ public class StudyDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
-        String sql = "SELECT id, name, description, created_date FROM study " + whereSql +
+        String sql = "SELECT id, name, description, created_date, default_profile_id FROM study " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
@@ -152,10 +168,13 @@ public class StudyDao {
 
     private static class StudySummaryMapper implements RowMapper<StudySummary> {
         public StudySummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            UUID[] additionalIdsArray = (UUID[]) rs.getArray("additional_profile_ids").getArray();
             return new StudySummary()
                     .id(rs.getObject("id", UUID.class))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
+                    .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
+                    .additionalProfileIds(Arrays.asList(additionalIdsArray))
                     .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }

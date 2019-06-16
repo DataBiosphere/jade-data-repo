@@ -26,7 +26,7 @@ public class ProfileService {
         this.billingService = billingService;
     }
 
-    public BillingProfileModel makeModelFromBillingProfile(BillingProfile billingProfile) {
+    public static BillingProfileModel makeModelFromBillingProfile(BillingProfile billingProfile) {
         return new BillingProfileModel()
             .id(billingProfile.getId().toString())
             .profileName(billingProfile.getName())
@@ -51,7 +51,7 @@ public class ProfileService {
         List<BillingProfileModel> profileModels = profileEnumeration.getItems()
             .stream()
             .map(this::updateAccessibility)
-            .map(this::makeModelFromBillingProfile)
+            .map(ProfileService::makeModelFromBillingProfile)
             .collect(Collectors.toList());
         return new EnumerateBillingProfileModel()
             .items(profileModels)

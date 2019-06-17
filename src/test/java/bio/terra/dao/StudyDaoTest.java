@@ -25,6 +25,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -91,9 +92,12 @@ public class StudyDaoTest {
     @Test
     public void enumerateTest() throws Exception {
         UUID study1 = createMinimalStudy();
+        List<UUID> studyIds = new ArrayList<>();
+        studyIds.add(study1);
+        studyIds.add(studyId);
 
         MetadataEnumeration<StudySummary> summaryEnum = studyDao.enumerate(0, 2, "created_date",
-            "asc", null);
+            "asc", null, studyIds);
         List<StudySummary> studies = summaryEnum.getItems();
         assertThat("study enumerate limit param works",
             studies.size(),
@@ -106,7 +110,7 @@ public class StudyDaoTest {
         // this is skipping the first item returned above
         // so compare the id from the previous retrieve
         assertThat("study enumerate offset param works",
-            studyDao.enumerate(1, 1, "created_date", "asc", null)
+            studyDao.enumerate(1, 1, "created_date", "asc", null, studyIds)
                 .getItems().get(0).getId(),
             equalTo(studies.get(1).getId()));
 

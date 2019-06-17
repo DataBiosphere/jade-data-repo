@@ -13,6 +13,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
@@ -92,10 +93,22 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<Object> addStudyPolicyMemberRaw(String authToken, String studyId, String userEmail) throws Exception {
+    public DataRepoResponse<Object> addStudyPolicyMemberRaw(String authToken,
+                                                            String studyId,
+                                                            SamClientService.DataRepoRole role,
+                                                            String userEmail) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(authToken, "api/repository/vi/studies/" + studyId + "policies/study/members",
+        return dataRepoClient.post(authToken,
+            "api/repository/v1/studies/" + studyId + "/policies/" + role.getPolicyName() + "/members",
             objectMapper.writeValueAsString(req), null);
+    }
+
+    public void addStudyPolicyMember(String authToken,
+                                     String studyId,
+                                     SamClientService.DataRepoRole role,
+                                     String userEmail) throws Exception {
+        DataRepoResponse<Object> response = addStudyPolicyMemberRaw(authToken, studyId, role, userEmail);
+        assertThat("study policy memeber is successfully added", response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
     // datasets

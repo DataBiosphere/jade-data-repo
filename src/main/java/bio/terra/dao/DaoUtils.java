@@ -15,10 +15,20 @@ public final class DaoUtils {
     }
 
     public static String whereClause(String filter) {
+        return whereClause(filter, false);
+    }
+
+    public static String whereClause(String filter, boolean isAnded) {
         if (filter == null || filter.isEmpty()) {
             return "";
         }
-        return " WHERE name ILIKE :filter OR description ILIKE :filter ";
+        StringBuilder clause = new StringBuilder();
+        if (isAnded) {
+            clause.append(" AND ");
+        } else {
+            clause.append(" WHERE ");
+        }
+        return clause.append(" (name ILIKE :filter OR description ILIKE :filter) ").toString();
     }
 
     public static String escapeFilter(String filter) {

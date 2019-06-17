@@ -16,6 +16,7 @@ import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -29,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -117,13 +117,11 @@ public class SamClientService {
         // study
         EDIT_STUDY("edit_study"),
         READ_STUDY("read_study"),
-        DELETE_STUDY("delete_study"),
         INGEST_DATA("ingest_data"),
         UPDATE_DATA("update_data"),
         // datasets
         CREATE_DATASET("create_dataset"),
         EDIT_DATASET("edit_dataset"),
-        DELETE_DATASET("delete_dataset"),
         READ_DATA("read_data"),
         DISCOVER_DATA("discover_data");
 
@@ -202,7 +200,7 @@ public class SamClientService {
         try {
             authorized = checkResourceAction(
                 userReq,
-                resourceType.toString(),
+                resourceType.value,
                 resourceId,
                 action.toString());
             logger.info("authorized is " + authorized);
@@ -221,16 +219,10 @@ public class SamClientService {
             throw new UnauthorizedException("User does not have required action: " + action);
     }
 
-    public <T> List<T> filterAuthorizedResources(
-        AuthenticatedUserRequest userReq,
-        SamClientService.ResourceType resourceType,
-        SamClientService.DataRepoAction action,
-        List<T> resources,
-        Function<T,String> getId
-    ) {
-        return resources.stream()
-            .filter(resource -> isAuthorized(userReq, resourceType, getId.apply(resource), action))
-            .collect(Collectors.toList());
+    public List<ResourceAndAccessPolicy> listAuthorizedResources(
+        AuthenticatedUserRequest userReq, ResourceType resourceType) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        return samResourceApi.listResourcesAndPolicies(resourceType.toString());
     }
 
     public boolean checkResourceAction(

@@ -40,7 +40,6 @@ public class DataRepoClient {
     public DataRepoClient() {
         restTemplate = new RestTemplate();
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-//        restTemplate.setErrorHandler(new DefaultResponseErrorHandler() { public boolean hasError(ClientHttpResponse response) throws IOException { HttpStatus statusCode = response.getStatusCode(); return statusCode.series() == HttpStatus.Series.SERVER_ERROR; } });
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
         objectMapper = new ObjectMapper();
 

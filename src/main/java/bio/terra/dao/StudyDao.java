@@ -120,20 +120,22 @@ public class StudyDao {
         int limit,
         String sort,
         String direction,
-        String filter
+        String filter,
+        List<UUID> accessibleStudyIds
     ) {
-        String where = DaoUtils.whereClause(filter);
-        String sql = "SELECT id, name, description, created_date FROM study " + where +
+        String whereAnded = DaoUtils.whereClause(filter, true);
+        String sql = "SELECT id, name, description, created_date FROM study WHERE id in (:idlist) " + whereAnded +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("idlist", accessibleStudyIds)
             .addValue("offset", offset)
             .addValue("limit", limit);
-        if (!where.isEmpty()) {
+        if (!whereAnded.isEmpty()) {
             params.addValue("filter", DaoUtils.escapeFilter(filter));
         }
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
-        sql = "SELECT count(id) AS total FROM study";
-        params = new MapSqlParameterSource();
+        sql = "SELECT count(id) AS total FROM study WHERE id in (:idlist)";
+        params = new MapSqlParameterSource().addValue("idlist", accessibleStudyIds);
         Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
         return new MetadataEnumeration<StudySummary>()
             .items(summaries)

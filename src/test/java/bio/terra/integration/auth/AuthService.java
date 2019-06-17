@@ -31,7 +31,7 @@ public class AuthService {
     private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
     private File pemfile;
     private String saEmail;
-    private Map<String,String> userTokens = new HashMap<>();
+    private Map<String, String> userTokens = new HashMap<>();
 
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {

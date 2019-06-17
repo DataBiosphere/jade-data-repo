@@ -9,11 +9,10 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -76,6 +75,7 @@ public class StudyTest {
     public void studyHappyPath() throws Exception {
         StudySummaryModel summaryModel = dataRepoFixtures.createStudy(stewardToken, "it-study-omop.json");
         try {
+            System.out.println("study id is " + summaryModel.getId());
             assertThat(summaryModel.getName(), startsWith(omopStudyName));
             assertThat(summaryModel.getDescription(), equalTo(omopStudyDesc));
 
@@ -98,19 +98,21 @@ public class StudyTest {
 
             // test allowable permissions
 
-            dataRepoFixtures.addStudyPolicyMember(summaryModel.getId(), custodian.getEmail());
+            dataRepoFixtures.addStudyPolicyMember(
+                stewardToken,
+                summaryModel.getId(),
+                SamClientService.DataRepoRole.CUSTODIAN,
+                custodian.getEmail());
             DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodianToken);
             assertThat("Custodian is authorized to enumerate studies",
-                enumStudies.getStatusCode().value(),
+                enumStudies.getStatusCode(),
                 equalTo(HttpStatus.OK));
 
         } finally {
+            System.out.println("deleting study");
             dataRepoFixtures.deleteStudyRaw(stewardToken, summaryModel.getId());
         }
     }
-
-    @Rule
-    public ExpectedException exceptionGrabber = ExpectedException.none();
 
     @Test
     public void studyUnauthorizedPermissionsTest() throws Exception {
@@ -118,40 +120,44 @@ public class StudyTest {
         DataRepoResponse<StudySummaryModel> studySumRespCust = dataRepoFixtures.createStudyRaw(
             custodianToken, "study-minimal.json");
         assertThat("Custodian is not authorized to create a study",
-            studySumRespCust.getStatusCode().value(),
+            studySumRespCust.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         DataRepoResponse<StudySummaryModel> studySumRespReader = dataRepoFixtures.createStudyRaw(
             readerToken, "study-minimal.json");
         assertThat("Reader is not authorized to create a study",
-            studySumRespReader.getStatusCode().value(),
+            studySumRespReader.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        DataRepoResponse<EnumerateStudyModel> enumStudiesResp = dataRepoFixtures.enumerateStudiesRaw(readerToken);
-        assertThat("Reader is not authorized to enumerate studies",
-            enumStudiesResp.getStatusCode().value(),
-            equalTo(HttpStatus.UNAUTHORIZED));
+        EnumerateStudyModel enumStudiesResp = dataRepoFixtures.enumerateStudies(readerToken);
+        assertThat("Reader does not have access to studies",
+            enumStudiesResp.getTotal(),
+            equalTo(0));
 
         StudySummaryModel summaryModel = null;
         try {
             summaryModel = dataRepoFixtures.createStudy(stewardToken, "study-minimal.json");
+            System.out.println("study id is " + summaryModel.getId());
 
             DataRepoResponse<StudyModel> getStudyResp = dataRepoFixtures.getStudyRaw(readerToken, summaryModel.getId());
             assertThat("Reader is not authorized to get study",
-                getStudyResp.getStatusCode().value(),
+                getStudyResp.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));
 
-            DataRepoResponse<DeleteResponseModel> deleteResp1 = dataRepoFixtures.deleteStudyRaw(readerToken, summaryModel.getId());
+            DataRepoResponse<DeleteResponseModel> deleteResp1 = dataRepoFixtures.deleteStudyRaw(
+                readerToken, summaryModel.getId());
             assertThat("Reader is not authorized to delete studies",
-                deleteResp1.getStatusCode().value(),
+                deleteResp1.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));
 
-            DataRepoResponse<DeleteResponseModel> deleteResp2 = dataRepoFixtures.deleteStudyRaw(custodianToken, summaryModel.getId());
+            DataRepoResponse<DeleteResponseModel> deleteResp2 = dataRepoFixtures.deleteStudyRaw(
+                custodianToken, summaryModel.getId());
             assertThat("Custodian is not authorized to delete studies",
-                deleteResp2.getStatusCode().value(),
+                deleteResp2.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));
         } finally {
-            dataRepoFixtures.deleteStudy(stewardToken, summaryModel.getId());
+            if (summaryModel != null)
+                dataRepoFixtures.deleteStudy(stewardToken, summaryModel.getId());
         }
     }
 

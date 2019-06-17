@@ -57,13 +57,13 @@ public class StudyService {
 
     public EnumerateStudyModel enumerate(
         int offset, int limit, String sort, String direction, String filter, List<ResourceAndAccessPolicy> resources) {
+        if (resources.isEmpty()) {
+            return new EnumerateStudyModel().total(0);
+        }
         List<UUID> resourceIds = resources
             .stream()
             .map(resource -> UUID.fromString(resource.getResourceId()))
             .collect(Collectors.toList());
-        if (resourceIds.isEmpty()) {
-            return new EnumerateStudyModel().total(0);
-        }
         MetadataEnumeration<StudySummary> studyEnum = studyDao.enumerate(
             offset, limit, sort, direction, filter, resourceIds);
         List<StudySummaryModel> summaries = studyEnum.getItems()

@@ -172,11 +172,6 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
                                                 @Valid @RequestBody IngestRequestModel ingest) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.STUDY,
-            id,
-            SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = studyService.ingestStudy(id, ingest);
         return jobService.retrieveJob(jobId);
     }

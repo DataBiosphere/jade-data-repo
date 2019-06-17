@@ -94,6 +94,7 @@ public class SamClientService {
             }
             return null;
         }
+
         public String getRoleName() {
             return this.value;
         }
@@ -145,10 +146,6 @@ public class SamClientService {
                 }
             }
             return null;
-        }
-
-        public String getAction() {
-            return this.value;
         }
     }
 

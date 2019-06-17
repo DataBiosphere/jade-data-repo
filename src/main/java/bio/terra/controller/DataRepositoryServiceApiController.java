@@ -32,7 +32,6 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     private final HttpServletRequest request;
     private final DrsService drsService;
 
-
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
 

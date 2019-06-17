@@ -200,7 +200,7 @@ public class SamClientService {
         try {
             authorized = checkResourceAction(
                 userReq,
-                resourceType.value,
+                resourceType.toString(),
                 resourceId,
                 action.toString());
             logger.info("authorized is " + authorized);

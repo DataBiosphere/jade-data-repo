@@ -20,9 +20,17 @@ databaseChangeLog:
                   name: study_id
                   type: ${uuid_type}
                   constraints:
-                    nullable: false
+                    nullable: true
                     foreignKeyName: fk_study_resource_study
                     references: study(id)
+                    deleteCascade: true
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_study_resource_dataset
+                    references: dataset(id)
                     deleteCascade: true
               - column:
                   name: profile_id
@@ -66,8 +74,23 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
+                    foreignKeyName: fk_study_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: false
               - column:
                   name: additional_profile_ids
                   type: ${uuid_type} []
                   constraints:
                     nullable: true
+
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: profile_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: false

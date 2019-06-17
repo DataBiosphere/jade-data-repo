@@ -89,7 +89,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
                     if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
                         StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
 
-                        List<String> refIds = bigQueryPdao.getDatasetRefIds(datasetSource.getStudy().getName(),
+                        List<String> refIds = bigQueryPdao.getDatasetRefIds(datasetSource.getStudy(),
                             dataset.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),

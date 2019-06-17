@@ -25,11 +25,12 @@ public class GoogleResourceDao {
     }
 
     public UUID createProject(GoogleProject project) {
-        String sql = "INSERT INTO project_resource (google_project_id, study_id, profile_id) VALUES " +
-            "(:google_project_id, :study_id, :profile_id)";
+        String sql = "INSERT INTO project_resource (google_project_id, study_id, dataset_id, profile_id) VALUES " +
+            "(:google_project_id, :study_id, :dataset_id, :profile_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("google_project_id", project.getGoogleProjectId())
             .addValue("study_id", project.getStudyId())
+            .addValue("dataset_id", project.getDatasetId())
             .addValue("profile_id", project.getProfileId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
@@ -59,6 +60,7 @@ public class GoogleResourceDao {
                 .repositoryId(rs.getObject("id", UUID.class))
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .studyId(rs.getObject("study_id", UUID.class))
+                .datasetId(rs.getObject("dataset_id", UUID.class))
                 .googleProjectId(rs.getString("google_project_id"));
         }
     }

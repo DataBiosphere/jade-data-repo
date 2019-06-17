@@ -1690,6 +1690,9 @@ definitions:
         type: array
         items:
           type: string
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id to use for this dataset
 
   DatasetRequestContentsModel:
     description: |
@@ -1725,9 +1728,6 @@ definitions:
     description: |
       summary of dataset
     type: object
-    required:
-    - name
-    - createdDate
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
@@ -1739,6 +1739,9 @@ definitions:
       createdDate:
         type: string
         description: Date the dataset was created
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id for this dataset
 
   EnumerateDatasetModel:
     description: |
@@ -1757,11 +1760,6 @@ definitions:
     description: |
       DatasetModel returns detailed data about an existing dataset.
     type: object
-    required:
-      - id
-      - name
-      - source
-      - createdDate
     properties:
       id:
         $ref: '#/definitions/UniqueIdProperty'
@@ -1781,6 +1779,9 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TableModel'
+      profile:
+        $ref: '#/definitions/BillingProfileModel'
+        description: The profile of this dataset
 
   DatasetSourceModel:
     description: |

@@ -35,11 +35,6 @@ import java.util.List;
 public interface PrimaryDataAccess {
 
     /**
-     * Check to see if a study exists
-     */
-    boolean studyExists(String studyName);
-
-    /**
      * Create the container and tables for a study.
      * BigQuery: container is a BigQuery dataset
      *
@@ -54,11 +49,6 @@ public interface PrimaryDataAccess {
      * @return true if the study was deleted; false if it was not found; throw on other errors
      */
     boolean deleteStudy(Study study);
-
-    /**
-     * Check to see if a dataset exists
-     */
-    boolean datasetExists(String datasetName);
 
     /**
      * Given inputs from one asset, compute the row ids from the input values. The
@@ -94,25 +84,9 @@ public interface PrimaryDataAccess {
     /**
      * Add the google group for the dataset readers to the BQ dataset
      *
-     * @param datasetId bigquery dataset name
+     * @param dataset dataset metadata
      * @param readersEmail email address for readers group (as returned by SAM)
      */
-    void addReaderGroupToDataset(String datasetId, String readersEmail);
-
-    /**
-     * Update the athorized views on the study to include the tables in the dataset
-     * @param datasetName
-     * @param studyName
-     * @param tableNames
-     */
-    void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames);
-
-    /**
-     * Remove the athorized views for the dataset from the study
-     * @param datasetName
-     * @param studyName
-     * @param tableNames
-     */
-    void removeDatasetAuthorizationFromStudy(String datasetName, String studyName, List<String> tableNames);
+    void addReaderGroupToDataset(Dataset dataset, String readersEmail);
 
 }

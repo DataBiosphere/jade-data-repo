@@ -65,13 +65,6 @@ public final class IngestUtils {
         return optTable.get();
     }
 
-    public static boolean deleteStagingTable(FlightContext context, BigQueryPdao bigQueryPdao) {
-        String studyName = IngestUtils.getStudyName(context);
-        String stagingTableName = IngestUtils.getStagingTableName(context);
-        return bigQueryPdao.deleteTable(studyName, stagingTableName);
-    }
-
-
     public static GsUrlParts parseBlobUri(String uri) {
         String protocol = "gs://";
         if (!StringUtils.startsWith(uri, protocol)) {

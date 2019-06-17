@@ -25,6 +25,6 @@ public class DatasetCreateFlight extends Flight {
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetService));
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService, datasetDao, dependencyDao));
-        addStep(new AuthorizeDataset(bigQueryPdao, samClient));
+        addStep(new AuthorizeDataset(bigQueryPdao, samClient, datasetDao));
     }
 }

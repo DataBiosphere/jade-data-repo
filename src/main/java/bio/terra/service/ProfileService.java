@@ -58,10 +58,10 @@ public class ProfileService {
             .total(profileEnumeration.getTotal());
     }
 
-    public BillingProfileModel getProfileById(UUID id) {
+    public BillingProfile getProfileById(UUID id) {
         BillingProfile profile = profileDao.getBillingProfileById(id);
         updateAccessibility(profile);
-        return makeModelFromBillingProfile(profile);
+        return profile;
     }
 
     private BillingProfile updateAccessibility(BillingProfile billingProfile) {

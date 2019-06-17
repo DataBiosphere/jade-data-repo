@@ -1,5 +1,6 @@
 package bio.terra.controller;
 
+import bio.terra.metadata.BillingProfile;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;
@@ -79,7 +80,8 @@ public class ResourcesApiController implements ResourcesApi {
     @Override
     public ResponseEntity<BillingProfileModel> retrieveProfile(String id) {
         UUID profileId = UUID.fromString(id);
-        BillingProfileModel profileModel = profileService.getProfileById(profileId);
+        BillingProfile profile = profileService.getProfileById(profileId);
+        BillingProfileModel profileModel = profileService.makeModelFromBillingProfile(profile);
         return new ResponseEntity<>(profileModel, HttpStatus.OK);
     }
 }

@@ -42,7 +42,7 @@ public class IngestValidateRefsStep implements Step {
         List<String> invalidRefIds = new ArrayList<>();
         for (Column column : table.getColumns()) {
             if (StringUtils.equalsIgnoreCase(column.getType(), "FILEREF")) {
-                List<String> refIdArray = bigQueryPdao.getRefIds(study.getName(), stagingTableName, column);
+                List<String> refIdArray = bigQueryPdao.getRefIds(study, stagingTableName, column);
                 List<String> badRefIds =
                     fileDao.validateRefIds(study.getId().toString(), refIdArray, FSObjectType.FILE);
                 if (badRefIds != null) {

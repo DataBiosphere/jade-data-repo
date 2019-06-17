@@ -1,8 +1,10 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.dao.DatasetDao;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
+import bio.terra.metadata.Dataset;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
@@ -21,15 +23,17 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class AuthorizeDataset implements Step {
-    private SamClientService sam;
-    private BigQueryPdao bigQueryPdao;
+    private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
-    public AuthorizeDataset(BigQueryPdao bigQueryPdao, SamClientService sam) {
+    private final SamClientService sam;
+    private final BigQueryPdao bigQueryPdao;
+    private final DatasetDao datasetDao;
+
+    public AuthorizeDataset(BigQueryPdao bigQueryPdao, SamClientService sam, DatasetDao datasetDao) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
+        this.datasetDao = datasetDao;
     }
-
-    private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
     DatasetRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
@@ -45,13 +49,14 @@ public class AuthorizeDataset implements Step {
         String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
+        Dataset dataset = datasetDao.retrieveDataset(datasetId);
         Optional<List<String>> readersList = Optional.ofNullable(datasetReq.getReaders());
         try {
             // This returns the policy email created by Google to correspond to the readers list in SAM
             String readersPolicyEmail = sam.createDatasetResource(userReq, datasetId, readersList);
-            bigQueryPdao.addReaderGroupToDataset(datasetName, readersPolicyEmail);
+            bigQueryPdao.addReaderGroupToDataset(dataset, readersPolicyEmail);
         } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
+            throw new InternalServerErrorException("Couldn't add readers", ex);
         }
         return StepResult.getStepResultSuccess();
     }

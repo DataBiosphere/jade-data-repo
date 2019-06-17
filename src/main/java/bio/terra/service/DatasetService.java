@@ -9,6 +9,7 @@ import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
 import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
@@ -50,14 +51,17 @@ public class DatasetService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final ProfileService profileService;
 
     @Autowired
     public DatasetService(Stairway stairway,
                           StudyDao studyDao,
-                          DatasetDao datasetDao) {
+                          DatasetDao datasetDao,
+                          ProfileService profileService) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
+        this.profileService = profileService;
     }
 
     /**
@@ -99,12 +103,11 @@ public class DatasetService {
      * @return list of summary models of dataset
      */
     public EnumerateDatasetModel enumerateDatasets(
-        int offset,
-        int limit,
-        String sort,
-        String direction,
-        String filter
-    ) {
+            int offset,
+            int limit,
+            String sort,
+            String direction,
+            String filter) {
         MetadataEnumeration<DatasetSummary> enumeration = datasetDao.retrieveDatasets(offset, limit, sort, direction,
             filter);
         List<DatasetSummaryModel> models = enumeration.getItems()
@@ -161,10 +164,13 @@ public class DatasetService {
         // For now, we generate the dataset tables directly from the asset tables of the one source
         // allowed in a dataset.
         conjureDatasetTablesFromAsset(datasetSource.getAssetSpecification(), dataset, datasetSource);
+        String profileId = datasetRequestModel.getProfileId();
+        BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
 
         dataset.name(datasetRequestModel.getName())
                 .description(datasetRequestModel.getDescription())
-                .datasetSources(Collections.singletonList(datasetSource));
+                .datasetSources(Collections.singletonList(datasetSource))
+                .profile(profile);
 
         return dataset;
     }
@@ -238,7 +244,8 @@ public class DatasetService {
                 .id(datasetSummary.getId().toString())
                 .name(datasetSummary.getName())
                 .description(datasetSummary.getDescription())
-                .createdDate(datasetSummary.getCreatedDate().toString());
+                .createdDate(datasetSummary.getCreatedDate().toString())
+                .profileId(datasetSummary.getProfileId().toString());
         return summaryModel;
     }
 
@@ -248,6 +255,7 @@ public class DatasetService {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
+                .profile(profileService.makeModelFromBillingProfile(dataset.getProfile()))
                 .source(dataset.getDatasetSources()
                         .stream()
                         .map(source -> makeSourceModelFromSource(source))

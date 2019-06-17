@@ -1,5 +1,7 @@
 package bio.terra.flight.study.ingest;
 
+import bio.terra.dao.StudyDao;
+import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -10,9 +12,11 @@ import org.slf4j.LoggerFactory;
 public class IngestCleanupStep implements Step {
     private Logger logger = LoggerFactory.getLogger("bio.terra.study.ingest");
 
-    private BigQueryPdao bigQueryPdao;
+    private final StudyDao studyDao;
+    private final BigQueryPdao bigQueryPdao;
 
-    public IngestCleanupStep(BigQueryPdao bigQueryPdao) {
+    public IngestCleanupStep(StudyDao studyDao, BigQueryPdao bigQueryPdao) {
+        this.studyDao = studyDao;
         this.bigQueryPdao = bigQueryPdao;
     }
 
@@ -22,8 +26,9 @@ public class IngestCleanupStep implements Step {
         // We log the failure and move on.
         String stagingTableName = "<unknown>";
         try {
+            Study study = IngestUtils.getStudy(context, studyDao);
             stagingTableName = IngestUtils.getStagingTableName(context);
-            IngestUtils.deleteStagingTable(context, bigQueryPdao);
+            bigQueryPdao.deleteStudyTable(study, stagingTableName);
         } catch (Exception ex) {
             logger.error("Failure deleting ingest staging table: " + stagingTableName, ex);
         }

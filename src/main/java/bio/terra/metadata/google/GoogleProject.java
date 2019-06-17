@@ -8,6 +8,7 @@ public class GoogleProject {
     private String googleProjectId;
     private UUID profileId;
     private UUID studyId;
+    private UUID datasetId;
 
     public UUID getRepositoryId() {
         return repositoryId;
@@ -42,6 +43,15 @@ public class GoogleProject {
 
     public GoogleProject studyId(UUID studyId) {
         this.studyId = studyId;
+        return this;
+    }
+
+    public UUID getDatasetId() {
+        return datasetId;
+    }
+
+    public GoogleProject datasetId(UUID datasetId) {
+        this.datasetId = datasetId;
         return this;
     }
 }

@@ -13,6 +13,7 @@ public class Dataset {
     private Instant createdDate;
     private List<Table> tables = Collections.emptyList();
     private List<DatasetSource> datasetSources = Collections.emptyList();
+    private BillingProfile profile;
 
     public UUID getId() {
         return id;
@@ -75,5 +76,14 @@ public class Dataset {
             }
         }
         return Optional.empty();
+    }
+
+    public BillingProfile getProfile() {
+        return profile;
+    }
+
+    public Dataset profile(BillingProfile profile) {
+        this.profile = profile;
+        return this;
     }
 }

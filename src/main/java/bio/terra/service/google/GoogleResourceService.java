@@ -3,8 +3,10 @@ package bio.terra.service.google;
 import bio.terra.dao.exception.google.ProjectNotFoundException;
 import bio.terra.dao.google.GoogleResourceDao;
 import bio.terra.flight.exception.InaccessibleBillingAccountException;
+import bio.terra.metadata.BillingProfile;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.Study;
 import bio.terra.metadata.google.GoogleProject;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.service.ProfileService;
 import bio.terra.service.exception.GoogleResourceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -44,33 +46,52 @@ public class GoogleResourceService {
         this.resourceConfiguration = resourceConfiguration;
     }
 
-    public GoogleProject getProject(UUID studyId, UUID profileId) {
+    public GoogleProject getProjectForDataset(Dataset dataset) {
+        GoogleProject project = new GoogleProject()
+            .datasetId(dataset.getId())
+            .profileId(dataset.getProfile().getId())
+            .googleProjectId(projectName());
+        return getOrCreateProject(project);
+    }
+
+    public GoogleProject getProjectForStudy(Study study) {
+        GoogleProject project = new GoogleProject()
+            .studyId(study.getId())
+            .profileId(study.getDefaultProfileId())
+            .googleProjectId(projectName());
+        return getOrCreateProject(project);
+    }
+
+    public GoogleProject getProjectForProfile(BillingProfile profile) {
+        GoogleProject project = new GoogleProject()
+            .profileId(profile.getId())
+            .googleProjectId(projectName());
+        return getOrCreateProject(project);
+    }
+
+    public GoogleProject getOrCreateProject(GoogleProject project) {
+        UUID profileId = project.getProfileId();
         try {
             return resourceDao.retrieveProjectBy("profile_id", profileId);
         } catch (ProjectNotFoundException e) {
             logger.info("Creating project since none found for profile: " + profileId);
         }
-        return newProject(studyId, profileId);
+        return newProject(project);
+
     }
 
-    public GoogleProject newProject(UUID studyId, UUID profileId) {
-        // look up the profile
-        BillingProfileModel profile = profileService.getProfileById(profileId);
-        if (!profile.isAccessible()) {
+    public GoogleProject newProject(GoogleProject project) {
+        BillingProfile profile = profileService.getProfileById(project.getProfileId());
+        if (false && !profile.isAccessible()) {
             throw new InaccessibleBillingAccountException("The repository needs access to this billing account");
         }
-        // generate a project name and save metadata
-        String projectName = projectName(studyId, profileId);
-        GoogleProject project = new GoogleProject()
-            .studyId(studyId)
-            .profileId(profileId)
-            .googleProjectId(projectName);
         UUID projectId = resourceDao.createProject(project);
         project.repositoryId(projectId);
 
         Project requestBody = new Project()
-            .setName(projectName)
-            .setProjectId(projectId.toString());
+            // TODO this is a code smell. we should have the name be a part of the project metadata
+            .setName("Testing")
+            .setProjectId(project.getGoogleProjectId());
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
             CloudResourceManager.Projects.Create request = resourceManager.projects().create(requestBody);
@@ -84,7 +105,7 @@ public class GoogleResourceService {
         }
     }
 
-    public String projectName(UUID studyId, UUID profileId) {
+    public String projectName() {
         return "broad-datarepo-data-test";
     }
 

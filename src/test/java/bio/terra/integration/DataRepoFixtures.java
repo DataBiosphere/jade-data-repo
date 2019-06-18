@@ -72,7 +72,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<EnumerateStudyModel> enumerateStudiesRaw(String authToken) throws Exception {
-        return dataRepoClient.get(authToken, "api/repository/v1/studies", EnumerateStudyModel.class);
+        return dataRepoClient.get(authToken, "/api/repository/v1/studies", EnumerateStudyModel.class);
     }
 
     public EnumerateStudyModel enumerateStudies(String authToken) throws Exception {
@@ -83,7 +83,7 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<StudyModel> getStudyRaw(String authToken, String studyId) throws Exception {
-        return dataRepoClient.get(authToken, "api/repository/v1/studies/" + studyId, StudyModel.class);
+        return dataRepoClient.get(authToken, "/api/repository/v1/studies/" + studyId, StudyModel.class);
     }
 
     public StudyModel getStudy(String authToken, String studyId) throws Exception {
@@ -99,7 +99,7 @@ public class DataRepoFixtures {
                                                             String userEmail) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(authToken,
-            "api/repository/v1/studies/" + studyId + "/policies/" + role.getPolicyName() + "/members",
+            "/api/repository/v1/studies/" + studyId + "/policies/" + role.getPolicyName() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
 

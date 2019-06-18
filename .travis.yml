@@ -49,7 +49,7 @@ script:
   - kubectl --namespace data-repo --record deployments/api-deployment set image
     deployments/api-deployment
     "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
-  - ./gradlew testIntegration --scan -s
+  - ./gradlew testIntegration
 
 deploy:
   provider: script

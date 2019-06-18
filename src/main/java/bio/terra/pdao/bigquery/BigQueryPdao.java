@@ -10,22 +10,16 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
-import bio.terra.metadata.google.GoogleProject;
+import bio.terra.metadata.google.DataProject;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.pdao.exception.PdaoException;
-import bio.terra.service.google.GoogleBillingService;
 import bio.terra.service.google.GoogleResourceService;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.CsvOptions;
-import com.google.cloud.bigquery.Dataset;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -37,8 +31,6 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
-import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -53,9 +45,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -70,124 +60,22 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private final String datarepoDnsName;
     private final GoogleResourceService resourceService;
-    private final GoogleBillingService billingService;
 
     @Autowired
     public BigQueryPdao(
             String datarepoDnsName,
-            GoogleResourceService resourceService,
-            GoogleBillingService billingService) {
+            GoogleResourceService resourceService) {
         this.datarepoDnsName = datarepoDnsName;
         this.resourceService = resourceService;
-        this.billingService = billingService;
-    }
-
-    private static BigQuery bigQuery(String projectId) {
-        return BigQueryOptions.newBuilder()
-            .setProjectId(projectId)
-            .build()
-            .getService();
-    }
-
-    private static class BigQueryProject {
-        private final String projectId;
-        private final BigQuery bigQuery;
-
-        public BigQueryProject(String projectId) {
-            this.projectId = projectId;
-            bigQuery = BigQueryOptions.newBuilder()
-                .setProjectId(projectId)
-                .build()
-                .getService();
-        }
-
-        public String getProjectId() {
-            return projectId;
-        }
-
-        public BigQuery getBigQuery() {
-            return bigQuery;
-        }
-
-        public boolean datasetExists(String name) {
-            try {
-                DatasetId datasetId = DatasetId.of(projectId, name);
-                Dataset dataset = bigQuery.getDataset(datasetId);
-                return (dataset != null);
-            } catch (Exception ex) {
-                throw new PdaoException("existence check failed for " + name, ex);
-            }
-        }
-
-        public boolean deleteDataset(String name) {
-            try {
-                DatasetId datasetId = DatasetId.of(projectId, name);
-                return bigQuery.delete(datasetId, BigQuery.DatasetDeleteOption.deleteContents());
-            } catch (Exception ex) {
-                throw new PdaoException("delete failed for " + name, ex);
-            }
-        }
-
-        public DatasetId createDataset(String name, String description) {
-            DatasetInfo datasetInfo = DatasetInfo.newBuilder(name)
-                .setDescription(description)
-                .build();
-            return bigQuery.create(datasetInfo).getDatasetId();
-        }
-
-        public void createTable(String datasetName, String tableName, Schema schema) {
-            TableId tableId = TableId.of(datasetName, tableName);
-            TableDefinition tableDefinition = StandardTableDefinition.of(schema);
-            TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
-            bigQuery.create(tableInfo);
-        }
-
-        public TableResult query(String sql) {
-            try {
-                QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-                return bigQuery.query(queryConfig);
-            } catch (InterruptedException e) {
-                throw new IllegalStateException("Query unexpectedly interrupted", e);
-            } catch (BigQueryException e) {
-                throw new PdaoException("Failure executing query", e);
-            }
-        }
-
-        public void updateDatasetAcls(Dataset dataset, List<Acl> acls) {
-            DatasetInfo datasetInfo = dataset.toBuilder().setAcl(acls).build();
-            bigQuery.update(datasetInfo);
-        }
-
-        public void addDatasetAcls(String datasetId, List<Acl> acls) {
-            Dataset dataset = bigQuery.getDataset(datasetId);
-            List<Acl> beforeAcls = dataset.getAcl();
-            ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);
-            newAcls.addAll(acls);
-            updateDatasetAcls(dataset, newAcls);
-        }
-
-        private void removeDatasetAcls(String datasetId, List<Acl> acls) {
-            Dataset dataset = bigQuery.getDataset(datasetId);
-            if (dataset != null) {  // can be null if create dataset step failed before it was created
-                Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
-                datasetAcls.removeAll(acls);
-                updateDatasetAcls(dataset, new ArrayList(datasetAcls));
-            }
-        }
-
-        public boolean deleteTable(String datasetName, String tableName) {
-            TableId tableId = TableId.of(projectId, datasetName, tableName);
-            return bigQuery.delete(tableId);
-        }
     }
 
     public BigQueryProject bigQueryProject(Study study) {
-        GoogleProject project = resourceService.getProjectForStudy(study);
+        DataProject project = resourceService.getProjectForStudy(study);
         return new BigQueryProject(project.getGoogleProjectId());
     }
 
     public BigQueryProject bigQueryProject(bio.terra.metadata.Dataset dataset) {
-        GoogleProject project = resourceService.getProjectForDataset(dataset);
+        DataProject project = resourceService.getProjectForDataset(dataset);
         return new BigQueryProject(project.getGoogleProjectId());
     }
 

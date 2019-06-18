@@ -17,6 +17,9 @@ databaseChangeLog:
                   name: google_project_id
                   type: varchar(32)
               - column:
+                  name: google_project_number
+                  type: varchar(16)
+              - column:
                   name: study_id
                   type: ${uuid_type}
                   constraints:

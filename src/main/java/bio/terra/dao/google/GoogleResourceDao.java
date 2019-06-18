@@ -3,7 +3,7 @@ package bio.terra.dao.google;
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.exception.google.ProjectNotFoundException;
-import bio.terra.metadata.google.GoogleProject;
+import bio.terra.metadata.google.DataProject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -24,11 +24,13 @@ public class GoogleResourceDao {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
 
-    public UUID createProject(GoogleProject project) {
-        String sql = "INSERT INTO project_resource (google_project_id, study_id, dataset_id, profile_id) VALUES " +
-            "(:google_project_id, :study_id, :dataset_id, :profile_id)";
+    public UUID createProject(DataProject project) {
+        String sql = "INSERT INTO project_resource " +
+            "(google_project_id, google_project_number, study_id, dataset_id, profile_id) VALUES " +
+            "(:google_project_id, :google_project_number, :study_id, :dataset_id, :profile_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("google_project_id", project.getGoogleProjectId())
+            .addValue("google_project_number", project.getGoogleProjectNumber())
             .addValue("study_id", project.getStudyId())
             .addValue("dataset_id", project.getDatasetId())
             .addValue("profile_id", project.getProfileId());
@@ -37,11 +39,11 @@ public class GoogleResourceDao {
         return keyHolder.getId();
     }
 
-    public GoogleProject retrieveProjectBy(String column, UUID value) {
+    public DataProject retrieveProjectBy(String column, UUID value) {
         try {
             String sql = String.format("SELECT * FROM project_resource WHERE %s = :%s LIMIT 1", column, column);
             MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
-            return jdbcTemplate.queryForObject(sql, params, new GoogleProjectMapper());
+            return jdbcTemplate.queryForObject(sql, params, new DataProjectMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new ProjectNotFoundException(String.format("Project not found for %s: %s", column, value));
         }
@@ -54,14 +56,15 @@ public class GoogleResourceDao {
         return rowsAffected > 0;
     }
 
-    private static class GoogleProjectMapper implements RowMapper<GoogleProject> {
-        public GoogleProject mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new GoogleProject()
+    private static class DataProjectMapper implements RowMapper<DataProject> {
+        public DataProject mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new DataProject()
+                .googleProjectId(rs.getString("google_project_id"))
+                .googleProjectNumber(rs.getString("google_project_number"))
                 .repositoryId(rs.getObject("id", UUID.class))
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .studyId(rs.getObject("study_id", UUID.class))
-                .datasetId(rs.getObject("dataset_id", UUID.class))
-                .googleProjectId(rs.getString("google_project_id"));
+                .datasetId(rs.getObject("dataset_id", UUID.class));
         }
     }
 }

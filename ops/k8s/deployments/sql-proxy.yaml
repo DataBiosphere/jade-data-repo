@@ -1,0 +1,41 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: cloudsql-proxy
+  namespace: data-repo
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloudsql-proxy
+    spec:
+      serviceAccountName: jade-sa
+      containers:
+        - name: cloudsql-proxy
+          image: b.gcr.io/cloudsql-docker/gce-proxy:latest
+          imagePullPolicy: Always
+          command: ["./cloud_sql_proxy",
+            "-instances=broad-jade-jh:us-central1:jade-postgres-101-49348e8b1d201695=tcp:0.0.0.0:5432",
+            "-credential_file=/secrets/cloudsql/proxy-sa.json"]
+          ports:
+            - name: db-port
+              containerPort: 5432
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              memory: 24Mi
+          readinessProbe:
+            tcpSocket:
+              port: 5432
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: cloud-sql-sa
+              mountPath: /secrets/cloudsql
+              readOnly: true
+      volumes:
+        - name: cloud-sql-sa
+          secret:
+            secretName: sql-proxy-sa

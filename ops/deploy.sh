@@ -94,6 +94,11 @@ sleep 5
 vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
+# update the sql proxy service account key
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
+kubectl --namespace data-repo create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
+
+
 # set the tls certificate
 #vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
 server_crt=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt | jq -r .data.value | tr -d '\r')
@@ -132,7 +137,7 @@ cat "${WD}/../db/create-data-repo-db" | \
     psql -h postgres-service.data-repo -U postgres
 
 # create deployments
-kubectl apply -f "${WD}/k8s/deployments/"
+kubectl --namespace data-repo apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
 pushd ${WD}/..

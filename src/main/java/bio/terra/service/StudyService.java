@@ -55,6 +55,7 @@ public class StudyService {
         return StudyJsonConversion.studyModelFromStudy(studyDao.retrieve(id));
     }
 
+    
     public EnumerateStudyModel enumerate(
         int offset, int limit, String sort, String direction, String filter, List<ResourceAndAccessPolicy> resources) {
         if (resources.isEmpty()) {

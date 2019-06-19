@@ -1,12 +1,14 @@
-package bio.terra.controller;
+package bio.terra.resourcemanagement.controller;
 
+import bio.terra.controller.ControllerUtils;
+import bio.terra.controller.ResourcesApi;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateBillingProfileModel;
-import bio.terra.service.ProfileService;
-import bio.terra.validation.BillingProfileRequestValidator;
+import bio.terra.resourcemanagement.service.ProfileService;
+import bio.terra.resourcemanagement.validation.BillingProfileRequestValidator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

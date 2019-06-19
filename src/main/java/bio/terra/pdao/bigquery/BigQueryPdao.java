@@ -10,12 +10,13 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
-import bio.terra.metadata.google.DataProject;
+import bio.terra.metadata.DatasetDataProject;
+import bio.terra.metadata.StudyDataProject;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.pdao.exception.PdaoException;
-import bio.terra.service.google.GoogleResourceService;
+import bio.terra.service.dataproject.DataProjectService;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -56,32 +57,32 @@ import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 @Component
 @Profile("google")
 public class BigQueryPdao implements PrimaryDataAccess {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.pdao.bigquery");
+    private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
     private final String datarepoDnsName;
-    private final GoogleResourceService resourceService;
+    private final DataProjectService dataProjectService;
 
     @Autowired
     public BigQueryPdao(
             String datarepoDnsName,
-            GoogleResourceService resourceService) {
+            DataProjectService dataProjectService) {
         this.datarepoDnsName = datarepoDnsName;
-        this.resourceService = resourceService;
+        this.dataProjectService = dataProjectService;
     }
 
-    public BigQueryProject bigQueryProject(Study study) {
-        DataProject project = resourceService.getProjectForStudy(study);
-        return new BigQueryProject(project.getGoogleProjectId());
+    public BigQueryProject bigQueryProjectForStudy(Study study) {
+        StudyDataProject projectForStudy = dataProjectService.getProjectForStudy(study);
+        return new BigQueryProject(projectForStudy.getGoogleProjectId());
     }
 
-    public BigQueryProject bigQueryProject(bio.terra.metadata.Dataset dataset) {
-        DataProject project = resourceService.getProjectForDataset(dataset);
-        return new BigQueryProject(project.getGoogleProjectId());
+    public BigQueryProject bigQueryProjectForDataset(bio.terra.metadata.Dataset dataset) {
+        DatasetDataProject projectForDataset = dataProjectService.getProjectForDataset(dataset);
+        return new BigQueryProject(projectForDataset.getGoogleProjectId());
     }
 
     @Override
     public void createStudy(Study study) {
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
 
         // Keep the study name from colliding with a dataset name by prefixing it.
         // TODO: validate against people using the prefix for datasets
@@ -105,7 +106,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public boolean deleteStudy(Study study) {
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         return bigQueryProject.deleteDataset(prefixName(study.getName()));
     }
 
@@ -128,7 +129,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
                                       DatasetSource source,
                                       List<String> inputValues) {
-        BigQueryProject bigQueryProject = bigQueryProject(dataset);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
         /*
             Making this SQL query:
@@ -190,7 +191,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
-        BigQueryProject bigQueryProject = bigQueryProject(dataset);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
         String datasetName = dataset.getName();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
@@ -247,7 +248,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void addReaderGroupToDataset(bio.terra.metadata.Dataset dataset, String readersEmail) {
-        BigQueryProject bigQueryProject = bigQueryProject(dataset);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         bigQueryProject.addDatasetAcls(dataset.getName(),
             Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
     }
@@ -255,7 +256,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     @Override
     public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
         String datasetName = dataset.getName();
-        BigQueryProject bigQueryProject = bigQueryProject(dataset);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
         for (DatasetSource source : dataset.getDatasetSources()) {
             String studyName = source.getStudy().getName();
@@ -284,7 +285,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                                  Table targetTable,
                                                  String stagingTableName,
                                                  IngestRequestModel ingestRequest) {
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         TableId tableId = TableId.of(prefixName(study.getName()), stagingTableName);
         Schema schema = buildSchema(targetTable, true); // Source does not have row_id
@@ -351,7 +352,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * SET datarepo_row_id = GENERATE_UUID()
          * WHERE datarepo_row_id IS NULL
          */
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         StringBuilder sql = new StringBuilder();
         sql.append("UPDATE ")
             .append("`")
@@ -378,7 +379,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * SELECT <column names...>
          * FROM `project.dataset.studytable`
          */
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         String projectId = bigQueryProject.getProjectId();
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT ")
@@ -436,7 +437,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public boolean deleteStudyTable(Study study, String tableName) {
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         return bigQueryProject.deleteTable(prefixName(study.getName()), tableName);
     }
 
@@ -449,7 +450,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             FROM stagingTable
             CROSS JOIN UNNEST(refColumnName) AS x
          */
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         String projectId = bigQueryProject.getProjectId();
         List<String> refIdArray = new ArrayList<>();
 
@@ -503,7 +504,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             AND R.datarepo_table_id = '<study table id>'
          */
         List<String> refIdArray = new ArrayList<>();
-        BigQueryProject bigQueryProject = bigQueryProject(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
         String projectId = bigQueryProject.getProjectId();
         String studyDatasetName = prefixName(study.getName());
         String refColumnName = refColumn.getName();

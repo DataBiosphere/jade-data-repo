@@ -29,6 +29,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;

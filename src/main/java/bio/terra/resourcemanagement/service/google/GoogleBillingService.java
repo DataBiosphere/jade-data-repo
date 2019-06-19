@@ -1,9 +1,9 @@
-package bio.terra.service.google;
+package bio.terra.resourcemanagement.service.google;
 
 import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.google.DataProject;
+import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.service.BillingService;
-import bio.terra.service.exception.BillingServiceException;
+import bio.terra.resourcemanagement.service.exception.BillingServiceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -95,7 +95,7 @@ public class GoogleBillingService implements BillingService {
         }
     }
 
-    public boolean assignProjectBilling(BillingProfile billingProfile, DataProject project) {
+    public boolean assignProjectBilling(BillingProfile billingProfile, GoogleProjectResource project) {
         String billingAccountId = billingProfile.getBillingAccountId();
         String projectId = project.getGoogleProjectId();
         ProjectBillingInfo content = new ProjectBillingInfo()

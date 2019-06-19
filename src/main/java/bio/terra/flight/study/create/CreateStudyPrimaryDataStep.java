@@ -1,5 +1,6 @@
 package bio.terra.flight.study.create;
 
+import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
@@ -11,18 +12,22 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.springframework.http.HttpStatus;
 
+import java.util.UUID;
+
 public class CreateStudyPrimaryDataStep implements Step {
 
-    private PrimaryDataAccess pdao;
+    private final PrimaryDataAccess pdao;
+    private final StudyDao studyDao;
 
-    public CreateStudyPrimaryDataStep(PrimaryDataAccess pdao) {
+    public CreateStudyPrimaryDataStep(PrimaryDataAccess pdao, StudyDao studyDao) {
         this.pdao = pdao;
+        this.studyDao = studyDao;
     }
 
     Study getStudy(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        StudyRequestModel studyRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), StudyRequestModel.class);
-        return StudyJsonConversion.studyRequestToStudy(studyRequest);
+        FlightMap workingMap = context.getWorkingMap();
+        UUID studyId = workingMap.get("studyId", UUID.class);
+        return studyDao.retrieve(studyId);
     }
 
     @Override

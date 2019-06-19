@@ -1,12 +1,13 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.dao.exception.AccountAlreadyInUse;
+import bio.terra.resourcemanagement.dao.exception.AccountAlreadyInUse;
 import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.service.ProfileService;
+import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.service.ProfileService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

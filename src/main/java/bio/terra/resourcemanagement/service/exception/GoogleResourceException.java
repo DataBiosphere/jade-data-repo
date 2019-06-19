@@ -1,4 +1,4 @@
-package bio.terra.service.exception;
+package bio.terra.resourcemanagement.service.exception;
 
 import bio.terra.exception.InternalServerErrorException;
 

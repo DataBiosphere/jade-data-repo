@@ -11,7 +11,7 @@ import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
-import bio.terra.service.ProfileService;
+import bio.terra.resourcemanagement.service.ProfileService;
 
 import java.util.ArrayList;
 import java.util.Collections;

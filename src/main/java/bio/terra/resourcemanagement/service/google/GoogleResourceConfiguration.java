@@ -1,4 +1,4 @@
-package bio.terra.service.google;
+package bio.terra.resourcemanagement.service.google;
 
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;

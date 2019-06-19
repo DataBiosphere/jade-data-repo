@@ -1,15 +1,13 @@
-package bio.terra.service.google;
+package bio.terra.resourcemanagement.service.google;
 
-import bio.terra.dao.exception.google.ProjectNotFoundException;
-import bio.terra.dao.google.GoogleResourceDao;
+import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
+import bio.terra.resourcemanagement.dao.google.GoogleResourceDao;
 import bio.terra.flight.exception.InaccessibleBillingAccountException;
 import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Study;
-import bio.terra.metadata.google.DataProject;
-import bio.terra.metadata.google.DataProjectRequest;
-import bio.terra.service.ProfileService;
-import bio.terra.service.exception.GoogleResourceException;
+import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
+import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
+import bio.terra.resourcemanagement.service.ProfileService;
+import bio.terra.resourcemanagement.service.exception.GoogleResourceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -30,7 +28,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 
 @Component
@@ -41,65 +38,50 @@ public class GoogleResourceService {
     private final ProfileService profileService;
     private final GoogleResourceConfiguration resourceConfiguration;
     private final GoogleBillingService billingService;
-    private final GoogleProjectIdSelector googleProjectIdSelector;
 
     @Autowired
     public GoogleResourceService(
             GoogleResourceDao resourceDao,
             ProfileService profileService,
             GoogleResourceConfiguration resourceConfiguration,
-            GoogleBillingService billingService,
-            GoogleProjectIdSelector googleProjectIdSelector) {
+            GoogleBillingService billingService) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
-        this.googleProjectIdSelector = googleProjectIdSelector;
     }
 
-    public DataProject getProjectForDataset(Dataset dataset) {
-        DataProjectRequest project = new DataProjectRequest()
-            .datasetId(dataset.getId())
-            .profileId(dataset.getProfile().getId());
-        return getOrCreateProject(project);
-    }
-
-    public DataProject getProjectForStudy(Study study) {
-        DataProjectRequest project = new DataProjectRequest()
-            .studyId(study.getId())
-            .profileId(study.getDefaultProfileId());
-        DataProject dataProject = getOrCreateProject(project);
-        return dataProject;
-    }
-
-    public DataProject getOrCreateProject(DataProjectRequest projectRequest) {
+    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
         UUID profileId = projectRequest.getProfileId();
         try {
-            return resourceDao.retrieveProjectBy("profile_id", profileId);
+            return resourceDao.retrieveProjectById(profileId);
 
-        } catch (ProjectNotFoundException e) {
+        } catch (GoogleResourceNotFoundException e) {
             logger.info(String.format("no metadata found for profile: %s", profileId));
         }
-        String googleProjectId = googleProjectIdSelector.projectId(projectRequest);
 
         // it's possible that the project exists already but it is not stored in the metadata table
+        String googleProjectId = projectRequest.getProjectId();
         Project existingProject = getProject(googleProjectId);
         if (existingProject != null) {
-            String googleProjectNumber = existingProject.getProjectNumber().toString();
-            enableServices(googleProjectNumber);
-            DataProject dataProject = new DataProject(projectRequest)
+            GoogleProjectResource googleProjectResource = new GoogleProjectResource(projectRequest)
                 .googleProjectId(googleProjectId)
-                .googleProjectNumber(googleProjectNumber);
-            UUID id = resourceDao.createProject(dataProject);
-            return dataProject.repositoryId(id);
+                .googleProjectNumber(existingProject.getProjectNumber().toString());
+            enableServices(googleProjectResource);
+            UUID id = resourceDao.createProject(googleProjectResource);
+            return googleProjectResource.repositoryId(id);
         }
 
         return newProject(projectRequest, googleProjectId);
     }
 
-    public Project getProject(String googleProjectId) {
+    public GoogleProjectResource getProjectResourceById(UUID id) {
+        return resourceDao.retrieveProjectById(id);
+    }
+
+    private Project getProject(String googleProjectId) {
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
             CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
@@ -115,7 +97,7 @@ public class GoogleResourceService {
         }
     }
 
-    public DataProject newProject(DataProjectRequest projectRequest, String googleProjectId) {
+    private GoogleProjectResource newProject(GoogleProjectRequest projectRequest, String googleProjectId) {
         BillingProfile profile = profileService.getProfileById(projectRequest.getProfileId());
         if (!profile.isAccessible()) {
             throw new InaccessibleBillingAccountException("The repository needs access to this billing account");
@@ -135,31 +117,25 @@ public class GoogleResourceService {
                 throw new GoogleResourceException("Could not get project after creation");
             }
             String googleProjectNumber = project.getProjectNumber().toString();
-            DataProject dataProject = new DataProject(projectRequest)
+            GoogleProjectResource googleProjectResource = new GoogleProjectResource(projectRequest)
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(googleProjectNumber);
-            setupBilling(dataProject);
-            enableServices(googleProjectNumber);
-            UUID repositoryId = resourceDao.createProject(dataProject);
-            return dataProject.repositoryId(repositoryId);
+            setupBilling(googleProjectResource);
+            enableServices(googleProjectResource);
+            UUID repositoryId = resourceDao.createProject(googleProjectResource);
+            return googleProjectResource.repositoryId(repositoryId);
         } catch (IOException | GeneralSecurityException | InterruptedException e) {
             throw new GoogleResourceException("Could not create project", e);
         }
     }
 
-    public void enableServices(String googleProjectNumber) {
-        List<String> serviceIds = Arrays.asList(
-            "bigquery-json.googleapis.com",
-            "firestore.googleapis.com",
-            "firebaserules.googleapis.com",
-            "storage-component.googleapis.com",
-            "storage-api.googleapis.com"
-        );
-        BatchEnableServicesRequest batchRequest = new BatchEnableServicesRequest().setServiceIds(serviceIds);
+    private void enableServices(GoogleProjectResource projectResource) {
+        BatchEnableServicesRequest batchRequest = new BatchEnableServicesRequest()
+            .setServiceIds(projectResource.getServiceIds());
         try {
             ServiceUsage serviceUsage = serviceUsage();
             ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()
-                .batchEnable("projects/" + googleProjectNumber, batchRequest);
+                .batchEnable("projects/" + projectResource.getGoogleProjectNumber(), batchRequest);
             long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
             blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
         } catch (IOException | GeneralSecurityException | InterruptedException e) {
@@ -167,12 +143,12 @@ public class GoogleResourceService {
         }
     }
 
-    public void setupBilling(DataProject project) {
+    private void setupBilling(GoogleProjectResource project) {
         BillingProfile billingProfile = profileService.getProfileById(project.getProfileId());
         billingService.assignProjectBilling(billingProfile, project);
     }
 
-    public CloudResourceManager cloudResourceManager() throws IOException, GeneralSecurityException {
+    private CloudResourceManager cloudResourceManager() throws IOException, GeneralSecurityException {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
@@ -187,7 +163,7 @@ public class GoogleResourceService {
             .build();
     }
 
-    public static Operation blockUntilResourceOperationComplete(
+    private static Operation blockUntilResourceOperationComplete(
             CloudResourceManager resourceManager,
             Operation operation,
             long timeoutSeconds) throws IOException, InterruptedException{
@@ -211,7 +187,7 @@ public class GoogleResourceService {
         return operation;
     }
 
-    public ServiceUsage serviceUsage() throws IOException, GeneralSecurityException {
+    private ServiceUsage serviceUsage() throws IOException, GeneralSecurityException {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
@@ -221,7 +197,7 @@ public class GoogleResourceService {
             .build();
     }
 
-    public static com.google.api.services.serviceusage.v1beta1.model.Operation blockUntilServiceOperationComplete(
+    private static com.google.api.services.serviceusage.v1beta1.model.Operation blockUntilServiceOperationComplete(
             ServiceUsage serviceUsage,
             com.google.api.services.serviceusage.v1beta1.model.Operation operation,
             long timeoutSeconds) throws IOException, InterruptedException {

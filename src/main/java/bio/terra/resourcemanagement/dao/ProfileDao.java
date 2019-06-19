@@ -1,6 +1,7 @@
-package bio.terra.dao;
+package bio.terra.resourcemanagement.dao;
 
-import bio.terra.dao.exception.AccountAlreadyInUse;
+import bio.terra.dao.DaoKeyHolder;
+import bio.terra.resourcemanagement.dao.exception.AccountAlreadyInUse;
 import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;

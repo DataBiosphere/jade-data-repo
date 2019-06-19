@@ -3,6 +3,11 @@ package bio.terra.dao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,5 +46,35 @@ public final class DaoUtils {
             builder.append(c);
         }
         return builder.append('%').toString();
+    }
+
+    public static Array createSqlUUIDArray(Connection connection, List<UUID> list) throws SQLException {
+        if (list == null) {
+            return null;
+        }
+        return connection.createArrayOf("UUID", list.toArray());
+    }
+
+    public static Array createSqlStringArray(Connection connection, List<String> list) throws SQLException {
+        if (list == null) {
+            return null;
+        }
+        return connection.createArrayOf("text", list.toArray());
+    }
+
+    public static List<UUID> getUUIDList(ResultSet rs, String column) throws SQLException {
+        Array sqlArray = rs.getArray(column);
+        if (sqlArray == null) {
+            return null;
+        }
+        return Arrays.asList((UUID[]) sqlArray.getArray());
+    }
+
+    public static List<String> getStringList(ResultSet rs, String column) throws SQLException {
+        Array sqlArray = rs.getArray(column);
+        if (sqlArray == null) {
+            return null;
+        }
+        return Arrays.asList((String[]) sqlArray.getArray());
     }
 }

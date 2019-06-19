@@ -1,12 +1,13 @@
-package bio.terra.service;
+package bio.terra.resourcemanagement.service;
 
-import bio.terra.dao.ProfileDao;
+import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.service.BillingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

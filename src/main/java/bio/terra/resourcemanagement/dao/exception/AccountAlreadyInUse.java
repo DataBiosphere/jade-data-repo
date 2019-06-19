@@ -1,4 +1,4 @@
-package bio.terra.dao.exception;
+package bio.terra.resourcemanagement.dao.exception;
 
 import bio.terra.exception.BadRequestException;
 

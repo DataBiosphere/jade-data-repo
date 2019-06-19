@@ -8,7 +8,7 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
-import bio.terra.service.ProfileService;
+import bio.terra.resourcemanagement.service.ProfileService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

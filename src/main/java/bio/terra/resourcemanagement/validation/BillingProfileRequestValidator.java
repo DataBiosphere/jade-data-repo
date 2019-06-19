@@ -1,4 +1,4 @@
-package bio.terra.validation;
+package bio.terra.resourcemanagement.validation;
 
 import bio.terra.model.BillingProfileRequestModel;
 import org.springframework.stereotype.Component;

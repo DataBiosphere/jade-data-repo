@@ -72,7 +72,9 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<EnumerateStudyModel> enumerateStudiesRaw(String authToken) throws Exception {
-        return dataRepoClient.get(authToken, "/api/repository/v1/studies", EnumerateStudyModel.class);
+        return dataRepoClient.get(authToken,
+            "/api/repository/v1/studies?sort=created_date&direction=desc",
+            EnumerateStudyModel.class);
     }
 
     public EnumerateStudyModel enumerateStudies(String authToken) throws Exception {

@@ -1,3 +1,7 @@
+{{with $environment := env "ENVIRONMENT"}}
+{{ with secret (printf "secret/dsde/datarepo/%s/db-secrets-jh.json" $environment) }}
+
+
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
@@ -16,7 +20,7 @@ spec:
           image: b.gcr.io/cloudsql-docker/gce-proxy:latest
           imagePullPolicy: Always
           command: ["./cloud_sql_proxy",
-            "-instances=broad-jade-jh:us-central1:jade-postgres-101-49348e8b1d201695=tcp:0.0.0.0:5432",
+            "-instances={{ .Data.cloud_sql_proxy.connection_name }}=tcp:0.0.0.0:5432",
             "-credential_file=/secrets/cloudsql/proxy-sa.json"]
           ports:
             - name: db-port
@@ -39,3 +43,4 @@ spec:
         - name: cloud-sql-sa
           secret:
             secretName: sql-proxy-sa
+{{end}}{{end}}

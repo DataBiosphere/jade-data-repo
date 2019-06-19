@@ -121,8 +121,10 @@ kubectl apply -f "${WD}/k8s/pods"
 
 # render environment-specific oidc deployment and ingress configs then create them
 consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
+consul-template -template "${WD}/k8s/deployments/cloudsql-proxy.yaml.ctmpl:${SCRATCH}/cloudsql-proxy.yaml" -once
 consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
 kubectl apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl apply -f "${SCRATCH}/cloudsql-proxy.yaml"
 kubectl apply -f "${SCRATCH}/oidc-ingress.yaml"
 
 # wait for the db to be ready so that we can run commands against it

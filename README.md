@@ -5,17 +5,13 @@ See the DATABASE.md to set up the postgres database before you run jade.
 
 ## Terraform kubernetes cluster
 
-Clone the [terrafor-jade](https://github.com/broadinstitute/terraform-jade) repo and follow the terrform commands there to set it up.
+Clone the [terrafor-jade](https://github.com/broadinstitute/terraform-jade) repo and follow the terrform commands there to set it up. If you are setting it up in your own google project (e.g. broad-jade-<initials>) then you should replace 'dev' in the command with your initials. If you run the command using 'dev', it will try to re-terraform broad-jade-dev.
 
-Once your cluster has been created, go to the google cloud console->Kubernetes->Clusters click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
+### Setting up access
 
+Now that your cluster is terraformed, you need to be able to access it with kubectl commands. To do this, go to the google cloud console->Kubernetes Engine->Clusters click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
 
-## Deploying to kubernetes
-
-
-### Deploying in your own test account (not dev, integration, etc)
-
-When a k8s cluster gets terraformed it will be running under the default compute service account for the project. This account is used by Google Kubernetes Engine to pull container images clusters by default. It is in the form [PROJECT_NUMBER]-compute@developer.gserviceaccount.com, where [PROJECT-NUMBER] is the GCP project number of the project that is running the Google Kubernetes Engine cluster.
+Your cluster will be running under the default compute service account for the project. This account is used by Google Kubernetes Engine to pull container images clusters by default. It is in the form [PROJECT_NUMBER]-compute@developer.gserviceaccount.com, where [PROJECT-NUMBER] is the GCP project number of the project that is running the Google Kubernetes Engine cluster.
 
 Give your service account access to dev GCR:
 
@@ -25,7 +21,7 @@ Give you user admin access:
     
     kubectl create clusterrolebinding <username>-cluster-admin-binding --clusterrole cluster-admin --user <username>@broadinstitute.org
 
-#### Environment variables
+## Deploy to your google project
     GOOGLE_CLOUD_PROJECT
     ENVIRONMENT (local, dev)
 
@@ -34,7 +30,12 @@ Deploy:
 
     ./ops/deploy.sh
 
-After you deploy, go to Kubernetes in the google cloud console, select services, and then add the IP address of the oidc-proxy-service to your /etc/hosts file as `local.datarepo-dev.broadinstitute.org`
+### using cloud code and skaffold
+- Brew install skaffold.
+- Enable the CloudCode plugin for intellij
+
+Then you should be able to either `Deploy to Kubernetes` or `Develop on Kubernetes` from the run configurations menu. 
+
 
 ## Build and Run Locally
 
@@ -64,7 +65,7 @@ to github. If you are standing this up on your own, you will need to set the fol
     OAUTH_CLIENT_ID
     OAUTH_CLIENT_SECRET
 
-### Run unit tests
+### Run linters and unit tests
 
 If you are making code changes, run:
 `./gradlew check`
@@ -84,7 +85,14 @@ and select `Build project automatically`
 The swagger page is:
 https://local.broadinstitue.org:8080
 
-## Swagger Codegen
+### Run connected and integration tests
+`./gradlew testConnected`
+
+The integration tests will hit the data repo running in the  broad-jade-integration envrionment by default. To use a different data-repo, edit the src/main/resources/application-integration.properties file and specify the URL. Before you run the integration tests, you need to generate the correct pem file by running `./render_configs`
+
+To run the tests, use: `./gradlew testIntegration`
+
+## Swagger Codegen (deprecated)
 
 We are using swagger-codegen to generate code from the swagger (OpenAPI) document. Therefore, in order to build
 you need to have the codegen tool installed from [swagger-codegen](https://swagger.io/docs/open-source-tools/swagger-codegen/).

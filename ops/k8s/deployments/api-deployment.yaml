@@ -101,3 +101,8 @@ spec:
             secretKeyRef:
               name: api-secrets
               key: stairway-password
+        - name: SPRING_PROFILES_ACTIVE
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: spring-profiles-active

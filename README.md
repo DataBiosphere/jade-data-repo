@@ -3,11 +3,11 @@ The repo for the terra data repository built by the jade team.
 
 See the DATABASE.md to set up the postgres database before you run jade.
 
-## Create kubernetes cluster
+## Terraform kubernetes cluster
 
-In the google cloud console, within your personal project, go to Kubernetes Engine -> Clusters and create a cluster. In the default pool section change nodes to 1 and click "More node pool options". Change boot disk size to 10G and click Save. At the bottom of the page, click the "Availability, networking, security and additional features" link and click the checkbox to enable VPC native. Then click create.
+Clone the [terrafor-jade](https://github.com/broadinstitute/terraform-jade) repo and follow the terrform commands there to set it up.
 
-Once your cluster has finished creating, click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
+Once your cluster has been created, go to the google cloud console->Kubernetes->Clusters click the Connect button next to you cluster info. Copy the command and execute it on your local system. Now, if you click on docker -> kubernetes you should see a check next to the cluster you just created.
 
 
 ## Deploying to kubernetes
@@ -22,6 +22,7 @@ Give your service account access to dev GCR:
     gsutil iam ch serviceAccount:[PROJECT_NUMBER]-compute@developer.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
 
 Give you user admin access:
+    
     kubectl create clusterrolebinding <username>-cluster-admin-binding --clusterrole cluster-admin --user <username>@broadinstitute.org
 
 #### Environment variables

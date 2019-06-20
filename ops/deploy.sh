@@ -12,6 +12,7 @@ set -e
 : ${GOOGLE_CLOUD_PROJECT:?}
 : ${VAULT_ADDR:?}
 : ${ENVIRONMENT:?}
+: ${SUFFIX:?}
 
 if [ -z "$VAULT_TOKEN" ]; then
     if [ ! -f ~/.vault-token ]; then

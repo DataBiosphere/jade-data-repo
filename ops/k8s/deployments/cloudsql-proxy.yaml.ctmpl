@@ -1,5 +1,6 @@
 {{with $environment := env "ENVIRONMENT"}}
-{{ with secret (printf "secret/dsde/datarepo/%s/api-secrets-jh.json" $environment) }}
+{{with $suffix := env "SUFFIX"}}
+{{ with secret (printf "secret/dsde/datarepo/%s/api-secrets-%s.json" $environment $suffix) }}
 
 
 apiVersion: extensions/v1beta1
@@ -48,4 +49,4 @@ spec:
         - name: cloud-sql-sa
           secret:
             secretName: sql-proxy-sa
-{{end}}{{end}}
+{{end}}{{end}}{{end}}

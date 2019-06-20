@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: billing_profile_table
+      author: jh
+      changes:
+        - createTable:
+            tableName: billing_profile
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: varchar(64)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: biller
+                  type: varchar(32)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: billing_account_id
+                  type: varchar(32)
+                  constraints:
+                    unique: true
+                    nullable: false

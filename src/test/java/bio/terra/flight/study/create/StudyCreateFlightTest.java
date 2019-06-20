@@ -42,7 +42,7 @@ import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@ActiveProfiles("google")
+@ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class StudyCreateFlightTest {
 

@@ -38,7 +38,7 @@ import static org.junit.Assert.fail;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("google")
+@ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FileDaoTest {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FileDaoTest");

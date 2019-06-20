@@ -44,6 +44,13 @@ apply plugin: 'jacoco'
 
 apply plugin:'com.srcclr.gradle'
 
+if (hasProperty('buildScan')) {
+    buildScan {
+        termsOfServiceUrl = 'https://gradle.com/terms-of-service'
+        termsOfServiceAgree = 'yes'
+    }
+}
+
 tasks.withType(FindBugs) {
     reports {
         xml.enabled false
@@ -102,6 +109,7 @@ configurations.all {
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
+    compile 'com.google.apis:google-api-services-cloudbilling:v1-rev36-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.66.0'
     compile 'com.google.cloud:google-cloud-storage:1.66.0'
     compile 'com.google.cloud:google-cloud-firestore:1.3.0'
@@ -261,66 +269,40 @@ def getGitHash = { ->
 
 
 // -- Test tasks --
-// The default 'test' task runs all of the tests.
+// The default 'test' task runs all of the unit tests.
 // There are separate tasks for running just the unit tests and just the connected tests.
 // connected tests and running all of the tests.
-//
-// Configure test logging to stun - these settings mean that we get sufficient debug data when tests fail
-// during travis run.
-// TODO: I looked for a simple way to avoid redundancy in these tasks and didn't find it.
 test {
     useJUnit {
         includeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
-        excludeCategories 'bio.terra.category.Connected'
-    }
-    testLogging {
-        outputs.upToDateWhen {false}
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
     }
 }
 
 task testConnected(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Connected'
-        excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
     }
     testLogging {
-        outputs.upToDateWhen {false}
+        events = ["passed", "failed", "skipped"]
         showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
     }
 }
 
 task testIntegration(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Integration'
-        excludeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit', 'bio.terra.category.Connected'
     }
-    testLogging {
-        outputs.upToDateWhen {false}
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
+}
+
+task testUnit(type: Test) {
+    useJUnit {
+        includeCategories 'bio.terra.category.Unit'
     }
 }
 
 task testAll(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit',
-            'bio.terra.category.Integration'
-    }
-    testLogging {
-        outputs.upToDateWhen { false }
-        showStandardStreams = true
-        showStackTraces = true
-        showCauses = true
-        exceptionFormat = "full"
+        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
     }
 }
 

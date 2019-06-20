@@ -141,7 +141,7 @@ public class FireStoreFileDao {
     public void createFileStartUndo(String studyId, String fullPath, String flightId) {
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             String lookupPath = makeLookupPath(fullPath);
-            DocumentSnapshot docSnap = lookupByObjectPath(studyId, fullPath, xn);
+            DocumentSnapshot docSnap = lookupByObjectPath(studyId, lookupPath, xn);
             if (docSnap.exists()) {
                 FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
                 // If another flight created this object, then we leave it be.

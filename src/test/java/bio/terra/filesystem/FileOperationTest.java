@@ -55,11 +55,14 @@ public class FileOperationTest {
 
     private ConnectedOperations connectedOperations;
 
+    private int validFileCounter;
+
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+        validFileCounter = 0;
     }
 
     @After
@@ -70,7 +73,6 @@ public class FileOperationTest {
     private static String testDescription = "test file description";
     private static String testMimeType = "application/pdf";
     private static String testPdfFile = "File Design Notes.pdf";
-    private static String testValidFile = "ValidFileName.pdf";
 
     @Test
     public void fileOperationsTest() throws Exception {
@@ -131,12 +133,11 @@ public class FileOperationTest {
             containsString("file not found"));
 
         // Error: Invalid gs path - case 1: not gs
-        String validPath = "/dd/files/foo/" + testValidFile;
         fileLoadModel = new FileLoadModel()
             .sourcePath("http://jade_notabucket/foo/bar.txt")
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(validPath);
+            .targetPath(makeValidUniqueFilePath());
 
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("Not a gs schema", errorModel.getMessage(),
@@ -147,7 +148,7 @@ public class FileOperationTest {
             .sourcePath("gs://jade_notabucket:1234/foo/bar.txt")
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(validPath);
+            .targetPath(makeValidUniqueFilePath());
 
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("Invalid bucket name", errorModel.getMessage(),
@@ -158,11 +159,16 @@ public class FileOperationTest {
             .sourcePath("gs:///")
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(validPath);
+            .targetPath(makeValidUniqueFilePath());
 
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
+    }
+
+    private String makeValidUniqueFilePath() {
+        validFileCounter++;
+        return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
     private FileLoadModel makeFileLoad() throws Exception {

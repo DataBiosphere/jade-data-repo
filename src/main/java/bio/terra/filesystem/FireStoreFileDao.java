@@ -44,9 +44,11 @@ import static bio.terra.metadata.FSObjectType.INGESTING_FILE;
  * path. Otherwise, two threads could create the same file as two different documents. That
  * would not do at all.
  *
- * We solve this problem by using document names that replace the forward slash in our paths
+ * We solve this problem by using FireStore document names that replace the forward slash in our paths
  * with character 0x1c - the unicode file separator character. That allows documents to be
- * named with their full names. (See https://www.compart.com/en/unicode/U+001C)
+ * named with their full names. (See https://www.compart.com/en/unicode/U+001C)  That replacement is
+ * <strong>only</strong> used for the FireStore document names. All the other paths we process use
+ * the forward slash separator.
  *
  * We need a root directory to hold the other directories. Since we are doing Firestore lookup by
  * document name, the root directory needs a name. We call it "_dr_"; it could be anything,
@@ -64,6 +66,10 @@ import static bio.terra.metadata.FSObjectType.INGESTING_FILE;
  * We use FireStore transactions. The required transaction pattern is always read-modify-write.
  * The transactions are expressed as functions that are retried if another transaction touches
  * the object between our transaction's read and write.
+ *
+ * It is an invariant that there are no empty directories. When a directory becomes empty on a delete,
+ * it is deleted. When a directory is needed, we create it. That is all done within transactions so
+ * there is never a time where the externally visible state violates that invariant.
  */
 
 @Component
@@ -88,7 +94,7 @@ public class FireStoreFileDao {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
         UUID studyId = fileToCreate.getStudyId();
-        FireStoreObject createObject = makeFileObjectFromFSObject(fileToCreate);
+        FireStoreObject createObject = makeFireStoreObjectFromFSObject(fileToCreate);
 
         ApiFuture<UUID> transaction = firestore.runTransaction(xn -> {
             List<FireStoreObject> createList = new ArrayList<>();
@@ -132,32 +138,28 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("create start", transaction);
     }
 
-    public boolean createFileStartUndo(String studyId, String fullPath, String flightId) {
-        ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
+    public void createFileStartUndo(String studyId, String fullPath, String flightId) {
+        ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             String lookupPath = makeLookupPath(fullPath);
             DocumentSnapshot docSnap = lookupByObjectPath(studyId, fullPath, xn);
-            if (!docSnap.exists()) {
-                return false;
-            }
+            if (docSnap.exists()) {
+                FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
+                // If another flight created this object, then we leave it be.
+                if (StringUtils.equals(flightId, currentObject.getFlightId())) {
+                    // It is ours. Double check that it is in the right state
+                    if (!StringUtils.equals(INGESTING_FILE.toLetter(), currentObject.getObjectTypeLetter())) {
+                        throw new
+                            FileSystemCorruptException("Attempt to createFileStartUndo with bad file object type");
+                    }
 
-            FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
-            // If another flight created this object, then we leave it be.
-            if (!StringUtils.equals(flightId, currentObject.getFlightId())) {
-                return true;
+                    // transition point from reading to writing is inside of deleteFileWorker
+                    deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
+                }
             }
-
-            // It is ours. Double check that it is in the right state
-            if (!StringUtils.equals(INGESTING_FILE.toLetter(),
-                currentObject.getObjectTypeLetter())) {
-                throw new FileSystemCorruptException("Attempt to createFileStartUndo with bad file object type");
-            }
-
-            // transition point from reading to writing is inside of deleteFileWorker
-            deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
-            return true;
+            return null;
         });
 
-        return fireStoreUtils.transactionGet("create start undo", transaction);
+        fireStoreUtils.transactionGet("create start undo", transaction);
     }
 
     public FSObjectBase createFileComplete(FSFileInfo fsFileInfo) {
@@ -179,7 +181,7 @@ public class FireStoreFileDao {
             // transition point from reading to writing in the transaction
 
             xn.set(docSnap.getReference(), currentObject);
-            return makeFSObjectFromFileObject(currentObject);
+            return makeFSObjectFromFireStoreObject(currentObject);
         });
 
         return fireStoreUtils.transactionGet("create complete", transaction);
@@ -382,7 +384,7 @@ public class FireStoreFileDao {
                 return null;
             }
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
-            return makeFSObjectFromFileObject(currentObject);
+            return makeFSObjectFromFireStoreObject(currentObject);
         });
 
         return fireStoreUtils.transactionGet("retrieve by id", transaction);
@@ -414,7 +416,7 @@ public class FireStoreFileDao {
                 return null;
             }
             FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
-            return makeFSObjectFromFileObject(currentObject);
+            return makeFSObjectFromFireStoreObject(currentObject);
 
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -492,7 +494,7 @@ public class FireStoreFileDao {
                 switch (FSObjectType.fromLetter(fireStoreObject.getObjectTypeLetter())) {
                     case FILE:
                     case DIRECTORY:
-                        FSObjectBase fsItem = makeFSObjectFromFileObject(fireStoreObject);
+                        FSObjectBase fsItem = makeFSObjectFromFireStoreObject(fireStoreObject);
                         fsObjectList.add(fsItem);
                         break;
 
@@ -655,7 +657,7 @@ public class FireStoreFileDao {
             .flightId(flightId);
     }
 
-    private FireStoreObject makeFileObjectFromFSObject(FSObjectBase fsObject) {
+    private FireStoreObject makeFireStoreObjectFromFSObject(FSObjectBase fsObject) {
         String objectId = (fsObject.getObjectId() == null) ? null : fsObject.getObjectId().toString();
         String fileCreatedDate = (fsObject.getCreatedDate() == null) ? null : fsObject.getCreatedDate().toString();
 
@@ -691,7 +693,7 @@ public class FireStoreFileDao {
         return fireStoreObject;
     }
 
-    private FSObjectBase makeFSObjectFromFileObject(FireStoreObject fireStoreObject) {
+    private FSObjectBase makeFSObjectFromFireStoreObject(FireStoreObject fireStoreObject) {
         Instant createdDate = (fireStoreObject.getFileCreatedDate() == null) ? null :
             Instant.parse(fireStoreObject.getFileCreatedDate());
 

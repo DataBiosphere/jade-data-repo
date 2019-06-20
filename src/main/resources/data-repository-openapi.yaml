@@ -51,6 +51,8 @@ info:
         from our native definitions and parameters. We remove the x-swagger-router-controller lines.
      3. A separate part of the definitions section for the DRS definitions
 
+    NOTE: the code here does not relect the DRS spec anymore. See DR-409.
+
 
   license:
     name: Apache 2.0

@@ -9,7 +9,6 @@ import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -22,12 +21,10 @@ import java.util.UUID;
 public class IngestFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;
     private final Study study;
-    private final FileService fileService;
 
-    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Study study, FileService fileService) {
+    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Study study) {
         this.fileDao = fileDao;
         this.study = study;
-        this.fileService = fileService;
     }
 
     @Override

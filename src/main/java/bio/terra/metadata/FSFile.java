@@ -8,15 +8,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * This provides the base class for all file system objects. There are three specializations:
- * <ul>
- *     <li>FSFile - describes a file</li>
- *     <li>FSDir - describes a directory</li>
- *     <li>FSEnumDir - describes a directory and its contents</li>
- * </ul>
- *
- */
 public class FSFile extends FSObjectBase {
     private String gspath;
     private String checksumCrc32c;

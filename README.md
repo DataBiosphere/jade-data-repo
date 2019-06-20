@@ -23,7 +23,7 @@ Give you user admin access:
 
 ## Deploy to your google project
     GOOGLE_CLOUD_PROJECT
-    ENVIRONMENT (local, dev)
+    ENVIRONMENT (prod, dev)
 
 
 Deploy:

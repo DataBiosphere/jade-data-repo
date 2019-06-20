@@ -1,5 +1,5 @@
 {{with $environment := env "ENVIRONMENT"}}
-{{ with secret (printf "secret/dsde/datarepo/%s/db-secrets-jh.json" $environment) }}
+{{ with secret (printf "secret/dsde/datarepo/%s/api-secrets-jh.json" $environment) }}
 
 
 apiVersion: extensions/v1beta1
@@ -15,12 +15,17 @@ spec:
         app: cloudsql-proxy
     spec:
       serviceAccountName: jade-sa
+      initContainers:
+      - name: check-db-ready
+        image: postgres:9.6.5
+        command: ['sh', '-c','until pg_isready -h {{ .Data.ip }} -p 5432;do echo waiting for database; sleep 2; done;']
+      volumes:
       containers:
         - name: cloudsql-proxy
           image: b.gcr.io/cloudsql-docker/gce-proxy:latest
           imagePullPolicy: Always
           command: ["./cloud_sql_proxy",
-            "-instances={{ .Data.cloud_sql_proxy.connection_name }}=tcp:0.0.0.0:5432",
+            "-instances={{ .Data.connection_name }}=tcp:0.0.0.0:5432",
             "-credential_file=/secrets/cloudsql/proxy-sa.json"]
           ports:
             - name: db-port

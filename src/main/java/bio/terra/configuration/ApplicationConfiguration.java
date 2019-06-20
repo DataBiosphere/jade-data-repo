@@ -58,10 +58,10 @@ public class ApplicationConfiguration {
         return datarepoDnsName;
     }
 
-    @Value("${datarepo.id}")
+    @Value("${datarepo.resourceId}")
     private String datarepoId;
 
-    @Bean("datarepoId")
+    @Bean("datarepoResourceId")
     public String datarepoId() {
         return datarepoId;
     }

@@ -1,5 +1,7 @@
 package bio.terra.dao;
 
+import org.apache.commons.lang3.StringUtils;
+
 public final class DaoUtils {
 
     private DaoUtils() {}
@@ -15,20 +17,10 @@ public final class DaoUtils {
     }
 
     public static String whereClause(String filter) {
-        return whereClause(filter, false);
-    }
-
-    public static String whereClause(String filter, boolean isAnded) {
-        if (filter == null || filter.isEmpty()) {
+        if (StringUtils.isEmpty(filter)) {
             return "";
         }
-        StringBuilder clause = new StringBuilder();
-        if (isAnded) {
-            clause.append(" AND ");
-        } else {
-            clause.append(" WHERE ");
-        }
-        return clause.append(" (name ILIKE :filter OR description ILIKE :filter) ").toString();
+        return " WHERE (name ILIKE :filter OR description ILIKE :filter) ";
     }
 
     public static String escapeFilter(String filter) {

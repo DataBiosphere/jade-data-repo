@@ -123,14 +123,14 @@ public class StudyDao {
         String filter,
         List<UUID> accessibleStudyIds
     ) {
-        String whereAnded = DaoUtils.whereClause(filter, true);
-        String sql = "SELECT id, name, description, created_date FROM study WHERE id in (:idlist) " + whereAnded +
+        String whereClause = DaoUtils.whereClause(filter);
+        String sql = "SELECT id, name, description, created_date FROM study " + whereClause + " AND id in (:idlist) " +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("idlist", accessibleStudyIds)
             .addValue("offset", offset)
             .addValue("limit", limit);
-        if (!whereAnded.isEmpty()) {
+        if (!whereClause.isEmpty()) {
             params.addValue("filter", DaoUtils.escapeFilter(filter));
         }
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());

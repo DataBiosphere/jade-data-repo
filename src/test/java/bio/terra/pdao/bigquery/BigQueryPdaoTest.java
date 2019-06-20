@@ -6,6 +6,7 @@ import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Study;
+import bio.terra.metadata.StudyDataProject;
 import bio.terra.metadata.Table;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -64,6 +65,8 @@ public class BigQueryPdaoTest {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+        StudyDataProject studyDataProject = dataProjectService.getProjectForStudy(study);
+        BigQueryProject bigQueryProject = new BigQueryProject(studyDataProject.getGoogleProjectId());
     }
 
     @After

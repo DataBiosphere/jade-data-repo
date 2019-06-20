@@ -4,12 +4,15 @@ import bio.terra.category.Connected;
 import bio.terra.dao.StudyDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.metadata.Study;
+import bio.terra.metadata.StudyDataProject;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
+import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
+import bio.terra.service.dataproject.DataProjectService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -58,12 +61,16 @@ public class StudyCreateFlightTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private DataProjectService dataProjectService;
+
     @MockBean
     private SamClientService samService;
 
     private String studyName;
     private StudyRequestModel studyRequest;
     private Study study;
+    private BigQueryProject bigQueryProject;
 
     private StudyRequestModel makeStudyRequest(String studyName) throws IOException {
         ClassLoader classLoader = getClass().getClassLoader();
@@ -80,13 +87,13 @@ public class StudyCreateFlightTest {
         studyRequest = makeStudyRequest(studyName);
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         ConnectedOperations.stubOutSamCalls(samService);
+        StudyDataProject studyDataProject = dataProjectService.getProjectForStudy(study);
+        BigQueryProject bigQueryProject = new BigQueryProject(studyDataProject.getGoogleProjectId());
     }
 
     @After
     public void tearDown() {
-        if (pdao.studyExists(studyName)) {
-            pdao.deleteStudy(study);
-        }
+        pdao.deleteStudy(study);
         studyDao.deleteByName(studyName);
     }
 
@@ -107,7 +114,7 @@ public class StudyCreateFlightTest {
         Study createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
         assertEquals(studyName, createdStudy.getName());
 
-        assertTrue(pdao.studyExists(studyName));
+        assertTrue(pdao.deleteStudy(study));
     }
 
     @Test
@@ -126,6 +133,6 @@ public class StudyCreateFlightTest {
         boolean deletedSomething = studyDao.deleteByName(studyName);
         assertFalse(deletedSomething);
 
-        assertFalse(pdao.studyExists(studyName));
+        assertFalse(pdao.deleteStudy(study));
     }
 }

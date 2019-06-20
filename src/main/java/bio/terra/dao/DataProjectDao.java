@@ -35,23 +35,26 @@ public class DataProjectDao {
         return keyHolder.getId();
     }
 
-    private StudyDataProjectSummary retrieveStudyDataProjectByColumn(String column, UUID value) {
+    private StudyDataProjectSummary retrieveStudyDataProject(String sql, MapSqlParameterSource params) {
         try {
-            String sql = String.format("SELECT * FROM study_data_project WHERE %s = :%s", column, column);
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
             return jdbcTemplate.queryForObject(sql, params, new StudyDataProjectSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
-            throw new DataProjectNotFoundException(
-                String.format("Study data project not found for '%s': %s", column, value));
+            throw new DataProjectNotFoundException("Study data project not found for: " + sql);
         }
     }
 
     public StudyDataProjectSummary retrieveStudyDataProjectById(UUID id) {
-        return retrieveStudyDataProjectByColumn("id", id);
+        String sql = "SELECT id, study_id, project_resource_id FROM study_data_project WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", id);
+        return retrieveStudyDataProject(sql, params);
     }
 
     public StudyDataProjectSummary retrieveStudyDataProjectByStudyId(UUID studyId) {
-        return retrieveStudyDataProjectByColumn("study_id", studyId);
+        String sql = "SELECT id, study_id, project_resource_id FROM study_data_project WHERE study_id = :study_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("study_id", studyId);
+        return retrieveStudyDataProject(sql, params);
     }
 
     public boolean deleteStudyDataProject(UUID id) {
@@ -81,23 +84,26 @@ public class DataProjectDao {
         return keyHolder.getId();
     }
 
-    private DatasetDataProjectSummary retrieveDatasetDataProjectByColumn(String column, UUID value) {
+    private DatasetDataProjectSummary retrieveDatasetDataProject(String sql, MapSqlParameterSource params) {
         try {
-            String sql = String.format("SELECT * FROM dataset_project_resource WHERE %s = :%s", column, column);
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
             return jdbcTemplate.queryForObject(sql, params, new DatasetDataProjectSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
-            throw new DataProjectNotFoundException(
-                String.format("Dataset data project not found for '%s': %s", column, value));
+            throw new DataProjectNotFoundException("Dataset data project not found for: " + sql);
         }
     }
 
     public DatasetDataProjectSummary retrieveDatasetDataProjectById(UUID id) {
-        return retrieveDatasetDataProjectByColumn("id", id);
+        String sql = "SELECT id, dataset_id, project_resource_id FROM dataset_data_project WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", id);
+        return retrieveDatasetDataProject(sql, params);
     }
 
     public DatasetDataProjectSummary retrieveDatasetDataProjectByDatasetId(UUID datasetId) {
-        return retrieveDatasetDataProjectByColumn("dataset_id", datasetId);
+        String sql = "SELECT id, dataset_id, project_resource_id FROM dataset_data_project WHERE dataset_id = :dataset_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("dataset_id", datasetId);
+        return retrieveDatasetDataProject(sql, params);
     }
 
     public boolean deleteDatasetDataProject(UUID id) {

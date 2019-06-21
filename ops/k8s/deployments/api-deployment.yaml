@@ -18,7 +18,18 @@ spec:
       initContainers:
       - name: check-db-ready
         image: postgres:9.6.5
-        command: ['sh', '-c','until pg_isready -h postgres-service.data-repo -p 5432;do echo waiting for database; sleep 2; done;']
+        env:
+          - name: DB_DATAREPO_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: api-secrets
+                key: datarepo-username
+          - name: DB_DATAREPO_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: api-secrets
+                key: datarepo-password
+        command: ['sh', '-c','export PGPASSWORD=${DB_DATAREPO_PASSWORD};', 'psql -h cloudsql-proxy-service.data-repo -U ${DB_DATAREPO_USERNAME} -d datarepo -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;']
       volumes:
       - name: google-cloud-key
         secret:

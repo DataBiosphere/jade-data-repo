@@ -12,6 +12,7 @@ set -e
 : ${GOOGLE_CLOUD_PROJECT:?}
 : ${VAULT_ADDR:?}
 : ${ENVIRONMENT:?}
+: ${SUFFIX:?}
 
 if [ -z "$VAULT_TOKEN" ]; then
     if [ ! -f ~/.vault-token ]; then
@@ -94,6 +95,11 @@ sleep 5
 vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
+# update the sql proxy service account key
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
+kubectl --namespace data-repo create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
+
+
 # set the tls certificate
 #vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
 server_crt=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt | jq -r .data.value | tr -d '\r')
@@ -116,8 +122,10 @@ kubectl apply -f "${WD}/k8s/pods"
 
 # render environment-specific oidc deployment and ingress configs then create them
 consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
+consul-template -template "${WD}/k8s/deployments/cloudsql-proxy.yaml.ctmpl:${SCRATCH}/cloudsql-proxy.yaml" -once
 consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
 kubectl apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl apply -f "${SCRATCH}/cloudsql-proxy.yaml"
 kubectl apply -f "${SCRATCH}/oidc-ingress.yaml"
 
 # wait for the db to be ready so that we can run commands against it
@@ -132,7 +140,7 @@ cat "${WD}/../db/create-data-repo-db" | \
     psql -h postgres-service.data-repo -U postgres
 
 # create deployments
-kubectl apply -f "${WD}/k8s/deployments/"
+kubectl --namespace data-repo apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
 pushd ${WD}/..

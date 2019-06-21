@@ -276,6 +276,7 @@ test {
     useJUnit {
         includeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
     }
+    outputs.upToDateWhen { false }
 }
 
 task testConnected(type: Test) {
@@ -286,24 +287,28 @@ task testConnected(type: Test) {
         events = ["passed", "failed", "skipped"]
         showStandardStreams = true
     }
+    outputs.upToDateWhen { false }
 }
 
 task testIntegration(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Integration'
     }
+    outputs.upToDateWhen { false }
 }
 
 task testUnit(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Unit'
     }
+    outputs.upToDateWhen { false }
 }
 
 task testAll(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
     }
+    outputs.upToDateWhen { false }
 }
 
 compileGeneratedJava.dependsOn generateApi

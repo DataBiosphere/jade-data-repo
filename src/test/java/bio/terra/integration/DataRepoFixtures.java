@@ -101,7 +101,7 @@ public class DataRepoFixtures {
                                                             String userEmail) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(authToken,
-            "/api/repository/v1/studies/" + studyId + "/policies/" + role.getPolicyName() + "/members",
+            "/api/repository/v1/studies/" + studyId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
 

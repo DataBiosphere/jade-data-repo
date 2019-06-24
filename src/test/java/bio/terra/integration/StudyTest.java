@@ -14,6 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -34,6 +36,7 @@ public class StudyTest {
     private static final String omopStudyName = "it_study_omop";
     private static final String omopStudyDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+    private static Logger logger = LoggerFactory.getLogger(StudyTest.class);
 
     @Autowired
     private DataRepoClient dataRepoClient;
@@ -67,7 +70,7 @@ public class StudyTest {
         stewardToken = authService.getAuthToken(steward.getEmail());
         custodianToken = authService.getAuthToken(custodian.getEmail());
         readerToken = authService.getAuthToken(reader.getEmail());
-        System.out.println("steward: " + steward.getName() + "; custodian: " + custodian.getName() +
+        logger.info("steward: " + steward.getName() + "; custodian: " + custodian.getName() +
             "; reader: " + reader.getName());
     }
 
@@ -75,7 +78,7 @@ public class StudyTest {
     public void studyHappyPath() throws Exception {
         StudySummaryModel summaryModel = dataRepoFixtures.createStudy(stewardToken, "it-study-omop.json");
         try {
-            System.out.println("study id is " + summaryModel.getId());
+            logger.info("study id is " + summaryModel.getId());
             assertThat(summaryModel.getName(), startsWith(omopStudyName));
             assertThat(summaryModel.getDescription(), equalTo(omopStudyDesc));
 
@@ -109,7 +112,7 @@ public class StudyTest {
                 equalTo(HttpStatus.OK));
 
         } finally {
-            System.out.println("deleting study");
+            logger.info("deleting study");
             dataRepoFixtures.deleteStudyRaw(stewardToken, summaryModel.getId());
         }
     }
@@ -137,7 +140,7 @@ public class StudyTest {
         StudySummaryModel summaryModel = null;
         try {
             summaryModel = dataRepoFixtures.createStudy(stewardToken, "study-minimal.json");
-            System.out.println("study id is " + summaryModel.getId());
+            logger.info("study id is " + summaryModel.getId());
 
             DataRepoResponse<StudyModel> getStudyResp = dataRepoFixtures.getStudyRaw(readerToken, summaryModel.getId());
             assertThat("Reader is not authorized to get study",

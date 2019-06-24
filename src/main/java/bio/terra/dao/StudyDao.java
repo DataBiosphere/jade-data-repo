@@ -5,6 +5,7 @@ import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -123,20 +125,24 @@ public class StudyDao {
         String filter,
         List<UUID> accessibleStudyIds
     ) {
-        String whereClause = DaoUtils.whereClause(filter);
-        String sql = "SELECT id, name, description, created_date FROM study " + whereClause + " AND id in (:idlist) " +
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        List<String> whereClauses = new ArrayList<>();
+//        Stringing authzCaluse =
+        DaoUtils.addAuthzIdsClause(accessibleStudyIds, params, whereClauses);
+
+        // get total count of objects
+        String countSql = "SELECT count(id) AS total FROM study WHERE " +
+            StringUtils.join(whereClauses, " AND ");
+        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+
+        // add the filter to the clause to get the actual items
+        DaoUtils.addFilterClause(filter, params, whereClauses);
+        String sql = "SELECT id, name, description, created_date FROM study WHERE " +
+            StringUtils.join(whereClauses, " AND ") +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("idlist", accessibleStudyIds)
-            .addValue("offset", offset)
-            .addValue("limit", limit);
-        if (!whereClause.isEmpty()) {
-            params.addValue("filter", DaoUtils.escapeFilter(filter));
-        }
+            params.addValue("offset", offset).addValue("limit", limit);
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
-        sql = "SELECT count(id) AS total FROM study WHERE id in (:idlist)";
-        params = new MapSqlParameterSource().addValue("idlist", accessibleStudyIds);
-        Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
+
         return new MetadataEnumeration<StudySummary>()
             .items(summaries)
             .total(total == null ? -1 : total);

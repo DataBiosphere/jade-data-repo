@@ -126,7 +126,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATA_REPO,
+            SamClientService.ResourceType.DATAREPO,
             appConfig.datarepoId(),
             SamClientService.DataRepoAction.CREATE_STUDY);
         return new ResponseEntity<>(studyService.createStudy(studyRequest, getAuthenticatedInfo()), HttpStatus.CREATED);

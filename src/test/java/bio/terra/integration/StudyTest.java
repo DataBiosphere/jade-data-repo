@@ -66,7 +66,7 @@ public class StudyTest {
 
             DataRepoResponse<EnumerateStudyModel> enumResponse = dataRepoClient.get(
                 authToken,
-                "/api/repository/v1/studies?offset=0&items=1000",
+                "/api/repository/v1/studies?offset=0&limit=1000",
                 EnumerateStudyModel.class);
 
             assertThat("study enumeration is successful", enumResponse.getStatusCode(), equalTo(HttpStatus.OK));

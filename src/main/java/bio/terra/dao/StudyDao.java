@@ -7,7 +7,6 @@ import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
-import bio.terra.resourcemanagement.dao.ProfileDao;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
@@ -26,7 +25,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Repository
 public class StudyDao {
@@ -35,21 +33,18 @@ public class StudyDao {
     private final StudyTableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
-    private final ProfileDao profileDao;
     private final Connection connection;
 
     @Autowired
     public StudyDao(DataRepoJdbcConfiguration jdbcConfiguration,
                     StudyTableDao tableDao,
                     RelationshipDao relationshipDao,
-                    AssetDao assetDao,
-                    ProfileDao profileDao) throws SQLException {
+                    AssetDao assetDao) throws SQLException {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
         connection = jdbcConfiguration.getDataSource().getConnection();
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
-        this.profileDao = profileDao;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -109,14 +104,6 @@ public class StudyDao {
                 study.tables(tableDao.retrieveTables(study.getId()));
                 relationshipDao.retrieve(study);
                 assetDao.retrieve(study);
-                study.defaultProfile(profileDao.getBillingProfileById(summary.getDefaultProfileId()));
-                List<UUID> additionalProfileIds = summary.getAdditionalProfileIds();
-                if (additionalProfileIds != null) {
-                    study.additionalProfiles(additionalProfileIds
-                        .stream()
-                        .map(profileDao::getBillingProfileById)
-                        .collect(Collectors.toList()));
-                }
             }
             return study;
         } catch (EmptyResultDataAccessException ex) {
@@ -126,7 +113,8 @@ public class StudyDao {
 
     public StudySummary retrieveSummaryById(UUID id) {
         try {
-            String sql = "SELECT * FROM study WHERE id = :id";
+            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
+                " FROM study WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -136,7 +124,8 @@ public class StudyDao {
 
     public StudySummary retrieveSummaryByName(String name) {
         try {
-            String sql = "SELECT * FROM study WHERE name = :name";
+            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
+                " FROM study WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -168,7 +157,8 @@ public class StudyDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
-        String sql = "SELECT id, name, description, created_date, default_profile_id FROM study " + whereSql +
+        String sql = "SELECT id, name, description, created_date, default_profile_id, additional_profile_ids " +
+            " FROM study " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());

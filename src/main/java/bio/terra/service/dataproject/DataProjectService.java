@@ -56,7 +56,8 @@ public class DataProjectService {
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         try {
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProjectByDatasetId(dataset.getId());
-            googleProjectResource = resourceService.getProjectResourceById(datasetDataProjectSummary.getProjectResourceId());
+            googleProjectResource = resourceService.getProjectResourceById(
+                datasetDataProjectSummary.getProjectResourceId());
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
             // probably the first time we have seen this dataset, request a new project resource and save everything
             googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
@@ -83,7 +84,8 @@ public class DataProjectService {
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         try {
             studyDataProjectSummary = dataProjectDao.retrieveStudyDataProjectByStudyId(study.getId());
-            googleProjectResource = resourceService.getProjectResourceById(studyDataProjectSummary.getProjectResourceId());
+            googleProjectResource = resourceService.getProjectResourceById(
+                studyDataProjectSummary.getProjectResourceId());
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
             // probably the first time we have seen this study, request a new project resource and save everything
             googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);

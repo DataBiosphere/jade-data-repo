@@ -1259,14 +1259,14 @@ definitions:
       description:
         type: string
         description: Description of the study
-      defaultProfile:
-        $ref: '#/definitions/BillingProfileModel'
-        description: This is the profile used for core study resources
-      additionalProfiles:
+      defaultProfileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: This is the profile id used for core study resources
+      additionalProfileIds:
         type: array
-        description: Additional profiles to be used for this study
+        description: Additional profile ids to be used for this study
         items:
-          $ref: '#/definitions/BillingProfileModel'
+          $ref: '#/definitions/UniqueIdProperty'
       defaultDatasetId:
         type: string
         description: Id of the auto-generated default passthru dataset
@@ -1306,7 +1306,7 @@ definitions:
     type: object
     required:
     - name
-    - defaultProfile
+    - defaultProfileId
     - schema
     properties:
       name:
@@ -1314,10 +1314,10 @@ definitions:
       description:
         type: string
         description: Description of the study
-      defaultProfile:
+      defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: This is the ID of the profile used for core study resources
-      additionalProfiles:
+      additionalProfileIds:
         type: array
         description: Additional profile IDs to be used for this study
         items:

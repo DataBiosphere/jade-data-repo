@@ -166,7 +166,7 @@ public class GoogleResourceService {
     private static Operation blockUntilResourceOperationComplete(
             CloudResourceManager resourceManager,
             Operation operation,
-            long timeoutSeconds) throws IOException, InterruptedException{
+            long timeoutSeconds) throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
         final long pollInterval = 5 * 1000; // 5 seconds
         String opId = operation.getName();

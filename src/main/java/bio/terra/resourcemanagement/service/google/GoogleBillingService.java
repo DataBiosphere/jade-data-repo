@@ -105,7 +105,7 @@ public class GoogleBillingService implements BillingService {
                 .updateBillingInfo("projects/" + projectId, content);
             ProjectBillingInfo billingResponse = billingRequest.execute();
             return billingResponse.getBillingEnabled();
-        } catch(IOException e) {
+        } catch (IOException e) {
             String message = String.format("Could not assign billing account '%s' to project: %s", billingAccountId,
                 projectId);
             throw new BillingServiceException(message, e);

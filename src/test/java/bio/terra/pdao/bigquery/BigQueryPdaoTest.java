@@ -2,17 +2,31 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
+import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.dao.DataProjectDao;
+import bio.terra.dao.StudyDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
+import bio.terra.fixtures.ProfileFixtures;
+import bio.terra.fixtures.StudyFixtures;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyDataProject;
 import bio.terra.metadata.Table;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.StudyJsonConversion;
+import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.resourcemanagement.service.ProfileService;
+import bio.terra.resourcemanagement.service.google.GoogleResourceService;
 import bio.terra.service.SamClientService;
+import bio.terra.service.StudyService;
+import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -40,6 +54,7 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.ArgumentMatchers.any;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -54,19 +69,28 @@ public class BigQueryPdaoTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
+    @Autowired private StudyDao studyDao;
 
     @MockBean
     private SamClientService samService;
 
     private ConnectedOperations connectedOperations;
+    private Study study;
 
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
-        StudyDataProject studyDataProject = dataProjectService.getProjectForStudy(study);
-        BigQueryProject bigQueryProject = new BigQueryProject(studyDataProject.getGoogleProjectId());
+
+        BillingProfileModel testProfile = connectedOperations.createRandomTestProfile();
+        StudyRequestModel studyRequest = StudyFixtures.buildStudyRequest()
+            .defaultProfileId(testProfile.getId())
+            .name(studyName());
+        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+        UUID studyId = studyDao.create(study);
+        study.id(studyId);
+        connectedOperations.addStudy(studyId.toString());
     }
 
     @After
@@ -74,29 +98,29 @@ public class BigQueryPdaoTest {
         connectedOperations.teardown();
     }
 
+    private String studyName() {
+        return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
+    }
+
     @Test
     public void basicTest() throws Exception {
-        // Contrive a study object with a unique name
-        String studyName = "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        Study study = makeStudy(studyName);
-
-        boolean exists = bigQueryPdao.studyExists(studyName);
+        boolean exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(false)));
 
         bigQueryPdao.createStudy(study);
 
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(true)));
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createStudy(study);
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(true)));
 
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteStudy(study);
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(false)));
     }
 
@@ -157,34 +181,4 @@ public class BigQueryPdaoTest {
     private String gsPath(BlobInfo blob) {
         return "gs://" + blob.getBucket() + "/" + blob.getName();
     }
-
-    private Study makeStudy(String studyName) {
-        Column col1 = new Column().name("col1").type("string");
-        Column col2 = new Column().name("col2").type("string");
-        Column col3 = new Column().name("col3").type("string");
-        Column col4 = new Column().name("col4").type("string");
-
-        List<Column> table1Columns = new ArrayList<>();
-        table1Columns.add(col1);
-        table1Columns.add(col2);
-        Table table1 = new Table().name("table1").columns(table1Columns);
-
-        List<Column> table2Columns = new ArrayList<>();
-        table2Columns.add(col4);
-        table2Columns.add(col3);
-        table2Columns.add(col2);
-        table2Columns.add(col1);
-        Table table2 = new Table().name("table2").columns(table2Columns);
-
-        List<Table> tables = new ArrayList<>();
-        tables.add(table1);
-        tables.add(table2);
-
-        Study study = new Study();
-        study.name(studyName)
-                .description("this is a test study");
-        study.tables(tables);
-        return study;
-    }
-
 }

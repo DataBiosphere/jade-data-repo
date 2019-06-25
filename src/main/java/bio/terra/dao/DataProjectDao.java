@@ -100,7 +100,8 @@ public class DataProjectDao {
     }
 
     public DatasetDataProjectSummary retrieveDatasetDataProjectByDatasetId(UUID datasetId) {
-        String sql = "SELECT id, dataset_id, project_resource_id FROM dataset_data_project WHERE dataset_id = :dataset_id";
+        String sql = "SELECT id, dataset_id, project_resource_id FROM dataset_data_project " +
+            "WHERE dataset_id = :dataset_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId);
         return retrieveDatasetDataProject(sql, params);

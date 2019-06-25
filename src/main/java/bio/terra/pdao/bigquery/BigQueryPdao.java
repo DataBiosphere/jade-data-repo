@@ -4,6 +4,7 @@ import bio.terra.flight.exception.IngestFailureException;
 import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
@@ -251,6 +252,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         bigQueryProject.addDatasetAcls(dataset.getName(),
             Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
+    }
+
+    @Override
+    public boolean studyExists(Study study) {
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        String studyName = prefixName(study.getName());
+        // bigQueryProject.datasetExists checks whether the BigQuery dataset by the provided name exists
+        return bigQueryProject.datasetExists(studyName);
+    }
+
+    @Override
+    public boolean datasetExists(Dataset dataset) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        return bigQueryProject.datasetExists(dataset.getName());
     }
 
     @Override

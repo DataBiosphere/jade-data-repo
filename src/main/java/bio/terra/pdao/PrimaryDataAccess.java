@@ -89,4 +89,18 @@ public interface PrimaryDataAccess {
      */
     void addReaderGroupToDataset(Dataset dataset, String readersEmail);
 
+    /**
+     * Checks to see if a study exists
+     * @param study
+     * @return true if the study exists, false otherwise
+     */
+    boolean studyExists(Study study);
+
+    /**
+     * Checks to see if a dataset exists
+     * @param dataset
+     * @return true if the dataset exists, false otherwise
+     */
+    boolean datasetExists(Dataset dataset);
+
 }

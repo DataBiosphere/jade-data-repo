@@ -1,5 +1,8 @@
 package bio.terra.fixtures;
 
+import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -26,6 +29,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.fail;
@@ -52,6 +56,7 @@ public class ConnectedOperations {
     private boolean deleteOnTeardown;
     private List<String> createdDatasetIds;
     private List<String> createdStudyIds;
+    private List<String> createdProfileIds;
     private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
 
 
@@ -72,8 +77,8 @@ public class ConnectedOperations {
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
         createdFileIds = new ArrayList<>();
+        createdProfileIds = new ArrayList<>();
         deleteOnTeardown = true;
-
     }
 
     public StudySummaryModel createTestStudy(String resourcePath) throws Exception {
@@ -93,6 +98,27 @@ public class ConnectedOperations {
         addStudy(studySummaryModel.getId());
 
         return studySummaryModel;
+    }
+
+    public BillingProfileModel createRandomTestProfile() throws Exception {
+        BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest();
+        return createTestProfile(profileRequestModel);
+    }
+
+    public BillingProfileModel createTestProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
+        MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(profileRequestModel)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        BillingProfileModel billingProfileModel =
+            objectMapper.readValue(response.getContentAsString(), BillingProfileModel.class);
+
+        addProfile(billingProfileModel.getId());
+
+        return billingProfileModel;
     }
 
     public MockHttpServletResponse launchCreateDataset(StudySummaryModel studySummaryModel,
@@ -161,6 +187,11 @@ public class ConnectedOperations {
     public void deleteTestStudy(String id) throws Exception {
         // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
+        checkDeleteResponse(result.getResponse());
+    }
+
+    public void deleteTestProfile(String id) throws Exception {
+        MvcResult result = mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
         checkDeleteResponse(result.getResponse());
     }
 
@@ -295,6 +326,10 @@ public class ConnectedOperations {
         createdDatasetIds.add(id);
     }
 
+    public void addProfile(String id) {
+        createdProfileIds.add(id);
+    }
+
     public void addFile(String studyId, String fileId) {
         String[] createdFile = new String[]{studyId, fileId};
         createdFileIds.add(createdFile);
@@ -318,6 +353,10 @@ public class ConnectedOperations {
 
             for (String studyId : createdStudyIds) {
                 deleteTestStudy(studyId);
+            }
+
+            for (String profileId : createdProfileIds) {
+                deleteTestProfile(profileId);
             }
         }
     }

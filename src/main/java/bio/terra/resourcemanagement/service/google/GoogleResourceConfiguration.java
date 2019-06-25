@@ -7,8 +7,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-//@EnableConfigurationProperties
 @Configuration
+@EnableConfigurationProperties
 @ConfigurationProperties(prefix = "google")
 public class GoogleResourceConfiguration {
     private String applicationName;

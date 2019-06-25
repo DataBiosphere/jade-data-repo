@@ -1,6 +1,7 @@
 package bio.terra.fixtures;
 
 import bio.terra.metadata.BillingProfile;
+import bio.terra.model.BillingProfileRequestModel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,5 +33,12 @@ public final class ProfileFixtures {
             .biller("onix")
             .name("Random test profile")
             .billingAccountId(randomBillingAccountId());
+    }
+
+    public static BillingProfileRequestModel randomBillingProfileRequest() {
+        return new BillingProfileRequestModel()
+            .billingAccountId(ProfileFixtures.randomBillingAccountId())
+            .biller("direct")
+            .profileName("Test billing profile");
     }
 }

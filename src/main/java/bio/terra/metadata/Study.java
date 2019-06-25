@@ -2,6 +2,7 @@ package bio.terra.metadata;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -9,19 +10,19 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class Study extends StudySummary {
+public class Study {
 
+    private final StudySummary studySummary;
     private List<Table> tables = Collections.emptyList();
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
-    private BillingProfile defaultProfile;
-    private List<BillingProfile> additionalProfiles = Collections.emptyList();
 
     public Study() {
+        studySummary = new StudySummary();
     }
 
     public Study(StudySummary summary) {
-        super(summary);
+        studySummary = summary;
     }
 
     public List<Table> getTables() {
@@ -48,24 +49,6 @@ public class Study extends StudySummary {
 
     public Study assetSpecifications(List<AssetSpecification> assetSpecifications) {
         this.assetSpecifications = Collections.unmodifiableList(assetSpecifications);
-        return this;
-    }
-
-    public BillingProfile getDefaultProfile() {
-        return this.defaultProfile;
-    }
-
-    public Study defaultProfile(BillingProfile defaultProfile) {
-        this.defaultProfile = defaultProfile;
-        return this;
-    }
-
-    public List<BillingProfile> getAdditionalProfiles() {
-        return Collections.unmodifiableList(additionalProfiles);
-    }
-
-    public Study additionalProfiles(List<BillingProfile> additionalProfileIds) {
-        this.additionalProfiles = Collections.unmodifiableList(additionalProfileIds);
         return this;
     }
 
@@ -113,4 +96,61 @@ public class Study extends StudySummary {
         return getTables().stream().filter(table -> table.getName().equals(name)).findFirst();
     }
 
+    public StudySummary getStudySummary() {
+        return studySummary;
+    }
+
+    public UUID getId() {
+        return studySummary.getId();
+    }
+
+    public Study id(UUID id) {
+        studySummary.id(id);
+        return this;
+    }
+
+    public String getName() {
+        return studySummary.getName();
+    }
+
+    public Study name(String name) {
+        studySummary.name(name);
+        return this;
+    }
+
+    public String getDescription() {
+        return studySummary.getDescription();
+    }
+
+    public Study description(String description) {
+        studySummary.description(description);
+        return this;
+    }
+
+    public UUID getDefaultProfileId() {
+        return studySummary.getDefaultProfileId();
+    }
+
+    public Study defaultProfileId(UUID defaultProfileId) {
+        studySummary.defaultProfileId(defaultProfileId);
+        return this;
+    }
+
+    public List<UUID> getAdditionalProfileIds() {
+        return studySummary.getAdditionalProfileIds();
+    }
+
+    public Study additionalProfileIds(List<UUID> additionalProfileIds) {
+        studySummary.additionalProfileIds(additionalProfileIds);
+        return this;
+    }
+
+    public Instant getCreatedDate() {
+        return studySummary.getCreatedDate();
+    }
+
+    public Study createdDate(Instant createdDate) {
+        studySummary.createdDate(createdDate);
+        return this;
+    }
 }

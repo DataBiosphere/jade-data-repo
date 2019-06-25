@@ -4,14 +4,12 @@ import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
-import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyRelationship;
 import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
-import bio.terra.resourcemanagement.service.ProfileService;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,8 +28,8 @@ public final class StudyJsonConversion {
         Map<String, Table> tablesMap = new HashMap<>();
         Map<String, StudyRelationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
-        UUID defaultProfileId = UUID.fromString(studyRequest.getDefaultProfile());
-        List<UUID> additionalProfileIds = stringsToUUIDs(studyRequest.getAdditionalProfiles());
+        UUID defaultProfileId = UUID.fromString(studyRequest.getDefaultProfileId());
+        List<UUID> additionalProfileIds = stringsToUUIDs(studyRequest.getAdditionalProfileIds());
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         studySpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
@@ -66,21 +64,12 @@ public final class StudyJsonConversion {
     }
 
     public static StudyModel studyModelFromStudy(Study study) {
-        List<BillingProfile> additionalProfiles = study.getAdditionalProfiles();
-        List<BillingProfileModel> additionalProfileModels = null;
-        if (additionalProfiles != null) {
-            additionalProfileModels = additionalProfiles
-                .stream()
-                .map(ProfileService::makeModelFromBillingProfile)
-                .collect(Collectors.toList());
-        }
-
         return new StudyModel()
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
-                .defaultProfile(ProfileService.makeModelFromBillingProfile(study.getDefaultProfile()))
-                .additionalProfiles(additionalProfileModels)
+                .defaultProfileId(study.getDefaultProfileId().toString())
+                .additionalProfileIds(uuidsToStrings(study.getAdditionalProfileIds()))
                 .createdDate(study.getCreatedDate().toString())
                 .schema(studySpecificationModelFromStudySchema(study));
     }

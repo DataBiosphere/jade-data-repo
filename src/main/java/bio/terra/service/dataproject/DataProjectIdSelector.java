@@ -5,8 +5,7 @@ import bio.terra.metadata.Study;
 
 public interface DataProjectIdSelector {
 
-   String projectIdForStudy(Study study);
+    String projectIdForStudy(Study study);
 
-   String projectIdForDataset(Dataset dataset);
-
+    String projectIdForDataset(Dataset dataset);
 }

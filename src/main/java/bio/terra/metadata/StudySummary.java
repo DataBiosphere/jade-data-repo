@@ -12,18 +12,6 @@ public class StudySummary {
     private List<UUID> additionalProfileIds;
     private Instant createdDate;
 
-    public StudySummary() {
-    }
-
-    public StudySummary(StudySummary summary) {
-        this.id(summary.getId())
-            .name(summary.getName())
-            .description(summary.getDescription())
-            .defaultProfileId(summary.getDefaultProfileId())
-            .additionalProfileIds(summary.getAdditionalProfileIds())
-            .createdDate(summary.getCreatedDate());
-    }
-
     public UUID getId() {
         return id;
     }

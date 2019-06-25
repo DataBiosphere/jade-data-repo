@@ -81,9 +81,20 @@ public class ConnectedOperations {
         deleteOnTeardown = true;
     }
 
-    public StudySummaryModel createTestStudy(String resourcePath) throws Exception {
+    /**
+     * Creating a study through the http layer causes a study create flight to run, creating metadata and primary data
+     * to be modified.
+     *
+     * @param resourcePath path to json used for a study create request
+     * @return summary of the study created
+     * @throws Exception
+     */
+    public StudySummaryModel createStudyWithFlight(BillingProfileModel profileModel,
+                                                   String resourcePath) throws Exception {
         StudyRequestModel studyRequest = jsonLoader.loadObject(resourcePath, StudyRequestModel.class);
-        studyRequest.setName(Names.randomizeName(studyRequest.getName()));
+        studyRequest
+            .name(Names.randomizeName(studyRequest.getName()))
+            .defaultProfileId(profileModel.getId());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/studies")
             .contentType(MediaType.APPLICATION_JSON)
@@ -126,16 +137,16 @@ public class ConnectedOperations {
                                                         String infix) throws Exception {
 
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
-
         String datasetName = Names.randomizeNameInfix(datasetRequest.getName(), infix);
         datasetRequest.setName(datasetName);
 
-        String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
+        // TODO: the next two lines assume SingleStudyDataset
+        datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
+        datasetRequest.profileId(studySummaryModel.getDefaultProfileId());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(jsonRequest))
+            .content(objectMapper.writeValueAsString(datasetRequest)))
             .andReturn();
 
         return validateJobModelAndWait(result);

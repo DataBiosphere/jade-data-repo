@@ -52,7 +52,7 @@ public class DataProjectService {
         GoogleProjectResource googleProjectResource;
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataProjectIdSelector.projectIdForDataset(dataset))
-            .profileId(dataset.getProfile().getId())
+            .profileId(dataset.getProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         try {
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProjectByDatasetId(dataset.getId());
@@ -74,6 +74,8 @@ public class DataProjectService {
         return new DatasetDataProject(datasetDataProjectSummary)
             .googleProjectResource(googleProjectResource);
     }
+
+    // TODO: DRY this up
 
     public StudyDataProject getProjectForStudy(Study study) {
         StudyDataProjectSummary studyDataProjectSummary = null;

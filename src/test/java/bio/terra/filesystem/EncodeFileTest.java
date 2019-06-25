@@ -4,6 +4,7 @@ import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
@@ -78,6 +79,7 @@ public class EncodeFileTest {
     private SamClientService samService;
 
     private ConnectedOperations connectedOperations;
+    private BillingProfileModel profileModel;
 
     @Before
     public void setup() throws Exception {
@@ -85,6 +87,7 @@ public class EncodeFileTest {
         ConnectedOperations.stubOutSamCalls(samService);
 
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+        profileModel = connectedOperations.createRandomTestProfile();
     }
 
     @After
@@ -96,7 +99,8 @@ public class EncodeFileTest {
     // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), false, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
@@ -142,7 +146,8 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadFileId() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), true, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
@@ -177,7 +182,8 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadRowTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), false, true);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 

@@ -52,17 +52,14 @@ public class DatasetService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
-    private final ProfileService profileService;
 
     @Autowired
     public DatasetService(Stairway stairway,
                           StudyDao studyDao,
-                          DatasetDao datasetDao,
-                          ProfileService profileService) {
+                          DatasetDao datasetDao) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
-        this.profileService = profileService;
     }
 
     /**
@@ -165,13 +162,10 @@ public class DatasetService {
         // For now, we generate the dataset tables directly from the asset tables of the one source
         // allowed in a dataset.
         conjureDatasetTablesFromAsset(datasetSource.getAssetSpecification(), dataset, datasetSource);
-        String profileId = datasetRequestModel.getProfileId();
-        BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
-
         dataset.name(datasetRequestModel.getName())
                 .description(datasetRequestModel.getDescription())
                 .datasetSources(Collections.singletonList(datasetSource))
-                .profile(profile);
+                .profileId(UUID.fromString(datasetRequestModel.getProfileId()));
 
         return dataset;
     }
@@ -256,7 +250,7 @@ public class DatasetService {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
-                .profile(profileService.makeModelFromBillingProfile(dataset.getProfile()))
+                .profileId(dataset.getProfileId().toString())
                 .source(dataset.getDatasetSources()
                         .stream()
                         .map(source -> makeSourceModelFromSource(source))

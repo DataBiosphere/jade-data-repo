@@ -5,6 +5,7 @@ import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
@@ -76,7 +77,9 @@ public class FileOperationTest {
 
     @Test
     public void fileOperationsTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
+        BillingProfileModel profileModel = connectedOperations.createRandomTestProfile();
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
         FSObjectModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);

@@ -37,19 +37,16 @@ public class DatasetDao {
     private final DatasetTableDao datasetTableDao;
     private final DatasetMapTableDao datasetMapTableDao;
     private final StudyDao studyDao;
-    private final ProfileService profileService;
 
     @Autowired
     public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
                       DatasetTableDao datasetTableDao,
                       DatasetMapTableDao datasetMapTableDao,
-                      StudyDao studyDao,
-                      ProfileService profileService) {
+                      StudyDao studyDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.datasetTableDao = datasetTableDao;
         this.datasetMapTableDao = datasetMapTableDao;
         this.studyDao = studyDao;
-        this.profileService = profileService;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -60,7 +57,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", dataset.getName())
                 .addValue("description", dataset.getDescription())
-                .addValue("profile_id", dataset.getProfile().getId());
+                .addValue("profile_id", dataset.getProfileId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID datasetId = keyHolder.getId();
@@ -133,8 +130,7 @@ public class DatasetDao {
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))
                         .createdDate(rs.getTimestamp("created_date").toInstant())
-                        .profile(profileService.getProfileById(
-                            rs.getObject("profile_id", UUID.class))));
+                        .profileId(rs.getObject("profile_id", UUID.class)));
             // needed for findbugs. but really can't be null
             if (dataset != null) {
                 // retrieve the dataset tables

@@ -76,6 +76,7 @@ public class BigQueryPdaoTest {
 
     private ConnectedOperations connectedOperations;
     private Study study;
+    private BillingProfileModel profileModel;
 
     @Before
     public void setup() throws Exception {
@@ -83,9 +84,12 @@ public class BigQueryPdaoTest {
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
 
-        BillingProfileModel testProfile = connectedOperations.createRandomTestProfile();
-        StudyRequestModel studyRequest = StudyFixtures.buildStudyRequest()
-            .defaultProfileId(testProfile.getId())
+        profileModel = connectedOperations.createRandomTestProfile();
+        // TODO: this next bit should be in connected operations, need to make it a component and autowire a studydao
+        StudyRequestModel studyRequest = jsonLoader.loadObject("ingest-test-study.json",
+            StudyRequestModel.class);
+        studyRequest
+            .defaultProfileId(profileModel.getId())
             .name(studyName());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         UUID studyId = studyDao.create(study);
@@ -126,8 +130,7 @@ public class BigQueryPdaoTest {
 
     @Test
     public void datasetTest() throws Exception {
-        // Create a random study.
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("ingest-test-study.json");
+        bigQueryPdao.createStudy(study);
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -153,14 +156,17 @@ public class BigQueryPdaoTest {
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            String studyId = study.getId().toString();
+            connectedOperations.ingestTableSuccess(studyId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(studyId,
                 ingestRequest.table("sample").path(gsPath(sampleBlob)));
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(studyId,
                 ingestRequest.table("file").path(gsPath(fileBlob)));
 
             // Create a dataset!
+            StudySummaryModel studySummary =
+                StudyJsonConversion.studySummaryModelFromStudySummary(study.getStudySummary());
             MockHttpServletResponse datasetResponse =
                 connectedOperations.launchCreateDataset(studySummary, "ingest-test-dataset.json", "");
             DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(datasetResponse);

@@ -2,8 +2,12 @@ package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
+import bio.terra.dao.DatasetDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetDataProject;
+import bio.terra.metadata.DatasetSummary;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
@@ -12,8 +16,10 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
+import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
@@ -69,9 +75,9 @@ public class EncodeFileTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private Storage storage;
-    @Autowired private BigQuery bigQuery;
-    @Autowired private String bigQueryProjectId;
     @Autowired private ConnectedTestConfiguration testConfig;
+    @Autowired private DataProjectService dataProjectService;
+    @Autowired private DatasetDao datasetDao;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
@@ -85,7 +91,6 @@ public class EncodeFileTest {
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
-
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
         profileModel = connectedOperations.createRandomTestProfile();
     }
@@ -130,7 +135,7 @@ public class EncodeFileTest {
             studySummary, "encodefiletest-dataset.json", "");
         DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(response);
 
-        String datasetFileId = getFileRefIdFromDataset(datasetSummary.getName());
+        String datasetFileId = getFileRefIdFromDataset(datasetSummary);
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
@@ -302,19 +307,23 @@ public class EncodeFileTest {
         return targetPath;
     }
 
-    private String getFileRefIdFromDataset(String datasetName) {
+    private String getFileRefIdFromDataset(DatasetSummaryModel datasetSummary) {
+        Dataset dataset = datasetDao.retrieveDatasetByName(datasetSummary.getName());
+        DatasetDataProject dataProject = dataProjectService.getProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = new BigQueryProject(dataProject.getGoogleProjectId());
+
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")
-            .append(bigQueryProjectId)
+            .append(dataProject.getGoogleProjectId())
             .append('.')
-            .append(datasetName)
+            .append(dataset.getName())
             .append(".file` AS T")
             .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
 
         String sql = builder.toString();
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-            TableResult result = bigQuery.query(queryConfig);
+            TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
             FieldValueList row = result.iterateAll().iterator().next();
             FieldValue idValue = row.get(0);
             String drsUri = idValue.getStringValue();

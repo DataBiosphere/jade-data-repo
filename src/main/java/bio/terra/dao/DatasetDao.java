@@ -8,7 +8,6 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
-import bio.terra.resourcemanagement.service.ProfileService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -241,7 +240,7 @@ public class DatasetDao {
 
     public List<DatasetSummary> retrieveDatasetsForStudy(UUID studyId) {
         try {
-            String sql = "SELECT dataset.id, name, description, created_date FROM dataset " +
+            String sql = "SELECT dataset.id, name, description, created_date, profile_id FROM dataset " +
                 "JOIN dataset_source ON dataset.id = dataset_source.dataset_id " +
                 "WHERE dataset_source.study_id = :studyId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);

@@ -5,6 +5,8 @@ import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+
 @Component
 public class JsonLoader {
     private ClassLoader classLoader;
@@ -16,11 +18,11 @@ public class JsonLoader {
         this.objectMapper = objectMapper;
     }
 
-    public String loadJson(String resourcePath) throws Exception {
+    public String loadJson(String resourcePath) throws IOException {
         return IOUtils.toString(classLoader.getResourceAsStream(resourcePath));
     }
 
-    public <T> T loadObject(String resourcePath, Class<T> resourceClass) throws Exception {
+    public <T> T loadObject(String resourcePath, Class<T> resourceClass) throws IOException {
         String json = loadJson(resourcePath);
         return objectMapper.readerFor(resourceClass).readValue(json);
     }

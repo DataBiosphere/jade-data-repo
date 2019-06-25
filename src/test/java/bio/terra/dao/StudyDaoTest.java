@@ -2,13 +2,18 @@ package bio.terra.dao;
 
 import bio.terra.category.Unit;
 import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.fixtures.JsonLoader;
+import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.AssetSpecification;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.Table;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
+import bio.terra.resourcemanagement.dao.ProfileDao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
@@ -42,7 +47,13 @@ public class StudyDaoTest {
     private ObjectMapper objectMapper;
 
     @Autowired
+    private JsonLoader jsonLoader;
+
+    @Autowired
     private StudyDao studyDao;
+
+    @Autowired
+    private ProfileDao profileDao;
 
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
@@ -50,12 +61,20 @@ public class StudyDaoTest {
     private Study study;
     private UUID studyId;
     private Study fromDB;
+    private BillingProfile billingProfile;
     private boolean deleted;
 
     @Before
     public void setup() throws Exception {
-        StudyRequestModel studyRequest = getStudyRequestModel("study-create-test.json");
-        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
+        billingProfile = ProfileFixtures.randomBillingProfile();
+        UUID profileId = profileDao.createBillingProfile(billingProfile);
+        billingProfile.id(profileId);
+
+        StudyRequestModel studyRequest = jsonLoader.loadObject("study-create-test.json",
+            StudyRequestModel.class);
+        studyRequest
+            .name(studyRequest.getName() + UUID.randomUUID().toString())
+            .defaultProfileId(profileId.toString());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         studyId = studyDao.create(study);
         fromDB = studyDao.retrieve(studyId);
@@ -68,17 +87,15 @@ public class StudyDaoTest {
         }
         studyId = null;
         fromDB = null;
-    }
-
-    private StudyRequestModel getStudyRequestModel(String jsonResourceFileName) throws IOException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream(jsonResourceFileName));
-        return objectMapper.readerFor(StudyRequestModel.class).readValue(studyJsonStr);
+        profileDao.deleteBillingProfileById(billingProfile.getId());
     }
 
     private UUID createMinimalStudy() throws IOException {
-        StudyRequestModel studyRequest = getStudyRequestModel("study-minimal.json");
-        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
+        StudyRequestModel studyRequest = jsonLoader.loadObject("study-minimal.json",
+            StudyRequestModel.class);
+        studyRequest
+            .name(studyRequest.getName() + UUID.randomUUID().toString())
+            .defaultProfileId(billingProfile.getId().toString());
         return studyDao.create(StudyJsonConversion.studyRequestToStudy(studyRequest));
     }
 

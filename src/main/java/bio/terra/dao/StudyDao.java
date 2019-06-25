@@ -127,7 +127,6 @@ public class StudyDao {
     ) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
-//        Stringing authzCaluse =
         DaoUtils.addAuthzIdsClause(accessibleStudyIds, params, whereClauses);
 
         // get total count of objects
@@ -137,10 +136,13 @@ public class StudyDao {
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
-        String sql = "SELECT id, name, description, created_date FROM study WHERE " +
-            StringUtils.join(whereClauses, " AND ") +
+        String whereSql = "";
+        if (!whereClauses.isEmpty()) {
+            whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
+        }
+        String sql = "SELECT id, name, description, created_date FROM study " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
-            params.addValue("offset", offset).addValue("limit", limit);
+        params.addValue("offset", offset).addValue("limit", limit);
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
 
         return new MetadataEnumeration<StudySummary>()

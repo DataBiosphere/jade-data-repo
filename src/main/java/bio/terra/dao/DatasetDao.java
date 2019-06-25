@@ -200,9 +200,12 @@ public class DatasetDao {
         List<String> whereClauses = new ArrayList<>();
 
         DaoUtils.addFilterClause(filter, params, whereClauses);
+        String whereSql = "";
+        if (!whereClauses.isEmpty()) {
+            whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
+        }
 
-        String sql = "SELECT id, name, description, created_date FROM dataset WHERE " +
-            StringUtils.join(whereClauses, " AND ") +
+        String sql = "SELECT id, name, description, created_date FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {

@@ -1,11 +1,14 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.exception.InternalServerErrorException;
+import bio.terra.exception.UnauthorizedException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.model.sam.CreateResourceCorrectRequest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.Pair;
@@ -14,6 +17,7 @@ import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -35,26 +39,20 @@ import java.util.stream.Collectors;
 public class SamClientService {
 
     public enum ResourceType {
-        DATA_REPOSITORY("data_repository"),
-        STUDY("study"),
-        DATASET("dataset");
-
-        private String value;
-
-        ResourceType(String value) {
-            this.value = value;
-        }
+        DATAREPO,
+        STUDY,
+        DATASET;
 
         @Override
         @JsonValue
         public String toString() {
-            return String.valueOf(value);
+            return StringUtils.lowerCase(name());
         }
 
         @JsonCreator
         public static ResourceType fromValue(String text) {
             for (ResourceType b : ResourceType.values()) {
-                if (String.valueOf(b.value).equals(text)) {
+                if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
                     return b;
                 }
             }
@@ -64,40 +62,66 @@ public class SamClientService {
     }
 
     public enum DataRepoRole {
-        STEWARD("steward"),
-        CUSTODIAN("custodian"),
-        INGESTER("ingester"),
-        READER("reader"),
-        DISCOVERER("discoverer");
-
-        private String value;
-
-        DataRepoRole(String value) {
-            this.value = value;
-        }
+        STEWARD,
+        CUSTODIAN,
+        INGESTER,
+        READER,
+        DISCOVERER;
 
         @Override
         @JsonValue
         public String toString() {
-            return String.valueOf(value);
+            return StringUtils.lowerCase(name());
         }
 
         @JsonCreator
         public static ResourceType fromValue(String text) {
             for (ResourceType b : ResourceType.values()) {
-                if (String.valueOf(b.value).equals(text)) {
+                if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
                     return b;
                 }
             }
             return null;
         }
 
-        public String getRoleName() {
-            return this.value;
+    }
+
+
+    public enum DataRepoAction {
+        // common
+        CREATE,
+        DELETE,
+        SHARE_POLICY,
+        READ_POLICY,
+        READ_POLICIES,
+        ALTER_POLICIES,
+        // datarepo
+        CREATE_STUDY,
+        // study
+        EDIT_STUDY,
+        READ_STUDY,
+        INGEST_DATA,
+        UPDATE_DATA,
+        // datasets
+        CREATE_DATASET,
+        EDIT_DATASET,
+        READ_DATA,
+        DISCOVER_DATA;
+
+        @Override
+        @JsonValue
+        public String toString() {
+            return StringUtils.lowerCase(name());
         }
 
-        public String getPolicyName() {
-            return this.value;
+        @JsonCreator
+        public static ResourceType fromValue(String text) {
+            for (ResourceType b : ResourceType.values()) {
+                if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
+                    return b;
+                }
+            }
+            return null;
         }
     }
 
@@ -140,6 +164,41 @@ public class SamClientService {
         this.stewardsGroupEmail = stewardsGroupEmail;
     }
 
+    public boolean isAuthorized(
+        AuthenticatedUserRequest userReq,
+        SamClientService.ResourceType resourceType,
+        String resourceId,
+        SamClientService.DataRepoAction action) {
+        boolean authorized = false;
+        try {
+            authorized = checkResourceAction(
+                userReq,
+                resourceType.toString(),
+                resourceId,
+                action.toString());
+            logger.info("authorized is " + authorized);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+        return authorized;
+    }
+
+    public void verifyAuthorization(
+        AuthenticatedUserRequest userReq,
+        SamClientService.ResourceType resourceType,
+        String resourceId,
+        SamClientService.DataRepoAction action) {
+        if (!isAuthorized(userReq, resourceType, resourceId, action)) {
+            throw new UnauthorizedException("User does not have required action: " + action);
+        }
+    }
+
+    public List<ResourceAndAccessPolicy> listAuthorizedResources(
+        AuthenticatedUserRequest userReq, ResourceType resourceType) throws ApiException {
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        return samResourceApi.listResourcesAndPolicies(resourceType.toString());
+    }
+
     public boolean checkResourceAction(
         AuthenticatedUserRequest userReq,
         String samResourceType,
@@ -164,14 +223,14 @@ public class SamClientService {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
-            DataRepoRole.STEWARD.getPolicyName(),
-            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), Collections.singletonList(stewardsGroupEmail)));
+            DataRepoRole.STEWARD.toString(),
+            createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));
         req.addPoliciesItem(
-            DataRepoRole.CUSTODIAN.getPolicyName(),
-            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), Collections.singletonList(userReq.getEmail())));
+            DataRepoRole.CUSTODIAN.toString(),
+            createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
-            DataRepoRole.INGESTER.getPolicyName(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.INGESTER.getRoleName())));
+            DataRepoRole.INGESTER.toString(),
+            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.INGESTER.toString())));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
@@ -188,17 +247,17 @@ public class SamClientService {
 
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
-            DataRepoRole.STEWARD.getPolicyName(),
-            createAccessPolicy(DataRepoRole.STEWARD.getRoleName(), Collections.singletonList(stewardsGroupEmail)));
+            DataRepoRole.STEWARD.toString(),
+            createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));
         req.addPoliciesItem(
-            DataRepoRole.CUSTODIAN.getPolicyName(),
-            createAccessPolicy(DataRepoRole.CUSTODIAN.getRoleName(), Collections.singletonList(userReq.getEmail())));
+            DataRepoRole.CUSTODIAN.toString(),
+            createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
-            DataRepoRole.READER.getPolicyName(),
-            createAccessPolicy(DataRepoRole.READER.getRoleName(), readersList.orElse(Collections.emptyList())));
+            DataRepoRole.READER.toString(),
+            createAccessPolicy(DataRepoRole.READER.toString(), readersList.orElse(Collections.emptyList())));
         req.addPoliciesItem(
-            DataRepoRole.DISCOVERER.getPolicyName(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.DISCOVERER.getRoleName())));
+            DataRepoRole.DISCOVERER.toString(),
+            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.DISCOVERER.toString())));
 
         // create the resource in sam
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
@@ -210,7 +269,7 @@ public class SamClientService {
         Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
             ResourceType.DATASET.toString(),
             datasetId.toString(),
-            DataRepoRole.READER.getPolicyName());
+            DataRepoRole.READER.toString());
         return results.keySet().iterator().next();
     }
 

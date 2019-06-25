@@ -8,6 +8,7 @@ import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -195,15 +196,18 @@ public class DatasetDao {
     ) {
         logger.debug("retrieve datasets offset: " + offset + " limit: " + limit + " sort: " + sort +
             " direction: " + direction + " filter:" + filter);
-        String where = DaoUtils.whereClause(filter);
-        String sql = "SELECT id, name, description, created_date FROM dataset " + where +
-                DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("offset", offset)
-            .addValue("limit", limit);
-        if (!where.isEmpty()) {
-            params.addValue("filter", DaoUtils.escapeFilter(filter));
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        List<String> whereClauses = new ArrayList<>();
+
+        DaoUtils.addFilterClause(filter, params, whereClauses);
+        String whereSql = "";
+        if (!whereClauses.isEmpty()) {
+            whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
+
+        String sql = "SELECT id, name, description, created_date FROM dataset " + whereSql +
+            DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
+        params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
             DatasetSummary summary = new DatasetSummary()
                 .id(UUID.fromString(rs.getString("id")))

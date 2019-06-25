@@ -18,6 +18,7 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -54,8 +55,17 @@ public class StudyService {
         return StudyJsonConversion.studyModelFromStudy(studyDao.retrieve(id));
     }
 
-    public EnumerateStudyModel enumerate(int offset, int limit, String sort, String direction, String filter) {
-        MetadataEnumeration<StudySummary> studyEnum = studyDao.enumerate(offset, limit, sort, direction, filter);
+    public EnumerateStudyModel enumerate(
+        int offset, int limit, String sort, String direction, String filter, List<ResourceAndAccessPolicy> resources) {
+        if (resources.isEmpty()) {
+            return new EnumerateStudyModel().total(0);
+        }
+        List<UUID> resourceIds = resources
+            .stream()
+            .map(resource -> UUID.fromString(resource.getResourceId()))
+            .collect(Collectors.toList());
+        MetadataEnumeration<StudySummary> studyEnum = studyDao.enumerate(
+            offset, limit, sort, direction, filter, resourceIds);
         List<StudySummaryModel> summaries = studyEnum.getItems()
             .stream()
             .map(summary -> StudyJsonConversion.studySummaryModelFromStudySummary(summary))

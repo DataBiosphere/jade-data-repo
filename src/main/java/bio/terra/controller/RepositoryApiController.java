@@ -30,6 +30,7 @@ import bio.terra.validation.StudyRequestValidator;
 import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,15 +122,33 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     // -- study --
+    @Override
     public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.datarepoId(),
+            SamClientService.DataRepoAction.CREATE_STUDY);
         return new ResponseEntity<>(studyService.createStudy(studyRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
     }
 
+    @Override
     public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.READ_STUDY);
         return new ResponseEntity<>(studyService.retrieve(UUID.fromString(id)), HttpStatus.OK);
     }
 
+    @Override
     public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.DELETE);
         return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
@@ -140,8 +159,14 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter);
-        return new ResponseEntity<>(esm, HttpStatus.OK);
+        try {
+            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
+                getAuthenticatedInfo(), SamClientService.ResourceType.STUDY);
+            EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter, resources);
+            return new ResponseEntity<>(esm, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
     }
 
     @Override

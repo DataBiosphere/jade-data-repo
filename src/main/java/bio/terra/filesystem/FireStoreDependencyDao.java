@@ -82,6 +82,7 @@ public class FireStoreDependencyDao {
         try {
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
             for (DocumentSnapshot docSnap : documents) {
+                logger.info("deleting: " + docSnap.toString());
                 docSnap.getReference().delete();
             }
 

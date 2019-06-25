@@ -14,6 +14,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -38,6 +39,7 @@ public class DataRepoClient {
 
     public DataRepoClient() {
         restTemplate = new RestTemplate();
+        restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
         objectMapper = new ObjectMapper();
 
@@ -119,8 +121,12 @@ public class DataRepoClient {
         drResponse.setLocationHeader((uri == null) ? Optional.empty() : Optional.of(uri.toString()));
 
         if (response.getStatusCode().is2xxSuccessful()) {
-            T responseObject = objectMapper.readValue(response.getBody(), responseClass);
-            drResponse.setResponseObject(Optional.of(responseObject));
+            if (responseClass != null) {
+                T responseObject = objectMapper.readValue(response.getBody(), responseClass);
+                drResponse.setResponseObject(Optional.of(responseObject));
+            } else {
+                drResponse.setResponseObject(Optional.empty());
+            }
             drResponse.setErrorModel(Optional.empty());
         } else {
             ErrorModel errorModel = objectMapper.readValue(response.getBody(), ErrorModel.class);

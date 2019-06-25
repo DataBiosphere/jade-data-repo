@@ -58,6 +58,14 @@ public class ApplicationConfiguration {
         return datarepoDnsName;
     }
 
+    @Value("${datarepo.resourceId}")
+    private String datarepoId;
+
+    @Bean("datarepoResourceId")
+    public String datarepoId() {
+        return datarepoId;
+    }
+
     // This is a "magic bean": It supplies a method that Spring calls after the application is setup,
     // but before the port is opened for business. That lets us do database migration and stairway
     // initialization on a system that is otherwise fully configured. The rule of thumb is that all

@@ -5,12 +5,17 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
@@ -22,6 +27,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
@@ -30,6 +36,7 @@ public class StudyTest {
     private static final String omopStudyName = "it_study_omop";
     private static final String omopStudyDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
+    private static Logger logger = LoggerFactory.getLogger(StudyTest.class);
 
     @Autowired
     private DataRepoClient dataRepoClient;
@@ -38,7 +45,7 @@ public class StudyTest {
     private JsonLoader jsonLoader;
 
     @Autowired
-    private TestOperations testOperations;
+    private DataRepoFixtures dataRepoFixtures;
 
     @Autowired
     private Users users;
@@ -46,32 +53,41 @@ public class StudyTest {
     @Autowired
     private AuthService authService;
 
+
+    private TestConfiguration.User steward;
+    private TestConfiguration.User custodian;
+    private TestConfiguration.User reader;
+    private String stewardToken;
+    private String custodianToken;
+    private String readerToken;
+
+
+    @Before
+    public void setup() throws Exception {
+        steward = users.getUserForRole("steward");
+        custodian = users.getUserForRole("custodian");
+        reader = users.getUserForRole("reader");
+        stewardToken = authService.getAuthToken(steward.getEmail());
+        custodianToken = authService.getAuthToken(custodian.getEmail());
+        readerToken = authService.getAuthToken(reader.getEmail());
+        logger.info("steward: " + steward.getName() + "; custodian: " + custodian.getName() +
+            "; reader: " + reader.getName());
+    }
+
     @Test
     public void studyHappyPath() throws Exception {
-        TestConfiguration.User steward = users.getUserForRole("steward");
-        String authToken = authService.getAuthToken(steward.getEmail());
-        StudySummaryModel summaryModel = testOperations.createTestStudy(authToken, "it-study-omop.json");
+        StudySummaryModel summaryModel = dataRepoFixtures.createStudy(stewardToken, "it-study-omop.json");
         try {
+            logger.info("study id is " + summaryModel.getId());
             assertThat(summaryModel.getName(), startsWith(omopStudyName));
             assertThat(summaryModel.getDescription(), equalTo(omopStudyDesc));
 
-            String studyPath = "/api/repository/v1/studies/" + summaryModel.getId();
-            DataRepoResponse<StudyModel> getResponse = dataRepoClient.get(authToken, studyPath, StudyModel.class);
+            StudyModel studyModel = dataRepoFixtures.getStudy(stewardToken, summaryModel.getId());
 
-            assertThat("study is successfully retrieved", getResponse.getStatusCode(), equalTo(HttpStatus.OK));
-            assertTrue("study get response is present", getResponse.getResponseObject().isPresent());
-            StudyModel studyModel = getResponse.getResponseObject().get();
             assertThat(studyModel.getName(), startsWith(omopStudyName));
             assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
 
-            DataRepoResponse<EnumerateStudyModel> enumResponse = dataRepoClient.get(
-                authToken,
-                "/api/repository/v1/studies?offset=0&limit=1000",
-                EnumerateStudyModel.class);
-
-            assertThat("study enumeration is successful", enumResponse.getStatusCode(), equalTo(HttpStatus.OK));
-            assertTrue("study get response is present", enumResponse.getResponseObject().isPresent());
-            EnumerateStudyModel enumerateStudyModel = enumResponse.getResponseObject().get();
+            EnumerateStudyModel enumerateStudyModel = dataRepoFixtures.enumerateStudies(stewardToken);
             boolean found = false;
             for (StudySummaryModel oneStudy : enumerateStudyModel.getItems()) {
                 if (oneStudy.getId().equals(studyModel.getId())) {
@@ -83,8 +99,68 @@ public class StudyTest {
             }
             assertTrue("study was found in enumeration", found);
 
+            // test allowable permissions
+
+            dataRepoFixtures.addStudyPolicyMember(
+                stewardToken,
+                summaryModel.getId(),
+                SamClientService.DataRepoRole.CUSTODIAN,
+                custodian.getEmail());
+            DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodianToken);
+            assertThat("Custodian is authorized to enumerate studies",
+                enumStudies.getStatusCode(),
+                equalTo(HttpStatus.OK));
+
         } finally {
-            testOperations.deleteTestStudy(authToken, summaryModel.getId());
+            logger.info("deleting study");
+            dataRepoFixtures.deleteStudyRaw(stewardToken, summaryModel.getId());
+        }
+    }
+
+    @Test
+    public void studyUnauthorizedPermissionsTest() throws Exception {
+
+        DataRepoResponse<StudySummaryModel> studySumRespCust = dataRepoFixtures.createStudyRaw(
+            custodianToken, "study-minimal.json");
+        assertThat("Custodian is not authorized to create a study",
+            studySumRespCust.getStatusCode(),
+            equalTo(HttpStatus.UNAUTHORIZED));
+
+        DataRepoResponse<StudySummaryModel> studySumRespReader = dataRepoFixtures.createStudyRaw(
+            readerToken, "study-minimal.json");
+        assertThat("Reader is not authorized to create a study",
+            studySumRespReader.getStatusCode(),
+            equalTo(HttpStatus.UNAUTHORIZED));
+
+        EnumerateStudyModel enumStudiesResp = dataRepoFixtures.enumerateStudies(readerToken);
+        assertThat("Reader does not have access to studies",
+            enumStudiesResp.getTotal(),
+            equalTo(0));
+
+        StudySummaryModel summaryModel = null;
+        try {
+            summaryModel = dataRepoFixtures.createStudy(stewardToken, "study-minimal.json");
+            logger.info("study id is " + summaryModel.getId());
+
+            DataRepoResponse<StudyModel> getStudyResp = dataRepoFixtures.getStudyRaw(readerToken, summaryModel.getId());
+            assertThat("Reader is not authorized to get study",
+                getStudyResp.getStatusCode(),
+                equalTo(HttpStatus.UNAUTHORIZED));
+
+            DataRepoResponse<DeleteResponseModel> deleteResp1 = dataRepoFixtures.deleteStudyRaw(
+                readerToken, summaryModel.getId());
+            assertThat("Reader is not authorized to delete studies",
+                deleteResp1.getStatusCode(),
+                equalTo(HttpStatus.UNAUTHORIZED));
+
+            DataRepoResponse<DeleteResponseModel> deleteResp2 = dataRepoFixtures.deleteStudyRaw(
+                custodianToken, summaryModel.getId());
+            assertThat("Custodian is not authorized to delete studies",
+                deleteResp2.getStatusCode(),
+                equalTo(HttpStatus.UNAUTHORIZED));
+        } finally {
+            if (summaryModel != null)
+                dataRepoFixtures.deleteStudy(stewardToken, summaryModel.getId());
         }
     }
 

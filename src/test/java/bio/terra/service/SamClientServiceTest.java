@@ -62,8 +62,8 @@ public class SamClientServiceTest {
         CreateResourceRequest createResourceRequest = new CreateResourceRequest();
         CreateResourceCorrectRequest createResourceCorrectRequest = new CreateResourceCorrectRequest();
         createResourceCorrectRequest.addPoliciesItem(
-            SamClientService.DataRepoRole.READER.getPolicyName(),
-            sam.createAccessPolicy(SamClientService.DataRepoRole.READER.getRoleName(), readersList.get()));
+            SamClientService.DataRepoRole.READER.toString(),
+            sam.createAccessPolicy(SamClientService.DataRepoRole.READER.toString(), readersList.get()));
 
         // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))

@@ -2,7 +2,11 @@ package bio.terra.flight.study.create;
 
 import bio.terra.category.Connected;
 import bio.terra.dao.StudyDao;
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.fixtures.ConnectedOperations;
+import bio.terra.fixtures.JsonLoader;
+import bio.terra.fixtures.ProfileFixtures;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudyDataProject;
 import bio.terra.model.StudyJsonConversion;
@@ -10,6 +14,8 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.pdao.bigquery.BigQueryProject;
+import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.service.dataproject.DataProjectService;
@@ -59,10 +65,10 @@ public class StudyCreateFlightTest {
     private StudyDao studyDao;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private ProfileDao profileDao;
 
     @Autowired
-    private DataProjectService dataProjectService;
+    private JsonLoader jsonLoader;
 
     @MockBean
     private SamClientService samService;
@@ -70,31 +76,48 @@ public class StudyCreateFlightTest {
     private String studyName;
     private StudyRequestModel studyRequest;
     private Study study;
-    private BigQueryProject bigQueryProject;
+    private BillingProfile billingProfile;
 
-    private StudyRequestModel makeStudyRequest(String studyName) throws IOException {
-        ClassLoader classLoader = getClass().getClassLoader();
-        ObjectReader reader = objectMapper.readerFor(StudyRequestModel.class);
-        InputStream stream = classLoader.getResourceAsStream("study-minimal.json");
-        StudyRequestModel studyRequest = reader.readValue(stream);
-        studyRequest.setName(studyName);
-        return studyRequest;
+    private StudyRequestModel makeStudyRequest(String studyName, String profileId) throws IOException {
+        StudyRequestModel studyRequest = jsonLoader.loadObject("study-minimal.json",
+            StudyRequestModel.class);
+        return studyRequest
+            .name(studyName)
+            .defaultProfileId(profileId);
     }
 
     @Before
     public void setup() throws Exception {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        studyRequest = makeStudyRequest(studyName);
+        billingProfile = ProfileFixtures.randomBillingProfile();
+        UUID profileId = profileDao.createBillingProfile(billingProfile);
+        billingProfile.id(profileId);
+        studyRequest = makeStudyRequest(studyName, profileId.toString());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         ConnectedOperations.stubOutSamCalls(samService);
-        StudyDataProject studyDataProject = dataProjectService.getProjectForStudy(study);
-        BigQueryProject bigQueryProject = new BigQueryProject(studyDataProject.getGoogleProjectId());
+        //StudyDataProject studyDataProject = dataProjectService.getProjectForStudy(study);
+        //BigQueryProject bigQueryProject = new BigQueryProject(studyDataProject.getGoogleProjectId());
     }
 
     @After
     public void tearDown() {
-        pdao.deleteStudy(study);
+        deleteStudy(study);
         studyDao.deleteByName(studyName);
+        profileDao.deleteBillingProfileById(billingProfile.getId());
+    }
+
+    /**
+     * Fetches a study from the database based on it's name (handles the case where id isn't filled in)
+     * @param study
+     * @return
+     */
+    public boolean deleteStudy(Study study) {
+        try {
+            Study studyFromDb = studyDao.retrieveByName(study.getName());
+            return pdao.deleteStudy(studyFromDb);
+        } catch (StudyNotFoundException e) {
+            return false;
+        }
     }
 
     @Test
@@ -114,7 +137,7 @@ public class StudyCreateFlightTest {
         Study createdStudy = studyDao.retrieve(UUID.fromString(response.getId()));
         assertEquals(studyName, createdStudy.getName());
 
-        assertTrue(pdao.deleteStudy(study));
+        assertTrue(deleteStudy(study));
     }
 
     @Test
@@ -133,6 +156,6 @@ public class StudyCreateFlightTest {
         boolean deletedSomething = studyDao.deleteByName(studyName);
         assertFalse(deletedSomething);
 
-        assertFalse(pdao.deleteStudy(study));
+        assertFalse(deleteStudy(study));
     }
 }

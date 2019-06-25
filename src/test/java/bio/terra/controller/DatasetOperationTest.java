@@ -91,7 +91,6 @@ public class DatasetOperationTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private BigQuery bigQuery;
     @Autowired private String bigQueryProjectId;
     @Autowired private JsonLoader jsonLoader;
 
@@ -243,23 +242,6 @@ public class DatasetOperationTest {
         MockHttpServletResponse response = performCreateDataset(badDataRequest, "_baddata_");
         ErrorModel errorModel = handleCreateDatasetFailureCase(response);
         assertThat(errorModel.getMessage(), containsString("Fred"));
-    }
-
-    // !!! This test is intended to be run manually when the BigQuery project gets orphans in it.
-    // !!! It tries to delete all datasets from the project.
-    // You have to comment out the @Ignore to run it and not forget to uncomment it when you are done.
-    @Ignore
-    @Test
-    public void deleteAllBigQueryProjects() throws Exception {
-        // Collect a list of datasets. Then delete each one.
-        List<DatasetId> idList = new ArrayList<>();
-        for (com.google.cloud.bigquery.Dataset dataset :  bigQuery.listDatasets().iterateAll()) {
-            idList.add(dataset.getDatasetId());
-        }
-
-        for (DatasetId id : idList) {
-            bigQuery.delete(id, BigQuery.DatasetDeleteOption.deleteContents());
-        }
     }
 
     private StudySummaryModel setupMinimalStudy() throws Exception {

@@ -266,7 +266,7 @@ public class DatasetService {
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
-// TODO: decide on our datetime datatype
+                .defaultProfileId(study.getDefaultProfileId().toString())
                 .createdDate(study.getCreatedDate().toString());
 
         DatasetSourceModel sourceModel = new DatasetSourceModel()

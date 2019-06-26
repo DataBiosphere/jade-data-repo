@@ -45,11 +45,6 @@ public class CreateDatasetPrimaryDataStep implements Step {
         return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
     }
 
-    Dataset getDataset(FlightContext context) {
-        DatasetRequestModel datasetRequest = getRequestModel(context);
-        return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-    }
-
     @Override
     public StepResult doStep(FlightContext context) {
         /*
@@ -108,9 +103,9 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        bigQueryPdao.deleteDataset(getDataset(context));
+        DatasetRequestModel datasetRequestModel = getRequestModel(context);
+        Dataset dataset = datasetDao.retrieveDatasetByName(datasetRequestModel.getName());
+        bigQueryPdao.deleteDataset(dataset);
         return StepResult.getStepResultSuccess();
     }
-
 }
-

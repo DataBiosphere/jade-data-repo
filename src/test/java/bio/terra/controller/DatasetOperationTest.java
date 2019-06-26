@@ -1,9 +1,14 @@
 package bio.terra.controller;
 
 import bio.terra.category.Connected;
+import bio.terra.dao.StudyDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
+import bio.terra.fixtures.ProfileFixtures;
+import bio.terra.metadata.BillingProfile;
+import bio.terra.metadata.Study;
+import bio.terra.metadata.StudyDataProject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSourceModel;
@@ -14,7 +19,10 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.pdao.bigquery.BigQueryProject;
+import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.service.SamClientService;
+import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -56,6 +64,7 @@ import java.io.OutputStream;
 import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -91,22 +100,28 @@ public class DatasetOperationTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private String bigQueryProjectId;
     @Autowired private JsonLoader jsonLoader;
+    @Autowired private StudyDao studyDao;
+    @Autowired private ProfileDao profileDao;
+    @Autowired private DataProjectService dataProjectService;
 
     @MockBean
     private SamClientService samService;
 
-
     private List<String> createdDatasetIds;
     private List<String> createdStudyIds;
     private String datasetOriginalName;
+    private BillingProfile billingProfile;
 
     @Before
     public void setup() throws Exception {
+        // TODO all of this should be refactored to use connected operations
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
         ConnectedOperations.stubOutSamCalls(samService);
+        billingProfile = ProfileFixtures.randomBillingProfile();
+        UUID profileId = profileDao.createBillingProfile(billingProfile);
+        billingProfile.id(profileId);
     }
 
     @After
@@ -119,6 +134,7 @@ public class DatasetOperationTest {
             for (String studyId : createdStudyIds) {
                 deleteTestStudy(studyId);
             }
+            profileDao.deleteBillingProfileById(billingProfile.getId());
         }
     }
 
@@ -144,9 +160,10 @@ public class DatasetOperationTest {
     public void testMinimal() throws Exception {
         StudySummaryModel studySummary = setupMinimalStudy();
         String studyName = PDAO_PREFIX + studySummary.getName();
-        long studyParticipants = queryForCount(studyName, "participant");
+        BigQueryProject bigQueryProject = bigQueryProjectForStudyName(studySummary.getName());
+        long studyParticipants = queryForCount(studyName, "participant", bigQueryProject);
         assertThat("study participants loaded properly", studyParticipants, equalTo(2L));
-        long studySamples = queryForCount(studyName, "sample");
+        long studySamples = queryForCount(studyName, "sample", bigQueryProject);
         assertThat("study samples loaded properly", studySamples, equalTo(5L));
 
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
@@ -155,9 +172,9 @@ public class DatasetOperationTest {
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
         getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
 
-        long datasetParticipants = queryForCount(summaryModel.getName(), "participant");
+        long datasetParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
         assertThat("study participants loaded properly", datasetParticipants, equalTo(1L));
-        long datasetSamples = queryForCount(summaryModel.getName(), "sample");
+        long datasetSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
         assertThat("study samples loaded properly", datasetSamples, equalTo(2L));
     }
 
@@ -165,9 +182,10 @@ public class DatasetOperationTest {
     public void testArrayStruct() throws Exception {
         StudySummaryModel studySummary = setupArrayStructStudy();
         String studyName = PDAO_PREFIX + studySummary.getName();
-        long studyParticipants = queryForCount(studyName, "participant");
+        BigQueryProject bigQueryProject = bigQueryProjectForStudyName(studySummary.getName());
+        long studyParticipants = queryForCount(studyName, "participant", bigQueryProject);
         assertThat("study participants loaded properly", studyParticipants, equalTo(2L));
-        long studySamples = queryForCount(studyName, "sample");
+        long studySamples = queryForCount(studyName, "sample", bigQueryProject);
         assertThat("study samples loaded properly", studySamples, equalTo(5L));
 
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
@@ -176,11 +194,10 @@ public class DatasetOperationTest {
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
         getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
 
-        long datasetParticipants = queryForCount(summaryModel.getName(), "participant");
+        long datasetParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
         assertThat("study participants loaded properly", datasetParticipants, equalTo(2L));
-        long datasetSamples = queryForCount(summaryModel.getName(), "sample");
+        long datasetSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
         assertThat("study samples loaded properly", datasetSamples, equalTo(3L));
-
     }
 
     @Test
@@ -261,7 +278,9 @@ public class DatasetOperationTest {
     // create a study to create datasets in and return its id
     private StudySummaryModel createTestStudy(String resourcePath) throws Exception {
         StudyRequestModel studyRequest = jsonLoader.loadObject(resourcePath, StudyRequestModel.class);
-        studyRequest.setName(Names.randomizeName(studyRequest.getName()));
+        studyRequest
+            .name(Names.randomizeName(studyRequest.getName()))
+            .defaultProfileId(billingProfile.getId().toString());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -286,6 +305,12 @@ public class DatasetOperationTest {
         loadData(studyName, tableName, resourcePath, FormatOptions.json());
     }
 
+    private BigQueryProject bigQueryProjectForStudyName(String studyName) {
+        Study study = studyDao.retrieveByName(studyName);
+        StudyDataProject dataProject = dataProjectService.getProjectForStudy(study);
+        return new BigQueryProject(dataProject.getGoogleProjectId());
+    }
+
     private void loadData(String studyName,
                           String tableName,
                           String resourcePath,
@@ -293,6 +318,8 @@ public class DatasetOperationTest {
         String datasetName = PDAO_PREFIX + studyName;
         String location = "US";
         TableId tableId = TableId.of(datasetName, tableName);
+        BigQueryProject bigQueryProject = bigQueryProjectForStudyName(studyName);
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         WriteChannelConfiguration writeChannelConfiguration =
             WriteChannelConfiguration.newBuilder(tableId).setFormatOptions(options).build();
@@ -324,7 +351,9 @@ public class DatasetOperationTest {
     private DatasetRequestModel makeDatasetTestRequest(StudySummaryModel studySummaryModel,
                                                        String resourcePath) throws Exception {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        // TODO SingleStudyDataset
         datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
+        datasetRequest.profileId(studySummaryModel.getDefaultProfileId());
         return datasetRequest;
     }
 
@@ -409,7 +438,7 @@ public class DatasetOperationTest {
     }
 
     private EnumerateDatasetModel enumerateTestDatasets() throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/datasets?offset=0&limit=100"))
+        MvcResult result = mvc.perform(get("/api/repository/v1/datasets?offset=0&limit=1000"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
 
@@ -490,7 +519,9 @@ public class DatasetOperationTest {
     }
 
     // Get the count of rows in a table or view
-    private long queryForCount(String datasetName, String tableName) throws Exception {
+    private long queryForCount(String datasetName, String tableName, BigQueryProject bigQueryProject) throws Exception {
+        String bigQueryProjectId = bigQueryProject.getProjectId();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT COUNT(*) FROM `")
                 .append(bigQueryProjectId).append('.').append(datasetName).append('.').append(tableName).append('`');

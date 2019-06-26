@@ -33,7 +33,10 @@ public class DeleteDatasetAuthzResource implements Step {
         try {
             sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
+            // If we can't find it consider the delete successful.
+            if (ex.getCode() != 404) {
+                throw new InternalServerErrorException(ex);
+            }
         }
         return StepResult.getStepResultSuccess();
     }
@@ -41,8 +44,6 @@ public class DeleteDatasetAuthzResource implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // can't undo delete
-        FlightMap inputParameters = context.getInputParameters();
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         logger.warn("Trying to undo delete resource for dataset " + datasetId.toString());
         return StepResult.getStepResultSuccess();
     }

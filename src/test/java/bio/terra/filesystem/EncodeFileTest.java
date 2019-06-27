@@ -17,6 +17,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -76,6 +77,7 @@ public class EncodeFileTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DataProjectService dataProjectService;
     @Autowired private DatasetDao datasetDao;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
@@ -90,7 +92,8 @@ public class EncodeFileTest {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
-        profileModel = connectedOperations.createRandomTestProfile();
+        String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        profileModel = connectedOperations.createTestProfileForAccount(coreBillingAccountId);
     }
 
     @After

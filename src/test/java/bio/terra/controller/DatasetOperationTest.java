@@ -21,6 +21,7 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -102,6 +103,7 @@ public class DatasetOperationTest {
     @Autowired private StudyDao studyDao;
     @Autowired private ProfileDao profileDao;
     @Autowired private DataProjectService dataProjectService;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
     @MockBean
     private SamClientService samService;
@@ -113,11 +115,11 @@ public class DatasetOperationTest {
 
     @Before
     public void setup() throws Exception {
-        // TODO all of this should be refactored to use connected operations
+        // TODO all of this should be refactored to use connected operations, and that should be made a component
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
         ConnectedOperations.stubOutSamCalls(samService);
-        billingProfile = ProfileFixtures.randomBillingProfile();
+        billingProfile = ProfileFixtures.billingProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
         UUID profileId = profileDao.createBillingProfile(billingProfile);
         billingProfile.id(profileId);
     }

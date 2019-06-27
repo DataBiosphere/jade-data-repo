@@ -9,6 +9,7 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
@@ -45,14 +46,17 @@ public class StudyConnectedTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ProfileDao profileDao;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+
     @MockBean private SamClientService samService;
 
     @Test
     public void testCreateOmopStudy() throws Exception {
         ConnectedOperations.stubOutSamCalls(samService);
+        String accountId = googleResourceConfiguration.getCoreBillingAccount();
 
         StudyRequestModel studyRequest = jsonLoader.loadObject("it-study-omop.json", StudyRequestModel.class);
-        UUID profileId = profileDao.createBillingProfile(ProfileFixtures.randomBillingProfile());
+        UUID profileId = profileDao.createBillingProfile(ProfileFixtures.billingProfileForAccount(accountId));
         studyRequest
             .name(Names.randomizeName(studyRequest.getName()))
             .defaultProfileId(profileId.toString());

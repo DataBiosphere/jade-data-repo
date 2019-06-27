@@ -13,6 +13,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobInfo;
@@ -54,6 +55,7 @@ public class BigQueryPdaoTest {
     @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
     @Autowired private StudyDao studyDao;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
     @MockBean
     private SamClientService samService;
@@ -68,7 +70,8 @@ public class BigQueryPdaoTest {
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
 
-        profileModel = connectedOperations.createRandomTestProfile();
+        String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
+        profileModel = connectedOperations.createTestProfileForAccount(coreBillingAccount);
         // TODO: this next bit should be in connected operations, need to make it a component and autowire a studydao
         StudyRequestModel studyRequest = jsonLoader.loadObject("ingest-test-study.json",
             StudyRequestModel.class);

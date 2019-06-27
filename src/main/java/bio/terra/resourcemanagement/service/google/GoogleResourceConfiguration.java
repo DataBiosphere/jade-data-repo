@@ -14,6 +14,7 @@ public class GoogleResourceConfiguration {
     private String applicationName;
     private long projectCreateTimeoutSeconds;
     private String projectId;
+    private String coreBillingAccount;
 
     public String getApplicationName() {
         return applicationName;
@@ -37,6 +38,14 @@ public class GoogleResourceConfiguration {
 
     public void setProjectId(String projectId) {
         this.projectId = projectId;
+    }
+
+    public String getCoreBillingAccount() {
+        return coreBillingAccount;
+    }
+
+    public void setCoreBillingAccount(String coreBillingAccount) {
+        this.coreBillingAccount = coreBillingAccount;
     }
 
     @Bean("firestore")

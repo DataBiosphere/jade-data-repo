@@ -13,6 +13,7 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightMap;
@@ -63,6 +64,9 @@ public class StudyCreateFlightTest {
     @Autowired
     private JsonLoader jsonLoader;
 
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
+
     @MockBean
     private SamClientService samService;
 
@@ -82,14 +86,12 @@ public class StudyCreateFlightTest {
     @Before
     public void setup() throws Exception {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        billingProfile = ProfileFixtures.randomBillingProfile();
+        billingProfile = ProfileFixtures.billingProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
         UUID profileId = profileDao.createBillingProfile(billingProfile);
         billingProfile.id(profileId);
         studyRequest = makeStudyRequest(studyName, profileId.toString());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         ConnectedOperations.stubOutSamCalls(samService);
-        //StudyDataProject studyDataProject = dataProjectService.getProjectForStudy(study);
-        //BigQueryProject bigQueryProject = new BigQueryProject(studyDataProject.getGoogleProjectId());
     }
 
     @After

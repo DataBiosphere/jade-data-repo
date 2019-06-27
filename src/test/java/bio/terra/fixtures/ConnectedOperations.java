@@ -109,6 +109,12 @@ public class ConnectedOperations {
         return studySummaryModel;
     }
 
+    public BillingProfileModel createTestProfileForAccount(String billingAccountId) throws Exception {
+        BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
+            .billingAccountId(billingAccountId);
+        return createTestProfile(profileRequestModel);
+    }
+
     public BillingProfileModel createRandomTestProfile() throws Exception {
         BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest();
         return createTestProfile(profileRequestModel);
@@ -369,5 +375,4 @@ public class ConnectedOperations {
             }
         }
     }
-
 }

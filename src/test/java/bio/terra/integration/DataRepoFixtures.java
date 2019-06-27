@@ -21,6 +21,7 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.fixtures.ProfileFixtures;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,8 @@ public class DataRepoFixtures {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
 
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception{

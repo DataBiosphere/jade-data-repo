@@ -28,17 +28,22 @@ public final class ProfileFixtures {
         return String.join("-", groups).toUpperCase();
     }
 
-    public static BillingProfile randomBillingProfile() {
+    public static BillingProfile billingProfileForAccount(String accountId) {
         return new BillingProfile()
-            .biller("onix")
-            .name("Random test profile")
-            .billingAccountId(randomBillingAccountId());
+            .biller("direct")
+            .name("test profile")
+            .billingAccountId(accountId);
+    }
+
+    public static BillingProfile randomBillingProfile() {
+        return billingProfileForAccount(randomBillingAccountId());
     }
 
     public static BillingProfileRequestModel randomBillingProfileRequest() {
+        BillingProfile profile = randomBillingProfile();
         return new BillingProfileRequestModel()
-            .billingAccountId(ProfileFixtures.randomBillingAccountId())
-            .biller("direct")
-            .profileName("Test billing profile");
+            .biller(profile.getBiller())
+            .profileName(profile.getName())
+            .billingAccountId(profile.getBillingAccountId());
     }
 }

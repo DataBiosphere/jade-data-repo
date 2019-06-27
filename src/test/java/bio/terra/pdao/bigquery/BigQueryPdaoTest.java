@@ -15,7 +15,6 @@ import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import org.apache.commons.io.IOUtils;
@@ -33,7 +32,6 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
 import java.util.UUID;
@@ -48,19 +46,17 @@ import static org.hamcrest.Matchers.equalTo;
 @Category(Connected.class)
 public class BigQueryPdaoTest {
 
-    @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
     @Autowired private StudyDao studyDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
     private SamClientService samService;
 
-    private ConnectedOperations connectedOperations;
     private Study study;
     private BillingProfileModel profileModel;
 
@@ -68,7 +64,6 @@ public class BigQueryPdaoTest {
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
-        connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
 
         String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccount);

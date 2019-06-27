@@ -4,7 +4,6 @@ import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.dao.DatasetDao;
 import bio.terra.fixtures.ConnectedOperations;
-import bio.terra.fixtures.JsonLoader;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetDataProject;
 import bio.terra.model.BillingProfileModel;
@@ -72,26 +71,24 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 public class EncodeFileTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private JsonLoader jsonLoader;
     @Autowired private Storage storage;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DataProjectService dataProjectService;
     @Autowired private DatasetDao datasetDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
     @MockBean
     private SamClientService samService;
 
-    private ConnectedOperations connectedOperations;
     private BillingProfileModel profileModel;
 
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
-        connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
     }

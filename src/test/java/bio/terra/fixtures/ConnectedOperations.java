@@ -63,7 +63,6 @@ public class ConnectedOperations {
     private List<String> createdProfileIds;
     private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
 
-
     public static void stubOutSamCalls(SamClientService samService) throws ApiException {
         when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
         doNothing().when(samService).createStudyResource(any(), any());

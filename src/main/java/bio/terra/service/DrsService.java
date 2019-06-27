@@ -5,7 +5,7 @@ import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.filesystem.FireStoreFileDao;
-import bio.terra.metadata.FSEnumDir;
+import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
@@ -78,13 +78,13 @@ public class DrsService {
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
 
-        FSObjectBase fsObject = fileDao.retrieveEnum(
+        FSObjectBase fsObject = fileDao.retrieveWithContents(
             UUID.fromString(drsId.getStudyId()),
             UUID.fromString(drsId.getFsObjectId()));
         if (fsObject.getObjectType() != FSObjectType.DIRECTORY) {
             throw new IllegalArgumentException("Object is not a bundle");
         }
-        FSEnumDir dirObject = (FSEnumDir)fsObject;
+        FSDir dirObject = (FSDir)fsObject;
         List<FSObjectBase> fsObjectList = dirObject.getContents();
 
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects

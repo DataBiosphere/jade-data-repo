@@ -8,11 +8,10 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * This provides the base class for all file system objects. There are three specializations:
+ * This provides the base class for all file system objects.
  * <ul>
  *     <li>FSFile - describes a file</li>
- *     <li>FSDir - describes a directory</li>
- *     <li>FSEnumDir - describes a directory and its contents</li>
+ *     <li>FSDir - describes a directory and, optionally, its contents</li>
  * </ul>
  *
  */

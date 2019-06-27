@@ -41,7 +41,7 @@ public class IngestFilePrimaryDataStep implements Step {
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
 
         FSObjectBase fsObject = fileDao.retrieve(study.getId(), objectId);
-        if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+        if (fsObject.getObjectType() != FSObjectType.INGESTING_FILE) {
             throw new FileSystemCorruptException("This should be a file!");
         }
 

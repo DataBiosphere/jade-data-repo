@@ -6,7 +6,6 @@ import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSEnumDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
@@ -67,13 +66,13 @@ public class FileService {
     }
 
     FSObjectBase lookupFSObject(String studyId, String fileId) {
-        FSObjectBase fsObject = fileDao.retrieveEnum(UUID.fromString(studyId), UUID.fromString(fileId));
+        FSObjectBase fsObject = fileDao.retrieveWithContents(UUID.fromString(studyId), UUID.fromString(fileId));
         checkFSObject(fsObject, studyId, fileId);
         return fsObject;
     }
 
     FSObjectBase lookupFSObjectByPath(String studyId, String path) {
-        FSObjectBase fsObject = fileDao.retrieveEnumByPath(UUID.fromString(studyId), path);
+        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(UUID.fromString(studyId), path);
         checkFSObject(fsObject, studyId, path);
         return fsObject;
     }
@@ -118,19 +117,21 @@ public class FileService {
                 .checksums(makeChecksums(fsFile))
                 .accessUrl(fsFile.getGspath())
                 .mimeType(fsFile.getMimeType()));
-        } else if (fsObject instanceof FSDir) {
-            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
-        } else if (fsObject instanceof FSEnumDir) {
-            // must be FSEnumDir, but findbugs insists we check...
-            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
-
-            FSEnumDir fsEnumDir = (FSEnumDir)fsObject;
-            DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
-            for (FSObjectBase fsItem : fsEnumDir.getContents()) {
-                FSObjectModel itemModel = fileModelFromFSObject(fsItem);
-                directoryDetail.addContentsItem(itemModel);
+        } else if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+            if (!(fsObject instanceof FSDir)) {
+                throw new FileSystemCorruptException("Mismatched object type");
             }
-            fsObjectModel.directoryDetail(directoryDetail);
+
+            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
+            FSDir fsDir = (FSDir)fsObject;
+            if (fsDir.isEnumerated()) {
+                DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
+                for (FSObjectBase fsItem : fsDir.getContents()) {
+                    FSObjectModel itemModel = fileModelFromFSObject(fsItem);
+                    directoryDetail.addContentsItem(itemModel);
+                }
+                fsObjectModel.directoryDetail(directoryDetail);
+            }
         } else {
             throw new FileSystemCorruptException("Object type instance is totally wrong; we shouldn't be here");
         }

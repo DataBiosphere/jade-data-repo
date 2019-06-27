@@ -99,7 +99,7 @@ public class GcsPdao {
             }
 
             // Grumble! It is not documented what the meaning of the Long is.
-            // From poking around I think is a standard POSIX milliseconds since Jan 1, 1970.
+            // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
             Instant createTime = Instant.ofEpochMilli(targetBlob.getCreateTime());
 
             URI gspath = new URI("gs",

@@ -6,7 +6,7 @@ import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.fixtures.Names;
-import bio.terra.metadata.FSEnumDir;
+import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
@@ -351,33 +351,33 @@ public class FileDaoTest {
             assertThat("Correct message", ex.getMessage(), containsString("Object not found"));
         }
 
-        FSObjectBase dirObject = fileDao.retrieveEnumByPath(studyId, "/");
+        FSObjectBase dirObject = fileDao.retrieveWithContentsByPath(studyId, "/");
         assertThat("Root is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
-        FSEnumDir enumDir = (FSEnumDir)dirObject;
+        FSDir enumDir = (FSDir)dirObject;
         assertThat("Root has contents", enumDir.getContents().size(), equalTo(1));
         FSObjectBase nextDirObject = enumDir.getContents().get(0);
         assertThat("Top is directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
 
         String path = nextDirObject.getPath(); // /top
-        dirObject = fileDao.retrieveEnumByPath(studyId, path);
+        dirObject = fileDao.retrieveWithContentsByPath(studyId, path);
         assertThat("Top is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
-        enumDir = (FSEnumDir)dirObject;
+        enumDir = (FSDir)dirObject;
         assertThat("Top has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
         assertThat("Second is directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
 
         path = nextDirObject.getPath(); // /top/second
-        dirObject = fileDao.retrieveEnumByPath(studyId, path);
+        dirObject = fileDao.retrieveWithContentsByPath(studyId, path);
         assertThat("Second is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
-        enumDir = (FSEnumDir)dirObject;
+        enumDir = (FSDir)dirObject;
         assertThat("Second has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
         assertThat("Third is a directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
 
         path = nextDirObject.getPath(); // /top/second/third
-        dirObject = fileDao.retrieveEnumByPath(studyId, path);
+        dirObject = fileDao.retrieveWithContentsByPath(studyId, path);
         assertThat("Third is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
-        enumDir = (FSEnumDir)dirObject;
+        enumDir = (FSDir)dirObject;
         assertThat("Third has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
         assertThat("Fourth is a file", nextDirObject.getObjectType(), equalTo(FSObjectType.FILE));

@@ -7,7 +7,6 @@ import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSEnumDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
@@ -364,7 +363,7 @@ public class FireStoreFileDao {
         }
     }
 
-    public FSObjectBase retrieveEnum(UUID studyId, UUID objectId) {
+    public FSObjectBase retrieveWithContents(UUID studyId, UUID objectId) {
         FSObjectBase fsObject = retrieve(studyId, objectId);
         return enumerateDirectory(fsObject);
     }
@@ -390,7 +389,7 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
-    public FSObjectBase retrieveEnumByPath(UUID studyId, String fullPath) {
+    public FSObjectBase retrieveWithContentsByPath(UUID studyId, String fullPath) {
         FSObjectBase fsObject = retrieveByPath(studyId.toString(), fullPath);
         return enumerateDirectory(fsObject);
     }
@@ -510,7 +509,7 @@ public class FireStoreFileDao {
 
         List<FSObjectBase> contents = fireStoreUtils.transactionGet("enumerate directory", transaction);
 
-        return new FSEnumDir()
+        return new FSDir()
             .contents(contents)
             .objectId(fsObject.getObjectId())
             .studyId(fsObject.getStudyId())

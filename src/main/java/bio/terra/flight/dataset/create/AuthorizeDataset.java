@@ -46,7 +46,6 @@ public class AuthorizeDataset implements Step {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         DatasetRequestModel datasetReq = getRequestModel(context);
-        String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         Dataset dataset = datasetDao.retrieveDataset(datasetId);

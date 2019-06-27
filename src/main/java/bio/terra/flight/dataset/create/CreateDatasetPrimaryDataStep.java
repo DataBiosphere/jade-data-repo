@@ -26,16 +26,13 @@ import java.util.List;
 public class CreateDatasetPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
-    private DatasetService datasetService;
     private DatasetDao datasetDao;
     private FireStoreDependencyDao dependencyDao;
 
     public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        DatasetService datasetService,
                                         DatasetDao datasetDao,
                                         FireStoreDependencyDao dependencyDao) {
         this.bigQueryPdao = bigQueryPdao;
-        this.datasetService = datasetService;
         this.datasetDao = datasetDao;
         this.dependencyDao = dependencyDao;
     }

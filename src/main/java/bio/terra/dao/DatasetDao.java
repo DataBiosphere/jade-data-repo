@@ -211,14 +211,7 @@ public class DatasetDao {
         String sql = "SELECT id, name, description, created_date, profile_id FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
-        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            DatasetSummary summary = new DatasetSummary()
-                .id(UUID.fromString(rs.getString("id")))
-                .name(rs.getString("name"))
-                .description(rs.getString("description"))
-                .createdDate(rs.getTimestamp("created_date").toInstant());
-            return summary;
-        });
+        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
         sql = "SELECT count(id) AS total FROM dataset";
         params = new MapSqlParameterSource();
         Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);

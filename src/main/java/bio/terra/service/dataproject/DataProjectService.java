@@ -30,7 +30,8 @@ public class DataProjectService {
         "firestore.googleapis.com",
         "firebaserules.googleapis.com",
         "storage-component.googleapis.com",
-        "storage-api.googleapis.com"
+        "storage-api.googleapis.com",
+        "cloudbilling.googleapis.com"
     );
 
     private final DataProjectDao dataProjectDao;

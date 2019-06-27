@@ -40,7 +40,7 @@ before_script:
   - psql -U postgres -f db/create-data-repo-db
 
 script:
-  - set -e
+  - set -x
   - ./render-configs.sh $TRAVIS_TOKEN
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image

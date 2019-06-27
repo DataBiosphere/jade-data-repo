@@ -20,15 +20,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
@@ -46,6 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // Common code for creating and deleting studies and datasets via MockMvc
 // and tracking what is created so it can be deleted.
+@Component
 public class ConnectedOperations {
     private MockMvc mvc;
     private ObjectMapper objectMapper;
@@ -65,6 +71,7 @@ public class ConnectedOperations {
         doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
+    @Autowired
     public ConnectedOperations(MockMvc mvc,
                                ObjectMapper objectMapper,
                                JsonLoader jsonLoader) {
@@ -109,31 +116,46 @@ public class ConnectedOperations {
         return studySummaryModel;
     }
 
-    public BillingProfileModel createTestProfileForAccount(String billingAccountId) throws Exception {
+    public BillingProfileModel getOrCreateProfileForAccount(String billingAccountId) throws Exception {
         BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(billingAccountId);
-        return createTestProfile(profileRequestModel);
+        return getOrCreateProfile(profileRequestModel);
     }
 
-    public BillingProfileModel createRandomTestProfile() throws Exception {
-        BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest();
-        return createTestProfile(profileRequestModel);
-    }
-
-    public BillingProfileModel createTestProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
+    public BillingProfileModel getOrCreateProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
         MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(profileRequestModel)))
-            .andExpect(status().isCreated())
             .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        BillingProfileModel billingProfileModel =
-            objectMapper.readValue(response.getContentAsString(), BillingProfileModel.class);
+        String responseContent = response.getContentAsString();
+        BillingProfileModel billingProfileModel;
+        if (response.getStatus() == HttpStatus.CREATED.value()) {
+            billingProfileModel = objectMapper.readValue(responseContent, BillingProfileModel.class);
+        } else {
+            ErrorModel errorModel = objectMapper.readValue(responseContent, ErrorModel.class);
+            List<String> errorDetail = errorModel.getErrorDetail();
+            if (errorDetail.size() < 1) {
+                fail("expecting there to be an entry in error details that points to a billing profile");
+            }
+            // get everything between the quotes at the end of the error detail message
+            Matcher matcher = Pattern.compile("'([^']+)'$").matcher(errorDetail.get(0));
+            String profileId = matcher.group();
+            billingProfileModel = getProfileById(profileId);
+        }
 
         addProfile(billingProfileModel.getId());
 
         return billingProfileModel;
+    }
+
+    public BillingProfileModel getProfileById(String profileId) throws Exception {
+        MvcResult result = mvc.perform(get("/api/resources/v1/profiles/" + profileId)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
     public MockHttpServletResponse launchCreateDataset(StudySummaryModel studySummaryModel,

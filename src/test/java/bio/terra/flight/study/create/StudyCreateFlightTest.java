@@ -5,9 +5,8 @@ import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.fixtures.ProfileFixtures;
-import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Study;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
@@ -49,23 +48,13 @@ import static org.junit.Assert.assertTrue;
 @Category(Connected.class)
 public class StudyCreateFlightTest {
 
-    @Autowired
-    private Stairway stairway;
-
-    @Autowired
-    private PrimaryDataAccess pdao;
-
-    @Autowired
-    private StudyDao studyDao;
-
-    @Autowired
-    private ProfileDao profileDao;
-
-    @Autowired
-    private JsonLoader jsonLoader;
-
-    @Autowired
-    private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private Stairway stairway;
+    @Autowired private PrimaryDataAccess pdao;
+    @Autowired private StudyDao studyDao;
+    @Autowired private ProfileDao profileDao;
+    @Autowired private JsonLoader jsonLoader;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
     private SamClientService samService;
@@ -73,7 +62,7 @@ public class StudyCreateFlightTest {
     private String studyName;
     private StudyRequestModel studyRequest;
     private Study study;
-    private BillingProfile billingProfile;
+    private BillingProfileModel billingProfileModel;
 
     private StudyRequestModel makeStudyRequest(String studyName, String profileId) throws IOException {
         StudyRequestModel studyRequest = jsonLoader.loadObject("study-minimal.json",
@@ -86,19 +75,18 @@ public class StudyCreateFlightTest {
     @Before
     public void setup() throws Exception {
         studyName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        billingProfile = ProfileFixtures.billingProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
-        UUID profileId = profileDao.createBillingProfile(billingProfile);
-        billingProfile.id(profileId);
-        studyRequest = makeStudyRequest(studyName, profileId.toString());
+        billingProfileModel = connectedOperations.getOrCreateProfileForAccount(
+            googleResourceConfiguration.getCoreBillingAccount());
+        studyRequest = makeStudyRequest(studyName, billingProfileModel.getId());
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        ConnectedOperations.stubOutSamCalls(samService);
+        connectedOperations.stubOutSamCalls(samService);
     }
 
     @After
     public void tearDown() {
         deleteStudy(study);
         studyDao.deleteByName(studyName);
-        profileDao.deleteBillingProfileById(billingProfile.getId());
+        profileDao.deleteBillingProfileById(UUID.fromString(billingProfileModel.getId()));
     }
 
     /**

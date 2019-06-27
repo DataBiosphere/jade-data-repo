@@ -80,7 +80,7 @@ public class FileOperationTest {
     @Test
     public void fileOperationsTest() throws Exception {
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
-        BillingProfileModel profileModel = connectedOperations.createTestProfileForAccount(coreBillingAccountId);
+        BillingProfileModel profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
         StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
             "dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();

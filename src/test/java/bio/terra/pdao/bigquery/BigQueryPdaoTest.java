@@ -71,7 +71,7 @@ public class BigQueryPdaoTest {
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
 
         String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
-        profileModel = connectedOperations.createTestProfileForAccount(coreBillingAccount);
+        profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccount);
         // TODO: this next bit should be in connected operations, need to make it a component and autowire a studydao
         StudyRequestModel studyRequest = jsonLoader.loadObject("ingest-test-study.json",
             StudyRequestModel.class);

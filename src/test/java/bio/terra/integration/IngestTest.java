@@ -80,5 +80,4 @@ public class IngestTest extends UsersBase {
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
         createdDatasetIds.add(datasetSummary.getId());
     }
-
 }

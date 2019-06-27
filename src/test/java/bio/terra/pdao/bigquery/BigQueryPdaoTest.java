@@ -2,31 +2,18 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
-import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.DataProjectDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.fixtures.ProfileFixtures;
-import bio.terra.fixtures.StudyFixtures;
-import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.Column;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyDataProject;
-import bio.terra.metadata.Table;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.resourcemanagement.service.ProfileService;
-import bio.terra.resourcemanagement.service.google.GoogleResourceService;
 import bio.terra.service.SamClientService;
-import bio.terra.service.StudyService;
-import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -48,13 +35,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.ArgumentMatchers.any;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest

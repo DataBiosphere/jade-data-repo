@@ -1,6 +1,5 @@
 package bio.terra.fixtures;
 
-import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -29,7 +28,6 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.fail;

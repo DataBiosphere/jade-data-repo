@@ -17,8 +17,6 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.service.DatasetService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,9 +41,6 @@ import static org.junit.Assert.assertThat;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class DatasetDaoTest {
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private DatasetDao datasetDao;

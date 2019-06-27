@@ -10,12 +10,10 @@ import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import bio.terra.metadata.Table;
-import bio.terra.model.BillingProfileModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -42,9 +40,6 @@ import static org.junit.Assert.assertThat;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class StudyDaoTest {
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private JsonLoader jsonLoader;

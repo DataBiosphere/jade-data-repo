@@ -59,8 +59,10 @@ public class DataRepoFixtures {
             json,
             BillingProfileModel.class);
 
-        assertThat("billing profile model is successfuly created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("create billing profile model response is present", postResponse.getResponseObject().isPresent());
+        assertThat("billing profile model is successfuly created", postResponse.getStatusCode(),
+            equalTo(HttpStatus.CREATED));
+        assertTrue("create billing profile model response is present",
+            postResponse.getResponseObject().isPresent());
         return postResponse.getResponseObject().get();
     }
     // studies

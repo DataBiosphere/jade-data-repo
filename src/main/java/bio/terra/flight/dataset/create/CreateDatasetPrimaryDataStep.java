@@ -11,7 +11,6 @@ import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

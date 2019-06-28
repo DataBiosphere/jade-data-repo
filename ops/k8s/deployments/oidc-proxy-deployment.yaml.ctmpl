@@ -25,6 +25,8 @@ spec:
       - name: oidc-proxy-container
         # Based on the latest security review this is the recommended version of the proxy to use.
         image: broadinstitute/openidc-proxy:bernick_tcell
+        ports:
+          containerPort:80
         readinessProbe:
           httpGet:
             path: /status

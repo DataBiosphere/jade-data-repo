@@ -224,11 +224,11 @@ paths:
 
   ## Repository Interface
 
-  '/api/repository/v1/datasets':
+  '/api/repository/v1/datasnapshots':
     get:  ## enumerate
       description: |
-        Returns a list of all of the datasets the caller has access to
-      operationId: enumerateDatasets
+        Returns a list of all of the data snapshots the caller has access to
+      operationId: enumerateDataSnapshots
       tags:
       - repository
       parameters:
@@ -265,26 +265,26 @@ paths:
         description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
-          description: List of datasets
+          description: List of data snapshots
           schema:
-            $ref: '#/definitions/EnumerateDatasetModel'
+            $ref: '#/definitions/EnumerateDataSnapshotModel'
 
     post:
-      description: Create a new dataset
-      operationId: createDataset
+      description: Create a new data snapshot
+      operationId: createDataSnapshot
       tags:
       - repository
       consumes:
       - application/json
       parameters:
       - in: body
-        name: dataset
+        name: dataSnapshot
         description: DataSnapshot to create
         schema:
-          $ref: '#/definitions/DatasetRequestModel'
+          $ref: '#/definitions/DataSnapshotRequestModel'
       responses:
         202:
-          description: Job status of dataset creation job & url for polling in the response header
+          description: Job status of data snapshot creation job & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -292,7 +292,7 @@ paths:
               type: string
               description: url for the job polling
         200:
-          description: Redirect for dataset successful creation
+          description: Redirect for data snapshot successful creation
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -304,7 +304,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to create datasets
+          description: No permission to create data snapshots
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
@@ -313,10 +313,10 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
 
-  '/api/repository/v1/datasets/{id}':
+  '/api/repository/v1/datasnapshots/{id}':
     get:  ## retrieve
-      description: Retrieve a dataset by id
-      operationId: retrieveDataset
+      description: Retrieve a data snapshot by id
+      operationId: retrieveDataSnapshot
       tags:
       - repository
       parameters:
@@ -325,30 +325,30 @@ paths:
         200:
           description: DataSnapshot
           schema:
-            $ref: '#/definitions/DatasetModel'
+            $ref: '#/definitions/DataSnapshotModel'
         400:
           description: Bad request - invalid id, badly formed
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to see dataset
+          description: No permission to see data snapshot
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
     delete: ## delete
-      description: Delete a dataset by id
-      operationId: deleteDataset
+      description: Delete a data snapshot by id
+      operationId: deleteDataSnapshot
       tags:
       - repository
       parameters:
         - $ref: '#/parameters/Id'
       responses:
         202:
-          description: Job status of dataset creation job & url for polling in the response header
+          description: Job status of data snapshot creation job & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -356,7 +356,7 @@ paths:
               type: string
               description: url for the job polling
         200:
-          description: Redirect for dataset successful creation
+          description: Redirect for data snapshot successful creation
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -368,11 +368,11 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to delete dataset
+          description: No permission to delete data snapshot
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
@@ -380,10 +380,10 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/datasets/{id}/policies':
+  '/api/repository/v1/datasnapshots/{id}/policies':
     get:  ## retrieve
-      description: Retrieve the read and discover policies for the dataset
-      operationId: retrieveDatasetPolicies
+      description: Retrieve the read and discover policies for the data snapshot
+      operationId: retrieveDataSnapshotPolicies
       tags:
       - repository
       parameters:
@@ -402,15 +402,15 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
-  '/api/repository/v1/datasets/{id}/policies/{policyName}/members':
+  '/api/repository/v1/datasnapshots/{id}/policies/{policyName}/members':
     post:  ## retrieve
-      description: Adds a member to the specified policy for the dataset
-      operationId: addDatasetPolicyMember
+      description: Adds a member to the specified policy for the data snapshot
+      operationId: addDataSnapshotPolicyMember
       tags:
       - repository
       consumes:
@@ -422,7 +422,7 @@ paths:
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/DatasetPolicyName'
+      - $ref: '#/parameters/DataSnapshotPolicyName'
       responses:
         201:
           description: PolicyResponse
@@ -437,20 +437,20 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
-  '/api/repository/v1/datasets/{id}/policies/{policyName}/members/{memberEmail}':
+  '/api/repository/v1/datasnapshots/{id}/policies/{policyName}/members/{memberEmail}':
     delete:  ## retrieve
-      description: Adds a member to the specified policy for the dataset
-      operationId: deleteDatasetPolicyMember
+      description: Adds a member to the specified policy for the data snapshot
+      operationId: deleteDataSnapshotPolicyMember
       tags:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/DatasetPolicyName'
+      - $ref: '#/parameters/DataSnapshotPolicyName'
       - name: memberEmail
         description: The email of the user to remove
         required: true
@@ -470,7 +470,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -597,13 +597,13 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Study in use by at least one dataset
+          description: Study in use by at least one data snapshot
           schema:
             $ref: '#/definitions/ErrorModel'
 
   '/api/repository/v1/studies/{id}/policies':
     get:  ## retrieve
-      description: Retrieve the read and discover policies for the dataset
+      description: Retrieve the read and discover policies for the data snapshot
       operationId: retrieveStudyPolicies
       tags:
       - repository
@@ -623,14 +623,14 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
   '/api/repository/v1/studies/{id}/policies/{policyName}/members':
     post:
-      description: Adds a member to the specified policy for the dataset
+      description: Adds a member to the specified policy for the data snapshot
       operationId: addStudyPolicyMember
       tags:
       - repository
@@ -658,14 +658,14 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
   '/api/repository/v1/studies/{id}/policies/{policyName}/members/{memberEmail}':
     delete:  ## retrieve
-      description: Adds a member to the specified policy for the dataset
+      description: Adds a member to the specified policy for the data snapshot
       operationId: deleteStudyPolicyMember
       tags:
       - repository
@@ -691,7 +691,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - data snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -841,7 +841,7 @@ paths:
       - $ref: '#/parameters/FileId'
       responses:
         202:
-          description: Job status of dataset creation job & url for polling in the response header
+          description: Job status of data snapshot creation job & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -849,7 +849,7 @@ paths:
               type: string
               description: url for the job polling
         200:
-          description: Redirect for dataset successful creation
+          description: Redirect for data snapshot successful creation
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -1129,11 +1129,11 @@ paths:
 parameters:
   Id:
     name: id
-    description: A study or dataset id
+    description: A study or data snapshot id
     required: true
     type: string
     in: path
-  DatasetPolicyName:
+  DataSnapshotPolicyName:
     name: policyName
     in: path
     description: The relevant policy
@@ -1185,7 +1185,7 @@ definitions:
 
   UniqueIdProperty:
     description: |
-      Unique identifier for a study, dataset, etc.
+      Unique identifier for a study, data snapshot, etc.
     type: string
     pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
 
@@ -1261,9 +1261,9 @@ definitions:
       description:
         type: string
         description: Description of the study
-      defaultDatasetId:
+      defaultDataSnapshotId:
         type: string
-        description: Id of the auto-generated default passthru dataset
+        description: Id of the auto-generated default passthru data snapshot
       schema:
         $ref: '#/definitions/StudySpecificationModel'
       createdDate:
@@ -1400,7 +1400,7 @@ definitions:
   AssetTableModel:
     description: |
       Used in the asset definition to describe a table that is included in the asset. This is used to define
-      the view of the asset table in the dataset. Columns can be an empty array indicating that all columns
+      the view of the asset table in the data snapshot. Columns can be an empty array indicating that all columns
       should be included.
     type: object
     required:
@@ -1640,16 +1640,16 @@ definitions:
 
   ## DataSnapshot Definitions ##
 
-  DatasetRequestModel:
+  DataSnapshotRequestModel:
     description: |
-      Request for creating a dataset.
-      For now, the API only supports datasets defined as a single study asset and
-      row ids for the root table of that asset. The dataset has exactly the tables
+      Request for creating a data snapshot.
+      For now, the API only supports data snapshots defined as a single study asset and
+      row ids for the root table of that asset. The data snapshot has exactly the tables
       and columns of the asset. An optional list of users can be provided to set as
-      readers on the dataset.
-      In the future, we will need to extend this to handle cross-study datasets
+      readers on the data snapshot.
+      In the future, we will need to extend this to handle cross-study data snapshots
       from disparate assets, so we will need to support column and datatype
-      mapping from asset tables to the target dataset tables.
+      mapping from asset tables to the target data snapshot tables.
     type: object
     required:
       - name
@@ -1659,17 +1659,17 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the dataset
+        description: Description of the data snapshot
       contents:
         type: array
         items:
-          $ref: '#/definitions/DatasetRequestContentsModel'
+          $ref: '#/definitions/DataSnapshotRequestContentsModel'
       readers:
         type: array
         items:
           type: string
 
-  DatasetRequestContentsModel:
+  DataSnapshotRequestContentsModel:
     description: |
       The contents specifies the source of the data (study and asset)
       and the rows to include (field and rootValues).
@@ -1680,13 +1680,13 @@ definitions:
       - rootValues
     properties:
       source:
-        $ref: '#/definitions/DatasetRequestSourceModel'
+        $ref: '#/definitions/DataSnapshotRequestSourceModel'
       rootValues:
         type: array
         items:
           type: string
 
-  DatasetRequestSourceModel:
+  DataSnapshotRequestSourceModel:
     description: |
       The datasource identifies the study and asset from which to source the data.
     type: object
@@ -1699,9 +1699,9 @@ definitions:
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
 
-  DatasetSummaryModel:
+  DataSnapshotSummaryModel:
     description: |
-      summary of dataset
+      summary of data snapshot
     type: object
     required:
     - name
@@ -1713,27 +1713,27 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the dataset
+        description: Description of the data snapshot
       createdDate:
         type: string
-        description: Date the dataset was created
+        description: Date the data snapshot was created
 
-  EnumerateDatasetModel:
+  EnumerateDataSnapshotModel:
     description: |
-      The total number of datasets available and a page of summaries
+      The total number of data snapshots available and a page of summaries
     type: object
     properties:
       total:
         type: integer
-        description: Total number of datasets
+        description: Total number of data snapshots
       items:
         type: array
         items:
-          $ref: '#/definitions/DatasetSummaryModel'
+          $ref: '#/definitions/DataSnapshotSummaryModel'
 
-  DatasetModel:
+  DataSnapshotModel:
     description: |
-      DatasetModel returns detailed data about an existing dataset.
+      DataSnapshotModel returns detailed data about an existing data snapshot.
     type: object
     required:
       - id
@@ -1747,22 +1747,22 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the dataset
+        description: Description of the data snapshot
       createdDate:
         type: string
-        description: Date the dataset was created
+        description: Date the data snapshot was created
       source:
         type: array
         items:
-          $ref: '#/definitions/DatasetSourceModel'
+          $ref: '#/definitions/DataSnapshotSourceModel'
       tables:
         type: array
         items:
           $ref: '#/definitions/TableModel'
 
-  DatasetSourceModel:
+  DataSnapshotSourceModel:
     description: |
-      DatasetSourceModel returns data about the source for an existing dataset
+      DataSnapshotSourceModel returns data about the source for an existing data snapshot
     type: object
     required:
       - study

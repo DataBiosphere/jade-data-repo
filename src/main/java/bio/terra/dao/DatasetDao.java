@@ -192,16 +192,19 @@ public class DatasetDao {
     }
 
     public MetadataEnumeration<DatasetSummary> retrieveDatasets(
-            int offset,
-            int limit,
-            String sort,
-            String direction,
-            String filter) {
+        int offset,
+        int limit,
+        String sort,
+        String direction,
+        String filter,
+        List<UUID> accessibleStudyIds) {
         logger.debug("retrieve datasets offset: " + offset + " limit: " + limit + " sort: " + sort +
             " direction: " + direction + " filter:" + filter);
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
+        DaoUtils.addAuthzIdsClause(accessibleStudyIds, params, whereClauses);
 
+        // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
         String whereSql = "";
         if (!whereClauses.isEmpty()) {
@@ -212,9 +215,10 @@ public class DatasetDao {
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
-        sql = "SELECT count(id) AS total FROM dataset";
-        params = new MapSqlParameterSource();
-        Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
+
+        // get total count of objects
+        String countSql = "SELECT count(id) AS total FROM dataset " + whereSql;
+        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
             .total(total == null ? -1 : total);

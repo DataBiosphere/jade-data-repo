@@ -32,6 +32,7 @@ import bio.terra.service.dataproject.DataProjectService;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,13 +104,21 @@ public class DatasetService {
      * @return list of summary models of dataset
      */
     public EnumerateDatasetModel enumerateDatasets(
-            int offset,
-            int limit,
-            String sort,
-            String direction,
-            String filter) {
+        int offset,
+        int limit,
+        String sort,
+        String direction,
+        String filter,
+        List<ResourceAndAccessPolicy> resources) {
+        if (resources.isEmpty()) {
+            return new EnumerateDatasetModel().total(0);
+        }
+        List<UUID> resourceIds = resources
+            .stream()
+            .map(resource -> UUID.fromString(resource.getResourceId()))
+            .collect(Collectors.toList());
         MetadataEnumeration<DatasetSummary> enumeration = datasetDao.retrieveDatasets(offset, limit, sort, direction,
-            filter);
+            filter, resourceIds);
         List<DatasetSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(this::makeSummaryModelFromSummary)

@@ -239,7 +239,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void removeDataSnapshotAuthorizationFromStudy(String dataSnapshotName, String studyName, List<String> tableNames) {
+    public void removeDataSnapshotAuthorizationFromStudy(
+        String dataSnapshotName, String studyName, List<String> tableNames) {
         removeAclsFromBqDataset(studyName, convertToViewAcls(dataSnapshotName, tableNames));
     }
 
@@ -257,7 +258,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
     @Override
     public void addReaderGroupToDataSnapshot(String dataSnapshotId, String readersEmail) {
         // add the reader group to the list of Acls on the jade data snapshot
-        addAclsToBqDataset(dataSnapshotId, Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
+        addAclsToBqDataset(
+            dataSnapshotId,
+            Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
     }
 
     private void addAclsToBqDataset(String bqDatasetId, List<Acl> acls) {

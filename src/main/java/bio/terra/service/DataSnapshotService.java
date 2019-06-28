@@ -67,7 +67,8 @@ public class DataSnapshotService {
      * @param dataSnapshotRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createDataSnapshot(DataSnapshotRequestModel dataSnapshotRequestModel, AuthenticatedUserRequest userInfo) {
+    public String createDataSnapshot(DataSnapshotRequestModel dataSnapshotRequestModel,
+                                     AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataSnapshot " + dataSnapshotRequestModel.getName());
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), dataSnapshotRequestModel);
@@ -105,8 +106,8 @@ public class DataSnapshotService {
         String direction,
         String filter
     ) {
-        MetadataEnumeration<DataSnapshotSummary> enumeration = dataSnapshotDao.retrieveDataSnapshots(offset, limit, sort, direction,
-            filter);
+        MetadataEnumeration<DataSnapshotSummary> enumeration = dataSnapshotDao.retrieveDataSnapshots(
+            offset, limit, sort, direction, filter);
         List<DataSnapshotSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(summary -> makeSummaryModelFromSummary(summary))
@@ -160,7 +161,8 @@ public class DataSnapshotService {
         // TODO: When we implement explicit definition of data snapshot tables, we will handle that here.
         // For now, we generate the data snapshot tables directly from the asset tables of the one source
         // allowed in a data snapshot.
-        conjureDataSnapshotTablesFromAsset(dataSnapshotSource.getAssetSpecification(), dataSnapshot, dataSnapshotSource);
+        conjureDataSnapshotTablesFromAsset(
+            dataSnapshotSource.getAssetSpecification(), dataSnapshot, dataSnapshotSource);
 
         dataSnapshot.name(dataSnapshotRequestModel.getName())
                 .description(dataSnapshotRequestModel.getDescription())
@@ -169,7 +171,8 @@ public class DataSnapshotService {
         return dataSnapshot;
     }
 
-    private DataSnapshotSource makeSourceFromRequestContents(DataSnapshotRequestContentsModel requestContents, DataSnapshot dataSnapshot) {
+    private DataSnapshotSource makeSourceFromRequestContents(
+        DataSnapshotRequestContentsModel requestContents, DataSnapshot dataSnapshot) {
         DataSnapshotRequestSourceModel requestSource = requestContents.getSource();
         Study study = studyDao.retrieveByName(requestSource.getStudyName());
 

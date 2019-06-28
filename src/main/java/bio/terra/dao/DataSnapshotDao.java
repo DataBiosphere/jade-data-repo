@@ -131,7 +131,7 @@ public class DataSnapshotDao {
                 // retrieve the data snapshot tables
                 dataSnapshot.dataSnapshotTables(dataSnapshotTableDao.retrieveTables(dataSnapshot.getId()));
 
-                // Must be done after we we make the data snapshot tables so we can resolve the table and column references
+                // Must be done after we we make the data snapshot tables so we can resolve the table and column refs
                 dataSnapshot.dataSnapshotSources(retrieveDataSnapshotSources(dataSnapshot));
             }
             return dataSnapshot;
@@ -179,7 +179,8 @@ public class DataSnapshotDao {
                     .assetSpecification(assetSpecification.get());
 
             // Now that we have access to all of the parts, build the map structure
-            dataSnapshotSource.dataSnapshotMapTables(dataSnapshotMapTableDao.retrieveMapTables(dataSnapshot, dataSnapshotSource));
+            dataSnapshotSource.dataSnapshotMapTables(
+                dataSnapshotMapTableDao.retrieveMapTables(dataSnapshot, dataSnapshotSource));
 
             dataSnapshotSources.add(dataSnapshotSource);
         }

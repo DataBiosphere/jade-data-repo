@@ -21,7 +21,8 @@ public class DeleteDataSnapshotMetadataStep implements Step {
     private UUID datasetId;
     private FireStoreDependencyDao dependencyDao;
 
-    public DeleteDataSnapshotMetadataStep(DataSnapshotDao dataSnapshotDao, UUID datasetId, FireStoreDependencyDao dependencyDao) {
+    public DeleteDataSnapshotMetadataStep(
+        DataSnapshotDao dataSnapshotDao, UUID datasetId, FireStoreDependencyDao dependencyDao) {
         this.dataSnapshotDao = dataSnapshotDao;
         this.datasetId = datasetId;
         this.dependencyDao = dependencyDao;

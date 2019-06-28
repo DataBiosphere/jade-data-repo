@@ -122,9 +122,9 @@ public class EncodeFileTest {
 
         // At this point, we have files and tabular data. Let's make a dataSnapshot!
 
-        MockHttpServletResponse response = connectedOperations.launchCreateDataSnapshot(
+        MockHttpServletResponse resp = connectedOperations.launchCreateDataSnapshot(
             studySummary, "encodefiletest-datasnapshot.json", "");
-        DataSnapshotSummaryModel dataSnapshotSummary = connectedOperations.handleCreateDataSnapshotSuccessCase(response);
+        DataSnapshotSummaryModel dataSnapshotSummary = connectedOperations.handleCreateDataSnapshotSuccessCase(resp);
 
         String dataSnapshotFileId = getFileRefIdFromDataSnapshot(dataSnapshotSummary.getName());
 
@@ -132,10 +132,10 @@ public class EncodeFileTest {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/studies/" + studySummary.getId() + "/files/" + dataSnapshotFileId))
             .andReturn();
-        response = connectedOperations.validateJobModelAndWait(result);
-        assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
+        resp = connectedOperations.validateJobModelAndWait(result);
+        assertThat(resp.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
 
-        ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
+        ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(resp);
         assertThat("correct dependency error message",
             errorModel.getMessage(), containsString("used by at least one dataSnapshot"));
     }

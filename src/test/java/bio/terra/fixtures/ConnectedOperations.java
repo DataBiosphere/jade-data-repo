@@ -99,7 +99,8 @@ public class ConnectedOperations {
                                                         String resourcePath,
                                                         String infix) throws Exception {
 
-        DataSnapshotRequestModel dataSnapshotRequest = jsonLoader.loadObject(resourcePath, DataSnapshotRequestModel.class);
+        DataSnapshotRequestModel dataSnapshotRequest = jsonLoader.loadObject(
+            resourcePath, DataSnapshotRequestModel.class);
         dataSnapshotRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
 
         String dataSnapshotName = Names.randomizeNameInfix(dataSnapshotRequest.getName(), infix);
@@ -116,12 +117,14 @@ public class ConnectedOperations {
     }
 
     public DataSnapshotModel getDataSnapshot(String dataSnapshotId) throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/datasnapshots/" + dataSnapshotId)).andReturn();
+        MvcResult result = mvc.perform(
+            get("/api/repository/v1/datasnapshots/" + dataSnapshotId)).andReturn();
         MockHttpServletResponse response = result.getResponse();
         return objectMapper.readValue(response.getContentAsString(), DataSnapshotModel.class);
     }
 
-    public DataSnapshotSummaryModel handleCreateDataSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {
+    public DataSnapshotSummaryModel handleCreateDataSnapshotSuccessCase(MockHttpServletResponse response)
+        throws Exception {
         DataSnapshotSummaryModel summaryModel = handleAsyncSuccessCase(response, DataSnapshotSummaryModel.class);
         addDataSnapshot(summaryModel.getId());
         return summaryModel;

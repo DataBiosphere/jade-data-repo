@@ -82,7 +82,8 @@ public class DrsId {
         if (dnsname != null ? !dnsname.equals(drsId.dnsname) : drsId.dnsname != null) return false;
         if (version != null ? !version.equals(drsId.version) : drsId.version != null) return false;
         if (studyId != null ? !studyId.equals(drsId.studyId) : drsId.studyId != null) return false;
-        if (dataSnapshotId != null ? !dataSnapshotId.equals(drsId.dataSnapshotId) : drsId.dataSnapshotId != null) return false;
+        if (dataSnapshotId != null ? !dataSnapshotId.equals(drsId.dataSnapshotId) : drsId.dataSnapshotId != null)
+            return false;
         return fsObjectId != null ? fsObjectId.equals(drsId.fsObjectId) : drsId.fsObjectId == null;
     }
 

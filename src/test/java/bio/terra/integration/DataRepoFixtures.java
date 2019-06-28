@@ -110,13 +110,14 @@ public class DataRepoFixtures {
                                      SamClientService.DataRepoRole role,
                                      String userEmail) throws Exception {
         DataRepoResponse<Object> response = addStudyPolicyMemberRaw(authToken, studyId, role, userEmail);
-        assertThat("study policy memeber is successfully added", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertThat("study policy memeber is successfully added",
+            response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
     // dataSnapshots
 
-    public DataRepoResponse<DataSnapshotSummaryModel> createDataSnapshotRaw(String authToken, StudySummaryModel studySummaryModel,
-                                                                  String filename) throws Exception {
+    public DataRepoResponse<DataSnapshotSummaryModel> createDataSnapshotRaw(
+        String authToken, StudySummaryModel studySummaryModel, String filename) throws Exception {
         DataSnapshotRequestModel requestModel = jsonLoader.loadObject(filename, DataSnapshotRequestModel.class);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
@@ -129,7 +130,8 @@ public class DataRepoFixtures {
             JobModel.class);
 
         assertTrue("dataSnapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataSnapshot create launch response is present", jobResponse.getResponseObject().isPresent());
+        assertTrue("dataSnapshot create launch response is present",
+            jobResponse.getResponseObject().isPresent());
 
         return dataRepoClient.waitForResponse(authToken, jobResponse, DataSnapshotSummaryModel.class);
     }
@@ -138,8 +140,10 @@ public class DataRepoFixtures {
                                              String filename) throws Exception {
         DataRepoResponse<DataSnapshotSummaryModel> dataSnapshotResponse = createDataSnapshotRaw(
             authToken, studySummaryModel, filename);
-        assertThat("dataSnapshot create is successful", dataSnapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("dataSnapshot create response is present", dataSnapshotResponse.getResponseObject().isPresent());
+        assertThat("dataSnapshot create is successful",
+            dataSnapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("dataSnapshot create response is present",
+            dataSnapshotResponse.getResponseObject().isPresent());
         return dataSnapshotResponse.getResponseObject().get();
     }
 
@@ -148,12 +152,14 @@ public class DataRepoFixtures {
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteDataSnapshotRaw(String authToken, String dataSnapshotId) throws Exception {
-        DataRepoResponse<JobModel> jobResponse =
-            dataRepoClient.delete(authToken, "/api/repository/v1/datasnapshots/" + dataSnapshotId, JobModel.class);
+    public DataRepoResponse<DeleteResponseModel> deleteDataSnapshotRaw(String authToken, String dataSnapshotId)
+        throws Exception {
+        DataRepoResponse<JobModel> jobResponse = dataRepoClient.delete(
+            authToken, "/api/repository/v1/datasnapshots/" + dataSnapshotId, JobModel.class);
 
         assertTrue("dataSnapshot delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataSnapshot delete launch response is present", jobResponse.getResponseObject().isPresent());
+        assertTrue("dataSnapshot delete launch response is present",
+            jobResponse.getResponseObject().isPresent());
 
         return dataRepoClient.waitForResponse(authToken, jobResponse, DeleteResponseModel.class);
     }

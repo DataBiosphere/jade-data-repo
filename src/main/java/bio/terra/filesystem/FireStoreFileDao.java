@@ -233,7 +233,7 @@ public class FireStoreFileDao {
 
             if (dependencyDao.objectHasDataSnapshotReference(studyId, objectId)) {
                 throw new FileSystemObjectDependencyException(
-                    "File is used by at least one dataset and cannot be deleted");
+                    "File is used by at least one dataSnapshot and cannot be deleted");
             }
 
             currentObject

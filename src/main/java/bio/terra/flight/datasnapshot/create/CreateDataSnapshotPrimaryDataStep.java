@@ -89,7 +89,8 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
                     if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
                         StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
 
-                        List<String> refIds = bigQueryPdao.getDataSnapshotRefIds(dataSnapshotSource.getStudy().getName(),
+                        List<String> refIds = bigQueryPdao.getDataSnapshotRefIds(
+                            dataSnapshotSource.getStudy().getName(),
                             dataSnapshot.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),

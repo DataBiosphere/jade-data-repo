@@ -128,11 +128,13 @@ public class DataSnapshotOperationTest {
         StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
         loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
 
-        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(studySummary, "datasnapshot-test-dataset.json");
+        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(
+            studySummary, "datasnapshot-test.json");
         MockHttpServletResponse response = performCreateDataSnapshot(dataSnapshotRequest, "_happy_");
         DataSnapshotSummaryModel summaryModel = handleCreateDataSnapshotSuccessCase(dataSnapshotRequest, response);
 
-        DataSnapshotModel dataSnapshotModel = getTestDataSnapshot(summaryModel.getId(), dataSnapshotRequest, studySummary);
+        DataSnapshotModel dataSnapshotModel = getTestDataSnapshot(
+            summaryModel.getId(), dataSnapshotRequest, studySummary);
 
         deleteTestDataSnapshot(dataSnapshotModel.getId());
         // Duplicate delete should work
@@ -172,7 +174,7 @@ public class DataSnapshotOperationTest {
         assertThat("study samples loaded properly", studySamples, equalTo(5L));
 
         DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(studySummary,
-            "datasnapshot-array-struct.json");
+            "datasnapshot-test-array-struct.json");
         MockHttpServletResponse response = performCreateDataSnapshot(dataSnapshotRequest, "");
         DataSnapshotSummaryModel summaryModel = handleCreateDataSnapshotSuccessCase(dataSnapshotRequest, response);
         getTestDataSnapshot(summaryModel.getId(), dataSnapshotRequest, studySummary);
@@ -198,8 +200,9 @@ public class DataSnapshotOperationTest {
     @Test
     public void testEnumeration() throws Exception {
         StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
-        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(studySummary, "dataset-test-dataset.json");
+        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
+        DataSnapshotRequestModel dataSnapshotRequest =
+            makeDataSnapshotTestRequest(studySummary, "datasnapshot-test.json");
 
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
         // Just make sure we get the same dataSnapshot summary that we made.
@@ -270,10 +273,10 @@ public class DataSnapshotOperationTest {
     }
 
     private StudySummaryModel setupArrayStructStudy() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("study-array-struct.json");
-        loadJsonData(studySummary.getName(), "participant", "study-array-struct-participant.json");
-        loadJsonData(studySummary.getName(), "sample", "study-array-struct-sample.json");
-        return  studySummary;
+        StudySummaryModel studySum = createTestStudy("study-array-struct.json");
+        loadJsonData(studySum.getName(), "participant", "study-array-struct-participant.json");
+        loadJsonData(studySum.getName(), "sample", "study-array-struct-sample.json");
+        return  studySum;
     }
 
     // create a study to create dataSnapshots in and return its id
@@ -341,13 +344,14 @@ public class DataSnapshotOperationTest {
 
     private DataSnapshotRequestModel makeDataSnapshotTestRequest(StudySummaryModel studySummaryModel,
                                                        String resourcePath) throws Exception {
-        DataSnapshotRequestModel dataSnapshotRequest = jsonLoader.loadObject(resourcePath, DataSnapshotRequestModel.class);
+        DataSnapshotRequestModel dataSnapshotRequest = jsonLoader.loadObject(
+            resourcePath, DataSnapshotRequestModel.class);
         dataSnapshotRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
         return dataSnapshotRequest;
     }
 
-    private MockHttpServletResponse performCreateDataSnapshot(DataSnapshotRequestModel dataSnapshotRequest, String infix)
-            throws Exception {
+    private MockHttpServletResponse performCreateDataSnapshot(
+        DataSnapshotRequestModel dataSnapshotRequest, String infix) throws Exception {
         dataSnapshotOriginalName = dataSnapshotRequest.getName();
         String dataSnapshotName = Names.randomizeNameInfix(dataSnapshotOriginalName, infix);
         dataSnapshotRequest.setName(dataSnapshotName);
@@ -445,7 +449,8 @@ public class DataSnapshotOperationTest {
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        DataSnapshotModel dataSnapshotModel = objectMapper.readValue(response.getContentAsString(), DataSnapshotModel.class);
+        DataSnapshotModel dataSnapshotModel =
+            objectMapper.readValue(response.getContentAsString(), DataSnapshotModel.class);
 
         assertThat(dataSnapshotModel.getDescription(), equalTo(dataSnapshotRequest.getDescription()));
         assertThat(dataSnapshotModel.getName(), startsWith(dataSnapshotRequest.getName()));
@@ -511,7 +516,7 @@ public class DataSnapshotOperationTest {
     private long queryForCount(String dataSnapshotName, String tableName) throws Exception {
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT COUNT(*) FROM `")
-                .append(bigQueryProjectId).append('.').append(dataSnapshotName).append('.').append(tableName).append('`');
+            .append(bigQueryProjectId).append('.').append(dataSnapshotName).append('.').append(tableName).append('`');
         String sql = builder.toString();
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
         TableResult result = bigQuery.query(queryConfig);

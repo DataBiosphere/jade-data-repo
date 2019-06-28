@@ -1,5 +1,5 @@
 {
-  "name":        "datasnapshot_test_array_struct",
+  "name":        "datasnapshot_test_array",
   "description": "Very simple datasnapshot for test",
   "contents": [
     {

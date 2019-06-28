@@ -84,7 +84,8 @@ public class DataSnapshotMapTableDao {
                 }
 
                 UUID id = rs.getObject("id", UUID.class);
-                List<DataSnapshotMapColumn> mapColumns = retrieveMapColumns(id, studyTable.get(), dataSnapshotTable.get());
+                List<DataSnapshotMapColumn> mapColumns =
+                    retrieveMapColumns(id, studyTable.get(), dataSnapshotTable.get());
 
                 return new DataSnapshotMapTable()
                         .id(id)

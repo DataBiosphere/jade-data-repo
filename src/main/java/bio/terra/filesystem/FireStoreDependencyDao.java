@@ -60,7 +60,7 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeDataSnapshotFileDependencies(String studyId, String datasetId, List<String> refIds) {
+    public void storeDataSnapshotFileDependencies(String studyId, String dataSnapshotId, List<String> refIds) {
         // TODO: REVIEWERS: Right now storing and deleting (below) are not done in a single
         // transaction. That is possible, but more complicated. The assumption is that at a higher layer
         // we will eventually implement some concurrency control so that incompatible operations - like
@@ -70,13 +70,13 @@ public class FireStoreDependencyDao {
         // about this, let me know and I can revamp to do something like: make a map of all objects needing
         // to be added or incremented. Then perform all adds or updates (or deletes).
         for (String objectId : refIds) {
-            storeDataSnapshotFileDependency(studyId, datasetId, objectId);
+            storeDataSnapshotFileDependency(studyId, dataSnapshotId, objectId);
         }
     }
 
-    public void deleteDataSnapshotFileDependencies(String studyId, String datasetId) {
+    public void deleteDataSnapshotFileDependencies(String studyId, String dataSnapshotId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
-        Query query = depColl.whereEqualTo("studyId", studyId).whereEqualTo("datasetId", datasetId);
+        Query query = depColl.whereEqualTo("studyId", studyId).whereEqualTo("dataSnapshotId", dataSnapshotId);
         ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
         try {
@@ -94,13 +94,13 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeDataSnapshotFileDependency(String studyId, String datasetId, String objectId) {
+    public void storeDataSnapshotFileDependency(String studyId, String dataSnapshotId, String objectId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
 
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             Query query = depColl.whereEqualTo("studyId", studyId)
                 .whereEqualTo("objectId", objectId)
-                .whereEqualTo("datasetId", datasetId);
+                .whereEqualTo("dataSnapshotId", dataSnapshotId);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
             // There should be zero or one documents. Since we keep track of greater than one reference using the
@@ -111,7 +111,7 @@ public class FireStoreDependencyDao {
                 case 0: {
                     // no dependency object yet. Let's make one
                     FireStoreDependency fireStoreDependency = new FireStoreDependency()
-                        .datasetId(datasetId)
+                        .dataSnapshotId(dataSnapshotId)
                         .studyId(studyId)
                         .objectId(objectId)
                         .refCount(1L);
@@ -139,13 +139,13 @@ public class FireStoreDependencyDao {
         fireStoreUtils.transactionGet("store dependency", transaction);
     }
 
-    public void removeDataSnapshotFileDependency(String studyId, String datasetId, String objectId) {
+    public void removeDataSnapshotFileDependency(String studyId, String dataSnapshotId, String objectId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
 
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             Query query = depColl.whereEqualTo("studyId", studyId)
                 .whereEqualTo("objectId", objectId)
-                .whereEqualTo("datasetId", datasetId);
+                .whereEqualTo("dataSnapshotId", dataSnapshotId);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();

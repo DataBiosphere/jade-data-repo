@@ -4,7 +4,7 @@ package bio.terra.filesystem;
 // Each dependency document maps a data snapshot to a study/file-in-study.
 // It has a reference count to track the number of times the file has been used in the data snapshot.
 public class FireStoreDependency {
-    private String datasetId;
+    private String dataSnapshotId;
     private String studyId;
     private String objectId;
     private Long refCount;
@@ -13,11 +13,11 @@ public class FireStoreDependency {
     }
 
     public String getDataSnapshotId() {
-        return datasetId;
+        return dataSnapshotId;
     }
 
-    public FireStoreDependency datasetId(String datasetId) {
-        this.datasetId = datasetId;
+    public FireStoreDependency dataSnapshotId(String dataSnapshotId) {
+        this.dataSnapshotId = dataSnapshotId;
         return this;
     }
 

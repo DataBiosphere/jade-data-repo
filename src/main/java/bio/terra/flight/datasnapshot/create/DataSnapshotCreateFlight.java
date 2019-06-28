@@ -24,7 +24,8 @@ public class DataSnapshotCreateFlight extends Flight {
 
 
         addStep(new CreateDataSnapshotMetadataStep(dataSnapshotDao, dataSnapshotService));
-        addStep(new CreateDataSnapshotPrimaryDataStep(bigQueryPdao, dataSnapshotService, dataSnapshotDao, dependencyDao));
+        addStep(new CreateDataSnapshotPrimaryDataStep(
+            bigQueryPdao, dataSnapshotService, dataSnapshotDao, dependencyDao));
         addStep(new AuthorizeDataSnapshot(bigQueryPdao, samClient));
     }
 }

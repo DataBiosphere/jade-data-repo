@@ -167,8 +167,8 @@ public class DataSnapshotDaoTest {
                 // set the description to a random string so we can verify the sorting is working independently of the
                 // study name or created_date. add a suffix to filter on for the even dataSnapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
-            DataSnapshot dataSnapshot = dataSnapshotService.makeDataSnapshotFromDataSnapshotRequest(dataSnapshotRequest);
-            dataSnapshotId = dataSnapshotDao.create(dataSnapshot);
+            DataSnapshot dataSnap = dataSnapshotService.makeDataSnapshotFromDataSnapshotRequest(dataSnapshotRequest);
+            dataSnapshotId = dataSnapshotDao.create(dataSnap);
             dataSnapshotIds.add(dataSnapshotId);
         }
 
@@ -190,8 +190,8 @@ public class DataSnapshotDaoTest {
         testSortingDescriptions("asc");
 
 
-        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(0, 6, null,
-            null, "==foo==");
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(
+            0, 6, null, null, "==foo==");
         List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered 3 dataSnapshots", summaryList.size(), equalTo(3));
         assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
@@ -199,8 +199,8 @@ public class DataSnapshotDaoTest {
             assertThat("ids match", dataSnapshotIds.get(i * 2), equalTo(summaryList.get(i).getId()));
         }
 
-        MetadataEnumeration<DataSnapshotSummary> emptyEnum = dataSnapshotDao.retrieveDataSnapshots(0, 6, null,
-            null, "__");
+        MetadataEnumeration<DataSnapshotSummary> emptyEnum = dataSnapshotDao.retrieveDataSnapshots(
+            0, 6, null, null, "__");
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
 
         for (UUID dataSnapshotId : dataSnapshotIds) {
@@ -212,9 +212,10 @@ public class DataSnapshotDaoTest {
         return baseName + "-" + index;
     }
 
-    private void testSortingNames(List<UUID> dataSnapshotIds, String dataSnapshotName, int offset, int limit, String direction) {
-        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(offset, limit, "name",
-            direction, null);
+    private void testSortingNames(
+        List<UUID> dataSnapshotIds, String dataSnapshotName, int offset, int limit, String direction) {
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(
+            offset, limit, "name", direction, null);
         List<DataSnapshotSummary>  summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : dataSnapshotIds.size() - offset - 1;
         for (DataSnapshotSummary summary : summaryList) {
@@ -225,8 +226,8 @@ public class DataSnapshotDaoTest {
     }
 
     private void testSortingDescriptions(String direction) {
-        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(0, 6,
-            "description", direction, null);
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(
+            0, 6, "description", direction, null);
         List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
@@ -247,8 +248,8 @@ public class DataSnapshotDaoTest {
                                        int offset,
                                        int limit) {
         // We expect the dataSnapshots to be returned in their created order
-        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(offset, limit, "created_date",
-            "asc", null);
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(
+            offset, limit, "created_date", "asc", null);
         List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (DataSnapshotSummary summary : summaryList) {
@@ -263,8 +264,8 @@ public class DataSnapshotDaoTest {
     }
 
     private void deleteAllDataSnapshots() {
-        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(0, 1000, null,
-            null, null);
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDataSnapshots(
+            0, 1000, null, null, null);
         List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         for (DataSnapshotSummary summary : summaryList) {
             dataSnapshotDao.delete(summary.getId());

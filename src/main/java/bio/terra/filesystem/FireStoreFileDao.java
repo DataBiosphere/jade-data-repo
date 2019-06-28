@@ -231,7 +231,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.objectHasDatasetReference(studyId, objectId)) {
+            if (dependencyDao.objectHasDataSnapshotReference(studyId, objectId)) {
                 throw new FileSystemObjectDependencyException(
                     "File is used by at least one dataset and cannot be deleted");
             }
@@ -274,7 +274,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.objectHasDatasetReference(studyId, objectId)) {
+            if (dependencyDao.objectHasDataSnapshotReference(studyId, objectId)) {
                 throw new FileSystemCorruptException("File should not have any references at this point");
             }
 

@@ -33,7 +33,7 @@ public class DrsId {
         return studyId;
     }
 
-    public String getDatasetId() {
+    public String getDataSnapshotId() {
         return datasetId;
     }
 

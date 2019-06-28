@@ -31,7 +31,7 @@ public class DeleteDataSnapshotAuthzResource implements Step {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         try {
-            sam.deleteDatasetResource(userReq, datasetId);
+            sam.deleteDataSnapshotResource(userReq, datasetId);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }

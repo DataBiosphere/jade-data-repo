@@ -29,8 +29,8 @@ public class DeleteDataSnapshotPrimaryDataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataset(datasetId);
-            bigQueryPdao.deleteDataset(dataSnapshot);
+            DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataSnapshot(datasetId);
+            bigQueryPdao.deleteDataSnapshot(dataSnapshot);
         } catch (NotFoundException nfe) {
             // If we do not find the study, we assume things are already clean
         }

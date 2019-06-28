@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.dao.exception.DataSnapshotNotFoundException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.DataSnapshot;
 import bio.terra.metadata.DataSnapshotSource;
@@ -62,13 +62,13 @@ public class DataSnapshotDao {
         dataSnapshotTableDao.createTables(datasetId, dataSnapshot.getTables());
 
         for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
-            createDatasetSource(dataSnapshotSource);
+            createDataSnapshotSource(dataSnapshotSource);
         }
 
         return datasetId;
     }
 
-    private void createDatasetSource(DataSnapshotSource dataSnapshotSource) {
+    private void createDataSnapshotSource(DataSnapshotSource dataSnapshotSource) {
         String sql = "INSERT INTO dataset_source (dataset_id, study_id, asset_id)" +
                 " VALUES (:dataset_id, :study_id, :asset_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -96,24 +96,24 @@ public class DataSnapshotDao {
         return rowsAffected > 0;
     }
 
-    public DataSnapshot retrieveDataset(UUID datasetId) {
+    public DataSnapshot retrieveDataSnapshot(UUID datasetId) {
         logger.debug("retrieve dataSnapshot id: " + datasetId);
 
         String sql = "SELECT id, name, description, created_date FROM dataSnapshot WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", datasetId);
         DataSnapshot dataSnapshot = retrieveWorker(sql, params);
         if (dataSnapshot == null) {
-            throw new DatasetNotFoundException("DataSnapshot not found - id: " + datasetId);
+            throw new DataSnapshotNotFoundException("DataSnapshot not found - id: " + datasetId);
         }
         return dataSnapshot;
     }
 
-    public DataSnapshot retrieveDatasetByName(String name) {
+    public DataSnapshot retrieveDataSnapshotByName(String name) {
         String sql = "SELECT id, name, description, created_date FROM dataSnapshot WHERE name = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
         DataSnapshot dataSnapshot = retrieveWorker(sql, params);
         if (dataSnapshot == null) {
-            throw new DatasetNotFoundException("DataSnapshot not found - name: '" + name + "'");
+            throw new DataSnapshotNotFoundException("DataSnapshot not found - name: '" + name + "'");
         }
         return dataSnapshot;
     }
@@ -132,7 +132,7 @@ public class DataSnapshotDao {
                 dataSnapshot.datasetTables(dataSnapshotTableDao.retrieveTables(dataSnapshot.getId()));
 
                 // Must be done after we we make the data snapshot tables so we can resolve the table and column references
-                dataSnapshot.datasetSources(retrieveDatasetSources(dataSnapshot));
+                dataSnapshot.datasetSources(retrieveDataSnapshotSources(dataSnapshot));
             }
             return dataSnapshot;
         } catch (EmptyResultDataAccessException ex) {
@@ -140,7 +140,7 @@ public class DataSnapshotDao {
         }
     }
 
-    private List<DataSnapshotSource> retrieveDatasetSources(DataSnapshot dataSnapshot) {
+    private List<DataSnapshotSource> retrieveDataSnapshotSources(DataSnapshot dataSnapshot) {
         // We collect all of the source ids first to avoid introducing a recursive query. While the recursive
         // query might work, it makes debugging errors more difficult.
         class RawSourceData {
@@ -187,7 +187,7 @@ public class DataSnapshotDao {
         return dataSnapshotSources;
     }
 
-    public MetadataEnumeration<DataSnapshotSummary> retrieveDatasets(
+    public MetadataEnumeration<DataSnapshotSummary> retrieveDataSnapshots(
         int offset,
         int limit,
         String sort,
@@ -224,7 +224,7 @@ public class DataSnapshotDao {
             .total(total == null ? -1 : total);
     }
 
-    public DataSnapshotSummary retrieveDatasetSummary(UUID id) {
+    public DataSnapshotSummary retrieveDataSnapshotSummary(UUID id) {
         logger.debug("retrieve dataset summary for id: " + id);
         try {
             String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
@@ -238,11 +238,11 @@ public class DataSnapshotDao {
                             .createdDate(rs.getTimestamp("created_date").toInstant()));
             return dataSnapshotSummary;
         } catch (EmptyResultDataAccessException ex) {
-            throw new DatasetNotFoundException("DataSnapshot not found - id: " + id);
+            throw new DataSnapshotNotFoundException("DataSnapshot not found - id: " + id);
         }
     }
 
-    public List<DataSnapshotSummary> retrieveDatasetsForStudy(UUID studyId) {
+    public List<DataSnapshotSummary> retrieveDataSnapshotsForStudy(UUID studyId) {
         try {
             String sql = "SELECT dataset.id, name, description, created_date FROM dataset " +
                 "JOIN dataset_source ON dataset.id = dataset_source.dataset_id " +

@@ -3,7 +3,7 @@ package bio.terra.flight.datasnapshot.create;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DataSnapshotRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
@@ -31,9 +31,9 @@ public class AuthorizeDataSnapshot implements Step {
 
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
-    DatasetRequestModel getRequestModel(FlightContext context) {
+    DataSnapshotRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataSnapshotRequestModel.class);
     }
 
     @Override
@@ -41,15 +41,15 @@ public class AuthorizeDataSnapshot implements Step {
         FlightMap inputParameters = context.getInputParameters();
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        DatasetRequestModel datasetReq = getRequestModel(context);
+        DataSnapshotRequestModel datasetReq = getRequestModel(context);
         String datasetName = datasetReq.getName();
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         Optional<List<String>> readersList = Optional.ofNullable(datasetReq.getReaders());
         try {
             // This returns the policy email created by Google to correspond to the readers list in SAM
-            String readersPolicyEmail = sam.createDatasetResource(userReq, datasetId, readersList);
-            bigQueryPdao.addReaderGroupToDataset(datasetName, readersPolicyEmail);
+            String readersPolicyEmail = sam.createDataSnapshotResource(userReq, datasetId, readersList);
+            bigQueryPdao.addReaderGroupToDataSnapshot(datasetName, readersPolicyEmail);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
         }
@@ -64,7 +64,7 @@ public class AuthorizeDataSnapshot implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {
-            sam.deleteDatasetResource(userReq, datasetId);
+            sam.deleteDataSnapshotResource(userReq, datasetId);
         } catch (ApiException ex) {
             if (ex.getCode() == HttpStatusCodes.STATUS_CODE_UNAUTHORIZED) {
                 // suppress exception

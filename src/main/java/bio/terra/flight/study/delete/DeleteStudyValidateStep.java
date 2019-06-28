@@ -27,13 +27,13 @@ public class DeleteStudyValidateStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
-        List<DataSnapshotSummary> datasets = dataSnapshotDao.retrieveDatasetsForStudy(studyId);
+        List<DataSnapshotSummary> datasets = dataSnapshotDao.retrieveDataSnapshotsForStudy(studyId);
         if (datasets.size() != 0) {
             throw new ValidationException("Can not delete a study being used by datasets");
         }
         // Sanity check - validate that there are no stray file references. There should be none left
-        // if there are no data snapshots returned from retrieveDatasetsForStudy.
-        if (dependencyDao.studyHasDatasetReference(studyId.toString())) {
+        // if there are no data snapshots returned from retrieveDataSnapshotsForStudy.
+        if (dependencyDao.studyHasDataSnapshotReference(studyId.toString())) {
             throw new FileSystemCorruptException("File system has dataset dependencies; metadata does not");
         }
         return StepResult.getStepResultSuccess();

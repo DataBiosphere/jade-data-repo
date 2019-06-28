@@ -12,7 +12,7 @@ public class FireStoreDependency {
     public FireStoreDependency() {
     }
 
-    public String getDatasetId() {
+    public String getDataSnapshotId() {
         return datasetId;
     }
 

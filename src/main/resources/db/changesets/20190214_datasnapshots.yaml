@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: dataset_tables
+      id: datasnapshot_tables
       author: dd
       changes:
         - createTable:
-            tableName: dataset
+            tableName: datasnapshot
             columns:
               - column:
                   name: id
@@ -32,7 +32,7 @@ databaseChangeLog:
                     nullable: false
 
         - createTable:
-            tableName: dataset_table
+            tableName: datasnapshot_table
             columns:
               - column:
                   name: id
@@ -46,8 +46,8 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_table_dataset
-                    references: dataset(id)
+                    foreignKeyName: fk_datasnapshot_table_datasnapshot
+                    references: datasnapshot(id)
                     deleteCascade: true
               - column:
                   name: name
@@ -56,7 +56,7 @@ databaseChangeLog:
                     nullable: false
 
         - createTable:
-            tableName: dataset_column
+            tableName: datasnapshot_column
             columns:
               - column:
                   name: id
@@ -70,8 +70,8 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_column_dataset_table
-                    references: dataset_table(id)
+                    foreignKeyName: fk_datasnapshot_column_datasnapshot_table
+                    references: datasnapshot_table(id)
                     deleteCascade: true
               - column:
                   name: name
@@ -84,7 +84,7 @@ databaseChangeLog:
                   type: boolean
 
         - createTable:
-            tableName: dataset_source
+            tableName: datasnapshot_source
             columns:
               - column:
                   name: id
@@ -94,19 +94,19 @@ databaseChangeLog:
                     primaryKey: true
                     nullable: false
               - column:
-                  name: dataset_id
+                  name: datasnapshot_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_source_dataset
-                    references: dataset(id)
+                    foreignKeyName: fk_datasnapshot_source_datasnapshot
+                    references: datasnapshot(id)
                     deleteCascade: true
               - column:
                   name: study_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_source_study
+                    foreignKeyName: fk_datasnapshot_source_study
                     references: study(id)
                     deleteCascade: true
               - column:
@@ -114,12 +114,12 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_source_asset_specification
+                    foreignKeyName: fk_datasnapshot_source_asset_specification
                     references: asset_specification(id)
                     deleteCascade: true
 
         - createTable:
-            tableName: dataset_map_table
+            tableName: datasnapshot_map_table
             columns:
               - column:
                   name: id
@@ -133,15 +133,15 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_map_dataset_source
-                    references: dataset_source(id)
+                    foreignKeyName: fk_datasnapshot_map_datasnapshot_source
+                    references: datasnapshot_source(id)
                     deleteCascade: true
               - column:
                   name: from_table_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_map_study_table
+                    foreignKeyName: fk_datasnapshot_map_study_table
                     references: study_table(id)
                     deleteCascade: true
               - column:
@@ -149,12 +149,12 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_map_dataset_table
-                    references: dataset_table(id)
+                    foreignKeyName: fk_datasnapshot_map_datasnapshot_table
+                    references: datasnapshot_table(id)
                     deleteCascade: true
 
         - createTable:
-            tableName: dataset_map_column
+            tableName: datasnapshot_map_column
             columns:
               - column:
                   name: id
@@ -168,15 +168,15 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_map_column_dataset_map_table
-                    references: dataset_map_table(id)
+                    foreignKeyName: fk_datasnapshot_map_column_datasnapshot_map_table
+                    references: datasnapshot_map_table(id)
                     deleteCascade: true
               - column:
                   name: from_column_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_map_column_study_column
+                    foreignKeyName: fk_datasnapshot_map_column_study_column
                     references: study_column(id)
                     deleteCascade: true
               - column:
@@ -184,6 +184,6 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_dataset_map_column_dataset_column
-                    references: dataset_column(id)
+                    foreignKeyName: fk_datasnapshot_map_column_datasnapshot_column
+                    references: datasnapshot_column(id)
                     deleteCascade: true

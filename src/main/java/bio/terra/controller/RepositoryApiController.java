@@ -3,10 +3,10 @@ package bio.terra.controller;
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DataSnapshotModel;
+import bio.terra.model.DataSnapshotRequestModel;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateDataSnapshotModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
@@ -266,39 +266,39 @@ public class RepositoryApiController implements RepositoryApi {
     }
     // -- data snapshot --
     @Override
-    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
-        String jobId = dataSnapshotService.createDataset(dataset, getAuthenticatedInfo());
+    public ResponseEntity<JobModel> createDataSnapshot(@Valid @RequestBody DataSnapshotRequestModel dataset) {
+        String jobId = dataSnapshotService.createDataSnapshot(dataset, getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
     @Override
-    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
-        String jobId = dataSnapshotService.deleteDataset(UUID.fromString(id), getAuthenticatedInfo());
+    public ResponseEntity<JobModel> deleteDataSnapshot(@PathVariable("id") String id) {
+        String jobId = dataSnapshotService.deleteDataSnapshot(UUID.fromString(id), getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
     @Override
-    public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
+    public ResponseEntity<EnumerateDataSnapshotModel> enumerateDataSnapshots(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        EnumerateDatasetModel edm = dataSnapshotService.enumerateDatasets(offset, limit, sort,
+        EnumerateDataSnapshotModel edm = dataSnapshotService.enumerateDataSnapshots(offset, limit, sort,
             direction, filter);
         return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
-        DatasetModel datasetModel = dataSnapshotService.retrieveDataset(UUID.fromString(id));
+    public ResponseEntity<DataSnapshotModel> retrieveDataSnapshot(@PathVariable("id") String id) {
+        DataSnapshotModel datasetModel = dataSnapshotService.retrieveDataSnapshot(UUID.fromString(id));
         return new ResponseEntity<>(datasetModel, HttpStatus.OK);
     }
 
     // --data snapshot policies --
     @Override
-    public ResponseEntity<PolicyResponse> addDatasetPolicyMember(
+    public ResponseEntity<PolicyResponse> addDataSnapshotPolicyMember(
         @PathVariable("id") String id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
@@ -317,7 +317,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") String id) {
+    public ResponseEntity<PolicyResponse> retrieveDataSnapshotPolicies(@PathVariable("id") String id) {
         try {
             PolicyResponse response = new PolicyResponse().policies(
                 samService.retrievePolicies(
@@ -331,7 +331,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> deleteDatasetPolicyMember(
+    public ResponseEntity<PolicyResponse> deleteDataSnapshotPolicyMember(
         @PathVariable("id") String id,
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {

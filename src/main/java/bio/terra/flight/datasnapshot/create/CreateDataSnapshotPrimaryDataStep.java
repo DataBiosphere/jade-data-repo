@@ -8,8 +8,8 @@ import bio.terra.metadata.DataSnapshotMapColumn;
 import bio.terra.metadata.DataSnapshotMapTable;
 import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.RowIdMatch;
-import bio.terra.model.DatasetRequestContentsModel;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DataSnapshotRequestContentsModel;
+import bio.terra.model.DataSnapshotRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DataSnapshotService;
 import bio.terra.service.JobMapKeys;
@@ -40,14 +40,14 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
         this.dependencyDao = dependencyDao;
     }
 
-    DatasetRequestModel getRequestModel(FlightContext context) {
+    DataSnapshotRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DataSnapshotRequestModel.class);
     }
 
-    DataSnapshot getDataset(FlightContext context) {
-        DatasetRequestModel datasetRequest = getRequestModel(context);
-        return dataSnapshotService.makeDatasetFromDatasetRequest(datasetRequest);
+    DataSnapshot getDataSnapshot(FlightContext context) {
+        DataSnapshotRequestModel datasetRequest = getRequestModel(context);
+        return dataSnapshotService.makeDataSnapshotFromDataSnapshotRequest(datasetRequest);
     }
 
     @Override
@@ -56,10 +56,10 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
          * map field ids into row ids and validate
          * then pass the row id array into create dataSnapshot
          */
-        DatasetRequestModel requestModel = getRequestModel(context);
-        DatasetRequestContentsModel contentsModel = requestModel.getContents().get(0);
+        DataSnapshotRequestModel requestModel = getRequestModel(context);
+        DataSnapshotRequestContentsModel contentsModel = requestModel.getContents().get(0);
 
-        DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDatasetByName(requestModel.getName());
+        DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataSnapshotByName(requestModel.getName());
         DataSnapshotSource source = dataSnapshot.getDataSnapshotSources().get(0);
         RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(dataSnapshot, source, contentsModel.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
@@ -70,7 +70,7 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
         }
 
 
-        bigQueryPdao.createDataset(dataSnapshot, rowIdMatch.getMatchingRowIds());
+        bigQueryPdao.createDataSnapshot(dataSnapshot, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:
         // Loop through sources, loop through map tables, loop through map columns
@@ -89,13 +89,13 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
                     if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
                         StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
 
-                        List<String> refIds = bigQueryPdao.getDatasetRefIds(dataSnapshotSource.getStudy().getName(),
+                        List<String> refIds = bigQueryPdao.getDataSnapshotRefIds(dataSnapshotSource.getStudy().getName(),
                             dataSnapshot.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn());
 
-                        dependencyDao.storeDatasetFileDependencies(
+                        dependencyDao.storeDataSnapshotFileDependencies(
                             dataSnapshotSource.getStudy().getId().toString(),
                             dataSnapshot.getId().toString(),
                             refIds);
@@ -109,7 +109,7 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        bigQueryPdao.deleteDataset(getDataset(context));
+        bigQueryPdao.deleteDataSnapshot(getDataSnapshot(context));
         return StepResult.getStepResultSuccess();
     }
 

@@ -2,7 +2,7 @@ package bio.terra.service;
 
 import bio.terra.dao.DataSnapshotDao;
 import bio.terra.dao.StudyDao;
-import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.dao.exception.DataSnapshotNotFoundException;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSDir;
@@ -72,7 +72,7 @@ public class DrsService {
         if (fsObject.getObjectType() != FSObjectType.FILE) {
             throw new IllegalArgumentException("Object is not a blob");
         }
-        return drsObjectFromFSFile((FSFile)fsObject, drsId.getDatasetId());
+        return drsObjectFromFSFile((FSFile)fsObject, drsId.getDataSnapshotId());
     }
 
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
@@ -99,7 +99,7 @@ public class DrsService {
             .description(dirObject.getDescription())
             .aliases(Collections.singletonList(dirObject.getPath()));
 
-        return makeBundleObjects(bundle, fsObjectList, drsId.getDatasetId());
+        return makeBundleObjects(bundle, fsObjectList, drsId.getDataSnapshotId());
     }
 
     // Take an object or bundle id. Make sure it parses and make sure that the study and data snapshot
@@ -111,15 +111,15 @@ public class DrsService {
             UUID studyId = UUID.fromString(drsId.getStudyId());
             studyDao.retrieveSummaryById(studyId);
 
-            UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            dataSnapshotDao.retrieveDatasetSummary(datasetId);
+            UUID datasetId = UUID.fromString(drsId.getDataSnapshotId());
+            dataSnapshotDao.retrieveDataSnapshotSummary(datasetId);
 
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
         } catch (StudyNotFoundException ex) {
             throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
-        } catch (DatasetNotFoundException ex) {
+        } catch (DataSnapshotNotFoundException ex) {
             throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
         }
     }

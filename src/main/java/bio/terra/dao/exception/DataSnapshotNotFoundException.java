@@ -2,16 +2,16 @@ package bio.terra.dao.exception;
 
 import bio.terra.exception.NotFoundException;
 
-public class DatasetNotFoundException extends NotFoundException {
-    public DatasetNotFoundException(String message) {
+public class DataSnapshotNotFoundException extends NotFoundException {
+    public DataSnapshotNotFoundException(String message) {
         super(message);
     }
 
-    public DatasetNotFoundException(String message, Throwable cause) {
+    public DataSnapshotNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public DatasetNotFoundException(Throwable cause) {
+    public DataSnapshotNotFoundException(Throwable cause) {
         super(cause);
     }
 }

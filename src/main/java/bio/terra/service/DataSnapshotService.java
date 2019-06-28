@@ -19,13 +19,13 @@ import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestContentsModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetRequestSourceModel;
-import bio.terra.model.DatasetSourceModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.DataSnapshotModel;
+import bio.terra.model.DataSnapshotRequestContentsModel;
+import bio.terra.model.DataSnapshotRequestModel;
+import bio.terra.model.DataSnapshotRequestSourceModel;
+import bio.terra.model.DataSnapshotSourceModel;
+import bio.terra.model.DataSnapshotSummaryModel;
+import bio.terra.model.EnumerateDataSnapshotModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.exception.AssetNotFoundException;
@@ -67,7 +67,7 @@ public class DataSnapshotService {
      * @param datasetRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createDataset(DatasetRequestModel datasetRequestModel, AuthenticatedUserRequest userInfo) {
+    public String createDataSnapshot(DataSnapshotRequestModel datasetRequestModel, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequestModel);
@@ -81,7 +81,7 @@ public class DataSnapshotService {
      * @param id dataset id to delete
      * @returns jobId (flightId) of the job
      */
-    public String deleteDataset(UUID id, AuthenticatedUserRequest userInfo) {
+    public String deleteDataSnapshot(UUID id, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
         // TODO talk about conventions for naming data in the input map
@@ -98,20 +98,20 @@ public class DataSnapshotService {
      * @param limit
      * @return list of summary models of dataset
      */
-    public EnumerateDatasetModel enumerateDatasets(
+    public EnumerateDataSnapshotModel enumerateDataSnapshots(
         int offset,
         int limit,
         String sort,
         String direction,
         String filter
     ) {
-        MetadataEnumeration<DataSnapshotSummary> enumeration = dataSnapshotDao.retrieveDatasets(offset, limit, sort, direction,
+        MetadataEnumeration<DataSnapshotSummary> enumeration = dataSnapshotDao.retrieveDataSnapshots(offset, limit, sort, direction,
             filter);
-        List<DatasetSummaryModel> models = enumeration.getItems()
+        List<DataSnapshotSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(summary -> makeSummaryModelFromSummary(summary))
                 .collect(Collectors.toList());
-        return new EnumerateDatasetModel().items(models).total(enumeration.getTotal());
+        return new EnumerateDataSnapshotModel().items(models).total(enumeration.getTotal());
     }
 
     /**
@@ -122,8 +122,8 @@ public class DataSnapshotService {
      * @param id
      * @return summary model of the dataset
      */
-    public DatasetSummaryModel retrieveDatasetSummary(UUID id) {
-        DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDatasetSummary(id);
+    public DataSnapshotSummaryModel retrieveDataSnapshotSummary(UUID id) {
+        DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDataSnapshotSummary(id);
         return makeSummaryModelFromSummary(dataSnapshotSummary);
     }
 
@@ -132,9 +132,9 @@ public class DataSnapshotService {
      * @param id
      * @return dataset model
      */
-    public DatasetModel retrieveDataset(UUID id) {
-        DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataset(id);
-        return makeDatasetModelFromDataset(dataSnapshot);
+    public DataSnapshotModel retrieveDataSnapshot(UUID id) {
+        DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataSnapshot(id);
+        return makeDataSnapshotModelFromDataSnapshot(dataSnapshot);
     }
 
     /**
@@ -145,22 +145,22 @@ public class DataSnapshotService {
      * @param datasetRequestModel
      * @return DataSnapshot
      */
-    public DataSnapshot makeDatasetFromDatasetRequest(DatasetRequestModel datasetRequestModel) {
+    public DataSnapshot makeDataSnapshotFromDataSnapshotRequest(DataSnapshotRequestModel datasetRequestModel) {
         // Make this early so we can hook up back links to it
         DataSnapshot dataSnapshot = new DataSnapshot();
 
-        List<DatasetRequestContentsModel> requestContentsList = datasetRequestModel.getContents();
+        List<DataSnapshotRequestContentsModel> requestContentsList = datasetRequestModel.getContents();
         // TODO: for MVM we only allow one source list
         if (requestContentsList.size() > 1) {
             throw new ValidationException("Only a single dataSnapshot contents entry is currently allowed.");
         }
-        DatasetRequestContentsModel requestContents = requestContentsList.get(0);
+        DataSnapshotRequestContentsModel requestContents = requestContentsList.get(0);
         DataSnapshotSource dataSnapshotSource = makeSourceFromRequestContents(requestContents, dataSnapshot);
 
         // TODO: When we implement explicit definition of data snapshot tables, we will handle that here.
         // For now, we generate the data snapshot tables directly from the asset tables of the one source
         // allowed in a data snapshot.
-        conjureDatasetTablesFromAsset(dataSnapshotSource.getAssetSpecification(), dataSnapshot, dataSnapshotSource);
+        conjureDataSnapshotTablesFromAsset(dataSnapshotSource.getAssetSpecification(), dataSnapshot, dataSnapshotSource);
 
         dataSnapshot.name(datasetRequestModel.getName())
                 .description(datasetRequestModel.getDescription())
@@ -169,8 +169,8 @@ public class DataSnapshotService {
         return dataSnapshot;
     }
 
-    private DataSnapshotSource makeSourceFromRequestContents(DatasetRequestContentsModel requestContents, DataSnapshot dataSnapshot) {
-        DatasetRequestSourceModel requestSource = requestContents.getSource();
+    private DataSnapshotSource makeSourceFromRequestContents(DataSnapshotRequestContentsModel requestContents, DataSnapshot dataSnapshot) {
+        DataSnapshotRequestSourceModel requestSource = requestContents.getSource();
         Study study = studyDao.retrieveByName(requestSource.getStudyName());
 
         Optional<AssetSpecification> optAsset = study.getAssetSpecificationByName(requestSource.getAssetName());
@@ -195,7 +195,7 @@ public class DataSnapshotService {
      * @param dataSnapshot dataSnapshot to point back to and fill in
      * @param dataSnapshotSource dataSnapshotSource to point back to and fill in
      */
-    private void conjureDatasetTablesFromAsset(AssetSpecification asset,
+    private void conjureDataSnapshotTablesFromAsset(AssetSpecification asset,
                                                DataSnapshot dataSnapshot,
                                                DataSnapshotSource dataSnapshotSource) {
 
@@ -233,8 +233,8 @@ public class DataSnapshotService {
         dataSnapshot.datasetTables(tableList);
     }
 
-    public DatasetSummaryModel makeSummaryModelFromSummary(DataSnapshotSummary dataSnapshotSummary) {
-        DatasetSummaryModel summaryModel = new DatasetSummaryModel()
+    public DataSnapshotSummaryModel makeSummaryModelFromSummary(DataSnapshotSummary dataSnapshotSummary) {
+        DataSnapshotSummaryModel summaryModel = new DataSnapshotSummaryModel()
                 .id(dataSnapshotSummary.getId().toString())
                 .name(dataSnapshotSummary.getName())
                 .description(dataSnapshotSummary.getDescription())
@@ -242,8 +242,8 @@ public class DataSnapshotService {
         return summaryModel;
     }
 
-    private DatasetModel makeDatasetModelFromDataset(DataSnapshot dataSnapshot) {
-        return new DatasetModel()
+    private DataSnapshotModel makeDataSnapshotModelFromDataSnapshot(DataSnapshot dataSnapshot) {
+        return new DataSnapshotModel()
                 .id(dataSnapshot.getId().toString())
                 .name(dataSnapshot.getName())
                 .description(dataSnapshot.getDescription())
@@ -258,7 +258,7 @@ public class DataSnapshotService {
                         .collect(Collectors.toList()));
     }
 
-    private DatasetSourceModel makeSourceModelFromSource(DataSnapshotSource source) {
+    private DataSnapshotSourceModel makeSourceModelFromSource(DataSnapshotSource source) {
         // TODO: when source summary methods are available, use those. Here I roll my own
         Study study = source.getStudy();
         StudySummaryModel summaryModel = new StudySummaryModel()
@@ -268,7 +268,7 @@ public class DataSnapshotService {
 // TODO: decide on our datetime datatype
                 .createdDate(study.getCreatedDate().toString());
 
-        DatasetSourceModel sourceModel = new DatasetSourceModel()
+        DataSnapshotSourceModel sourceModel = new DataSnapshotSourceModel()
                 .asset(source.getAssetSpecification().getName())
                 .study(summaryModel);
 

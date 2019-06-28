@@ -56,13 +56,13 @@ public interface PrimaryDataAccess {
     boolean deleteStudy(Study study);
 
     /**
-     * Check to see if a dataset exists
+     * Check to see if a dataSnapshot exists
      */
-    boolean datasetExists(String datasetName);
+    boolean dataSnapshotExists(String dataSnapshotName);
 
     /**
      * Given inputs from one asset, compute the row ids from the input values. The
-     * returned structure provides a list suitable to pass into createDataset and
+     * returned structure provides a list suitable to pass into createDataSnapshot and
      * information to return meaningful errors for mismatched input values.
      *
      * @param dataSnapshot
@@ -80,7 +80,7 @@ public interface PrimaryDataAccess {
      * @param dataSnapshot
      * @param rowIds - row ids for the root table
      */
-    void createDataset(DataSnapshot dataSnapshot, List<String> rowIds);
+    void createDataSnapshot(DataSnapshot dataSnapshot, List<String> rowIds);
 
     /**
      * Delete the dataSnapshot. All tables within the container and the container are deleted
@@ -88,31 +88,31 @@ public interface PrimaryDataAccess {
      * @param dataSnapshot
      * @return true if the dataSnapshot was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteDataset(DataSnapshot dataSnapshot);
+    boolean deleteDataSnapshot(DataSnapshot dataSnapshot);
 
 
     /**
-     * Add the google group for the dataset readers to the BQ dataset
+     * Add the google group for the dataSnapshot readers to the BQ dataset
      *
-     * @param datasetId bigquery dataset name
+     * @param bqDatasetId bigquery dataset name
      * @param readersEmail email address for readers group (as returned by SAM)
      */
-    void addReaderGroupToDataset(String datasetId, String readersEmail);
+    void addReaderGroupToDataSnapshot(String bqDatasetId, String readersEmail);
 
     /**
-     * Update the athorized views on the study to include the tables in the dataset
-     * @param datasetName
+     * Update the athorized views on the study to include the tables in the dataSnapshot
+     * @param dataSnapshotName
      * @param studyName
      * @param tableNames
      */
-    void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames);
+    void authorizeDataSnapshotViewsForStudy(String dataSnapshotName, String studyName, List<String> tableNames);
 
     /**
-     * Remove the athorized views for the dataset from the study
-     * @param datasetName
+     * Remove the athorized views for the dataSnapshot from the study
+     * @param dataSnapshotName
      * @param studyName
      * @param tableNames
      */
-    void removeDatasetAuthorizationFromStudy(String datasetName, String studyName, List<String> tableNames);
+    void removeDataSnapshotAuthorizationFromStudy(String dataSnapshotName, String studyName, List<String> tableNames);
 
 }

@@ -1,7 +1,7 @@
 package bio.terra.flight.datasnapshot.delete;
 
 import bio.terra.dao.DataSnapshotDao;
-import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.dao.exception.DataSnapshotNotFoundException;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.DataSnapshot;
@@ -32,16 +32,16 @@ public class DeleteDataSnapshotMetadataStep implements Step {
         DataSnapshot dataSnapshot = null;
         boolean found = false;
         try {
-            dataSnapshot = dataSnapshotDao.retrieveDataset(datasetId);
+            dataSnapshot = dataSnapshotDao.retrieveDataSnapshot(datasetId);
 
             // Remove data snapshot file references from the underlying studies
             for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
-                dependencyDao.deleteDatasetFileDependencies(
+                dependencyDao.deleteDataSnapshotFileDependencies(
                     dataSnapshotSource.getStudy().getId().toString(),
                     datasetId.toString());
             }
             found = dataSnapshotDao.delete(datasetId);
-        } catch (DatasetNotFoundException ex) {
+        } catch (DataSnapshotNotFoundException ex) {
             found = false;
         }
 

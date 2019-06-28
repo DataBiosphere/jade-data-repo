@@ -5,8 +5,8 @@ import bio.terra.exception.NotFoundException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.DataSnapshot;
 import bio.terra.metadata.DataSnapshotSummary;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DataSnapshotRequestModel;
+import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.service.DataSnapshotService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -30,14 +30,14 @@ public class CreateDataSnapshotMetadataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
-                DatasetRequestModel.class);
+        DataSnapshotRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
+                DataSnapshotRequestModel.class);
         try {
-            DataSnapshot dataSnapshot = dataSnapshotService.makeDatasetFromDatasetRequest(datasetRequest);
+            DataSnapshot dataSnapshot = dataSnapshotService.makeDataSnapshotFromDataSnapshotRequest(datasetRequest);
             UUID datasetId = dataSnapshotDao.create(dataSnapshot);
             context.getWorkingMap().put("datasetId", datasetId);
-            DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDatasetSummary(dataSnapshot.getId());
-            DatasetSummaryModel response = dataSnapshotService.makeSummaryModelFromSummary(dataSnapshotSummary);
+            DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDataSnapshotSummary(dataSnapshot.getId());
+            DataSnapshotSummaryModel response = dataSnapshotService.makeSummaryModelFromSummary(dataSnapshotSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
         } catch (NotFoundException ex) {
@@ -49,8 +49,8 @@ public class CreateDataSnapshotMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
-                DatasetRequestModel.class);
+        DataSnapshotRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
+                DataSnapshotRequestModel.class);
         String datasetName = datasetRequest.getName();
         dataSnapshotDao.deleteByName(datasetName);
         return StepResult.getStepResultSuccess();

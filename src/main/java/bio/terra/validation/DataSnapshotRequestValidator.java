@@ -1,9 +1,9 @@
 package bio.terra.validation;
 
-import bio.terra.model.DatasetRequestContentsModel;
+import bio.terra.model.DataSnapshotRequestContentsModel;
 
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetRequestSourceModel;
+import bio.terra.model.DataSnapshotRequestModel;
+import bio.terra.model.DataSnapshotRequestSourceModel;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -29,55 +29,55 @@ public class DataSnapshotRequestValidator implements Validator {
     }
 
 
-    private void validateDatasetName(String datasetName, Errors errors) {
+    private void validateDataSnapshotName(String datasetName, Errors errors) {
         if (datasetName == null) {
-            errors.rejectValue("name", "DatasetNameMissing");
+            errors.rejectValue("name", "DataSnapshotNameMissing");
         } else if (!ValidationUtils.isValidName(datasetName)) {
-            errors.rejectValue("name", "DatasetNameInvalid");
+            errors.rejectValue("name", "DataSnapshotNameInvalid");
         }
     }
 
-    private void validateDatasetValues(List<DatasetRequestContentsModel> contentsList, Errors errors) {
+    private void validateDataSnapshotValues(List<DataSnapshotRequestContentsModel> contentsList, Errors errors) {
         if (contentsList == null || contentsList.isEmpty()) {
-            errors.rejectValue("contents", "DatasetSourceListEmpty");
+            errors.rejectValue("contents", "DataSnapshotSourceListEmpty");
         } else {
             contentsList.forEach(contents -> {
                 List<String> rootValues = contents.getRootValues();
                 if (rootValues == null || rootValues.isEmpty()) {
-                    errors.rejectValue("contents", "DatasetRootValuesListEmpty");
+                    errors.rejectValue("contents", "DataSnapshotRootValuesListEmpty");
                 }
-                DatasetRequestSourceModel source = contents.getSource();
+                DataSnapshotRequestSourceModel source = contents.getSource();
                 String studyName = source.getStudyName();
                 String assetName = source.getAssetName();
                 if (studyName == null) {
-                    errors.rejectValue("contents", "DatasetStudyNameMissing");
+                    errors.rejectValue("contents", "DataSnapshotStudyNameMissing");
                 } else if (!ValidationUtils.isValidName(studyName)) {
-                    errors.rejectValue("contents", "DatasetStudyNameInvalid");
+                    errors.rejectValue("contents", "DataSnapshotStudyNameInvalid");
                 }
                 if (assetName == null) {
-                    errors.rejectValue("contents", "DatasetAssetNameMissing");
+                    errors.rejectValue("contents", "DataSnapshotAssetNameMissing");
                 } else if (!ValidationUtils.isValidName(assetName)) {
-                    errors.rejectValue("contents", "DatasetAssetNameInvalid");
+                    errors.rejectValue("contents", "DataSnapshotAssetNameInvalid");
                 }
             });
         }
     }
 
-    private void validateDatasetDescription(String description, Errors errors) {
+    private void validateDataSnapshotDescription(String description, Errors errors) {
         if (description == null) {
-            errors.rejectValue("description", "DatasetDescriptionMissing");
+            errors.rejectValue("description", "DataSnapshotDescriptionMissing");
         } else if (!ValidationUtils.isValidDescription(description)) {
-            errors.rejectValue("description", "DatasetDescriptionTooLong");
+            errors.rejectValue("description", "DataSnapshotDescriptionTooLong");
         }
     }
 
     @Override
     public void validate(@NotNull Object target, Errors errors) {
-        if (target != null && target instanceof DatasetRequestModel) {
-            DatasetRequestModel datasetRequestModel = (DatasetRequestModel) target;
-            validateDatasetName(datasetRequestModel.getName(), errors);
-            validateDatasetDescription(datasetRequestModel.getDescription(), errors);
-            validateDatasetValues(datasetRequestModel.getContents(), errors);
+        if (target != null && target instanceof DataSnapshotRequestModel) {
+            DataSnapshotRequestModel datasetRequestModel = (DataSnapshotRequestModel) target;
+            validateDataSnapshotName(datasetRequestModel.getName(), errors);
+            validateDataSnapshotDescription(datasetRequestModel.getDescription(), errors);
+            validateDataSnapshotValues(datasetRequestModel.getContents(), errors);
         }
     }
 }

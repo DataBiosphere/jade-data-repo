@@ -214,7 +214,7 @@ public class SamClientService {
         samResourceApi.deleteResource(ResourceType.STUDY.toString(), studyId.toString());
     }
 
-    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
+    public void deleteDataSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         samResourceApi.deleteResource(ResourceType.DATASET.toString(), datsetId.toString());
     }
@@ -237,7 +237,7 @@ public class SamClientService {
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
     }
 
-    public String createDatasetResource(
+    public String createDataSnapshotResource(
         AuthenticatedUserRequest userReq,
         UUID datasetId,
         Optional<List<String>> readersList

@@ -2,11 +2,11 @@ package bio.terra.dao;
 
 import bio.terra.category.Unit;
 import bio.terra.metadata.Column;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetMapColumn;
-import bio.terra.metadata.DatasetMapTable;
-import bio.terra.metadata.DatasetSource;
-import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotMapColumn;
+import bio.terra.metadata.DataSnapshotMapTable;
+import bio.terra.metadata.DataSnapshotSource;
+import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
@@ -39,13 +39,13 @@ import static org.junit.Assert.assertThat;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
-public class DatasetDaoTest {
+public class DataSnapshotDaoTest {
 
     @Autowired
     private ObjectMapper objectMapper;
 
     @Autowired
-    private DatasetDao datasetDao;
+    private DataSnapshotDao dataSnapshotDao;
 
     @Autowired
     private StudyDao studyDao;
@@ -79,7 +79,7 @@ public class DatasetDaoTest {
 
     @After
     public void teardown() throws Exception {
-        datasetDao.delete(datasetId);
+        dataSnapshotDao.delete(datasetId);
         studyDao.delete(studyId);
     }
 
@@ -87,59 +87,59 @@ public class DatasetDaoTest {
     public void happyInOutTest() throws Exception {
         datasetRequest.name(datasetRequest.getName() + UUID.randomUUID().toString());
 
-        Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-        datasetId = datasetDao.create(dataset);
-        Dataset fromDB = datasetDao.retrieveDataset(datasetId);
+        DataSnapshot dataSnapshot = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+        datasetId = dataSnapshotDao.create(dataSnapshot);
+        DataSnapshot fromDB = dataSnapshotDao.retrieveDataset(datasetId);
 
-        assertThat("dataset name set correctly",
+        assertThat("dataSnapshot name set correctly",
                 fromDB.getName(),
-                equalTo(dataset.getName()));
+                equalTo(dataSnapshot.getName()));
 
-        assertThat("dataset description set correctly",
+        assertThat("dataSnapshot description set correctly",
                 fromDB.getDescription(),
-                equalTo(dataset.getDescription()));
+                equalTo(dataSnapshot.getDescription()));
 
         assertThat("correct number of tables created",
                 fromDB.getTables().size(),
                 equalTo(1));
 
         assertThat("correct number of sources created",
-                fromDB.getDatasetSources().size(),
+                fromDB.getDataSnapshotSources().size(),
                 equalTo(1));
 
         // verify source and map
-        DatasetSource source = fromDB.getDatasetSources().get(0);
-        assertThat("source points back to dataset",
-                source.getDataset().getId(),
-                equalTo(dataset.getId()));
+        DataSnapshotSource source = fromDB.getDataSnapshotSources().get(0);
+        assertThat("source points back to dataSnapshot",
+                source.getDataSnapshot().getId(),
+                equalTo(dataSnapshot.getId()));
 
         assertThat("source points to the asset spec",
                 source.getAssetSpecification().getId(),
                 equalTo(study.getAssetSpecifications().get(0).getId()));
 
         assertThat("correct number of map tables",
-                source.getDatasetMapTables().size(),
+                source.getDataSnapshotMapTables().size(),
                 equalTo(1));
 
         // Verify map table
-        DatasetMapTable mapTable = source.getDatasetMapTables().get(0);
+        DataSnapshotMapTable mapTable = source.getDataSnapshotMapTables().get(0);
         Table studyTable = study.getTables().get(0);
-        Table datasetTable = dataset.getTables().get(0);
+        Table datasetTable = dataSnapshot.getTables().get(0);
 
         assertThat("correct map table study table",
                 mapTable.getFromTable().getId(),
                 equalTo(studyTable.getId()));
 
-        assertThat("correct map table dataset table",
+        assertThat("correct map table dataSnapshot table",
                 mapTable.getToTable().getId(),
                 equalTo(datasetTable.getId()));
 
         assertThat("correct number of map columns",
-                mapTable.getDatasetMapColumns().size(),
+                mapTable.getDataSnapshotMapColumns().size(),
                 equalTo(1));
 
         // Verify map columns
-        DatasetMapColumn mapColumn = mapTable.getDatasetMapColumns().get(0);
+        DataSnapshotMapColumn mapColumn = mapTable.getDataSnapshotMapColumns().get(0);
         // Why is study columns Collection and not List?
         Column studyColumn = studyTable.getColumns().iterator().next();
         Column datasetColumn = datasetTable.getColumns().get(0);
@@ -148,7 +148,7 @@ public class DatasetDaoTest {
                 mapColumn.getFromColumn().getId(),
                 equalTo(studyColumn.getId()));
 
-        assertThat("correct map column dataset column",
+        assertThat("correct map column dataSnapshot column",
                 mapColumn.getToColumn().getId(),
                 equalTo(datasetColumn.getId()));
     }
@@ -167,8 +167,8 @@ public class DatasetDaoTest {
                 // set the description to a random string so we can verify the sorting is working independently of the
                 // study name or created_date. add a suffix to filter on for the even datasets
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
-            Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-            datasetId = datasetDao.create(dataset);
+            DataSnapshot dataSnapshot = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+            datasetId = dataSnapshotDao.create(dataSnapshot);
             datasetIds.add(datasetId);
         }
 
@@ -190,21 +190,21 @@ public class DatasetDaoTest {
         testSortingDescriptions("asc");
 
 
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6, null,
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDatasets(0, 6, null,
             null, "==foo==");
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
+        List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered 3 datasets", summaryList.size(), equalTo(3));
         assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
         for (int i = 0; i < 3; i++) {
             assertThat("ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
         }
 
-        MetadataEnumeration<DatasetSummary> emptyEnum = datasetDao.retrieveDatasets(0, 6, null,
+        MetadataEnumeration<DataSnapshotSummary> emptyEnum = dataSnapshotDao.retrieveDatasets(0, 6, null,
             null, "__");
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
 
         for (UUID datasetId : datasetIds) {
-            datasetDao.delete(datasetId);
+            dataSnapshotDao.delete(datasetId);
         }
     }
 
@@ -213,11 +213,11 @@ public class DatasetDaoTest {
     }
 
     private void testSortingNames(List<UUID> datasetIds, String datasetName, int offset, int limit, String direction) {
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "name",
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDatasets(offset, limit, "name",
             direction, null);
-        List<DatasetSummary>  summaryList = summaryEnum.getItems();
+        List<DataSnapshotSummary>  summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : datasetIds.size() - offset - 1;
-        for (DatasetSummary summary : summaryList) {
+        for (DataSnapshotSummary summary : summaryList) {
             assertThat("correct id", datasetIds.get(index), equalTo(summary.getId()));
             assertThat("correct name", makeName(datasetName, index), equalTo(summary.getName()));
             index += (direction.equals("asc")) ? 1 : -1;
@@ -225,9 +225,9 @@ public class DatasetDaoTest {
     }
 
     private void testSortingDescriptions(String direction) {
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6,
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDatasets(0, 6,
             "description", direction, null);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
+        List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
         for (int i = 1; i < summaryList.size(); i++) {
@@ -247,11 +247,11 @@ public class DatasetDaoTest {
                                        int offset,
                                        int limit) {
         // We expect the datasets to be returned in their created order
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "created_date",
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDatasets(offset, limit, "created_date",
             "asc", null);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
+        List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
         int index = offset;
-        for (DatasetSummary summary : summaryList) {
+        for (DataSnapshotSummary summary : summaryList) {
             assertThat("correct dataset id",
                     datasetIds.get(index),
                     equalTo(summary.getId()));
@@ -263,11 +263,11 @@ public class DatasetDaoTest {
     }
 
     private void deleteAllDatasets() {
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 1000, null,
+        MetadataEnumeration<DataSnapshotSummary> summaryEnum = dataSnapshotDao.retrieveDatasets(0, 1000, null,
             null, null);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
-        for (DatasetSummary summary : summaryList) {
-            datasetDao.delete(summary.getId());
+        List<DataSnapshotSummary> summaryList = summaryEnum.getItems();
+        for (DataSnapshotSummary summary : summaryList) {
+            dataSnapshotDao.delete(summary.getId());
         }
     }
 

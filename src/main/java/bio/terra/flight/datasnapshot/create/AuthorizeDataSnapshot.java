@@ -1,4 +1,4 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.flight.datasnapshot.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
@@ -20,11 +20,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class AuthorizeDataset implements Step {
+public class AuthorizeDataSnapshot implements Step {
     private SamClientService sam;
     private BigQueryPdao bigQueryPdao;
 
-    public AuthorizeDataset(BigQueryPdao bigQueryPdao, SamClientService sam) {
+    public AuthorizeDataSnapshot(BigQueryPdao bigQueryPdao, SamClientService sam) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
     }

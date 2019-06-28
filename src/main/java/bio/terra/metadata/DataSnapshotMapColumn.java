@@ -2,7 +2,7 @@ package bio.terra.metadata;
 
 import java.util.UUID;
 
-public class DatasetMapColumn {
+public class DataSnapshotMapColumn {
     private UUID id;
     private Column fromColumn;
     private Column toColumn;
@@ -11,7 +11,7 @@ public class DatasetMapColumn {
         return id;
     }
 
-    public DatasetMapColumn id(UUID id) {
+    public DataSnapshotMapColumn id(UUID id) {
         this.id = id;
         return this;
     }
@@ -20,7 +20,7 @@ public class DatasetMapColumn {
         return fromColumn;
     }
 
-    public DatasetMapColumn fromColumn(Column fromColumn) {
+    public DataSnapshotMapColumn fromColumn(Column fromColumn) {
         this.fromColumn = fromColumn;
         return this;
     }
@@ -29,7 +29,7 @@ public class DatasetMapColumn {
         return toColumn;
     }
 
-    public DatasetMapColumn toColumn(Column toColumn) {
+    public DataSnapshotMapColumn toColumn(Column toColumn) {
         this.toColumn = toColumn;
         return this;
     }

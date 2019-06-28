@@ -1,7 +1,7 @@
 package bio.terra.pdao;
 
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 
@@ -65,30 +65,30 @@ public interface PrimaryDataAccess {
      * returned structure provides a list suitable to pass into createDataset and
      * information to return meaningful errors for mismatched input values.
      *
-     * @param dataset
-     * @param source - source in the dataset we are mapping
+     * @param dataSnapshot
+     * @param source - source in the dataSnapshot we are mapping
      * @param inputValues
      * @return RowIdMatch
      */
-    RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
-                                      DatasetSource source,
-                                      List<String> inputValues);
+    RowIdMatch mapValuesToRows(DataSnapshot dataSnapshot,
+                               DataSnapshotSource source,
+                               List<String> inputValues);
 
     /**
-     * Create the container, tables and views for a dataset.
-     * BigQuery: container is a BigQuery dataset
-     * @param dataset
+     * Create the container, tables and views for a dataSnapshot.
+     * BigQuery: container is a BigQuery dataSnapshot
+     * @param dataSnapshot
      * @param rowIds - row ids for the root table
      */
-    void createDataset(Dataset dataset, List<String> rowIds);
+    void createDataset(DataSnapshot dataSnapshot, List<String> rowIds);
 
     /**
-     * Delete the dataset. All tables within the container and the container are deleted
+     * Delete the dataSnapshot. All tables within the container and the container are deleted
      *
-     * @param dataset
-     * @return true if the dataset was deleted; false if it was not found; throw on other errors
+     * @param dataSnapshot
+     * @return true if the dataSnapshot was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteDataset(Dataset dataset);
+    boolean deleteDataset(DataSnapshot dataSnapshot);
 
 
     /**

@@ -5,11 +5,11 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class DatasetTableDao extends TableDaoBase {
+public class DataSnapshotTableDao extends TableDaoBase {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public DatasetTableDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public DataSnapshotTableDao(NamedParameterJdbcTemplate jdbcTemplate) {
         super(jdbcTemplate, "dataset_table", "dataset_column", "parent_id");
         this.jdbcTemplate = jdbcTemplate;
     }

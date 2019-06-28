@@ -279,7 +279,7 @@ paths:
       parameters:
       - in: body
         name: dataset
-        description: Dataset to create
+        description: DataSnapshot to create
         schema:
           $ref: '#/definitions/DatasetRequestModel'
       responses:
@@ -308,7 +308,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Dataset with this name already exists
+          description: DataSnapshot with this name already exists
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -323,7 +323,7 @@ paths:
         - $ref: '#/parameters/Id'
       responses:
         200:
-          description: Dataset
+          description: DataSnapshot
           schema:
             $ref: '#/definitions/DatasetModel'
         400:
@@ -376,7 +376,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Dataset in use?
+          description: DataSnapshot in use?
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -418,7 +418,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Dataset to change the policy of
+        description: DataSnapshot to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -639,7 +639,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Dataset to change the policy of
+        description: DataSnapshot to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -1638,7 +1638,7 @@ definitions:
         items:
           $ref: '#/definitions/FSObjectModel'
 
-  ## Dataset Definitions ##
+  ## DataSnapshot Definitions ##
 
   DatasetRequestModel:
     description: |

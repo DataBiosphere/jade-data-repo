@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.StudyNotFoundException;
@@ -42,7 +42,7 @@ public class DrsService {
     private static final String DRS_OBJECT_VERSION = "0";
 
     private final StudyDao studyDao;
-    private final DatasetDao datasetDao;
+    private final DataSnapshotDao dataSnapshotDao;
     private final FireStoreFileDao fileDao;
     private final FileService fileService;
     private final DrsIdService drsIdService;
@@ -50,13 +50,13 @@ public class DrsService {
 
     @Autowired
     public DrsService(StudyDao studyDao,
-                      DatasetDao datasetDao,
+                      DataSnapshotDao dataSnapshotDao,
                       FireStoreFileDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration) {
         this.studyDao = studyDao;
-        this.datasetDao = datasetDao;
+        this.dataSnapshotDao = dataSnapshotDao;
         this.fileDao = fileDao;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
@@ -112,7 +112,7 @@ public class DrsService {
             studyDao.retrieveSummaryById(studyId);
 
             UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            datasetDao.retrieveDatasetSummary(datasetId);
+            dataSnapshotDao.retrieveDatasetSummary(datasetId);
 
             return drsId;
         } catch (IllegalArgumentException ex) {

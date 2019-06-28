@@ -1,10 +1,10 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.flight.datasnapshot.create;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.exception.NotFoundException;
 import bio.terra.flight.FlightUtils;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.DatasetService;
@@ -18,12 +18,12 @@ import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
 
-public class CreateDatasetMetadataStep implements Step {
-    private DatasetDao datasetDao;
+public class CreateDataSnapshotMetadataStep implements Step {
+    private DataSnapshotDao dataSnapshotDao;
     private DatasetService datasetService;
 
-    public CreateDatasetMetadataStep(DatasetDao datasetDao, DatasetService datasetService) {
-        this.datasetDao = datasetDao;
+    public CreateDataSnapshotMetadataStep(DataSnapshotDao dataSnapshotDao, DatasetService datasetService) {
+        this.dataSnapshotDao = dataSnapshotDao;
         this.datasetService = datasetService;
     }
 
@@ -33,11 +33,11 @@ public class CreateDatasetMetadataStep implements Step {
         DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
                 DatasetRequestModel.class);
         try {
-            Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-            UUID datasetId = datasetDao.create(dataset);
+            DataSnapshot dataSnapshot = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+            UUID datasetId = dataSnapshotDao.create(dataSnapshot);
             context.getWorkingMap().put("datasetId", datasetId);
-            DatasetSummary datasetSummary = datasetDao.retrieveDatasetSummary(dataset.getId());
-            DatasetSummaryModel response = datasetService.makeSummaryModelFromSummary(datasetSummary);
+            DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDatasetSummary(dataSnapshot.getId());
+            DatasetSummaryModel response = datasetService.makeSummaryModelFromSummary(dataSnapshotSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
         } catch (NotFoundException ex) {
@@ -52,7 +52,7 @@ public class CreateDatasetMetadataStep implements Step {
         DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
                 DatasetRequestModel.class);
         String datasetName = datasetRequest.getName();
-        datasetDao.deleteByName(datasetName);
+        dataSnapshotDao.deleteByName(datasetName);
         return StepResult.getStepResultSuccess();
     }
 

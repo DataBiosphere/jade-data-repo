@@ -3,7 +3,7 @@ package bio.terra.metadata;
 import java.time.Instant;
 import java.util.UUID;
 
-public class DatasetSummary {
+public class DataSnapshotSummary {
     private UUID id;
     private String name;
     private String description;
@@ -13,7 +13,7 @@ public class DatasetSummary {
         return id;
     }
 
-    public DatasetSummary id(UUID id) {
+    public DataSnapshotSummary id(UUID id) {
         this.id = id;
         return this;
     }
@@ -22,7 +22,7 @@ public class DatasetSummary {
         return name;
     }
 
-    public DatasetSummary name(String name) {
+    public DataSnapshotSummary name(String name) {
         this.name = name;
         return this;
     }
@@ -31,7 +31,7 @@ public class DatasetSummary {
         return description;
     }
 
-    public DatasetSummary description(String description) {
+    public DataSnapshotSummary description(String description) {
         this.description = description;
         return this;
     }
@@ -40,7 +40,7 @@ public class DatasetSummary {
         return createdDate;
     }
 
-    public DatasetSummary createdDate(Instant createdDate) {
+    public DataSnapshotSummary createdDate(Instant createdDate) {
         this.createdDate = createdDate;
         return this;
     }

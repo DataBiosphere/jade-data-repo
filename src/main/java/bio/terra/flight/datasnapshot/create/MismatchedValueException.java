@@ -1,4 +1,4 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.flight.datasnapshot.create;
 
 import bio.terra.exception.BadRequestException;
 

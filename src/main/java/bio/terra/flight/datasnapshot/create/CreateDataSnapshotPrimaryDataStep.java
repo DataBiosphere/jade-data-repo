@@ -1,12 +1,12 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.flight.datasnapshot.create;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetMapColumn;
-import bio.terra.metadata.DatasetMapTable;
-import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotMapColumn;
+import bio.terra.metadata.DataSnapshotMapTable;
+import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
@@ -23,20 +23,20 @@ import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
-public class CreateDatasetPrimaryDataStep implements Step {
+public class CreateDataSnapshotPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
-    private DatasetDao datasetDao;
+    private DataSnapshotDao dataSnapshotDao;
     private FireStoreDependencyDao dependencyDao;
 
-    public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        DatasetService datasetService,
-                                        DatasetDao datasetDao,
-                                        FireStoreDependencyDao dependencyDao) {
+    public CreateDataSnapshotPrimaryDataStep(BigQueryPdao bigQueryPdao,
+                                             DatasetService datasetService,
+                                             DataSnapshotDao dataSnapshotDao,
+                                             FireStoreDependencyDao dependencyDao) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
-        this.datasetDao = datasetDao;
+        this.dataSnapshotDao = dataSnapshotDao;
         this.dependencyDao = dependencyDao;
     }
 
@@ -45,7 +45,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
     }
 
-    Dataset getDataset(FlightContext context) {
+    DataSnapshot getDataset(FlightContext context) {
         DatasetRequestModel datasetRequest = getRequestModel(context);
         return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
     }
@@ -54,14 +54,14 @@ public class CreateDatasetPrimaryDataStep implements Step {
     public StepResult doStep(FlightContext context) {
         /*
          * map field ids into row ids and validate
-         * then pass the row id array into create dataset
+         * then pass the row id array into create dataSnapshot
          */
         DatasetRequestModel requestModel = getRequestModel(context);
         DatasetRequestContentsModel contentsModel = requestModel.getContents().get(0);
 
-        Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
-        DatasetSource source = dataset.getDatasetSources().get(0);
-        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(dataset, source, contentsModel.getRootValues());
+        DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDatasetByName(requestModel.getName());
+        DataSnapshotSource source = dataSnapshot.getDataSnapshotSources().get(0);
+        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(dataSnapshot, source, contentsModel.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
             String message = String.format("Mismatched input values: '%s'", unmatchedValues);
@@ -70,7 +70,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         }
 
 
-        bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
+        bigQueryPdao.createDataset(dataSnapshot, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:
         // Loop through sources, loop through map tables, loop through map columns
@@ -82,22 +82,22 @@ public class CreateDatasetPrimaryDataStep implements Step {
         // bounds the intermediate size in a way. I think this all becomes easier if we move
         // the filesystem stuff into DataStore or similar. Then bigquery can stream this
         // this without landing in memory and transferring it to postgres.
-        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
-            for (DatasetMapTable mapTable : datasetSource.getDatasetMapTables()) {
-                for (DatasetMapColumn mapColumn : mapTable.getDatasetMapColumns()) {
+        for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
+            for (DataSnapshotMapTable mapTable : dataSnapshotSource.getDataSnapshotMapTables()) {
+                for (DataSnapshotMapColumn mapColumn : mapTable.getDataSnapshotMapColumns()) {
                     String fromDatatype = mapColumn.getFromColumn().getType();
                     if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
                         StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
 
-                        List<String> refIds = bigQueryPdao.getDatasetRefIds(datasetSource.getStudy().getName(),
-                            dataset.getName(),
+                        List<String> refIds = bigQueryPdao.getDatasetRefIds(dataSnapshotSource.getStudy().getName(),
+                            dataSnapshot.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn());
 
                         dependencyDao.storeDatasetFileDependencies(
-                            datasetSource.getStudy().getId().toString(),
-                            dataset.getId().toString(),
+                            dataSnapshotSource.getStudy().getId().toString(),
+                            dataSnapshot.getId().toString(),
                             refIds);
                     }
                 }

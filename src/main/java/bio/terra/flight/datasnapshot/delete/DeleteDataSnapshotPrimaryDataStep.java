@@ -1,8 +1,8 @@
-package bio.terra.flight.dataset.delete;
+package bio.terra.flight.datasnapshot.delete;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.exception.NotFoundException;
-import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DataSnapshot;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -11,26 +11,26 @@ import bio.terra.stairway.StepStatus;
 
 import java.util.UUID;
 
-public class DeleteDatasetPrimaryDataStep implements Step {
+public class DeleteDataSnapshotPrimaryDataStep implements Step {
 
 
     private BigQueryPdao bigQueryPdao;
-    private DatasetDao datasetDao;
+    private DataSnapshotDao dataSnapshotDao;
     private UUID datasetId;
 
-    public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        DatasetDao datasetDao,
-                                        UUID datasetId) {
+    public DeleteDataSnapshotPrimaryDataStep(BigQueryPdao bigQueryPdao,
+                                             DataSnapshotDao dataSnapshotDao,
+                                             UUID datasetId) {
         this.bigQueryPdao = bigQueryPdao;
-        this.datasetDao = datasetDao;
+        this.dataSnapshotDao = dataSnapshotDao;
         this.datasetId = datasetId;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Dataset dataset = datasetDao.retrieveDataset(datasetId);
-            bigQueryPdao.deleteDataset(dataset);
+            DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataset(datasetId);
+            bigQueryPdao.deleteDataset(dataSnapshot);
         } catch (NotFoundException nfe) {
             // If we do not find the study, we assume things are already clean
         }

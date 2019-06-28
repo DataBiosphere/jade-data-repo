@@ -4,9 +4,10 @@ import bio.terra.flight.exception.IngestFailureException;
 import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
-import bio.terra.metadata.DatasetMapColumn;
-import bio.terra.metadata.DatasetMapTable;
-import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotMapColumn;
+import bio.terra.metadata.DataSnapshotMapTable;
+import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
@@ -126,8 +127,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // - truncate (even tidier...)
     // So if we need to make this work in the long term, we can take that approach.
     @Override
-    public RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
-                                      DatasetSource source,
+    public RowIdMatch mapValuesToRows(DataSnapshot dataSnapshot,
+                                      DataSnapshotSource source,
                                       List<String> inputValues) {
         /*
             Making this SQL query:
@@ -193,22 +194,22 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void createDataset(bio.terra.metadata.Dataset dataset, List<String> rowIds) {
-        String datasetName = dataset.getName();
+    public void createDataset(DataSnapshot dataSnapshot, List<String> rowIds) {
+        String datasetName = dataSnapshot.getName();
         try {
             // Idempotency: delete possibly partial create.
             if (existenceCheck(datasetName)) {
                 deleteContainer(datasetName);
             }
 
-            createContainer(datasetName, dataset.getDescription());
+            createContainer(datasetName, dataSnapshot.getDescription());
 
             // create the row id table
             createRowIdTable(datasetName);
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
-            DatasetSource source = dataset.getDatasetSources().get(0);
+            DataSnapshotSource source = dataSnapshot.getDataSnapshotSources().get(0);
             String studyDatasetName = prefixName(source.getStudy().getName());
 
             storeRowIdsForRoot(studyDatasetName, datasetName, source, rowIds);
@@ -221,7 +222,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             walkRelationships(studyDatasetName, datasetName, walkRelationships, rootTableId);
 
             // create the views
-            List<String> bqTableNames = createViews(studyDatasetName, datasetName, dataset);
+            List<String> bqTableNames = createViews(studyDatasetName, datasetName, dataSnapshot);
 
             // set authorization on views
             authorizeDatasetViewsForStudy(datasetName, studyDatasetName, bqTableNames);
@@ -286,13 +287,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
-        List<DatasetSource> sources = dataset.getDatasetSources();
+    public boolean deleteDataset(DataSnapshot dataSnapshot) {
+        List<DataSnapshotSource> sources = dataSnapshot.getDataSnapshotSources();
         sources.stream().forEach(dsSource ->
-                removeDatasetAuthorizationFromStudy(dataset.getName(), dsSource.getStudy().getName(),
+                removeDatasetAuthorizationFromStudy(dataSnapshot.getName(), dsSource.getStudy().getName(),
                 dsSource.getAssetSpecification().getAssetTables().stream().map(assetTable ->
                     assetTable.getTable().getName()).collect(Collectors.toList())));
-        return deleteContainer(dataset.getName());
+        return deleteContainer(dataSnapshot.getName());
     }
 
     // Load data
@@ -653,7 +654,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private void storeRowIdsForRoot(String studyDatasetName,
                                     String datasetName,
-                                    DatasetSource source,
+                                    DataSnapshotSource source,
                                     List<String> rowIds) {
         AssetSpecification asset = source.getAssetSpecification();
         Table rootTable = asset.getRootTable().getTable();
@@ -895,14 +896,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private List<String> createViews(String studyDatasetName, String datasetName, bio.terra.metadata.Dataset dataset) {
-        return dataset.getTables().stream().map(table -> {
+    private List<String> createViews(String studyDatasetName, String datasetName, DataSnapshot dataSnapshot) {
+        return dataSnapshot.getTables().stream().map(table -> {
                 StringBuilder builder = new StringBuilder();
 
                 /*
                   Building this SQL:
-                    SELECT <column list from dataset table> FROM
-                      (SELECT <column list mapping study to dataset columns>
+                    SELECT <column list from dataSnapshot table> FROM
+                      (SELECT <column list mapping study to dataSnapshot columns>
                        FROM <study table> S, datarepo_row_ids R
                        WHERE S.datarepo_row_id = R.datarepo_row_id
                          AND R.datarepo_table_id = '<study table id>')
@@ -914,8 +915,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
                 // Build the FROM clause from the source
                 // NOTE: we can put this in a loop when we do multiple sources
-                DatasetSource source = dataset.getDatasetSources().get(0);
-                buildSource(builder, studyDatasetName, datasetName, table, source, dataset);
+                DataSnapshotSource source = dataSnapshot.getDataSnapshotSources().get(0);
+                buildSource(builder, studyDatasetName, datasetName, table, source, dataSnapshot);
 
                 // create the view
                 String tableName = table.getName();
@@ -947,20 +948,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
                              String studyDatasetName,
                              String datasetName,
                              Table table,
-                             DatasetSource source,
-                             bio.terra.metadata.Dataset dataset) {
+                             DataSnapshotSource source,
+                             DataSnapshot dataSnapshot) {
 
         // Find the table map for the table. If there is none, we skip it.
         // NOTE: for now, we know that there will be one, because we generate it directly.
         // In the future when we have more than one, we can just return.
-        DatasetMapTable mapTable = lookupMapTable(table, source);
+        DataSnapshotMapTable mapTable = lookupMapTable(table, source);
         if (mapTable == null) {
-            throw new PdaoException("No matching map table for dataset table " + table.getName());
+            throw new PdaoException("No matching map table for dataSnapshot table " + table.getName());
         }
 
         // Build this as a sub-select so it is easily extended to multiple sources in the future.
         builder.append("(SELECT ");
-        buildSourceSelectList(builder, table, mapTable, dataset, source);
+        buildSourceSelectList(builder, table, mapTable, dataSnapshot, source);
 
         builder.append(" FROM `")
                 // base study table
@@ -991,9 +992,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private void buildSourceSelectList(StringBuilder builder,
                                        Table targetTable,
-                                       DatasetMapTable mapTable,
-                                       bio.terra.metadata.Dataset dataset,
-                                       DatasetSource source) {
+                                       DataSnapshotMapTable mapTable,
+                                       DataSnapshot dataSnapshot,
+                                       DataSnapshotSource source) {
         String prefix = "";
 
         for (Column targetColumn : targetTable.getColumns()) {
@@ -1011,7 +1012,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // 5) If source and target column with different names: supply AS target name
             String targetColumnName = targetColumn.getName();
 
-            DatasetMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
+            DataSnapshotMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
             if (mapColumn == null) {
                 builder.append("NULL AS ").append(targetColumnName);
             } else if (StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "FILEREF") ||
@@ -1024,7 +1025,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                         .append("/v1_")
                         .append(source.getStudy().getId().toString())
                         .append("_")
-                        .append(dataset.getId().toString())
+                        .append(dataSnapshot.getId().toString())
                         .append("_',x) FROM UNNEST(")
                         .append(mapColumn.getFromColumn().getName())
                         .append(") AS x ) AS ")
@@ -1036,7 +1037,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                         .append("/v1_")
                         .append(source.getStudy().getId().toString())
                         .append("_")
-                        .append(dataset.getId().toString())
+                        .append(dataSnapshot.getId().toString())
                         .append("_',")
                         .append(mapColumn.getFromColumn().getName())
                         .append(") AS ")
@@ -1052,8 +1053,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private DatasetMapTable lookupMapTable(Table toTable, DatasetSource source) {
-        for (DatasetMapTable tryMapTable : source.getDatasetMapTables()) {
+    private DataSnapshotMapTable lookupMapTable(Table toTable, DataSnapshotSource source) {
+        for (DataSnapshotMapTable tryMapTable : source.getDataSnapshotMapTables()) {
             if (tryMapTable.getToTable().getId().equals(toTable.getId())) {
                 return tryMapTable;
             }
@@ -1061,8 +1062,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return null;
     }
 
-    private DatasetMapColumn lookupMapColumn(Column toColumn, DatasetMapTable mapTable) {
-        for (DatasetMapColumn tryMapColumn : mapTable.getDatasetMapColumns()) {
+    private DataSnapshotMapColumn lookupMapColumn(Column toColumn, DataSnapshotMapTable mapTable) {
+        for (DataSnapshotMapColumn tryMapColumn : mapTable.getDataSnapshotMapColumns()) {
             if (tryMapColumn.getToColumn().getId().equals(toColumn.getId())) {
                 return tryMapColumn;
             }

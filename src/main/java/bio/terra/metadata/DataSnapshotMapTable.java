@@ -4,17 +4,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class DatasetMapTable {
+public class DataSnapshotMapTable {
     private UUID id;
     private Table fromTable;
     private Table toTable;
-    private List<DatasetMapColumn> datasetMapColumns = Collections.emptyList();
+    private List<DataSnapshotMapColumn> dataSnapshotMapColumns = Collections.emptyList();
 
     public UUID getId() {
         return id;
     }
 
-    public DatasetMapTable id(UUID id) {
+    public DataSnapshotMapTable id(UUID id) {
         this.id = id;
         return this;
     }
@@ -23,7 +23,7 @@ public class DatasetMapTable {
         return fromTable;
     }
 
-    public DatasetMapTable fromTable(Table fromTable) {
+    public DataSnapshotMapTable fromTable(Table fromTable) {
         this.fromTable = fromTable;
         return this;
     }
@@ -32,17 +32,17 @@ public class DatasetMapTable {
         return toTable;
     }
 
-    public DatasetMapTable toTable(Table toTable) {
+    public DataSnapshotMapTable toTable(Table toTable) {
         this.toTable = toTable;
         return this;
     }
 
-    public List<DatasetMapColumn> getDatasetMapColumns() {
-        return datasetMapColumns;
+    public List<DataSnapshotMapColumn> getDataSnapshotMapColumns() {
+        return dataSnapshotMapColumns;
     }
 
-    public DatasetMapTable datasetMapColumns(List<DatasetMapColumn> datasetMapColumns) {
-        this.datasetMapColumns = datasetMapColumns;
+    public DataSnapshotMapTable datasetMapColumns(List<DataSnapshotMapColumn> dataSnapshotMapColumns) {
+        this.dataSnapshotMapColumns = dataSnapshotMapColumns;
         return this;
     }
 }

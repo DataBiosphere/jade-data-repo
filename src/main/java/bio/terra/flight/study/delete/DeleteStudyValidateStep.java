@@ -1,10 +1,10 @@
 package bio.terra.flight.study.delete;
 
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
-import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -15,11 +15,11 @@ import java.util.List;
 import java.util.UUID;
 
 public class DeleteStudyValidateStep implements Step {
-    private DatasetDao datasetDao;
+    private DataSnapshotDao dataSnapshotDao;
     private FireStoreDependencyDao dependencyDao;
 
-    public DeleteStudyValidateStep(DatasetDao datasetDao, FireStoreDependencyDao dependencyDao) {
-        this.datasetDao = datasetDao;
+    public DeleteStudyValidateStep(DataSnapshotDao dataSnapshotDao, FireStoreDependencyDao dependencyDao) {
+        this.dataSnapshotDao = dataSnapshotDao;
         this.dependencyDao = dependencyDao;
     }
 
@@ -27,7 +27,7 @@ public class DeleteStudyValidateStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
-        List<DatasetSummary> datasets = datasetDao.retrieveDatasetsForStudy(studyId);
+        List<DataSnapshotSummary> datasets = dataSnapshotDao.retrieveDatasetsForStudy(studyId);
         if (datasets.size() != 0) {
             throw new ValidationException("Can not delete a study being used by datasets");
         }

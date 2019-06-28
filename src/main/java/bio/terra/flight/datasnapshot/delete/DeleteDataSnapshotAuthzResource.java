@@ -1,4 +1,4 @@
-package bio.terra.flight.dataset.delete;
+package bio.terra.flight.datasnapshot.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
@@ -15,12 +15,12 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
-public class DeleteDatasetAuthzResource implements Step {
+public class DeleteDataSnapshotAuthzResource implements Step {
     private SamClientService sam;
     private UUID datasetId;
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
-    public DeleteDatasetAuthzResource(SamClientService sam, UUID datasetId) {
+    public DeleteDataSnapshotAuthzResource(SamClientService sam, UUID datasetId) {
         this.sam = sam;
         this.datasetId = datasetId;
     }

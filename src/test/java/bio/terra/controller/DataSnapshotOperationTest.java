@@ -78,10 +78,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-public class DatasetOperationTest {
+public class DataSnapshotOperationTest {
     private static final boolean deleteOnTeardown = true;
 
-    // private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DatasetOperationTest");
+    // private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DataSnapshotOperationTest");
 
     // TODO: MORE TESTS to be done when we can ingest data:
     // - test more complex studies with relationships
@@ -466,7 +466,7 @@ public class DatasetOperationTest {
 
         MockHttpServletResponse response = result.getResponse();
         ErrorModel errorModel = objectMapper.readValue(response.getContentAsString(), ErrorModel.class);
-        assertThat("proper not found error", errorModel.getMessage(), startsWith("Dataset not found"));
+        assertThat("proper not found error", errorModel.getMessage(), startsWith("DataSnapshot not found"));
     }
 
     // TODO: this can probably be common code for anything async

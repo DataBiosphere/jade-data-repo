@@ -6,19 +6,19 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class Dataset {
+public class DataSnapshot {
     private UUID id;
     private String name;
     private String description;
     private Instant createdDate;
     private List<Table> tables = Collections.emptyList();
-    private List<DatasetSource> datasetSources = Collections.emptyList();
+    private List<DataSnapshotSource> dataSnapshotSources = Collections.emptyList();
 
     public UUID getId() {
         return id;
     }
 
-    public Dataset id(UUID id) {
+    public DataSnapshot id(UUID id) {
         this.id = id;
         return this;
     }
@@ -27,7 +27,7 @@ public class Dataset {
         return name;
     }
 
-    public Dataset name(String name) {
+    public DataSnapshot name(String name) {
         this.name = name;
         return this;
     }
@@ -36,7 +36,7 @@ public class Dataset {
         return description;
     }
 
-    public Dataset description(String description) {
+    public DataSnapshot description(String description) {
         this.description = description;
         return this;
     }
@@ -45,7 +45,7 @@ public class Dataset {
         return createdDate;
     }
 
-    public Dataset createdDate(Instant createdDate) {
+    public DataSnapshot createdDate(Instant createdDate) {
         this.createdDate = createdDate;
         return this;
     }
@@ -54,17 +54,17 @@ public class Dataset {
         return tables;
     }
 
-    public Dataset datasetTables(List<Table> tables) {
+    public DataSnapshot datasetTables(List<Table> tables) {
         this.tables = tables;
         return this;
     }
 
-    public List<DatasetSource> getDatasetSources() {
-        return datasetSources;
+    public List<DataSnapshotSource> getDataSnapshotSources() {
+        return dataSnapshotSources;
     }
 
-    public Dataset datasetSources(List<DatasetSource> datasetSources) {
-        this.datasetSources = datasetSources;
+    public DataSnapshot datasetSources(List<DataSnapshotSource> dataSnapshotSources) {
+        this.dataSnapshotSources = dataSnapshotSources;
         return this;
     }
 

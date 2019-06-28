@@ -1,11 +1,11 @@
-package bio.terra.flight.dataset.delete;
+package bio.terra.flight.datasnapshot.delete;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -15,32 +15,32 @@ import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
 
-public class DeleteDatasetMetadataStep implements Step {
+public class DeleteDataSnapshotMetadataStep implements Step {
 
-    private DatasetDao datasetDao;
+    private DataSnapshotDao dataSnapshotDao;
     private UUID datasetId;
     private FireStoreDependencyDao dependencyDao;
 
-    public DeleteDatasetMetadataStep(DatasetDao datasetDao, UUID datasetId, FireStoreDependencyDao dependencyDao) {
-        this.datasetDao = datasetDao;
+    public DeleteDataSnapshotMetadataStep(DataSnapshotDao dataSnapshotDao, UUID datasetId, FireStoreDependencyDao dependencyDao) {
+        this.dataSnapshotDao = dataSnapshotDao;
         this.datasetId = datasetId;
         this.dependencyDao = dependencyDao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Dataset dataset = null;
+        DataSnapshot dataSnapshot = null;
         boolean found = false;
         try {
-            dataset = datasetDao.retrieveDataset(datasetId);
+            dataSnapshot = dataSnapshotDao.retrieveDataset(datasetId);
 
             // Remove data snapshot file references from the underlying studies
-            for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
                 dependencyDao.deleteDatasetFileDependencies(
-                    datasetSource.getStudy().getId().toString(),
+                    dataSnapshotSource.getStudy().getId().toString(),
                     datasetId.toString());
             }
-            found = datasetDao.delete(datasetId);
+            found = dataSnapshotDao.delete(datasetId);
         } catch (DatasetNotFoundException ex) {
             found = false;
         }

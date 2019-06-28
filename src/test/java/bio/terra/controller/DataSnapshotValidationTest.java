@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("google")
 @Category(Unit.class)
-public class DatasetValidationTest {
+public class DataSnapshotValidationTest {
 
     @Autowired
     private MockMvc mvc;

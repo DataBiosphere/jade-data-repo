@@ -3,9 +3,9 @@ package bio.terra.dao;
 import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.metadata.AssetSpecification;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
-import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.DataSnapshot;
+import bio.terra.metadata.DataSnapshotSource;
+import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import org.apache.commons.lang3.StringUtils;
@@ -26,60 +26,60 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class DatasetDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.dao.DatasetDao");
+public class DataSnapshotDao {
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.dao.DataSnapshotDao");
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final DatasetTableDao datasetTableDao;
-    private final DatasetMapTableDao datasetMapTableDao;
+    private final DataSnapshotTableDao dataSnapshotTableDao;
+    private final DataSnapshotMapTableDao dataSnapshotMapTableDao;
     private final StudyDao studyDao;
 
     @Autowired
-    public DatasetDao(NamedParameterJdbcTemplate jdbcTemplate,
-                      DatasetTableDao datasetTableDao,
-                      DatasetMapTableDao datasetMapTableDao,
-                      StudyDao studyDao) {
+    public DataSnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
+                           DataSnapshotTableDao dataSnapshotTableDao,
+                           DataSnapshotMapTableDao dataSnapshotMapTableDao,
+                           StudyDao studyDao) {
         this.jdbcTemplate = jdbcTemplate;
-        this.datasetTableDao = datasetTableDao;
-        this.datasetMapTableDao = datasetMapTableDao;
+        this.dataSnapshotTableDao = dataSnapshotTableDao;
+        this.dataSnapshotMapTableDao = dataSnapshotMapTableDao;
         this.studyDao = studyDao;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public UUID create(Dataset dataset) {
-        logger.debug("create dataset " + dataset.getName());
-        String sql = "INSERT INTO dataset (name, description)" +
+    public UUID create(DataSnapshot dataSnapshot) {
+        logger.debug("create dataSnapshot " + dataSnapshot.getName());
+        String sql = "INSERT INTO dataSnapshot (name, description)" +
                 " VALUES (:name, :description)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", dataset.getName())
-                .addValue("description", dataset.getDescription());
+                .addValue("name", dataSnapshot.getName())
+                .addValue("description", dataSnapshot.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID datasetId = keyHolder.getId();
-        dataset
+        dataSnapshot
             .id(datasetId)
             .createdDate(keyHolder.getCreatedDate());
-        datasetTableDao.createTables(datasetId, dataset.getTables());
+        dataSnapshotTableDao.createTables(datasetId, dataSnapshot.getTables());
 
-        for (DatasetSource datasetSource : dataset.getDatasetSources()) {
-            createDatasetSource(datasetSource);
+        for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
+            createDatasetSource(dataSnapshotSource);
         }
 
         return datasetId;
     }
 
-    private void createDatasetSource(DatasetSource datasetSource) {
+    private void createDatasetSource(DataSnapshotSource dataSnapshotSource) {
         String sql = "INSERT INTO dataset_source (dataset_id, study_id, asset_id)" +
                 " VALUES (:dataset_id, :study_id, :asset_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("dataset_id", datasetSource.getDataset().getId())
-                .addValue("study_id", datasetSource.getStudy().getId())
-                .addValue("asset_id", datasetSource.getAssetSpecification().getId());
+                .addValue("dataset_id", dataSnapshotSource.getDataSnapshot().getId())
+                .addValue("study_id", dataSnapshotSource.getStudy().getId())
+                .addValue("asset_id", dataSnapshotSource.getAssetSpecification().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID id = keyHolder.getId();
-        datasetSource.id(id);
-        datasetMapTableDao.createTables(id, datasetSource.getDatasetMapTables());
+        dataSnapshotSource.id(id);
+        dataSnapshotMapTableDao.createTables(id, dataSnapshotSource.getDataSnapshotMapTables());
     }
 
     public boolean delete(UUID id) {
@@ -96,51 +96,51 @@ public class DatasetDao {
         return rowsAffected > 0;
     }
 
-    public Dataset retrieveDataset(UUID datasetId) {
-        logger.debug("retrieve dataset id: " + datasetId);
+    public DataSnapshot retrieveDataset(UUID datasetId) {
+        logger.debug("retrieve dataSnapshot id: " + datasetId);
 
-        String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
+        String sql = "SELECT id, name, description, created_date FROM dataSnapshot WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", datasetId);
-        Dataset dataset = retrieveWorker(sql, params);
-        if (dataset == null) {
-            throw new DatasetNotFoundException("Dataset not found - id: " + datasetId);
+        DataSnapshot dataSnapshot = retrieveWorker(sql, params);
+        if (dataSnapshot == null) {
+            throw new DatasetNotFoundException("DataSnapshot not found - id: " + datasetId);
         }
-        return dataset;
+        return dataSnapshot;
     }
 
-    public Dataset retrieveDatasetByName(String name) {
-        String sql = "SELECT id, name, description, created_date FROM dataset WHERE name = :name";
+    public DataSnapshot retrieveDatasetByName(String name) {
+        String sql = "SELECT id, name, description, created_date FROM dataSnapshot WHERE name = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
-        Dataset dataset = retrieveWorker(sql, params);
-        if (dataset == null) {
-            throw new DatasetNotFoundException("Dataset not found - name: '" + name + "'");
+        DataSnapshot dataSnapshot = retrieveWorker(sql, params);
+        if (dataSnapshot == null) {
+            throw new DatasetNotFoundException("DataSnapshot not found - name: '" + name + "'");
         }
-        return dataset;
+        return dataSnapshot;
     }
 
-    private Dataset retrieveWorker(String sql, MapSqlParameterSource params) {
+    private DataSnapshot retrieveWorker(String sql, MapSqlParameterSource params) {
         try {
-            Dataset dataset = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                    new Dataset()
+            DataSnapshot dataSnapshot = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                    new DataSnapshot()
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
                             .createdDate(rs.getTimestamp("created_date").toInstant()));
             // needed for fix bugs. but really can't be null
-            if (dataset != null) {
+            if (dataSnapshot != null) {
                 // retrieve the data snapshot tables
-                dataset.datasetTables(datasetTableDao.retrieveTables(dataset.getId()));
+                dataSnapshot.datasetTables(dataSnapshotTableDao.retrieveTables(dataSnapshot.getId()));
 
                 // Must be done after we we make the data snapshot tables so we can resolve the table and column references
-                dataset.datasetSources(retrieveDatasetSources(dataset));
+                dataSnapshot.datasetSources(retrieveDatasetSources(dataSnapshot));
             }
-            return dataset;
+            return dataSnapshot;
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
     }
 
-    private List<DatasetSource> retrieveDatasetSources(Dataset dataset) {
+    private List<DataSnapshotSource> retrieveDatasetSources(DataSnapshot dataSnapshot) {
         // We collect all of the source ids first to avoid introducing a recursive query. While the recursive
         // query might work, it makes debugging errors more difficult.
         class RawSourceData {
@@ -153,7 +153,7 @@ public class DatasetDao {
         List<RawSourceData> rawList =
             jdbcTemplate.query(
                 sql,
-                new MapSqlParameterSource().addValue("dataset_id", dataset.getId()),
+                new MapSqlParameterSource().addValue("dataset_id", dataSnapshot.getId()),
                 (rs, rowNum) -> {
                     RawSourceData raw = new RawSourceData();
                     raw.id = UUID.fromString(rs.getString("id"));
@@ -162,32 +162,32 @@ public class DatasetDao {
                     return raw;
                 });
 
-        List<DatasetSource> datasetSources = new ArrayList<>();
+        List<DataSnapshotSource> dataSnapshotSources = new ArrayList<>();
         for (RawSourceData raw : rawList) {
             Study study = studyDao.retrieve(raw.studyId);
 
             // Find the matching asset in the study
             Optional<AssetSpecification> assetSpecification = study.getAssetSpecificationById(raw.assetId);
             if (!assetSpecification.isPresent()) {
-                throw new CorruptMetadataException("Asset referenced by dataset source was not found!");
+                throw new CorruptMetadataException("Asset referenced by dataSnapshot source was not found!");
             }
 
-            DatasetSource datasetSource = new DatasetSource()
+            DataSnapshotSource dataSnapshotSource = new DataSnapshotSource()
                     .id(raw.id)
-                    .dataset(dataset)
+                    .dataset(dataSnapshot)
                     .study(study)
                     .assetSpecification(assetSpecification.get());
 
             // Now that we have access to all of the parts, build the map structure
-            datasetSource.datasetMapTables(datasetMapTableDao.retrieveMapTables(dataset, datasetSource));
+            dataSnapshotSource.datasetMapTables(dataSnapshotMapTableDao.retrieveMapTables(dataSnapshot, dataSnapshotSource));
 
-            datasetSources.add(datasetSource);
+            dataSnapshotSources.add(dataSnapshotSource);
         }
 
-        return datasetSources;
+        return dataSnapshotSources;
     }
 
-    public MetadataEnumeration<DatasetSummary> retrieveDatasets(
+    public MetadataEnumeration<DataSnapshotSummary> retrieveDatasets(
         int offset,
         int limit,
         String sort,
@@ -208,8 +208,8 @@ public class DatasetDao {
         String sql = "SELECT id, name, description, created_date FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
-        List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
-            DatasetSummary summary = new DatasetSummary()
+        List<DataSnapshotSummary> summaries = jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            DataSnapshotSummary summary = new DataSnapshotSummary()
                 .id(UUID.fromString(rs.getString("id")))
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
@@ -219,40 +219,40 @@ public class DatasetDao {
         sql = "SELECT count(id) AS total FROM dataset";
         params = new MapSqlParameterSource();
         Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
-        return new MetadataEnumeration<DatasetSummary>()
+        return new MetadataEnumeration<DataSnapshotSummary>()
             .items(summaries)
             .total(total == null ? -1 : total);
     }
 
-    public DatasetSummary retrieveDatasetSummary(UUID id) {
+    public DataSnapshotSummary retrieveDatasetSummary(UUID id) {
         logger.debug("retrieve dataset summary for id: " + id);
         try {
             String sql = "SELECT id, name, description, created_date FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
 
-            DatasetSummary datasetSummary = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                    new DatasetSummary()
+            DataSnapshotSummary dataSnapshotSummary = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+                    new DataSnapshotSummary()
                             .id(rs.getObject("id", UUID.class))
                             .name(rs.getString("name"))
                             .description(rs.getString("description"))
                             .createdDate(rs.getTimestamp("created_date").toInstant()));
-            return datasetSummary;
+            return dataSnapshotSummary;
         } catch (EmptyResultDataAccessException ex) {
-            throw new DatasetNotFoundException("Dataset not found - id: " + id);
+            throw new DatasetNotFoundException("DataSnapshot not found - id: " + id);
         }
     }
 
-    public List<DatasetSummary> retrieveDatasetsForStudy(UUID studyId) {
+    public List<DataSnapshotSummary> retrieveDatasetsForStudy(UUID studyId) {
         try {
             String sql = "SELECT dataset.id, name, description, created_date FROM dataset " +
                 "JOIN dataset_source ON dataset.id = dataset_source.dataset_id " +
                 "WHERE dataset_source.study_id = :studyId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
-            List<DatasetSummary> summaries = jdbcTemplate.query(
+            List<DataSnapshotSummary> summaries = jdbcTemplate.query(
                 sql,
                 params,
                 (rs, rowNum) -> {
-                    DatasetSummary summary = new DatasetSummary()
+                    DataSnapshotSummary summary = new DataSnapshotSummary()
                         .id(UUID.fromString(rs.getString("id")))
                         .name(rs.getString("name"))
                         .description(rs.getString("description"))

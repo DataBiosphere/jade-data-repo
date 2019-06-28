@@ -25,7 +25,7 @@ curl "${BASE}/studies" -H "Authorization: Bearer ${ACCESS_TOKEN}" \
 
 curl "${BASE}/studies" -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H 'Content-Type: application/json' \
-    --data-binary "@${WD}/../src/test/resources/dataset-test-study.json"
+    --data-binary "@${WD}/../src/test/resources/dataSnapshot-test-study.json"
 
 curl "${BASE}/studies" -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H 'Content-Type: application/json' \
@@ -42,7 +42,7 @@ bq load --source_format=CSV --skip_leading_rows=1 datarepo_Minimal.participant \
 bq load --source_format=CSV --skip_leading_rows=1 datarepo_Minimal.sample \
     "${WD}/../src/test/resources/study-minimal-sample.csv"
 
-# create a dataset
+# create a dataSnapshot
 curl "${BASE}/datasets" -H "Authorization: Bearer ${ACCESS_TOKEN}" \
     -H 'Content-Type: application/json' \
-    --data-binary "@${WD}/../src/test/resources/study-minimal-dataset.json"
+    --data-binary "@${WD}/../src/test/resources/study-minimal-dataSnapshot.json"

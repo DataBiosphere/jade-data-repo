@@ -1,6 +1,6 @@
 package bio.terra.flight.study.delete;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.DataSnapshotDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.FireStoreFileDao;
@@ -19,14 +19,14 @@ public class StudyDeleteFlight extends Flight {
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
-        DatasetDao datasetDao = (DatasetDao)appContext.getBean("datasetDao");
+        DataSnapshotDao dataSnapshotDao = (DataSnapshotDao)appContext.getBean("dataSnapshotDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
 
-        addStep(new DeleteStudyValidateStep(datasetDao, dependencyDao));
+        addStep(new DeleteStudyValidateStep(dataSnapshotDao, dependencyDao));
         addStep(new DeleteStudyPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, studyDao));
         addStep(new DeleteStudyMetadataStep(studyDao));
         addStep(new DeleteStudyAuthzResource(samClient));

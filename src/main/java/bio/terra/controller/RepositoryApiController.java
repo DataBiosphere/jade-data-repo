@@ -9,7 +9,7 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
+import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -192,20 +192,20 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<FileModel> lookupFileObjectById(@PathVariable("id") String id,
+    public ResponseEntity<FSObjectModel> lookupFileObjectById(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
-        FileModel fileModel = fileService.lookupFile(id, fileid);
-        return new ResponseEntity<>(fileModel, HttpStatus.OK);
+        FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid);
+        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<FileModel> lookupFileObjectByPath(@PathVariable("id") String id,
+    public ResponseEntity<FSObjectModel> lookupFileObjectByPath(@PathVariable("id") String id,
                                                 @RequestParam(value = "path", required = true) String path) {
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
-        FileModel fileModel = fileService.lookupPath(id, path);
-        return new ResponseEntity<>(fileModel, HttpStatus.OK);
+        FSObjectModel fsObjectModel = fileService.lookupPath(id, path);
+        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
 
     // --study policies --

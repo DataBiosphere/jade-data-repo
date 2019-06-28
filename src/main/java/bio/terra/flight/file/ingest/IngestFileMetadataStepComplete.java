@@ -3,7 +3,7 @@ package bio.terra.flight.file.ingest;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSObjectBase;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -26,7 +26,7 @@ public class IngestFileMetadataStepComplete implements Step {
         FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
         fsFileInfo.flightId(context.getFlightId());
 
-        FSObject fsObject = fileDao.createFileComplete(fsFileInfo);
+        FSObjectBase fsObject = fileDao.createFileComplete(fsFileInfo);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
         return StepResult.getStepResultSuccess();
     }

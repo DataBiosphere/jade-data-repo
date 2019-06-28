@@ -1,12 +1,14 @@
 package bio.terra.flight.file.ingest;
 
 import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -19,12 +21,10 @@ import java.util.UUID;
 public class IngestFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;
     private final Study study;
-    private final FileService fileService;
 
-    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Study study, FileService fileService) {
+    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Study study) {
         this.fileDao = fileDao;
         this.study = study;
-        this.fileService = fileService;
     }
 
     @Override
@@ -37,29 +37,34 @@ public class IngestFileMetadataStepStart implements Step {
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FSObject fsObject = fileDao.retrieveByPathNoThrow(studyId, loadModel.getTargetPath());
-        if (fsObject != null) {
-            // OK, some file exists. If this flight created it, then we record it
-            // and claim success. Otherwise someone else created it and we throw.
-            if (StringUtils.equals(fsObject.getFlightId(), context.getFlightId())) {
-                workingMap.put(FileMapKeys.OBJECT_ID, fsObject.getObjectId().toString());
-                return StepResult.getStepResultSuccess();
-            }
-            throw new FileSystemObjectAlreadyExistsException("Path already exists: " + fsObject.getPath());
+        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(studyId, loadModel.getTargetPath());
+        if (fsObject == null) {
+            // Nothing exists - create a new file
+            FSFile newFile = new FSFile()
+                .mimeType(loadModel.getMimeType())
+                .flightId(context.getFlightId())
+                .studyId(study.getId())
+                .objectType(FSObjectType.INGESTING_FILE)
+                .path(loadModel.getTargetPath())
+                .description(loadModel.getDescription());
+
+            UUID objectId = fileDao.createFileStart(newFile);
+            workingMap.put(FileMapKeys.OBJECT_ID, objectId.toString());
+
+            return StepResult.getStepResultSuccess();
         }
 
-        fsObject = new FSObject()
-            .studyId(study.getId())
-            .objectType(FSObject.FSObjectType.INGESTING_FILE)
-            .path(loadModel.getTargetPath())
-            .mimeType(loadModel.getMimeType())
-            .description(loadModel.getDescription())
-            .flightId(context.getFlightId());
-
-        UUID objectId = fileDao.createFileStart(fsObject);
-        workingMap.put(FileMapKeys.OBJECT_ID, objectId.toString());
-
-        return StepResult.getStepResultSuccess();
+        // OK, something exists. If it is a file and this flight created it, then we record it
+        // and claim success. Otherwise someone else created it and we throw.
+        if (!(fsObject instanceof FSFile)) {
+            throw new FileSystemCorruptException("This should be a file!");
+        }
+        FSFile fsFile = (FSFile)fsObject;
+        if (StringUtils.equals(fsFile.getFlightId(), context.getFlightId())) {
+            workingMap.put(FileMapKeys.OBJECT_ID, fsFile.getObjectId().toString());
+            return StepResult.getStepResultSuccess();
+        }
+        throw new FileSystemObjectAlreadyExistsException("Path already exists: " + fsFile.getPath());
     }
 
     @Override

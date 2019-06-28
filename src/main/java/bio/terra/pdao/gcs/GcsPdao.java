@@ -1,7 +1,7 @@
 package bio.terra.pdao.gcs;
 
+import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObject;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.exception.PdaoException;
@@ -38,7 +38,7 @@ public class GcsPdao {
     // We return the incoming FSObject with the blob information filled in
     public FSFileInfo copyFile(Study study,
                                FileLoadModel fileLoadModel,
-                               FSObject fsObject) {
+                               FSFile fsObject) {
 
         String sourceBucket;
         String sourcePath;
@@ -99,8 +99,8 @@ public class GcsPdao {
             }
 
             // Grumble! It is not documented what the meaning of the Long is.
-            // I am assuming it is a standard POSIX seconds since Jan 1, 1970.
-            Instant createTime = Instant.ofEpochSecond(targetBlob.getCreateTime());
+            // From poking around I think it is a standard POSIX milliseconds since Jan 1, 1970.
+            Instant createTime = Instant.ofEpochMilli(targetBlob.getCreateTime());
 
             URI gspath = new URI("gs",
                 gcsConfiguration.getBucket(),

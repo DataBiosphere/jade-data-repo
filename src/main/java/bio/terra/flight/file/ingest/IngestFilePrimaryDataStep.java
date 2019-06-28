@@ -1,9 +1,12 @@
 package bio.terra.flight.file.ingest;
 
 import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.flight.file.FileMapKeys;
+import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.gcs.GcsPdao;
@@ -37,8 +40,12 @@ public class IngestFilePrimaryDataStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
 
-        FSObject fsObject = fileDao.retrieve(study.getId(), objectId);
-        FSFileInfo fsFileInfo = gcsPdao.copyFile(study, fileLoadModel, fsObject);
+        FSObjectBase fsObject = fileDao.retrieve(study.getId(), objectId);
+        if (fsObject.getObjectType() != FSObjectType.INGESTING_FILE) {
+            throw new FileSystemCorruptException("This should be a file!");
+        }
+
+        FSFileInfo fsFileInfo = gcsPdao.copyFile(study, fileLoadModel, (FSFile)fsObject);
         workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
         return StepResult.getStepResultSuccess();
     }

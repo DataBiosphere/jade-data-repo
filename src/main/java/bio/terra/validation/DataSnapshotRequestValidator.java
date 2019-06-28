@@ -29,10 +29,10 @@ public class DataSnapshotRequestValidator implements Validator {
     }
 
 
-    private void validateDataSnapshotName(String datasetName, Errors errors) {
-        if (datasetName == null) {
+    private void validateDataSnapshotName(String dataSnapshotName, Errors errors) {
+        if (dataSnapshotName == null) {
             errors.rejectValue("name", "DataSnapshotNameMissing");
-        } else if (!ValidationUtils.isValidName(datasetName)) {
+        } else if (!ValidationUtils.isValidName(dataSnapshotName)) {
             errors.rejectValue("name", "DataSnapshotNameInvalid");
         }
     }
@@ -74,10 +74,10 @@ public class DataSnapshotRequestValidator implements Validator {
     @Override
     public void validate(@NotNull Object target, Errors errors) {
         if (target != null && target instanceof DataSnapshotRequestModel) {
-            DataSnapshotRequestModel datasetRequestModel = (DataSnapshotRequestModel) target;
-            validateDataSnapshotName(datasetRequestModel.getName(), errors);
-            validateDataSnapshotDescription(datasetRequestModel.getDescription(), errors);
-            validateDataSnapshotValues(datasetRequestModel.getContents(), errors);
+            DataSnapshotRequestModel dataSnapshotRequestModel = (DataSnapshotRequestModel) target;
+            validateDataSnapshotName(dataSnapshotRequestModel.getName(), errors);
+            validateDataSnapshotDescription(dataSnapshotRequestModel.getDescription(), errors);
+            validateDataSnapshotValues(dataSnapshotRequestModel.getContents(), errors);
         }
     }
 }

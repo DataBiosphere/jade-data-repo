@@ -55,17 +55,17 @@ public class DataSnapshotDao {
                 .addValue("description", dataSnapshot.getDescription());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
-        UUID datasetId = keyHolder.getId();
+        UUID dataSnapshotId = keyHolder.getId();
         dataSnapshot
-            .id(datasetId)
+            .id(dataSnapshotId)
             .createdDate(keyHolder.getCreatedDate());
-        dataSnapshotTableDao.createTables(datasetId, dataSnapshot.getTables());
+        dataSnapshotTableDao.createTables(dataSnapshotId, dataSnapshot.getTables());
 
         for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
             createDataSnapshotSource(dataSnapshotSource);
         }
 
-        return datasetId;
+        return dataSnapshotId;
     }
 
     private void createDataSnapshotSource(DataSnapshotSource dataSnapshotSource) {

@@ -137,10 +137,14 @@ public class ConnectedOperations {
             if (errorDetail.size() < 1) {
                 fail("expecting there to be an entry in error details that points to a billing profile");
             }
-            // get everything between the quotes at the end of the error detail message
-            Matcher matcher = Pattern.compile("'([^']+)'$").matcher(errorDetail.get(0));
-            String profileId = matcher.group();
-            billingProfileModel = getProfileById(profileId);
+            // get everything after the last space
+            Matcher matcher = Pattern.compile("([^ ]+)$").matcher(errorDetail.get(0));
+            if (matcher.find()) {
+                String profileId = matcher.group();
+                billingProfileModel = getProfileById(profileId);
+            } else {
+                throw new IllegalStateException("could not get the profile id out of the message");
+            }
         }
 
         addProfile(billingProfileModel.getId());
@@ -226,8 +230,9 @@ public class ConnectedOperations {
     }
 
     public void deleteTestProfile(String id) throws Exception {
-        MvcResult result = mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
-        checkDeleteResponse(result.getResponse());
+        mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
+        // not checking the response -- it's possible other studies are using this profile. if we spin up separate
+        // databases for these tests it would make it easier to do these types of checks
     }
 
     public void deleteTestDataset(String id) throws Exception {

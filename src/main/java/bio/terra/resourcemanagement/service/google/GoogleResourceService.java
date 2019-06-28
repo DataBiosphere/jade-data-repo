@@ -20,6 +20,7 @@ import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
+import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,6 +120,7 @@ public class GoogleResourceService {
             }
             String googleProjectNumber = project.getProjectNumber().toString();
             GoogleProjectResource googleProjectResource = new GoogleProjectResource(projectRequest)
+                // TODO: handle case where we get a different project id than requested
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(googleProjectNumber);
             setupBilling(googleProjectResource);
@@ -135,10 +137,17 @@ public class GoogleResourceService {
             .setServiceIds(projectResource.getServiceIds());
         try {
             ServiceUsage serviceUsage = serviceUsage();
-            ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()
-                .batchEnable("projects/" + projectResource.getGoogleProjectNumber(), batchRequest);
-            long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
-            blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
+            String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
+            ServiceUsage.Services.List list = serviceUsage.services().list(projectNumberString);
+            ListServicesResponse listServicesResponse = list.execute();
+            if (listServicesResponse.getServices().containsAll(projectResource.getServiceIds())) {
+                logger.debug("project already has the right resources enabled, skipping");
+            } else {
+                ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()
+                    .batchEnable(projectNumberString, batchRequest);
+                long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
+                blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
+            }
         } catch (IOException | GeneralSecurityException | InterruptedException e) {
             throw new GoogleResourceException("Could not enable services", e);
         }

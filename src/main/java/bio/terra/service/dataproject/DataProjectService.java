@@ -91,6 +91,8 @@ public class DataProjectService {
                 studyDataProjectSummary.getProjectResourceId());
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
             // probably the first time we have seen this study, request a new project resource and save everything
+            // TODO: if we are in production, don't reuse projects we don't know about
+            // TODO: add a property to specify which people can view data projects
             googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
             if (studyDataProjectSummary != null) {
                 logger.warn("metadata has a project resource id it can't resolve for study: " + study.getName());

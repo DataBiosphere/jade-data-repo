@@ -71,12 +71,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         this.dataProjectService = dataProjectService;
     }
 
-    public BigQueryProject bigQueryProjectForStudy(Study study) {
+    private BigQueryProject bigQueryProjectForStudy(Study study) {
         StudyDataProject projectForStudy = dataProjectService.getProjectForStudy(study);
         return new BigQueryProject(projectForStudy.getGoogleProjectId());
     }
 
-    public BigQueryProject bigQueryProjectForDataset(bio.terra.metadata.Dataset dataset) {
+    private BigQueryProject bigQueryProjectForDataset(bio.terra.metadata.Dataset dataset) {
         DatasetDataProject projectForDataset = dataProjectService.getProjectForDataset(dataset);
         return new BigQueryProject(projectForDataset.getGoogleProjectId());
     }
@@ -196,7 +196,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId = bigQueryProject.getProjectId();
         String datasetName = dataset.getName();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
-        try {
+        try
             // Idempotency: delete possibly partial create.
             if (bigQueryProject.datasetExists(datasetName)) {
                 bigQueryProject.deleteDataset(datasetName);

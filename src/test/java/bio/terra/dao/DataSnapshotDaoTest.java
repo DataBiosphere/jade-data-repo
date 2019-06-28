@@ -69,7 +69,7 @@ public class DataSnapshotDaoTest {
         studyId = studyDao.create(study);
         study = studyDao.retrieve(studyId);
 
-        String dataSnapshotJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test-dataSnapshot.json"));
+        String dataSnapshotJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test.json"));
         dataSnapshotRequest = objectMapper.readerFor(DataSnapshotRequestModel.class).readValue(dataSnapshotJson);
         dataSnapshotRequest.getContents().get(0).getSource().setStudyName(study.getName());
 

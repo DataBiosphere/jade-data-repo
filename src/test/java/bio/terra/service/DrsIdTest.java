@@ -17,14 +17,14 @@ public class DrsIdTest {
             .dnsname("dns")
             .version("vv")
             .studyId("study")
-            .dataSnapshotId("dataSnapshot")
+            .dataSnapshotId("datasnapshot")
             .fsObjectId("file")
             .build();
 
         assertThat("drsid constructor succeeds - dnsname",  drsId.getDnsname(), equalTo("dns"));
         assertThat("drsid constructor succeeds - version",  drsId.getVersion(), equalTo("vv"));
         assertThat("drsid constructor succeeds - studyId",  drsId.getStudyId(), equalTo("study"));
-        assertThat("drsid constructor succeeds - dataSnapshotId",  drsId.getDataSnapshotId(), equalTo("dataSnapshot"));
+        assertThat("drsid constructor succeeds - dataSnapshotId",  drsId.getDataSnapshotId(), equalTo("datasnapshot"));
         assertThat("drsid constructor succeeds - fileId",  drsId.getFsObjectId(), equalTo("file"));
         assertThat("drsid toDrsUri works", drsId.toDrsUri(), equalTo("drs://dns/vv_study_datasnapshot_file"));
         assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("vv_study_datasnapshot_file"));

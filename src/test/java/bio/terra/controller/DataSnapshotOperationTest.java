@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.CsvOptions;
-import com.google.cloud.bigquery.DataSnapshotId;
+import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.FormatOptions;
@@ -252,13 +252,13 @@ public class DataSnapshotOperationTest {
     @Test
     public void deleteAllBigQueryProjects() throws Exception {
         // Collect a list of dataSnapshots. Then delete each one.
-        List<DataSnapshotId> idList = new ArrayList<>();
-        for (com.google.cloud.bigquery.DataSnapshot dataSnapshot :  bigQuery.listDataSnapshots().iterateAll()) {
-            idList.add(dataSnapshot.getDataSnapshotId());
+        List<DatasetId> idList = new ArrayList<>();
+        for (com.google.cloud.bigquery.Dataset dataset :  bigQuery.listDatasets().iterateAll()) {
+            idList.add(dataset.getDatasetId());
         }
 
-        for (DataSnapshotId id : idList) {
-            bigQuery.delete(id, BigQuery.DataSnapshotDeleteOption.deleteContents());
+        for (DatasetId id : idList) {
+            bigQuery.delete(id, BigQuery.DatasetDeleteOption.deleteContents());
         }
     }
 

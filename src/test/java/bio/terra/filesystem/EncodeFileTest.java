@@ -138,6 +138,9 @@ public class EncodeFileTest {
         ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(resp);
         assertThat("correct dependency error message",
             errorModel.getMessage(), containsString("used by at least one dataSnapshot"));
+
+        connectedOperations.deleteTestDataSnapshot(dataSnapshotSummary.getId());
+        connectedOperations.deleteTestStudy(studySummary.getId());
     }
 
     @Test

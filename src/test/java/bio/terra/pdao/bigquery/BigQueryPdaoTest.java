@@ -7,8 +7,8 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DataSnapshotModel;
+import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.SamClientService;
@@ -98,7 +98,7 @@ public class BigQueryPdaoTest {
     }
 
     @Test
-    public void datasetTest() throws Exception {
+    public void dataSnapshotTest() throws Exception {
         // Create a random study.
         StudySummaryModel studySummary = connectedOperations.createTestStudy("ingest-test-study.json");
 
@@ -133,15 +133,15 @@ public class BigQueryPdaoTest {
             connectedOperations.ingestTableSuccess(studySummary.getId(),
                 ingestRequest.table("file").path(gsPath(fileBlob)));
 
-            // Create a dataset!
-            MockHttpServletResponse datasetResponse =
-                connectedOperations.launchCreateDataset(studySummary, "ingest-test-datasnapshot.json", "");
-            DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(datasetResponse);
-            DatasetModel dataset = connectedOperations.getDataset(datasetSummary.getId());
+            // Create a dataSnapshot!
+            MockHttpServletResponse dataSnapshotResponse =
+                connectedOperations.launchCreateDataSnapshot(studySummary, "ingest-test-datasnapshot.json", "");
+            DataSnapshotSummaryModel dataSnapshotSummary = connectedOperations.handleCreateDataSnapshotSuccessCase(dataSnapshotResponse);
+            DataSnapshotModel dataSnapshot = connectedOperations.getDataSnapshot(dataSnapshotSummary.getId());
 
-            // TODO: Assert that the dataset contains the rows we expect.
+            // TODO: Assert that the dataSnapshot contains the rows we expect.
             // Skipping that for now because there's no REST API to query table contents.
-            Assert.assertThat(dataset.getTables().size(), is(equalTo(3)));
+            Assert.assertThat(dataSnapshot.getTables().size(), is(equalTo(3)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
         }

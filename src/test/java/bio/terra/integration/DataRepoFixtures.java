@@ -3,8 +3,8 @@ package bio.terra.integration;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DataSnapshotRequestModel;
+import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.IngestResponseModel;
@@ -113,47 +113,47 @@ public class DataRepoFixtures {
         assertThat("study policy memeber is successfully added", response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
-    // datasets
+    // dataSnapshots
 
-    public DataRepoResponse<DatasetSummaryModel> createDatasetRaw(String authToken, StudySummaryModel studySummaryModel,
+    public DataRepoResponse<DataSnapshotSummaryModel> createDataSnapshotRaw(String authToken, StudySummaryModel studySummaryModel,
                                                                   String filename) throws Exception {
-        DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
+        DataSnapshotRequestModel requestModel = jsonLoader.loadObject(filename, DataSnapshotRequestModel.class);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
         String json = objectMapper.writeValueAsString(requestModel);
 
         DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
             authToken,
-            "/api/repository/v1/datasets",
+            "/api/repository/v1/datasnapshots",
             json,
             JobModel.class);
 
-        assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
+        assertTrue("dataSnapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("dataSnapshot create launch response is present", jobResponse.getResponseObject().isPresent());
 
-        return dataRepoClient.waitForResponse(authToken, jobResponse, DatasetSummaryModel.class);
+        return dataRepoClient.waitForResponse(authToken, jobResponse, DataSnapshotSummaryModel.class);
     }
 
-    public DatasetSummaryModel createDataset(String authToken, StudySummaryModel studySummaryModel,
+    public DataSnapshotSummaryModel createDataSnapshot(String authToken, StudySummaryModel studySummaryModel,
                                              String filename) throws Exception {
-        DataRepoResponse<DatasetSummaryModel> datasetResponse = createDatasetRaw(
+        DataRepoResponse<DataSnapshotSummaryModel> dataSnapshotResponse = createDataSnapshotRaw(
             authToken, studySummaryModel, filename);
-        assertThat("dataset create is successful", datasetResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("dataset create response is present", datasetResponse.getResponseObject().isPresent());
-        return datasetResponse.getResponseObject().get();
+        assertThat("dataSnapshot create is successful", dataSnapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("dataSnapshot create response is present", dataSnapshotResponse.getResponseObject().isPresent());
+        return dataSnapshotResponse.getResponseObject().get();
     }
 
-    public void deleteDataset(String authToken, String datasetId) throws Exception {
-        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetRaw(authToken, datasetId);
+    public void deleteDataSnapshot(String authToken, String dataSnapshotId) throws Exception {
+        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDataSnapshotRaw(authToken, dataSnapshotId);
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(String authToken, String datasetId) throws Exception {
+    public DataRepoResponse<DeleteResponseModel> deleteDataSnapshotRaw(String authToken, String dataSnapshotId) throws Exception {
         DataRepoResponse<JobModel> jobResponse =
-            dataRepoClient.delete(authToken, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
+            dataRepoClient.delete(authToken, "/api/repository/v1/datasnapshots/" + dataSnapshotId, JobModel.class);
 
-        assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
+        assertTrue("dataSnapshot delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("dataSnapshot delete launch response is present", jobResponse.getResponseObject().isPresent());
 
         return dataRepoClient.waitForResponse(authToken, jobResponse, DeleteResponseModel.class);
     }

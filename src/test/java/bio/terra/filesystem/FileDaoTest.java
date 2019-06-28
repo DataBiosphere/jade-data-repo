@@ -60,7 +60,7 @@ public class FileDaoTest {
 
     private UUID studyId = UUID.randomUUID();
     private String flightId = UUID.randomUUID().toString();
-    private String datasetId = UUID.randomUUID().toString();
+    private String dataSnapshotId = UUID.randomUUID().toString();
 
 
     @Autowired
@@ -225,34 +225,34 @@ public class FileDaoTest {
         checkObjectGone(fileAObject);
 
         // Don't delete file with dependencies
-        addDatasetDependency(fileBId);
-        addDatasetDependency(fileBId);
-        addDatasetDependency(fileBId);
+        addDataSnapshotDependency(fileBId);
+        addDataSnapshotDependency(fileBId);
+        addDataSnapshotDependency(fileBId);
 
         try {
             fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
-            assertThat("Correct message", ex.getMessage(), containsString("dataset"));
+            assertThat("Correct message", ex.getMessage(), containsString("dataSnapshot"));
         }
 
-        removeDatasetDependency(fileBId);
-        removeDatasetDependency(fileBId);
+        removeDataSnapshotDependency(fileBId);
+        removeDataSnapshotDependency(fileBId);
 
         try {
             fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
-            assertThat("Correct message", ex.getMessage(), containsString("dataset"));
+            assertThat("Correct message", ex.getMessage(), containsString("dataSnapshot"));
         }
 
-        removeDatasetDependency(fileBId);
+        removeDataSnapshotDependency(fileBId);
 
         fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
 
-        addDatasetDependency(fileBId);
+        addDataSnapshotDependency(fileBId);
 
         try {
             fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
@@ -262,7 +262,7 @@ public class FileDaoTest {
             assertThat("Correct message", ex.getMessage(), containsString("any references"));
         }
 
-        removeDatasetDependency(fileBId);
+        removeDataSnapshotDependency(fileBId);
 
         existed = fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
         assertTrue("File B existed", existed);
@@ -389,12 +389,12 @@ public class FileDaoTest {
     }
 
 
-    private void addDatasetDependency(UUID objectId) {
-        dependencyDao.storeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
+    private void addDataSnapshotDependency(UUID objectId) {
+        dependencyDao.storeDataSnapshotFileDependency(studyId.toString(), dataSnapshotId, objectId.toString());
     }
 
-    private void removeDatasetDependency(UUID objectId) {
-        dependencyDao.removeDatasetFileDependency(studyId.toString(), datasetId, objectId.toString());
+    private void removeDataSnapshotDependency(UUID objectId) {
+        dependencyDao.removeDataSnapshotFileDependency(studyId.toString(), dataSnapshotId, objectId.toString());
     }
 
     private void checkObjectPresent(FSObjectBase fsObject) {

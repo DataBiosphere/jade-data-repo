@@ -1,9 +1,9 @@
 package bio.terra.controller;
 
 import bio.terra.category.Unit;
-import bio.terra.model.DatasetRequestContentsModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetRequestSourceModel;
+import bio.terra.model.DataSnapshotRequestContentsModel;
+import bio.terra.model.DataSnapshotRequestModel;
+import bio.terra.model.DataSnapshotRequestSourceModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -38,55 +38,55 @@ public class DataSnapshotValidationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private DatasetRequestModel datasetRequest;
+    private DataSnapshotRequestModel dataSnapshotRequest;
 
 
     @Before
     public void setup() {
-        datasetRequest = makeDatasetRequest();
+        dataSnapshotRequest = makeDataSnapshotRequest();
     }
 
-    private void expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest) throws Exception {
-        mvc.perform(post("/api/repository/v1/datasets")
+    private void expectBadDataSnapshotCreateRequest(DataSnapshotRequestModel dataSnapshotRequest) throws Exception {
+        mvc.perform(post("/api/repository/v1/datasnapshots")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(datasetRequest)))
+                .content(objectMapper.writeValueAsString(dataSnapshotRequest)))
                 .andExpect(status().is4xxClientError());
     }
 
-    public DatasetRequestModel makeDatasetRequest() {
-        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
+    public DataSnapshotRequestModel makeDataSnapshotRequest() {
+        DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
                 .studyName("study")
                 .assetName("asset");
-        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
-                .source(datasetRequestSourceModel)
+        DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
+                .source(dataSnapshotRequestSourceModel)
                 .rootValues(Arrays.asList("sample 1", "sample 2", "sample 3"));
-        DatasetRequestModel datasetRequestModel = new DatasetRequestModel()
-                .name("dataset")
-                .description("dataset description")
-                .addContentsItem(datasetRequestContentsModel);
-        return datasetRequestModel;
+        DataSnapshotRequestModel dataSnapshotRequestModel = new DataSnapshotRequestModel()
+                .name("dataSnapshot")
+                .description("dataSnapshot description")
+                .addContentsItem(dataSnapshotRequestContentsModel);
+        return dataSnapshotRequestModel;
     }
 
 
     @Test
-    public void testDatasetNameInvalid() throws Exception {
-        datasetRequest.name("no spaces");
-        expectBadDatasetCreateRequest(datasetRequest);
+    public void testDataSnapshotNameInvalid() throws Exception {
+        dataSnapshotRequest.name("no spaces");
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequest.name("no-dashes");
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.name("no-dashes");
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequest.name("");
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.name("");
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        datasetRequest.name(tooLong);
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.name(tooLong);
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }
 
     @Test
-    public void testDatasetDescriptionInvalid() throws Exception {
+    public void testDataSnapshotDescriptionInvalid() throws Exception {
         String tooLongDescription = "People = Good, People = Good, People = Good, People = Good, People = Good, " +
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
@@ -110,88 +110,88 @@ public class DataSnapshotValidationTest {
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good";
-        datasetRequest.description(tooLongDescription);
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.description(tooLongDescription);
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequest.description(null);
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.description(null);
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }
 
     @Test
-    public void testDatasetValuesListEmpty() throws Exception {
+    public void testDataSnapshotValuesListEmpty() throws Exception {
         ArrayList empty = new ArrayList<String>();
-        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
+        DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
                 .studyName("study")
                 .assetName("asset");
-        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
-                .source(datasetRequestSourceModel)
+        DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
+                .source(dataSnapshotRequestSourceModel)
                 .rootValues(empty);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }
 
     @Test
-    public void testDatasetStudyNameInvalid() throws Exception {
-        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
+    public void testDataSnapshotStudyNameInvalid() throws Exception {
+        DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
                 .studyName("no spaces")
                 .assetName("asset");
-        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
-                .source(datasetRequestSourceModel)
+        DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
+                .source(dataSnapshotRequestSourceModel)
                 .rootValues(Collections.singletonList("root"));
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequestSourceModel.studyName("no-dashes");
-        datasetRequestContentsModel.source(datasetRequestSourceModel);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequestSourceModel.studyName("no-dashes");
+        dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequestSourceModel.studyName("");
-        datasetRequestContentsModel.source(datasetRequestSourceModel);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequestSourceModel.studyName("");
+        dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        datasetRequestSourceModel.studyName(tooLong);
-        datasetRequestContentsModel.source(datasetRequestSourceModel);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequestSourceModel.studyName(tooLong);
+        dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }
 
 
     @Test
-    public void testDatasetAssetNameInvalid() throws Exception {
-        DatasetRequestSourceModel datasetRequestSourceModel = new DatasetRequestSourceModel()
+    public void testDataSnapshotAssetNameInvalid() throws Exception {
+        DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
                 .studyName("study")
                 .assetName("no spaces");
-        DatasetRequestContentsModel datasetRequestContentsModel = new DatasetRequestContentsModel()
-                .source(datasetRequestSourceModel)
+        DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
+                .source(dataSnapshotRequestSourceModel)
                 .rootValues(Collections.singletonList("root"));
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequestSourceModel.assetName("no-dashes");
-        datasetRequestContentsModel.source(datasetRequestSourceModel);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequestSourceModel.assetName("no-dashes");
+        dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        datasetRequestSourceModel.assetName("");
-        datasetRequestContentsModel.source(datasetRequestSourceModel);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequestSourceModel.assetName("");
+        dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        datasetRequestSourceModel.assetName(tooLong);
-        datasetRequestContentsModel.source(datasetRequestSourceModel);
-        datasetRequest.contents(Collections.singletonList(datasetRequestContentsModel));
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequestSourceModel.assetName(tooLong);
+        dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
+        dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }
 
     @Test
     public void testStudyNameMissing() throws Exception {
-        datasetRequest.name(null);
-        expectBadDatasetCreateRequest(datasetRequest);
+        dataSnapshotRequest.name(null);
+        expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }
 }

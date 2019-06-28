@@ -20,9 +20,6 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.CsvOptions;
-import com.google.cloud.bigquery.DataSnapshot;
-import com.google.cloud.bigquery.DataSnapshotId;
-import com.google.cloud.bigquery.DataSnapshotInfo;
 import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
@@ -243,7 +240,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void removeDataSnapshotAuthorizationFromStudy(String dataSnapshotName, String studyName, List<String> tableNames) {
-        removeAclsFromBQDataSnapshot(studyName, convertToViewAcls(dataSnapshotName, tableNames));
+        removeAclsFromBqDataset(studyName, convertToViewAcls(dataSnapshotName, tableNames));
     }
 
     private List<Acl> convertToViewAcls(
@@ -724,7 +721,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                        List<String> rowIds) {
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT COUNT(*) FROM `")
-                .append(projectId).append('.').append(studyBqDataSnapshotName).append('.').append(rootTableName)
+                .append(projectId).append('.').append(studyBqDatasetName).append('.').append(rootTableName)
                 .append("` AS T, `")
                 .append(projectId).append('.').append(dataSnapshotName).append('.').append(PDAO_ROW_ID_TABLE)
                 .append("` AS R WHERE R.")

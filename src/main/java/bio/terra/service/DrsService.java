@@ -111,8 +111,8 @@ public class DrsService {
             UUID studyId = UUID.fromString(drsId.getStudyId());
             studyDao.retrieveSummaryById(studyId);
 
-            UUID datasetId = UUID.fromString(drsId.getDataSnapshotId());
-            dataSnapshotDao.retrieveDataSnapshotSummary(datasetId);
+            UUID dataSnapshotId = UUID.fromString(drsId.getDataSnapshotId());
+            dataSnapshotDao.retrieveDataSnapshotSummary(dataSnapshotId);
 
             return drsId;
         } catch (IllegalArgumentException ex) {
@@ -120,11 +120,11 @@ public class DrsService {
         } catch (StudyNotFoundException ex) {
             throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
         } catch (DataSnapshotNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
+            throw new DrsObjectNotFoundException("No dataSnapshot found for DRS object id '" + drsObjectId + "'", ex);
         }
     }
 
-    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String datasetId) {
+    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String dataSnapshotId) {
         // TODO: this computation does not conform to the current spec. With fine-grain access
         // control, we cannot pre-compute the sizes or checksums of contained bundles. I have raised
         // the question in the GA4GH cloud stream.
@@ -136,11 +136,11 @@ public class DrsService {
         for (FSObjectBase fsObject : fsObjectList) {
             String drsUri = drsIdService.toDrsUri(
                 fsObject.getStudyId().toString(),
-                datasetId,
+                dataSnapshotId,
                 fsObject.getObjectId().toString());
             String drsObjectId = drsIdService.toDrsObjectId(
                 fsObject.getStudyId().toString(),
-                datasetId,
+                dataSnapshotId,
                 fsObject.getObjectId().toString());
 
             DRSBundleObject.TypeEnum objectType = DRSBundleObject.TypeEnum.BUNDLE;
@@ -206,7 +206,7 @@ public class DrsService {
         return bundle;
     }
 
-    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String dataSnapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsFile.getCreatedDate().toString();
 
@@ -220,7 +220,7 @@ public class DrsService {
 
         DrsId drsId = DrsId.builder()
             .studyId(fsFile.getStudyId().toString())
-            .datasetId(datasetId)
+            .dataSnapshotId(dataSnapshotId)
             .fsObjectId(fsFile.getObjectId().toString())
             .build();
 

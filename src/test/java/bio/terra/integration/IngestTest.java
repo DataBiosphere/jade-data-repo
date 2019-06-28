@@ -5,7 +5,7 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import org.junit.After;
@@ -52,7 +52,7 @@ public class IngestTest {
     private String studyId;
     private String stewardToken;
     private String custodianToken;
-    private List<String> createdDatasetIds = new ArrayList<>();
+    private List<String> createdDataSnapshotIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
@@ -66,8 +66,8 @@ public class IngestTest {
 
     @After
     public void teardown() throws Exception {
-        for (String datasetId : createdDatasetIds) {
-            dataRepoFixtures.deleteDataset(custodianToken, datasetId);
+        for (String dataSnapshotId : createdDataSnapshotIds) {
+            dataRepoFixtures.deleteDataSnapshot(custodianToken, dataSnapshotId);
         }
 
         if (studyId != null) {
@@ -75,7 +75,7 @@ public class IngestTest {
         }
     }
 
-    @Ignore  // subset of the dataset test; not worth running everytime, but useful for debugging
+    @Ignore  // subset of the dataSnapshot test; not worth running everytime, but useful for debugging
     @Test
     public void ingestParticipants() throws Exception {
         IngestResponseModel ingestResponse =
@@ -86,7 +86,7 @@ public class IngestTest {
 
     @Ignore
     @Test
-    public void ingestBuildDataset() throws Exception {
+    public void ingestBuildDataSnapshot() throws Exception {
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(
                 stewardToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
@@ -100,9 +100,9 @@ public class IngestTest {
             stewardToken, studyId, "file", "ingest-test/ingest-test-file.json");
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
-        DatasetSummaryModel datasetSummary =
-            dataRepoFixtures.createDataset(custodianToken, studySummaryModel, "ingest-test-datasnapshot.json");
-        createdDatasetIds.add(datasetSummary.getId());
+        DataSnapshotSummaryModel dataSnapshotSummary =
+            dataRepoFixtures.createDataSnapshot(custodianToken, studySummaryModel, "ingest-test-datasnapshot.json");
+        createdDataSnapshotIds.add(dataSnapshotSummary.getId());
     }
 
 }

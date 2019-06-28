@@ -61,29 +61,29 @@ public class DataSnapshotService {
     }
 
     /**
-     * Kick-off dataset creation
-     * Pre-condition: the dataset request has been syntax checked by the validator
+     * Kick-off dataSnapshot creation
+     * Pre-condition: the dataSnapshot request has been syntax checked by the validator
      *
-     * @param datasetRequestModel
+     * @param dataSnapshotRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createDataSnapshot(DataSnapshotRequestModel datasetRequestModel, AuthenticatedUserRequest userInfo) {
+    public String createDataSnapshot(DataSnapshotRequestModel dataSnapshotRequestModel, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataset " + datasetRequestModel.getName());
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequestModel);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create dataSnapshot " + dataSnapshotRequestModel.getName());
+        flightMap.put(JobMapKeys.REQUEST.getKeyName(), dataSnapshotRequestModel);
         flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
         return stairway.submit(DataSnapshotCreateFlight.class, flightMap);
     }
 
     /**
-     * Kick-off dataset deletion
+     * Kick-off dataSnapshot deletion
      *
-     * @param id dataset id to delete
+     * @param id dataSnapshot id to delete
      * @returns jobId (flightId) of the job
      */
     public String deleteDataSnapshot(UUID id, AuthenticatedUserRequest userInfo) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataSnapshot " + id);
         // TODO talk about conventions for naming data in the input map
         // and in the step whether to pass data from input map to steps or let each step retrieve what they need
 //        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
@@ -93,10 +93,10 @@ public class DataSnapshotService {
     }
 
     /**
-     * Enumerate a range of datasets ordered by created date for consistent offset processing
+     * Enumerate a range of dataSnapshots ordered by created date for consistent offset processing
      * @param offset
      * @param limit
-     * @return list of summary models of dataset
+     * @return list of summary models of dataSnapshot
      */
     public EnumerateDataSnapshotModel enumerateDataSnapshots(
         int offset,
@@ -115,12 +115,12 @@ public class DataSnapshotService {
     }
 
     /**
-     * Return a single dataset summary given the dataset id.
-     * This is used in the create dataset flight to build the model response
+     * Return a single dataSnapshot summary given the dataSnapshot id.
+     * This is used in the create dataSnapshot flight to build the model response
      * of the asynchronous job.
      *
      * @param id
-     * @return summary model of the dataset
+     * @return summary model of the dataSnapshot
      */
     public DataSnapshotSummaryModel retrieveDataSnapshotSummary(UUID id) {
         DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDataSnapshotSummary(id);
@@ -128,9 +128,9 @@ public class DataSnapshotService {
     }
 
     /**
-     * Return the output form of dataset
+     * Return the output form of dataSnapshot
      * @param id
-     * @return dataset model
+     * @return dataSnapshot model
      */
     public DataSnapshotModel retrieveDataSnapshot(UUID id) {
         DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataSnapshot(id);
@@ -138,18 +138,18 @@ public class DataSnapshotService {
     }
 
     /**
-     * Make a DataSnapshot structure with all of its parts from an incoming dataset request.
+     * Make a DataSnapshot structure with all of its parts from an incoming dataSnapshot request.
      * Note that the structure does not have UUIDs or created dates filled in. Those are
-     * updated by the DAO when it stores the dataset in the repository metadata.
+     * updated by the DAO when it stores the dataSnapshot in the repository metadata.
      *
-     * @param datasetRequestModel
+     * @param dataSnapshotRequestModel
      * @return DataSnapshot
      */
-    public DataSnapshot makeDataSnapshotFromDataSnapshotRequest(DataSnapshotRequestModel datasetRequestModel) {
+    public DataSnapshot makeDataSnapshotFromDataSnapshotRequest(DataSnapshotRequestModel dataSnapshotRequestModel) {
         // Make this early so we can hook up back links to it
         DataSnapshot dataSnapshot = new DataSnapshot();
 
-        List<DataSnapshotRequestContentsModel> requestContentsList = datasetRequestModel.getContents();
+        List<DataSnapshotRequestContentsModel> requestContentsList = dataSnapshotRequestModel.getContents();
         // TODO: for MVM we only allow one source list
         if (requestContentsList.size() > 1) {
             throw new ValidationException("Only a single dataSnapshot contents entry is currently allowed.");
@@ -162,9 +162,9 @@ public class DataSnapshotService {
         // allowed in a data snapshot.
         conjureDataSnapshotTablesFromAsset(dataSnapshotSource.getAssetSpecification(), dataSnapshot, dataSnapshotSource);
 
-        dataSnapshot.name(datasetRequestModel.getName())
-                .description(datasetRequestModel.getDescription())
-                .datasetSources(Collections.singletonList(dataSnapshotSource));
+        dataSnapshot.name(dataSnapshotRequestModel.getName())
+                .description(dataSnapshotRequestModel.getDescription())
+                .dataSnapshotSources(Collections.singletonList(dataSnapshotSource));
 
         return dataSnapshot;
     }
@@ -182,7 +182,7 @@ public class DataSnapshotService {
         // the map construction will go here. For MVM, we generate the mapping data directly from the asset spec.
 
         return new DataSnapshotSource()
-               .dataset(dataSnapshot)
+               .dataSnapshot(dataSnapshot)
                .study(study)
                .assetSpecification(optAsset.get());
     }
@@ -226,11 +226,11 @@ public class DataSnapshotService {
             mapTableList.add(new DataSnapshotMapTable()
                     .fromTable(assetTable.getTable())
                     .toTable(table)
-                    .datasetMapColumns(mapColumnList));
+                    .dataSnapshotMapColumns(mapColumnList));
         }
 
-        dataSnapshotSource.datasetMapTables(mapTableList);
-        dataSnapshot.datasetTables(tableList);
+        dataSnapshotSource.dataSnapshotMapTables(mapTableList);
+        dataSnapshot.dataSnapshotTables(tableList);
     }
 
     public DataSnapshotSummaryModel makeSummaryModelFromSummary(DataSnapshotSummary dataSnapshotSummary) {

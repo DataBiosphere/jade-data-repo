@@ -5,7 +5,7 @@ import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.model.DRSBundle;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
@@ -120,24 +120,24 @@ public class EncodeFileTest {
 
         connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
 
-        // At this point, we have files and tabular data. Let's make a dataset!
+        // At this point, we have files and tabular data. Let's make a dataSnapshot!
 
-        MockHttpServletResponse response = connectedOperations.launchCreateDataset(
+        MockHttpServletResponse response = connectedOperations.launchCreateDataSnapshot(
             studySummary, "encodefiletest-datasnapshot.json", "");
-        DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(response);
+        DataSnapshotSummaryModel dataSnapshotSummary = connectedOperations.handleCreateDataSnapshotSuccessCase(response);
 
-        String datasetFileId = getFileRefIdFromDataset(datasetSummary.getName());
+        String dataSnapshotFileId = getFileRefIdFromDataSnapshot(dataSnapshotSummary.getName());
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
-            delete("/api/repository/v1/studies/" + studySummary.getId() + "/files/" + datasetFileId))
+            delete("/api/repository/v1/studies/" + studySummary.getId() + "/files/" + dataSnapshotFileId))
             .andReturn();
         response = connectedOperations.validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
 
         ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
         assertThat("correct dependency error message",
-            errorModel.getMessage(), containsString("used by at least one dataset"));
+            errorModel.getMessage(), containsString("used by at least one dataSnapshot"));
     }
 
     @Test
@@ -290,12 +290,12 @@ public class EncodeFileTest {
         return targetPath;
     }
 
-    private String getFileRefIdFromDataset(String datasetName) {
+    private String getFileRefIdFromDataSnapshot(String dataSnapshotName) {
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")
             .append(bigQueryProjectId)
             .append('.')
-            .append(datasetName)
+            .append(dataSnapshotName)
             .append(".file` AS T")
             .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
 
@@ -310,7 +310,7 @@ public class EncodeFileTest {
             String[] drsParts = StringUtils.split(drsUri, '_');
             return drsParts[drsParts.length - 1];
         } catch (InterruptedException ie) {
-            throw new PdaoException("get file ref id from dataset unexpectedly interrupted", ie);
+            throw new PdaoException("get file ref id from dataSnapshot unexpectedly interrupted", ie);
         }
     }
 

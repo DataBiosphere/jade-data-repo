@@ -20,20 +20,20 @@ public class DrsIdService {
         this.datarepoDnsName = datarepoDnsName;
     }
 
-    public String toDrsUri(String studyId, String datasetId, String fsObjectId) {
-        return fromParts(studyId, datasetId, fsObjectId).toDrsUri();
+    public String toDrsUri(String studyId, String dataSnapshotId, String fsObjectId) {
+        return fromParts(studyId, dataSnapshotId, fsObjectId).toDrsUri();
     }
 
-    public String toDrsObjectId(String studyId, String datasetId, String fsObjectId) {
-        return fromParts(studyId, datasetId, fsObjectId).toDrsObjectId();
+    public String toDrsObjectId(String studyId, String dataSnapshotId, String fsObjectId) {
+        return fromParts(studyId, dataSnapshotId, fsObjectId).toDrsObjectId();
     }
 
-    private DrsId fromParts(String studyId, String datasetId, String fsObjectId) {
+    private DrsId fromParts(String studyId, String dataSnapshotId, String fsObjectId) {
         return DrsId.builder()
             .dnsname(datarepoDnsName)
             .version("v1")
             .studyId(studyId)
-            .datasetId(datasetId)
+            .dataSnapshotId(dataSnapshotId)
             .fsObjectId(fsObjectId)
             .build();
     }
@@ -66,7 +66,7 @@ public class DrsIdService {
             .dnsname(datarepoDnsName)
             .version(idParts[0])
             .studyId(idParts[1])
-            .datasetId(idParts[2])
+            .dataSnapshotId(idParts[2])
             .fsObjectId(idParts[3]);
     }
 }

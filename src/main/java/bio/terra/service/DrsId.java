@@ -10,14 +10,14 @@ public class DrsId {
     private final String dnsname;
     private final String version;
     private final String studyId;
-    private final String datasetId;
+    private final String dataSnapshotId;
     private final String fsObjectId;
 
-    public DrsId(String dnsname, String version, String studyId, String datasetId, String fsObjectId) {
+    public DrsId(String dnsname, String version, String studyId, String dataSnapshotId, String fsObjectId) {
         this.dnsname = dnsname;
         this.version = version;
         this.studyId = studyId;
-        this.datasetId = datasetId;
+        this.dataSnapshotId = dataSnapshotId;
         this.fsObjectId = fsObjectId;
     }
 
@@ -34,7 +34,7 @@ public class DrsId {
     }
 
     public String getDataSnapshotId() {
-        return datasetId;
+        return dataSnapshotId;
     }
 
     public String getFsObjectId() {
@@ -48,7 +48,7 @@ public class DrsId {
 
     public String toDrsObjectId() {
         String vv = version == null ? "v1" : version;
-        return vv + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
+        return vv + "_" + studyId + "_" + dataSnapshotId + "_" + fsObjectId;
     }
 
     public String toDrsUri() {
@@ -67,7 +67,7 @@ public class DrsId {
             .append("dnsname", dnsname)
             .append("version", version)
             .append("studyId", studyId)
-            .append("datasetId", datasetId)
+            .append("dataSnapshotId", dataSnapshotId)
             .append("fsObjectId", fsObjectId)
             .toString();
     }
@@ -82,7 +82,7 @@ public class DrsId {
         if (dnsname != null ? !dnsname.equals(drsId.dnsname) : drsId.dnsname != null) return false;
         if (version != null ? !version.equals(drsId.version) : drsId.version != null) return false;
         if (studyId != null ? !studyId.equals(drsId.studyId) : drsId.studyId != null) return false;
-        if (datasetId != null ? !datasetId.equals(drsId.datasetId) : drsId.datasetId != null) return false;
+        if (dataSnapshotId != null ? !dataSnapshotId.equals(drsId.dataSnapshotId) : drsId.dataSnapshotId != null) return false;
         return fsObjectId != null ? fsObjectId.equals(drsId.fsObjectId) : drsId.fsObjectId == null;
     }
 
@@ -91,7 +91,7 @@ public class DrsId {
         int result = dnsname != null ? dnsname.hashCode() : 0;
         result = 31 * result + (version != null ? version.hashCode() : 0);
         result = 31 * result + (studyId != null ? studyId.hashCode() : 0);
-        result = 31 * result + (datasetId != null ? datasetId.hashCode() : 0);
+        result = 31 * result + (dataSnapshotId != null ? dataSnapshotId.hashCode() : 0);
         result = 31 * result + (fsObjectId != null ? fsObjectId.hashCode() : 0);
         return result;
     }
@@ -100,7 +100,7 @@ public class DrsId {
         private String dnsname;
         private String version;
         private String studyId;
-        private String datasetId;
+        private String dataSnapshotId;
         private String fsObjectId;
 
         public Builder dnsname(String dnsname) {
@@ -118,8 +118,8 @@ public class DrsId {
             return this;
         }
 
-        public Builder datasetId(String datasetId) {
-            this.datasetId = datasetId;
+        public Builder dataSnapshotId(String dataSnapshotId) {
+            this.dataSnapshotId = dataSnapshotId;
             return this;
         }
 
@@ -129,7 +129,7 @@ public class DrsId {
         }
 
         public DrsId build() {
-            return new DrsId(dnsname, version, studyId, datasetId, fsObjectId);
+            return new DrsId(dnsname, version, studyId, dataSnapshotId, fsObjectId);
         }
     }
 

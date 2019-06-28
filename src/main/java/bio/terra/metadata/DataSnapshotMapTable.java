@@ -41,7 +41,7 @@ public class DataSnapshotMapTable {
         return dataSnapshotMapColumns;
     }
 
-    public DataSnapshotMapTable datasetMapColumns(List<DataSnapshotMapColumn> dataSnapshotMapColumns) {
+    public DataSnapshotMapTable dataSnapshotMapColumns(List<DataSnapshotMapColumn> dataSnapshotMapColumns) {
         this.dataSnapshotMapColumns = dataSnapshotMapColumns;
         return this;
     }

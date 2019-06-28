@@ -10,7 +10,7 @@ public class DataSnapshotTableDao extends TableDaoBase {
 
     @Autowired
     public DataSnapshotTableDao(NamedParameterJdbcTemplate jdbcTemplate) {
-        super(jdbcTemplate, "dataset_table", "dataset_column", "parent_id");
+        super(jdbcTemplate, "datasnapshot_table", "datasnapshot_column", "parent_id");
         this.jdbcTemplate = jdbcTemplate;
     }
 }

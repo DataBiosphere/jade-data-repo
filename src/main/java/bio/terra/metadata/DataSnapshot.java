@@ -54,7 +54,7 @@ public class DataSnapshot {
         return tables;
     }
 
-    public DataSnapshot datasetTables(List<Table> tables) {
+    public DataSnapshot dataSnapshotTables(List<Table> tables) {
         this.tables = tables;
         return this;
     }
@@ -63,7 +63,7 @@ public class DataSnapshot {
         return dataSnapshotSources;
     }
 
-    public DataSnapshot datasetSources(List<DataSnapshotSource> dataSnapshotSources) {
+    public DataSnapshot dataSnapshotSources(List<DataSnapshotSource> dataSnapshotSources) {
         this.dataSnapshotSources = dataSnapshotSources;
         return this;
     }

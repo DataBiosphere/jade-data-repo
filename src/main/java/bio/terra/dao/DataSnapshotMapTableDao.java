@@ -31,7 +31,7 @@ public class DataSnapshotMapTableDao {
     // part of a transaction propagated from DataSnapshotDao
 
     public void createTables(UUID sourceId, List<DataSnapshotMapTable> tableList) {
-        String sql = "INSERT INTO dataset_map_table (source_id, from_table_id, to_table_id)" +
+        String sql = "INSERT INTO datasnapshot_map_table (source_id, from_table_id, to_table_id)" +
                 "VALUES (:source_id, :from_table_id, :to_table_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("source_id", sourceId);
@@ -47,7 +47,7 @@ public class DataSnapshotMapTableDao {
     }
 
     protected void createColumns(UUID tableId, Collection<DataSnapshotMapColumn> columns) {
-        String sql = "INSERT INTO dataset_map_column (map_table_id, from_column_id, to_column_id)" +
+        String sql = "INSERT INTO datasnapshot_map_column (map_table_id, from_column_id, to_column_id)" +
                 " VALUES (:map_table_id, :from_column_id, :to_column_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("map_table_id", tableId);
@@ -63,7 +63,7 @@ public class DataSnapshotMapTableDao {
 
     public List<DataSnapshotMapTable> retrieveMapTables(DataSnapshot dataSnapshot, DataSnapshotSource source) {
         String sql = "SELECT id, source_id, from_table_id, to_table_id" +
-                " FROM dataset_map_table WHERE source_id = :source_id";
+                " FROM datasnapshot_map_table WHERE source_id = :source_id";
         List<DataSnapshotMapTable> mapTableList = jdbcTemplate.query(
             sql,
             new MapSqlParameterSource().addValue("source_id", source.getId()),
@@ -77,20 +77,20 @@ public class DataSnapshotMapTableDao {
                 }
 
                 UUID toTableId = UUID.fromString(rs.getString("to_table_id"));
-                Optional<Table> datasetTable = dataSnapshot.getTableById(toTableId);
-                if (!datasetTable.isPresent()) {
+                Optional<Table> dataSnapshotTable = dataSnapshot.getTableById(toTableId);
+                if (!dataSnapshotTable.isPresent()) {
                     throw new CorruptMetadataException(
                             "DataSnapshot table referenced by dataSnapshot source map table was not found!");
                 }
 
                 UUID id = rs.getObject("id", UUID.class);
-                List<DataSnapshotMapColumn> mapColumns = retrieveMapColumns(id, studyTable.get(), datasetTable.get());
+                List<DataSnapshotMapColumn> mapColumns = retrieveMapColumns(id, studyTable.get(), dataSnapshotTable.get());
 
                 return new DataSnapshotMapTable()
                         .id(id)
                         .fromTable(studyTable.get())
-                        .toTable(datasetTable.get())
-                        .datasetMapColumns(mapColumns);
+                        .toTable(dataSnapshotTable.get())
+                        .dataSnapshotMapColumns(mapColumns);
             });
 
         return mapTableList;
@@ -98,7 +98,7 @@ public class DataSnapshotMapTableDao {
 
     public List<DataSnapshotMapColumn> retrieveMapColumns(UUID mapTableId, Table fromTable, Table toTable) {
         String sql = "SELECT id, from_column_id, to_column_id" +
-                " FROM dataset_map_column WHERE map_table_id = :map_table_id";
+                " FROM datasnapshot_map_column WHERE map_table_id = :map_table_id";
 
         List<DataSnapshotMapColumn> mapColumns = jdbcTemplate.query(
             sql,
@@ -108,20 +108,20 @@ public class DataSnapshotMapTableDao {
                 Optional<Column> studyColumn = fromTable.getColumnById(fromId);
                 if (!studyColumn.isPresent()) {
                     throw new CorruptMetadataException(
-                            "Study column referenced by dataset source map column was not found");
+                            "Study column referenced by dataSnapshot source map column was not found");
                 }
 
                 UUID toId = rs.getObject("to_column_id", UUID.class);
-                Optional<Column> datasetColumn = toTable.getColumnById(toId);
-                if (!datasetColumn.isPresent()) {
+                Optional<Column> dataSnapshotColumn = toTable.getColumnById(toId);
+                if (!dataSnapshotColumn.isPresent()) {
                     throw new CorruptMetadataException(
-                            "DataSnapshot column referenced by dataset source map column was not found");
+                            "DataSnapshot column referenced by dataSnapshot source map column was not found");
                 }
 
                 return new DataSnapshotMapColumn()
                         .id(rs.getObject("from_column_id", UUID.class))
                         .fromColumn(studyColumn.get())
-                        .toColumn(datasetColumn.get());
+                        .toColumn(dataSnapshotColumn.get());
             });
 
         return mapColumns;

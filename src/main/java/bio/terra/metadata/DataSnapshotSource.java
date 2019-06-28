@@ -15,7 +15,7 @@ public class DataSnapshotSource {
         return dataSnapshot;
     }
 
-    public DataSnapshotSource dataset(DataSnapshot dataSnapshot) {
+    public DataSnapshotSource dataSnapshot(DataSnapshot dataSnapshot) {
         this.dataSnapshot = dataSnapshot;
         return this;
     }
@@ -42,7 +42,7 @@ public class DataSnapshotSource {
         return dataSnapshotMapTables;
     }
 
-    public DataSnapshotSource datasetMapTables(List<DataSnapshotMapTable> dataSnapshotMapTables) {
+    public DataSnapshotSource dataSnapshotMapTables(List<DataSnapshotMapTable> dataSnapshotMapTables) {
         this.dataSnapshotMapTables = dataSnapshotMapTables;
         return this;
     }

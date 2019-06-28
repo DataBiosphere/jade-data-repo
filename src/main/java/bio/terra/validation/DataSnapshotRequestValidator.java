@@ -21,7 +21,7 @@ import java.util.List;
  * validate if the field is present.
  */
 @Component
-public class DatasetRequestValidator implements Validator {
+public class DataSnapshotRequestValidator implements Validator {
 
     @Override
     public boolean supports(Class<?> clazz) {

@@ -7,7 +7,7 @@ import bio.terra.metadata.DataSnapshot;
 import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.DatasetService;
+import bio.terra.service.DataSnapshotService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -20,11 +20,11 @@ import java.util.UUID;
 
 public class CreateDataSnapshotMetadataStep implements Step {
     private DataSnapshotDao dataSnapshotDao;
-    private DatasetService datasetService;
+    private DataSnapshotService dataSnapshotService;
 
-    public CreateDataSnapshotMetadataStep(DataSnapshotDao dataSnapshotDao, DatasetService datasetService) {
+    public CreateDataSnapshotMetadataStep(DataSnapshotDao dataSnapshotDao, DataSnapshotService dataSnapshotService) {
         this.dataSnapshotDao = dataSnapshotDao;
-        this.datasetService = datasetService;
+        this.dataSnapshotService = dataSnapshotService;
     }
 
     @Override
@@ -33,11 +33,11 @@ public class CreateDataSnapshotMetadataStep implements Step {
         DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
                 DatasetRequestModel.class);
         try {
-            DataSnapshot dataSnapshot = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+            DataSnapshot dataSnapshot = dataSnapshotService.makeDatasetFromDatasetRequest(datasetRequest);
             UUID datasetId = dataSnapshotDao.create(dataSnapshot);
             context.getWorkingMap().put("datasetId", datasetId);
             DataSnapshotSummary dataSnapshotSummary = dataSnapshotDao.retrieveDatasetSummary(dataSnapshot.getId());
-            DatasetSummaryModel response = datasetService.makeSummaryModelFromSummary(dataSnapshotSummary);
+            DatasetSummaryModel response = dataSnapshotService.makeSummaryModelFromSummary(dataSnapshotSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
         } catch (NotFoundException ex) {

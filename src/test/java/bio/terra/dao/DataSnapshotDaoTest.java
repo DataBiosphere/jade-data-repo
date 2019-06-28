@@ -13,7 +13,7 @@ import bio.terra.metadata.Table;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
-import bio.terra.service.DatasetService;
+import bio.terra.service.DataSnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
@@ -51,7 +51,7 @@ public class DataSnapshotDaoTest {
     private StudyDao studyDao;
 
     @Autowired
-    private DatasetService datasetService;
+    private DataSnapshotService dataSnapshotService;
 
     private Study study;
     private UUID studyId;
@@ -87,7 +87,7 @@ public class DataSnapshotDaoTest {
     public void happyInOutTest() throws Exception {
         datasetRequest.name(datasetRequest.getName() + UUID.randomUUID().toString());
 
-        DataSnapshot dataSnapshot = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+        DataSnapshot dataSnapshot = dataSnapshotService.makeDatasetFromDatasetRequest(datasetRequest);
         datasetId = dataSnapshotDao.create(dataSnapshot);
         DataSnapshot fromDB = dataSnapshotDao.retrieveDataset(datasetId);
 
@@ -167,7 +167,7 @@ public class DataSnapshotDaoTest {
                 // set the description to a random string so we can verify the sorting is working independently of the
                 // study name or created_date. add a suffix to filter on for the even datasets
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
-            DataSnapshot dataSnapshot = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+            DataSnapshot dataSnapshot = dataSnapshotService.makeDatasetFromDatasetRequest(datasetRequest);
             datasetId = dataSnapshotDao.create(dataSnapshot);
             datasetIds.add(datasetId);
         }

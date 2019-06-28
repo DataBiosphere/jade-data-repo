@@ -44,17 +44,17 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-public class DatasetService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DatasetService");
+public class DataSnapshotService {
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DataSnapshotService");
 
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DataSnapshotDao dataSnapshotDao;
 
     @Autowired
-    public DatasetService(Stairway stairway,
-                          StudyDao studyDao,
-                          DataSnapshotDao dataSnapshotDao) {
+    public DataSnapshotService(Stairway stairway,
+                               StudyDao studyDao,
+                               DataSnapshotDao dataSnapshotDao) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.dataSnapshotDao = dataSnapshotDao;

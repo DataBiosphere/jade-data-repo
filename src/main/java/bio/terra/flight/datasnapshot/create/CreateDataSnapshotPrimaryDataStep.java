@@ -11,7 +11,7 @@ import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.DatasetService;
+import bio.terra.service.DataSnapshotService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -26,16 +26,16 @@ import java.util.List;
 public class CreateDataSnapshotPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
-    private DatasetService datasetService;
+    private DataSnapshotService dataSnapshotService;
     private DataSnapshotDao dataSnapshotDao;
     private FireStoreDependencyDao dependencyDao;
 
     public CreateDataSnapshotPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                             DatasetService datasetService,
+                                             DataSnapshotService dataSnapshotService,
                                              DataSnapshotDao dataSnapshotDao,
                                              FireStoreDependencyDao dependencyDao) {
         this.bigQueryPdao = bigQueryPdao;
-        this.datasetService = datasetService;
+        this.dataSnapshotService = dataSnapshotService;
         this.dataSnapshotDao = dataSnapshotDao;
         this.dependencyDao = dependencyDao;
     }
@@ -47,7 +47,7 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
 
     DataSnapshot getDataset(FlightContext context) {
         DatasetRequestModel datasetRequest = getRequestModel(context);
-        return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
+        return dataSnapshotService.makeDatasetFromDatasetRequest(datasetRequest);
     }
 
     @Override

@@ -18,12 +18,12 @@ import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.UserStatusInfo;
-import bio.terra.service.DatasetService;
+import bio.terra.service.DataSnapshotService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobService;
 import bio.terra.service.SamClientService;
 import bio.terra.service.StudyService;
-import bio.terra.validation.DatasetRequestValidator;
+import bio.terra.validation.DataSnapshotRequestValidator;
 import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.PolicyMemberValidator;
 import bio.terra.validation.StudyRequestValidator;
@@ -60,8 +60,8 @@ public class RepositoryApiController implements RepositoryApi {
     private final JobService jobService;
     private final StudyRequestValidator studyRequestValidator;
     private final StudyService studyService;
-    private final DatasetRequestValidator datasetRequestValidator;
-    private final DatasetService datasetService;
+    private final DataSnapshotRequestValidator dataSnapshotRequestValidator;
+    private final DataSnapshotService dataSnapshotService;
     private final SamClientService samService;
     private final IngestRequestValidator ingestRequestValidator;
     private final FileService fileService;
@@ -77,8 +77,8 @@ public class RepositoryApiController implements RepositoryApi {
             JobService jobService,
             StudyRequestValidator studyRequestValidator,
             StudyService studyService,
-            DatasetRequestValidator datasetRequestValidator,
-            DatasetService datasetService,
+            DataSnapshotRequestValidator dataSnapshotRequestValidator,
+            DataSnapshotService dataSnapshotService,
             SamClientService samService,
             IngestRequestValidator ingestRequestValidator,
             ApplicationConfiguration appConfig,
@@ -90,8 +90,8 @@ public class RepositoryApiController implements RepositoryApi {
         this.jobService = jobService;
         this.studyRequestValidator = studyRequestValidator;
         this.studyService = studyService;
-        this.datasetRequestValidator = datasetRequestValidator;
-        this.datasetService = datasetService;
+        this.dataSnapshotRequestValidator = dataSnapshotRequestValidator;
+        this.dataSnapshotService = dataSnapshotService;
         this.samService = samService;
         this.ingestRequestValidator = ingestRequestValidator;
         this.appConfig = appConfig;
@@ -102,7 +102,7 @@ public class RepositoryApiController implements RepositoryApi {
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
         binder.addValidators(studyRequestValidator);
-        binder.addValidators(datasetRequestValidator);
+        binder.addValidators(dataSnapshotRequestValidator);
         binder.addValidators(ingestRequestValidator);
         binder.addValidators(policyMemberValidator);
     }
@@ -267,13 +267,13 @@ public class RepositoryApiController implements RepositoryApi {
     // -- data snapshot --
     @Override
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
-        String jobId = datasetService.createDataset(dataset, getAuthenticatedInfo());
+        String jobId = dataSnapshotService.createDataset(dataset, getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
     @Override
     public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
-        String jobId = datasetService.deleteDataset(UUID.fromString(id), getAuthenticatedInfo());
+        String jobId = dataSnapshotService.deleteDataset(UUID.fromString(id), getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
@@ -285,14 +285,14 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        EnumerateDatasetModel edm = datasetService.enumerateDatasets(offset, limit, sort,
+        EnumerateDatasetModel edm = dataSnapshotService.enumerateDatasets(offset, limit, sort,
             direction, filter);
         return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
-        DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(id));
+        DatasetModel datasetModel = dataSnapshotService.retrieveDataset(UUID.fromString(id));
         return new ResponseEntity<>(datasetModel, HttpStatus.OK);
     }
 

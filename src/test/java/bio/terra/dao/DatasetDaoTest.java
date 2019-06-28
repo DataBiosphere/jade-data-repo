@@ -162,9 +162,6 @@ public class DatasetDaoTest {
 
     @Test
     public void datasetEnumerateTest() throws Exception {
-        // Delete all datasets from previous tests before we run this one so the results are predictable
-        //deleteAllDatasets(datasetIds);
-
         List<UUID> datasetIds = new ArrayList<>();
         String datasetName = datasetRequest.getName() + UUID.randomUUID().toString();
 

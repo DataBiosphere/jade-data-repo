@@ -3,6 +3,7 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
 import bio.terra.model.StudySummaryModel;
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +14,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -82,4 +84,19 @@ public class IngestTest extends UsersBase {
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
         createdDatasetIds.add(datasetSummary.getId());
     }
+
+    @Test
+    public void ingestUnauthorizedTest() throws Exception {
+        DataRepoResponse<JobModel> ingestCustResp = dataRepoFixtures.ingestJsonDataLaunch(
+                custodianToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
+        assertThat("Custodian is not authorized to ingest data",
+            ingestCustResp.getStatusCode(),
+            equalTo(HttpStatus.UNAUTHORIZED));
+        DataRepoResponse<JobModel> ingestReadResp = dataRepoFixtures.ingestJsonDataLaunch(
+                readerToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
+        assertThat("Reader is not authorized to ingest data",
+            ingestReadResp.getStatusCode(),
+            equalTo(HttpStatus.UNAUTHORIZED));
+    }
+
 }

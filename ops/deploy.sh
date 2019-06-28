@@ -80,6 +80,10 @@ kubectl apply -f "${WD}/k8s/namespace.yaml"
 # put site.conf in the configMap
 kubectl create --namespace data-repo configmap siteconf --from-file=${WD}/site.conf
 
+#render and put stackdriver.yaml in configMap
+consul-template -template "${WD}/k8s/secrets/stackdriver.yaml.ctmpl:${SCRATCH}/stackdriver.yaml" -once
+kubectl create --namespace data-repo configmap stackdriver-datasource --from-file=${SCRATCH}/stackdriver.yaml
+
 # create service account and pod security policy
 kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
 
@@ -118,15 +122,14 @@ rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
 
 # create pods + services
 kubectl apply -f "${WD}/k8s/services"
-kubectl apply -f "${WD}/k8s/pods"
 
 # render environment-specific oidc deployment and ingress configs then create them
 consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
 consul-template -template "${WD}/k8s/deployments/cloudsql-proxy.yaml.ctmpl:${SCRATCH}/cloudsql-proxy.yaml" -once
 consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
-kubectl apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
-kubectl apply -f "${SCRATCH}/cloudsql-proxy.yaml"
-kubectl apply -f "${SCRATCH}/oidc-ingress.yaml"
+kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl --namespace=data-repo apply -f "${SCRATCH}/cloudsql-proxy.yaml"
+kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-ingress.yaml"
 
 # wait for the db to be ready so that we can run commands against it
 echo 'waiting 10 sec for database to be up'

@@ -266,8 +266,8 @@ public class RepositoryApiController implements RepositoryApi {
     }
     // -- data snapshot --
     @Override
-    public ResponseEntity<JobModel> createDataSnapshot(@Valid @RequestBody DataSnapshotRequestModel dataset) {
-        String jobId = dataSnapshotService.createDataSnapshot(dataset, getAuthenticatedInfo());
+    public ResponseEntity<JobModel> createDataSnapshot(@Valid @RequestBody DataSnapshotRequestModel dataSnapshot) {
+        String jobId = dataSnapshotService.createDataSnapshot(dataSnapshot, getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
@@ -292,8 +292,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<DataSnapshotModel> retrieveDataSnapshot(@PathVariable("id") String id) {
-        DataSnapshotModel datasetModel = dataSnapshotService.retrieveDataSnapshot(UUID.fromString(id));
-        return new ResponseEntity<>(datasetModel, HttpStatus.OK);
+        DataSnapshotModel dataSnapshotModel = dataSnapshotService.retrieveDataSnapshot(UUID.fromString(id));
+        return new ResponseEntity<>(dataSnapshotModel, HttpStatus.OK);
     }
 
     // --data snapshot policies --

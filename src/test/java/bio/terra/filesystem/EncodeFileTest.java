@@ -89,7 +89,7 @@ public class EncodeFileTest {
 
     @After
     public void teardown() throws Exception {
-        connectedOperations.teardown();
+//        connectedOperations.teardown();
     }
 
     // NOTES ABOUT THIS TEST: this test requires create access to the jade-testdata bucket in order to

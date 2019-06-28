@@ -264,7 +264,7 @@ public class RepositoryApiController implements RepositoryApi {
             throw new InternalServerErrorException(ex);
         }
     }
-    // -- dataset --
+    // -- data snapshot --
     @Override
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
         String jobId = datasetService.createDataset(dataset, getAuthenticatedInfo());
@@ -296,7 +296,7 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(datasetModel, HttpStatus.OK);
     }
 
-    // --dataset policies --
+    // --data snapshot policies --
     @Override
     public ResponseEntity<PolicyResponse> addDatasetPolicyMember(
         @PathVariable("id") String id,

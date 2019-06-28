@@ -102,7 +102,7 @@ public class SamClientService {
         READ_STUDY,
         INGEST_DATA,
         UPDATE_DATA,
-        // datasets
+        // data snapshots
         CREATE_DATASET,
         EDIT_DATASET,
         READ_DATA,

@@ -102,7 +102,7 @@ public class DrsService {
         return makeBundleObjects(bundle, fsObjectList, drsId.getDatasetId());
     }
 
-    // Take an object or bundle id. Make sure it parses and make sure that the study and dataset
+    // Take an object or bundle id. Make sure it parses and make sure that the study and data snapshot
     // that it claims to be part of actually exist.
     // TODO: add permission checking here I think
     private DrsId parseAndValidateDrsId(String drsObjectId) {

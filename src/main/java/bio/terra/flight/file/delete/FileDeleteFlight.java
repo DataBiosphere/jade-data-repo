@@ -23,8 +23,8 @@ public class FileDeleteFlight extends Flight {
 
         // The flight plan:
         // 1. Metadata start step:
-        //    Make sure the file is deletable - not in a dataset
-        //    Mark the file as deleting so it is not added to a dataset in the meantime.
+        //    Make sure the file is deletable - not in a data snapshot
+        //    Mark the file as deleting so it is not added to a data snapshot in the meantime.
         // 2. pdao does the file delete
         // 3. Metadata complete step: delete the file metadata
 

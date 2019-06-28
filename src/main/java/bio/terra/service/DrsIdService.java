@@ -56,7 +56,7 @@ public class DrsIdService {
     }
 
     private DrsId.Builder parseObjectId(String objectId) {
-        // The format is v1_<studyid>_<datasetid>_<fsobjectid>
+        // The format is v1_<studyid>_<datasnapshotid>_<fsobjectid>
         String[] idParts = StringUtils.split(objectId, '_');
         if (idParts.length != 4 || !StringUtils.equals(idParts[0], "v1")) {
             throw new InvalidDrsIdException("Invalid DRS object id '" + objectId + "'");

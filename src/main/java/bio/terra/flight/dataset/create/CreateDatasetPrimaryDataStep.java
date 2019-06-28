@@ -75,7 +75,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         // Add file references to the dependency table. The algorithm is:
         // Loop through sources, loop through map tables, loop through map columns
         // if from column is FILEREF or DIRREF, ask pdao to get the ids from that
-        // column that are in the dataset; tell file DAO to store them.
+        // column that are in the data snapshot; tell file DAO to store them.
         //
         // NOTE: This is brute force doing a column at a time. Depending on how much memory and
         // swap we want to use, we could extract all row ids in one go. Doing it column-by-column

@@ -157,9 +157,9 @@ public class DatasetService {
         DatasetRequestContentsModel requestContents = requestContentsList.get(0);
         DatasetSource datasetSource = makeSourceFromRequestContents(requestContents, dataset);
 
-        // TODO: When we implement explicit definition of dataset tables, we will handle that here.
-        // For now, we generate the dataset tables directly from the asset tables of the one source
-        // allowed in a dataset.
+        // TODO: When we implement explicit definition of data snapshot tables, we will handle that here.
+        // For now, we generate the data snapshot tables directly from the asset tables of the one source
+        // allowed in a data snapshot.
         conjureDatasetTablesFromAsset(datasetSource.getAssetSpecification(), dataset, datasetSource);
 
         dataset.name(datasetRequestModel.getName())
@@ -178,7 +178,7 @@ public class DatasetService {
             throw new AssetNotFoundException("Asset specification not found: " + requestSource.getAssetName());
         }
 
-        // TODO: When we implement explicit definition of the dataset tables and mapping to study tables,
+        // TODO: When we implement explicit definition of the data snapshot tables and mapping to study tables,
         // the map construction will go here. For MVM, we generate the mapping data directly from the asset spec.
 
         return new DatasetSource()
@@ -207,7 +207,7 @@ public class DatasetService {
             Table table = new Table();
 
             // Build the column lists in parallel, so we can easily connect the
-            // map column to the dataset column.
+            // map column to the data snapshot column.
             List<Column> columnList = new ArrayList<>();
             List<DatasetMapColumn> mapColumnList = new ArrayList<>();
 

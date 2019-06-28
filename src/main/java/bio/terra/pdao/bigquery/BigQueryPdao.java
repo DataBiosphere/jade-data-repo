@@ -82,7 +82,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void createStudy(Study study) {
-        // Keep the study name from colliding with a dataset name by prefixing it.
+        // Keep the study name from colliding with a data snapshot name by prefixing it.
         String studyName = prefixName(study.getName());
         try {
             // For idempotency, if we find the study exists, we assume that we started to
@@ -111,15 +111,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     // compute the row ids from the input ids and validate all inputs have matches
-    // Add new public method that takes the asset and the dataset source and the input values and
-    // returns a structure with the matching row ids (suitable for calling create dataset)
+    // Add new public method that takes the asset and the data snapshot source and the input values and
+    // returns a structure with the matching row ids (suitable for calling create data snapshot)
     // and any mismatched input values that don't have corresponding roww.
     // NOTE: In the fullness of time, we may not do this and kick the function into the UI.
     // So this code assumes there is one source and one set of input values.
     // The query it builds embeds data values into the query in an array. I think it will
     // support about 25,000 input values. It that is not enough there is another, more
     // complicated alternative:
-    // - create a scratch table at dataset creation time
+    // - create a scratch table at data snapshot creation time
     // - truncate before we start
     // - load the values in
     // - do the query
@@ -230,8 +230,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    // for each study that is a part of the dataset, we will add Acls for the
-    // dataset tables from that study
+    // for each study that is a part of the data snapshot, we will add Acls for the
+    // data snapshot tables from that study
     @Override
     public void authorizeDatasetViewsForStudy(String datasetName, String studyName, List<String> tableNames) {
         addAclsToBQDataset(studyName, convertToViewAcls(datasetName, tableNames));
@@ -255,7 +255,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public void addReaderGroupToDataset(String datasetId, String readersEmail) {
-        // add the reader group to the list of Acls on the jade dataset
+        // add the reader group to the list of Acls on the jade data snapshot
         addAclsToBQDataset(datasetId, Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
     }
 
@@ -272,7 +272,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private void removeAclsFromBQDataset(String datasetId, List<Acl> acls) {
         Dataset dataset = bigQuery.getDataset(datasetId);
-        if (dataset != null) {  // can be null if create dataset step failed before it was created
+        if (dataset != null) {  // can be null if create data snapshot step failed before it was created
             Set<Acl> datasetAcls = new HashSet(dataset.getAcl());
             datasetAcls.removeAll(acls);
             logger.debug("new bq acls: " + datasetAcls.toString());
@@ -1017,7 +1017,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             } else if (StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "FILEREF") ||
                 StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "DIRREF")) {
                 if (targetColumn.isArrayOf()) {
-                    // ARRAY( SELECT CONCAT('drs://datarepodnsname/v1_studyid_datasetid_', x)
+                    // ARRAY( SELECT CONCAT('drs://datarepodnsname/v1_studyid_datasnapshotid_', x)
                     //        FROM UNNEST(fromColumnName) AS x ) AS target
                     builder.append("ARRAY( SELECT CONCAT('drs://")
                         .append(datarepoDnsName)
@@ -1030,7 +1030,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                         .append(") AS x ) AS ")
                         .append(targetColumnName);
                 } else {
-                    // CONCAT('drs://datarepodnsname/v1_studyid_datasetid_', fromColumnName) AS target
+                    // CONCAT('drs://datarepodnsname/v1_studyid_datasnapshotid_', fromColumnName) AS target
                     builder.append("CONCAT('drs://")
                         .append(datarepoDnsName)
                         .append("/v1_")

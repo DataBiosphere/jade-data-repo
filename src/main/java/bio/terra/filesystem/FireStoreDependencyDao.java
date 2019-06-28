@@ -64,7 +64,7 @@ public class FireStoreDependencyDao {
         // TODO: REVIEWERS: Right now storing and deleting (below) are not done in a single
         // transaction. That is possible, but more complicated. The assumption is that at a higher layer
         // we will eventually implement some concurrency control so that incompatible operations - like
-        // hard deleting a file in a study and deleting a dataset that uses that file - will not happen
+        // hard deleting a file in a study and deleting a data snapshot that uses that file - will not happen
         // at the same time. Even if this is in a transaction, it doesn't keep us from getting in trouble
         // in conflict cases like that. I believe we have them sprinkled all over the code. If I'm wrong
         // about this, let me know and I can revamp to do something like: make a map of all objects needing

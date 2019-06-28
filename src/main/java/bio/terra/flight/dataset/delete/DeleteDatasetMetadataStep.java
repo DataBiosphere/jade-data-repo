@@ -34,7 +34,7 @@ public class DeleteDatasetMetadataStep implements Step {
         try {
             dataset = datasetDao.retrieveDataset(datasetId);
 
-            // Remove dataset file references from the underlying studies
+            // Remove data snapshot file references from the underlying studies
             for (DatasetSource datasetSource : dataset.getDatasetSources()) {
                 dependencyDao.deleteDatasetFileDependencies(
                     datasetSource.getStudy().getId().toString(),

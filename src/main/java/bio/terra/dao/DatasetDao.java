@@ -128,10 +128,10 @@ public class DatasetDao {
                             .createdDate(rs.getTimestamp("created_date").toInstant()));
             // needed for fix bugs. but really can't be null
             if (dataset != null) {
-                // retrieve the dataset tables
+                // retrieve the data snapshot tables
                 dataset.datasetTables(datasetTableDao.retrieveTables(dataset.getId()));
 
-                // Must be done after we we make the dataset tables so we can resolve the table and column references
+                // Must be done after we we make the data snapshot tables so we can resolve the table and column references
                 dataset.datasetSources(retrieveDatasetSources(dataset));
             }
             return dataset;
@@ -261,7 +261,7 @@ public class DatasetDao {
                 });
             return summaries;
         } catch (EmptyResultDataAccessException ex) {
-            //this is ok - used during study delete to validate no datasets reference the study
+            //this is ok - used during study delete to validate no data snapshots reference the study
             return Collections.emptyList();
         }
 

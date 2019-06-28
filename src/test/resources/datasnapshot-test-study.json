@@ -1,6 +1,6 @@
 {
-  "name":        "dataset_test_study",
-  "description": "Study to test building datasets with",
+  "name":        "datasnapshot_test_study",
+  "description": "Study to test building datasnapshots with",
   "schema":      {
     "tables":        [
       {

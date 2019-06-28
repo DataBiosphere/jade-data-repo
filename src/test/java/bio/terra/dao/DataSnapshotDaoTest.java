@@ -61,7 +61,7 @@ public class DataSnapshotDaoTest {
     @Before
     public void setup() throws Exception {
         ClassLoader classLoader = getClass().getClassLoader();
-        String studyJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-study.json"));
+        String studyJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test-study.json"));
 
         StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
         studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
@@ -69,7 +69,7 @@ public class DataSnapshotDaoTest {
         studyId = studyDao.create(study);
         study = studyDao.retrieve(studyId);
 
-        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
+        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test.json"));
         datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
         datasetRequest.getContents().get(0).getSource().setStudyName(study.getName());
 

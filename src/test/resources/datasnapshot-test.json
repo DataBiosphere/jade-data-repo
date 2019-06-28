@@ -1,11 +1,11 @@
 {
-  "name":        "dataset_test_dataset",
-  "description": "Very simple dataset for test",
+  "name":        "datasnapshot_test",
+  "description": "Very simple datasnapshot for test",
   "contents": [
     {
       "source":
       {
-        "studyName": "dataset_test_study",
+        "studyName": "datasnapshot_test_study",
         "assetName": "theasset"
       },
       "rootValues": [

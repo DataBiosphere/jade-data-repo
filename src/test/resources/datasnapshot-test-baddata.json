@@ -1,11 +1,11 @@
 {
-  "name":        "dataset_test",
+  "name":        "datasnapshot_test",
   "description": "Test unmatched root values",
   "contents": [
     {
       "source":
       {
-        "studyName": "dataset_test_study",
+        "studyName": "datasnapshot_test_study",
         "assetName": "theasset"
       },
       "rootValues": [

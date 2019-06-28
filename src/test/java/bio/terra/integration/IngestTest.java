@@ -101,7 +101,7 @@ public class IngestTest {
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         DatasetSummaryModel datasetSummary =
-            dataRepoFixtures.createDataset(custodianToken, studySummaryModel, "ingest-test-dataset.json");
+            dataRepoFixtures.createDataset(custodianToken, studySummaryModel, "ingest-test-datasnapshot.json");
         createdDatasetIds.add(datasetSummary.getId());
     }
 

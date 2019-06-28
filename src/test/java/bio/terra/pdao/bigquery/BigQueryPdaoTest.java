@@ -135,7 +135,7 @@ public class BigQueryPdaoTest {
 
             // Create a dataset!
             MockHttpServletResponse datasetResponse =
-                connectedOperations.launchCreateDataset(studySummary, "ingest-test-dataset.json", "");
+                connectedOperations.launchCreateDataset(studySummary, "ingest-test-datasnapshot.json", "");
             DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(datasetResponse);
             DatasetModel dataset = connectedOperations.getDataset(datasetSummary.getId());
 

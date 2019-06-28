@@ -125,10 +125,10 @@ public class DataSnapshotOperationTest {
 
     @Test
     public void testHappyPath() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
+        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
 
-        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "dataset-test-dataset.json");
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "datasnapshot-test.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "_happy_");
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
 
@@ -151,7 +151,7 @@ public class DataSnapshotOperationTest {
         assertThat("study samples loaded properly", studySamples, equalTo(5L));
 
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
-                "study-minimal-dataset.json");
+            "study-minimal-datasnapshot.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
         getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
@@ -172,7 +172,7 @@ public class DataSnapshotOperationTest {
         assertThat("study samples loaded properly", studySamples, equalTo(5L));
 
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
-            "dataset-array-struct.json");
+            "datasnapshot-test-array-struct.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
         DatasetSummaryModel summaryModel = handleCreateDatasetSuccessCase(datasetRequest, response);
         getTestDataset(summaryModel.getId(), datasetRequest, studySummary);
@@ -188,7 +188,7 @@ public class DataSnapshotOperationTest {
     public void testMinimalBadAsset() throws Exception {
         StudySummaryModel studySummary = setupMinimalStudy();
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
-                "study-minimal-dataset-bad-asset.json");
+            "study-minimal-datasnapshot-bad-asset.json");
         MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
         ErrorModel errorModel = handleCreateDatasetFailureCase(response);
         assertThat(errorModel.getMessage(), containsString("Asset"));
@@ -197,9 +197,9 @@ public class DataSnapshotOperationTest {
 
     @Test
     public void testEnumeration() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
-        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "dataset-test-dataset.json");
+        StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
+        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
+        DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary, "datasnapshot-test.json");
 
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
         // Just make sure we get the same dataset summary that we made.
@@ -235,10 +235,10 @@ public class DataSnapshotOperationTest {
 
     @Test
     public void testBadData() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("dataset-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "dataset-test-study-data.csv");
+        StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
+        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
         DatasetRequestModel badDataRequest = makeDatasetTestRequest(studySummary,
-                "dataset-test-dataset-baddata.json");
+            "datasnapshot-test-baddata.json");
 
         MockHttpServletResponse response = performCreateDataset(badDataRequest, "_baddata_");
         ErrorModel errorModel = handleCreateDatasetFailureCase(response);

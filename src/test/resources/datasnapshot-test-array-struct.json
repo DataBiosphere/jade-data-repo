@@ -1,6 +1,6 @@
 {
-  "name":        "dataset_array_struct",
-  "description": "Very simple dataset for test",
+  "name":        "datasnapshot_test_array_struct",
+  "description": "Very simple datasnapshot for test",
   "contents": [
     {
       "source":

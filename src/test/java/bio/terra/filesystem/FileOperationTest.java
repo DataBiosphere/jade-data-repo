@@ -76,7 +76,7 @@ public class FileOperationTest {
 
     @Test
     public void fileOperationsTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
+        StudySummaryModel studySummary = connectedOperations.createTestStudy("datasnapshot-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
         FSObjectModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);

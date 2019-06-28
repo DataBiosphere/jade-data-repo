@@ -192,13 +192,20 @@ public class DatasetDao {
         int limit,
         String sort,
         String direction,
-        String filter
+        String filter,
+        List<UUID> accessibleStudyIds
     ) {
         logger.debug("retrieve datasets offset: " + offset + " limit: " + limit + " sort: " + sort +
             " direction: " + direction + " filter:" + filter);
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
+        DaoUtils.addAuthzIdsClause(accessibleStudyIds, params, whereClauses);
 
+        // get total count of objects
+        String countSql = "SELECT count(id) AS total FROM dataset";
+        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+
+        // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
         String whereSql = "";
         if (!whereClauses.isEmpty()) {
@@ -216,9 +223,6 @@ public class DatasetDao {
                 .createdDate(rs.getTimestamp("created_date").toInstant());
             return summary;
         });
-        sql = "SELECT count(id) AS total FROM dataset";
-        params = new MapSqlParameterSource();
-        Integer total = jdbcTemplate.queryForObject(sql, params, Integer.class);
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
             .total(total == null ? -1 : total);

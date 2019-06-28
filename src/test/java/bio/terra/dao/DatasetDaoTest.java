@@ -156,7 +156,7 @@ public class DatasetDaoTest {
     @Test
     public void datasetEnumerateTest() throws Exception {
         // Delete all datasets from previous tests before we run this one so the results are predictable
-        deleteAllDatasets();
+        //deleteAllDatasets(datasetIds);
 
         List<UUID> datasetIds = new ArrayList<>();
         String datasetName = datasetRequest.getName() + UUID.randomUUID().toString();
@@ -186,12 +186,12 @@ public class DatasetDaoTest {
         testSortingNames(datasetIds, datasetName, 1, 3, "desc");
         testSortingNames(datasetIds, datasetName, 2, 5, "desc");
 
-        testSortingDescriptions("desc");
-        testSortingDescriptions("asc");
+        testSortingDescriptions(datasetIds, "desc");
+        testSortingDescriptions(datasetIds, "asc");
 
 
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6, null,
-            null, "==foo==");
+            null, "==foo==", datasetIds);
         List<DatasetSummary> summaryList = summaryEnum.getItems();
         assertThat("filtered 3 datasets", summaryList.size(), equalTo(3));
         assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
@@ -200,7 +200,7 @@ public class DatasetDaoTest {
         }
 
         MetadataEnumeration<DatasetSummary> emptyEnum = datasetDao.retrieveDatasets(0, 6, null,
-            null, "__");
+            null, "__", datasetIds);
         assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
 
         for (UUID datasetId : datasetIds) {
@@ -214,7 +214,7 @@ public class DatasetDaoTest {
 
     private void testSortingNames(List<UUID> datasetIds, String datasetName, int offset, int limit, String direction) {
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "name",
-            direction, null);
+            direction, null, datasetIds);
         List<DatasetSummary>  summaryList = summaryEnum.getItems();
         int index = (direction.equals("asc")) ? offset : datasetIds.size() - offset - 1;
         for (DatasetSummary summary : summaryList) {
@@ -224,9 +224,9 @@ public class DatasetDaoTest {
         }
     }
 
-    private void testSortingDescriptions(String direction) {
+    private void testSortingDescriptions(List<UUID> datasetIds, String direction) {
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6,
-            "description", direction, null);
+            "description", direction, null, datasetIds);
         List<DatasetSummary> summaryList = summaryEnum.getItems();
         assertThat("the full list comes back", summaryList.size(), equalTo(6));
         String previous = summaryList.get(0).getDescription();
@@ -248,7 +248,7 @@ public class DatasetDaoTest {
                                        int limit) {
         // We expect the datasets to be returned in their created order
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "created_date",
-            "asc", null);
+            "asc", null, datasetIds);
         List<DatasetSummary> summaryList = summaryEnum.getItems();
         int index = offset;
         for (DatasetSummary summary : summaryList) {
@@ -262,9 +262,9 @@ public class DatasetDaoTest {
         }
     }
 
-    private void deleteAllDatasets() {
+    private void deleteAllDatasets(List<UUID> datasetIds) {
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 1000, null,
-            null, null);
+            null, null, datasetIds);
         List<DatasetSummary> summaryList = summaryEnum.getItems();
         for (DatasetSummary summary : summaryList) {
             datasetDao.delete(summary.getId());

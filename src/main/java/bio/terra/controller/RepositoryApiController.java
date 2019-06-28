@@ -3,6 +3,9 @@ package bio.terra.controller;
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.InternalServerErrorException;
+import bio.terra.exception.UnauthorizedException;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSource;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DeleteResponseModel;
@@ -45,6 +48,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -152,6 +156,7 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
+    @Override
     public ResponseEntity<EnumerateStudyModel> enumerateStudies(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
@@ -172,6 +177,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
                                                 @Valid @RequestBody IngestRequestModel ingest) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = studyService.ingestStudy(id, ingest);
         return jobService.retrieveJob(jobId);
     }
@@ -266,32 +276,64 @@ public class RepositoryApiController implements RepositoryApi {
     }
     // -- dataset --
     @Override
-    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel dataset) {
-        String jobId = datasetService.createDataset(dataset, getAuthenticatedInfo());
-        return jobService.retrieveJob(jobId);
+    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequestModel) {
+        Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequestModel);
+        List<DatasetSource> sources = dataset.getDatasetSources();
+        List<DatasetSource> unauthorzied = new ArrayList();
+        sources.forEach(source -> {
+                if (!samService.isAuthorized(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.STUDY,
+                    source.getStudy().getId().toString(),
+                    SamClientService.DataRepoAction.CREATE_DATASET)) {
+                    unauthorzied.add(source);
+                }
+            }
+        );
+        if (unauthorzied.isEmpty()) {
+            String jobId = datasetService.createDataset(datasetRequestModel, getAuthenticatedInfo());
+            return jobService.retrieveJob(jobId);
+        }
+        throw new UnauthorizedException("User is not authorized to create datasets for these studies " + unauthorzied);
     }
 
     @Override
     public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.DELETE);
         String jobId = datasetService.deleteDataset(UUID.fromString(id), getAuthenticatedInfo());
         return jobService.retrieveJob(jobId);
     }
 
     @Override
     public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
-            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
-            @Valid @RequestParam(value = "filter", required = false) String filter) {
+        @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+        @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+        @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        EnumerateDatasetModel edm = datasetService.enumerateDatasets(offset, limit, sort,
-            direction, filter);
-        return new ResponseEntity<>(edm, HttpStatus.OK);
+        try {
+            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
+                getAuthenticatedInfo(), SamClientService.ResourceType.DATASET);
+            EnumerateDatasetModel edm = datasetService.enumerateDatasets(offset, limit, sort,
+                direction, filter, resources);
+            return new ResponseEntity<>(edm, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
     }
 
     @Override
     public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
         DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(id));
         return new ResponseEntity<>(datasetModel, HttpStatus.OK);
     }

@@ -7,7 +7,7 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
+import bio.terra.model.FSObjectModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
@@ -55,11 +55,14 @@ public class FileOperationTest {
 
     private ConnectedOperations connectedOperations;
 
+    private int validFileCounter;
+
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
         connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+        validFileCounter = 0;
     }
 
     @After
@@ -70,25 +73,24 @@ public class FileOperationTest {
     private static String testDescription = "test file description";
     private static String testMimeType = "application/pdf";
     private static String testPdfFile = "File Design Notes.pdf";
-    private static String testValidFile = "ValidFileName.pdf";
 
     @Test
     public void fileOperationsTest() throws Exception {
         StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
-        FileModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        FSObjectModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // lookup the file we just created
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getFileId();
+        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getObjectId();
         MvcResult result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
-        FileModel lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        FSObjectModel lookupModel = objectMapper.readValue(response.getContentAsString(), FSObjectModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
@@ -103,11 +105,11 @@ public class FileOperationTest {
             .andReturn();
         response = result.getResponse();
         assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
-        lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        lookupModel = objectMapper.readValue(response.getContentAsString(), FSObjectModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getFileId());
+        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getObjectId());
         fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
@@ -131,12 +133,11 @@ public class FileOperationTest {
             containsString("file not found"));
 
         // Error: Invalid gs path - case 1: not gs
-        String validPath = "/dd/files/foo/" + testValidFile;
         fileLoadModel = new FileLoadModel()
             .sourcePath("http://jade_notabucket/foo/bar.txt")
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(validPath);
+            .targetPath(makeValidUniqueFilePath());
 
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("Not a gs schema", errorModel.getMessage(),
@@ -147,7 +148,7 @@ public class FileOperationTest {
             .sourcePath("gs://jade_notabucket:1234/foo/bar.txt")
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(validPath);
+            .targetPath(makeValidUniqueFilePath());
 
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("Invalid bucket name", errorModel.getMessage(),
@@ -158,11 +159,16 @@ public class FileOperationTest {
             .sourcePath("gs:///")
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(validPath);
+            .targetPath(makeValidUniqueFilePath());
 
         errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
+    }
+
+    private String makeValidUniqueFilePath() {
+        validFileCounter++;
+        return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
     private FileLoadModel makeFileLoad() throws Exception {

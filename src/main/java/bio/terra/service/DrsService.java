@@ -5,7 +5,10 @@ import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.filesystem.FireStoreFileDao;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSDir;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSBundle;
@@ -30,6 +33,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+// TODO: NOTE: This code implements an out-of-date version of the DRS spec. See DR-409.
+// It probably works, but is not useful.
 @Component
 public class DrsService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DrsService");
@@ -61,21 +66,26 @@ public class DrsService {
     public DRSObject lookupObjectByDrsId(String drsObjectId) {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
 
-        FSObject fsObject = fileService.lookupFSObject(
+        FSObjectBase fsObject = fileService.lookupFSObject(
             drsId.getStudyId(),
-            drsId.getFsObjectId(),
-            FSObject.FSObjectType.FILE);
-        return drsObjectFromFSObject(fsObject, drsId.getDatasetId());
+            drsId.getFsObjectId());
+        if (fsObject.getObjectType() != FSObjectType.FILE) {
+            throw new IllegalArgumentException("Object is not a blob");
+        }
+        return drsObjectFromFSFile((FSFile)fsObject, drsId.getDatasetId());
     }
 
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
 
-        FSObject dirObject = fileDao.retrieve(
+        FSObjectBase fsObject = fileDao.retrieveWithContents(
             UUID.fromString(drsId.getStudyId()),
             UUID.fromString(drsId.getFsObjectId()));
-
-        List<FSObject> fsObjectList = fileDao.enumerateDirectory(dirObject.getStudyId(), dirObject.getObjectId());
+        if (fsObject.getObjectType() != FSObjectType.DIRECTORY) {
+            throw new IllegalArgumentException("Object is not a bundle");
+        }
+        FSDir dirObject = (FSDir)fsObject;
+        List<FSObjectBase> fsObjectList = dirObject.getContents();
 
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = dirObject.getCreatedDate().toString();
@@ -114,7 +124,7 @@ public class DrsService {
         }
     }
 
-    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObject> fsObjectList, String datasetId) {
+    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String datasetId) {
         // TODO: this computation does not conform to the current spec. With fine-grain access
         // control, we cannot pre-compute the sizes or checksums of contained bundles. I have raised
         // the question in the GA4GH cloud stream.
@@ -123,7 +133,7 @@ public class DrsService {
         List<String> crc32cList = new ArrayList<>();
         long totalSize = 0;
 
-        for (FSObject fsObject : fsObjectList) {
+        for (FSObjectBase fsObject : fsObjectList) {
             String drsUri = drsIdService.toDrsUri(
                 fsObject.getStudyId().toString(),
                 datasetId,
@@ -135,16 +145,17 @@ public class DrsService {
 
             DRSBundleObject.TypeEnum objectType = DRSBundleObject.TypeEnum.BUNDLE;
 
-            if (fsObject.getObjectType() == FSObject.FSObjectType.FILE) {
+            if (fsObject.getObjectType() == FSObjectType.FILE) {
+                FSFile fsFile = (FSFile)fsObject;
                 objectType = DRSBundleObject.TypeEnum.OBJECT;
 
-                if (fsObject.getChecksumMd5() == null) {
+                if (fsFile.getChecksumMd5() == null) {
                     md5IsValid = false; // can't compute aggregate when not all objects have values
                 } else {
-                    md5List.add(fsObject.getChecksumMd5());
+                    md5List.add(fsFile.getChecksumMd5());
                 }
-                crc32cList.add(fsObject.getChecksumCrc32c());
-                totalSize += fsObject.getSize();
+                crc32cList.add(fsFile.getChecksumCrc32c());
+                totalSize += fsFile.getSize();
             }
 
             DRSBundleObject bundleObject = new DRSBundleObject()
@@ -195,12 +206,12 @@ public class DrsService {
         return bundle;
     }
 
-    private DRSObject drsObjectFromFSObject(FSObject fsObject, String datasetId) {
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
-        String theTime = fsObject.getCreatedDate().toString();
+        String theTime = fsFile.getCreatedDate().toString();
 
         DRSAccessURL accessURL = new DRSAccessURL()
-            .url(fsObject.getGspath());
+            .url(fsFile.getGspath());
 
         DRSAccessMethod accessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
@@ -208,23 +219,23 @@ public class DrsService {
             .region(gcsConfiguration.getRegion());
 
         DrsId drsId = DrsId.builder()
-            .studyId(fsObject.getStudyId().toString())
+            .studyId(fsFile.getStudyId().toString())
             .datasetId(datasetId)
-            .fsObjectId(fsObject.getObjectId().toString())
+            .fsObjectId(fsFile.getObjectId().toString())
             .build();
 
         DRSObject fileModel = new DRSObject()
             .id(drsId.toDrsObjectId())
-            .name(getLastNameFromPath(fsObject.getPath()))
-            .size(fsObject.getSize())
+            .name(getLastNameFromPath(fsFile.getPath()))
+            .size(fsFile.getSize())
             .created(theTime)
             .updated(theTime)
             .version(DRS_OBJECT_VERSION)
-            .mimeType(fsObject.getMimeType())
-            .checksums(fileService.makeChecksums(fsObject))
+            .mimeType(fsFile.getMimeType())
+            .checksums(fileService.makeChecksums(fsFile))
             .accessMethods(Collections.singletonList(accessMethod))
-            .description(fsObject.getDescription())
-            .aliases(Collections.singletonList(fsObject.getPath()));
+            .description(fsFile.getDescription())
+            .aliases(Collections.singletonList(fsFile.getPath()));
 
         return fileModel;
     }

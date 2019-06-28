@@ -1,16 +1,23 @@
 package bio.terra.service;
 
 import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
-import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSDir;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
 import bio.terra.model.DRSChecksum;
+import bio.terra.model.DirectoryDetailModel;
+import bio.terra.model.FSObjectModel;
+import bio.terra.model.FSObjectModelType;
+import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +26,6 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import static bio.terra.metadata.FSObject.FSObjectType.DIRECTORY;
-import static bio.terra.metadata.FSObject.FSObjectType.FILE;
 
 @Component
 public class FileService {
@@ -52,27 +56,28 @@ public class FileService {
         return stairway.submit(FileIngestFlight.class, flightMap);
     }
 
-    public FileModel lookupFile(String studyId, String fileId) {
-        return fileModelFromFSObject(lookupFSObject(studyId, fileId, FSObject.FSObjectType.FILE));
+    public FSObjectModel lookupFile(String studyId, String fileId) {
+        return fileModelFromFSObject(lookupFSObject(studyId, fileId));
     }
 
-    public FileModel lookupPath(String studyId, String path) {
-        return fileModelFromFSObject(lookupFSObjectByPath(studyId, path, FSObject.FSObjectType.FILE));
+    public FSObjectModel lookupPath(String studyId, String path) {
+        FSObjectBase fsObject = lookupFSObjectByPath(studyId, path);
+        return fileModelFromFSObject(fsObject);
     }
 
-    FSObject lookupFSObject(String studyId, String fileId, FSObject.FSObjectType objectType) {
-        FSObject fsObject = fileDao.retrieve(UUID.fromString(studyId), UUID.fromString(fileId));
-        checkFSObject(fsObject, studyId, fileId, objectType);
+    FSObjectBase lookupFSObject(String studyId, String fileId) {
+        FSObjectBase fsObject = fileDao.retrieveWithContents(UUID.fromString(studyId), UUID.fromString(fileId));
+        checkFSObject(fsObject, studyId, fileId);
         return fsObject;
     }
 
-    FSObject lookupFSObjectByPath(String studyId, String path, FSObject.FSObjectType objectType) {
-        FSObject fsObject = fileDao.retrieveByPath(studyId, path);
-        checkFSObject(fsObject, studyId, path, objectType);
+    FSObjectBase lookupFSObjectByPath(String studyId, String path) {
+        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(UUID.fromString(studyId), path);
+        checkFSObject(fsObject, studyId, path);
         return fsObject;
     }
 
-    private void checkFSObject(FSObject fsObject, String studyId, String objectRef, FSObject.FSObjectType objectType) {
+    private void checkFSObject(FSObjectBase fsObject, String studyId, String objectRef) {
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in study with id '"
                 + studyId + "'");
@@ -80,18 +85,8 @@ public class FileService {
 
         switch (fsObject.getObjectType()) {
             case FILE:
-                if (objectType == FILE) {
-                    break;
-                } else {
-                    throw new InvalidFileSystemObjectTypeException("Attempt to lookup a file");
-                }
-
             case DIRECTORY:
-                if (objectType == DIRECTORY) {
-                    break;
-                } else {
-                    throw new InvalidFileSystemObjectTypeException("Attempt to lookup a directory");
-                }
+                break;
 
                 // Don't reveal files that are coming or going
             case INGESTING_FILE:
@@ -102,37 +97,70 @@ public class FileService {
         }
     }
 
-    public FileModel fileModelFromFSObject(FSObject fsObject) {
-        FileModel fileModel = new FileModel()
-            .fileId(fsObject.getObjectId().toString())
+    public FSObjectModel fileModelFromFSObject(FSObjectBase fsObject) {
+        FSObjectModel fsObjectModel = new FSObjectModel()
+            .objectId(fsObject.getObjectId().toString())
             .studyId(fsObject.getStudyId().toString())
             .path(fsObject.getPath())
             .size(fsObject.getSize())
             .created(fsObject.getCreatedDate().toString())
-            .mimeType(fsObject.getMimeType())
-            .checksums(makeChecksums(fsObject))
-            .accessUrl(fsObject.getGspath())
             .description(fsObject.getDescription());
 
-        return fileModel;
+        if (fsObject.getObjectType() == FSObjectType.FILE) {
+            if (!(fsObject instanceof FSFile)) {
+                throw new FileSystemCorruptException("Mismatched object type");
+            }
+            fsObjectModel.objectType(FSObjectModelType.FILE);
+
+            FSFile fsFile = (FSFile)fsObject;
+            fsObjectModel.fileDetail(new FileDetailModel()
+                .checksums(makeChecksums(fsFile))
+                .accessUrl(fsFile.getGspath())
+                .mimeType(fsFile.getMimeType()));
+        } else if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+            if (!(fsObject instanceof FSDir)) {
+                throw new FileSystemCorruptException("Mismatched object type");
+            }
+
+            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
+            FSDir fsDir = (FSDir)fsObject;
+            if (fsDir.isEnumerated()) {
+                DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
+                for (FSObjectBase fsItem : fsDir.getContents()) {
+                    FSObjectModel itemModel = fileModelFromFSObject(fsItem);
+                    directoryDetail.addContentsItem(itemModel);
+                }
+                fsObjectModel.directoryDetail(directoryDetail);
+            }
+        } else {
+            throw new FileSystemCorruptException("Object type instance is totally wrong; we shouldn't be here");
+        }
+
+        return fsObjectModel;
     }
 
     // Even though this uses the DRSChecksum model, it is used in the
     // FileModel to return the set of checksums for a file.
-    List<DRSChecksum> makeChecksums(FSObject fsObject) {
+    List<DRSChecksum> makeChecksums(FSFile fsFile) {
         List<DRSChecksum> checksums = new ArrayList<>();
         DRSChecksum checksumCrc32 = new DRSChecksum()
-            .checksum(fsObject.getChecksumCrc32c())
+            .checksum(fsFile.getChecksumCrc32c())
             .type("crc32c");
         checksums.add(checksumCrc32);
 
-        if (fsObject.getChecksumMd5() != null) {
+        if (fsFile.getChecksumMd5() != null) {
             DRSChecksum checksumMd5 = new DRSChecksum()
-                .checksum(fsObject.getChecksumMd5())
+                .checksum(fsFile.getChecksumMd5())
                 .type("md5");
             checksums.add(checksumMd5);
         }
 
         return checksums;
     }
+
+    private String getObjectName(String path) {
+        String[] pathParts = StringUtils.split(path, '/');
+        return pathParts[pathParts.length - 1];
+    }
+
 }

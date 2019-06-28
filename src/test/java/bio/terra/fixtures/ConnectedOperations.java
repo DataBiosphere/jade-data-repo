@@ -7,7 +7,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.model.FileModel;
+import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -208,7 +208,7 @@ public class ConnectedOperations {
         return ingestResponse;
     }
 
-    public FileModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
+    public FSObjectModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
         String url = "/api/repository/v1/studies/" + studyId + "/files";
         MvcResult result = mvc.perform(post(url)
@@ -218,19 +218,19 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
-        FileModel fileModel = handleAsyncSuccessCase(response, FileModel.class);
+        FSObjectModel fileModel = handleAsyncSuccessCase(response, FSObjectModel.class);
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
-        assertThat("mime type matches", fileModel.getMimeType(),
+        assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
             CoreMatchers.equalTo(fileLoadModel.getMimeType()));
 
-        for (DRSChecksum checksum : fileModel.getChecksums()) {
+        for (DRSChecksum checksum : fileModel.getFileDetail().getChecksums()) {
             assertTrue("valid checksum type",
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));
         }
 
-        addFile(studyId, fileModel.getFileId());
+        addFile(studyId, fileModel.getObjectId());
 
         return fileModel;
     }

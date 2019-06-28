@@ -4,7 +4,7 @@ import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.flight.exception.InvalidFileRefException;
 import bio.terra.metadata.Column;
-import bio.terra.metadata.FSObject;
+import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.pdao.bigquery.BigQueryPdao;
@@ -44,7 +44,7 @@ public class IngestValidateRefsStep implements Step {
             if (StringUtils.equalsIgnoreCase(column.getType(), "FILEREF")) {
                 List<String> refIdArray = bigQueryPdao.getRefIds(study.getName(), stagingTableName, column);
                 List<String> badRefIds =
-                    fileDao.validateRefIds(study.getId().toString(), refIdArray, FSObject.FSObjectType.FILE);
+                    fileDao.validateRefIds(study.getId().toString(), refIdArray, FSObjectType.FILE);
                 if (badRefIds != null) {
                     invalidRefIds.addAll(badRefIds);
                 }

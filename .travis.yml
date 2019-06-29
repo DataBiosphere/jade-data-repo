@@ -42,14 +42,12 @@ before_script:
 script:
   - set -e
   - ./render-configs.sh $TRAVIS_TOKEN
-  - ./gradlew assemble
-  - ./gradlew check --scan -s
-  - ./gradlew testConnected --scan -s
+  - ./gradlew assemble check testConnected --scan -s
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image
     deployments/api-deployment
     "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
-  - ./gradlew testIntegration --scan -s
+  - ./gradlew releaseLocks testIntegration --scan -s
 
 deploy:
   provider: script

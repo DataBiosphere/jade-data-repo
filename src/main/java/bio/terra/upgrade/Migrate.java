@@ -6,6 +6,7 @@ import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;
 import liquibase.exception.LiquibaseException;
+import liquibase.lockservice.DatabaseChangeLogLock;
 import liquibase.resource.ClassLoaderResourceAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +48,10 @@ public class Migrate {
             Liquibase liquibase = new Liquibase(changesetFile,
                     new ClassLoaderResourceAccessor(),
                     new JdbcConnection(connection));
+            DatabaseChangeLogLock[] locks = liquibase.listLocks();
+            for (DatabaseChangeLogLock lock : locks) {
+                logger.info(String.format("dbChangeLogLock id: %s, lockedBy: %s", lock.getId(), lock.getLockedBy()));
+            }
             logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
             if (migrateConfiguration.getDropAllOnStart()) {
                 liquibase.dropAll();

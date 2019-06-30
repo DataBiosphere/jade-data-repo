@@ -50,7 +50,8 @@ public class Migrate {
                     new JdbcConnection(connection));
             DatabaseChangeLogLock[] locks = liquibase.listLocks();
             for (DatabaseChangeLogLock lock : locks) {
-                logger.info(String.format("dbChangeLogLock id: %s, lockedBy: %s", lock.getId(), lock.getLockedBy()));
+                logger.info(String.format("dbChangeLogLock changeSet: %s, id: %s, lockedBy: %s",
+                    changesetFile, lock.getId(), lock.getLockedBy()));
             }
             logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
             if (migrateConfiguration.getDropAllOnStart()) {

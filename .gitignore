@@ -43,3 +43,6 @@ src/generated/
 
 # Mac directory metadata
 .DS_Store
+
+# stackdriver secret 
+ops/k8s/secrets/stackdriver.yaml

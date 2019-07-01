@@ -29,7 +29,7 @@ spec:
               secretKeyRef:
                 name: api-secrets
                 key: datarepo-password
-        command: ['sh', '-c','export PGPASSWORD=${DB_DATAREPO_PASSWORD};', 'psql -h cloudsql-proxy-service.data-repo -U ${DB_DATAREPO_USERNAME} -d datarepo -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;']
+        command: ['sh', '-c','export PGPASSWORD=${DB_DATAREPO_PASSWORD};', 'psql -h cloudsql-proxy-service.data-repo -U ${DB_DATAREPO_USERNAME} -d datarepo -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"']
       volumes:
       - name: google-cloud-key
         secret:

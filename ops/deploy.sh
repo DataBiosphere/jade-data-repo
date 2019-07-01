@@ -131,16 +131,6 @@ kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
 kubectl --namespace=data-repo apply -f "${SCRATCH}/cloudsql-proxy.yaml"
 kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-ingress.yaml"
 
-# wait for the db to be ready so that we can run commands against it
-echo 'waiting 10 sec for database to be up'
-sleep 10
-# TODO: add readiness probe to postgres pod def to check for port 5432 to be available
-#kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
-
-# create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
-cat "${WD}/../db/create-data-repo-db" | \
-    kubectl --namespace data-repo run psql -i --serviceaccount=jade-sa --restart=Never --rm --image=postgres:9.6 -- \
-    psql -h postgres-service.data-repo -U postgres
 
 # create deployments
 kubectl --namespace data-repo apply -f "${WD}/k8s/deployments/"

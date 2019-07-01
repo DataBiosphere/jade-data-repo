@@ -22,7 +22,7 @@ import java.util.concurrent.ExecutionException;
 public class FireStoreDependencyDao {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreDependencyDao");
 
-    // The collection name has non-hexadecimal characters in it, so it won't collide with any study id.
+    // The collection name has non-hexadecimal characters in it, so it won't collide with any dataset id.
     private static final String DEPENDENCY_COLLECTION_NAME = "dependencies";
 
     private Firestore firestore;
@@ -34,15 +34,15 @@ public class FireStoreDependencyDao {
         this.fireStoreUtils = fireStoreUtils;
     }
 
-    public boolean objectHasDataSnapshotReference(String studyId, String objectId) {
+    public boolean objectHasDataSnapshotReference(String datasetId, String objectId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
-        Query query = depColl.whereEqualTo("studyId", studyId).whereEqualTo("objectId", objectId);
+        Query query = depColl.whereEqualTo("datasetId", datasetId).whereEqualTo("objectId", objectId);
         return hasReference(query);
     }
 
-    public boolean studyHasDataSnapshotReference(String studyId) {
+    public boolean datasetHasDataSnapshotReference(String datasetId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
-        Query query = depColl.whereEqualTo("studyId", studyId);
+        Query query = depColl.whereEqualTo("datasetId", datasetId);
         return hasReference(query);
     }
 
@@ -60,23 +60,23 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeDataSnapshotFileDependencies(String studyId, String dataSnapshotId, List<String> refIds) {
+    public void storeDataSnapshotFileDependencies(String datasetId, String dataSnapshotId, List<String> refIds) {
         // TODO: REVIEWERS: Right now storing and deleting (below) are not done in a single
         // transaction. That is possible, but more complicated. The assumption is that at a higher layer
         // we will eventually implement some concurrency control so that incompatible operations - like
-        // hard deleting a file in a study and deleting a data snapshot that uses that file - will not happen
+        // hard deleting a file in a dataset and deleting a data snapshot that uses that file - will not happen
         // at the same time. Even if this is in a transaction, it doesn't keep us from getting in trouble
         // in conflict cases like that. I believe we have them sprinkled all over the code. If I'm wrong
         // about this, let me know and I can revamp to do something like: make a map of all objects needing
         // to be added or incremented. Then perform all adds or updates (or deletes).
         for (String objectId : refIds) {
-            storeDataSnapshotFileDependency(studyId, dataSnapshotId, objectId);
+            storeDataSnapshotFileDependency(datasetId, dataSnapshotId, objectId);
         }
     }
 
-    public void deleteDataSnapshotFileDependencies(String studyId, String dataSnapshotId) {
+    public void deleteDataSnapshotFileDependencies(String datasetId, String dataSnapshotId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
-        Query query = depColl.whereEqualTo("studyId", studyId).whereEqualTo("dataSnapshotId", dataSnapshotId);
+        Query query = depColl.whereEqualTo("datasetId", datasetId).whereEqualTo("dataSnapshotId", dataSnapshotId);
         ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
         try {
@@ -94,11 +94,11 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeDataSnapshotFileDependency(String studyId, String dataSnapshotId, String objectId) {
+    public void storeDataSnapshotFileDependency(String datasetId, String dataSnapshotId, String objectId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
 
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
-            Query query = depColl.whereEqualTo("studyId", studyId)
+            Query query = depColl.whereEqualTo("datasetId", datasetId)
                 .whereEqualTo("objectId", objectId)
                 .whereEqualTo("dataSnapshotId", dataSnapshotId);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
@@ -112,7 +112,7 @@ public class FireStoreDependencyDao {
                     // no dependency object yet. Let's make one
                     FireStoreDependency fireStoreDependency = new FireStoreDependency()
                         .dataSnapshotId(dataSnapshotId)
-                        .studyId(studyId)
+                        .datasetId(datasetId)
                         .objectId(objectId)
                         .refCount(1L);
 
@@ -139,11 +139,11 @@ public class FireStoreDependencyDao {
         fireStoreUtils.transactionGet("store dependency", transaction);
     }
 
-    public void removeDataSnapshotFileDependency(String studyId, String dataSnapshotId, String objectId) {
+    public void removeDataSnapshotFileDependency(String datasetId, String dataSnapshotId, String objectId) {
         CollectionReference depColl = firestore.collection(DEPENDENCY_COLLECTION_NAME);
 
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
-            Query query = depColl.whereEqualTo("studyId", studyId)
+            Query query = depColl.whereEqualTo("datasetId", datasetId)
                 .whereEqualTo("objectId", objectId)
                 .whereEqualTo("dataSnapshotId", dataSnapshotId);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();

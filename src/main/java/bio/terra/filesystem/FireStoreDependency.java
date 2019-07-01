@@ -1,11 +1,11 @@
 package bio.terra.filesystem;
 
 // POJO for storing dependency documents in FireStore
-// Each dependency document maps a data snapshot to a study/file-in-study.
+// Each dependency document maps a data snapshot to a dataset/file-in-dataset.
 // It has a reference count to track the number of times the file has been used in the data snapshot.
 public class FireStoreDependency {
     private String dataSnapshotId;
-    private String studyId;
+    private String datasetId;
     private String objectId;
     private Long refCount;
 
@@ -21,12 +21,12 @@ public class FireStoreDependency {
         return this;
     }
 
-    public String getStudyId() {
-        return studyId;
+    public String getDatasetId() {
+        return datasetId;
     }
 
-    public FireStoreDependency studyId(String studyId) {
-        this.studyId = studyId;
+    public FireStoreDependency datasetId(String datasetId) {
+        this.datasetId = datasetId;
         return this;
     }
 

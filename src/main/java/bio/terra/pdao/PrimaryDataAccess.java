@@ -2,8 +2,8 @@ package bio.terra.pdao;
 
 import bio.terra.metadata.DataSnapshot;
 import bio.terra.metadata.DataSnapshotSource;
+import bio.terra.metadata.DrDataset;
 import bio.terra.metadata.RowIdMatch;
-import bio.terra.metadata.Study;
 
 import java.util.List;
 
@@ -19,13 +19,13 @@ import java.util.List;
  * <ul>
  *     <li>do sequence</li>
  *     <ol>
- *         <li>studyExists - validate that the study does not exist before calling create</li>
- *         <li>createStudy - if it finds the study, it deletes it and recreates. That covers the case where the
+ *         <li>datasetExists - validate that the dataset does not exist before calling create</li>
+ *         <li>createDataset - if it finds the dataset, it deletes it and recreates. That covers the case where the
  *         create operation is interrupted by a service failure and restarts.</li>
  *     </ol>
  *     <li>undo</li>
  *     <ol>
- *         <li>deleteStudy - called on undo; does not fail if the study has already been deleted</li>
+ *         <li>deleteDataset - called on undo; does not fail if the dataset has already been deleted</li>
  *     </ol>
  * </ul>
  *
@@ -35,25 +35,25 @@ import java.util.List;
 public interface PrimaryDataAccess {
 
     /**
-     * Check to see if a study exists
+     * Check to see if a dataset exists
      */
-    boolean studyExists(String studyName);
+    boolean datasetExists(String datasetName);
 
     /**
-     * Create the container and tables for a study.
+     * Create the container and tables for a dataset.
      * BigQuery: container is a BigQuery dataset
      *
-     * @param study
+     * @param dataset
      */
-    void createStudy(Study study);
+    void createDataset(DrDataset dataset);
 
     /**
-     * Delete the study. All tables within the container and the container are deleted
+     * Delete the dataset. All tables within the container and the container are deleted
      *
-     * @param study
-     * @return true if the study was deleted; false if it was not found; throw on other errors
+     * @param dataset
+     * @return true if the dataset was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteStudy(Study study);
+    boolean deleteDataset(DrDataset dataset);
 
     /**
      * Check to see if a dataSnapshot exists
@@ -100,19 +100,20 @@ public interface PrimaryDataAccess {
     void addReaderGroupToDataSnapshot(String bqDatasetId, String readersEmail);
 
     /**
-     * Update the athorized views on the study to include the tables in the dataSnapshot
+     * Update the athorized views on the dataset to include the tables in the dataSnapshot
      * @param dataSnapshotName
-     * @param studyName
+     * @param datasetName
      * @param tableNames
      */
-    void authorizeDataSnapshotViewsForStudy(String dataSnapshotName, String studyName, List<String> tableNames);
+    void authorizeDataSnapshotViewsForDataset(String dataSnapshotName, String datasetName, List<String> tableNames);
 
     /**
-     * Remove the athorized views for the dataSnapshot from the study
+     * Remove the athorized views for the dataSnapshot from the dataset
      * @param dataSnapshotName
-     * @param studyName
+     * @param datasetName
      * @param tableNames
      */
-    void removeDataSnapshotAuthorizationFromStudy(String dataSnapshotName, String studyName, List<String> tableNames);
+    void removeDataSnapshotAuthorizationFromDataset(String dataSnapshotName, String datasetName,
+                                                    List<String> tableNames);
 
 }

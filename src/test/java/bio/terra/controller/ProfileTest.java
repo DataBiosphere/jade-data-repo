@@ -57,8 +57,8 @@ public class ProfileTest {
 
     private BillingProfileRequestModel requestModel(String jsonResourceFileName) throws IOException {
         ClassLoader classLoader = getClass().getClassLoader();
-        String studyJsonStr = IOUtils.toString(classLoader.getResourceAsStream(jsonResourceFileName));
-        return objectMapper.readerFor(BillingProfileRequestModel.class).readValue(studyJsonStr);
+        String datasetJsonStr = IOUtils.toString(classLoader.getResourceAsStream(jsonResourceFileName));
+        return objectMapper.readerFor(BillingProfileRequestModel.class).readValue(datasetJsonStr);
     }
 
     @Test

@@ -5,7 +5,7 @@
     {
       "source":
       {
-        "studyName": "datasnapshot_test_study",
+        "datasetName": "datasnapshot_test_dataset",
         "assetName": "theasset"
       },
       "rootValues": [

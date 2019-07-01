@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Generic class for tables. It can be used for both study and dataset tables.
+ * Generic class for tables. It can be used for both dataset and dataset tables.
  */
 public class Table {
     private UUID id;

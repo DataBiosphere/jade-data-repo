@@ -6,13 +6,13 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DataSnapshotRequestModel;
 import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.EnumerateDrDatasetModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
-import bio.terra.model.StudyModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DrDatasetModel;
+import bio.terra.model.DrDatasetRequestModel;
+import bio.terra.model.DrDatasetSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,87 +40,91 @@ public class DataRepoFixtures {
     private ObjectMapper objectMapper;
 
 
-    // studies
+    // datasets
 
-    public DataRepoResponse<StudySummaryModel> createStudyRaw(String authToken, String filename) throws Exception {
-        StudyRequestModel requestModel = jsonLoader.loadObject(filename, StudyRequestModel.class);
+    public DataRepoResponse<DrDatasetSummaryModel> createDatasetRaw(
+            String authToken,
+            String filename) throws Exception {
+        DrDatasetRequestModel requestModel = jsonLoader.loadObject(filename, DrDatasetRequestModel.class);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         String json = objectMapper.writeValueAsString(requestModel);
 
         return dataRepoClient.post(
             authToken,
-            "/api/repository/v1/studies",
+            "/api/repository/v1/datasets",
             json,
-            StudySummaryModel.class);
+            DrDatasetSummaryModel.class);
     }
 
-    public StudySummaryModel createStudy(String authToken, String filename) throws Exception {
-        DataRepoResponse<StudySummaryModel> postResponse = createStudyRaw(authToken, filename);
-        assertThat("study is successfully created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("study create response is present", postResponse.getResponseObject().isPresent());
+    public DrDatasetSummaryModel createDataset(String authToken, String filename) throws Exception {
+        DataRepoResponse<DrDatasetSummaryModel> postResponse = createDatasetRaw(authToken, filename);
+        assertThat("dataset is successfully created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("dataset create response is present", postResponse.getResponseObject().isPresent());
         return postResponse.getResponseObject().get();
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteStudyRaw(String authToken, String studyId) throws Exception {
+    public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(
+            String authToken,
+            String datasetId) throws Exception {
         return dataRepoClient.delete(
-            authToken, "/api/repository/v1/studies/" + studyId, DeleteResponseModel.class);
+            authToken, "/api/repository/v1/datasets/" + datasetId, DeleteResponseModel.class);
     }
 
-    public void deleteStudy(String authToken, String studyId) throws Exception {
-        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteStudyRaw(authToken, studyId);
+    public void deleteDataset(String authToken, String datasetId) throws Exception {
+        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetRaw(authToken, datasetId);
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<EnumerateStudyModel> enumerateStudiesRaw(String authToken) throws Exception {
+    public DataRepoResponse<EnumerateDrDatasetModel> enumerateStudiesRaw(String authToken) throws Exception {
         return dataRepoClient.get(authToken,
-            "/api/repository/v1/studies?sort=created_date&direction=desc",
-            EnumerateStudyModel.class);
+            "/api/repository/v1/datasets?sort=created_date&direction=desc",
+            EnumerateDrDatasetModel.class);
     }
 
-    public EnumerateStudyModel enumerateStudies(String authToken) throws Exception {
-        DataRepoResponse<EnumerateStudyModel> response = enumerateStudiesRaw(authToken);
-        assertThat("study enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", response.getResponseObject().isPresent());
+    public EnumerateDrDatasetModel enumerateStudies(String authToken) throws Exception {
+        DataRepoResponse<EnumerateDrDatasetModel> response = enumerateStudiesRaw(authToken);
+        assertThat("dataset enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("dataset get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<StudyModel> getStudyRaw(String authToken, String studyId) throws Exception {
-        return dataRepoClient.get(authToken, "/api/repository/v1/studies/" + studyId, StudyModel.class);
+    public DataRepoResponse<DrDatasetModel> getDatasetRaw(String authToken, String datasetId) throws Exception {
+        return dataRepoClient.get(authToken, "/api/repository/v1/datasets/" + datasetId, DrDatasetModel.class);
     }
 
-    public StudyModel getStudy(String authToken, String studyId) throws Exception {
-        DataRepoResponse<StudyModel> response = getStudyRaw(authToken, studyId);
-        assertThat("study is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", response.getResponseObject().isPresent());
+    public DrDatasetModel getDataset(String authToken, String datasetId) throws Exception {
+        DataRepoResponse<DrDatasetModel> response = getDatasetRaw(authToken, datasetId);
+        assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("dataset get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<Object> addStudyPolicyMemberRaw(String authToken,
-                                                            String studyId,
-                                                            SamClientService.DataRepoRole role,
-                                                            String userEmail) throws Exception {
+    public DataRepoResponse<Object> addDatasetPolicyMemberRaw(String authToken,
+                                                              String datasetId,
+                                                              SamClientService.DataRepoRole role,
+                                                              String userEmail) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(authToken,
-            "/api/repository/v1/studies/" + studyId + "/policies/" + role.toString() + "/members",
+            "/api/repository/v1/datasets/" + datasetId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
 
-    public void addStudyPolicyMember(String authToken,
-                                     String studyId,
-                                     SamClientService.DataRepoRole role,
-                                     String userEmail) throws Exception {
-        DataRepoResponse<Object> response = addStudyPolicyMemberRaw(authToken, studyId, role, userEmail);
-        assertThat("study policy memeber is successfully added",
+    public void addDatasetPolicyMember(String authToken,
+                                       String datasetId,
+                                       SamClientService.DataRepoRole role,
+                                       String userEmail) throws Exception {
+        DataRepoResponse<Object> response = addDatasetPolicyMemberRaw(authToken, datasetId, role, userEmail);
+        assertThat("dataset policy memeber is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
     // dataSnapshots
 
     public DataRepoResponse<DataSnapshotSummaryModel> createDataSnapshotRaw(
-        String authToken, StudySummaryModel studySummaryModel, String filename) throws Exception {
+        String authToken, DrDatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
         DataSnapshotRequestModel requestModel = jsonLoader.loadObject(filename, DataSnapshotRequestModel.class);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
-        requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
+        requestModel.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
         String json = objectMapper.writeValueAsString(requestModel);
 
         DataRepoResponse<JobModel> jobResponse = dataRepoClient.post(
@@ -136,10 +140,10 @@ public class DataRepoFixtures {
         return dataRepoClient.waitForResponse(authToken, jobResponse, DataSnapshotSummaryModel.class);
     }
 
-    public DataSnapshotSummaryModel createDataSnapshot(String authToken, StudySummaryModel studySummaryModel,
+    public DataSnapshotSummaryModel createDataSnapshot(String authToken, DrDatasetSummaryModel datasetSummaryModel,
                                              String filename) throws Exception {
         DataRepoResponse<DataSnapshotSummaryModel> dataSnapshotResponse = createDataSnapshotRaw(
-            authToken, studySummaryModel, filename);
+            authToken, datasetSummaryModel, filename);
         assertThat("dataSnapshot create is successful",
             dataSnapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
         assertTrue("dataSnapshot create response is present",
@@ -174,23 +178,23 @@ public class DataRepoFixtures {
                 deleteModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
-    // Create a test study; expect successful creation
+    // Create a test dataset; expect successful creation
 
     /**
      * Ingests JSON data taking the defaults for the ingest specification
      *
-     * @param studyId   - id of study to load
+     * @param datasetId   - id of dataset to load
      * @param tableName - name of table to load data into
      * @param datafile  - file path within the bucket from property integrationtest.ingestbucket
      * @return ingest response
      * @throws Exception
      */
     public DataRepoResponse<IngestResponseModel> ingestJsonDataRaw(
-        String authToken, String studyId, String tableName, String datafile) throws Exception {
+        String authToken, String datasetId, String tableName, String datafile) throws Exception {
         String ingestBody = buildSimpleIngest(tableName, datafile);
         DataRepoResponse<JobModel> postResponse = dataRepoClient.post(
             authToken,
-            "/api/repository/v1/studies/" + studyId + "/ingest",
+            "/api/repository/v1/datasets/" + datasetId + "/ingest",
             ingestBody,
             JobModel.class);
         assertTrue("ingest launch succeeded", postResponse.getStatusCode().is2xxSuccessful());
@@ -199,9 +203,9 @@ public class DataRepoFixtures {
         return dataRepoClient.waitForResponse(authToken, postResponse, IngestResponseModel.class);
     }
 
-    public IngestResponseModel ingestJsonData(String authToken, String studyId, String tableName, String datafile)
+    public IngestResponseModel ingestJsonData(String authToken, String datasetId, String tableName, String datafile)
         throws Exception {
-        DataRepoResponse<IngestResponseModel> response = ingestJsonDataRaw(authToken, studyId, tableName, datafile);
+        DataRepoResponse<IngestResponseModel> response = ingestJsonDataRaw(authToken, datasetId, tableName, datafile);
         assertThat("ingestOne is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("ingestOne response is present", response.getResponseObject().isPresent());
 

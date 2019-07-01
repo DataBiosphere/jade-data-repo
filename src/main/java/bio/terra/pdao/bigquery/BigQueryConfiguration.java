@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Profile;
 @Profile("google")
 public class BigQueryConfiguration {
     // TODO: This is temporary. When we do the resource manager, the project id will via there
-    // for a given study. This project id is used here and in the file system (FireStore) to
+    // for a given dataset. This project id is used here and in the file system (FireStore) to
     // allocate the accessing instance.
 
     @Value("${google.projectid}")

@@ -2,7 +2,7 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;
-import bio.terra.metadata.StudyRelationship;
+import bio.terra.metadata.DrDatasetRelationship;
 import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 
@@ -33,12 +33,12 @@ public class WalkRelationship {
     }
 
     public static WalkRelationship ofAssetRelationship(AssetRelationship assetRelationship) {
-        StudyRelationship studyRelationship = assetRelationship.getStudyRelationship();
+        DrDatasetRelationship datasetRelationship = assetRelationship.getDatasetRelationship();
         return new WalkRelationship()
-                .fromColumn(studyRelationship.getFromColumn())
-                .fromTable(studyRelationship.getFromTable())
-                .toColumn(studyRelationship.getToColumn())
-                .toTable(studyRelationship.getToTable());
+                .fromColumn(datasetRelationship.getFromColumn())
+                .fromTable(datasetRelationship.getFromTable())
+                .toColumn(datasetRelationship.getToColumn())
+                .toTable(datasetRelationship.getToTable());
     }
 
     public WalkRelationship() {

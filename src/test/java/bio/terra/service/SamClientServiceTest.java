@@ -35,13 +35,13 @@ public class SamClientServiceTest {
     private SamClientService sam;
 
     @Test(expected = ApiException.class)
-    public void testCreateStudyResourceException() throws Exception {
-        UUID studyId = UUID.randomUUID();
+    public void testCreateDatasetResourceException() throws Exception {
+        UUID datasetId = UUID.randomUUID();
         // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.STUDY.toString()), any());
-        sam.createStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
+        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
     }
 
     @Test(expected = ApiException.class)
@@ -74,12 +74,12 @@ public class SamClientServiceTest {
     }
 
     @Test(expected = ApiException.class)
-    public void testDeleteStudyResourceException() throws Exception {
-        UUID studyId = UUID.randomUUID();
+    public void testDeleteDatasetResourceException() throws Exception {
+        UUID datasetId = UUID.randomUUID();
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .deleteResource(eq(SamClientService.ResourceType.STUDY.toString()), eq(studyId.toString()));
-        sam.deleteStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
+            .deleteResource(eq(SamClientService.ResourceType.STUDY.toString()), eq(datasetId.toString()));
+        sam.deleteDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
     }
 
     @Test(expected = ApiException.class)

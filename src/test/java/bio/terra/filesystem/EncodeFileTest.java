@@ -10,7 +10,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DrDatasetSummaryModel;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -96,8 +96,8 @@ public class EncodeFileTest {
     // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), false, false);
+        DrDatasetSummaryModel datasetSummary = connectedOperations.createTestDataset("encodefiletest-dataset.json");
+        String targetPath = loadFiles(datasetSummary.getId(), false, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -105,7 +105,7 @@ public class EncodeFileTest {
             .table("file")
             .path(gsPath);
 
-        connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
         // Delete the scratch blob
         Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
@@ -118,19 +118,19 @@ public class EncodeFileTest {
             .table("donor")
             .path("gs://" + testConfig.getIngestbucket() + "/encodetest/donor.json");
 
-        connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
         // At this point, we have files and tabular data. Let's make a dataSnapshot!
 
         MockHttpServletResponse resp = connectedOperations.launchCreateDataSnapshot(
-            studySummary, "encodefiletest-datasnapshot.json", "");
+            datasetSummary, "encodefiletest-datasnapshot.json", "");
         DataSnapshotSummaryModel dataSnapshotSummary = connectedOperations.handleCreateDataSnapshotSuccessCase(resp);
 
         String dataSnapshotFileId = getFileRefIdFromDataSnapshot(dataSnapshotSummary.getName());
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
-            delete("/api/repository/v1/studies/" + studySummary.getId() + "/files/" + dataSnapshotFileId))
+            delete("/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + dataSnapshotFileId))
             .andReturn();
         resp = connectedOperations.validateJobModelAndWait(result);
         assertThat(resp.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
@@ -140,13 +140,13 @@ public class EncodeFileTest {
             errorModel.getMessage(), containsString("used by at least one dataSnapshot"));
 
         connectedOperations.deleteTestDataSnapshot(dataSnapshotSummary.getId());
-        connectedOperations.deleteTestStudy(studySummary.getId());
+        connectedOperations.deleteTestDataset(datasetSummary.getId());
     }
 
     @Test
     public void encodeFileBadFileId() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), true, false);
+        DrDatasetSummaryModel datasetSummary = connectedOperations.createTestDataset("encodefiletest-dataset.json");
+        String targetPath = loadFiles(datasetSummary.getId(), true, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -155,7 +155,7 @@ public class EncodeFileTest {
             .path(gsPath);
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
+        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -180,8 +180,8 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadRowTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), false, true);
+        DrDatasetSummaryModel datasetSummary = connectedOperations.createTestDataset("encodefiletest-dataset.json");
+        String targetPath = loadFiles(datasetSummary.getId(), false, true);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -190,7 +190,7 @@ public class EncodeFileTest {
             .path(gsPath);
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
+        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -199,6 +199,7 @@ public class EncodeFileTest {
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
         ErrorModel ingestError = connectedOperations.handleAsyncFailureCase(response);
+        // TODO: this used to return with two errors..
         assertThat("correctly found bad row",
             ingestError.getMessage(), equalTo("Ingest failed with 2 errors - see error details"));
 
@@ -230,7 +231,7 @@ public class EncodeFileTest {
         }
     }
 
-    private String loadFiles(String studyId, boolean insertBadId, boolean insertBadRow) throws Exception {
+    private String loadFiles(String datasetId, boolean insertBadId, boolean insertBadRow) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -262,7 +263,7 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
-                    FSObjectModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    FSObjectModel bamFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
                         bamFileId = bamFile.getObjectId() + ID_GARBAGE;
@@ -275,7 +276,7 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_index_gs_path());
-                    FSObjectModel bamiFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    FSObjectModel bamiFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
                     bamiFileId = bamiFile.getObjectId();
                 }
 
@@ -283,6 +284,7 @@ public class EncodeFileTest {
                 String fileLine;
                 if (insertBadRow && !badRowInserted) {
                     fileLine = "{\"fribbitz\";\"ABCDEFG\"}\n";
+                    badRowInserted = true;
                 } else {
                     fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
                 }

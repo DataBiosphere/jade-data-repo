@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 public class FSObjectBase {
     private UUID objectId;
-    private UUID studyId;
+    private UUID datasetId;
     private FSObjectType objectType;
     private Instant createdDate;
     private String path;
@@ -36,12 +36,12 @@ public class FSObjectBase {
         return this;
     }
 
-    public UUID getStudyId() {
-        return studyId;
+    public UUID getDatasetId() {
+        return datasetId;
     }
 
-    public FSObjectBase studyId(UUID studyId) {
-        this.studyId = studyId;
+    public FSObjectBase datasetId(UUID datasetId) {
+        this.datasetId = datasetId;
         return this;
     }
 
@@ -100,7 +100,7 @@ public class FSObjectBase {
 
         return new EqualsBuilder()
             .append(objectId, that.objectId)
-            .append(studyId, that.studyId)
+            .append(datasetId, that.datasetId)
             .append(objectType, that.objectType)
             .append(createdDate, that.createdDate)
             .append(path, that.path)
@@ -113,7 +113,7 @@ public class FSObjectBase {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
             .append(objectId)
-            .append(studyId)
+            .append(datasetId)
             .append(objectType)
             .append(createdDate)
             .append(path)
@@ -126,7 +126,7 @@ public class FSObjectBase {
     public String toString() {
         return new ToStringBuilder(this)
             .append("objectId", objectId)
-            .append("studyId", studyId)
+            .append("datasetId", datasetId)
             .append("objectType", objectType)
             .append("createdDate", createdDate)
             .append("path", path)

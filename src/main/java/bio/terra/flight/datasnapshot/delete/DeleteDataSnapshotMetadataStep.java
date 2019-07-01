@@ -38,7 +38,7 @@ public class DeleteDataSnapshotMetadataStep implements Step {
             // Remove data snapshot file references from the underlying studies
             for (DataSnapshotSource dataSnapshotSource : dataSnapshot.getDataSnapshotSources()) {
                 dependencyDao.deleteDataSnapshotFileDependencies(
-                    dataSnapshotSource.getStudy().getId().toString(),
+                    dataSnapshotSource.getDataset().getId().toString(),
                     datasetId.toString());
             }
             found = dataSnapshotDao.delete(datasetId);

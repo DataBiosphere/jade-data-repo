@@ -17,7 +17,7 @@ You'll want to follow all the steps below and stop once you have updated to the 
 ### Create the data repo db and user
 
     psql -f db/create-data-repo-db
-    
+
 ### Clear the database
 
     psql -f db/truncate-tables datarepo drmanager
@@ -33,14 +33,14 @@ part of the build, but are handy during development:
 To remove all database tables and clear liquibase history, run:
 
     ./gradlew dropAll
-    
-To perform an upgrade to your current schema, run: 
+
+To perform an upgrade to your current schema, run:
 
     ./gradlew update
 
 In the case where you'd like to go back to a specific migration marked by a tag, run:
 
-    ./gradlew rollback -PliquibaseCommandValue="study_init"
+    ./gradlew rollback -PliquibaseCommandValue="dataset_init"
 
 You can operate on one database or the other by specifying the parameter `runList`. For example, to
 just drop tables from stairway, you would run:

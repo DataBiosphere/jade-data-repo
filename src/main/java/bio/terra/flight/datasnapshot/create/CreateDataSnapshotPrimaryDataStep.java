@@ -90,14 +90,14 @@ public class CreateDataSnapshotPrimaryDataStep implements Step {
                         StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
 
                         List<String> refIds = bigQueryPdao.getDataSnapshotRefIds(
-                            dataSnapshotSource.getStudy().getName(),
+                            dataSnapshotSource.getDataset().getName(),
                             dataSnapshot.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn());
 
                         dependencyDao.storeDataSnapshotFileDependencies(
-                            dataSnapshotSource.getStudy().getId().toString(),
+                            dataSnapshotSource.getDataset().getId().toString(),
                             dataSnapshot.getId().toString(),
                             refIds);
                     }

@@ -1,9 +1,9 @@
 package bio.terra.service;
 
 import bio.terra.dao.DataSnapshotDao;
-import bio.terra.dao.StudyDao;
+import bio.terra.dao.DrDatasetDao;
 import bio.terra.dao.exception.DataSnapshotNotFoundException;
-import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.dao.exception.DrDatasetNotFoundException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
@@ -41,7 +41,7 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
 
-    private final StudyDao studyDao;
+    private final DrDatasetDao datasetDao;
     private final DataSnapshotDao dataSnapshotDao;
     private final FireStoreFileDao fileDao;
     private final FileService fileService;
@@ -49,13 +49,13 @@ public class DrsService {
     private final GcsConfiguration gcsConfiguration;
 
     @Autowired
-    public DrsService(StudyDao studyDao,
+    public DrsService(DrDatasetDao datasetDao,
                       DataSnapshotDao dataSnapshotDao,
                       FireStoreFileDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration) {
-        this.studyDao = studyDao;
+        this.datasetDao = datasetDao;
         this.dataSnapshotDao = dataSnapshotDao;
         this.fileDao = fileDao;
         this.fileService = fileService;
@@ -67,7 +67,7 @@ public class DrsService {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
 
         FSObjectBase fsObject = fileService.lookupFSObject(
-            drsId.getStudyId(),
+            drsId.getDatasetId(),
             drsId.getFsObjectId());
         if (fsObject.getObjectType() != FSObjectType.FILE) {
             throw new IllegalArgumentException("Object is not a blob");
@@ -79,7 +79,7 @@ public class DrsService {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
 
         FSObjectBase fsObject = fileDao.retrieveWithContents(
-            UUID.fromString(drsId.getStudyId()),
+            UUID.fromString(drsId.getDatasetId()),
             UUID.fromString(drsId.getFsObjectId()));
         if (fsObject.getObjectType() != FSObjectType.DIRECTORY) {
             throw new IllegalArgumentException("Object is not a bundle");
@@ -102,14 +102,14 @@ public class DrsService {
         return makeBundleObjects(bundle, fsObjectList, drsId.getDataSnapshotId());
     }
 
-    // Take an object or bundle id. Make sure it parses and make sure that the study and data snapshot
+    // Take an object or bundle id. Make sure it parses and make sure that the dataset and data snapshot
     // that it claims to be part of actually exist.
     // TODO: add permission checking here I think
     private DrsId parseAndValidateDrsId(String drsObjectId) {
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         try {
-            UUID studyId = UUID.fromString(drsId.getStudyId());
-            studyDao.retrieveSummaryById(studyId);
+            UUID datasetId = UUID.fromString(drsId.getDatasetId());
+            datasetDao.retrieveSummaryById(datasetId);
 
             UUID dataSnapshotId = UUID.fromString(drsId.getDataSnapshotId());
             dataSnapshotDao.retrieveDataSnapshotSummary(dataSnapshotId);
@@ -117,8 +117,8 @@ public class DrsService {
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (StudyNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
+        } catch (DrDatasetNotFoundException ex) {
+            throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
         } catch (DataSnapshotNotFoundException ex) {
             throw new DrsObjectNotFoundException("No dataSnapshot found for DRS object id '" + drsObjectId + "'", ex);
         }
@@ -135,11 +135,11 @@ public class DrsService {
 
         for (FSObjectBase fsObject : fsObjectList) {
             String drsUri = drsIdService.toDrsUri(
-                fsObject.getStudyId().toString(),
+                fsObject.getDatasetId().toString(),
                 dataSnapshotId,
                 fsObject.getObjectId().toString());
             String drsObjectId = drsIdService.toDrsObjectId(
-                fsObject.getStudyId().toString(),
+                fsObject.getDatasetId().toString(),
                 dataSnapshotId,
                 fsObject.getObjectId().toString());
 
@@ -219,7 +219,7 @@ public class DrsService {
             .region(gcsConfiguration.getRegion());
 
         DrsId drsId = DrsId.builder()
-            .studyId(fsFile.getStudyId().toString())
+            .datasetId(fsFile.getDatasetId().toString())
             .dataSnapshotId(dataSnapshotId)
             .fsObjectId(fsFile.getObjectId().toString())
             .build();

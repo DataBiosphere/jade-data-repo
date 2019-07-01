@@ -34,11 +34,11 @@ public class IngestFileMetadataStepComplete implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         FlightMap workingMap = context.getWorkingMap();
         String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
 
-        fileDao.createFileCompleteUndo(studyId, objectId);
+        fileDao.createFileCompleteUndo(datasetId, objectId);
         return StepResult.getStepResultSuccess();
     }
 

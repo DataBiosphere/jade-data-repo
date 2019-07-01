@@ -2,7 +2,7 @@ package bio.terra.flight.datasnapshot.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.flight.study.create.CreateStudyAuthzResource;
+import bio.terra.flight.dataset.create.CreateDrDatasetAuthzResource;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
@@ -18,7 +18,7 @@ import java.util.UUID;
 public class DeleteDataSnapshotAuthzResource implements Step {
     private SamClientService sam;
     private UUID datasetId;
-    private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
+    private static Logger logger = LoggerFactory.getLogger(CreateDrDatasetAuthzResource.class);
 
     public DeleteDataSnapshotAuthzResource(SamClientService sam, UUID datasetId) {
         this.sam = sam;

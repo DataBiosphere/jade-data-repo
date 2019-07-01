@@ -58,7 +58,7 @@ public class FileDaoTest {
     private String fileAPath = thirdPath + "/" + fileA;
     private String fileBPath = thirdPath + "/" + fileB;
 
-    private UUID studyId = UUID.randomUUID();
+    private UUID datasetId = UUID.randomUUID();
     private String flightId = UUID.randomUUID().toString();
     private String dataSnapshotId = UUID.randomUUID().toString();
 
@@ -89,7 +89,7 @@ public class FileDaoTest {
         FSFile fsFile = new FSFile()
             .mimeType(mimeType)
             .flightId(flightId)
-            .studyId(studyId)
+            .datasetId(datasetId)
             .objectType(FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .description(description);
@@ -99,9 +99,9 @@ public class FileDaoTest {
 
         FSFileInfo fsFileInfo = new FSFileInfo()
             .objectId(fileAId.toString())
-            .studyId(studyId.toString())
+            .datasetId(datasetId.toString())
             .createdDate(Instant.now().toString())
-            .gspath("gs://mybucket/mystudy/myfile")
+            .gspath("gs://mybucket/mydataset/myfile")
             .checksumCrc32c("myChecksum")
             .checksumMd5(null)
             .size(42L)
@@ -111,24 +111,24 @@ public class FileDaoTest {
         assertThat("Id matches", typeObject.getObjectId(), equalTo(fileAId));
         assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FSObjectType.FILE));
 
-        fileDao.createFileCompleteUndo(studyId.toString(), fileAId.toString());
+        fileDao.createFileCompleteUndo(datasetId.toString(), fileAId.toString());
 
-        typeObject = fileDao.retrieveByIdNoThrow(typeObject.getStudyId(), typeObject.getObjectId());
+        typeObject = fileDao.retrieveByIdNoThrow(typeObject.getDatasetId(), typeObject.getObjectId());
         assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
             equalTo(FSObjectType.INGESTING_FILE));
 
         fileDao.createFileComplete(fsFileInfo);
 
-        boolean exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        boolean exists = fileDao.deleteFileStart(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File exists - start", exists);
-        exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        exists = fileDao.deleteFileComplete(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File exists - complete", exists);
     }
 
     @Test
     public void deleteOnEmptyTest() throws Exception {
         FSFile fsObject = new FSFile()
-            .studyId(studyId)
+            .datasetId(datasetId)
             .objectType(FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
@@ -138,14 +138,14 @@ public class FileDaoTest {
         UUID fileAId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileAId);
 
-        FSObjectBase topObject = getCheckPath(topPath, studyId, FSObjectType.DIRECTORY);
-        FSObjectBase secondObject = getCheckPath(secondPath, studyId, FSObjectType.DIRECTORY);
-        FSObjectBase thirdObject = getCheckPath(thirdPath, studyId, FSObjectType.DIRECTORY);
-        FSObjectBase fileAObject = getCheckPath(fileAPath, studyId, FSObjectType.INGESTING_FILE);
+        FSObjectBase topObject = getCheckPath(topPath, datasetId, FSObjectType.DIRECTORY);
+        FSObjectBase secondObject = getCheckPath(secondPath, datasetId, FSObjectType.DIRECTORY);
+        FSObjectBase thirdObject = getCheckPath(thirdPath, datasetId, FSObjectType.DIRECTORY);
+        FSObjectBase fileAObject = getCheckPath(fileAPath, datasetId, FSObjectType.INGESTING_FILE);
 
         // Try to delete a directory with the deleteFile method; should fail
         try {
-            fileDao.createFileStartUndo(studyId.toString(), secondObject.getPath(), flightId);
+            fileDao.createFileStartUndo(datasetId.toString(), secondObject.getPath(), flightId);
             fail("Should not have successfully deleted a directory");
         } catch (Exception ex) {
             assertTrue("Expected exception", ex instanceof FileSystemCorruptException);
@@ -155,24 +155,24 @@ public class FileDaoTest {
         FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
         fileDao.createFileComplete(fsFileInfo);
 
-        boolean exists = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        boolean exists = fileDao.deleteFileStart(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File exists", exists);
 
         try {
-            fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), "badFlightId");
+            fileDao.deleteFileComplete(datasetId.toString(), fileAId.toString(), "badFlightId");
         } catch (Exception ex) {
             assertTrue("Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
             assertThat("Delete reason", ex.getMessage(), containsString("being deleted by someone else"));
         }
 
         try {
-            fileDao.deleteFileComplete(studyId.toString(), secondObject.getObjectId().toString(), flightId);
+            fileDao.deleteFileComplete(datasetId.toString(), secondObject.getObjectId().toString(), flightId);
         } catch (Exception ex) {
             assertTrue("Expected delete exception", ex instanceof InvalidFileSystemObjectTypeException);
             assertThat("Delete reason", ex.getMessage(), containsString("attempt to delete a directory"));
         }
 
-        exists = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        exists = fileDao.deleteFileComplete(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", exists);
 
         // Now verify that the objects are gone.
@@ -185,7 +185,7 @@ public class FileDaoTest {
     @Test
     public void dontDeleteOnNotEmptyTest() throws Exception {
         FSFile fsObject = new FSFile()
-            .studyId(studyId)
+            .datasetId(datasetId)
             .objectType(FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
@@ -195,16 +195,16 @@ public class FileDaoTest {
         UUID fileAId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileAId);
 
-        FSObjectBase topObject = getCheckPath(topPath, studyId, FSObjectType.DIRECTORY);
-        FSObjectBase secondObject = getCheckPath(secondPath, studyId, FSObjectType.DIRECTORY);
-        FSObjectBase thirdObject = getCheckPath(thirdPath, studyId, FSObjectType.DIRECTORY);
-        FSObjectBase fileAObject = getCheckPath(fileAPath, studyId, FSObjectType.INGESTING_FILE);
+        FSObjectBase topObject = getCheckPath(topPath, datasetId, FSObjectType.DIRECTORY);
+        FSObjectBase secondObject = getCheckPath(secondPath, datasetId, FSObjectType.DIRECTORY);
+        FSObjectBase thirdObject = getCheckPath(thirdPath, datasetId, FSObjectType.DIRECTORY);
+        FSObjectBase fileAObject = getCheckPath(fileAPath, datasetId, FSObjectType.INGESTING_FILE);
 
         fsObject.path(fileBPath);
         UUID fileBId = fileDao.createFileStart(fsObject);
         assertNotNull("File id not null", fileBId);
 
-        FSObjectBase fileBObject = getCheckPath(fileBPath, studyId, FSObjectType.INGESTING_FILE);
+        FSObjectBase fileBObject = getCheckPath(fileBPath, datasetId, FSObjectType.INGESTING_FILE);
 
         FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
         fileDao.createFileComplete(fsFileInfo);
@@ -212,9 +212,9 @@ public class FileDaoTest {
         fileDao.createFileComplete(fsFileInfo);
 
 
-        boolean existed = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        boolean existed = fileDao.deleteFileStart(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", existed);
-        existed = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        existed = fileDao.deleteFileComplete(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", existed);
 
         // Directories and file B should still all be in place
@@ -230,7 +230,7 @@ public class FileDaoTest {
         addDataSnapshotDependency(fileBId);
 
         try {
-            fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+            fileDao.deleteFileStart(datasetId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
@@ -241,7 +241,7 @@ public class FileDaoTest {
         removeDataSnapshotDependency(fileBId);
 
         try {
-            fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+            fileDao.deleteFileStart(datasetId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemObjectDependencyException);
@@ -250,12 +250,12 @@ public class FileDaoTest {
 
         removeDataSnapshotDependency(fileBId);
 
-        fileDao.deleteFileStart(studyId.toString(), fileBId.toString(), flightId);
+        fileDao.deleteFileStart(datasetId.toString(), fileBId.toString(), flightId);
 
         addDataSnapshotDependency(fileBId);
 
         try {
-            fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
+            fileDao.deleteFileComplete(datasetId.toString(), fileBId.toString(), flightId);
             fail("Should not have successfully deleted");
         } catch (Exception ex) {
             assertTrue("Correct dependency exception", ex instanceof FileSystemCorruptException);
@@ -264,7 +264,7 @@ public class FileDaoTest {
 
         removeDataSnapshotDependency(fileBId);
 
-        existed = fileDao.deleteFileComplete(studyId.toString(), fileBId.toString(), flightId);
+        existed = fileDao.deleteFileComplete(datasetId.toString(), fileBId.toString(), flightId);
         assertTrue("File B existed", existed);
 
         // Now verify that the objects are gone.
@@ -278,10 +278,10 @@ public class FileDaoTest {
     // Note: this test does logging because it runs for several minutes. Travis gets impatient if it hasn't seen
     // output for 10 minutes. Sometimes if things are slow, this test can take longer than that.
     @Test
-    public void testStudyDelete() throws Exception {
-        // Make 1001 files and then delete the study
+    public void testDatasetDelete() throws Exception {
+        // Make 1001 files and then delete the dataset
         FSFile fsObject = new FSFile()
-            .studyId(studyId)
+            .datasetId(datasetId)
             .objectType(FSObjectType.INGESTING_FILE)
             .mimeType(mimeType)
             .description(description)
@@ -289,7 +289,7 @@ public class FileDaoTest {
 
         FSFileInfo fsFileInfo = makeFsFileInfo("later");
 
-        logger.info("testStudyDelete:Creating:");
+        logger.info("testDatasetDelete:Creating:");
         for (int i = 1; i <= 1001; i++) {
             fsObject.path("/file_" + i);
             UUID objectId = fileDao.createFileStart(fsObject);
@@ -301,34 +301,34 @@ public class FileDaoTest {
         }
 
         // Make sure some of the files are there.
-        logger.info("testStudyDelete:Reading:");
+        logger.info("testDatasetDelete:Reading:");
         for (int i = 1; i <= 1001; i++) {
-            FSObjectBase testObject = fileDao.retrieveByPathNoThrow(studyId.toString(), "/file_" + i);
+            FSObjectBase testObject = fileDao.retrieveByPathNoThrow(datasetId.toString(), "/file_" + i);
             assertNotNull(testObject);
             if (i % 100 == 0) {
                 logger.info(".." + i);
             }
         }
 
-        logger.info("testStudyDelete:Deleting...");
-        fileDao.deleteFilesFromStudy(studyId.toString());
+        logger.info("testDatasetDelete:Deleting...");
+        fileDao.deleteFilesFromDataset(datasetId.toString());
 
         // Make sure they are all gone
-        logger.info("testStudyDelete:Check deleted:");
+        logger.info("testDatasetDelete:Check deleted:");
         for (int i = 1; i <= 1001; i++) {
-            FSObjectBase noObject = fileDao.retrieveByPathNoThrow(studyId.toString(), "/file_" + i);
+            FSObjectBase noObject = fileDao.retrieveByPathNoThrow(datasetId.toString(), "/file_" + i);
             assertNull("Object is deleted", noObject);
             if (i % 100 == 0) {
                 logger.info(".." + i);
             }
         }
-        logger.info("testStudyDelete:Done");
+        logger.info("testDatasetDelete:Done");
     }
 
     @Test
     public void pathLookupTest() throws Exception {
         FSFile fsObject = new FSFile()
-            .studyId(studyId)
+            .datasetId(datasetId)
             .objectType(FSObjectType.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
@@ -339,19 +339,19 @@ public class FileDaoTest {
         FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
         fileDao.createFileComplete(fsFileInfo);
 
-        FSObjectBase fileAObject = fileDao.retrieve(studyId, fileAId);
-        FSObjectBase testObject = fileDao.retrieveByPath(studyId.toString(), fileAPath);
+        FSObjectBase fileAObject = fileDao.retrieve(datasetId, fileAId);
+        FSObjectBase testObject = fileDao.retrieveByPath(datasetId.toString(), fileAPath);
         assertThat("Path lookup matched fileid lookup", fileAObject, equalTo(testObject));
 
         try {
-            fileDao.retrieveByPath(studyId.toString(), thirdPath + "/not-there");
+            fileDao.retrieveByPath(datasetId.toString(), thirdPath + "/not-there");
             fail("Should not have successfully retrieved");
         } catch (Exception ex) {
             assertTrue("Correct path not found exception", ex instanceof FileSystemObjectNotFoundException);
             assertThat("Correct message", ex.getMessage(), containsString("Object not found"));
         }
 
-        FSObjectBase dirObject = fileDao.retrieveWithContentsByPath(studyId, "/");
+        FSObjectBase dirObject = fileDao.retrieveWithContentsByPath(datasetId, "/");
         assertThat("Root is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
         FSDir enumDir = (FSDir)dirObject;
         assertThat("Root has contents", enumDir.getContents().size(), equalTo(1));
@@ -359,7 +359,7 @@ public class FileDaoTest {
         assertThat("Top is directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
 
         String path = nextDirObject.getPath(); // /top
-        dirObject = fileDao.retrieveWithContentsByPath(studyId, path);
+        dirObject = fileDao.retrieveWithContentsByPath(datasetId, path);
         assertThat("Top is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
         enumDir = (FSDir)dirObject;
         assertThat("Top has contents", enumDir.getContents().size(), equalTo(1));
@@ -367,7 +367,7 @@ public class FileDaoTest {
         assertThat("Second is directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
 
         path = nextDirObject.getPath(); // /top/second
-        dirObject = fileDao.retrieveWithContentsByPath(studyId, path);
+        dirObject = fileDao.retrieveWithContentsByPath(datasetId, path);
         assertThat("Second is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
         enumDir = (FSDir)dirObject;
         assertThat("Second has contents", enumDir.getContents().size(), equalTo(1));
@@ -375,48 +375,50 @@ public class FileDaoTest {
         assertThat("Third is a directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
 
         path = nextDirObject.getPath(); // /top/second/third
-        dirObject = fileDao.retrieveWithContentsByPath(studyId, path);
+        dirObject = fileDao.retrieveWithContentsByPath(datasetId, path);
         assertThat("Third is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
         enumDir = (FSDir)dirObject;
         assertThat("Third has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
         assertThat("Fourth is a file", nextDirObject.getObjectType(), equalTo(FSObjectType.FILE));
 
-        boolean existed = fileDao.deleteFileStart(studyId.toString(), fileAId.toString(), flightId);
+        boolean existed = fileDao.deleteFileStart(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", existed);
-        existed = fileDao.deleteFileComplete(studyId.toString(), fileAId.toString(), flightId);
+        existed = fileDao.deleteFileComplete(datasetId.toString(), fileAId.toString(), flightId);
         assertTrue("File existed", existed);
     }
 
 
     private void addDataSnapshotDependency(UUID objectId) {
-        dependencyDao.storeDataSnapshotFileDependency(studyId.toString(), dataSnapshotId, objectId.toString());
+        dependencyDao.storeDataSnapshotFileDependency(datasetId.toString(), dataSnapshotId, objectId.toString());
     }
 
     private void removeDataSnapshotDependency(UUID objectId) {
-        dependencyDao.removeDataSnapshotFileDependency(studyId.toString(), dataSnapshotId, objectId.toString());
+        dependencyDao.removeDataSnapshotFileDependency(datasetId.toString(), dataSnapshotId, objectId.toString());
     }
 
     private void checkObjectPresent(FSObjectBase fsObject) {
-        FSObjectBase thereObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId().toString(), fsObject.getPath());
+        FSObjectBase thereObject = fileDao.retrieveByPathNoThrow(fsObject.getDatasetId().toString(),
+            fsObject.getPath());
         assertNotNull("Object is there by path", thereObject);
-        thereObject = fileDao.retrieveByIdNoThrow(fsObject.getStudyId(), fsObject.getObjectId());
+        thereObject = fileDao.retrieveByIdNoThrow(fsObject.getDatasetId(), fsObject.getObjectId());
         assertNotNull("Object is there by id", thereObject);
     }
 
 
     private void checkObjectGone(FSObjectBase fsObject) {
-        FSObjectBase goneObject = fileDao.retrieveByPathNoThrow(fsObject.getStudyId().toString(), fsObject.getPath());
+        FSObjectBase goneObject = fileDao.retrieveByPathNoThrow(fsObject.getDatasetId().toString(),
+            fsObject.getPath());
         assertNull("Object is gone by path", goneObject);
-        goneObject = fileDao.retrieveByIdNoThrow(fsObject.getStudyId(), fsObject.getObjectId());
+        goneObject = fileDao.retrieveByIdNoThrow(fsObject.getDatasetId(), fsObject.getObjectId());
         assertNull("Object is gone by id", goneObject);
     }
 
-    private FSObjectBase getCheckPath(String path, UUID studyId, FSObjectType objectType) {
-        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(studyId.toString(), path);
+    private FSObjectBase getCheckPath(String path, UUID datasetId, FSObjectType objectType) {
+        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(datasetId.toString(), path);
         assertNotNull("Object not null", fsObject);
         assertThat("Object has correct path", fsObject.getPath(), equalTo(path));
-        assertThat("Correct study", fsObject.getStudyId(), equalTo(studyId));
+        assertThat("Correct dataset", fsObject.getDatasetId(), equalTo(datasetId));
         assertThat("Correct object type", fsObject.getObjectType(), equalTo(objectType));
         if (objectType != FSObjectType.DIRECTORY) { // Only filled in for files
             FSFile fsFile = (FSFile)fsObject;
@@ -429,9 +431,9 @@ public class FileDaoTest {
     private FSFileInfo makeFsFileInfo(String objectId) {
         return new FSFileInfo()
             .objectId(objectId)
-            .studyId(studyId.toString())
+            .datasetId(datasetId.toString())
             .createdDate(Instant.now().toString())
-            .gspath("gs://mybucket/mystudy/myfile")
+            .gspath("gs://mybucket/mydataset/myfile")
             .checksumCrc32c("myChecksum")
             .checksumMd5(null)
             .size(42L)

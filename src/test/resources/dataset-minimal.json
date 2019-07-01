@@ -1,0 +1,42 @@
+{
+  "name":        "Minimal",
+  "description": "This is a sample dataset definition",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "participant",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "age", "datatype": "integer"}
+        ]
+      },
+      {
+        "name":    "sample",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "participant_id", "datatype": "string"},
+          {"name": "date_collected", "datatype": "date"}
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "participant_sample",
+        "from": {"table": "participant", "column": "id", "cardinality": "one"},
+        "to":   {"table": "sample", "column": "participant_id", "cardinality": "many"}
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "sample",
+        "rootTable": "sample",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "sample", "columns": []},
+          {"name": "participant", "columns": []}
+        ],
+        "follow": ["participant_sample"]
+      }
+    ]
+  }
+}

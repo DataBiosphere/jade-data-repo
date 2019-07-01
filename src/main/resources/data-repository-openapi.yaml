@@ -217,7 +217,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Profile in use by at least one study
+          description: Profile in use by at least one dataset
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -474,11 +474,11 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies':
+  '/api/repository/v1/datasets':
     get:  ## enumerate
       description: |
-        Returns a list of all of the studies the caller has access to
-      operationId: enumerateStudies
+        Returns a list of all of the datasets the caller has access to
+      operationId: enumerateDatasets
       tags:
       - repository
       parameters:
@@ -486,11 +486,11 @@ paths:
         name: offset
         type: integer
         default: 0
-        description: The number of studies to skip before when retrieving the next page
+        description: The number of datasets to skip before when retrieving the next page
       - in: query
         name: limit
         type: integer
-        description: The numbers studies to retrieve and return.
+        description: The numbers datasets to retrieve and return.
         default: 10
       - in: query
         name: sort
@@ -515,66 +515,66 @@ paths:
         description: Filter the results where this string is a case insensitive match in the name or description.
       responses:
         200:
-          description: List of studies
+          description: List of datasets
           schema:
-            $ref: '#/definitions/EnumerateStudyModel'
+            $ref: '#/definitions/EnumerateDrDatasetModel'
 
     post:
-      description: Create a new study
-      operationId: createStudy
+      description: Create a new dataset
+      operationId: createDataset
       tags:
       - repository
       consumes:
       - application/json
       parameters:
       - in: body
-        name: study
-        description: Study to create
+        name: dataset
+        description: DrDataset to create
         schema:
-          $ref: '#/definitions/StudyRequestModel'
+          $ref: '#/definitions/DrDatasetRequestModel'
       responses:
         201:
-          description: Study created successfully and a summary is returned
+          description: DrDataset created successfully and a summary is returned
           schema:
-            $ref: '#/definitions/StudySummaryModel'
+            $ref: '#/definitions/DrDatasetSummaryModel'
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to create studies
+          description: No permission to create datasets
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}':
+  '/api/repository/v1/datasets/{id}':
     get:  ## retrieve
-      description: Retrieve a study by id
-      operationId: retrieveStudy
+      description: Retrieve a dataset by id
+      operationId: retrieveDataset
       tags:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
       responses:
         200:
-          description: Study
+          description: DrDataset
           schema:
-            $ref: '#/definitions/StudyModel'
+            $ref: '#/definitions/DrDatasetModel'
         400:
           description: Bad request - invalid id, badly formed
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to see study
+          description: No permission to see dataset
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - study id does not exist
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
     delete: ## delete
-      description: Delete a study by id
-      operationId: deleteStudy
+      description: Delete a dataset by id
+      operationId: deleteDataset
       tags:
       - repository
       parameters:
@@ -589,22 +589,22 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to delete study
+          description: No permission to delete dataset
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - study id does not exist
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Study in use by at least one data snapshot
+          description: DrDataset in use by at least one data snapshot
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/policies':
+  '/api/repository/v1/datasets/{id}/policies':
     get:  ## retrieve
       description: Retrieve the read and discover policies for the data snapshot
-      operationId: retrieveStudyPolicies
+      operationId: retrieveDatasetPolicies
       tags:
       - repository
       parameters:
@@ -628,10 +628,10 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
 
-  '/api/repository/v1/studies/{id}/policies/{policyName}/members':
+  '/api/repository/v1/datasets/{id}/policies/{policyName}/members':
     post:
-      description: Adds a member to the specified policy for the data snapshot
-      operationId: addStudyPolicyMember
+      description: Adds a member to the specified policy for the dataset
+      operationId: addDatasetPolicyMember
       tags:
       - repository
       consumes:
@@ -643,7 +643,7 @@ paths:
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/StudyPolicyName'
+      - $ref: '#/parameters/DrDatasetPolicyName'
       responses:
         201:
           description: PolicyResponse
@@ -658,20 +658,20 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - data snapshot id does not exist
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
-  '/api/repository/v1/studies/{id}/policies/{policyName}/members/{memberEmail}':
+  '/api/repository/v1/datasets/{id}/policies/{policyName}/members/{memberEmail}':
     delete:  ## retrieve
-      description: Adds a member to the specified policy for the data snapshot
-      operationId: deleteStudyPolicyMember
+      description: Adds a member to the specified policy for the dataset
+      operationId: deleteDatasetPolicyMember
       tags:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/StudyPolicyName'
+      - $ref: '#/parameters/DrDatasetPolicyName'
       - name: memberEmail
         description: The email of the user to remove
         required: true
@@ -691,14 +691,14 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - data snapshot id does not exist
+          description: Not found - dataset id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/ingest':
+  '/api/repository/v1/datasets/{id}/ingest':
     post:
-      description: Ingest data into a study table
-      operationId: ingestStudy
+      description: Ingest data into a dataset table
+      operationId: ingestDataset
       tags:
       - repository
       consumes:
@@ -753,9 +753,9 @@ paths:
           schema:
             $ref: '#/definitions/UserStatusInfo'
 
-  '/api/repository/v1/studies/{id}/files':
+  '/api/repository/v1/datasets/{id}/files':
     post:
-      description: Ingest one file into the study file system; async returns a FSObjectModel
+      description: Ingest one file into the dataset file system; async returns a FSObjectModel
       operationId: ingestFile
       tags:
       - repository
@@ -798,7 +798,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/files/{fileid}':
+  '/api/repository/v1/datasets/{id}/files/{fileid}':
     get:
       description: Lookup metadata for one file
       operationId: lookupFileObjectById
@@ -832,7 +832,7 @@ paths:
     delete: ## delete
       description: |
         Hard delete of a file by id. The file is deleted even if it is in use by
-        a study. Subsequent lookups will give not found errors.
+        a dataset. Subsequent lookups will give not found errors.
       operationId: deleteFile
       tags:
       - repository
@@ -865,11 +865,11 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - study id or file id does not exist
+          description: Not found - dataset id or file id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/filesystem/objects':
+  '/api/repository/v1/datasets/{id}/filesystem/objects':
     get:
       description: Lookup metadata for one file
       operationId: lookupFileObjectByPath
@@ -1129,7 +1129,7 @@ paths:
 parameters:
   Id:
     name: id
-    description: A study or data snapshot id
+    description: A dataset or data snapshot id
     required: true
     type: string
     in: path
@@ -1142,7 +1142,7 @@ parameters:
     enum:
       - reader
       - discoverer
-  StudyPolicyName:
+  DrDatasetPolicyName:
     name: policyName
     in: path
     description: The relevant policy
@@ -1185,7 +1185,7 @@ definitions:
 
   UniqueIdProperty:
     description: |
-      Unique identifier for a study, data snapshot, etc.
+      Unique identifier for a dataset, data snapshot, etc.
     type: string
     pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
 
@@ -1242,11 +1242,11 @@ definitions:
         items:
           $ref: '#/definitions/BillingProfileModel'
 
-  ## Study ##
+  ## DrDataset ##
 
-  StudyModel:
+  DrDatasetModel:
     description: |
-      Complete definition of a study.
+      Complete definition of a dataset.
     type: object
     required:
     - id
@@ -1260,16 +1260,16 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the study
+        description: Description of the dataset
       schema:
-        $ref: '#/definitions/StudySpecificationModel'
+        $ref: '#/definitions/DrDatasetSpecificationModel'
       createdDate:
         type: string
-        description: Date the study was created
+        description: Date the dataset was created
 
-  StudySummaryModel:
+  DrDatasetSummaryModel:
     description: |
-      Summary of a study.
+      Summary of a dataset.
     type: object
     required:
     - id
@@ -1282,14 +1282,14 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the study
+        description: Description of the dataset
       createdDate:
         type: string
-        description: Date the study was created
+        description: Date the dataset was created
 
-  StudyRequestModel:
+  DrDatasetRequestModel:
     description: |
-      Complete definition of a study without the id (used to create a study)
+      Complete definition of a dataset without the id (used to create a dataset)
     type: object
     required:
     - name
@@ -1299,22 +1299,22 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the study
+        description: Description of the dataset
       schema:
-        $ref: '#/definitions/StudySpecificationModel'
+        $ref: '#/definitions/DrDatasetSpecificationModel'
 
-  EnumerateStudyModel:
+  EnumerateDrDatasetModel:
     description: |
-      The total number of studies available and a page of summaries
+      The total number of datasets available and a page of summaries
     type: object
     properties:
       total:
         type: integer
-        description: Total number of studies
+        description: Total number of datasets
       items:
         type: array
         items:
-          $ref: '#/definitions/StudySummaryModel'
+          $ref: '#/definitions/DrDatasetSummaryModel'
 
 
   ## Schema Definitions ##
@@ -1438,7 +1438,7 @@ definitions:
         items:
           $ref: '#/definitions/ObjectNameProperty'
 
-  StudySpecificationModel:
+  DrDatasetSpecificationModel:
     description: data model definition
     type: object
     required:
@@ -1458,10 +1458,10 @@ definitions:
         items:
           $ref: '#/definitions/AssetModel'
 
-  ## Study Ingest Definitions ##
+  ## DrDataset Ingest Definitions ##
   IngestRequestModel:
     description: |
-      Request to ingest data from a file in GCS into a table in a study.
+      Request to ingest data from a file in GCS into a table in a dataset.
       The ingest source must be readable by the DR manager.
       TODO: other input forms
     type: object
@@ -1522,24 +1522,24 @@ definitions:
       - path
       - row_count
     properties:
-      study_id:
+      datasetId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: unique id of the study
-      study:
+        description: unique id of the dataset
+      dataset:
         $ref: '#/definitions/ObjectNameProperty'
-        description: name of the study
+        description: name of the dataset
       table:
         $ref: '#/definitions/ObjectNameProperty'
         description: name of the target table for ingest
       path:
         type: string
-      load_tag:
+      loadTag:
         type: string
-      row_count:
+      rowCount:
         type: integer
         format: int64
         description: number of rows successfully ingested
-      bad_row_count:
+      badRowCount:
         type: integer
         format: int64
         description: number of bad rows skipped
@@ -1548,7 +1548,7 @@ definitions:
   FileLoadModel:
     description: |
       Information needed to copy a file from a source bucket into the
-      study bucket.
+      dataset bucket.
       Eventually, this will include attributes of the storage including
       billing, temperature, geography, etc. But for now...
     type: object
@@ -1556,15 +1556,15 @@ definitions:
       - source_path
       - target_path
     properties:
-      source_path:
+      sourcePath:
         type: string
         description: gs URL of the source file to load
-      target_path:
+      targetPath:
         type: string
         description: |
-          Full path within the study where the file should be placed.
+          Full path within the dataset where the file should be placed.
           The path must start with /.
-      mime_type:
+      mimeType:
         type: string
         description: |-
           A string providing the mime-type of the Data Object.
@@ -1580,13 +1580,13 @@ definitions:
     properties:
       objectId:
         type: string
-        description: Unique id of the filesystem object within the study
-      studyId:
+        description: Unique id of the filesystem object within the dataset
+      datasetId:
         type: string
-        description: Study holding the file
+        description: Dataset holding the file
       path:
         type: string
-        description: full path of the file in the study
+        description: full path of the file in the dataset
       size:
         type: integer
         format: int64
@@ -1640,11 +1640,11 @@ definitions:
   DataSnapshotRequestModel:
     description: |
       Request for creating a data snapshot.
-      For now, the API only supports data snapshots defined as a single study asset and
+      For now, the API only supports data snapshots defined as a single dataset asset and
       row ids for the root table of that asset. The data snapshot has exactly the tables
       and columns of the asset. An optional list of users can be provided to set as
       readers on the data snapshot.
-      In the future, we will need to extend this to handle cross-study data snapshots
+      In the future, we will need to extend this to handle cross-dataset data snapshots
       from disparate assets, so we will need to support column and datatype
       mapping from asset tables to the target data snapshot tables.
     type: object
@@ -1668,7 +1668,7 @@ definitions:
 
   DataSnapshotRequestContentsModel:
     description: |
-      The contents specifies the source of the data (study and asset)
+      The contents specifies the source of the data (dataset and asset)
       and the rows to include (field and rootValues).
       TODO: field will move the asset object; it is here as a stepping stone
     type: object
@@ -1685,13 +1685,13 @@ definitions:
 
   DataSnapshotRequestSourceModel:
     description: |
-      The datasource identifies the study and asset from which to source the data.
+      The datasource identifies the dataset and asset from which to source the data.
     type: object
     required:
-      - studyName
+      - datasetName
       - assetName
     properties:
-      studyName:
+      datasetName:
         $ref: '#/definitions/ObjectNameProperty'
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
@@ -1762,11 +1762,11 @@ definitions:
       DataSnapshotSourceModel returns data about the source for an existing data snapshot
     type: object
     required:
-      - study
+      - dataset
       - asset
     properties:
-      study:
-        $ref: '#/definitions/StudySummaryModel'
+      dataset:
+        $ref: '#/definitions/DrDatasetSummaryModel'
       asset:
         $ref: '#/definitions/ObjectNameProperty'
 

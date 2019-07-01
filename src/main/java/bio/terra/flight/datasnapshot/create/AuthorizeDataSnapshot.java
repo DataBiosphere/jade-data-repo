@@ -2,7 +2,7 @@ package bio.terra.flight.datasnapshot.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.flight.study.create.CreateStudyAuthzResource;
+import bio.terra.flight.dataset.create.CreateDrDatasetAuthzResource;
 import bio.terra.model.DataSnapshotRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
@@ -29,7 +29,7 @@ public class AuthorizeDataSnapshot implements Step {
         this.sam = sam;
     }
 
-    private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
+    private static Logger logger = LoggerFactory.getLogger(CreateDrDatasetAuthzResource.class);
 
     DataSnapshotRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();

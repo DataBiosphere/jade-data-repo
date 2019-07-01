@@ -7,7 +7,7 @@ import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.DrDataset;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.FileService;
@@ -23,13 +23,17 @@ public class IngestFilePrimaryDataStep implements Step {
     private final FireStoreFileDao fileDao;
     private final FileService fileService;
     private final GcsPdao gcsPdao;
-    private final Study study;
+    private final DrDataset dataset;
 
-    public IngestFilePrimaryDataStep(FireStoreFileDao fileDao, Study study, FileService fileService, GcsPdao gcsPdao) {
+    public IngestFilePrimaryDataStep(
+            FireStoreFileDao fileDao,
+            DrDataset dataset,
+            FileService fileService,
+            GcsPdao gcsPdao) {
         this.fileDao = fileDao;
         this.fileService = fileService;
         this.gcsPdao = gcsPdao;
-        this.study = study;
+        this.dataset = dataset;
     }
 
     @Override
@@ -40,12 +44,12 @@ public class IngestFilePrimaryDataStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
 
-        FSObjectBase fsObject = fileDao.retrieve(study.getId(), objectId);
+        FSObjectBase fsObject = fileDao.retrieve(dataset.getId(), objectId);
         if (fsObject.getObjectType() != FSObjectType.INGESTING_FILE) {
             throw new FileSystemCorruptException("This should be a file!");
         }
 
-        FSFileInfo fsFileInfo = gcsPdao.copyFile(study, fileLoadModel, (FSFile)fsObject);
+        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, (FSFile)fsObject);
         workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
         return StepResult.getStepResultSuccess();
     }
@@ -54,7 +58,7 @@ public class IngestFilePrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
-        gcsPdao.deleteFile(study, objectId);
+        gcsPdao.deleteFile(dataset, objectId);
         return StepResult.getStepResultSuccess();
     }
 

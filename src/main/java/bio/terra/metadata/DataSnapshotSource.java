@@ -7,7 +7,7 @@ import java.util.UUID;
 public class DataSnapshotSource {
     private UUID id;
     private DataSnapshot dataSnapshot;
-    private Study study;
+    private DrDataset dataset;
     private AssetSpecification assetSpecification;
     private List<DataSnapshotMapTable> dataSnapshotMapTables = Collections.emptyList();
 
@@ -20,12 +20,12 @@ public class DataSnapshotSource {
         return this;
     }
 
-    public Study getStudy() {
-        return study;
+    public DrDataset getDataset() {
+        return dataset;
     }
 
-    public DataSnapshotSource study(Study study) {
-        this.study = study;
+    public DataSnapshotSource dataset(DrDataset dataset) {
+        this.dataset = dataset;
         return this;
     }
 

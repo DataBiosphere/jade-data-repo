@@ -11,17 +11,17 @@ import org.springframework.http.HttpStatus;
 public class DeleteFileMetadataStepComplete implements Step {
     private final FireStoreFileDao fileDao;
     private final String fileId;
-    private final String studyId;
+    private final String datasetId;
 
-    public DeleteFileMetadataStepComplete(String studyId, FireStoreFileDao fileDao, String fileId) {
+    public DeleteFileMetadataStepComplete(String datasetId, FireStoreFileDao fileDao, String fileId) {
         this.fileDao = fileDao;
         this.fileId = fileId;
-        this.studyId = studyId;
+        this.datasetId = datasetId;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        boolean found = fileDao.deleteFileComplete(studyId, fileId, context.getFlightId());
+        boolean found = fileDao.deleteFileComplete(datasetId, fileId, context.getFlightId());
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
         DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);

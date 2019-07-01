@@ -55,7 +55,7 @@ public class DataSnapshotValidationTest {
 
     public DataSnapshotRequestModel makeDataSnapshotRequest() {
         DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
-                .studyName("study")
+                .datasetName("dataset")
                 .assetName("asset");
         DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
                 .source(dataSnapshotRequestSourceModel)
@@ -121,7 +121,7 @@ public class DataSnapshotValidationTest {
     public void testDataSnapshotValuesListEmpty() throws Exception {
         ArrayList empty = new ArrayList<String>();
         DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
-                .studyName("study")
+                .datasetName("dataset")
                 .assetName("asset");
         DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
                 .source(dataSnapshotRequestSourceModel)
@@ -131,9 +131,9 @@ public class DataSnapshotValidationTest {
     }
 
     @Test
-    public void testDataSnapshotStudyNameInvalid() throws Exception {
+    public void testDataSnapshotDatasetNameInvalid() throws Exception {
         DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
-                .studyName("no spaces")
+                .datasetName("no spaces")
                 .assetName("asset");
         DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
                 .source(dataSnapshotRequestSourceModel)
@@ -141,19 +141,19 @@ public class DataSnapshotValidationTest {
         dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
         expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        dataSnapshotRequestSourceModel.studyName("no-dashes");
+        dataSnapshotRequestSourceModel.datasetName("no-dashes");
         dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
         dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
         expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
-        dataSnapshotRequestSourceModel.studyName("");
+        dataSnapshotRequestSourceModel.datasetName("");
         dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
         dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
         expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        dataSnapshotRequestSourceModel.studyName(tooLong);
+        dataSnapshotRequestSourceModel.datasetName(tooLong);
         dataSnapshotRequestContentsModel.source(dataSnapshotRequestSourceModel);
         dataSnapshotRequest.contents(Collections.singletonList(dataSnapshotRequestContentsModel));
         expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
@@ -163,7 +163,7 @@ public class DataSnapshotValidationTest {
     @Test
     public void testDataSnapshotAssetNameInvalid() throws Exception {
         DataSnapshotRequestSourceModel dataSnapshotRequestSourceModel = new DataSnapshotRequestSourceModel()
-                .studyName("study")
+                .datasetName("dataset")
                 .assetName("no spaces");
         DataSnapshotRequestContentsModel dataSnapshotRequestContentsModel = new DataSnapshotRequestContentsModel()
                 .source(dataSnapshotRequestSourceModel)
@@ -190,7 +190,7 @@ public class DataSnapshotValidationTest {
     }
 
     @Test
-    public void testStudyNameMissing() throws Exception {
+    public void testDatasetNameMissing() throws Exception {
         dataSnapshotRequest.name(null);
         expectBadDataSnapshotCreateRequest(dataSnapshotRequest);
     }

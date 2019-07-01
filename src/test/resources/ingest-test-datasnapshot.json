@@ -2,7 +2,7 @@
   "name":"demo",
   "description":"desc",
   "contents":[
-    { "source": {"studyName":"IngestTest", "assetName":"sample_centric"},
+    { "source": {"datasetName":"IngestTest", "assetName":"sample_centric"},
       "rootValues":["sample1","sample2"]
     }
   ]

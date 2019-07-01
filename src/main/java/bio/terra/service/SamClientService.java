@@ -97,7 +97,7 @@ public class SamClientService {
         ALTER_POLICIES,
         // datarepo
         CREATE_STUDY,
-        // study
+        // dataset
         EDIT_STUDY,
         READ_STUDY,
         INGEST_DATA,
@@ -209,9 +209,9 @@ public class SamClientService {
         return samResourceApi.resourceAction(samResourceType, samResource, action);
     }
 
-    public void deleteStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        samResourceApi.deleteResource(ResourceType.STUDY.toString(), studyId.toString());
+        samResourceApi.deleteResource(ResourceType.STUDY.toString(), datasetId.toString());
     }
 
     public void deleteDataSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
@@ -219,9 +219,9 @@ public class SamClientService {
         samResourceApi.deleteResource(ResourceType.DATASET.toString(), datsetId.toString());
     }
 
-    public void createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+    public void createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
-        req.setResourceId(studyId.toString());
+        req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
             createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));

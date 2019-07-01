@@ -7,7 +7,7 @@ import bio.terra.metadata.DataSnapshot;
 import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.DrDataset;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,17 +32,17 @@ public class DataSnapshotDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final DataSnapshotTableDao dataSnapshotTableDao;
     private final DataSnapshotMapTableDao dataSnapshotMapTableDao;
-    private final StudyDao studyDao;
+    private final DrDatasetDao datasetDao;
 
     @Autowired
     public DataSnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
                            DataSnapshotTableDao dataSnapshotTableDao,
                            DataSnapshotMapTableDao dataSnapshotMapTableDao,
-                           StudyDao studyDao) {
+                           DrDatasetDao datasetDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.dataSnapshotTableDao = dataSnapshotTableDao;
         this.dataSnapshotMapTableDao = dataSnapshotMapTableDao;
-        this.studyDao = studyDao;
+        this.datasetDao = datasetDao;
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -69,11 +69,11 @@ public class DataSnapshotDao {
     }
 
     private void createDataSnapshotSource(DataSnapshotSource dataSnapshotSource) {
-        String sql = "INSERT INTO datasnapshot_source (datasnapshot_id, study_id, asset_id)" +
-                " VALUES (:datasnapshot_id, :study_id, :asset_id)";
+        String sql = "INSERT INTO datasnapshot_source (datasnapshot_id, dataset_id, asset_id)" +
+                " VALUES (:datasnapshot_id, :dataset_id, :asset_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("datasnapshot_id", dataSnapshotSource.getDataSnapshot().getId())
-                .addValue("study_id", dataSnapshotSource.getStudy().getId())
+                .addValue("dataset_id", dataSnapshotSource.getDataset().getId())
                 .addValue("asset_id", dataSnapshotSource.getAssetSpecification().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
@@ -145,11 +145,12 @@ public class DataSnapshotDao {
         // query might work, it makes debugging errors more difficult.
         class RawSourceData {
             private UUID id;
-            private UUID studyId;
+            private UUID datasetId;
             private UUID assetId;
         }
 
-        String sql = "SELECT id, study_id, asset_id FROM datasnapshot_source WHERE datasnapshot_id = :datasnapshot_id";
+        String sql = "SELECT id, dataset_id, asset_id FROM datasnapshot_source " +
+            " WHERE datasnapshot_id = :datasnapshot_id";
         List<RawSourceData> rawList =
             jdbcTemplate.query(
                 sql,
@@ -157,17 +158,17 @@ public class DataSnapshotDao {
                 (rs, rowNum) -> {
                     RawSourceData raw = new RawSourceData();
                     raw.id = UUID.fromString(rs.getString("id"));
-                    raw.studyId = rs.getObject("study_id", UUID.class);
+                    raw.datasetId = rs.getObject("dataset_id", UUID.class);
                     raw.assetId = rs.getObject("asset_id", UUID.class);
                     return raw;
                 });
 
         List<DataSnapshotSource> dataSnapshotSources = new ArrayList<>();
         for (RawSourceData raw : rawList) {
-            Study study = studyDao.retrieve(raw.studyId);
+            DrDataset dataset = datasetDao.retrieve(raw.datasetId);
 
-            // Find the matching asset in the study
-            Optional<AssetSpecification> assetSpecification = study.getAssetSpecificationById(raw.assetId);
+            // Find the matching asset in the dataset
+            Optional<AssetSpecification> assetSpecification = dataset.getAssetSpecificationById(raw.assetId);
             if (!assetSpecification.isPresent()) {
                 throw new CorruptMetadataException("Asset referenced by dataSnapshot source was not found!");
             }
@@ -175,7 +176,7 @@ public class DataSnapshotDao {
             DataSnapshotSource dataSnapshotSource = new DataSnapshotSource()
                     .id(raw.id)
                     .dataSnapshot(dataSnapshot)
-                    .study(study)
+                    .dataset(dataset)
                     .assetSpecification(assetSpecification.get());
 
             // Now that we have access to all of the parts, build the map structure
@@ -243,12 +244,12 @@ public class DataSnapshotDao {
         }
     }
 
-    public List<DataSnapshotSummary> retrieveDataSnapshotsForStudy(UUID studyId) {
+    public List<DataSnapshotSummary> retrieveDataSnapshotsForDataset(UUID datasetId) {
         try {
             String sql = "SELECT datasnapshot.id, name, description, created_date FROM datasnapshot " +
                 "JOIN datasnapshot_source ON datasnapshot.id = datasnapshot_source.datasnapshot_id " +
-                "WHERE datasnapshot_source.study_id = :studyId";
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue("studyId", studyId);
+                "WHERE datasnapshot_source.dataset_id = :datasetId";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
             List<DataSnapshotSummary> summaries = jdbcTemplate.query(
                 sql,
                 params,
@@ -262,7 +263,7 @@ public class DataSnapshotDao {
                 });
             return summaries;
         } catch (EmptyResultDataAccessException ex) {
-            //this is ok - used during study delete to validate no data snapshots reference the study
+            //this is ok - used during dataset delete to validate no data snapshots reference the dataset
             return Collections.emptyList();
         }
 

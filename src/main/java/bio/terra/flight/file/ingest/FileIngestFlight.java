@@ -1,8 +1,8 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.dao.StudyDao;
+import bio.terra.dao.DrDatasetDao;
 import bio.terra.filesystem.FireStoreFileDao;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.DrDataset;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
@@ -18,13 +18,13 @@ public class FileIngestFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
+        DrDatasetDao datasetDao = (DrDatasetDao)appContext.getBean("drDatasetDao");
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
 
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        Study study = studyDao.retrieve(UUID.fromString(studyId));
+        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+        DrDataset dataset = datasetDao.retrieve(UUID.fromString(datasetId));
 
         // The flight plan:
         // 1. Metadata step:
@@ -32,8 +32,8 @@ public class FileIngestFlight extends Flight {
         //    Create the file object in the database; marked as not present
         // 2. pdao does the file copy and returns file gspath, checksum and size
         // 3. Update the file object with the gspath, checksum and size and mark as present
-        addStep(new IngestFileMetadataStepStart(fileDao, study));
-        addStep(new IngestFilePrimaryDataStep(fileDao, study, fileService, gcsPdao));
+        addStep(new IngestFileMetadataStepStart(fileDao, dataset));
+        addStep(new IngestFilePrimaryDataStep(fileDao, dataset, fileService, gcsPdao));
         addStep(new IngestFileMetadataStepComplete(fileDao, fileService));
     }
 

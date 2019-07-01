@@ -7,26 +7,26 @@ import bio.terra.model.DataSnapshotModel;
 import bio.terra.model.DataSnapshotRequestModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDataSnapshotModel;
-import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.EnumerateDrDatasetModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
-import bio.terra.model.StudyModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DrDatasetModel;
+import bio.terra.model.DrDatasetRequestModel;
+import bio.terra.model.DrDatasetSummaryModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.DataSnapshotService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobService;
 import bio.terra.service.SamClientService;
-import bio.terra.service.StudyService;
+import bio.terra.service.DrDatasetService;
 import bio.terra.validation.DataSnapshotRequestValidator;
 import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.PolicyMemberValidator;
-import bio.terra.validation.StudyRequestValidator;
+import bio.terra.validation.DrDatasetRequestValidator;
 import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -58,8 +58,8 @@ public class RepositoryApiController implements RepositoryApi {
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final JobService jobService;
-    private final StudyRequestValidator studyRequestValidator;
-    private final StudyService studyService;
+    private final DrDatasetRequestValidator datasetRequestValidator;
+    private final DrDatasetService datasetService;
     private final DataSnapshotRequestValidator dataSnapshotRequestValidator;
     private final DataSnapshotService dataSnapshotService;
     private final SamClientService samService;
@@ -75,8 +75,8 @@ public class RepositoryApiController implements RepositoryApi {
             ObjectMapper objectMapper,
             HttpServletRequest request,
             JobService jobService,
-            StudyRequestValidator studyRequestValidator,
-            StudyService studyService,
+            DrDatasetRequestValidator datasetRequestValidator,
+            DrDatasetService datasetService,
             DataSnapshotRequestValidator dataSnapshotRequestValidator,
             DataSnapshotService dataSnapshotService,
             SamClientService samService,
@@ -88,8 +88,8 @@ public class RepositoryApiController implements RepositoryApi {
         this.objectMapper = objectMapper;
         this.request = request;
         this.jobService = jobService;
-        this.studyRequestValidator = studyRequestValidator;
-        this.studyService = studyService;
+        this.datasetRequestValidator = datasetRequestValidator;
+        this.datasetService = datasetService;
         this.dataSnapshotRequestValidator = dataSnapshotRequestValidator;
         this.dataSnapshotService = dataSnapshotService;
         this.samService = samService;
@@ -101,7 +101,7 @@ public class RepositoryApiController implements RepositoryApi {
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
-        binder.addValidators(studyRequestValidator);
+        binder.addValidators(datasetRequestValidator);
         binder.addValidators(dataSnapshotRequestValidator);
         binder.addValidators(ingestRequestValidator);
         binder.addValidators(policyMemberValidator);
@@ -121,38 +121,41 @@ public class RepositoryApiController implements RepositoryApi {
         return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
     }
 
-    // -- study --
+    // -- dataset --
     @Override
-    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+    public ResponseEntity<DrDatasetSummaryModel> createDataset(
+            @Valid @RequestBody DrDatasetRequestModel datasetRequest) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.DATAREPO,
             appConfig.datarepoId(),
             SamClientService.DataRepoAction.CREATE_STUDY);
-        return new ResponseEntity<>(studyService.createStudy(studyRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
+        return new ResponseEntity<>(datasetService.createDataset(
+            datasetRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
     }
 
     @Override
-    public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
+    public ResponseEntity<DrDatasetModel> retrieveDataset(@PathVariable("id") String id) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.STUDY,
             id,
             SamClientService.DataRepoAction.READ_STUDY);
-        return new ResponseEntity<>(studyService.retrieve(UUID.fromString(id)), HttpStatus.OK);
+        return new ResponseEntity<>(datasetService.retrieve(UUID.fromString(id)), HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
+    public ResponseEntity<DeleteResponseModel> deleteDataset(@PathVariable("id") String id) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.STUDY,
             id,
             SamClientService.DataRepoAction.DELETE);
-        return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
+        return new ResponseEntity<>(datasetService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
     }
 
-    public ResponseEntity<EnumerateStudyModel> enumerateStudies(
+    @Override
+    public ResponseEntity<EnumerateDrDatasetModel> enumerateDatasets(
             @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
             @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
@@ -162,7 +165,7 @@ public class RepositoryApiController implements RepositoryApi {
         try {
             List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
                 getAuthenticatedInfo(), SamClientService.ResourceType.STUDY);
-            EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter, resources);
+            EnumerateDrDatasetModel esm = datasetService.enumerate(offset, limit, sort, direction, filter, resources);
             return new ResponseEntity<>(esm, HttpStatus.OK);
         } catch (ApiException ex) {
             throw new InternalServerErrorException(ex);
@@ -170,13 +173,13 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
-                                                @Valid @RequestBody IngestRequestModel ingest) {
-        String jobId = studyService.ingestStudy(id, ingest);
+    public ResponseEntity<JobModel> ingestDataset(@PathVariable("id") String id,
+                                                  @Valid @RequestBody IngestRequestModel ingest) {
+        String jobId = datasetService.ingestDataset(id, ingest);
         return jobService.retrieveJob(jobId);
     }
 
-    // -- study-file --
+    // -- dataset-file --
     @Override
     public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
                                                @PathVariable("fileid") String fileid) {
@@ -208,9 +211,9 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
 
-    // --study policies --
+    // --dataset policies --
     @Override
-    public ResponseEntity<PolicyResponse> addStudyPolicyMember(
+    public ResponseEntity<PolicyResponse> addDatasetPolicyMember(
         @PathVariable("id") String id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
@@ -229,7 +232,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> retrieveStudyPolicies(@PathVariable("id") String id) {
+    public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") String id) {
         try {
             PolicyResponse response = new PolicyResponse().policies(
                 samService.retrievePolicies(
@@ -243,7 +246,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<PolicyResponse> deleteStudyPolicyMember(
+    public ResponseEntity<PolicyResponse> deleteDatasetPolicyMember(
         @PathVariable("id") String id,
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {

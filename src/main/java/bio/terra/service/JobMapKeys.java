@@ -7,7 +7,7 @@ public enum JobMapKeys {
     RESPONSE("response"),
     STATUS_CODE("status_code"),
     USER_INFO("user_info"),
-    STUDY_ID("studyId");
+    DATASET_ID("datasetId");
 
     private String keyName;
 

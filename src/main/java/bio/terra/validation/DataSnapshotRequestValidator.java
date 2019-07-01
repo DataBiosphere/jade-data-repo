@@ -47,12 +47,12 @@ public class DataSnapshotRequestValidator implements Validator {
                     errors.rejectValue("contents", "DataSnapshotRootValuesListEmpty");
                 }
                 DataSnapshotRequestSourceModel source = contents.getSource();
-                String studyName = source.getStudyName();
+                String datasetName = source.getDatasetName();
                 String assetName = source.getAssetName();
-                if (studyName == null) {
-                    errors.rejectValue("contents", "DataSnapshotStudyNameMissing");
-                } else if (!ValidationUtils.isValidName(studyName)) {
-                    errors.rejectValue("contents", "DataSnapshotStudyNameInvalid");
+                if (datasetName == null) {
+                    errors.rejectValue("contents", "DataSnapshotDrDatasetNameMissing");
+                } else if (!ValidationUtils.isValidName(datasetName)) {
+                    errors.rejectValue("contents", "DataSnapshotDrDatasetNameInvalid");
                 }
                 if (assetName == null) {
                     errors.rejectValue("contents", "DataSnapshotAssetNameMissing");

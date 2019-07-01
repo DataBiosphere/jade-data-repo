@@ -8,11 +8,11 @@ import bio.terra.metadata.DataSnapshotMapTable;
 import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.DataSnapshotSummary;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.DrDataset;
 import bio.terra.metadata.Table;
 import bio.terra.model.DataSnapshotRequestModel;
-import bio.terra.model.StudyJsonConversion;
-import bio.terra.model.StudyRequestModel;
+import bio.terra.model.DrDatasetJsonConversion;
+import bio.terra.model.DrDatasetRequestModel;
 import bio.terra.service.DataSnapshotService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.io.IOUtils;
@@ -48,30 +48,31 @@ public class DataSnapshotDaoTest {
     private DataSnapshotDao dataSnapshotDao;
 
     @Autowired
-    private StudyDao studyDao;
+    private DrDatasetDao datasetDao;
 
     @Autowired
     private DataSnapshotService dataSnapshotService;
 
-    private Study study;
-    private UUID studyId;
+    private DrDataset dataset;
+    private UUID datasetId;
     private DataSnapshotRequestModel dataSnapshotRequest;
     private UUID dataSnapshotId;
 
     @Before
     public void setup() throws Exception {
         ClassLoader classLoader = getClass().getClassLoader();
-        String studyJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test-study.json"));
+        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test-dataset.json"));
 
-        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
-        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
-        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        studyId = studyDao.create(study);
-        study = studyDao.retrieve(studyId);
+        DrDatasetRequestModel datasetRequest = objectMapper.readerFor(DrDatasetRequestModel.class)
+            .readValue(datasetJson);
+        datasetRequest.setName(datasetRequest.getName() + UUID.randomUUID().toString());
+        dataset = DrDatasetJsonConversion.datasetRequestToDataset(datasetRequest);
+        datasetId = datasetDao.create(dataset);
+        dataset = datasetDao.retrieve(datasetId);
 
         String dataSnapshotJson = IOUtils.toString(classLoader.getResourceAsStream("datasnapshot-test.json"));
         dataSnapshotRequest = objectMapper.readerFor(DataSnapshotRequestModel.class).readValue(dataSnapshotJson);
-        dataSnapshotRequest.getContents().get(0).getSource().setStudyName(study.getName());
+        dataSnapshotRequest.getContents().get(0).getSource().setDatasetName(dataset.getName());
 
         // Populate the dataSnapshotId with random; delete should quietly not find it.
         dataSnapshotId = UUID.randomUUID();
@@ -80,7 +81,7 @@ public class DataSnapshotDaoTest {
     @After
     public void teardown() throws Exception {
         dataSnapshotDao.delete(dataSnapshotId);
-        studyDao.delete(studyId);
+        datasetDao.delete(datasetId);
     }
 
     @Test
@@ -115,7 +116,7 @@ public class DataSnapshotDaoTest {
 
         assertThat("source points to the asset spec",
                 source.getAssetSpecification().getId(),
-                equalTo(study.getAssetSpecifications().get(0).getId()));
+                equalTo(dataset.getAssetSpecifications().get(0).getId()));
 
         assertThat("correct number of map tables",
                 source.getDataSnapshotMapTables().size(),
@@ -123,12 +124,12 @@ public class DataSnapshotDaoTest {
 
         // Verify map table
         DataSnapshotMapTable mapTable = source.getDataSnapshotMapTables().get(0);
-        Table studyTable = study.getTables().get(0);
+        Table datasetTable = dataset.getTables().get(0);
         Table dataSnapshotTable = dataSnapshot.getTables().get(0);
 
-        assertThat("correct map table study table",
+        assertThat("correct map table dataset table",
                 mapTable.getFromTable().getId(),
-                equalTo(studyTable.getId()));
+                equalTo(datasetTable.getId()));
 
         assertThat("correct map table dataSnapshot table",
                 mapTable.getToTable().getId(),
@@ -140,13 +141,13 @@ public class DataSnapshotDaoTest {
 
         // Verify map columns
         DataSnapshotMapColumn mapColumn = mapTable.getDataSnapshotMapColumns().get(0);
-        // Why is study columns Collection and not List?
-        Column studyColumn = studyTable.getColumns().iterator().next();
+        // Why is dataset columns Collection and not List?
+        Column datasetColumn = datasetTable.getColumns().iterator().next();
         Column dataSnapshotColumn = dataSnapshotTable.getColumns().get(0);
 
-        assertThat("correct map column study column",
+        assertThat("correct map column dataset column",
                 mapColumn.getFromColumn().getId(),
-                equalTo(studyColumn.getId()));
+                equalTo(datasetColumn.getId()));
 
         assertThat("correct map column dataSnapshot column",
                 mapColumn.getToColumn().getId(),
@@ -165,7 +166,7 @@ public class DataSnapshotDaoTest {
             dataSnapshotRequest
                 .name(makeName(dataSnapshotName, i))
                 // set the description to a random string so we can verify the sorting is working independently of the
-                // study name or created_date. add a suffix to filter on for the even dataSnapshots
+                // dataset name or created_date. add a suffix to filter on for the even dataSnapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
             DataSnapshot dataSnap = dataSnapshotService.makeDataSnapshotFromDataSnapshotRequest(dataSnapshotRequest);
             dataSnapshotId = dataSnapshotDao.create(dataSnap);

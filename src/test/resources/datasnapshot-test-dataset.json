@@ -1,0 +1,24 @@
+{
+  "name":        "datasnapshot_test_dataset",
+  "description": "DrDataset to test building datasnapshots with",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "thetable",
+        "columns": [
+          {"name": "thecolumn", "datatype": "string"}
+        ]
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "theasset",
+        "rootTable": "thetable",
+        "rootColumn": "thecolumn",
+        "tables": [
+          {"name": "thetable", "columns": []}
+        ]
+      }
+    ]
+  }
+}

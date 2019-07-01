@@ -32,7 +32,7 @@ public class DeleteDataSnapshotPrimaryDataStep implements Step {
             DataSnapshot dataSnapshot = dataSnapshotDao.retrieveDataSnapshot(datasetId);
             bigQueryPdao.deleteDataSnapshot(dataSnapshot);
         } catch (NotFoundException nfe) {
-            // If we do not find the study, we assume things are already clean
+            // If we do not find the dataset, we assume things are already clean
         }
         return StepResult.getStepResultSuccess();
     }

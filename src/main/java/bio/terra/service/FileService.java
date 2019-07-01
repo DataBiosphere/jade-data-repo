@@ -40,47 +40,47 @@ public class FileService {
         this.fileDao = fileDao;
     }
 
-    public String deleteFile(String studyId, String fileId) {
+    public String deleteFile(String datasetId, String fileId) {
         FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete file from study " + studyId + " file " + fileId);
-        flightMap.put(JobMapKeys.STUDY_ID.getKeyName(), studyId);
+        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete file from dataset " + datasetId + " file " + fileId);
+        flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileId);
         return stairway.submit(FileDeleteFlight.class, flightMap);
     }
 
-    public String ingestFile(String studyId, FileLoadModel fileLoad) {
+    public String ingestFile(String datasetId, FileLoadModel fileLoad) {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Ingest file " + fileLoad.getTargetPath());
-        flightMap.put(JobMapKeys.STUDY_ID.getKeyName(), studyId);
+        flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
         flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileLoad);
         return stairway.submit(FileIngestFlight.class, flightMap);
     }
 
-    public FSObjectModel lookupFile(String studyId, String fileId) {
-        return fileModelFromFSObject(lookupFSObject(studyId, fileId));
+    public FSObjectModel lookupFile(String datasetId, String fileId) {
+        return fileModelFromFSObject(lookupFSObject(datasetId, fileId));
     }
 
-    public FSObjectModel lookupPath(String studyId, String path) {
-        FSObjectBase fsObject = lookupFSObjectByPath(studyId, path);
+    public FSObjectModel lookupPath(String datasetId, String path) {
+        FSObjectBase fsObject = lookupFSObjectByPath(datasetId, path);
         return fileModelFromFSObject(fsObject);
     }
 
-    FSObjectBase lookupFSObject(String studyId, String fileId) {
-        FSObjectBase fsObject = fileDao.retrieveWithContents(UUID.fromString(studyId), UUID.fromString(fileId));
-        checkFSObject(fsObject, studyId, fileId);
+    FSObjectBase lookupFSObject(String datasetId, String fileId) {
+        FSObjectBase fsObject = fileDao.retrieveWithContents(UUID.fromString(datasetId), UUID.fromString(fileId));
+        checkFSObject(fsObject, datasetId, fileId);
         return fsObject;
     }
 
-    FSObjectBase lookupFSObjectByPath(String studyId, String path) {
-        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(UUID.fromString(studyId), path);
-        checkFSObject(fsObject, studyId, path);
+    FSObjectBase lookupFSObjectByPath(String datasetId, String path) {
+        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(UUID.fromString(datasetId), path);
+        checkFSObject(fsObject, datasetId, path);
         return fsObject;
     }
 
-    private void checkFSObject(FSObjectBase fsObject, String studyId, String objectRef) {
+    private void checkFSObject(FSObjectBase fsObject, String datasetId, String objectRef) {
         if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in study with id '"
-                + studyId + "'");
+            throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in dataset with id '"
+                + datasetId + "'");
         }
 
         switch (fsObject.getObjectType()) {
@@ -92,15 +92,15 @@ public class FileService {
             case INGESTING_FILE:
             case DELETING_FILE:
             default:
-                throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in study with id '"
-                    + studyId + "'");
+                throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in dataset with id '"
+                    + datasetId + "'");
         }
     }
 
     public FSObjectModel fileModelFromFSObject(FSObjectBase fsObject) {
         FSObjectModel fsObjectModel = new FSObjectModel()
             .objectId(fsObject.getObjectId().toString())
-            .studyId(fsObject.getStudyId().toString())
+            .datasetId(fsObject.getDatasetId().toString())
             .path(fsObject.getPath())
             .size(fsObject.getSize())
             .created(fsObject.getCreatedDate().toString())

@@ -3,7 +3,7 @@ package bio.terra.service;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.DataSnapshotDao;
-import bio.terra.dao.StudyDao;
+import bio.terra.dao.DrDatasetDao;
 import bio.terra.flight.datasnapshot.create.DataSnapshotCreateFlight;
 import bio.terra.flight.datasnapshot.delete.DataSnapshotDeleteFlight;
 import bio.terra.metadata.AssetColumn;
@@ -15,8 +15,8 @@ import bio.terra.metadata.DataSnapshotMapColumn;
 import bio.terra.metadata.DataSnapshotMapTable;
 import bio.terra.metadata.DataSnapshotSource;
 import bio.terra.metadata.DataSnapshotSummary;
+import bio.terra.metadata.DrDataset;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DataSnapshotModel;
@@ -26,7 +26,7 @@ import bio.terra.model.DataSnapshotRequestSourceModel;
 import bio.terra.model.DataSnapshotSourceModel;
 import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.EnumerateDataSnapshotModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DrDatasetSummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
@@ -48,15 +48,15 @@ public class DataSnapshotService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DataSnapshotService");
 
     private final Stairway stairway;
-    private final StudyDao studyDao;
+    private final DrDatasetDao datasetDao;
     private final DataSnapshotDao dataSnapshotDao;
 
     @Autowired
     public DataSnapshotService(Stairway stairway,
-                               StudyDao studyDao,
+                               DrDatasetDao datasetDao,
                                DataSnapshotDao dataSnapshotDao) {
         this.stairway = stairway;
-        this.studyDao = studyDao;
+        this.datasetDao = datasetDao;
         this.dataSnapshotDao = dataSnapshotDao;
     }
 
@@ -174,19 +174,19 @@ public class DataSnapshotService {
     private DataSnapshotSource makeSourceFromRequestContents(
         DataSnapshotRequestContentsModel requestContents, DataSnapshot dataSnapshot) {
         DataSnapshotRequestSourceModel requestSource = requestContents.getSource();
-        Study study = studyDao.retrieveByName(requestSource.getStudyName());
+        DrDataset dataset = datasetDao.retrieveByName(requestSource.getDatasetName());
 
-        Optional<AssetSpecification> optAsset = study.getAssetSpecificationByName(requestSource.getAssetName());
+        Optional<AssetSpecification> optAsset = dataset.getAssetSpecificationByName(requestSource.getAssetName());
         if (!optAsset.isPresent()) {
             throw new AssetNotFoundException("Asset specification not found: " + requestSource.getAssetName());
         }
 
-        // TODO: When we implement explicit definition of the data snapshot tables and mapping to study tables,
+        // TODO: When we implement explicit definition of the data snapshot tables and mapping to dataset tables,
         // the map construction will go here. For MVM, we generate the mapping data directly from the asset spec.
 
         return new DataSnapshotSource()
                .dataSnapshot(dataSnapshot)
-               .study(study)
+               .dataset(dataset)
                .assetSpecification(optAsset.get());
     }
 
@@ -215,11 +215,11 @@ public class DataSnapshotService {
             List<DataSnapshotMapColumn> mapColumnList = new ArrayList<>();
 
             for (AssetColumn assetColumn : assetTable.getColumns()) {
-                Column column = new Column(assetColumn.getStudyColumn());
+                Column column = new Column(assetColumn.getDatasetColumn());
                 columnList.add(column);
 
                 mapColumnList.add(new DataSnapshotMapColumn()
-                    .fromColumn(assetColumn.getStudyColumn())
+                    .fromColumn(assetColumn.getDatasetColumn())
                     .toColumn(column));
             }
 
@@ -263,22 +263,21 @@ public class DataSnapshotService {
 
     private DataSnapshotSourceModel makeSourceModelFromSource(DataSnapshotSource source) {
         // TODO: when source summary methods are available, use those. Here I roll my own
-        Study study = source.getStudy();
-        StudySummaryModel summaryModel = new StudySummaryModel()
-                .id(study.getId().toString())
-                .name(study.getName())
-                .description(study.getDescription())
-// TODO: decide on our datetime datatype
-                .createdDate(study.getCreatedDate().toString());
+        DrDataset dataset = source.getDataset();
+        DrDatasetSummaryModel summaryModel = new DrDatasetSummaryModel()
+                .id(dataset.getId().toString())
+                .name(dataset.getName())
+                .description(dataset.getDescription())
+                .createdDate(dataset.getCreatedDate().toString());
 
         DataSnapshotSourceModel sourceModel = new DataSnapshotSourceModel()
                 .asset(source.getAssetSpecification().getName())
-                .study(summaryModel);
+                .dataset(summaryModel);
 
         return sourceModel;
     }
 
-    // TODO: share these methods with study table in some common place
+    // TODO: share these methods with dataset table in some common place
     private TableModel makeTableModelFromTable(Table table) {
         return new TableModel()
                 .name(table.getName())

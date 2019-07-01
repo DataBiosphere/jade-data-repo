@@ -7,7 +7,7 @@ import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.DrDataset;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -20,30 +20,30 @@ import java.util.UUID;
 
 public class IngestFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;
-    private final Study study;
+    private final DrDataset dataset;
 
-    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Study study) {
+    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, DrDataset dataset) {
         this.fileDao = fileDao;
-        this.study = study;
+        this.dataset = dataset;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
+        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
 
         FlightMap workingMap = context.getWorkingMap();
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(studyId, loadModel.getTargetPath());
+        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(datasetId, loadModel.getTargetPath());
         if (fsObject == null) {
             // Nothing exists - create a new file
             FSFile newFile = new FSFile()
                 .mimeType(loadModel.getMimeType())
                 .flightId(context.getFlightId())
-                .studyId(study.getId())
+                .datasetId(dataset.getId())
                 .objectType(FSObjectType.INGESTING_FILE)
                 .path(loadModel.getTargetPath())
                 .description(loadModel.getDescription());
@@ -71,8 +71,8 @@ public class IngestFileMetadataStepStart implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        fileDao.createFileStartUndo(studyId, loadModel.getTargetPath(), context.getFlightId());
+        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+        fileDao.createFileStartUndo(datasetId, loadModel.getTargetPath(), context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

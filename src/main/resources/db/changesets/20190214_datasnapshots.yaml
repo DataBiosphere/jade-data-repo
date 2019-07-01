@@ -102,12 +102,12 @@ databaseChangeLog:
                     references: datasnapshot(id)
                     deleteCascade: true
               - column:
-                  name: study_id
+                  name: dataset_id
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_datasnapshot_source_study
-                    references: study(id)
+                    foreignKeyName: fk_datasnapshot_source_dataset
+                    references: dataset(id)
                     deleteCascade: true
               - column:
                   name: asset_id
@@ -141,8 +141,8 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_datasnapshot_map_study_table
-                    references: study_table(id)
+                    foreignKeyName: fk_datasnapshot_map_dataset_table
+                    references: dataset_table(id)
                     deleteCascade: true
               - column:
                   name: to_table_id
@@ -176,8 +176,8 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_datasnapshot_map_column_study_column
-                    references: study_column(id)
+                    foreignKeyName: fk_datasnapshot_map_column_dataset_column
+                    references: dataset_column(id)
                     deleteCascade: true
               - column:
                   name: to_column_id

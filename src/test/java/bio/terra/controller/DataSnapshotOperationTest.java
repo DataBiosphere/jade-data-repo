@@ -12,8 +12,8 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDataSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DrDatasetRequestModel;
+import bio.terra.model.DrDatasetSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
@@ -84,7 +84,7 @@ public class DataSnapshotOperationTest {
     // private Logger logger = LoggerFactory.getLogger("bio.terra.controller.DataSnapshotOperationTest");
 
     // TODO: MORE TESTS to be done when we can ingest data:
-    // - test more complex studies with relationships
+    // - test more complex datasets with relationships
     // - test relationship walking with valid and invalid setups
     // TODO: MORE TESTS when we separate the value translation from the create
     // - test invalid row ids
@@ -100,13 +100,13 @@ public class DataSnapshotOperationTest {
 
 
     private List<String> createdDataSnapshotIds;
-    private List<String> createdStudyIds;
+    private List<String> createdDatasetIds;
     private String dataSnapshotOriginalName;
 
     @Before
     public void setup() throws Exception {
         createdDataSnapshotIds = new ArrayList<>();
-        createdStudyIds = new ArrayList<>();
+        createdDatasetIds = new ArrayList<>();
         ConnectedOperations.stubOutSamCalls(samService);
     }
 
@@ -117,24 +117,24 @@ public class DataSnapshotOperationTest {
                 deleteTestDataSnapshot(dataSnapshotId);
             }
 
-            for (String studyId : createdStudyIds) {
-                deleteTestStudy(studyId);
+            for (String datasetId : createdDatasetIds) {
+                deleteTestDataset(datasetId);
             }
         }
     }
 
     @Test
     public void testHappyPath() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
+        DrDatasetSummaryModel datasetSummary = createTestDataset("datasnapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getName(), "thetable", "datasnapshot-test-dataset-data.csv");
 
         DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(
-            studySummary, "datasnapshot-test.json");
+            datasetSummary, "datasnapshot-test.json");
         MockHttpServletResponse response = performCreateDataSnapshot(dataSnapshotRequest, "_happy_");
         DataSnapshotSummaryModel summaryModel = handleCreateDataSnapshotSuccessCase(dataSnapshotRequest, response);
 
         DataSnapshotModel dataSnapshotModel = getTestDataSnapshot(
-            summaryModel.getId(), dataSnapshotRequest, studySummary);
+            summaryModel.getId(), dataSnapshotRequest, datasetSummary);
 
         deleteTestDataSnapshot(dataSnapshotModel.getId());
         // Duplicate delete should work
@@ -145,52 +145,52 @@ public class DataSnapshotOperationTest {
 
     @Test
     public void testMinimal() throws Exception {
-        StudySummaryModel studySummary = setupMinimalStudy();
-        String studyName = PDAO_PREFIX + studySummary.getName();
-        long studyParticipants = queryForCount(studyName, "participant");
-        assertThat("study participants loaded properly", studyParticipants, equalTo(2L));
-        long studySamples = queryForCount(studyName, "sample");
-        assertThat("study samples loaded properly", studySamples, equalTo(5L));
+        DrDatasetSummaryModel datasetSummary = setupMinimalDataset();
+        String datasetName = PDAO_PREFIX + datasetSummary.getName();
+        long datasetParticipants = queryForCount(datasetName, "participant");
+        assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
+        long datasetSamples = queryForCount(datasetName, "sample");
+        assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
-        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(studySummary,
-                "study-minimal-datasnapshot.json");
+        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(datasetSummary,
+                "dataset-minimal-datasnapshot.json");
         MockHttpServletResponse response = performCreateDataSnapshot(dataSnapshotRequest, "");
         DataSnapshotSummaryModel summaryModel = handleCreateDataSnapshotSuccessCase(dataSnapshotRequest, response);
-        getTestDataSnapshot(summaryModel.getId(), dataSnapshotRequest, studySummary);
+        getTestDataSnapshot(summaryModel.getId(), dataSnapshotRequest, datasetSummary);
 
         long dataSnapshotParticipants = queryForCount(summaryModel.getName(), "participant");
-        assertThat("study participants loaded properly", dataSnapshotParticipants, equalTo(1L));
+        assertThat("dataset participants loaded properly", dataSnapshotParticipants, equalTo(1L));
         long dataSnapshotSamples = queryForCount(summaryModel.getName(), "sample");
-        assertThat("study samples loaded properly", dataSnapshotSamples, equalTo(2L));
+        assertThat("dataset samples loaded properly", dataSnapshotSamples, equalTo(2L));
     }
 
     @Test
     public void testArrayStruct() throws Exception {
-        StudySummaryModel studySummary = setupArrayStructStudy();
-        String studyName = PDAO_PREFIX + studySummary.getName();
-        long studyParticipants = queryForCount(studyName, "participant");
-        assertThat("study participants loaded properly", studyParticipants, equalTo(2L));
-        long studySamples = queryForCount(studyName, "sample");
-        assertThat("study samples loaded properly", studySamples, equalTo(5L));
+        DrDatasetSummaryModel datasetSummary = setupArrayStructDataset();
+        String datasetName = PDAO_PREFIX + datasetSummary.getName();
+        long datasetParticipants = queryForCount(datasetName, "participant");
+        assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
+        long datasetSamples = queryForCount(datasetName, "sample");
+        assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
-        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(studySummary,
+        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(datasetSummary,
             "datasnapshot-test-array-struct.json");
         MockHttpServletResponse response = performCreateDataSnapshot(dataSnapshotRequest, "");
         DataSnapshotSummaryModel summaryModel = handleCreateDataSnapshotSuccessCase(dataSnapshotRequest, response);
-        getTestDataSnapshot(summaryModel.getId(), dataSnapshotRequest, studySummary);
+        getTestDataSnapshot(summaryModel.getId(), dataSnapshotRequest, datasetSummary);
 
         long dataSnapshotParticipants = queryForCount(summaryModel.getName(), "participant");
-        assertThat("study participants loaded properly", dataSnapshotParticipants, equalTo(2L));
+        assertThat("dataset participants loaded properly", dataSnapshotParticipants, equalTo(2L));
         long dataSnapshotSamples = queryForCount(summaryModel.getName(), "sample");
-        assertThat("study samples loaded properly", dataSnapshotSamples, equalTo(3L));
+        assertThat("dataset samples loaded properly", dataSnapshotSamples, equalTo(3L));
 
     }
 
     @Test
     public void testMinimalBadAsset() throws Exception {
-        StudySummaryModel studySummary = setupMinimalStudy();
-        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(studySummary,
-                "study-minimal-datasnapshot-bad-asset.json");
+        DrDatasetSummaryModel datasetSummary = setupMinimalDataset();
+        DataSnapshotRequestModel dataSnapshotRequest = makeDataSnapshotTestRequest(datasetSummary,
+                "dataset-minimal-datasnapshot-bad-asset.json");
         MockHttpServletResponse response = performCreateDataSnapshot(dataSnapshotRequest, "");
         ErrorModel errorModel = handleCreateDataSnapshotFailureCase(response);
         assertThat(errorModel.getMessage(), containsString("Asset"));
@@ -199,10 +199,10 @@ public class DataSnapshotOperationTest {
 
     @Test
     public void testEnumeration() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
+        DrDatasetSummaryModel datasetSummary = createTestDataset("datasnapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getName(), "thetable", "datasnapshot-test-dataset-data.csv");
         DataSnapshotRequestModel dataSnapshotRequest =
-            makeDataSnapshotTestRequest(studySummary, "datasnapshot-test.json");
+            makeDataSnapshotTestRequest(datasetSummary, "datasnapshot-test.json");
 
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
         // Just make sure we get the same dataSnapshot summary that we made.
@@ -238,9 +238,9 @@ public class DataSnapshotOperationTest {
 
     @Test
     public void testBadData() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("datasnapshot-test-study.json");
-        loadCsvData(studySummary.getName(), "thetable", "datasnapshot-test-study-data.csv");
-        DataSnapshotRequestModel badDataRequest = makeDataSnapshotTestRequest(studySummary,
+        DrDatasetSummaryModel datasetSummary = createTestDataset("datasnapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getName(), "thetable", "datasnapshot-test-dataset-data.csv");
+        DataSnapshotRequestModel badDataRequest = makeDataSnapshotTestRequest(datasetSummary,
                 "datasnapshot-test-baddata.json");
 
         MockHttpServletResponse response = performCreateDataSnapshot(badDataRequest, "_baddata_");
@@ -265,53 +265,53 @@ public class DataSnapshotOperationTest {
         }
     }
 
-    private StudySummaryModel setupMinimalStudy() throws Exception {
-        StudySummaryModel studySummary = createTestStudy("study-minimal.json");
-        loadCsvData(studySummary.getName(), "participant", "study-minimal-participant.csv");
-        loadCsvData(studySummary.getName(), "sample", "study-minimal-sample.csv");
-        return  studySummary;
+    private DrDatasetSummaryModel setupMinimalDataset() throws Exception {
+        DrDatasetSummaryModel datasetSummary = createTestDataset("dataset-minimal.json");
+        loadCsvData(datasetSummary.getName(), "participant", "dataset-minimal-participant.csv");
+        loadCsvData(datasetSummary.getName(), "sample", "dataset-minimal-sample.csv");
+        return  datasetSummary;
     }
 
-    private StudySummaryModel setupArrayStructStudy() throws Exception {
-        StudySummaryModel studySum = createTestStudy("study-array-struct.json");
-        loadJsonData(studySum.getName(), "participant", "study-array-struct-participant.json");
-        loadJsonData(studySum.getName(), "sample", "study-array-struct-sample.json");
-        return  studySum;
+    private DrDatasetSummaryModel setupArrayStructDataset() throws Exception {
+        DrDatasetSummaryModel datasetSum = createTestDataset("dataset-array-struct.json");
+        loadJsonData(datasetSum.getName(), "participant", "dataset-array-struct-participant.json");
+        loadJsonData(datasetSum.getName(), "sample", "dataset-array-struct-sample.json");
+        return  datasetSum;
     }
 
-    // create a study to create dataSnapshots in and return its id
-    private StudySummaryModel createTestStudy(String resourcePath) throws Exception {
-        StudyRequestModel studyRequest = jsonLoader.loadObject(resourcePath, StudyRequestModel.class);
-        studyRequest.setName(Names.randomizeName(studyRequest.getName()));
+    // create a dataset to create dataSnapshots in and return its id
+    private DrDatasetSummaryModel createTestDataset(String resourcePath) throws Exception {
+        DrDatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DrDatasetRequestModel.class);
+        datasetRequest.setName(Names.randomizeName(datasetRequest.getName()));
 
-        MvcResult result = mvc.perform(post("/api/repository/v1/studies")
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(studyRequest)))
+                .content(objectMapper.writeValueAsString(datasetRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        StudySummaryModel studySummaryModel =
-                objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
-        createdStudyIds.add(studySummaryModel.getId());
+        DrDatasetSummaryModel datasetSummaryModel =
+                objectMapper.readValue(response.getContentAsString(), DrDatasetSummaryModel.class);
+        createdDatasetIds.add(datasetSummaryModel.getId());
 
-        return studySummaryModel;
+        return datasetSummaryModel;
     }
 
-    private void loadCsvData(String studyName, String tableName, String resourcePath) throws Exception {
+    private void loadCsvData(String datasetName, String tableName, String resourcePath) throws Exception {
         FormatOptions csvOptions = CsvOptions.newBuilder().setSkipLeadingRows(1).build();
-        loadData(studyName, tableName, resourcePath, csvOptions);
+        loadData(datasetName, tableName, resourcePath, csvOptions);
     }
 
-    private void loadJsonData(String studyName, String tableName, String resourcePath) throws Exception {
-        loadData(studyName, tableName, resourcePath, FormatOptions.json());
+    private void loadJsonData(String datasetName, String tableName, String resourcePath) throws Exception {
+        loadData(datasetName, tableName, resourcePath, FormatOptions.json());
     }
 
-    private void loadData(String studyName,
+    private void loadData(String datasetName,
                           String tableName,
                           String resourcePath,
                           FormatOptions options) throws Exception {
-        String dataSnapshotName = PDAO_PREFIX + studyName;
+        String dataSnapshotName = PDAO_PREFIX + datasetName;
         String location = "US";
         TableId tableId = TableId.of(dataSnapshotName, tableName);
 
@@ -334,19 +334,19 @@ public class DataSnapshotOperationTest {
         JobStatus jobStatus = job.getStatus();
         List<BigQueryError> jobErrors = jobStatus.getExecutionErrors();
         if (jobErrors != null && jobErrors.size() != 0) {
-            System.out.println("Errors loading study data: ");
+            System.out.println("Errors loading dataset data: ");
             for (BigQueryError bqError : jobErrors) {
                 System.out.println(bqError.toString());
             }
-            fail("Failed to load study data");
+            fail("Failed to load dataset data");
         }
     }
 
-    private DataSnapshotRequestModel makeDataSnapshotTestRequest(StudySummaryModel studySummaryModel,
+    private DataSnapshotRequestModel makeDataSnapshotTestRequest(DrDatasetSummaryModel datasetSummaryModel,
                                                        String resourcePath) throws Exception {
         DataSnapshotRequestModel dataSnapshotRequest = jsonLoader.loadObject(
             resourcePath, DataSnapshotRequestModel.class);
-        dataSnapshotRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
+        dataSnapshotRequest.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
         return dataSnapshotRequest;
     }
 
@@ -416,9 +416,9 @@ public class DataSnapshotOperationTest {
         checkDeleteResponse(response);
     }
 
-    private void deleteTestStudy(String id) throws Exception {
+    private void deleteTestDataset(String id) throws Exception {
         // We only use this for @After, so we don't check return values
-        MvcResult result = mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         checkDeleteResponse(result.getResponse());
     }
 
@@ -443,7 +443,7 @@ public class DataSnapshotOperationTest {
 
     private DataSnapshotModel getTestDataSnapshot(String id,
                                         DataSnapshotRequestModel dataSnapshotRequest,
-                                        StudySummaryModel studySummary) throws Exception {
+                                        DrDatasetSummaryModel datasetSummary) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasnapshots/" + id))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
                 .andReturn();
@@ -458,8 +458,8 @@ public class DataSnapshotOperationTest {
         assertThat("source array has one element",
                 dataSnapshotModel.getSource().size(), equalTo(1));
         DataSnapshotSourceModel sourceModel = dataSnapshotModel.getSource().get(0);
-        assertThat("dataSnapshot study summary is the same as from study",
-                sourceModel.getStudy(), equalTo(studySummary));
+        assertThat("dataSnapshot dataset summary is the same as from dataset",
+                sourceModel.getDataset(), equalTo(datasetSummary));
 
         return dataSnapshotModel;
     }

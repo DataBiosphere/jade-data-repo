@@ -8,23 +8,23 @@ import bio.terra.stairway.StepResult;
 public class DeleteFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;
     private final String fileId;
-    private final String studyId;
+    private final String datasetId;
 
-    public DeleteFileMetadataStepStart(String studyId, FireStoreFileDao fileDao, String fileId) {
+    public DeleteFileMetadataStepStart(String datasetId, FireStoreFileDao fileDao, String fileId) {
         this.fileDao = fileDao;
         this.fileId = fileId;
-        this.studyId = studyId;
+        this.datasetId = datasetId;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        fileDao.deleteFileStart(studyId, fileId, context.getFlightId());
+        fileDao.deleteFileStart(datasetId, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        fileDao.deleteFileStartUndo(studyId, fileId, context.getFlightId());
+        fileDao.deleteFileStartUndo(datasetId, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

@@ -1,1 +1,1 @@
-TRUNCATE study, study_table, study_column, study_relationship, asset_specification, asset_column, asset_relationship CASCADE;
+TRUNCATE dataset, dataset_table, dataset_column, dataset_relationship, asset_specification, asset_column, asset_relationship CASCADE;

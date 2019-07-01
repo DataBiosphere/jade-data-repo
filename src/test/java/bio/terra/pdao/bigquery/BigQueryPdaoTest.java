@@ -5,12 +5,12 @@ import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.metadata.Column;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.DrDataset;
 import bio.terra.metadata.Table;
 import bio.terra.model.DataSnapshotModel;
 import bio.terra.model.DataSnapshotSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DrDatasetSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobInfo;
@@ -73,34 +73,34 @@ public class BigQueryPdaoTest {
 
     @Test
     public void basicTest() throws Exception {
-        // Contrive a study object with a unique name
-        String studyName = "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        Study study = makeStudy(studyName);
+        // Contrive a dataset object with a unique name
+        String datasetName = "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
+        DrDataset dataset = makeDataset(datasetName);
 
-        boolean exists = bigQueryPdao.studyExists(studyName);
+        boolean exists = bigQueryPdao.datasetExists(datasetName);
         Assert.assertThat(exists, is(equalTo(false)));
 
-        bigQueryPdao.createStudy(study);
+        bigQueryPdao.createDataset(dataset);
 
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.datasetExists(datasetName);
         Assert.assertThat(exists, is(equalTo(true)));
 
         // Perform the redo, which should delete and re-create
-        bigQueryPdao.createStudy(study);
-        exists = bigQueryPdao.studyExists(studyName);
+        bigQueryPdao.createDataset(dataset);
+        exists = bigQueryPdao.datasetExists(datasetName);
         Assert.assertThat(exists, is(equalTo(true)));
 
 
         // Now delete it and test that it is gone
-        bigQueryPdao.deleteStudy(study);
-        exists = bigQueryPdao.studyExists(studyName);
+        bigQueryPdao.deleteDataset(dataset);
+        exists = bigQueryPdao.datasetExists(datasetName);
         Assert.assertThat(exists, is(equalTo(false)));
     }
 
     @Test
     public void dataSnapshotTest() throws Exception {
-        // Create a random study.
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("ingest-test-study.json");
+        // Create a random dataset.
+        DrDatasetSummaryModel datasetSummary = connectedOperations.createTestDataset("ingest-test-dataset.json");
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -122,21 +122,21 @@ public class BigQueryPdaoTest {
             storage.create(sampleBlob, readFile("ingest-test-sample.json"));
             storage.create(fileBlob, readFile("ingest-test-file.json"));
 
-            // Ingest staged data into the new study.
+            // Ingest staged data into the new dataset.
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(datasetSummary.getId(),
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(datasetSummary.getId(),
                 ingestRequest.table("sample").path(gsPath(sampleBlob)));
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(datasetSummary.getId(),
                 ingestRequest.table("file").path(gsPath(fileBlob)));
 
             // Create a dataSnapshot!
             MockHttpServletResponse dataSnapshotResponse =
                 connectedOperations.launchCreateDataSnapshot(
-                    studySummary, "ingest-test-datasnapshot.json", "");
+                    datasetSummary, "ingest-test-datasnapshot.json", "");
             DataSnapshotSummaryModel dataSnapshotSummary =
                 connectedOperations.handleCreateDataSnapshotSuccessCase(dataSnapshotResponse);
             DataSnapshotModel dataSnapshot = connectedOperations.getDataSnapshot(dataSnapshotSummary.getId());
@@ -157,7 +157,7 @@ public class BigQueryPdaoTest {
         return "gs://" + blob.getBucket() + "/" + blob.getName();
     }
 
-    private Study makeStudy(String studyName) {
+    private DrDataset makeDataset(String datasetName) {
         Column col1 = new Column().name("col1").type("string");
         Column col2 = new Column().name("col2").type("string");
         Column col3 = new Column().name("col3").type("string");
@@ -179,11 +179,11 @@ public class BigQueryPdaoTest {
         tables.add(table1);
         tables.add(table2);
 
-        Study study = new Study();
-        study.name(studyName)
-                .description("this is a test study");
-        study.tables(tables);
-        return study;
+        DrDataset dataset = new DrDataset();
+        dataset.name(datasetName)
+            .description("this is a test dataset");
+        dataset.tables(tables);
+        return dataset;
     }
 
 }

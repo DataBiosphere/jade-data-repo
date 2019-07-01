@@ -209,7 +209,7 @@ public class SamClientService {
         return samResourceApi.listResourcesAndPolicies(resourceType.toString());
     }
 
-    public boolean checkResourceAction(
+    private boolean checkResourceAction(
         AuthenticatedUserRequest userReq,
         String samResourceType,
         String samResource,

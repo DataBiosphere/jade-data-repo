@@ -60,6 +60,7 @@ public class DataRepoFixtures {
             postResponse.getResponseObject().isPresent());
         return postResponse.getResponseObject().get();
     }
+
     // studies
 
     public DataRepoResponse<StudySummaryModel> createStudyRaw(TestConfiguration.User user, String filename)

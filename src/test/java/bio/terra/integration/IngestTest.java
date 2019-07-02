@@ -88,12 +88,12 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestUnauthorizedTest() throws Exception {
         DataRepoResponse<JobModel> ingestCustResp = dataRepoFixtures.ingestJsonDataLaunch(
-                custodianToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
+                custodian(), studyId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("Custodian is not authorized to ingest data",
             ingestCustResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
         DataRepoResponse<JobModel> ingestReadResp = dataRepoFixtures.ingestJsonDataLaunch(
-                readerToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
+                reader(), studyId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("Reader is not authorized to ingest data",
             ingestReadResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));

@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
@@ -32,6 +33,9 @@ public class DataRepoClient {
     @Autowired
     private TestConfiguration testConfig;
 
+    @Autowired
+    private AuthService authService;
+
     private static Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
     private RestTemplate restTemplate;
     private ObjectMapper objectMapper;
@@ -48,29 +52,32 @@ public class DataRepoClient {
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
     }
 
-    private HttpHeaders getHeaders(String authToken) {
+    private HttpHeaders getHeaders(TestConfiguration.User user) {
         HttpHeaders copy = new HttpHeaders(headers);
-        copy.setBearerAuth(authToken);
+        copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
+        copy.set("From", user.getEmail());
         return copy;
     }
 
-    public <T> DataRepoResponse<T> get(String authToken, String path, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(getHeaders(authToken));
+    public <T> DataRepoResponse<T> get(TestConfiguration.User user, String path, Class<T> responseClass)
+        throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
         return makeDataRepoRequest(path, HttpMethod.GET, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> post(String authToken, String path, String json, Class<T> responseClass)
+    public <T> DataRepoResponse<T> post(TestConfiguration.User user, String path, String json, Class<T> responseClass)
         throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(authToken));
+        HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
         return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> delete(String authToken, String path, Class<T> responseClass) throws Exception {
-        HttpEntity<String> entity = new HttpEntity<>(getHeaders(authToken));
+    public <T> DataRepoResponse<T> delete(TestConfiguration.User user, String path, Class<T> responseClass)
+        throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
         return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
     }
 
-    public <T> DataRepoResponse<T> waitForResponse(String authToken,
+    public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
         try {
@@ -79,7 +86,7 @@ public class DataRepoClient {
 
                 // TODO: tune this. Maybe use exponential backoff?
                 TimeUnit.SECONDS.sleep(10);
-                jobModelResponse = get(authToken, location, JobModel.class);
+                jobModelResponse = get(user, location, JobModel.class);
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
@@ -91,7 +98,7 @@ public class DataRepoClient {
         }
 
         String location = getLocationHeader(jobModelResponse);
-        DataRepoResponse<T> resultResponse = get(authToken, location, responseClass);
+        DataRepoResponse<T> resultResponse = get(user, location, responseClass);
 
         return resultResponse;
     }

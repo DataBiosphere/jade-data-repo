@@ -49,12 +49,12 @@ public class SamClientService {
             return StringUtils.lowerCase(name());
         }
 
-        public String toPluralString(){
+        public String toPluralString() {
             String pluralString = "";
-            switch(this){
+            switch (this) {
                 case STUDY: pluralString = "studies";
                             break;
-                default: pluralString = this.toString()+"s";
+                default: pluralString = this.toString() + "s";
             }
             return pluralString;
         }

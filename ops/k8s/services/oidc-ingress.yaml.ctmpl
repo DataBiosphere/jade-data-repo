@@ -6,6 +6,7 @@ metadata:
   name: oidc-ingress
   annotations:
     kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
+    kubernetes.io/ingress.allow-http: "false"
   namespace: data-repo
 spec:
   tls:

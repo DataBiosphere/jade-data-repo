@@ -172,13 +172,13 @@ public class DataRepoFixtures {
         return datasetResponse.getResponseObject().get();
     }
 
-    public DataRepoResponse<DatasetModel> getDataDatasetRaw(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<DatasetModel> getDatasetRaw(TestConfiguration.User user, String datasetId)
         throws Exception {
         return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
     }
 
     public DatasetModel getDataset(TestConfiguration.User user, String datasetId) throws Exception {
-        DataRepoResponse<DatasetModel> response = getDataDatasetRaw(user, datasetId);
+        DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId);
         assertThat("study is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("study get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();

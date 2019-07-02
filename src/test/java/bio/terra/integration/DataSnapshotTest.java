@@ -91,13 +91,13 @@ public class DataSnapshotTest extends UsersBase {
             deleteSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        DataRepoResponse<DatasetModel> getSnapResp = dataRepoFixtures.getDataSnapshotRaw(
+        DataRepoResponse<DatasetModel> getSnapResp = dataRepoFixtures.getDatasetRaw(
             discoverer(), snapshotSummary.getId());
         assertThat("Discoverer is not authorized to get a dataSnapshot",
             getSnapResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        EnumerateDatasetModel enumSnap = dataRepoFixtures.enumerateSnapshots(discoverer());
+        EnumerateDatasetModel enumSnap = dataRepoFixtures.enumerateDatasets(discoverer());
         assertThat("Discoverer does not have access to dataSnapshots",
             enumSnap.getTotal(),
             equalTo(0));

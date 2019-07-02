@@ -100,7 +100,7 @@ vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # update the sql proxy service account key
-vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa-${SUFFIX}.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
 kubectl --namespace data-repo create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
 
 

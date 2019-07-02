@@ -33,7 +33,7 @@ public class Users {
                 newList = usersByRole.get(role);
             newList.add(user);
             usersByRole.put(role, newList);
-            userByName.put(user.getName(), user);
+
         });
     }
 

@@ -7,6 +7,9 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -204,16 +207,53 @@ public class DataRepoFixtures {
         return ingestResponse;
     }
 
-    private String buildSimpleIngest(String table, String filename) {
-        // TODO: Change this to create the IngestRequestModel and convert it to JSON
-        StringBuilder ingestBuilder = new StringBuilder()
-            .append("{").append('"').append("table").append('"').append(':').append('"').append(table).append('"')
-            .append(", ").append('"').append("format").append('"').append(':').append('"').append("json").append('"')
-            .append(", ").append('"').append("path").append('"').append(':').append('"')
-            .append("gs://").append(testConfig.getIngestbucket()).append("/").append(filename)
-            .append('"').append('}');
+    public DataRepoResponse<FSObjectModel> ingestFileRaw(
+        String authToken, String studyId, String sourceGsPath, String targetPath) throws Exception {
 
-        return ingestBuilder.toString();
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(sourceGsPath)
+            .description(null)
+            .mimeType("application/octet-string")
+            .targetPath(targetPath);
+
+        String json = objectMapper.writeValueAsString(fileLoadModel);
+
+        DataRepoResponse<JobModel> postResponse = dataRepoClient.post(
+            authToken,
+            "/api/repository/v1/studies/" + studyId + "/files",
+            json,
+            JobModel.class);
+        return dataRepoClient.waitForResponse(authToken, postResponse, FSObjectModel.class);
+    }
+
+    public FSObjectModel ingestFile(
+        String authToken, String studyId, String sourceGsPath, String targetPath) throws Exception {
+        DataRepoResponse<FSObjectModel> response = ingestFileRaw(authToken, studyId, sourceGsPath, targetPath);
+
+        assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
+
+        FSObjectModel ingestResponse = response.getResponseObject().get();
+        return ingestResponse;
+    }
+
+    public DataRepoResponse<DeleteResponseModel> deleteFileRaw(
+        String authToken, String studyId, String fileId) throws Exception {
+
+        DataRepoResponse<JobModel> deleteResponse = dataRepoClient.delete(
+            authToken,
+            "/api/repository/v1/studies/" + studyId + "/files/" + fileId,
+            JobModel.class);
+        return dataRepoClient.waitForResponse(authToken, deleteResponse, DeleteResponseModel.class);
+    }
+
+    private String buildSimpleIngest(String table, String filename) throws Exception {
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table(table)
+            .path(gsPath);
+        return objectMapper.writeValueAsString(ingestRequest);
     }
 
 }

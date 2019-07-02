@@ -17,6 +17,7 @@ public class Users {
 
 
     private Map<String, List<TestConfiguration.User>> usersByRole = new HashMap<>();
+    private Map<String, TestConfiguration.User> userByName = new HashMap<>();
 
     @Autowired
     public Users(TestConfiguration testConfig) {
@@ -32,12 +33,15 @@ public class Users {
                 newList = usersByRole.get(role);
             newList.add(user);
             usersByRole.put(role, newList);
+            userByName.put(user.getName(), user);
         });
     }
 
     public TestConfiguration.User getUserForRole(String role) {
         return getUsersForRole(role, 1).get(0);
     }
+
+    public TestConfiguration.User getUser(String name){ return userByName.get(name);};
 
     public List<TestConfiguration.User> getUsersForRole(String role, int numUsers) {
         if (role == null) {

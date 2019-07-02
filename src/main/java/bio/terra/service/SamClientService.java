@@ -49,6 +49,16 @@ public class SamClientService {
             return StringUtils.lowerCase(name());
         }
 
+        public String toPluralString(){
+            String pluralString = "";
+            switch(this){
+                case STUDY: pluralString = "studies";
+                            break;
+                default: pluralString = this.toString()+"s";
+            }
+            return pluralString;
+        }
+
         @JsonCreator
         public static ResourceType fromValue(String text) {
             for (ResourceType b : ResourceType.values()) {

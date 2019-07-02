@@ -30,6 +30,7 @@ import static org.junit.Assert.assertTrue;
 @Component
 @Profile("integrationtest")
 public class DataRepoFixtures {
+
     @Autowired
     private JsonLoader jsonLoader;
 
@@ -43,7 +44,6 @@ public class DataRepoFixtures {
     private ObjectMapper objectMapper;
 
 
-    // studies
 
     public DataRepoResponse<StudySummaryModel> createStudyRaw(String authToken, String filename) throws Exception {
         StudyRequestModel requestModel = jsonLoader.loadObject(filename, StudyRequestModel.class);
@@ -98,25 +98,45 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<Object> addStudyPolicyMemberRaw(String authToken,
-                                                            String studyId,
+    public DataRepoResponse<Object> addPolicyMemberRaw(String authToken,
+                                                            String resourceId,
                                                             SamClientService.DataRepoRole role,
-                                                            String userEmail) throws Exception {
+                                                            String userEmail,
+                                                            SamClientService.ResourceType resourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(authToken,
-            "/api/repository/v1/studies/" + studyId + "/policies/" + role.toString() + "/members",
+            "/api/repository/v1/"+resourceType.toPluralString()+"/" + resourceId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
 
-    public void addStudyPolicyMember(String authToken,
-                                     String studyId,
+    public void addPolicyMember(String authToken,
+                                     String resourceId,
                                      SamClientService.DataRepoRole role,
-                                     String userEmail) throws Exception {
-        DataRepoResponse<Object> response = addStudyPolicyMemberRaw(authToken, studyId, role, userEmail);
-        assertThat("study policy memeber is successfully added", response.getStatusCode(), equalTo(HttpStatus.OK));
+                                     String userEmail,
+                                     SamClientService.ResourceType resourceType) throws Exception {
+        DataRepoResponse<Object> response = addPolicyMemberRaw(authToken, resourceId, role, userEmail, resourceType);
+        assertThat(resourceType + " policy member is successfully added",
+            response.getStatusCode(), equalTo(HttpStatus.OK));
+    }
+
+
+    // adding study policy
+    public void addStudyPolicyMember(String authToken,
+                                String studyId,
+                                SamClientService.DataRepoRole role,
+                                String userEmail) throws Exception {
+        addPolicyMember(authToken, studyId, role, userEmail, SamClientService.ResourceType.STUDY);
     }
 
     // datasets
+
+    // adding dataset policy
+    public void addDatasetPolicyMember(String authToken,
+                                     String datasetId,
+                                     SamClientService.DataRepoRole role,
+                                     String userEmail) throws Exception {
+        addPolicyMember(authToken, datasetId, role, userEmail, SamClientService.ResourceType.DATASET);
+    }
 
     public DataRepoResponse<DatasetSummaryModel> createDatasetRaw(String authToken, StudySummaryModel studySummaryModel,
                                                                   String filename) throws Exception {

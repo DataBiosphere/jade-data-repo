@@ -68,10 +68,13 @@ public class AccessTest {
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
+    private static final int samTimeout = 300000;
+    private String stewardToken;
+    private String custodianToken;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
-    private static final int samTimeout = 300000;
+
 
 
     @Before

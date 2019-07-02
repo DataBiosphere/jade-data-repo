@@ -224,6 +224,11 @@ public class AccessTest {
                 hasAccess = true;
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
             } catch (PdaoException e) {
+                assertThat(
+                    "checking message for pdao exception error",
+                    e.getCause().getMessage(),
+                    startsWith("Access Denied:"));
+            }
         }
 
         assertThat("reader can access the dataset after it has been shared",

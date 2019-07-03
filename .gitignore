@@ -43,3 +43,5 @@ src/generated/
 
 # Mac directory metadata
 .DS_Store
+
+*.pem

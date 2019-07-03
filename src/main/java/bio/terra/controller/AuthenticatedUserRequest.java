@@ -64,7 +64,12 @@ public class AuthenticatedUserRequest {
                 token = authHeader.substring("Bearer ".length());
         }
         if (email == null) {
-            email = appConfigUserEmail;
+            String fromHeader = req.getHeader("From");
+            if (fromHeader != null) {
+                email = fromHeader;
+            } else {
+                email = appConfigUserEmail;
+            }
         }
         return new AuthenticatedUserRequest(email, token);
     }

@@ -1,0 +1,48 @@
+package bio.terra.integration;
+
+import bio.terra.integration.auth.AuthService;
+import bio.terra.integration.auth.Users;
+import bio.terra.integration.configuration.TestConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class UsersBase {
+
+    @Autowired
+    private Users users;
+
+    @Autowired
+    private AuthService authService;
+
+
+    private static Logger logger = LoggerFactory.getLogger(UsersBase.class);
+    private TestConfiguration.User steward;
+    private TestConfiguration.User custodian;
+    private TestConfiguration.User reader;
+    private TestConfiguration.User discoverer;
+
+    public TestConfiguration.User steward() {
+        return steward;
+    }
+    public TestConfiguration.User custodian() {
+        return custodian;
+    }
+    public TestConfiguration.User reader() {
+        return reader;
+    }
+    public TestConfiguration.User discoverer() {
+        return discoverer;
+    }
+
+
+
+    protected void setup() throws Exception {
+        steward = users.getUserForRole("steward");
+        custodian = users.getUserForRole("custodian");
+        reader = users.getUserForRole("reader");
+        discoverer = users.getUserForRole("discoverer");
+        logger.info("steward: " + steward.getName() + "; custodian: " + custodian.getName() +
+            "; reader: " + reader.getName() + "; discoverer: " + discoverer.getName());
+    }
+}

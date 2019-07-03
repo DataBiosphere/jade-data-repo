@@ -196,8 +196,10 @@ public class EncodeFileTest {
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
         ErrorModel ingestError = connectedOperations.handleAsyncFailureCase(response);
+        // NB: this used to return 2 errors. It seems like the BQ API changed recently and now returns 3, except two of
+        // them are the same error with one word changed.
         assertThat("correctly found bad row",
-            ingestError.getMessage(), equalTo("Ingest failed with 2 errors - see error details"));
+            ingestError.getMessage(), equalTo("Ingest failed with 3 errors - see error details"));
 
         List<String> errorDetails = ingestError.getErrorDetail();
         assertNotNull("Error details were returned", errorDetails);
@@ -206,6 +208,10 @@ public class EncodeFileTest {
                 "JSON table encountered too many errors, giving up. Rows: 1; errors: 1. Please look into the " +
                 "errors[] collection for more details."));
         assertThat("Big query returned in details 1", errorDetails.get(1),
+            equalTo("BigQueryError: reason=invalid message=Error while reading data, error message: " +
+                "JSON processing encountered too many errors, giving up. " +
+                "Rows: 1; errors: 1; max bad: 0; error percent: 0"));
+        assertThat("Big query returned in details 2", errorDetails.get(2),
             equalTo("BigQueryError: reason=invalid message=Error while reading data, error message: " +
                 "JSON parsing error in row starting at position 0: Parser terminated before end of string"));
 

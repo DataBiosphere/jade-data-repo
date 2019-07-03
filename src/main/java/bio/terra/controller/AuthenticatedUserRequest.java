@@ -65,10 +65,11 @@ public class AuthenticatedUserRequest {
         }
         if (email == null) {
             String fromHeader = req.getHeader("From");
-            if (fromHeader != null)
+            if (fromHeader != null) {
                 email = fromHeader;
-            else
+            } else {
                 email = appConfigUserEmail;
+            }
         }
         return new AuthenticatedUserRequest(email, token);
     }

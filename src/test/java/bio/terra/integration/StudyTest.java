@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
@@ -61,6 +63,9 @@ public class StudyTest extends UsersBase {
 
             assertThat(studyModel.getName(), startsWith(omopStudyName));
             assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
+
+            // There is a delay from when a resource is created in SAM to when it is available in an enumerate call.
+            TimeUnit.SECONDS.sleep(5);
 
             EnumerateStudyModel enumerateStudyModel = dataRepoFixtures.enumerateStudies(steward());
             boolean found = false;

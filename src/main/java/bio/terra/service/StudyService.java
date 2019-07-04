@@ -19,6 +19,8 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -31,6 +33,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class StudyService {
+    private static Logger logger = LoggerFactory.getLogger(StudyService.class);
+
     private final StudyDao studyDao;
     private final Stairway stairway;
     private final JobService jobService; // for handling flight response
@@ -68,7 +72,7 @@ public class StudyService {
             offset, limit, sort, direction, filter, resourceIds);
         List<StudySummaryModel> summaries = studyEnum.getItems()
             .stream()
-            .map(summary -> StudyJsonConversion.studySummaryModelFromStudySummary(summary))
+            .map(StudyJsonConversion::studySummaryModelFromStudySummary)
             .collect(Collectors.toList());
         return new EnumerateStudyModel().items(summaries).total(studyEnum.getTotal());
     }

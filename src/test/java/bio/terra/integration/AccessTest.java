@@ -6,15 +6,22 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.*;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.IngestResponseModel;
+import bio.terra.model.StudySummaryModel;
+import bio.terra.pdao.bigquery.BigQueryConfiguration;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.bigquery.BigQueryProject;
-import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
+import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
-import com.google.j2objc.annotations.AutoreleasePool;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +32,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -58,13 +68,11 @@ public class AccessTest {
     private SamClientService samClientService;
 
     @Autowired
-    private BigQueryPdao bigQueryPdao;
+    private BigQueryConfiguration bigQueryConfiguration;
 
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
-    private String stewardToken;
-    private String custodianToken;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
@@ -76,52 +84,85 @@ public class AccessTest {
         steward = users.getUserForRole("steward");
         custodian = users.getUser("harry");
         reader = users.getUserForRole("reader");
-        stewardToken = authService.getAuthToken(steward.getEmail());
-        custodianToken = authService.getAuthToken(custodian.getEmail());
-        readerToken = authService.getAuthToken(reader.getEmail());
+        readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
 
-        studySummaryModel = dataRepoFixtures.createStudy(stewardToken, "ingest-test-study.json");
+        studySummaryModel = dataRepoFixtures.createStudy(steward, "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
 
+    private BigQueryProject getBigQueryProject(String token){
+        String projectId = bigQueryConfiguration.googleProjectId();
+        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
+        BigQueryProject bigQueryProject = new BigQueryProject(projectId, googleCredentials);
+
+        return bigQueryProject;
+    }
 
     @Test
-    public void checkShared() throws  Exception{
+    public void checkShared() throws  Exception {
+        BigQueryProject bigQueryProject = getBigQueryProject(readerToken);
+
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(
-                stewardToken, studyId, "participant", "ingest-test/ingest-test-participant.json");
-        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
+                steward, studyId, "participant", "ingest-test/ingest-test-participant.json");
 
         ingestResponse = dataRepoFixtures.ingestJsonData(
-            stewardToken, studyId, "sample", "ingest-test/ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(5L));
+            steward, studyId, "sample", "ingest-test/ingest-test-sample.json");
 
         dataRepoFixtures.addStudyPolicyMember(
-            stewardToken,
+            steward,
             studyId,
             SamClientService.DataRepoRole.CUSTODIAN,
             custodian.getEmail());
-        DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodianToken);
+        DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodian);
         assertThat("Custodian is authorized to enumerate studies",
             enumStudies.getStatusCode(),
             equalTo(HttpStatus.OK));
 
-        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(custodianToken, studySummaryModel, "ingest-test-dataset.json");
+        DatasetSummaryModel datasetSummaryModel =
+            dataRepoFixtures.createDataset(custodian, studySummaryModel, "ingest-test-dataset.json");
+
+       try {
+           bigQueryProject.datasetExists(datasetSummaryModel.getName());
+           assertThat("reader can access the dataset after it has been shared",
+               bigQueryProject.datasetExists(datasetSummaryModel.getName()),
+               not(true));
+       } catch (PdaoException e) {
+          assertThat(
+              "checking message for pdao exception error",
+              e.getMessage(),
+              equalTo("existence check failed for ".concat(datasetSummaryModel.getName())));
+       }
 
         dataRepoFixtures.addDatasetPolicyMember(
-            custodianToken,
+            custodian,
             datasetSummaryModel.getId(),
             SamClientService.DataRepoRole.READER,
             reader.getEmail());
 
-        AuthenticatedUserRequest authenticatedReaderRequest = new AuthenticatedUserRequest(reader.getEmail(), readerToken);
+        AuthenticatedUserRequest authenticatedReaderRequest =
+            new AuthenticatedUserRequest(reader.getEmail(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASET,
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        bigQueryPdao.
+
+        long startTime = System.currentTimeMillis();
+        boolean hasAccess = false;
+        while (hasAccess == false && (System.currentTimeMillis()-startTime)<300000){
+            TimeUnit.SECONDS.sleep(5);
+            try {
+                hasAccess = bigQueryProject.datasetExists(datasetSummaryModel.getName());
+            } catch (PdaoException e) {
+
+            }
+        }
+
+        assertThat("reader can access the dataset after it has been shared",
+            hasAccess,
+            equalTo(true));
 
     }
 }

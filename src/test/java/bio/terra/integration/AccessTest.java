@@ -11,6 +11,7 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;

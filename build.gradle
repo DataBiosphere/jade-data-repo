@@ -294,6 +294,10 @@ task testIntegration(type: Test) {
     useJUnit {
         includeCategories 'bio.terra.category.Integration'
     }
+    testLogging {
+        events = ["passed", "failed", "skipped"]
+        showStandardStreams = true
+    }
     outputs.upToDateWhen { false }
 }
 

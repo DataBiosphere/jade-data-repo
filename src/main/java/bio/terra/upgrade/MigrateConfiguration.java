@@ -15,7 +15,6 @@ import org.springframework.stereotype.Component;
 public class MigrateConfiguration {
     private boolean dropAllOnStart;
     private boolean updateAllOnStart;
-    private int lockTimeoutMins;
 
     public boolean getDropAllOnStart() {
         return dropAllOnStart;
@@ -31,13 +30,5 @@ public class MigrateConfiguration {
 
     public void setUpdateAllOnStart(boolean updateAllOnStart) {
         this.updateAllOnStart = updateAllOnStart;
-    }
-
-    public int getLockTimeoutMins() {
-        return lockTimeoutMins;
-    }
-
-    public void setLockTimeoutMins(int lockTimeoutMins) {
-        this.lockTimeoutMins = lockTimeoutMins;
     }
 }

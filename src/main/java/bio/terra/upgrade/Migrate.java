@@ -60,16 +60,9 @@ public class Migrate {
                  * We can get into this state where one of the APIs is running migrations and gets shut down so that
                  * another API container can run. It will result in a lock that doesn't get released. This is similar
                  * to the problems we will have from deploying multiple containers at once that try to run migrations.
-                 * If a lock has been held for more than a few minutes we should be able to assume that the container
-                 * running the migration has failed.
                  */
-                LocalDateTime now = LocalDateTime.now();
-                LocalDateTime then = LocalDateTime.ofInstant(lock.getLockGranted().toInstant(), ZoneId.systemDefault());
-                long durationMinutes = Duration.between(then, now).toMinutes();
-                if (durationMinutes >= migrateConfiguration.getLockTimeoutMins()) {
-                    logger.warn(String.format("forcing lock release (%s minutes since lock grant)", durationMinutes));
-                    liquibase.forceReleaseLocks();
-                }
+                logger.warn("forcing lock release");
+                liquibase.forceReleaseLocks();
             }
             logger.info(String.format("dropAllOnStart is set to %s", migrateConfiguration.getDropAllOnStart()));
             if (migrateConfiguration.getDropAllOnStart()) {

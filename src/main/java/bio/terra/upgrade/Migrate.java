@@ -16,9 +16,6 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 /**
  * Provides methods for upgrading the data repository metadata and stairway databases.

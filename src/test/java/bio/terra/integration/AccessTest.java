@@ -162,6 +162,7 @@ public class AccessTest {
         assertThat("reader can access the dataset after it has been shared",
             hasAccess,
             equalTo(true));
+
     }
 
     @Test

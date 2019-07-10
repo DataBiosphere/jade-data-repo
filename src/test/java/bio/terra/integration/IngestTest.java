@@ -66,11 +66,11 @@ public class IngestTest extends UsersBase {
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(
                 steward(), studyId, "participant", "ingest-test/ingest-test-participant.json");
-        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(2L));
+        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
         ingestResponse = dataRepoFixtures.ingestJsonData(
             steward(), studyId, "sample", "ingest-test/ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(5L));
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
         ingestResponse = dataRepoFixtures.ingestJsonData(
             steward(), studyId, "file", "ingest-test/ingest-test-file.json");

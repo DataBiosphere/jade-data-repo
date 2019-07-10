@@ -1,6 +1,7 @@
 package bio.terra.pdao.bigquery;
 
 import bio.terra.pdao.exception.PdaoException;
+import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;

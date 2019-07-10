@@ -11,17 +11,14 @@ import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryConfiguration;
-import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +31,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -154,9 +150,14 @@ public class AccessTest {
         while (hasAccess == false && (System.currentTimeMillis()-startTime)<300000){
             TimeUnit.SECONDS.sleep(5);
             try {
-                hasAccess = bigQueryProject.datasetExists(datasetSummaryModel.getName());
+                boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
+                hasAccess = true;
+                assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
             } catch (PdaoException e) {
-
+                assertThat(
+                    "checking message for pdao exception error",
+                    e.getCause().getMessage(),
+                    startsWith("Access Denied:"));
             }
         }
 
@@ -165,4 +166,6 @@ public class AccessTest {
             equalTo(true));
 
     }
+
+
 }

@@ -41,7 +41,9 @@ public class Users {
         return getUsersForRole(role, 1).get(0);
     }
 
-    public TestConfiguration.User getUser(String name){ return userByName.get(name);};
+    public TestConfiguration.User getUser(String name) {
+        return userByName.get(name);
+    }
 
     public List<TestConfiguration.User> getUsersForRole(String role, int numUsers) {
         if (role == null) {

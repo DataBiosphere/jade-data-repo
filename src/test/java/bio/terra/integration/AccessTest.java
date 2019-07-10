@@ -8,7 +8,6 @@ import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateStudyModel;
-import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryConfiguration;
 import bio.terra.pdao.bigquery.BigQueryProject;
@@ -72,7 +71,7 @@ public class AccessTest {
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
-
+    private static final int samTimeout = 300000;
 
 
     @Before
@@ -86,7 +85,7 @@ public class AccessTest {
         studyId = studySummaryModel.getId();
     }
 
-    private BigQueryProject getBigQueryProject(String token){
+    private BigQueryProject getBigQueryProject(String token) {
         String projectId = bigQueryConfiguration.googleProjectId();
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
         BigQueryProject bigQueryProject = new BigQueryProject(projectId, googleCredentials);
@@ -98,11 +97,10 @@ public class AccessTest {
     public void checkShared() throws  Exception {
         BigQueryProject bigQueryProject = getBigQueryProject(readerToken);
 
-        IngestResponseModel ingestResponse =
-            dataRepoFixtures.ingestJsonData(
-                steward, studyId, "participant", "ingest-test/ingest-test-participant.json");
+        dataRepoFixtures.ingestJsonData(
+            steward, studyId, "participant", "ingest-test/ingest-test-participant.json");
 
-        ingestResponse = dataRepoFixtures.ingestJsonData(
+        dataRepoFixtures.ingestJsonData(
             steward, studyId, "sample", "ingest-test/ingest-test-sample.json");
 
         dataRepoFixtures.addStudyPolicyMember(
@@ -118,17 +116,16 @@ public class AccessTest {
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(custodian, studySummaryModel, "ingest-test-dataset.json");
 
-       try {
-           bigQueryProject.datasetExists(datasetSummaryModel.getName());
-           assertThat("reader can access the dataset after it has been shared",
-               bigQueryProject.datasetExists(datasetSummaryModel.getName()),
-               not(true));
-       } catch (PdaoException e) {
-          assertThat(
-              "checking message for pdao exception error",
-              e.getMessage(),
-              equalTo("existence check failed for ".concat(datasetSummaryModel.getName())));
-       }
+        try {
+            bigQueryProject.datasetExists(datasetSummaryModel.getName());
+            assertThat("reader can access the dataset after it has been shared",
+                bigQueryProject.datasetExists(datasetSummaryModel.getName()),
+                not(true));
+        } catch (PdaoException e) {
+            assertThat("checking message for pdao exception error",
+                 e.getMessage(),
+                 equalTo("existence check failed for ".concat(datasetSummaryModel.getName())));
+        }
 
         dataRepoFixtures.addDatasetPolicyMember(
             custodian,
@@ -147,7 +144,7 @@ public class AccessTest {
 
         long startTime = System.currentTimeMillis();
         boolean hasAccess = false;
-        while (hasAccess == false && (System.currentTimeMillis()-startTime)<300000){
+        while (!hasAccess && (System.currentTimeMillis() - startTime) < samTimeout) {
             TimeUnit.SECONDS.sleep(5);
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());

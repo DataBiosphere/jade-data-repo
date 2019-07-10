@@ -1,7 +1,6 @@
 package bio.terra.pdao.bigquery;
 
 import bio.terra.pdao.exception.PdaoException;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
@@ -35,7 +34,7 @@ public class BigQueryProject {
             .getService();
     }
 
-    public BigQueryProject(String projectId, GoogleCredentials googleCredentials){
+    public BigQueryProject(String projectId, GoogleCredentials googleCredentials) {
         this.projectId = projectId;
         bigQuery = BigQueryOptions.newBuilder()
             .setProjectId(projectId)

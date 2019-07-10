@@ -58,7 +58,8 @@ public class AuthService {
         return directAccessTokens.get(userEmail);
     }
 
-    private GoogleCredential buildCredential(String email, List<String> scopes) throws IOException, GeneralSecurityException {
+    private GoogleCredential buildCredential(String email, List<String> scopes)
+            throws IOException, GeneralSecurityException {
         return new GoogleCredential.Builder()
             .setTransport(httpTransport)
             .setJsonFactory(jsonFactory)

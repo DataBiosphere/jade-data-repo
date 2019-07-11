@@ -253,7 +253,6 @@ public class AccessTest {
             drsId = fieldValueList.get(0).getStringValue();
         }
 
-
         assertThat("drs id was found", drsId, notNullValue());
         Matcher matcher = drsIdRegex.matcher(drsId);
 

@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -65,7 +66,7 @@ public class StudyTest extends UsersBase {
             assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
 
             // There is a delay from when a resource is created in SAM to when it is available in an enumerate call.
-            TimeUnit.SECONDS.sleep(5);
+            TimeUnit.SECONDS.sleep(10);
 
             EnumerateStudyModel enumerateStudyModel = dataRepoFixtures.enumerateStudies(steward());
             boolean found = false;
@@ -113,6 +114,13 @@ public class StudyTest extends UsersBase {
             equalTo(HttpStatus.UNAUTHORIZED));
 
         EnumerateStudyModel enumStudiesResp = dataRepoFixtures.enumerateStudies(reader());
+        List<StudySummaryModel> items = enumStudiesResp.getItems();
+        if (items != null) {
+            for (StudySummaryModel studyModel : items) {
+                logger.info(String.format("found study for reader: %s, created: %s",
+                    studyModel.getId(), studyModel.getCreatedDate()));
+            }
+        }
         assertThat("Reader does not have access to studies",
             enumStudiesResp.getTotal(),
             equalTo(0));

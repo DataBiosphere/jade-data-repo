@@ -983,6 +983,24 @@ paths:
           schema:
             type: object
 
+
+  '/api/repository/v1/configuration':
+    get:  ## retrieve
+      description: Retrieve the repository configuration information
+      operationId: retrieveRepositoryConfig
+      tags:
+      - repository
+      responses:
+        200:
+          description: Repository Config
+          schema:
+            $ref: '#/definitions/RepositoryConfigurationModel'
+        403:
+          description: No permission to see configuration
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
 ##########################################################################################
 # DRS PATHS
 ##########################################################################################
@@ -1906,6 +1924,11 @@ definitions:
       enabled:
         type: boolean
         description: true if the user is enabled in ldap
+
+  RepositoryConfigurationModel:
+    clientId:
+      description: the google defined client id for the repository
+      type: string
 
 ##########################################################################################
 # DRS DEFINITIONS

@@ -49,6 +49,14 @@ public class DataRepoFixtures {
     @Autowired
     private ObjectMapper objectMapper;
 
+
+    public DataRepoResponse<DRSObject> resolveDrsId(TestConfiguration.User user, String objectId) throws Exception {
+        return dataRepoClient.get(
+            user,
+            "/ga4gh/drs/v1/objects/" + objectId,
+            DRSObject.class
+        );
+    }
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
 

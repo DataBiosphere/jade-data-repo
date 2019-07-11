@@ -20,7 +20,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
@@ -66,19 +65,21 @@ public class StudyTest extends UsersBase {
             assertThat(studyModel.getDescription(), equalTo(omopStudyDesc));
 
             // There is a delay from when a resource is created in SAM to when it is available in an enumerate call.
-            TimeUnit.SECONDS.sleep(10);
-
-            EnumerateStudyModel enumerateStudyModel = dataRepoFixtures.enumerateStudies(steward());
-            boolean found = false;
-            for (StudySummaryModel oneStudy : enumerateStudyModel.getItems()) {
-                if (oneStudy.getId().equals(studyModel.getId())) {
-                    assertThat(oneStudy.getName(), startsWith(omopStudyName));
-                    assertThat(oneStudy.getDescription(), equalTo(omopStudyDesc));
-                    found = true;
-                    break;
+            boolean metExpectation = TestUtils.flappyExpect(5, 60, true, () -> {
+                EnumerateStudyModel enumerateStudyModel = dataRepoFixtures.enumerateStudies(steward());
+                boolean found = false;
+                for (StudySummaryModel oneStudy : enumerateStudyModel.getItems()) {
+                    if (oneStudy.getId().equals(studyModel.getId())) {
+                        assertThat(oneStudy.getName(), startsWith(omopStudyName));
+                        assertThat(oneStudy.getDescription(), equalTo(omopStudyDesc));
+                        found = true;
+                        break;
+                    }
                 }
-            }
-            assertTrue("study was found in enumeration", found);
+                return found;
+            });
+
+            assertTrue("study was found in enumeration", metExpectation);
 
             // test allowable permissions
 

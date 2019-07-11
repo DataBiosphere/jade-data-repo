@@ -226,13 +226,13 @@ public class DataRepoFixtures {
      *
      * @param studyId   - id of study to load
      * @param tableName - name of table to load data into
-     * @param datafile  - file path within the bucket from property integrationtest.ingestbucket
+     * @param filePath  - file path within the bucket from property integrationtest.ingestbucket
      * @return ingest response
      * @throws Exception
      */
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
-        TestConfiguration.User user, String studyId, String tableName, String datafile) throws Exception {
-        String ingestBody = buildSimpleIngest(tableName, datafile);
+        TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
+        String ingestBody = buildSimpleIngest(tableName, filePath);
         return dataRepoClient.post(
             user,
             "/api/repository/v1/studies/" + studyId + "/ingest",
@@ -241,8 +241,8 @@ public class DataRepoFixtures {
     }
 
     public IngestResponseModel ingestJsonData(
-        TestConfiguration.User user, String studyId, String tableName, String datafile) throws Exception {
-        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, studyId, tableName, datafile);
+        TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
+        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, studyId, tableName, filePath);
         assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
         DataRepoResponse<IngestResponseModel> response = dataRepoClient.waitForResponse(

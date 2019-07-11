@@ -18,6 +18,9 @@ import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.WriteChannel;
+import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -40,6 +43,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
@@ -82,16 +87,17 @@ public class AccessTest {
     @Autowired
     private Storage storage;
 
+    private static final int samTimeout = 300;
+    private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
+
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
-    private static final int samTimeout = 300000;
     private String stewardToken;
     private String custodianToken;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
-    private static final int samTimeout = 300000;
 
 
     @Before
@@ -170,21 +176,21 @@ public class AccessTest {
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
 
-        long startTime = System.currentTimeMillis();
         boolean hasAccess = false;
-        while (!hasAccess && (System.currentTimeMillis() - startTime) < samTimeout) {
-            TimeUnit.SECONDS.sleep(5);
+        TestUtils.flappyExpect(5,samTimeout, true, () -> {
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
-                hasAccess = true;
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
+                return true;
             } catch (PdaoException e) {
                 assertThat(
                     "checking message for pdao exception error",
                     e.getCause().getMessage(),
                     startsWith("Access Denied:"));
+                return false;
             }
-        }
+        });
+
 
         assertThat("reader can access the dataset after it has been shared",
             hasAccess,
@@ -194,6 +200,7 @@ public class AccessTest {
     @Test
     public void fileAclTest() throws Exception{
         GcsProject gcsProject = getGcsProject(readerToken);
+        BigQueryProject bigQueryProject = getBigQueryProject(readerToken);
 
         studySummaryModel = dataRepoFixtures.createStudy(steward, "file-acl-test-study.json");
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
@@ -239,23 +246,39 @@ public class AccessTest {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-
-        long startTime = System.currentTimeMillis();
         boolean hasAccess = false;
-        while (!hasAccess && (System.currentTimeMillis() - startTime) < samTimeout) {
-            TimeUnit.SECONDS.sleep(5);
+        TestUtils.flappyExpect(5, samTimeout, true, () -> {
             try {
-                gcsProject.getStorage().get(BlobId.of(buck))
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
-
-                hasAccess = true;
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
+                return true;
             } catch (PdaoException e) {
+                assertThat(
+                    "checking message for pdao exception error",
+                    e.getCause().getMessage(),
+                    startsWith("Access Denied:"));
+                return false;
+            }
+        });
+
+        String query = String.format("SELECT file_ref FROM `%s.%s.file`",
+            bigQueryProject.getProjectId(), datasetSummaryModel.getName());
+        TableResult ids = bigQueryProject.query(query);
+
+        String drsId = null;
+        for(FieldValueList fieldValueList : ids.iterateAll()) {
+            drsId = fieldValueList.get(0).getStringValue();
         }
 
-        assertThat("reader can access the dataset after it has been shared",
-            hasAccess,
-            equalTo(true));
+        assertThat("drs id was found", drsId, not(null));
+        Matcher matcher = drsIdRegex.matcher(drsId);
+
+        assertThat("matcher found a match in the drs id", matcher.find(), equalTo(true));
+        drsId = matcher.group();
+
+        DataRepoResponse<DRSObject> drsObjectDataRepoResponse = dataRepoFixtures.resolveDrsId(
+            reader,
+            drsId);
 
 
     }

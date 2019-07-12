@@ -62,21 +62,11 @@ spec:
         env:
         - name: GOOGLE_APPLICATION_CREDENTIALS
           value: /var/secrets/google/sa-key.json
-        - name: OAUTH_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: oauth-client-id
         - name: GOOGLE_CLOUD_PROJECT
           valueFrom:
             secretKeyRef:
               name: api-secrets
               key: google-cloud-project
-        - name: DB_DATAREPO_URI
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: datarepo-uri
         - name: DB_DATAREPO_USERNAME
           valueFrom:
             secretKeyRef:
@@ -87,11 +77,6 @@ spec:
             secretKeyRef:
               name: api-secrets
               key: datarepo-password
-        - name: DB_STAIRWAY_URI
-          valueFrom:
-            secretKeyRef:
-              name: api-secrets
-              key: stairway-uri
         - name: DB_STAIRWAY_USERNAME
           valueFrom:
             secretKeyRef:

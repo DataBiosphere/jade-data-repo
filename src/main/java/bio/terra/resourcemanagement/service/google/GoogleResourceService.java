@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -214,7 +215,9 @@ public class GoogleResourceService {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
 
-        GoogleCredential credential = GoogleCredential.getApplicationDefault();
+        GoogleCredential credential = GoogleCredential.getApplicationDefault()
+            .createScoped(Collections.singletonList("https://www.googleapis.com/auth/service.management"));
+
         return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
             .setApplicationName(resourceConfiguration.getApplicationName())
             .build();

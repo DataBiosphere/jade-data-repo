@@ -36,7 +36,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class GoogleResourceService {
-    private Logger logger = LoggerFactory.getLogger(GoogleResourceService.class);
+    private static final Logger logger = LoggerFactory.getLogger(GoogleResourceService.class);
+    private static final String ENABLED_FILTER = "state:ENABLED";
 
     private final GoogleResourceDao resourceDao;
     private final ProfileService profileService;
@@ -141,15 +142,19 @@ public class GoogleResourceService {
         try {
             ServiceUsage serviceUsage = serviceUsage();
             String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
-            ServiceUsage.Services.List list = serviceUsage.services().list(projectNumberString);
+            ServiceUsage.Services.List list = serviceUsage.services()
+                .list(projectNumberString)
+                .setFilter(ENABLED_FILTER);
             ListServicesResponse listServicesResponse = list.execute();
+            logger.info("found: " + String.join(", ", projectResource.getServiceIds()));
             List<Service> services = projectResource.getServiceIds()
                 .stream()
-                .map((s -> new Service().setName(String.format("%s/%s", projectNumberString, s))))
+                .map(s -> new Service().setName(String.format("%s/%s", projectNumberString, s)))
                 .collect(Collectors.toList());
             if (listServicesResponse.getServices().containsAll(services)) {
-                logger.debug("project already has the right resources enabled, skipping");
+                logger.info("project already has the right resources enabled, skipping");
             } else {
+                logger.info("project does not have all resources enabled");
                 ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()
                     .batchEnable(projectNumberString, batchRequest);
                 long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();

@@ -1,5 +1,7 @@
 package bio.terra.service.dataproject;
 
+import bio.terra.dao.DatasetDao;
+import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DataProjectNotFoundException;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.dao.DataProjectDao;
@@ -37,15 +39,21 @@ public class DataProjectService {
     private final DataProjectDao dataProjectDao;
     private final DataProjectIdSelector dataProjectIdSelector;
     private final GoogleResourceService resourceService;
+    private final StudyDao studyDao;
+    private final DatasetDao datasetDao;
 
     @Autowired
     public DataProjectService(
             DataProjectDao dataProjectDao,
             DataProjectIdSelector dataProjectIdSelector,
-            GoogleResourceService resourceService) {
+            GoogleResourceService resourceService,
+            StudyDao studyDao,
+            DatasetDao datasetDao) {
         this.dataProjectDao = dataProjectDao;
         this.dataProjectIdSelector = dataProjectIdSelector;
         this.resourceService = resourceService;
+        this.studyDao = studyDao;
+        this.datasetDao = datasetDao;
     }
 
     public DatasetDataProject getProjectForDataset(Dataset dataset) {
@@ -74,6 +82,11 @@ public class DataProjectService {
         }
         return new DatasetDataProject(datasetDataProjectSummary)
             .googleProjectResource(googleProjectResource);
+    }
+
+    public DatasetDataProject getProjectForDatasetName(String datasetName) {
+        Dataset dataset = datasetDao.retrieveDatasetByName(datasetName);
+        return getProjectForDataset(dataset);
     }
 
     // TODO: DRY this up
@@ -106,5 +119,10 @@ public class DataProjectService {
         }
         return new StudyDataProject(studyDataProjectSummary)
             .googleProjectResource(googleProjectResource);
+    }
+
+    public StudyDataProject getProjectForStudyName(String studyName) {
+        Study study = studyDao.retrieveByName(studyName);
+        return getProjectForStudy(study);
     }
 }

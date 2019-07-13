@@ -6,13 +6,14 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.metadata.StudyDataProject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.pdao.bigquery.BigQueryConfiguration;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
+import bio.terra.service.dataproject.DataProjectService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import org.junit.Before;
@@ -30,7 +31,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -63,7 +66,7 @@ public class AccessTest {
     private SamClientService samClientService;
 
     @Autowired
-    private BigQueryConfiguration bigQueryConfiguration;
+    private DataProjectService dataProjectService;
 
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
@@ -71,8 +74,8 @@ public class AccessTest {
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
+    private String projectId;
     private static final int samTimeout = 300000;
-
 
     @Before
     public void setup() throws Exception {
@@ -83,14 +86,13 @@ public class AccessTest {
 
         studySummaryModel = dataRepoFixtures.createStudy(steward, "ingest-test-study.json");
         studyId = studySummaryModel.getId();
+        StudyDataProject studyDataProject = dataProjectService.getProjectForStudyName(studySummaryModel.getName());
+        projectId = studyDataProject.getGoogleProjectId();
     }
 
     private BigQueryProject getBigQueryProject(String token) {
-        String projectId = bigQueryConfiguration.googleProjectId();
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        BigQueryProject bigQueryProject = new BigQueryProject(projectId, googleCredentials);
-
-        return bigQueryProject;
+        return new BigQueryProject(projectId, googleCredentials);
     }
 
     @Test

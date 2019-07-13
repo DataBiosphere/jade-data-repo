@@ -196,7 +196,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId = bigQueryProject.getProjectId();
         String datasetName = dataset.getName();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
-        try
+        try {
             // Idempotency: delete possibly partial create.
             if (bigQueryProject.datasetExists(datasetName)) {
                 bigQueryProject.deleteDataset(datasetName);

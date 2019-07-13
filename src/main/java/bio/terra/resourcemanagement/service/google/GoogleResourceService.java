@@ -21,6 +21,7 @@ import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
+import com.google.api.services.serviceusage.v1beta1.model.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +30,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class GoogleResourceService {
@@ -140,7 +143,11 @@ public class GoogleResourceService {
             String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
             ServiceUsage.Services.List list = serviceUsage.services().list(projectNumberString);
             ListServicesResponse listServicesResponse = list.execute();
-            if (listServicesResponse.getServices().containsAll(projectResource.getServiceIds())) {
+            List<Service> services = projectResource.getServiceIds()
+                .stream()
+                .map((s -> new Service().setName(String.format("%s/%s", projectNumberString, s))))
+                .collect(Collectors.toList());
+            if (listServicesResponse.getServices().containsAll(services)) {
                 logger.debug("project already has the right resources enabled, skipping");
             } else {
                 ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()

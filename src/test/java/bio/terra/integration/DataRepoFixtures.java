@@ -53,7 +53,7 @@ public class DataRepoFixtures {
     private GoogleResourceConfiguration googleResourceConfiguration;
 
     // Create a Billing Profile model: expect successful creation
-    public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception{
+    public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest();
         String json = objectMapper.writeValueAsString(billingProfileRequestModel);
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
@@ -73,7 +73,7 @@ public class DataRepoFixtures {
     public DataRepoResponse<StudySummaryModel> createStudyRaw(TestConfiguration.User user, String filename)
         throws Exception {
         StudyRequestModel requestModel = jsonLoader.loadObject(filename, StudyRequestModel.class);
-        BillingProfileModel billingProfileModel = this.createBillingProfile(authToken);
+        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setDefaultProfileId(billingProfileModel.getId());
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         String json = objectMapper.writeValueAsString(requestModel);
@@ -170,7 +170,7 @@ public class DataRepoFixtures {
     public DataRepoResponse<JobModel> createDatasetLaunch(
         TestConfiguration.User user, StudySummaryModel studySummaryModel, String filename) throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
-        BillingProfileModel billingProfileModel = this.createBillingProfile(authToken);
+        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
         requestModel.setProfileId(billingProfileModel.getId());

@@ -142,6 +142,7 @@ public class GoogleResourceService {
         try {
             ServiceUsage serviceUsage = serviceUsage();
             String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
+            logger.info("trying to get services for {}", projectNumberString);
             ServiceUsage.Services.List list = serviceUsage.services()
                 .list(projectNumberString)
                 .setFilter(ENABLED_FILTER);

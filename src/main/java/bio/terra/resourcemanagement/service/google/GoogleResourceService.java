@@ -214,9 +214,7 @@ public class GoogleResourceService {
     private ServiceUsage serviceUsage() throws IOException, GeneralSecurityException {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-
-        GoogleCredential credential = GoogleCredential.getApplicationDefault()
-            .createScoped(Collections.singletonList("https://www.googleapis.com/auth/service.management"));
+        GoogleCredential credential = GoogleCredential.getApplicationDefault();
 
         return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
             .setApplicationName(resourceConfiguration.getApplicationName())

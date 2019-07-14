@@ -10,4 +10,4 @@ render () {
 }
 
 render jade-dev-account.pem.ctmpl jade-dev-account.pem
-cp ${PWD}/src/main/resources/jade-dev-account.pem /tmp/jade-dev-account.pem
+mv ${PWD}/src/main/resources/jade-dev-account.pem /tmp/jade-dev-account.pem

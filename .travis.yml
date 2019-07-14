@@ -30,7 +30,7 @@ before_install:
   - source $HOME/google-cloud-sdk/path.bash.inc
   - gcloud config set project $INTEGRATION_PROJECT
   - gcloud config set compute/zone $INTEGRATION_ZONE
-  - echo "${SA_JSON}" > $GOOGLE_APPLICATION_CREDENTIALS
+  - ./render-configs.sh $TRAVIS_TOKEN
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth configure-docker
   - gcloud components install kubectl
@@ -41,7 +41,6 @@ before_script:
 
 script:
   - set -x
-  - ./render-configs.sh $TRAVIS_TOKEN
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image
     deployments/api-deployment

@@ -2,9 +2,6 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.filesystem.EncodeFileIn;
-import bio.terra.filesystem.EncodeFileOut;
-import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
@@ -17,14 +14,12 @@ import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
-import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
-import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -32,8 +27,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,7 +36,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.BufferedReader;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -79,6 +73,8 @@ public class AccessTest {
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
+    private String stewardToken;
+    private String custodianToken;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
@@ -168,14 +164,14 @@ public class AccessTest {
             }
         });
 
+
         assertThat("reader can access the dataset after it has been shared",
             hasAccess,
             equalTo(true));
     }
 
     @Test
-    public void fileAclTest() throws Exception{
-        GcsProject gcsProject = getGcsProject(readerToken);
+    public void fileAclTest() throws Exception {
         BigQueryProject bigQueryProject = getBigQueryProject(readerToken);
 
         studySummaryModel = dataRepoFixtures.createStudy(steward, "file-acl-test-study.json");
@@ -206,7 +202,10 @@ public class AccessTest {
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
-        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(custodian, studySummaryModel, "file-acl-test-dataset.json");
+        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(
+            custodian,
+            studySummaryModel,
+            "file-acl-test-dataset.json");
 
         dataRepoFixtures.addDatasetPolicyMember(
             custodian,
@@ -237,8 +236,11 @@ public class AccessTest {
             }
         });
 
+
         String query = String.format("SELECT file_ref FROM `%s.%s.file`",
             bigQueryProject.getProjectId(), datasetSummaryModel.getName());
+
+
         TableResult ids = bigQueryProject.query(query);
                 assertThat(
                     "checking message for pdao exception error",
@@ -248,19 +250,38 @@ public class AccessTest {
         }
 
         String drsId = null;
-        for(FieldValueList fieldValueList : ids.iterateAll()) {
+        for (FieldValueList fieldValueList : ids.iterateAll()) {
             drsId = fieldValueList.get(0).getStringValue();
         }
 
-        assertThat("drs id was found", drsId, not(null));
+
+        assertThat("drs id was found", drsId, notNullValue());
         Matcher matcher = drsIdRegex.matcher(drsId);
 
         assertThat("matcher found a match in the drs id", matcher.find(), equalTo(true));
         drsId = matcher.group();
 
-        DataRepoResponse<DRSObject> drsObjectDataRepoResponse = dataRepoFixtures.resolveDrsId(
+        Optional<DRSObject> optionalDRSObject = dataRepoFixtures.resolveDrsId(
             reader,
-            drsId);
+            drsId).getResponseObject();
+
+        assertThat("there is a response", optionalDRSObject.isPresent(), equalTo(true));
+
+        List<DRSAccessMethod> accessMethods = optionalDRSObject.get().getAccessMethods();
+
+        assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
+
+        DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
+
+        String[] strings = accessUrl.getUrl().split("/", 4);
+
+        String bucketName = strings[2];
+        String blobName = strings[3];
+
+        try (ReadChannel reader = storage.reader(BlobId.of(bucketName, blobName))) {
+            ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
+            assertThat("Reader can read some bytes of the pdf", reader.read(bytes), greaterThan(0));
+        }
 
     }
 

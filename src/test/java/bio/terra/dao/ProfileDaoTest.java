@@ -1,7 +1,6 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.resourcemanagement.dao.exception.AccountAlreadyInUse;
 import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.BillingProfile;
@@ -23,7 +22,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -66,7 +67,8 @@ public class ProfileDaoTest {
     public void happyProfileInOutTest() throws Exception {
         UUID profileId = makeProfile(billingProfile);
         BillingProfile fromDB = profileDao.getBillingProfileById(profileId);
-        BillingProfile byBillingAccountId = profileDao.getBillingProfileByAccount(billingProfile.getBillingAccountId());
+        List<BillingProfile> byBillingAccountId =
+            profileDao.getBillingProfilesByAccount(billingProfile.getBillingAccountId());
 
         assertThat("profile name set correctly",
                 fromDB.getName(),
@@ -81,8 +83,8 @@ public class ProfileDaoTest {
                 equalTo(billingProfile.getBiller()));
 
         assertThat("able to lookup by account id",
-            byBillingAccountId.getId(),
-            equalTo(profileId));
+            byBillingAccountId.stream().map(BillingProfile::getId).collect(Collectors.toList()),
+            contains(equalTo(profileId)));
     }
 
     @Test(expected = ProfileNotFoundException.class)
@@ -91,12 +93,6 @@ public class ProfileDaoTest {
         boolean deleted = profileDao.deleteBillingProfileById(profileId);
         assertThat("able to delete", deleted, equalTo(true));
         profileDao.getBillingProfileById(profileId);
-    }
-
-    @Test(expected = AccountAlreadyInUse.class)
-    public void profileDuplicateIdTest() {
-        makeProfile(billingProfile);
-        makeProfile(billingProfile);
     }
 
     @Test

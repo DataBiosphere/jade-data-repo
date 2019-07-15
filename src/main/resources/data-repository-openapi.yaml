@@ -115,6 +115,22 @@ paths:
           description: service is broken
       security: []
 
+
+  '/configuration':
+    get:  ## retrieve
+      description: Retrieve the repository configuration information
+      operationId: retrieveRepositoryConfig
+      tags:
+      - unauthenticated
+      responses:
+        200:
+          description: Repository Config
+          schema:
+            $ref: '#/definitions/RepositoryConfigurationModel'
+        500:
+          description: service is broken
+
+
   ## Resources interface
 
   '/api/resources/v1/profiles':
@@ -982,23 +998,6 @@ paths:
           description: Successful responses return the type of model specified by the job; otherwise, ErrorModel
           schema:
             type: object
-
-
-  '/api/repository/v1/configuration':
-    get:  ## retrieve
-      description: Retrieve the repository configuration information
-      operationId: retrieveRepositoryConfig
-      tags:
-      - repository
-      responses:
-        200:
-          description: Repository Config
-          schema:
-            $ref: '#/definitions/RepositoryConfigurationModel'
-        403:
-          description: No permission to see configuration
-          schema:
-            $ref: '#/definitions/ErrorModel'
 
 
 ##########################################################################################

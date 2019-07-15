@@ -1,11 +1,10 @@
-package bio.terra;
+package bio.terra.configuration;
 
-import bio.terra.configuration.OauthConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.context.annotation.Import;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -29,7 +28,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Configuration
-@EnableConfigurationProperties
+@Import({OauthConfiguration.class})
 public class SwaggerDocumentationConfig {
 
     private static final String UNUSED = "__unused__";

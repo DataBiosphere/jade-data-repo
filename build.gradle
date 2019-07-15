@@ -287,8 +287,7 @@ task testConnected(type: Test) {
         includeCategories 'bio.terra.category.Connected'
     }
     testLogging {
-        events = ["passed", "failed", "skipped"]
-        showStandardStreams = true
+        events = ["passed", "failed", "skipped", "started", "standard_out"]
     }
     outputs.upToDateWhen { false }
 }

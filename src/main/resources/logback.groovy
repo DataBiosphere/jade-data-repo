@@ -10,7 +10,7 @@ def LOG_PATH = "logs"
 // Appender that sends to the console
 appender("Console-Appender", ConsoleAppender) {
     encoder(PatternLayoutEncoder) {
-        pattern = "%date %-5level [%thread]: %message%n"
+        pattern = "%date %-5level [%thread] %logger{36}: %message%n"
     }
 }
 // Appender that sends to a file
@@ -25,6 +25,7 @@ appender("File-Appender", FileAppender) {
 // You can set different logging configuration. For example, uncommenting the next line
 // will set all loggers in the Stairway package to log at debug level:
 // logger("bio.terra.stairway", DEBUG)
+logger("org.springframework", WARN)
 
 // root sets the default logging level and appenders
 root(INFO, ["Console-Appender", "File-Appender"])

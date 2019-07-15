@@ -38,8 +38,10 @@ before_install:
 
 script:
   - set -x
+  - pwd
+  - cat db/create-data-repo-db
+  - which psql
   - psql -U postgres -f db/create-data-repo-db
-  - ls -al
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image
     deployments/api-deployment

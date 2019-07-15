@@ -1,5 +1,7 @@
 package bio.terra.controller;
 
+import bio.terra.configuration.OauthConfiguration;
+import bio.terra.model.RepositoryConfigurationModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,10 +20,17 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private final HttpServletRequest request;
 
+    private final OauthConfiguration oauthConfig;
+
     @Autowired
-    public UnauthenticatedApiController(ObjectMapper objectMapper, HttpServletRequest request) {
+    public UnauthenticatedApiController(
+        ObjectMapper objectMapper,
+        HttpServletRequest request,
+        OauthConfiguration oauthConfig
+    ) {
         this.objectMapper = objectMapper;
         this.request = request;
+        this.oauthConfig = oauthConfig;
     }
 
     @Override
@@ -35,10 +44,15 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     }
 
     @Override
-    @RequestMapping(value = "/status",
-            method = RequestMethod.GET)
     public ResponseEntity<Void> serviceStatus() {
         return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
+        RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
+            .clientId(oauthConfig.getClientId());
+        return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }
 
 }

@@ -63,7 +63,7 @@ public class GoogleResourceService {
             return resourceDao.retrieveProjectById(profileId);
 
         } catch (GoogleResourceNotFoundException e) {
-            logger.info(String.format("no metadata found for profile: %s", profileId));
+            logger.info("no metadata found for profile: {}", profileId);
         }
 
         // it's possible that the project exists already but it is not stored in the metadata table
@@ -159,12 +159,6 @@ public class GoogleResourceService {
             if (actualServices.containsAll(services)) {
                 logger.info("project already has the right resources enabled, skipping");
             } else {
-                for (String service : services) {
-                    if (!actualServices.contains(service)) {
-                        logger.info("does not contain {}", service);
-                    }
-                }
-
                 logger.info("project does not have all resources enabled");
                 ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()
                     .batchEnable(projectNumberString, batchRequest);

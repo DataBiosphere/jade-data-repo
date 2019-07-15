@@ -26,6 +26,7 @@ appender("File-Appender", FileAppender) {
 // will set all loggers in the Stairway package to log at debug level:
 // logger("bio.terra.stairway", DEBUG)
 logger("org.springframework", WARN)
+logger("liquibase.executor", WARN)
 
 // root sets the default logging level and appenders
 root(INFO, ["Console-Appender", "File-Appender"])

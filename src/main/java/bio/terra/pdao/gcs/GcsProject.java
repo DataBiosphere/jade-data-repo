@@ -28,7 +28,7 @@ public class GcsProject {
     }
 
     public GcsProject(String projectId, Credentials credentials) {
-        this(projectId, credentials,defaultConnectTimeoutSeconds, defaultReadTimeoutSeconds);
+        this(projectId, credentials, defaultConnectTimeoutSeconds, defaultReadTimeoutSeconds);
     }
 
     public String getProjectId() {

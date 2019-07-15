@@ -30,6 +30,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -142,19 +143,30 @@ public class GoogleResourceService {
         try {
             ServiceUsage serviceUsage = serviceUsage();
             String projectNumberString = "projects/" + projectResource.getGoogleProjectNumber();
-            logger.info("trying to get services for {}", projectNumberString);
+            logger.info("trying to get services for {} ({})", projectNumberString,
+                projectResource.getGoogleProjectId());
             ServiceUsage.Services.List list = serviceUsage.services()
                 .list(projectNumberString)
                 .setFilter(ENABLED_FILTER);
             ListServicesResponse listServicesResponse = list.execute();
             logger.info("found: " + String.join(", ", projectResource.getServiceIds()));
-            List<Service> services = projectResource.getServiceIds()
+            List<String> services = projectResource.getServiceIds()
                 .stream()
-                .map(s -> new Service().setName(String.format("%s/%s", projectNumberString, s)))
+                .map(s -> String.format("%s/services/%s", projectNumberString, s))
                 .collect(Collectors.toList());
-            if (listServicesResponse.getServices().containsAll(services)) {
+            List<String> actualServices = listServicesResponse.getServices()
+                .stream()
+                .map(s -> s.getName())
+                .collect(Collectors.toList());
+            if (actualServices.containsAll(services)) {
                 logger.info("project already has the right resources enabled, skipping");
             } else {
+                for (String service : services) {
+                    if (!actualServices.contains(service)) {
+                        logger.info("does not contain {}", service);
+                    }
+                }
+
                 logger.info("project does not have all resources enabled");
                 ServiceUsage.Services.BatchEnable batchEnable = serviceUsage.services()
                     .batchEnable(projectNumberString, batchRequest);
@@ -177,8 +189,8 @@ public class GoogleResourceService {
 
         GoogleCredential credential = GoogleCredential.getApplicationDefault();
         if (credential.createScopedRequired()) {
-            credential =
-                credential.createScoped(Arrays.asList("https://www.googleapis.com/auth/cloud-platform"));
+            credential = credential.createScoped(
+                Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
         }
 
         return new CloudResourceManager.Builder(httpTransport, jsonFactory, credential)
@@ -214,6 +226,10 @@ public class GoogleResourceService {
         HttpTransport httpTransport = GoogleNetHttpTransport.newTrustedTransport();
         JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
         GoogleCredential credential = GoogleCredential.getApplicationDefault();
+        if (credential.createScopedRequired()) {
+            credential = credential.createScoped(
+                Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+        }
 
         return new ServiceUsage.Builder(httpTransport, jsonFactory, credential)
             .setApplicationName(resourceConfiguration.getApplicationName())

@@ -117,18 +117,19 @@ paths:
 
 
   '/configuration':
-    get:  ## retrieve
+    get:
       description: Retrieve the repository configuration information
       operationId: retrieveRepositoryConfig
       tags:
-      - unauthenticated
+        - unauthenticated
       responses:
         200:
           description: Repository Config
           schema:
             $ref: '#/definitions/RepositoryConfigurationModel'
         500:
-          description: service is broken
+          description: Config is unavailable
+      security: []
 
 
   ## Resources interface
@@ -1925,9 +1926,10 @@ definitions:
         description: true if the user is enabled in ldap
 
   RepositoryConfigurationModel:
-    clientId:
-      description: the google defined client id for the repository
-      type: string
+    properties:
+      clientId:
+        description: the google defined client id for the repository
+        type: string
 
 ##########################################################################################
 # DRS DEFINITIONS

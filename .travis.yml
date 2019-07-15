@@ -46,9 +46,9 @@ script:
     deployments/api-deployment
     "data-repo-api-container=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
   - ./gradlew assemble
-  - ./gradlew check --scan -s
-  - ./gradlew testConnected --scan -s
-  - ./gradlew testIntegration --scan -s
+  - ./gradlew check --scan
+  - ./gradlew testConnected --scan
+  - ./gradlew testIntegration --scan
 
 deploy:
   provider: script

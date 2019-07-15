@@ -221,7 +221,6 @@ public class AccessTest {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        boolean hasAccess = false;
         TestUtils.flappyExpect(5, samTimeout, true, () -> {
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
@@ -242,12 +241,6 @@ public class AccessTest {
 
 
         TableResult ids = bigQueryProject.query(query);
-                assertThat(
-                    "checking message for pdao exception error",
-                    e.getCause().getMessage(),
-                    startsWith("Access Denied:"));
-            }
-        }
 
         String drsId = null;
         for (FieldValueList fieldValueList : ids.iterateAll()) {
@@ -284,6 +277,5 @@ public class AccessTest {
         }
 
     }
-
 
 }

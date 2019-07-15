@@ -155,8 +155,7 @@ public class AccessTest {
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
 
-        boolean hasAccess = false;
-        TestUtils.flappyExpect(5, samTimeout, true, () -> {
+        boolean hasAccess = TestUtils.flappyExpect(5, samTimeout, true, () -> {
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));

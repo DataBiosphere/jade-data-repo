@@ -1,0 +1,15 @@
+kind: Service
+apiVersion: v1
+metadata:
+  namespace: data-repo
+  name: grafana-service
+spec:
+  ports:
+  - protocol: TCP
+    name: http
+    port: 3000
+    targetPort: 3000
+  type: NodePort
+  selector:
+    service: grafana
+    project: datarepo

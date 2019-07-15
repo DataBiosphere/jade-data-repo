@@ -80,6 +80,10 @@ kubectl apply -f "${WD}/k8s/namespace.yaml"
 # put site.conf in the configMap
 kubectl create --namespace data-repo configmap siteconf --from-file=${WD}/site.conf
 
+#render and put stackdriver.yaml in configMap
+consul-template -template "${WD}/k8s/secrets/stackdriver.yaml.ctmpl:${SCRATCH}/stackdriver.yaml" -once
+kubectl create --namespace data-repo configmap stackdriver-datasource --from-file=${SCRATCH}/stackdriver.yaml
+
 # create service account and pod security policy
 kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
 
@@ -96,7 +100,7 @@ vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .
 kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # update the sql proxy service account key
-vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa-${SUFFIX}.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
 kubectl --namespace data-repo create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
 
 
@@ -118,26 +122,15 @@ rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
 
 # create pods + services
 kubectl apply -f "${WD}/k8s/services"
-kubectl apply -f "${WD}/k8s/pods"
 
 # render environment-specific oidc deployment and ingress configs then create them
 consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
 consul-template -template "${WD}/k8s/deployments/cloudsql-proxy.yaml.ctmpl:${SCRATCH}/cloudsql-proxy.yaml" -once
 consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
-kubectl apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
-kubectl apply -f "${SCRATCH}/cloudsql-proxy.yaml"
-kubectl apply -f "${SCRATCH}/oidc-ingress.yaml"
+kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl --namespace=data-repo apply -f "${SCRATCH}/cloudsql-proxy.yaml"
+kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-ingress.yaml"
 
-# wait for the db to be ready so that we can run commands against it
-echo 'waiting 10 sec for database to be up'
-sleep 10
-# TODO: add readiness probe to postgres pod def to check for port 5432 to be available
-#kubectl wait --for=condition=Ready -f "${WD}/k8s/pods/psql-pod.yaml"
-
-# create the right databases/user/extensions (TODO: moving this to be the APIs responsibility soon)
-cat "${WD}/../db/create-data-repo-db" | \
-    kubectl --namespace data-repo run psql -i --serviceaccount=jade-sa --restart=Never --rm --image=postgres:9.6 -- \
-    psql -h postgres-service.data-repo -U postgres
 
 # create deployments
 kubectl --namespace data-repo apply -f "${WD}/k8s/deployments/"

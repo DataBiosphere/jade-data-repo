@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: grafana
+  template:
+    metadata:
+      labels:
+        service: grafana
+    spec:
+      serviceAccountName: jade-sa
+      containers:
+      - name: grafana
+        image: grafana/grafana
+        ports:
+        - containerPort: 3000
+          protocol: TCP
+        volumeMounts:
+        - mountPath: /var/lib/grafana
+          name: grafana-storage
+        - mountPath: /etc/grafana/provisioning/datasources/stackdriver.yaml
+          name: config
+          subPath: stackdriver.yaml
+        env:
+        - name: GF_SERVER_HTTP_PORT
+          value: "3000"
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: "helloworld"
+        - name: GF_INSTALL_PLUGINS
+          value: "grafana-kubernetes-app"
+      volumes:
+      - name: grafana-storage
+        emptyDir: {}
+      - name: "config"
+        configMap:
+          name: "stackdriver-datasource"

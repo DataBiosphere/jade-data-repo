@@ -25,6 +25,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -45,6 +47,7 @@ import static org.hamcrest.Matchers.equalTo;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class BigQueryPdaoTest {
+    private static final Logger logger = LoggerFactory.getLogger(BigQueryPdaoTest.class);
 
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ConnectedTestConfiguration testConfig;
@@ -76,12 +79,13 @@ public class BigQueryPdaoTest {
         study = StudyJsonConversion.studyRequestToStudy(studyRequest);
         UUID studyId = studyDao.create(study);
         study.id(studyId);
-        connectedOperations.addStudy(studyId.toString());
+        logger.info("Created study in setup: {}", studyId);
     }
 
     @After
     public void teardown() throws Exception {
         connectedOperations.teardown();
+        studyDao.delete(study.getId());
     }
 
     private String studyName() {

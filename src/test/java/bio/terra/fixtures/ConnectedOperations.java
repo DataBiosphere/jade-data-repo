@@ -1,5 +1,6 @@
 package bio.terra.fixtures;
 
+import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;

@@ -1,6 +1,5 @@
 package bio.terra.fixtures;
 
-import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -111,7 +110,6 @@ public class ConnectedOperations {
             objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
 
         addStudy(studySummaryModel.getId());
-
         return studySummaryModel;
     }
 
@@ -400,5 +398,10 @@ public class ConnectedOperations {
                 deleteTestProfile(profileId);
             }
         }
+
+        createdDatasetIds = new ArrayList<>();
+        createdFileIds = new ArrayList<>();
+        createdStudyIds = new ArrayList<>();
+        createdProfileIds = new ArrayList<>();
     }
 }

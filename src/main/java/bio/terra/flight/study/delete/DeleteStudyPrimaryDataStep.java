@@ -1,7 +1,6 @@
 package bio.terra.flight.study.delete;
 
 import bio.terra.dao.StudyDao;
-import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;

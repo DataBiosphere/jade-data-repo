@@ -45,7 +45,6 @@ public class DataRepoFixtures {
     @Autowired
     private ObjectMapper objectMapper;
 
-    // studies
 
     // studies
 

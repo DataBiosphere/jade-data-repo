@@ -5,11 +5,7 @@ import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateStudyModel;
-import bio.terra.model.IngestResponseModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.*;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.gcs.GcsProject;
@@ -27,6 +23,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,12 +32,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.BufferedReader;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -60,12 +57,12 @@ public class AccessTest {
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
     private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
-    @Autowired private DataRepoClient dataRepoClient;
-    @Autowired private JsonLoader jsonLoader;
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private Users users;
     @Autowired private AuthService authService;
     @Autowired private SamClientService samClientService;
+    @Autowired private TestConfiguration testConfiguration;
+    @Autowired private Storage storage;
 
     private static final int samTimeout = 300;
     private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
@@ -73,8 +70,6 @@ public class AccessTest {
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
-    private String stewardToken;
-    private String custodianToken;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
@@ -96,8 +91,7 @@ public class AccessTest {
         return new BigQueryProject(projectId, googleCredentials);
     }
 
-    private GcsProject getGcsProject(String token) {
-        String projectId = bigQueryConfiguration.googleProjectId();
+    private GcsProject getGcsProject(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
         GcsProject gcsProject = new GcsProject(projectId, googleCredentials);
 
@@ -172,9 +166,10 @@ public class AccessTest {
 
     @Test
     public void fileAclTest() throws Exception {
-        BigQueryProject bigQueryProject = getBigQueryProject(readerToken);
-
         studySummaryModel = dataRepoFixtures.createStudy(steward, "file-acl-test-study.json");
+        StudyModel studyModel = dataRepoFixtures.getStudy(steward, studySummaryModel.getId());
+        BigQueryProject bigQueryProject = getBigQueryProject(studyModel.getDataProject(), readerToken);
+
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
 
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
@@ -191,7 +186,7 @@ public class AccessTest {
             .build();
 
         try (WriteChannel writer = storage.writer(targetBlobInfo)) {
-            writer.write(ByteBuffer.wrap(json.getBytes("UTF-8")));
+            writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
 
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
@@ -235,12 +230,12 @@ public class AccessTest {
             }
         });
 
-
+        BigQueryProject bigQueryProjectReader = getBigQueryProject(testConfiguration.getGoogleProjectId(), readerToken);
         String query = String.format("SELECT file_ref FROM `%s.%s.file`",
             bigQueryProject.getProjectId(), datasetSummaryModel.getName());
 
 
-        TableResult ids = bigQueryProject.query(query);
+        TableResult ids = bigQueryProjectReader.query(query);
 
         String drsId = null;
         for (FieldValueList fieldValueList : ids.iterateAll()) {

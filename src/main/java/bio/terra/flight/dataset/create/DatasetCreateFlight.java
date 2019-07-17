@@ -25,7 +25,7 @@ public class DatasetCreateFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetService));
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService, datasetDao, dependencyDao));
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao));
         addStep(new AuthorizeDataset(bigQueryPdao, samClient, dependencyDao, datasetDao, gcsPdao));
     }
 }

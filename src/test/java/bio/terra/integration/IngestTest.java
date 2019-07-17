@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -24,6 +25,7 @@ import static org.junit.Assert.assertThat;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
+@AutoConfigureMockMvc
 @Category(Integration.class)
 public class IngestTest extends UsersBase {
 
@@ -80,5 +82,4 @@ public class IngestTest extends UsersBase {
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
         createdDatasetIds.add(datasetSummary.getId());
     }
-
 }

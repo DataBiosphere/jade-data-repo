@@ -23,7 +23,7 @@ public class StudyIngestFlight extends Flight {
         addStep(new IngestRowIdsStep(studyDao, bigQueryPdao));
         addStep(new IngestValidateRefsStep(studyDao, bigQueryPdao, fileDao));
         addStep(new IngestInsertIntoStudyTableStep(studyDao, bigQueryPdao));
-        addStep(new IngestCleanupStep(bigQueryPdao));
+        addStep(new IngestCleanupStep(studyDao, bigQueryPdao));
     }
 
 }

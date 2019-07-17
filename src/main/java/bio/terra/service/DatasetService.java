@@ -28,6 +28,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.dataproject.DataProjectService;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -50,14 +51,17 @@ public class DatasetService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final DataProjectService dataProjectService;
 
     @Autowired
     public DatasetService(Stairway stairway,
                           StudyDao studyDao,
-                          DatasetDao datasetDao) {
+                          DatasetDao datasetDao,
+                          DataProjectService dataProjectService) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
+        this.dataProjectService = dataProjectService;
     }
 
     /**
@@ -99,17 +103,16 @@ public class DatasetService {
      * @return list of summary models of dataset
      */
     public EnumerateDatasetModel enumerateDatasets(
-        int offset,
-        int limit,
-        String sort,
-        String direction,
-        String filter
-    ) {
+            int offset,
+            int limit,
+            String sort,
+            String direction,
+            String filter) {
         MetadataEnumeration<DatasetSummary> enumeration = datasetDao.retrieveDatasets(offset, limit, sort, direction,
             filter);
         List<DatasetSummaryModel> models = enumeration.getItems()
                 .stream()
-                .map(summary -> makeSummaryModelFromSummary(summary))
+                .map(this::makeSummaryModelFromSummary)
                 .collect(Collectors.toList());
         return new EnumerateDatasetModel().items(models).total(enumeration.getTotal());
     }
@@ -134,6 +137,7 @@ public class DatasetService {
      */
     public DatasetModel retrieveDataset(UUID id) {
         Dataset dataset = datasetDao.retrieveDataset(id);
+        dataset.dataProject(dataProjectService.getProjectForDataset(dataset));
         return makeDatasetModelFromDataset(dataset);
     }
 
@@ -161,10 +165,10 @@ public class DatasetService {
         // For now, we generate the dataset tables directly from the asset tables of the one source
         // allowed in a dataset.
         conjureDatasetTablesFromAsset(datasetSource.getAssetSpecification(), dataset, datasetSource);
-
         dataset.name(datasetRequestModel.getName())
                 .description(datasetRequestModel.getDescription())
-                .datasetSources(Collections.singletonList(datasetSource));
+                .datasetSources(Collections.singletonList(datasetSource))
+                .profileId(UUID.fromString(datasetRequestModel.getProfileId()));
 
         return dataset;
     }
@@ -238,7 +242,8 @@ public class DatasetService {
                 .id(datasetSummary.getId().toString())
                 .name(datasetSummary.getName())
                 .description(datasetSummary.getDescription())
-                .createdDate(datasetSummary.getCreatedDate().toString());
+                .createdDate(datasetSummary.getCreatedDate().toString())
+                .profileId(datasetSummary.getProfileId().toString());
         return summaryModel;
     }
 
@@ -248,6 +253,7 @@ public class DatasetService {
                 .name(dataset.getName())
                 .description(dataset.getDescription())
                 .createdDate(dataset.getCreatedDate().toString())
+                .profileId(dataset.getProfileId().toString())
                 .source(dataset.getDatasetSources()
                         .stream()
                         .map(source -> makeSourceModelFromSource(source))
@@ -255,7 +261,8 @@ public class DatasetService {
                 .tables(dataset.getTables()
                         .stream()
                         .map(table -> makeTableModelFromTable(table))
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()))
+                .dataProject(dataset.getDataProjectId());
     }
 
     private DatasetSourceModel makeSourceModelFromSource(DatasetSource source) {
@@ -265,7 +272,7 @@ public class DatasetService {
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
-// TODO: decide on our datetime datatype
+                .defaultProfileId(study.getDefaultProfileId().toString())
                 .createdDate(study.getCreatedDate().toString());
 
         DatasetSourceModel sourceModel = new DatasetSourceModel()

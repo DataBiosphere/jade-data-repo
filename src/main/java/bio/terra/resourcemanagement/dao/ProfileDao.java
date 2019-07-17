@@ -1,11 +1,10 @@
-package bio.terra.dao;
+package bio.terra.resourcemanagement.dao;
 
-import bio.terra.dao.exception.AccountAlreadyInUse;
+import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.exception.ProfileNotFoundException;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -14,7 +13,6 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,31 +26,19 @@ public class ProfileDao {
     }
 
     public UUID createBillingProfile(BillingProfile billingProfile) {
-        try {
-            String sql = "INSERT INTO billing_profile (name, biller, billing_account_id) VALUES " +
-                "(:name, :biller, :billing_account_id)";
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", billingProfile.getName())
-                .addValue("biller", billingProfile.getBiller())
-                .addValue("billing_account_id", billingProfile.getBillingAccountId());
-            DaoKeyHolder keyHolder = new DaoKeyHolder();
-            jdbcTemplate.update(sql, params, keyHolder);
-            return keyHolder.getId();
-        } catch (DuplicateKeyException ex) {
-            String billingAccountId = billingProfile.getBillingAccountId();
-            List<String> details = new ArrayList<>();
-            try {
-                BillingProfile profile = getBillingProfileByAccount(billingAccountId);
-                details.add("Account being used by profile with id: " + profile.getId());
-            } catch (ProfileNotFoundException e) {
-                details.add("Unable to find profile using this billing account. Something bad has happened.");
-            }
-            throw new AccountAlreadyInUse("Account in use: " + billingAccountId, ex, details);
-        }
+        String sql = "INSERT INTO billing_profile (name, biller, billing_account_id) VALUES " +
+            " (:name, :biller, :billing_account_id)";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", billingProfile.getName())
+            .addValue("biller", billingProfile.getBiller())
+            .addValue("billing_account_id", billingProfile.getBillingAccountId());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        jdbcTemplate.update(sql, params, keyHolder);
+        return keyHolder.getId();
     }
 
     public MetadataEnumeration<BillingProfile> enumerateBillingProfiles(Integer offset, Integer limit) {
-        String sql = "SELECT * FROM billing_profile OFFSET :offset LIMIT :limit";
+        String sql = "SELECT id, name, biller, billing_account_id FROM billing_profile OFFSET :offset LIMIT :limit";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("offset", offset)
             .addValue("limit", limit);
@@ -67,7 +53,7 @@ public class ProfileDao {
 
     public BillingProfile getBillingProfileById(UUID id) {
         try {
-            String sql = "SELECT * FROM billing_profile WHERE id = :id";
+            String sql = "SELECT id, name, biller, billing_account_id FROM billing_profile WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
@@ -76,12 +62,13 @@ public class ProfileDao {
         }
     }
 
-    public BillingProfile getBillingProfileByAccount(String billingAccountId) {
+    public List<BillingProfile> getBillingProfilesByAccount(String billingAccountId) {
         try {
-            String sql = "SELECT * FROM billing_profile WHERE billing_account_id = :billing_account_id";
+            String sql = "SELECT id, name, biller, billing_account_id FROM billing_profile " +
+                " WHERE billing_account_id = :billing_account_id";
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("billing_account_id", billingAccountId);
-            return jdbcTemplate.queryForObject(sql, params, new BillingProfileMapper());
+            return jdbcTemplate.query(sql, params, new BillingProfileMapper());
         } catch (EmptyResultDataAccessException ex) {
             throw new ProfileNotFoundException("Profile not found for billing account: " + billingAccountId);
         }

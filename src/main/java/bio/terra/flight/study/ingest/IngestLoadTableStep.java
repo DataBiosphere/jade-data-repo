@@ -43,7 +43,7 @@ public class IngestLoadTableStep implements Step {
     public StepResult undoStep(FlightContext context) {
         Study study = IngestUtils.getStudy(context, studyDao);
         String stagingTableName = IngestUtils.getStagingTableName(context);
-        bigQueryPdao.deleteTable(study.getName(), stagingTableName);
+        bigQueryPdao.deleteStudyTable(study, stagingTableName);
         return StepResult.getStepResultSuccess();
     }
 }

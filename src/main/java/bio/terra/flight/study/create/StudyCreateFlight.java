@@ -14,12 +14,12 @@ public class StudyCreateFlight extends Flight {
 
         // get the required daos and services to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
-        BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
+        StudyDao studyDao = (StudyDao) appContext.getBean("studyDao");
+        BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
+        SamClientService samClient = (SamClientService) appContext.getBean("samClientService");
 
         addStep(new CreateStudyMetadataStep(studyDao));
-        addStep(new CreateStudyPrimaryDataStep(bigQueryPdao));
+        addStep(new CreateStudyPrimaryDataStep(bigQueryPdao, studyDao));
         addStep(new CreateStudyAuthzResource(samClient));
     }
 

@@ -1,5 +1,7 @@
 package bio.terra.fixtures;
 
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -18,15 +20,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
@@ -44,6 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // Common code for creating and deleting studies and datasets via MockMvc
 // and tracking what is created so it can be deleted.
+@Component
 public class ConnectedOperations {
     private MockMvc mvc;
     private ObjectMapper objectMapper;
@@ -52,8 +59,8 @@ public class ConnectedOperations {
     private boolean deleteOnTeardown;
     private List<String> createdDatasetIds;
     private List<String> createdStudyIds;
+    private List<String> createdProfileIds;
     private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
-
 
     public static void stubOutSamCalls(SamClientService samService) throws ApiException {
         when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
@@ -62,6 +69,7 @@ public class ConnectedOperations {
         doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
+    @Autowired
     public ConnectedOperations(MockMvc mvc,
                                ObjectMapper objectMapper,
                                JsonLoader jsonLoader) {
@@ -72,13 +80,24 @@ public class ConnectedOperations {
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
         createdFileIds = new ArrayList<>();
+        createdProfileIds = new ArrayList<>();
         deleteOnTeardown = true;
-
     }
 
-    public StudySummaryModel createTestStudy(String resourcePath) throws Exception {
+    /**
+     * Creating a study through the http layer causes a study create flight to run, creating metadata and primary data
+     * to be modified.
+     *
+     * @param resourcePath path to json used for a study create request
+     * @return summary of the study created
+     * @throws Exception
+     */
+    public StudySummaryModel createStudyWithFlight(BillingProfileModel profileModel,
+                                                   String resourcePath) throws Exception {
         StudyRequestModel studyRequest = jsonLoader.loadObject(resourcePath, StudyRequestModel.class);
-        studyRequest.setName(Names.randomizeName(studyRequest.getName()));
+        studyRequest
+            .name(Names.randomizeName(studyRequest.getName()))
+            .defaultProfileId(profileModel.getId());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/studies")
             .contentType(MediaType.APPLICATION_JSON)
@@ -91,8 +110,53 @@ public class ConnectedOperations {
             objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
 
         addStudy(studySummaryModel.getId());
-
         return studySummaryModel;
+    }
+
+    public BillingProfileModel getOrCreateProfileForAccount(String billingAccountId) throws Exception {
+        BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
+            .billingAccountId(billingAccountId);
+        return getOrCreateProfile(profileRequestModel);
+    }
+
+    public BillingProfileModel getOrCreateProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
+        MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(profileRequestModel)))
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        String responseContent = response.getContentAsString();
+        BillingProfileModel billingProfileModel;
+        if (response.getStatus() == HttpStatus.CREATED.value()) {
+            billingProfileModel = objectMapper.readValue(responseContent, BillingProfileModel.class);
+        } else {
+            ErrorModel errorModel = objectMapper.readValue(responseContent, ErrorModel.class);
+            List<String> errorDetail = errorModel.getErrorDetail();
+            if (errorDetail.size() < 1) {
+                fail("expecting there to be an entry in error details that points to a billing profile");
+            }
+            // get everything after the last space
+            Matcher matcher = Pattern.compile("([^ ]+)$").matcher(errorDetail.get(0));
+            if (matcher.find()) {
+                String profileId = matcher.group();
+                billingProfileModel = getProfileById(profileId);
+            } else {
+                throw new IllegalStateException("could not get the profile id out of the message");
+            }
+        }
+
+        addProfile(billingProfileModel.getId());
+
+        return billingProfileModel;
+    }
+
+    public BillingProfileModel getProfileById(String profileId) throws Exception {
+        MvcResult result = mvc.perform(get("/api/resources/v1/profiles/" + profileId)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
     public MockHttpServletResponse launchCreateDataset(StudySummaryModel studySummaryModel,
@@ -100,16 +164,16 @@ public class ConnectedOperations {
                                                         String infix) throws Exception {
 
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
-
         String datasetName = Names.randomizeNameInfix(datasetRequest.getName(), infix);
         datasetRequest.setName(datasetName);
 
-        String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
+        // TODO: the next two lines assume SingleStudyDataset
+        datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
+        datasetRequest.profileId(studySummaryModel.getDefaultProfileId());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(jsonRequest))
+            .content(objectMapper.writeValueAsString(datasetRequest)))
             .andReturn();
 
         return validateJobModelAndWait(result);
@@ -162,6 +226,12 @@ public class ConnectedOperations {
         // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
         checkDeleteResponse(result.getResponse());
+    }
+
+    public void deleteTestProfile(String id) throws Exception {
+        mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
+        // not checking the response -- it's possible other studies are using this profile. if we spin up separate
+        // databases for these tests it would make it easier to do these types of checks
     }
 
     public void deleteTestDataset(String id) throws Exception {
@@ -295,6 +365,10 @@ public class ConnectedOperations {
         createdDatasetIds.add(id);
     }
 
+    public void addProfile(String id) {
+        createdProfileIds.add(id);
+    }
+
     public void addFile(String studyId, String fileId) {
         String[] createdFile = new String[]{studyId, fileId};
         createdFileIds.add(createdFile);
@@ -319,7 +393,15 @@ public class ConnectedOperations {
             for (String studyId : createdStudyIds) {
                 deleteTestStudy(studyId);
             }
-        }
-    }
 
+            for (String profileId : createdProfileIds) {
+                deleteTestProfile(profileId);
+            }
+        }
+
+        createdDatasetIds = new ArrayList<>();
+        createdFileIds = new ArrayList<>();
+        createdStudyIds = new ArrayList<>();
+        createdProfileIds = new ArrayList<>();
+    }
 }

@@ -8,6 +8,7 @@ public class DatasetSummary {
     private String name;
     private String description;
     private Instant createdDate;
+    private UUID profileId;
 
     public UUID getId() {
         return id;
@@ -42,6 +43,15 @@ public class DatasetSummary {
 
     public DatasetSummary createdDate(Instant createdDate) {
         this.createdDate = createdDate;
+        return this;
+    }
+
+    public UUID getProfileId() {
+        return profileId;
+    }
+
+    public DatasetSummary profileId(UUID profileId) {
+        this.profileId = profileId;
         return this;
     }
 }

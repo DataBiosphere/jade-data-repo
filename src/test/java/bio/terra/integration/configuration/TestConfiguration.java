@@ -18,6 +18,7 @@ public class TestConfiguration {
     private String jadeEmail;
     private String ingestbucket;
     private List<User> users = new ArrayList<>();
+    private String googleProjectId;
 
     public static class User {
         private String role;
@@ -87,5 +88,13 @@ public class TestConfiguration {
 
     public void setUsers(List<User> users) {
         this.users = users;
+    }
+
+    public String getGoogleProjectId() {
+        return googleProjectId;
+    }
+
+    public void setGoogleProjectId(String googleProjectId) {
+        this.googleProjectId = googleProjectId;
     }
 }

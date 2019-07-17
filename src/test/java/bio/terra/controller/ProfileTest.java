@@ -77,15 +77,6 @@ public class ProfileTest {
         BillingProfileModel profileModel = objectMapper.readerFor(BillingProfileModel.class).readValue(responseJson);
         String profileId = profileModel.getId();
 
-        mvc.perform(post("/api/resources/v1/profiles")
-            .contentType(MediaType.APPLICATION_JSON)
-            .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(billingProfileRequest)))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.message").value("Account in use: " + accountId))
-            .andExpect(jsonPath("$.errorDetail[0]")
-                .value("Account being used by profile with id: " + profileId));
-
         mvc.perform(get("/api/resources/v1/profiles/" + profileId)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken"))

@@ -11,7 +11,6 @@ import bio.terra.metadata.RowIdMatch;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -26,16 +25,13 @@ import java.util.List;
 public class CreateDatasetPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
-    private DatasetService datasetService;
     private DatasetDao datasetDao;
     private FireStoreDependencyDao dependencyDao;
 
     public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        DatasetService datasetService,
                                         DatasetDao datasetDao,
                                         FireStoreDependencyDao dependencyDao) {
         this.bigQueryPdao = bigQueryPdao;
-        this.datasetService = datasetService;
         this.datasetDao = datasetDao;
         this.dependencyDao = dependencyDao;
     }
@@ -43,11 +39,6 @@ public class CreateDatasetPrimaryDataStep implements Step {
     DatasetRequestModel getRequestModel(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
-    }
-
-    Dataset getDataset(FlightContext context) {
-        DatasetRequestModel datasetRequest = getRequestModel(context);
-        return datasetService.makeDatasetFromDatasetRequest(datasetRequest);
     }
 
     @Override
@@ -69,7 +60,6 @@ public class CreateDatasetPrimaryDataStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
 
-
         bigQueryPdao.createDataset(dataset, rowIdMatch.getMatchingRowIds());
 
         // Add file references to the dependency table. The algorithm is:
@@ -89,7 +79,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
                     if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
                         StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
 
-                        List<String> refIds = bigQueryPdao.getDatasetRefIds(datasetSource.getStudy().getName(),
+                        List<String> refIds = bigQueryPdao.getDatasetRefIds(datasetSource.getStudy(),
                             dataset.getName(),
                             mapTable.getFromTable().getName(),
                             mapTable.getFromTable().getId().toString(),
@@ -109,9 +99,9 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        bigQueryPdao.deleteDataset(getDataset(context));
+        DatasetRequestModel datasetRequestModel = getRequestModel(context);
+        Dataset dataset = datasetDao.retrieveDatasetByName(datasetRequestModel.getName());
+        bigQueryPdao.deleteDataset(dataset);
         return StepResult.getStepResultSuccess();
     }
-
 }
-

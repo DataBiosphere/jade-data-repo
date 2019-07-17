@@ -1,6 +1,8 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
+import bio.terra.fixtures.JsonLoader;
+import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetMapColumn;
@@ -13,9 +15,8 @@ import bio.terra.metadata.Table;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyRequestModel;
+import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.service.DatasetService;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.commons.io.IOUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -42,35 +43,40 @@ import static org.junit.Assert.assertThat;
 public class DatasetDaoTest {
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private DatasetDao datasetDao;
 
     @Autowired
     private StudyDao studyDao;
 
     @Autowired
+    private ProfileDao profileDao;
+
+    @Autowired
     private DatasetService datasetService;
+
+    @Autowired
+    private JsonLoader jsonLoader;
 
     private Study study;
     private UUID studyId;
     private DatasetRequestModel datasetRequest;
     private UUID datasetId;
+    private UUID profileId;
 
     @Before
     public void setup() throws Exception {
-        ClassLoader classLoader = getClass().getClassLoader();
-        String studyJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-study.json"));
+        profileId = profileDao.createBillingProfile(ProfileFixtures.randomBillingProfile());
 
-        StudyRequestModel studyRequest = objectMapper.readerFor(StudyRequestModel.class).readValue(studyJson);
-        studyRequest.setName(studyRequest.getName() + UUID.randomUUID().toString());
-        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        studyId = studyDao.create(study);
+        StudyRequestModel studyRequest = jsonLoader.loadObject("dataset-test-study.json",
+            StudyRequestModel.class);
+        studyRequest
+            .name(studyRequest.getName() + UUID.randomUUID().toString())
+            .defaultProfileId(profileId.toString());
+        studyId = studyDao.create(StudyJsonConversion.studyRequestToStudy(studyRequest));
         study = studyDao.retrieve(studyId);
 
-        String datasetJson = IOUtils.toString(classLoader.getResourceAsStream("dataset-test-dataset.json"));
-        datasetRequest = objectMapper.readerFor(DatasetRequestModel.class).readValue(datasetJson);
+        datasetRequest = jsonLoader.loadObject("dataset-test-dataset.json", DatasetRequestModel.class)
+            .profileId(profileId.toString());
         datasetRequest.getContents().get(0).getSource().setStudyName(study.getName());
 
         // Populate the datasetId with random; delete should quietly not find it.
@@ -81,6 +87,7 @@ public class DatasetDaoTest {
     public void teardown() throws Exception {
         datasetDao.delete(datasetId);
         studyDao.delete(studyId);
+        profileDao.deleteBillingProfileById(profileId);
     }
 
     @Test

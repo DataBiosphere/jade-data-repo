@@ -6,10 +6,10 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.pdao.bigquery.BigQueryConfiguration;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.service.SamClientService;
@@ -28,10 +28,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -42,28 +42,14 @@ public class AccessTest {
     private static final String omopStudyName = "it_study_omop";
     private static final String omopStudyDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
-    private static Logger logger = LoggerFactory.getLogger(StudyTest.class);
+    private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
-    @Autowired
-    private DataRepoClient dataRepoClient;
-
-    @Autowired
-    private JsonLoader jsonLoader;
-
-    @Autowired
-    private DataRepoFixtures dataRepoFixtures;
-
-    @Autowired
-    private Users users;
-
-    @Autowired
-    private AuthService authService;
-
-    @Autowired
-    private SamClientService samClientService;
-
-    @Autowired
-    private BigQueryConfiguration bigQueryConfiguration;
+    @Autowired private DataRepoClient dataRepoClient;
+    @Autowired private JsonLoader jsonLoader;
+    @Autowired private DataRepoFixtures dataRepoFixtures;
+    @Autowired private Users users;
+    @Autowired private AuthService authService;
+    @Autowired private SamClientService samClientService;
 
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
@@ -71,8 +57,7 @@ public class AccessTest {
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
-    private static final int samTimeout = 300000;
-
+    private static final int samTimeoutSeconds = 300;
 
     @Before
     public void setup() throws Exception {
@@ -85,18 +70,13 @@ public class AccessTest {
         studyId = studySummaryModel.getId();
     }
 
-    private BigQueryProject getBigQueryProject(String token) {
-        String projectId = bigQueryConfiguration.googleProjectId();
+    private BigQueryProject getBigQueryProject(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        BigQueryProject bigQueryProject = new BigQueryProject(projectId, googleCredentials);
-
-        return bigQueryProject;
+        return new BigQueryProject(projectId, googleCredentials);
     }
 
     @Test
     public void checkShared() throws  Exception {
-        BigQueryProject bigQueryProject = getBigQueryProject(readerToken);
-
         dataRepoFixtures.ingestJsonData(
             steward, studyId, "participant", "ingest-test/ingest-test-participant.json");
 
@@ -116,11 +96,11 @@ public class AccessTest {
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(custodian, studySummaryModel, "ingest-test-dataset.json");
 
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(reader, datasetSummaryModel.getId());
+        BigQueryProject bigQueryProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
         try {
             bigQueryProject.datasetExists(datasetSummaryModel.getName());
-            assertThat("reader can access the dataset after it has been shared",
-                bigQueryProject.datasetExists(datasetSummaryModel.getName()),
-                not(true));
+            fail("reader shouldn't be able to access bq dataset before it is shared with them");
         } catch (PdaoException e) {
             assertThat("checking message for pdao exception error",
                  e.getMessage(),
@@ -141,28 +121,22 @@ public class AccessTest {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-
-        long startTime = System.currentTimeMillis();
-        boolean hasAccess = false;
-        while (!hasAccess && (System.currentTimeMillis() - startTime) < samTimeout) {
-            TimeUnit.SECONDS.sleep(5);
+        boolean hasAccess = TestUtils.flappyExpect(5, samTimeoutSeconds, true, () -> {
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
-                hasAccess = true;
-                assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
+                assertThat("dataset exists and is accessible", datasetExists, equalTo(true));
+                return true;
             } catch (PdaoException e) {
                 assertThat(
-                    "checking message for pdao exception error",
+                    "access is denied until SAM syncs the reader policy with Google",
                     e.getCause().getMessage(),
                     startsWith("Access Denied:"));
+                return false;
             }
-        }
+        });
 
         assertThat("reader can access the dataset after it has been shared",
             hasAccess,
             equalTo(true));
-
     }
-
-
 }

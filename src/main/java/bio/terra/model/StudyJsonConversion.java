@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public final class StudyJsonConversion {
@@ -27,7 +28,8 @@ public final class StudyJsonConversion {
         Map<String, Table> tablesMap = new HashMap<>();
         Map<String, StudyRelationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
-
+        UUID defaultProfileId = UUID.fromString(studyRequest.getDefaultProfileId());
+        List<UUID> additionalProfileIds = stringsToUUIDs(studyRequest.getAdditionalProfileIds());
         StudySpecificationModel studySpecification = studyRequest.getSchema();
         studySpecification.getTables().forEach(tableModel ->
                 tablesMap.put(tableModel.getName(), tableModelToTable(tableModel)));
@@ -43,7 +45,9 @@ public final class StudyJsonConversion {
 
         return new Study(new StudySummary()
                 .name(studyRequest.getName())
-                .description(studyRequest.getDescription()))
+                .description(studyRequest.getDescription())
+                .defaultProfileId(defaultProfileId)
+                .additionalProfileIds(additionalProfileIds))
                 .tables(new ArrayList<>(tablesMap.values()))
                 .relationships(new ArrayList<>(relationshipsMap.values()))
                 .assetSpecifications(assetSpecifications);
@@ -54,7 +58,9 @@ public final class StudyJsonConversion {
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
-                .createdDate(study.getCreatedDate().toString());
+                .createdDate(study.getCreatedDate().toString())
+                .defaultProfileId(study.getDefaultProfileId().toString())
+                .additionalProfileIds(uuidsToStrings(study.getAdditionalProfileIds()));
     }
 
     public static StudyModel studyModelFromStudy(Study study) {
@@ -62,8 +68,11 @@ public final class StudyJsonConversion {
                 .id(study.getId().toString())
                 .name(study.getName())
                 .description(study.getDescription())
+                .defaultProfileId(study.getDefaultProfileId().toString())
+                .additionalProfileIds(uuidsToStrings(study.getAdditionalProfileIds()))
                 .createdDate(study.getCreatedDate().toString())
-                .schema(studySpecificationModelFromStudySchema(study));
+                .schema(studySpecificationModelFromStudySchema(study))
+                .dataProject(study.getDataProjectId());
     }
 
     public static StudySpecificationModel studySpecificationModelFromStudySchema(Study study) {
@@ -131,8 +140,7 @@ public final class StudyJsonConversion {
                 .toCardinality(relationshipModel.getTo().getCardinality());
     }
 
-    public static RelationshipModel relationshipModelFromStudyRelationship(
-            StudyRelationship studyRel) {
+    public static RelationshipModel relationshipModelFromStudyRelationship(StudyRelationship studyRel) {
         return new RelationshipModel()
                 .name(studyRel.getName())
                 .from(relationshipTermModelFromColumn(
@@ -151,9 +159,10 @@ public final class StudyJsonConversion {
                 .cardinality(cardinality);
     }
 
-    public static AssetSpecification assetModelToAssetSpecification(AssetModel assetModel,
-                                                                    Map<String, Table> tables,
-                                                                    Map<String, StudyRelationship> relationships) {
+    public static AssetSpecification assetModelToAssetSpecification(
+            AssetModel assetModel,
+            Map<String, Table> tables,
+            Map<String, StudyRelationship> relationships) {
         AssetSpecification spec = new AssetSpecification()
                 .name(assetModel.getName());
         spec.assetTables(processAssetTables(spec, assetModel, tables));
@@ -194,8 +203,9 @@ public final class StudyJsonConversion {
         return newAssetTables;
     }
 
-    private static List<AssetRelationship> processAssetRelationships(List<String> assetRelationshipNames,
-                                                                     Map<String, StudyRelationship> relationships) {
+    private static List<AssetRelationship> processAssetRelationships(
+            List<String> assetRelationshipNames,
+            Map<String, StudyRelationship> relationships) {
         return Collections.unmodifiableList(relationships.entrySet()
                 .stream()
                 .filter(map -> assetRelationshipNames.contains(map.getKey()))
@@ -220,5 +230,19 @@ public final class StudyJsonConversion {
                         .stream()
                         .map(assetRelationship -> assetRelationship.getStudyRelationship().getName())
                         .collect(Collectors.toList()));
+    }
+
+    private static List<String> uuidsToStrings(List<UUID> uuids) {
+        if (uuids == null) {
+            return null;
+        }
+        return uuids.stream().map(UUID::toString).collect(Collectors.toList());
+    }
+
+    private static List<UUID> stringsToUUIDs(List<String> strings) {
+        if (strings == null) {
+            return null;
+        }
+        return strings.stream().map(UUID::fromString).collect(Collectors.toList());
     }
 }

@@ -1,12 +1,15 @@
 package bio.terra.dao;
 
+import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.dao.exception.CorruptMetadataException;
+import bio.terra.dao.exception.InvalidStudyException;
 import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -15,6 +18,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Array;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -25,16 +30,18 @@ import java.util.UUID;
 public class StudyDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final Connection connection;
     private final StudyTableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
 
     @Autowired
-    public StudyDao(NamedParameterJdbcTemplate jdbcTemplate,
+    public StudyDao(DataRepoJdbcConfiguration jdbcConfiguration,
                     StudyTableDao tableDao,
                     RelationshipDao relationshipDao,
-                    AssetDao assetDao) {
-        this.jdbcTemplate = jdbcTemplate;
+                    AssetDao assetDao) throws SQLException {
+        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+        connection = jdbcConfiguration.getDataSource().getConnection();
         this.tableDao = tableDao;
         this.relationshipDao = relationshipDao;
         this.assetDao = assetDao;
@@ -42,19 +49,27 @@ public class StudyDao {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Study study) {
-        String sql = "INSERT INTO study (name, description) VALUES (:name, :description)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
+        try {
+            String sql = "INSERT INTO study (name, description, default_profile_id, additional_profile_ids) VALUES " +
+                "(:name, :description, :default_profile_id, :additional_profile_ids)";
+            Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, study.getAdditionalProfileIds());
+            MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", study.getName())
-                .addValue("description", study.getDescription());
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        UUID studyId = keyHolder.getId();
-        study.id(studyId);
-        study.createdDate(keyHolder.getCreatedDate());
-        tableDao.createTables(study.getId(), study.getTables());
-        relationshipDao.createStudyRelationships(study);
-        assetDao.createAssets(study);
-        return studyId;
+                .addValue("description", study.getDescription())
+                .addValue("default_profile_id", study.getDefaultProfileId())
+                .addValue("additional_profile_ids", additionalProfileIds);
+            DaoKeyHolder keyHolder = new DaoKeyHolder();
+            jdbcTemplate.update(sql, params, keyHolder);
+            UUID studyId = keyHolder.getId();
+            study.id(studyId);
+            study.createdDate(keyHolder.getCreatedDate());
+            tableDao.createTables(study.getId(), study.getTables());
+            relationshipDao.createStudyRelationships(study);
+            assetDao.createAssets(study);
+            return studyId;
+        } catch (DuplicateKeyException | SQLException e) {
+            throw new InvalidStudyException("Cannot create study: " + study.getName(), e);
+        }
     }
 
     @Transactional
@@ -98,7 +113,8 @@ public class StudyDao {
 
     public StudySummary retrieveSummaryById(UUID id) {
         try {
-            String sql = "SELECT id, name, description, created_date FROM study WHERE id = :id";
+            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
+                " FROM study WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -108,7 +124,8 @@ public class StudyDao {
 
     public StudySummary retrieveSummaryByName(String name) {
         try {
-            String sql = "SELECT id, name, description, created_date FROM study WHERE name = :name";
+            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
+                " FROM study WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new StudySummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -140,7 +157,8 @@ public class StudyDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
-        String sql = "SELECT id, name, description, created_date FROM study " + whereSql +
+        String sql = "SELECT id, name, description, created_date, default_profile_id, additional_profile_ids " +
+            " FROM study " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<StudySummary> summaries = jdbcTemplate.query(sql, params, new StudySummaryMapper());
@@ -156,6 +174,8 @@ public class StudyDao {
                     .id(rs.getObject("id", UUID.class))
                     .name(rs.getString("name"))
                     .description(rs.getString("description"))
+                    .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
+                    .additionalProfileIds(DaoUtils.getUUIDList(rs, "additional_profile_ids"))
                     .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }

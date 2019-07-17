@@ -2,17 +2,19 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
+import bio.terra.dao.StudyDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.metadata.Column;
 import bio.terra.metadata.Study;
-import bio.terra.metadata.Table;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.StudyJsonConversion;
+import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import org.apache.commons.io.IOUtils;
@@ -23,6 +25,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -30,11 +34,8 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -46,61 +47,76 @@ import static org.hamcrest.Matchers.equalTo;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class BigQueryPdaoTest {
+    private static final Logger logger = LoggerFactory.getLogger(BigQueryPdaoTest.class);
 
-    @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
+    @Autowired private StudyDao studyDao;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
     private SamClientService samService;
 
-    private ConnectedOperations connectedOperations;
+    private Study study;
+    private BillingProfileModel profileModel;
 
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
-        connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+
+        String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
+        profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccount);
+        // TODO: this next bit should be in connected operations, need to make it a component and autowire a studydao
+        StudyRequestModel studyRequest = jsonLoader.loadObject("ingest-test-study.json",
+            StudyRequestModel.class);
+        studyRequest
+            .defaultProfileId(profileModel.getId())
+            .name(studyName());
+        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
+        UUID studyId = studyDao.create(study);
+        study.id(studyId);
+        logger.info("Created study in setup: {}", studyId);
     }
 
     @After
     public void teardown() throws Exception {
         connectedOperations.teardown();
+        studyDao.delete(study.getId());
+    }
+
+    private String studyName() {
+        return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
     @Test
     public void basicTest() throws Exception {
-        // Contrive a study object with a unique name
-        String studyName = "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        Study study = makeStudy(studyName);
-
-        boolean exists = bigQueryPdao.studyExists(studyName);
+        boolean exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(false)));
 
         bigQueryPdao.createStudy(study);
 
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(true)));
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createStudy(study);
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(true)));
 
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteStudy(study);
-        exists = bigQueryPdao.studyExists(studyName);
+        exists = bigQueryPdao.studyExists(study);
         Assert.assertThat(exists, is(equalTo(false)));
     }
 
     @Test
     public void datasetTest() throws Exception {
-        // Create a random study.
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("ingest-test-study.json");
+        bigQueryPdao.createStudy(study);
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -126,14 +142,17 @@ public class BigQueryPdaoTest {
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            String studyId = study.getId().toString();
+            connectedOperations.ingestTableSuccess(studyId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(studyId,
                 ingestRequest.table("sample").path(gsPath(sampleBlob)));
-            connectedOperations.ingestTableSuccess(studySummary.getId(),
+            connectedOperations.ingestTableSuccess(studyId,
                 ingestRequest.table("file").path(gsPath(fileBlob)));
 
             // Create a dataset!
+            StudySummaryModel studySummary =
+                StudyJsonConversion.studySummaryModelFromStudySummary(study.getStudySummary());
             MockHttpServletResponse datasetResponse =
                 connectedOperations.launchCreateDataset(studySummary, "ingest-test-dataset.json", "");
             DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(datasetResponse);
@@ -154,34 +173,4 @@ public class BigQueryPdaoTest {
     private String gsPath(BlobInfo blob) {
         return "gs://" + blob.getBucket() + "/" + blob.getName();
     }
-
-    private Study makeStudy(String studyName) {
-        Column col1 = new Column().name("col1").type("string");
-        Column col2 = new Column().name("col2").type("string");
-        Column col3 = new Column().name("col3").type("string");
-        Column col4 = new Column().name("col4").type("string");
-
-        List<Column> table1Columns = new ArrayList<>();
-        table1Columns.add(col1);
-        table1Columns.add(col2);
-        Table table1 = new Table().name("table1").columns(table1Columns);
-
-        List<Column> table2Columns = new ArrayList<>();
-        table2Columns.add(col4);
-        table2Columns.add(col3);
-        table2Columns.add(col2);
-        table2Columns.add(col1);
-        Table table2 = new Table().name("table2").columns(table2Columns);
-
-        List<Table> tables = new ArrayList<>();
-        tables.add(table1);
-        tables.add(table2);
-
-        Study study = new Study();
-        study.name(studyName)
-                .description("this is a test study");
-        study.tables(tables);
-        return study;
-    }
-
 }

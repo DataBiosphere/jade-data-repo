@@ -1,6 +1,7 @@
 {
   "name":        "Minimal",
   "description": "This is a sample study definition",
+  "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
   "schema":      {
     "tables":        [
       {

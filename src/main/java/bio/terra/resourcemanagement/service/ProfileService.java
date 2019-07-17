@@ -1,12 +1,13 @@
-package bio.terra.service;
+package bio.terra.resourcemanagement.service;
 
-import bio.terra.dao.ProfileDao;
+import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateBillingProfileModel;
+import bio.terra.service.BillingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -26,7 +27,7 @@ public class ProfileService {
         this.billingService = billingService;
     }
 
-    public BillingProfileModel makeModelFromBillingProfile(BillingProfile billingProfile) {
+    public static BillingProfileModel makeModelFromBillingProfile(BillingProfile billingProfile) {
         return new BillingProfileModel()
             .id(billingProfile.getId().toString())
             .profileName(billingProfile.getName())
@@ -51,17 +52,17 @@ public class ProfileService {
         List<BillingProfileModel> profileModels = profileEnumeration.getItems()
             .stream()
             .map(this::updateAccessibility)
-            .map(this::makeModelFromBillingProfile)
+            .map(ProfileService::makeModelFromBillingProfile)
             .collect(Collectors.toList());
         return new EnumerateBillingProfileModel()
             .items(profileModels)
             .total(profileEnumeration.getTotal());
     }
 
-    public BillingProfileModel getProfileById(UUID id) {
+    public BillingProfile getProfileById(UUID id) {
         BillingProfile profile = profileDao.getBillingProfileById(id);
         updateAccessibility(profile);
-        return makeModelFromBillingProfile(profile);
+        return profile;
     }
 
     private BillingProfile updateAccessibility(BillingProfile billingProfile) {

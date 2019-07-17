@@ -4,9 +4,12 @@ import bio.terra.category.Connected;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
+import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
@@ -24,6 +27,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.UUID;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -40,14 +45,21 @@ public class StudyConnectedTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
+    @Autowired private ProfileDao profileDao;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+
     @MockBean private SamClientService samService;
 
     @Test
     public void testCreateOmopStudy() throws Exception {
         ConnectedOperations.stubOutSamCalls(samService);
+        String accountId = googleResourceConfiguration.getCoreBillingAccount();
 
         StudyRequestModel studyRequest = jsonLoader.loadObject("it-study-omop.json", StudyRequestModel.class);
-        studyRequest.name(Names.randomizeName(studyRequest.getName()));
+        UUID profileId = profileDao.createBillingProfile(ProfileFixtures.billingProfileForAccount(accountId));
+        studyRequest
+            .name(Names.randomizeName(studyRequest.getName()))
+            .defaultProfileId(profileId.toString());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/studies")
             .contentType(MediaType.APPLICATION_JSON)
@@ -67,6 +79,7 @@ public class StudyConnectedTest {
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
+        profileDao.deleteBillingProfileById(profileId);
     }
 
 }

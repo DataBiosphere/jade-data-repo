@@ -2,8 +2,11 @@ package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
+import bio.terra.dao.DatasetDao;
 import bio.terra.fixtures.ConnectedOperations;
-import bio.terra.fixtures.JsonLoader;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetDataProject;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
@@ -11,11 +14,13 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
+import bio.terra.service.dataproject.DataProjectService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -30,6 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -64,27 +71,30 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class EncodeFileTest {
+    private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
+
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private JsonLoader jsonLoader;
     @Autowired private Storage storage;
-    @Autowired private BigQuery bigQuery;
-    @Autowired private String bigQueryProjectId;
     @Autowired private ConnectedTestConfiguration testConfig;
+    @Autowired private DataProjectService dataProjectService;
+    @Autowired private DatasetDao datasetDao;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
     @MockBean
     private SamClientService samService;
 
-    private ConnectedOperations connectedOperations;
+    private BillingProfileModel profileModel;
 
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         ConnectedOperations.stubOutSamCalls(samService);
-
-        connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+        String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
     }
 
     @After
@@ -96,7 +106,8 @@ public class EncodeFileTest {
     // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), false, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
@@ -126,7 +137,7 @@ public class EncodeFileTest {
             studySummary, "encodefiletest-dataset.json", "");
         DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(response);
 
-        String datasetFileId = getFileRefIdFromDataset(datasetSummary.getName());
+        String datasetFileId = getFileRefIdFromDataset(datasetSummary);
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
@@ -142,7 +153,8 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadFileId() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), true, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
@@ -177,7 +189,8 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadRowTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("encodefiletest-study.json");
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "encodefiletest-study.json");
         String targetPath = loadFiles(studySummary.getId(), false, true);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
@@ -296,19 +309,23 @@ public class EncodeFileTest {
         return targetPath;
     }
 
-    private String getFileRefIdFromDataset(String datasetName) {
+    private String getFileRefIdFromDataset(DatasetSummaryModel datasetSummary) {
+        Dataset dataset = datasetDao.retrieveDatasetByName(datasetSummary.getName());
+        DatasetDataProject dataProject = dataProjectService.getProjectForDataset(dataset);
+        BigQueryProject bigQueryProject = new BigQueryProject(dataProject.getGoogleProjectId());
+
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")
-            .append(bigQueryProjectId)
+            .append(dataProject.getGoogleProjectId())
             .append('.')
-            .append(datasetName)
+            .append(dataset.getName())
             .append(".file` AS T")
             .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
 
         String sql = builder.toString();
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-            TableResult result = bigQuery.query(queryConfig);
+            TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
             FieldValueList row = result.iterateAll().iterator().next();
             FieldValue idValue = row.get(0);
             String drsUri = idValue.getStringValue();

@@ -12,6 +12,7 @@ import bio.terra.model.TableModel;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.UUID;
 
 
 public final class StudyFixtures {
@@ -30,7 +31,7 @@ public final class StudyFixtures {
             .name("participant")
             .columns(Arrays.asList(
                 new ColumnModel().name("id").datatype("string"),
-                new ColumnModel().name("age").datatype("number")));
+                new ColumnModel().name("age").datatype("integer")));
     }
 
     public static TableModel buildSampleTable() {
@@ -95,6 +96,7 @@ public final class StudyFixtures {
         return new StudyRequestModel()
             .name("Minimal")
             .description("This is a sample study definition")
+            .defaultProfileId(UUID.randomUUID().toString())
             .schema(buildSchema());
     }
 }

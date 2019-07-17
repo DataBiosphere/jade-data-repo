@@ -5,10 +5,12 @@ import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +51,7 @@ public class FileOperationTest {
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DrsIdService drsService;
+    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
 
     @MockBean
     private SamClientService samService;
@@ -76,7 +79,10 @@ public class FileOperationTest {
 
     @Test
     public void fileOperationsTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createTestStudy("dataset-test-study.json");
+        String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        BillingProfileModel profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
+        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
+            "dataset-test-study.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
         FSObjectModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);

@@ -1,0 +1,140 @@
+databaseChangeLog:
+  - changeSet:
+      id: billing_profile_tables
+      author: jh
+      changes:
+        - createTable:
+            tableName: project_resource
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: google_project_id
+                  type: varchar(222)
+              - column:
+                  name: google_project_number
+                  type: varchar(16)
+              - column:
+                  name: service_ids
+                  type: text[]
+              - column:
+                  name: profile_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_project_resource_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: study_data_project
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: study_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_data_project_study
+                    references: study(id)
+                    deleteCascade: true
+              - column:
+                  name: project_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_data_project_project_resource
+                    references: project_resource(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: dataset_data_project
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: dataset_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_data_project_dataset
+                    references: dataset(id)
+                    deleteCascade: true
+              - column:
+                  name: project_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_data_project_project_resource
+                    references: project_resource(id)
+                    deleteCascade: true
+
+        - createTable:
+            tableName: bucket_resource
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: project_resource_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_bucket_resource_project_resource
+                    references: project_resource(id)
+                    deleteCascade: true
+              - column:
+                  name: name
+                  type: varchar(222)
+                  constraints:
+                    unique: true
+                    nullable: false
+
+        - addColumn:
+            tableName: study
+            columns:
+              - column:
+                  name: default_profile_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_study_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: false
+              - column:
+                  name: additional_profile_ids
+                  type: ${uuid_type}[]
+                  constraints:
+                    nullable: true
+
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: profile_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_dataset_billing_profile
+                    references: billing_profile(id)
+                    deleteCascade: false

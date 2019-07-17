@@ -14,6 +14,7 @@ public class Dataset {
     private List<Table> tables = Collections.emptyList();
     private List<DatasetSource> datasetSources = Collections.emptyList();
     private UUID profileId;
+    private DatasetDataProject dataProject = new DatasetDataProject();
 
     public UUID getId() {
         return id;
@@ -84,6 +85,24 @@ public class Dataset {
 
     public Dataset profileId(UUID profileId) {
         this.profileId = profileId;
+        return this;
+    }
+
+    public DatasetDataProject getDataProject() {
+        return dataProject;
+    }
+
+    public Dataset dataProject(DatasetDataProject dataProject) {
+        this.dataProject = dataProject;
+        return this;
+    }
+
+    public String getDataProjectId() {
+        return dataProject.getGoogleProjectId();
+    }
+
+    public Dataset dataProjectId(String projectId) {
+        dataProject.googleProjectId(projectId);
         return this;
     }
 }

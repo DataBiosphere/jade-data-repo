@@ -16,6 +16,7 @@ public class Study {
     private List<Table> tables = Collections.emptyList();
     private List<StudyRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
+    private StudyDataProject dataProject = new StudyDataProject();
 
     public Study() {
         studySummary = new StudySummary();
@@ -151,6 +152,24 @@ public class Study {
 
     public Study createdDate(Instant createdDate) {
         studySummary.createdDate(createdDate);
+        return this;
+    }
+
+    public StudyDataProject getDataProject() {
+        return dataProject;
+    }
+
+    public Study dataProject(StudyDataProject dataProject) {
+        this.dataProject = dataProject;
+        return this;
+    }
+
+    public String getDataProjectId() {
+        return dataProject.getGoogleProjectId();
+    }
+
+    public Study dataProjectId(String dataProjectId) {
+        dataProject.googleProjectId(dataProjectId);
         return this;
     }
 }

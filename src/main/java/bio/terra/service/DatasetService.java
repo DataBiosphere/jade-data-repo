@@ -28,6 +28,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.dataproject.DataProjectService;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -50,14 +51,17 @@ public class DatasetService {
     private final Stairway stairway;
     private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final DataProjectService dataProjectService;
 
     @Autowired
     public DatasetService(Stairway stairway,
                           StudyDao studyDao,
-                          DatasetDao datasetDao) {
+                          DatasetDao datasetDao,
+                          DataProjectService dataProjectService) {
         this.stairway = stairway;
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
+        this.dataProjectService = dataProjectService;
     }
 
     /**
@@ -108,7 +112,7 @@ public class DatasetService {
             filter);
         List<DatasetSummaryModel> models = enumeration.getItems()
                 .stream()
-                .map(summary -> makeSummaryModelFromSummary(summary))
+                .map(this::makeSummaryModelFromSummary)
                 .collect(Collectors.toList());
         return new EnumerateDatasetModel().items(models).total(enumeration.getTotal());
     }
@@ -133,6 +137,7 @@ public class DatasetService {
      */
     public DatasetModel retrieveDataset(UUID id) {
         Dataset dataset = datasetDao.retrieveDataset(id);
+        dataset.dataProject(dataProjectService.getProjectForDataset(dataset));
         return makeDatasetModelFromDataset(dataset);
     }
 
@@ -256,7 +261,8 @@ public class DatasetService {
                 .tables(dataset.getTables()
                         .stream()
                         .map(table -> makeTableModelFromTable(table))
-                        .collect(Collectors.toList()));
+                        .collect(Collectors.toList()))
+                .dataProject(dataset.getDataProjectId());
     }
 
     private DatasetSourceModel makeSourceModelFromSource(DatasetSource source) {

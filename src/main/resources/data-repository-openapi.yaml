@@ -1262,6 +1262,9 @@ definitions:
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: This is the profile id used for core study resources
+      dataProject:
+        type: string
+        description: Project id of the project where tabular data in BigQuery lives
       additionalProfileIds:
         type: array
         description: Additional profile ids to be used for this study
@@ -1779,6 +1782,9 @@ definitions:
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: The profile id of this dataset
+      dataProject:
+        type: string
+        description: Project id of the dataset data project
 
   DatasetSourceModel:
     description: |

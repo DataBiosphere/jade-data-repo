@@ -125,11 +125,11 @@ public class DatasetDao {
         try {
             Dataset dataset = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
                 new Dataset()
-                        .id(rs.getObject("id", UUID.class))
-                        .name(rs.getString("name"))
-                        .description(rs.getString("description"))
-                        .createdDate(rs.getTimestamp("created_date").toInstant())
-                        .profileId(rs.getObject("profile_id", UUID.class)));
+                    .id(rs.getObject("id", UUID.class))
+                    .name(rs.getString("name"))
+                    .description(rs.getString("description"))
+                    .createdDate(rs.getTimestamp("created_date").toInstant())
+                    .profileId(rs.getObject("profile_id", UUID.class)));
             // needed for findbugs. but really can't be null
             if (dataset != null) {
                 // retrieve the dataset tables

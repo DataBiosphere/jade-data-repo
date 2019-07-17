@@ -71,7 +71,8 @@ public final class StudyJsonConversion {
                 .defaultProfileId(study.getDefaultProfileId().toString())
                 .additionalProfileIds(uuidsToStrings(study.getAdditionalProfileIds()))
                 .createdDate(study.getCreatedDate().toString())
-                .schema(studySpecificationModelFromStudySchema(study));
+                .schema(studySpecificationModelFromStudySchema(study))
+                .dataProject(study.getDataProjectId());
     }
 
     public static StudySpecificationModel studySpecificationModelFromStudySchema(Study study) {

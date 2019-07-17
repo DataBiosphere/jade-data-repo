@@ -30,10 +30,10 @@ import java.util.UUID;
 public class StudyDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final Connection connection;
     private final StudyTableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
-    private final Connection connection;
 
     @Autowired
     public StudyDao(DataRepoJdbcConfiguration jdbcConfiguration,

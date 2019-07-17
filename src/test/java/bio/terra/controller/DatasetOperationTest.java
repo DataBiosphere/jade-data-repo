@@ -33,6 +33,7 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.WriteChannelConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -57,6 +58,7 @@ import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
 import static junit.framework.TestCase.fail;
@@ -67,6 +69,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -189,8 +193,8 @@ public class DatasetOperationTest {
         StudySummaryModel studySummary = setupMinimalStudy();
         DatasetRequestModel datasetRequest = makeDatasetTestRequest(studySummary,
                 "study-minimal-dataset-bad-asset.json");
-        MockHttpServletResponse response = performCreateDataset(datasetRequest, "");
-        ErrorModel errorModel = handleCreateDatasetFailureCase(response);
+        MvcResult result = launchCreateDataset(datasetRequest, "");
+        ErrorModel errorModel = handleCreateDatasetFailureCase(result.getResponse());
         assertThat(errorModel.getMessage(), containsString("Asset"));
         assertThat(errorModel.getMessage(), containsString("NotARealAsset"));
     }
@@ -210,6 +214,8 @@ public class DatasetOperationTest {
             datasetList.add(summaryModel);
         }
 
+        when(samService.listAuthorizedResources(any(), any())).thenReturn(datasetList.stream().map(dataset ->
+            new ResourceAndAccessPolicy().resourceId(dataset.getId())).collect(Collectors.toList()));
         EnumerateDatasetModel enumResponse = enumerateTestDatasets();
         List<DatasetSummaryModel> enumeratedArray = enumResponse.getItems();
         assertThat("total is correct", enumResponse.getTotal(), equalTo(5));
@@ -346,7 +352,7 @@ public class DatasetOperationTest {
         return datasetRequest;
     }
 
-    private MockHttpServletResponse performCreateDataset(DatasetRequestModel datasetRequest, String infix)
+    private MvcResult launchCreateDataset(DatasetRequestModel datasetRequest, String infix)
             throws Exception {
         datasetOriginalName = datasetRequest.getName();
         String datasetName = Names.randomizeNameInfix(datasetOriginalName, infix);
@@ -354,13 +360,17 @@ public class DatasetOperationTest {
 
         String jsonRequest = objectMapper.writeValueAsString(datasetRequest);
 
-        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+        return mvc.perform(post("/api/repository/v1/datasets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(jsonRequest))
 // TODO: swagger field validation errors do not set content type; they log and return nothing
 //                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
+    }
 
+    private MockHttpServletResponse performCreateDataset(DatasetRequestModel datasetRequest, String infix)
+        throws Exception {
+        MvcResult result = launchCreateDataset(datasetRequest, infix);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return response;
     }
@@ -502,7 +512,7 @@ public class DatasetOperationTest {
                     return result.getResponse();
 
                 default:
-                    fail("invalid response status");
+                    fail("invalid response status " + status);
             }
         }
     }

@@ -1308,7 +1308,7 @@ definitions:
 
   EnumerateStudyModel:
     description: |
-      The total number of studies available and a page of summaries
+      The total number of studies available that match the filter criteria and a page of summaries
     type: object
     properties:
       total:
@@ -1720,7 +1720,7 @@ definitions:
 
   EnumerateDatasetModel:
     description: |
-      The total number of datasets available and a page of summaries
+      The total number of datasets available that match the criteria and a page of summaries
     type: object
     properties:
       total:

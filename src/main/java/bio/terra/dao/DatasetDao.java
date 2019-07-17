@@ -201,16 +201,16 @@ public class DatasetDao {
         List<String> whereClauses = new ArrayList<>();
         DaoUtils.addAuthzIdsClause(accessibleStudyIds, params, whereClauses);
 
-        // get total count of objects
-        String countSql = "SELECT count(id) AS total FROM dataset";
-        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
-
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
         String whereSql = "";
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
+
+        // get total count of objects
+        String countSql = "SELECT count(id) AS total FROM dataset " + whereSql;
+        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
 
         String sql = "SELECT id, name, description, created_date FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";

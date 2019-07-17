@@ -32,6 +32,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -78,8 +80,6 @@ public class AccessTest {
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
     private TestConfiguration.User reader;
-    private String stewardToken;
-    private String custodianToken;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;

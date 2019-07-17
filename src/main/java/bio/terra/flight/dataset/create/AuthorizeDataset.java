@@ -28,19 +28,19 @@ import java.util.UUID;
 public class AuthorizeDataset implements Step {
     private SamClientService sam;
     private BigQueryPdao bigQueryPdao;
-    private FireStoreDependencyDao dependencyDao;
+    private FireStoreDependencyDao fireStoreDao;
     private DatasetDao datasetDao;
     private GcsPdao gcsPdao;
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
     public AuthorizeDataset(BigQueryPdao bigQueryPdao,
                             SamClientService sam,
-                            FireStoreDependencyDao dependencyDao,
+                            FireStoreDependencyDao fireStoreDao,
                             DatasetDao datasetDao,
                             GcsPdao gcsPdao) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
-        this.dependencyDao = dependencyDao;
+        this.fireStoreDao = fireStoreDao;
         this.datasetDao = datasetDao;
         this.gcsPdao = gcsPdao;
     }
@@ -71,7 +71,7 @@ public class AuthorizeDataset implements Step {
             // study used by the dataset.
             for (DatasetSource datasetSource : dataset.getDatasetSources()) {
                 String studyId = datasetSource.getStudy().getId().toString();
-                List<String> fileIds = dependencyDao.getStudyDatasetFileIds(studyId, datasetId.toString());
+                List<String> fileIds = fireStoreDao.getStudyDatasetFileIds(studyId, datasetId.toString());
                 gcsPdao.setAclOnFiles(studyId, fileIds, readersPolicyEmail);
             }
         } catch (ApiException ex) {

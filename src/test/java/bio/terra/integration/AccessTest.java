@@ -12,7 +12,6 @@ import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
-import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -29,10 +28,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.UUID;
-
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -54,7 +50,6 @@ public class AccessTest {
     @Autowired private Users users;
     @Autowired private AuthService authService;
     @Autowired private SamClientService samClientService;
-    @Autowired private DatasetService datasetService;
 
     private TestConfiguration.User steward;
     private TestConfiguration.User custodian;
@@ -101,7 +96,7 @@ public class AccessTest {
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(custodian, studySummaryModel, "ingest-test-dataset.json");
 
-        DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(datasetSummaryModel.getId()));
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(reader, datasetSummaryModel.getId());
         BigQueryProject bigQueryProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
         try {
             bigQueryProject.datasetExists(datasetSummaryModel.getName());

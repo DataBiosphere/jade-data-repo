@@ -66,6 +66,10 @@ public class GoogleResourceDao {
         return retrieveProjectBy("google_project_id", googleProjectId);
     }
 
+    public GoogleProjectResource retrieveProjectByProfileId(UUID profileId) {
+        return retrieveProjectBy("profile_id", profileId);
+    }
+
     public boolean deleteProject(UUID id) {
         String sql = "DELETE FROM project_resource WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);

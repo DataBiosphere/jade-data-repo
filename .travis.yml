@@ -37,7 +37,7 @@ before_install:
   - gcloud container clusters get-credentials $CLUSTER_NAME
 
 script:
-  - set -x
+  - set -e
   - psql -U postgres -f ./db/create-data-repo-db
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace data-repo --record deployments/api-deployment set image

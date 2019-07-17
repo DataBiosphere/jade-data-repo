@@ -60,7 +60,7 @@ public class GoogleResourceService {
         // profile we will look up the project by id, otherwise we will generate one and look it up
         UUID profileId = projectRequest.getProfileId();
         try {
-            return resourceDao.retrieveProjectById(profileId);
+            return resourceDao.retrieveProjectByProfileId(profileId);
 
         } catch (GoogleResourceNotFoundException e) {
             logger.info("no metadata found for profile: {}", profileId);

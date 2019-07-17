@@ -211,14 +211,15 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
 
+        // get total count of objects
+        String countSql = "SELECT count(id) AS total FROM dataset " + whereSql;
+        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
+
         String sql = "SELECT id, name, description, created_date, profile_id FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
 
-        // get total count of objects
-        String countSql = "SELECT count(id) AS total FROM dataset " + whereSql;
-        Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
         return new MetadataEnumeration<DatasetSummary>()
             .items(summaries)
             .total(total == null ? -1 : total);

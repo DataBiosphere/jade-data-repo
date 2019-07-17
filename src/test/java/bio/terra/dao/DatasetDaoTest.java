@@ -194,13 +194,13 @@ public class DatasetDaoTest {
         testSortingDescriptions(datasetIds, "asc");
 
 
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6, null,
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 2, null,
             null, "==foo==", datasetIds);
         List<DatasetSummary> summaryList = summaryEnum.getItems();
-        assertThat("filtered 3 datasets", summaryList.size(), equalTo(3));
-        assertThat("counts total 3", summaryEnum.getTotal(), equalTo(6));
-        for (int i = 0; i < 3; i++) {
-            assertThat("ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
+        assertThat("filtered and retrieved 2 datasets", summaryList.size(), equalTo(2));
+        assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
+        for (int i = 0; i < 2; i++) {
+            assertThat("first 2 ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
         }
 
         MetadataEnumeration<DatasetSummary> emptyEnum = datasetDao.retrieveDatasets(0, 6, null,
@@ -265,14 +265,4 @@ public class DatasetDaoTest {
             index++;
         }
     }
-
-    private void deleteAllDatasets(List<UUID> datasetIds) {
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 1000, null,
-            null, null, datasetIds);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
-        for (DatasetSummary summary : summaryList) {
-            datasetDao.delete(summary.getId());
-        }
-    }
-
 }

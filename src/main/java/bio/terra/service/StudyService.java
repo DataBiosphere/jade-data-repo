@@ -7,6 +7,7 @@ import bio.terra.flight.study.delete.StudyDeleteFlight;
 import bio.terra.flight.study.ingest.IngestMapKeys;
 import bio.terra.flight.study.ingest.StudyIngestFlight;
 import bio.terra.metadata.MetadataEnumeration;
+import bio.terra.metadata.Study;
 import bio.terra.metadata.StudySummary;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateStudyModel;
@@ -15,6 +16,7 @@ import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.dataproject.DataProjectService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
@@ -38,12 +40,17 @@ public class StudyService {
     private final StudyDao studyDao;
     private final Stairway stairway;
     private final JobService jobService; // for handling flight response
+    private final DataProjectService dataProjectService;
 
     @Autowired
-    public StudyService(StudyDao studyDao, Stairway stairway, JobService jobService) {
+    public StudyService(StudyDao studyDao,
+                        Stairway stairway,
+                        JobService jobService,
+                        DataProjectService dataProjectService) {
         this.studyDao = studyDao;
         this.stairway = stairway;
         this.jobService = jobService;
+        this.dataProjectService = dataProjectService;
     }
 
     public StudySummaryModel createStudy(StudyRequestModel studyRequest, AuthenticatedUserRequest userInfo) {
@@ -56,7 +63,9 @@ public class StudyService {
     }
 
     public StudyModel retrieve(UUID id) {
-        return StudyJsonConversion.studyModelFromStudy(studyDao.retrieve(id));
+        Study study = studyDao.retrieve(id);
+        study.dataProject(dataProjectService.getProjectForStudy(study));
+        return StudyJsonConversion.studyModelFromStudy(study);
     }
 
     public EnumerateStudyModel enumerate(

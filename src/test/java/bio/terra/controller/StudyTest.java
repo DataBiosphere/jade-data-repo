@@ -2,19 +2,15 @@ package bio.terra.controller;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.exception.ApiException;
-import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.StudyNotFoundException;
-import bio.terra.fixtures.FlightStates;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.flight.study.create.StudyCreateFlight;
+import bio.terra.fixtures.StudyFixtures;
 import bio.terra.metadata.Study;
 import bio.terra.model.StudyJsonConversion;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudyRequestModel;
 import bio.terra.service.SamClientService;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightState;
-import bio.terra.stairway.Stairway;
+import bio.terra.service.StudyService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -31,11 +27,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.UUID;
 
-import static bio.terra.fixtures.StudyFixtures.buildStudyRequest;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,9 +44,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Category(Unit.class)
 public class StudyTest {
 
-    @MockBean
-    private Stairway stairway;
-
     @Autowired
     private MockMvc mvc;
 
@@ -64,22 +56,20 @@ public class StudyTest {
     @Autowired
     private JsonLoader jsonLoader;
 
+    @MockBean
+    private StudyService studyService;
+
     private static final String testFlightId = "test-flight-id";
 
     @Test
     public void testMinimalCreate() throws Exception {
-        FlightState flightState = FlightStates.makeFlightSimpleState();
-
-        when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenReturn(testFlightId);
-        // Call to mocked waitForFlight will do nothing, so no need to handle that
-        when(stairway.getFlightState(eq(testFlightId)))
-                .thenReturn(flightState);
+        when(studyService.createStudy(any(), any()))
+            .thenReturn(StudyFixtures.buildMinimalStudySummary());
 
         mvc.perform(post("/api/repository/v1/studies")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(buildStudyRequest())))
+            .content(objectMapper.writeValueAsString(StudyFixtures.buildStudyRequest())))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.name").value("Minimal"))
             .andExpect(jsonPath("$.description")
@@ -88,13 +78,8 @@ public class StudyTest {
 
     @Test
     public void testMinimalJsonCreate() throws Exception {
-        FlightState flightState = FlightStates.makeFlightSimpleState();
-
-        when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenReturn(testFlightId);
-        // Call to mocked waitForFlight will do nothing, so no need to handle that
-        when(stairway.getFlightState(eq(testFlightId)))
-                .thenReturn(flightState);
+        when(studyService.createStudy(any(), any()))
+            .thenReturn(StudyFixtures.buildMinimalStudySummary());
 
         String studyJSON = jsonLoader.loadJson("study-minimal.json");
         mvc.perform(post("/api/repository/v1/studies")
@@ -109,17 +94,12 @@ public class StudyTest {
 
     @Test
     public void testFlightError() throws Exception {
-        when(stairway.submit(eq(StudyCreateFlight.class), isA(FlightMap.class)))
-                .thenThrow(ApiException.class);
+        when(studyService.createStudy(any(), any())).thenThrow(ApiException.class);
         mvc.perform(post("/api/repository/v1/studies")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(buildStudyRequest())))
+                .content(objectMapper.writeValueAsString(StudyFixtures.buildStudyRequest())))
                 .andExpect(status().isInternalServerError());
     }
-
-    @MockBean
-    private StudyDao studyDao;
-
 
     @Test
     public void testStudyRetrieve() throws Exception {
@@ -129,7 +109,7 @@ public class StudyTest {
                 equalTo(HttpStatus.BAD_REQUEST.value()));
 
         UUID missingId = UUID.fromString("cd100f94-e2c6-4d0c-aaf4-9be6651276a6");
-        when(studyDao.retrieve(eq(missingId))).thenThrow(
+        when(studyService.retrieve(eq(missingId))).thenThrow(
                 new StudyNotFoundException("Study not found for id " + missingId.toString()));
         assertThat("Study retrieve that doesn't exist returns 404",
                 mvc.perform(get("/api/repository/v1/studies/{id}", missingId))
@@ -137,11 +117,14 @@ public class StudyTest {
                 equalTo(HttpStatus.NOT_FOUND.value()));
 
         UUID id = UUID.fromString("8d2e052c-e1d1-4a29-88ed-26920907791f");
-        StudyRequestModel req = buildStudyRequest();
+        StudyRequestModel req = StudyFixtures.buildStudyRequest();
         Study study = StudyJsonConversion.studyRequestToStudy(req);
-        study.id(id).createdDate(Instant.now());
+        study
+            .id(id)
+            .createdDate(Instant.now())
+            .dataProjectId("foo-bar-baz");
 
-        when(studyDao.retrieve(eq(id))).thenReturn(study);
+        when(studyService.retrieve(eq(id))).thenReturn(StudyJsonConversion.studyModelFromStudy(study));
         assertThat("Study retrieve returns 200",
                 mvc.perform(get("/api/repository/v1/studies/{id}", id.toString()))
                         .andReturn().getResponse().getStatus(),

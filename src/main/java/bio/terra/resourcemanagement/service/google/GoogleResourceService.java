@@ -21,6 +21,7 @@ import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
+import com.google.api.services.serviceusage.v1beta1.model.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,11 +153,16 @@ public class GoogleResourceService {
                 .stream()
                 .map(s -> String.format("%s/services/%s", projectNumberString, s))
                 .collect(Collectors.toList());
-            List<String> actualServices = listServicesResponse.getServices()
-                .stream()
-                .map(s -> s.getName())
-                .collect(Collectors.toList());
-            if (actualServices.containsAll(services)) {
+            List<Service> serviceList = listServicesResponse.getServices();
+            List<String> actualServiceNames = Collections.emptyList();
+            if (serviceList != null) {
+                actualServiceNames = serviceList
+                    .stream()
+                    .map(s -> s.getName())
+                    .collect(Collectors.toList());
+            }
+
+            if (actualServiceNames.containsAll(services)) {
                 logger.info("project already has the right resources enabled, skipping");
             } else {
                 logger.info("project does not have all resources enabled");

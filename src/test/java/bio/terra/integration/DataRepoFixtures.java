@@ -3,23 +3,7 @@ package bio.terra.integration;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateStudyModel;
-import bio.terra.model.FSObjectModel;
-import bio.terra.model.FileLoadModel;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.model.IngestResponseModel;
-import bio.terra.model.JobModel;
-import bio.terra.model.PolicyMemberRequest;
-import bio.terra.model.StudyModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.*;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
@@ -49,6 +33,14 @@ public class DataRepoFixtures {
     @Autowired
     private ObjectMapper objectMapper;
 
+
+    public DataRepoResponse<DRSObject> resolveDrsId(TestConfiguration.User user, String objectId) throws Exception {
+        return dataRepoClient.get(
+            user,
+            "/ga4gh/drs/v1/objects/" + objectId,
+            DRSObject.class
+        );
+    }
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
 
@@ -253,13 +245,13 @@ public class DataRepoFixtures {
      *
      * @param studyId   - id of study to load
      * @param tableName - name of table to load data into
-     * @param datafile  - file path within the bucket from property integrationtest.ingestbucket
+     * @param filePath  - file path within the bucket from property integrationtest.ingestbucket
      * @return ingest response
      * @throws Exception
      */
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
-        TestConfiguration.User user, String studyId, String tableName, String datafile) throws Exception {
-        String ingestBody = buildSimpleIngest(tableName, datafile);
+        TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
+        String ingestBody = buildSimpleIngest(tableName, filePath);
         return dataRepoClient.post(
             user,
             "/api/repository/v1/studies/" + studyId + "/ingest",
@@ -268,8 +260,8 @@ public class DataRepoFixtures {
     }
 
     public IngestResponseModel ingestJsonData(
-        TestConfiguration.User user, String studyId, String tableName, String datafile) throws Exception {
-        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, studyId, tableName, datafile);
+        TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
+        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, studyId, tableName, filePath);
         assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
         DataRepoResponse<IngestResponseModel> response = dataRepoClient.waitForResponse(

@@ -1,0 +1,16 @@
+{
+  "name":        "file_acl_test_dataset",
+  "description": "testing file access",
+  "contents": [
+    {
+      "source":
+      {
+        "studyName": "file_acl_test",
+        "assetName": "file_asset"
+      },
+      "rootValues": [
+        "foo"
+      ]
+    }
+  ]
+}

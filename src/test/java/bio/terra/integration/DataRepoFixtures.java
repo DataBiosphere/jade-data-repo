@@ -117,9 +117,9 @@ public class DataRepoFixtures {
     public void addPolicyMember(TestConfiguration.User user,
                                 String resourceId,
                                 SamClientService.DataRepoRole role,
-                                String userEmail,
+                                String newMemberEmail,
                                 SamClientService.ResourceType resourceType) throws Exception {
-        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, userEmail, resourceType);
+        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, resourceType);
         assertThat(resourceType + " policy member is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
     }
@@ -129,8 +129,8 @@ public class DataRepoFixtures {
     public void addStudyPolicyMember(TestConfiguration.User user,
                                      String studyId,
                                      SamClientService.DataRepoRole role,
-                                     String userEmail) throws Exception {
-        addPolicyMember(user, studyId, role, userEmail, SamClientService.ResourceType.STUDY);
+                                     String newMemberEmail) throws Exception {
+        addPolicyMember(user, studyId, role, newMemberEmail, SamClientService.ResourceType.STUDY);
     }
 
     // datasets
@@ -139,8 +139,8 @@ public class DataRepoFixtures {
     public void addDatasetPolicyMember(TestConfiguration.User user,
                                        String datasetId,
                                        SamClientService.DataRepoRole role,
-                                       String userEmail) throws Exception {
-        addPolicyMember(user, datasetId, role, userEmail, SamClientService.ResourceType.DATASET);
+                                       String newMemberEmail) throws Exception {
+        addPolicyMember(user, datasetId, role, newMemberEmail, SamClientService.ResourceType.DATASET);
     }
 
     public DataRepoResponse<JobModel> createDatasetLaunch(

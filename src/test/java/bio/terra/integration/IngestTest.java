@@ -5,6 +5,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.StudySummaryModel;
+import bio.terra.service.SamClientService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -43,6 +44,8 @@ public class IngestTest extends UsersBase {
         super.setup();
         studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
         studyId = studySummaryModel.getId();
+        dataRepoFixtures.addStudyPolicyMember(
+            steward(), studyId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After

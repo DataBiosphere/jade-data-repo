@@ -1,11 +1,11 @@
 package bio.terra.resourcemanagement.service.google;
 
-import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
-import bio.terra.resourcemanagement.dao.google.GoogleResourceDao;
 import bio.terra.flight.exception.InaccessibleBillingAccountException;
 import bio.terra.metadata.BillingProfile;
-import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
+import bio.terra.resourcemanagement.dao.google.GoogleResourceDao;
+import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
+import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.exception.GoogleResourceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
@@ -15,9 +15,9 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
-import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Operation;
+import com.google.api.services.cloudresourcemanager.model.Project;
+import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;

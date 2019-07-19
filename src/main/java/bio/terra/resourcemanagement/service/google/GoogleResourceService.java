@@ -10,6 +10,7 @@ import bio.terra.resourcemanagement.metadata.google.GoogleBucketRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
+import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.exception.GoogleResourceException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;

@@ -83,7 +83,7 @@ public class AccessTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-        authService.getAuthToken(reader().getEmail());
+        readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }

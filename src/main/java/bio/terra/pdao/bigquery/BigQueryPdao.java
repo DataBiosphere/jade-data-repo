@@ -270,22 +270,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public boolean deleteDataset(bio.terra.metadata.Dataset dataset) {
-        String datasetName = dataset.getName();
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-//        String projectId = bigQueryProject.getProjectId();
-//        for (DatasetSource source : dataset.getDatasetSources()) {
-//            String studyName = source.getStudy().getName();
-//            String studyDatasetName = prefixName(studyName);
-//            List<String> tableNames = source
-//                .getAssetSpecification()
-//                .getAssetTables()
-//                .stream()
-//                .map(assetTable -> assetTable.getTable().getName())
-//                .collect(Collectors.toList());
-//            bigQueryProject.removeDatasetAcls(studyDatasetName,
-// convertToViewAcls(projectId, datasetName, tableNames));
-//        }
-        return bigQueryProject.deleteDataset(datasetName);
+        return bigQueryProjectForDataset(dataset).deleteDataset(dataset.getName());
     }
 
     private List<Acl> convertToViewAcls(String projectId, String datasetName, List<String> tableNames) {

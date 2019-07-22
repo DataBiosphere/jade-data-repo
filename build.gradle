@@ -120,7 +120,7 @@ dependencies {
     compile 'org.apache.commons:commons-dbcp2:2.5.0'     // For database connection support
     compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
-    compile 'org.liquibase:liquibase-core:3.6.3'         // For upgrade
+    compile 'org.liquibase:liquibase-core:3.7.0'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.5'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.25'                 // Logging facade
     compile "org.springframework.boot:spring-boot-starter-web"

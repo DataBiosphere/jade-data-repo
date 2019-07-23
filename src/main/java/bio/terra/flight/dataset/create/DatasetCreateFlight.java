@@ -27,7 +27,7 @@ public class DatasetCreateFlight extends Flight {
         StudyService studyService = (StudyService) appContext.getBean("studyService");
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetService));
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao));
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao, studyService));
         addStep(new AuthorizeDataset(bigQueryPdao, samClient, dependencyDao, datasetDao, gcsPdao, studyService));
     }
 }

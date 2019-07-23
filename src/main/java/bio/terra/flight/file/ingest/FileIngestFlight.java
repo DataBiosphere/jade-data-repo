@@ -6,6 +6,7 @@ import bio.terra.metadata.Study;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -22,10 +23,10 @@ public class FileIngestFlight extends Flight {
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
+        StudyService studyService = (StudyService)appContext.getBean("studyService");
 
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
         Study study = studyDao.retrieve(UUID.fromString(studyId));
-
         // The flight plan:
         // 1. Metadata step:
         //    Compute the target gspath where the file should go
@@ -34,7 +35,7 @@ public class FileIngestFlight extends Flight {
         // 3. Update the file object with the gspath, checksum and size and mark as present
         addStep(new IngestFileMetadataStepStart(fileDao, study));
         addStep(new IngestFilePrimaryDataStep(fileDao, study, fileService, gcsPdao));
-        addStep(new IngestFileMetadataStepComplete(fileDao, fileService));
+        addStep(new IngestFileMetadataStepComplete(fileDao, fileService, studyService));
     }
 
 }

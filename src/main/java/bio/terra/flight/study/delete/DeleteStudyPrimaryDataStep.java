@@ -41,7 +41,7 @@ public class DeleteStudyPrimaryDataStep implements Step {
         Study study = getStudy(context);
         bigQueryPdao.deleteStudy(study);
         gcsPdao.deleteFilesFromStudy(study);
-        fileDao.deleteFilesFromStudy(study.getId().toString());
+        fileDao.deleteFilesFromStudy(study);
 
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);

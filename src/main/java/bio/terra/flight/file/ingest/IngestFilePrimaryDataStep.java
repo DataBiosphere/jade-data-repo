@@ -12,6 +12,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -25,7 +26,10 @@ public class IngestFilePrimaryDataStep implements Step {
     private final GcsPdao gcsPdao;
     private final Study study;
 
-    public IngestFilePrimaryDataStep(FireStoreFileDao fileDao, Study study, FileService fileService, GcsPdao gcsPdao) {
+    public IngestFilePrimaryDataStep(FireStoreFileDao fileDao,
+                                     Study study,
+                                     FileService fileService,
+                                     GcsPdao gcsPdao) {
         this.fileDao = fileDao;
         this.fileService = fileService;
         this.gcsPdao = gcsPdao;
@@ -39,8 +43,7 @@ public class IngestFilePrimaryDataStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-
-        FSObjectBase fsObject = fileDao.retrieve(study.getId(), objectId);
+        FSObjectBase fsObject = fileDao.retrieve(study, objectId);
         if (fsObject.getObjectType() != FSObjectType.INGESTING_FILE) {
             throw new FileSystemCorruptException("This should be a file!");
         }

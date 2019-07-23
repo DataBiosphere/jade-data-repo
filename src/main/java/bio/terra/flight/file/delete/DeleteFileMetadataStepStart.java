@@ -27,14 +27,15 @@ public class DeleteFileMetadataStepStart implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = studyService.retrieve(UUID.fromString(studyId.toString()));
+        Study study = studyService.retrieve(UUID.fromString(studyId));
         fileDao.deleteFileStart(study, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        fileDao.deleteFileStartUndo(studyId, fileId, context.getFlightId());
+        Study study = studyService.retrieve(UUID.fromString(studyId));
+        fileDao.deleteFileStartUndo(study, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

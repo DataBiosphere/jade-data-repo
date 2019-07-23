@@ -2,9 +2,26 @@ package bio.terra.integration;
 
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
-import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.*;
 import bio.terra.fixtures.ProfileFixtures;
+import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
+import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.StudyModel;
+import bio.terra.model.StudyRequestModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -60,6 +77,7 @@ public class DataRepoFixtures {
             postResponse.getResponseObject().isPresent());
         return postResponse.getResponseObject().get();
     }
+
     // studies
 
     public DataRepoResponse<StudySummaryModel> createStudyRaw(TestConfiguration.User user, String filename)
@@ -133,9 +151,9 @@ public class DataRepoFixtures {
     public void addPolicyMember(TestConfiguration.User user,
                                 String resourceId,
                                 SamClientService.DataRepoRole role,
-                                String userEmail,
+                                String newMemberEmail,
                                 SamClientService.ResourceType resourceType) throws Exception {
-        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, userEmail, resourceType);
+        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, resourceType);
         assertThat(resourceType + " policy member is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
     }
@@ -145,8 +163,8 @@ public class DataRepoFixtures {
     public void addStudyPolicyMember(TestConfiguration.User user,
                                      String studyId,
                                      SamClientService.DataRepoRole role,
-                                     String userEmail) throws Exception {
-        addPolicyMember(user, studyId, role, userEmail, SamClientService.ResourceType.STUDY);
+                                     String newMemberEmail) throws Exception {
+        addPolicyMember(user, studyId, role, newMemberEmail, SamClientService.ResourceType.STUDY);
     }
 
     // datasets
@@ -155,8 +173,8 @@ public class DataRepoFixtures {
     public void addDatasetPolicyMember(TestConfiguration.User user,
                                        String datasetId,
                                        SamClientService.DataRepoRole role,
-                                       String userEmail) throws Exception {
-        addPolicyMember(user, datasetId, role, userEmail, SamClientService.ResourceType.DATASET);
+                                       String newMemberEmail) throws Exception {
+        addPolicyMember(user, datasetId, role, newMemberEmail, SamClientService.ResourceType.DATASET);
     }
 
     public DataRepoResponse<JobModel> createDatasetLaunch(
@@ -189,13 +207,13 @@ public class DataRepoFixtures {
         return datasetResponse.getResponseObject().get();
     }
 
-    public DataRepoResponse<DatasetModel> getDataDatasetRaw(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<DatasetModel> getDatasetRaw(TestConfiguration.User user, String datasetId)
         throws Exception {
         return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
     }
 
     public DatasetModel getDataset(TestConfiguration.User user, String datasetId) throws Exception {
-        DataRepoResponse<DatasetModel> response = getDataDatasetRaw(user, datasetId);
+        DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId);
         assertThat("study is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("study get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();

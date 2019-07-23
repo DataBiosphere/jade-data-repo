@@ -64,6 +64,7 @@ public class ConnectedOperations {
 
     public static void stubOutSamCalls(SamClientService samService) throws ApiException {
         when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
+        when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         doNothing().when(samService).createStudyResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
         doNothing().when(samService).deleteStudyResource(any(), any());

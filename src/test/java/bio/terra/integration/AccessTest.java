@@ -3,9 +3,17 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.integration.auth.AuthService;
-import bio.terra.integration.auth.Users;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.*;
+import bio.terra.model.DRSAccessMethod;
+import bio.terra.model.DRSAccessURL;
+import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.FSObjectModel;
+import bio.terra.model.IngestResponseModel;
+import bio.terra.model.StudyModel;
+import bio.terra.model.StudySummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.gcs.GcsProject;
@@ -40,8 +48,9 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -51,14 +60,13 @@ import static org.junit.Assert.fail;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
-public class AccessTest {
+public class AccessTest extends UsersBase {
     private static final String omopStudyName = "it_study_omop";
     private static final String omopStudyDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
     private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
     @Autowired private DataRepoFixtures dataRepoFixtures;
-    @Autowired private Users users;
     @Autowired private AuthService authService;
     @Autowired private SamClientService samClientService;
     @Autowired private TestConfiguration testConfiguration;
@@ -67,9 +75,6 @@ public class AccessTest {
     private static final int samTimeout = 300;
     private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
 
-    private TestConfiguration.User steward;
-    private TestConfiguration.User custodian;
-    private TestConfiguration.User reader;
     private String readerToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
@@ -77,12 +82,9 @@ public class AccessTest {
 
     @Before
     public void setup() throws Exception {
-        steward = users.getUserForRole("steward");
-        custodian = users.getUser("harry");
-        reader = users.getUserForRole("reader");
-        readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-
-        studySummaryModel = dataRepoFixtures.createStudy(steward, "ingest-test-study.json");
+        super.setup();
+        readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
+        studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
 
@@ -101,25 +103,25 @@ public class AccessTest {
     @Test
     public void checkShared() throws  Exception {
         dataRepoFixtures.ingestJsonData(
-            steward, studyId, "participant", "ingest-test/ingest-test-participant.json");
+            steward(), studyId, "participant", "ingest-test/ingest-test-participant.json");
 
         dataRepoFixtures.ingestJsonData(
-            steward, studyId, "sample", "ingest-test/ingest-test-sample.json");
+            steward(), studyId, "sample", "ingest-test/ingest-test-sample.json");
 
         dataRepoFixtures.addStudyPolicyMember(
-            steward,
+            steward(),
             studyId,
             SamClientService.DataRepoRole.CUSTODIAN,
-            custodian.getEmail());
-        DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodian);
+            custodian().getEmail());
+        DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodian());
         assertThat("Custodian is authorized to enumerate studies",
             enumStudies.getStatusCode(),
             equalTo(HttpStatus.OK));
 
         DatasetSummaryModel datasetSummaryModel =
-            dataRepoFixtures.createDataset(custodian, studySummaryModel, "ingest-test-dataset.json");
+            dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
 
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(reader, datasetSummaryModel.getId());
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
         BigQueryProject bigQueryProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
         try {
             bigQueryProject.datasetExists(datasetSummaryModel.getName());
@@ -131,13 +133,13 @@ public class AccessTest {
         }
 
         dataRepoFixtures.addDatasetPolicyMember(
-            custodian,
+            custodian(),
             datasetSummaryModel.getId(),
             SamClientService.DataRepoRole.READER,
-            reader.getEmail());
+            reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader.getEmail(), readerToken);
+            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASET,
@@ -162,18 +164,21 @@ public class AccessTest {
         assertThat("reader can access the dataset after it has been shared",
             hasAccess,
             equalTo(true));
+
     }
 
     @Test
     public void fileAclTest() throws Exception {
-        studySummaryModel = dataRepoFixtures.createStudy(steward, "file-acl-test-study.json");
-        StudyModel studyModel = dataRepoFixtures.getStudy(steward, studySummaryModel.getId());
+        studySummaryModel = dataRepoFixtures.createStudy(steward(), "file-acl-test-study.json");
+        dataRepoFixtures.addStudyPolicyMember(
+            steward(), studySummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+        StudyModel studyModel = dataRepoFixtures.getStudy(steward(), studySummaryModel.getId());
         BigQueryProject bigQueryProject = getBigQueryProject(studyModel.getDataProject(), readerToken);
 
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
 
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
-            steward,
+            steward(),
             studySummaryModel.getId(),
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
@@ -190,7 +195,7 @@ public class AccessTest {
         }
 
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward,
+            steward(),
             studySummaryModel.getId(),
             "file",
             targetPath);
@@ -198,18 +203,18 @@ public class AccessTest {
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(
-            custodian,
+            custodian(),
             studySummaryModel,
             "file-acl-test-dataset.json");
 
         dataRepoFixtures.addDatasetPolicyMember(
-            custodian,
+            custodian(),
             datasetSummaryModel.getId(),
             SamClientService.DataRepoRole.READER,
-            reader.getEmail());
+            reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader.getEmail(), readerToken);
+            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASET,
@@ -242,7 +247,6 @@ public class AccessTest {
             drsId = fieldValueList.get(0).getStringValue();
         }
 
-
         assertThat("drs id was found", drsId, notNullValue());
         Matcher matcher = drsIdRegex.matcher(drsId);
 
@@ -250,7 +254,7 @@ public class AccessTest {
         drsId = matcher.group();
 
         Optional<DRSObject> optionalDRSObject = dataRepoFixtures.resolveDrsId(
-            reader,
+            reader(),
             drsId).getResponseObject();
 
         assertThat("there is a response", optionalDRSObject.isPresent(), equalTo(true));

@@ -40,7 +40,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
             // Remove dataset file references from the underlying studies
             for (DatasetSource datasetSource : dataset.getDatasetSources()) {
                 dependencyDao.deleteDatasetFileDependencies(
-                    datasetSource.getStudy().getId().toString(),
+                    datasetSource.getStudy(),
                     datasetId.toString());
             }
 

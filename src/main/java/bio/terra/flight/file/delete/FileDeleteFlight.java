@@ -4,6 +4,7 @@ import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -17,6 +18,7 @@ public class FileDeleteFlight extends Flight {
         StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
+        StudyService studyService = (StudyService) appContext.getBean("studyService");
 
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
         String fileId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), String.class);
@@ -32,9 +34,9 @@ public class FileDeleteFlight extends Flight {
         // of the steps. If the file system data and the bucket storage are out of sync, we can fix it by
         // performing this delete-by-id and it will clean up the bucket or the file system even if they
         // are inconsistent.
-        addStep(new DeleteFileMetadataStepStart(studyId, fileDao, fileId));
+        addStep(new DeleteFileMetadataStepStart(studyId, fileDao, fileId, studyService));
         addStep(new DeleteFilePrimaryDataStep(studyDao, studyId, fileId, gcsPdao));
-        addStep(new DeleteFileMetadataStepComplete(studyId, fileDao, fileId));
+        addStep(new DeleteFileMetadataStepComplete(studyId, fileDao, fileId, studyService));
     }
 
 }

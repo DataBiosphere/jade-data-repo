@@ -143,7 +143,7 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.STUDY,
             id,
             SamClientService.DataRepoAction.READ_STUDY);
-        return new ResponseEntity<>(studyService.retrieve(UUID.fromString(id)), HttpStatus.OK);
+        return new ResponseEntity<>(studyService.retrieveModel(UUID.fromString(id)), HttpStatus.OK);
     }
 
     @Override

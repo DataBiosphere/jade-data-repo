@@ -7,11 +7,13 @@ import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.study.create.CreateStudyAuthzResource;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.Study;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -31,18 +33,21 @@ public class AuthorizeDataset implements Step {
     private FireStoreDependencyDao fireStoreDao;
     private DatasetDao datasetDao;
     private GcsPdao gcsPdao;
+    private StudyService studyService;
     private static Logger logger = LoggerFactory.getLogger(CreateStudyAuthzResource.class);
 
     public AuthorizeDataset(BigQueryPdao bigQueryPdao,
                             SamClientService sam,
                             FireStoreDependencyDao fireStoreDao,
                             DatasetDao datasetDao,
-                            GcsPdao gcsPdao) {
+                            GcsPdao gcsPdao,
+                            StudyService studyService) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
         this.fireStoreDao = fireStoreDao;
         this.datasetDao = datasetDao;
         this.gcsPdao = gcsPdao;
+        this.studyService = studyService;
     }
 
     DatasetRequestModel getRequestModel(FlightContext context) {
@@ -71,7 +76,8 @@ public class AuthorizeDataset implements Step {
             // study used by the dataset.
             for (DatasetSource datasetSource : dataset.getDatasetSources()) {
                 String studyId = datasetSource.getStudy().getId().toString();
-                List<String> fileIds = fireStoreDao.getStudyDatasetFileIds(studyId, datasetId.toString());
+                Study study = studyService.retrieve(UUID.fromString(studyId));
+                List<String> fileIds = fireStoreDao.getStudyDatasetFileIds(study, datasetId.toString());
                 gcsPdao.setAclOnFiles(studyId, fileIds, readersPolicyEmail);
             }
         } catch (ApiException ex) {

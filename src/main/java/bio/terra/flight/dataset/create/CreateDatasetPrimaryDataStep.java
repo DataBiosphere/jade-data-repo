@@ -87,7 +87,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
                             mapColumn.getFromColumn());
 
                         dependencyDao.storeDatasetFileDependencies(
-                            datasetSource.getStudy().getId().toString(),
+                            datasetSource.getStudy(),
                             dataset.getId().toString(),
                             refIds);
                     }
@@ -105,7 +105,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
         for (DatasetSource datasetSource : dataset.getDatasetSources()) {
             dependencyDao.deleteDatasetFileDependencies(
-                datasetSource.getStudy().getId().toString(),
+                datasetSource.getStudy(),
                 dataset.getId().toString());
         }
 

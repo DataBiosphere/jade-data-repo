@@ -60,7 +60,7 @@ public class DatabaseOperationsTest {
 
         database.submit(flightContext);
 
-        // Use recover to retrieve the internal state of the flight
+        // Use recover to retrieveModel the internal state of the flight
         List<FlightContext> flightList = database.recover();
         Assert.assertThat(flightList.size(), is(equalTo(1)));
         FlightContext recoveredFlight = flightList.get(0);
@@ -75,7 +75,7 @@ public class DatabaseOperationsTest {
         FlightMap recoveredInputs = recoveredFlight.getInputParameters();
         checkInputs(recoveredInputs);
 
-        // Use getFlightState to retrieve the externally visible state of the flight
+        // Use getFlightState to retrieveModel the externally visible state of the flight
         FlightState flightState = database.getFlightState(flightId);
         checkRunningFlightState(flightState);
         FlightMap stateInputs = flightState.getInputParameters();

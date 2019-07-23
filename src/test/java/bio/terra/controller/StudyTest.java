@@ -103,15 +103,15 @@ public class StudyTest {
 
     @Test
     public void testStudyRetrieve() throws Exception {
-        assertThat("Study retrieve with bad id gets 400",
+        assertThat("Study retrieveModel with bad id gets 400",
                 mvc.perform(get("/api/repository/v1/studies/{id}", "blah"))
                         .andReturn().getResponse().getStatus(),
                 equalTo(HttpStatus.BAD_REQUEST.value()));
 
         UUID missingId = UUID.fromString("cd100f94-e2c6-4d0c-aaf4-9be6651276a6");
-        when(studyService.retrieve(eq(missingId))).thenThrow(
+        when(studyService.retrieveModel(eq(missingId))).thenThrow(
                 new StudyNotFoundException("Study not found for id " + missingId.toString()));
-        assertThat("Study retrieve that doesn't exist returns 404",
+        assertThat("Study retrieveModel that doesn't exist returns 404",
                 mvc.perform(get("/api/repository/v1/studies/{id}", missingId))
                         .andReturn().getResponse().getStatus(),
                 equalTo(HttpStatus.NOT_FOUND.value()));
@@ -124,19 +124,19 @@ public class StudyTest {
             .createdDate(Instant.now())
             .dataProjectId("foo-bar-baz");
 
-        when(studyService.retrieve(eq(id))).thenReturn(StudyJsonConversion.studyModelFromStudy(study));
-        assertThat("Study retrieve returns 200",
+        when(studyService.retrieveModel(eq(id))).thenReturn(StudyJsonConversion.studyModelFromStudy(study));
+        assertThat("Study retrieveModel returns 200",
                 mvc.perform(get("/api/repository/v1/studies/{id}", id.toString()))
                         .andReturn().getResponse().getStatus(),
                 equalTo(HttpStatus.OK.value()));
 
         mvc.perform(get("/api/repository/v1/studies/{id}", id.toString())).andDo((result) ->
-                        assertThat("Study retrieve returns a Study Model with schema",
+                        assertThat("Study retrieveModel returns a Study Model with schema",
                                 objectMapper.readValue(result.getResponse().getContentAsString(), StudyModel.class)
                                         .getName(),
                                 equalTo(req.getName())));
 
-        assertThat("Study retrieve returns a Study Model with schema",
+        assertThat("Study retrieveModel returns a Study Model with schema",
                 objectMapper.readValue(
                         mvc.perform(get("/api/repository/v1/studies/{id}", id))
                                 .andReturn()

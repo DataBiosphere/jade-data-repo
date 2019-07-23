@@ -170,7 +170,7 @@ paths:
 
 
   '/api/resources/v1/profiles/{id}':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve a billing profile by id
       operationId: retrieveProfile
       tags:
@@ -317,7 +317,7 @@ paths:
 
 
   '/api/repository/v1/datasets/{id}':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve a dataset by id
       operationId: retrieveDataset
       tags:
@@ -384,7 +384,7 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
   '/api/repository/v1/datasets/{id}/policies':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve the read and discover policies for the dataset
       operationId: retrieveDatasetPolicies
       tags:
@@ -411,7 +411,7 @@ paths:
 
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members':
-    post:  ## retrieve
+    post:  ## retrieveModel
       description: Adds a member to the specified policy for the dataset
       operationId: addDatasetPolicyMember
       tags:
@@ -446,7 +446,7 @@ paths:
 
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members/{memberEmail}':
-    delete:  ## retrieve
+    delete:  ## retrieveModel
       description: Adds a member to the specified policy for the dataset
       operationId: deleteDatasetPolicyMember
       tags:
@@ -493,7 +493,7 @@ paths:
       - in: query
         name: limit
         type: integer
-        description: The numbers studies to retrieve and return.
+        description: The numbers studies to retrieveModel and return.
         default: 10
       - in: query
         name: sort
@@ -550,7 +550,7 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
   '/api/repository/v1/studies/{id}':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve a study by id
       operationId: retrieveStudy
       tags:
@@ -605,7 +605,7 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
   '/api/repository/v1/studies/{id}/policies':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve the read and discover policies for the dataset
       operationId: retrieveStudyPolicies
       tags:
@@ -667,7 +667,7 @@ paths:
 
 
   '/api/repository/v1/studies/{id}/policies/{policyName}/members/{memberEmail}':
-    delete:  ## retrieve
+    delete:  ## retrieveModel
       description: Adds a member to the specified policy for the dataset
       operationId: deleteStudyPolicyMember
       tags:
@@ -931,7 +931,7 @@ paths:
               $ref: '#/definitions/JobModel'
 
   '/api/repository/v1/jobs/{id}':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve a job's status by id
       operationId: retrieveJob
       tags:
@@ -970,7 +970,7 @@ paths:
 
 
   '/api/repository/v1/jobs/{id}/result':
-    get:  ## retrieve
+    get:  ## retrieveModel
       description: Retrieve a job's result by id
       operationId: retrieveJobResult
       tags:

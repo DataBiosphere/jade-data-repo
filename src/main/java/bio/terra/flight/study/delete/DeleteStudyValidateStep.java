@@ -5,7 +5,9 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.Study;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -17,10 +19,13 @@ import java.util.UUID;
 public class DeleteStudyValidateStep implements Step {
     private DatasetDao datasetDao;
     private FireStoreDependencyDao dependencyDao;
-
-    public DeleteStudyValidateStep(DatasetDao datasetDao, FireStoreDependencyDao dependencyDao) {
+    private StudyService studyService;
+    public DeleteStudyValidateStep(DatasetDao datasetDao,
+                                   FireStoreDependencyDao dependencyDao,
+                                   StudyService studyService) {
         this.datasetDao = datasetDao;
         this.dependencyDao = dependencyDao;
+        this.studyService = studyService;
     }
 
     @Override
@@ -28,12 +33,14 @@ public class DeleteStudyValidateStep implements Step {
         FlightMap inputParameters = context.getInputParameters();
         UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         List<DatasetSummary> datasets = datasetDao.retrieveDatasetsForStudy(studyId);
+        Study study = studyService.retrieve(studyId);
+
         if (datasets.size() != 0) {
             throw new ValidationException("Can not delete a study being used by datasets");
         }
         // Sanity check - validate that there are no stray file references. There should be none left
         // if there are no datasets returned from retrieveDatasetsForStudy.
-        if (dependencyDao.studyHasDatasetReference(studyId.toString())) {
+        if (dependencyDao.studyHasDatasetReference(study)) {
             throw new FileSystemCorruptException("File system has dataset dependencies; metadata does not");
         }
         return StepResult.getStepResultSuccess();

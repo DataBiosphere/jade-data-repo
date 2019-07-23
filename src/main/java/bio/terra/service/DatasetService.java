@@ -90,7 +90,7 @@ public class DatasetService {
         FlightMap flightMap = new FlightMap();
         flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete dataset " + id);
         // TODO talk about conventions for naming data in the input map
-        // and in the step whether to pass data from input map to steps or let each step retrieve what they need
+        // and in the step whether to pass data from input map to steps or let each step retrieveModel what they need
 //        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
         flightMap.put("id", id);
         flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);

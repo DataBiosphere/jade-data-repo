@@ -6,11 +6,7 @@ import bio.terra.filesystem.exception.FileSystemExecutionException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
-import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
+import bio.terra.metadata.*;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -205,9 +201,9 @@ public class FireStoreFileDao {
         fireStoreUtils.transactionGet("create complete undo", transaction);
     }
 
-    public boolean deleteFileStart(String studyId, String objectId, String flightId) {
+    public boolean deleteFileStart(Study study, String objectId, String flightId) {
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(studyId, objectId, xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(study.getId().toString(), objectId, xn);
             if (docSnap == null) {
                 return false;
             }
@@ -231,7 +227,7 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.objectHasDatasetReference(studyId, objectId)) {
+            if (dependencyDao.objectHasDatasetReference(study, objectId)) {
                 throw new FileSystemObjectDependencyException(
                     "File is used by at least one dataset and cannot be deleted");
             }
@@ -249,9 +245,9 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("delete file start", transaction);
     }
 
-    public boolean deleteFileComplete(String studyId, String objectId, String flightId) {
+    public boolean deleteFileComplete(Study study, String objectId, String flightId) {
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(studyId, objectId, xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(study.getId().toString(), objectId, xn);
             if (docSnap == null) {
                 return false;
             }
@@ -274,12 +270,12 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.objectHasDatasetReference(studyId, objectId)) {
+            if (dependencyDao.objectHasDatasetReference(study, objectId)) {
                 throw new FileSystemCorruptException("File should not have any references at this point");
             }
 
             // transition point from reading to writing is inside of deleteFileWorker
-            deleteFileWorker(studyId, docSnap.getReference(), currentObject.getPath(), xn);
+            deleteFileWorker(study.getId().toString(), docSnap.getReference(), currentObject.getPath(), xn);
             return true;
         });
 
@@ -386,7 +382,7 @@ public class FireStoreFileDao {
             return makeFSObjectFromFireStoreObject(currentObject);
         });
 
-        return fireStoreUtils.transactionGet("retrieve by id", transaction);
+        return fireStoreUtils.transactionGet("retrieveModel by id", transaction);
     }
 
     public FSObjectBase retrieveWithContentsByPath(UUID studyId, String fullPath) {
@@ -419,9 +415,9 @@ public class FireStoreFileDao {
 
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("retrieve - execution interrupted", ex);
+            throw new FileSystemExecutionException("retrieveModel - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("retrieve - execution exception", ex);
+            throw new FileSystemExecutionException("retrieveModel - execution exception", ex);
         }
     }
 

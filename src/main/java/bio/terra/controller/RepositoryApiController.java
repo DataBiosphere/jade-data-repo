@@ -11,8 +11,8 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateStudyModel;
-import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
@@ -279,22 +279,22 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequestModel) {
         Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequestModel);
         List<DatasetSource> sources = dataset.getDatasetSources();
-        List<DatasetSource> unauthorzied = new ArrayList();
+        List<DatasetSource> unauthorized = new ArrayList();
         sources.forEach(source -> {
                 if (!samService.isAuthorized(
                     getAuthenticatedInfo(),
                     SamClientService.ResourceType.STUDY,
                     source.getStudy().getId().toString(),
                     SamClientService.DataRepoAction.CREATE_DATASET)) {
-                    unauthorzied.add(source);
+                    unauthorized.add(source);
                 }
             }
         );
-        if (unauthorzied.isEmpty()) {
+        if (unauthorized.isEmpty()) {
             String jobId = datasetService.createDataset(datasetRequestModel, getAuthenticatedInfo());
             return jobService.retrieveJob(jobId);
         }
-        throw new UnauthorizedException("User is not authorized to create datasets for these studies " + unauthorzied);
+        throw new UnauthorizedException("User is not authorized to create datasets for these studies " + unauthorized);
     }
 
     @Override

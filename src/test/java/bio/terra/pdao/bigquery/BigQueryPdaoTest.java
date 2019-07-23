@@ -84,8 +84,8 @@ public class BigQueryPdaoTest {
 
     @After
     public void teardown() throws Exception {
-        connectedOperations.teardown();
         studyDao.delete(study.getId());
+        connectedOperations.teardown();
     }
 
     private String studyName() {

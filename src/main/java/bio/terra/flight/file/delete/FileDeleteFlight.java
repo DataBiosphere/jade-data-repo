@@ -1,6 +1,5 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.gcs.GcsPdao;
@@ -18,7 +17,6 @@ public class FileDeleteFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         StudyService studyService = (StudyService) appContext.getBean("studyService");

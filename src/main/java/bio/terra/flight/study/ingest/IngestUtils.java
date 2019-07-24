@@ -1,6 +1,5 @@
 package bio.terra.flight.study.ingest;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.flight.exception.TableNotFoundException;
 import bio.terra.metadata.Study;

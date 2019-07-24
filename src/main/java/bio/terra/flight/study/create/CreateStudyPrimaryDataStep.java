@@ -1,6 +1,5 @@
 package bio.terra.flight.study.create;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.service.JobMapKeys;

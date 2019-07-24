@@ -7,13 +7,11 @@ import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.Study;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
-import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.UUID;
 
 public class IngestFileMetadataStepComplete implements Step {
     private final FireStoreFileDao fileDao;
@@ -41,8 +39,6 @@ public class IngestFileMetadataStepComplete implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
         FlightMap workingMap = context.getWorkingMap();
         String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
         fileDao.createFileCompleteUndo(study, objectId);

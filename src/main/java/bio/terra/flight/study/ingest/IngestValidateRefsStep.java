@@ -1,6 +1,5 @@
 package bio.terra.flight.study.ingest;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.flight.exception.InvalidFileRefException;
 import bio.terra.metadata.Column;

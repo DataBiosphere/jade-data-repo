@@ -4,13 +4,11 @@ import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Study;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.springframework.http.HttpStatus;
 
-import java.util.UUID;
 
 public class DeleteFileMetadataStepComplete implements Step {
     private final FireStoreFileDao fileDao;

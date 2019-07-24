@@ -11,7 +11,6 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
-import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
@@ -86,7 +85,6 @@ public class FireStoreFileDao {
         if (fileToCreate.getObjectType() != INGESTING_FILE) {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
-        UUID studyId = study.getId();
         FireStoreObject createObject = makeFireStoreObjectFromFSObject(fileToCreate);
         FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<UUID> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {

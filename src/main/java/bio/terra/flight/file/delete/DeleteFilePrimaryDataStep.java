@@ -1,13 +1,11 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.UUID;
 
 public class DeleteFilePrimaryDataStep implements Step {
     private final Study study;

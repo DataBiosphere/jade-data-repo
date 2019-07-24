@@ -2,12 +2,9 @@ package bio.terra.flight.file.delete;
 
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Study;
-import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-
-import java.util.UUID;
 
 public class DeleteFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;

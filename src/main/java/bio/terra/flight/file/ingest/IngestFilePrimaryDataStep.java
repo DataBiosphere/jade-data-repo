@@ -10,9 +10,7 @@ import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
-import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -22,16 +20,13 @@ import java.util.UUID;
 
 public class IngestFilePrimaryDataStep implements Step {
     private final FireStoreFileDao fileDao;
-    private final FileService fileService;
     private final GcsPdao gcsPdao;
     private final Study study;
 
     public IngestFilePrimaryDataStep(FireStoreFileDao fileDao,
                                      Study study,
-                                     FileService fileService,
                                      GcsPdao gcsPdao) {
         this.fileDao = fileDao;
-        this.fileService = fileService;
         this.gcsPdao = gcsPdao;
         this.study = study;
     }

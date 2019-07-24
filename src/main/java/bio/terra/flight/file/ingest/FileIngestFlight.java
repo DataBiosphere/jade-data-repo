@@ -1,6 +1,5 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.gcs.GcsPdao;
@@ -33,7 +32,7 @@ public class FileIngestFlight extends Flight {
         // 2. pdao does the file copy and returns file gspath, checksum and size
         // 3. Update the file object with the gspath, checksum and size and mark as present
         addStep(new IngestFileMetadataStepStart(fileDao, study));
-        addStep(new IngestFilePrimaryDataStep(fileDao, study, fileService, gcsPdao));
+        addStep(new IngestFilePrimaryDataStep(fileDao, study, gcsPdao));
         addStep(new IngestFileMetadataStepComplete(fileDao, fileService, study));
     }
 

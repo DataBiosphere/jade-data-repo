@@ -16,7 +16,8 @@ public class ProjectAndCredential {
         if (this == o) return true;
         if (!(o instanceof ProjectAndCredential)) return false;
         ProjectAndCredential projectAndCredential = (ProjectAndCredential) o;
-        return projectAndCredential.credentials== this.credentials && projectAndCredential.projectId == this.projectId;
+        return projectAndCredential.credentials == this.credentials
+            && projectAndCredential.projectId.equals(this.projectId);
     }
 
     @Override

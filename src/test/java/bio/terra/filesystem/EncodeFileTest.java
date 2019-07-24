@@ -312,7 +312,7 @@ public class EncodeFileTest {
     private String getFileRefIdFromDataset(DatasetSummaryModel datasetSummary) {
         Dataset dataset = datasetDao.retrieveDatasetByName(datasetSummary.getName());
         DatasetDataProject dataProject = dataProjectService.getProjectForDataset(dataset);
-        BigQueryProject bigQueryProject = new BigQueryProject(dataProject.getGoogleProjectId());
+        BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
 
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")

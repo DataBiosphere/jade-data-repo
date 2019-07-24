@@ -90,7 +90,7 @@ public class AccessTest extends UsersBase {
 
     private BigQueryProject getBigQueryProject(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        return new BigQueryProject(projectId, googleCredentials);
+        return BigQueryProject.get(projectId, googleCredentials);
     }
 
     private GcsProject getGcsProject(String projectId, String token) {

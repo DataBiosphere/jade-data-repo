@@ -23,6 +23,7 @@ public class FireStoreProject {
     }
 
     public FireStoreProject(String projectId, Credentials credentials) {
+        logger.info("Retrieving firestore project for project id: {}", projectId);
         this.projectId = projectId;
         firestore = FirestoreOptions.newBuilder()
             .setProjectId(projectId)

@@ -73,12 +73,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private BigQueryProject bigQueryProjectForStudy(Study study) {
         StudyDataProject projectForStudy = dataProjectService.getProjectForStudy(study);
-        return new BigQueryProject(projectForStudy.getGoogleProjectId());
+        return BigQueryProject.get(projectForStudy.getGoogleProjectId());
     }
 
     private BigQueryProject bigQueryProjectForDataset(bio.terra.metadata.Dataset dataset) {
         DatasetDataProject projectForDataset = dataProjectService.getProjectForDataset(dataset);
-        return new BigQueryProject(projectForDataset.getGoogleProjectId());
+        return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
 
     @Override

@@ -314,7 +314,7 @@ public class DatasetOperationTest {
     private BigQueryProject bigQueryProjectForStudyName(String studyName) {
         Study study = studyDao.retrieveByName(studyName);
         StudyDataProject dataProject = dataProjectService.getProjectForStudy(study);
-        return new BigQueryProject(dataProject.getGoogleProjectId());
+        return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
 
     private void loadData(String studyName,

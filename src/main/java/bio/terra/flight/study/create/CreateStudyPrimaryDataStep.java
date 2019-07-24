@@ -13,7 +13,6 @@ import org.springframework.http.HttpStatus;
 import java.util.UUID;
 
 public class CreateStudyPrimaryDataStep implements Step {
-
     private final PrimaryDataAccess pdao;
     private final StudyService studyService;
 
@@ -30,8 +29,7 @@ public class CreateStudyPrimaryDataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = getStudy(context);
-        pdao.createStudy(study);
+        pdao.createStudy(getStudy(context));
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
         return StepResult.getStepResultSuccess();

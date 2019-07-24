@@ -25,6 +25,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -229,7 +230,7 @@ public class SamClientService {
         samResourceApi.deleteResource(ResourceType.DATASET.toString(), datsetId.toString());
     }
 
-    public void createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+    public List<String> createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
@@ -245,6 +246,18 @@ public class SamClientService {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
+
+        // we'll want all of these roles to have read access to the underlying data, so we sync and return the emails
+        // for the policies that get created by SAM
+        ArrayList<String> rolePolicies = new ArrayList<>();
+        for (DataRepoRole role : Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
+            Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
+                ResourceType.STUDY.toString(),
+                studyId.toString(),
+                role.toString());
+            rolePolicies.add(results.keySet().iterator().next());
+        }
+        return rolePolicies;
     }
 
     public String createDatasetResource(

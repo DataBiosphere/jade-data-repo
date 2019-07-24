@@ -15,22 +15,18 @@ import java.util.UUID;
 public class DeleteFileMetadataStepComplete implements Step {
     private final FireStoreFileDao fileDao;
     private final String fileId;
-    private final String studyId;
-    private final StudyService studyService;
+    private final Study study;
 
-    public DeleteFileMetadataStepComplete(String studyId,
-                                          FireStoreFileDao fileDao,
+    public DeleteFileMetadataStepComplete(FireStoreFileDao fileDao,
                                           String fileId,
-                                          StudyService studyService) {
+                                          Study study) {
         this.fileDao = fileDao;
         this.fileId = fileId;
-        this.studyId = studyId;
-        this.studyService = studyService;
+        this.study = study;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = studyService.retrieve(UUID.fromString(studyId.toString()));
         boolean found = fileDao.deleteFileComplete(study, fileId, context.getFlightId());
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;

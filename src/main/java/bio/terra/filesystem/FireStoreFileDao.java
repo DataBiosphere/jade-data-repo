@@ -88,7 +88,7 @@ public class FireStoreFileDao {
         }
         UUID studyId = study.getId();
         FireStoreObject createObject = makeFireStoreObjectFromFSObject(fileToCreate);
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<UUID> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             List<FireStoreObject> createList = new ArrayList<>();
 
@@ -132,7 +132,7 @@ public class FireStoreFileDao {
     }
 
     public void createFileStartUndo(Study study, String fullPath, String flightId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             String lookupPath = makeLookupPath(fullPath);
             DocumentSnapshot docSnap = lookupByObjectPath(study, lookupPath, xn);
@@ -157,7 +157,7 @@ public class FireStoreFileDao {
     }
 
     public FSObjectBase createFileComplete(Study study, FSFileInfo fsFileInfo) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<FSObjectBase> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(study, fsFileInfo.getObjectId(), xn);
             if (docSnap == null) {
@@ -183,7 +183,7 @@ public class FireStoreFileDao {
     }
 
     public void createFileCompleteUndo(Study study, String objectId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
             if (docSnap == null) {
@@ -203,7 +203,7 @@ public class FireStoreFileDao {
     }
 
     public boolean deleteFileStart(Study study, String objectId, String flightId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<Boolean> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
             if (docSnap == null) {
@@ -248,7 +248,7 @@ public class FireStoreFileDao {
     }
 
     public boolean deleteFileComplete(Study study, String objectId, String flightId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<Boolean> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
             if (docSnap == null) {
@@ -286,7 +286,7 @@ public class FireStoreFileDao {
     }
 
     public void deleteFileStartUndo(Study study, String objectId, String flightId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
             if (docSnap == null) {
@@ -339,7 +339,7 @@ public class FireStoreFileDao {
      */
     private static final int DELETE_BATCH_SIZE = 500;
     public void deleteFilesFromStudy(Study study) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
         try {
             int batchCount = 0;
@@ -378,7 +378,7 @@ public class FireStoreFileDao {
     }
 
     public FSObjectBase retrieveByIdNoThrow(Study study, UUID objectId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<FSObjectBase> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId.toString(), xn);
             if (docSnap == null) {
@@ -405,7 +405,7 @@ public class FireStoreFileDao {
     }
 
     public FSObjectBase retrieveByPathNoThrow(Study study, String fullPath) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         String lookupPath = makeLookupPath(fullPath);
         DocumentReference docRef = fireStoreProject.getFirestore()
             .collection(study.getId().toString())
@@ -446,7 +446,7 @@ public class FireStoreFileDao {
         // a read.
         List<DocumentReference> docRefList = new ArrayList<>();
         docRefList.add(fileDocRef);
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
 
         String lookupPath = makeLookupPath(dirPath);
@@ -483,7 +483,7 @@ public class FireStoreFileDao {
         if (fsObject.getObjectType() == FSObjectType.FILE) {
             return fsObject;
         }
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         ApiFuture<List<FSObjectBase>> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             Query query = fireStoreProject.getFirestore().collection(fsObject.getStudyId().toString())
                 .whereEqualTo("path", fsObject.getPath());
@@ -531,7 +531,7 @@ public class FireStoreFileDao {
     }
 
     private DocumentReference getDocRef(Study study, FireStoreObject fireStoreObject) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         String lookupPath = makeLookupPath(getFullPath(fireStoreObject));
         return fireStoreProject.getFirestore()
             .collection(fireStoreObject.getStudyId())
@@ -572,7 +572,7 @@ public class FireStoreFileDao {
     }
 
     private DocumentSnapshot lookupByObjectPath(Study study, String lookupPath, Transaction xn) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         try {
             DocumentReference docRef =
                 fireStoreProject.getFirestore().collection(study.getId().toString())
@@ -590,7 +590,7 @@ public class FireStoreFileDao {
     // Returns null if not found
     private QueryDocumentSnapshot lookupByObjectId(Study study, String objectId, Transaction xn) {
         try {
-            FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+            FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
             CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
             Query query = studyCollection.whereEqualTo("objectId", objectId);
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
@@ -616,7 +616,7 @@ public class FireStoreFileDao {
     // Returns true if the object of the requested type exists
     private boolean lookupByIdAndType(Study study, String objectId, FSObjectType objectType) {
         try {
-            FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+            FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
             CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
             Query query = studyCollection
                 .whereEqualTo("objectId", objectId)

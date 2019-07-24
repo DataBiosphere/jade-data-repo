@@ -10,6 +10,7 @@ import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

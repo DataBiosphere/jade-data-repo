@@ -19,14 +19,13 @@ public class FileIngestFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        StudyDao studyDao = (StudyDao)appContext.getBean("studyDao");
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         StudyService studyService = (StudyService)appContext.getBean("studyService");
 
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        Study study = studyDao.retrieve(UUID.fromString(studyId));
+        Study study = studyService.retrieve(UUID.fromString(studyId));
         // The flight plan:
         // 1. Metadata step:
         //    Compute the target gspath where the file should go
@@ -35,7 +34,7 @@ public class FileIngestFlight extends Flight {
         // 3. Update the file object with the gspath, checksum and size and mark as present
         addStep(new IngestFileMetadataStepStart(fileDao, study));
         addStep(new IngestFilePrimaryDataStep(fileDao, study, fileService, gcsPdao));
-        addStep(new IngestFileMetadataStepComplete(fileDao, fileService, studyService));
+        addStep(new IngestFileMetadataStepComplete(fileDao, fileService, study));
     }
 
 }

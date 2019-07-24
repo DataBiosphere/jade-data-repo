@@ -2,8 +2,10 @@ package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.DatasetDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
+import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.SamClientService;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -21,7 +23,7 @@ public class DatasetDeleteFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
-
+        StudyService studyService = (StudyService)appContext.getBean("studyService");
         UUID datasetId = inputParameters.get("id", UUID.class);
 
         // Delete access control first so Readers and Discoverers can no longer see dataset
@@ -30,7 +32,7 @@ public class DatasetDeleteFlight extends Flight {
         addStep(new DeleteDatasetAuthzResource(samClient, datasetId));
         // Must delete primary data before metadata; it relies on being able to retrieveModel the
         // dataset object from the metadata to know what to delete.
-        addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao, datasetId));
+        addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao, datasetId, studyService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
     }
 }

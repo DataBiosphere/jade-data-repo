@@ -50,38 +50,18 @@ public class FireStoreProject {
     public static FireStoreProject get(String projectId, Credentials credentials) {
         ProjectAndCredential projectAndCredential = new ProjectAndCredential(projectId, credentials);
         if (!fireStoreProjectLookup.containsKey(projectAndCredential)) {
-            FireStoreProject fireStoreProject = new FireStoreProject(projectId);
-            fireStoreProjectLookup.put(projectId, fireStoreProject);
+            FireStoreProject fireStoreProject;
+            if (credentials == null) {
+                fireStoreProject = new FireStoreProject(projectId);
+            } else {
+                fireStoreProject = new FireStoreProject(projectId, credentials);
+            }
+            fireStoreProjectLookup.put(projectAndCredential, fireStoreProject);
         }
-        return fireStoreProjectLookup.get(projectId);
+        return fireStoreProjectLookup.get(projectAndCredential);
     }
 
-    private class ProjectAndCredential{
-        private String projectId;
-        private Credentials credentials;
-
-        public ProjectAndCredential(String projectId, Credentials credentials) {
-            this.credentials = credentials;
-            this.projectId = projectId;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof ProjectAndCredential)) return false;
-            ProjectAndCredential projectAndCredential = (ProjectAndCredential) o;
-            return projectAndCredential.credentials==credentials && projectAndCredential.projectId == projectId;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = projectId.hashCode();
-
-            if (credentials != null) {
-                result += credentials.hashCode()*31;
-            }
-
-            return result;
-        }
+    public static FireStoreProject get(String projectId) {
+        return get(projectId, null);
     }
 }

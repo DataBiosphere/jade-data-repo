@@ -29,7 +29,7 @@ public class StudyDeleteFlight extends Flight {
         StudyService studyService = (StudyService) appContext.getBean("studyService");
 
         addStep(new DeleteStudyValidateStep(datasetDao, dependencyDao, studyService));
-        addStep(new DeleteStudyPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, studyDao));
+        addStep(new DeleteStudyPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, studyService));
         addStep(new DeleteStudyMetadataStep(studyDao));
         addStep(new DeleteStudyAuthzResource(samClient));
     }

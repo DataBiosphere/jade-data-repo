@@ -34,7 +34,7 @@ public class FireStoreDependencyDao {
     }
 
     public boolean objectHasDatasetReference(Study study, String objectId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(DEPENDENCY_COLLECTION_NAME);
         Query query = depColl.whereEqualTo(
             "studyId",
@@ -43,7 +43,7 @@ public class FireStoreDependencyDao {
     }
 
     public boolean studyHasDatasetReference(Study study) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(DEPENDENCY_COLLECTION_NAME);
         Query query = depColl.whereEqualTo("studyId", study.getId().toString());
         return hasReference(query);
@@ -64,7 +64,7 @@ public class FireStoreDependencyDao {
     }
 
     public List<String> getStudyDatasetFileIds(Study study, String datasetId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(DEPENDENCY_COLLECTION_NAME);
         Query query = depColl.whereEqualTo(
             "studyId",
@@ -102,7 +102,7 @@ public class FireStoreDependencyDao {
     }
 
     public void deleteDatasetFileDependencies(Study study, String datasetId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(DEPENDENCY_COLLECTION_NAME);
         Query query = depColl.whereEqualTo(
             "studyId",
@@ -125,7 +125,7 @@ public class FireStoreDependencyDao {
     }
 
     public void storeDatasetFileDependency(Study study, String datasetId, String objectId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(DEPENDENCY_COLLECTION_NAME);
 
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
@@ -171,7 +171,7 @@ public class FireStoreDependencyDao {
     }
 
     public void removeDatasetFileDependency(Study study, String datasetId, String objectId) {
-        FireStoreProject fireStoreProject = new FireStoreProject(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(DEPENDENCY_COLLECTION_NAME);
 
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {

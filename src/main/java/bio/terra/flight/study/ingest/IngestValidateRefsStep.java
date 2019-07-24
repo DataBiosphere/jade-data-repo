@@ -8,6 +8,7 @@ import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -19,19 +20,21 @@ import java.util.List;
 public class IngestValidateRefsStep implements Step {
     private static int MAX_ERROR_REF_IDS = 20;
 
-    private StudyDao studyDao;
+    private StudyService studyService;
     private BigQueryPdao bigQueryPdao;
     private FireStoreFileDao fileDao;
 
-    public IngestValidateRefsStep(StudyDao studyDao, BigQueryPdao bigQueryPdao, FireStoreFileDao fileDao) {
-        this.studyDao = studyDao;
+    public IngestValidateRefsStep(StudyService studyService,
+                                  BigQueryPdao bigQueryPdao,
+                                  FireStoreFileDao fileDao) {
+        this.studyService = studyService;
         this.bigQueryPdao = bigQueryPdao;
         this.fileDao = fileDao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = IngestUtils.getStudy(context, studyDao);
+        Study study = IngestUtils.getStudy(context, studyService);
         Table table = IngestUtils.getStudyTable(context, study);
         String stagingTableName = IngestUtils.getStagingTableName(context);
 

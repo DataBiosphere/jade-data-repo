@@ -18,14 +18,14 @@ import java.util.UUID;
 public class IngestFileMetadataStepComplete implements Step {
     private final FireStoreFileDao fileDao;
     private final FileService fileService;
-    private final  StudyService studyService;
+    private final  Study study;
 
     public IngestFileMetadataStepComplete(FireStoreFileDao fileDao,
                                           FileService fileService,
-                                          StudyService studyService) {
+                                          Study study) {
         this.fileDao = fileDao;
         this.fileService = fileService;
-        this.studyService = studyService;
+        this.study = study;
     }
 
     @Override
@@ -33,7 +33,6 @@ public class IngestFileMetadataStepComplete implements Step {
         FlightMap workingMap = context.getWorkingMap();
         FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
         fsFileInfo.flightId(context.getFlightId());
-        Study study = studyService.retrieve(UUID.fromString(fsFileInfo.getStudyId()));
 
         FSObjectBase fsObject = fileDao.createFileComplete(study, fsFileInfo);
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
@@ -46,7 +45,6 @@ public class IngestFileMetadataStepComplete implements Step {
         String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
         FlightMap workingMap = context.getWorkingMap();
         String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
-        Study study = studyService.retrieve(UUID.fromString(studyId));
         fileDao.createFileCompleteUndo(study, objectId);
         return StepResult.getStepResultSuccess();
     }

@@ -12,29 +12,24 @@ import java.util.UUID;
 public class DeleteFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;
     private final String fileId;
-    private final String studyId;
-    private final StudyService studyService;
+    private final Study study;
 
-    public DeleteFileMetadataStepStart(String studyId,
-                                       FireStoreFileDao fileDao,
+    public DeleteFileMetadataStepStart(FireStoreFileDao fileDao,
                                        String fileId,
-                                       StudyService studyService) {
+                                       Study study) {
         this.fileDao = fileDao;
         this.fileId = fileId;
-        this.studyId = studyId;
-        this.studyService = studyService;
+        this.study = study;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = studyService.retrieve(UUID.fromString(studyId));
         fileDao.deleteFileStart(study, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        Study study = studyService.retrieve(UUID.fromString(studyId));
         fileDao.deleteFileStartUndo(study, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }

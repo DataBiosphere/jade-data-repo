@@ -105,8 +105,9 @@ public class CreateDatasetPrimaryDataStep implements Step {
         DatasetRequestModel requestModel = getRequestModel(context);
         Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
         for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            Study study = studyService.retrieve(datasetSource.getStudy().getId());
             dependencyDao.deleteDatasetFileDependencies(
-                datasetSource.getStudy(),
+                study,
                 dataset.getId().toString());
         }
 

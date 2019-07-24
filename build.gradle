@@ -117,7 +117,7 @@ dependencies {
     compile 'com.google.cloud:google-cloud-firestore:1.13.0'
     compile 'io.springfox:springfox-swagger-ui:2.7.0'
     compile 'io.springfox:springfox-swagger2:2.7.0'
-    compile 'org.apache.commons:commons-dbcp2:2.5.0'     // For database connection support
+    compile 'org.apache.commons:commons-dbcp2:2.6.0'     // For database connection support
     compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.liquibase:liquibase-core:3.7.0'         // For upgrade

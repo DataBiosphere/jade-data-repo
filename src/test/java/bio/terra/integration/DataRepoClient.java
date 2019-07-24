@@ -81,14 +81,18 @@ public class DataRepoClient {
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
         try {
+            int count = 0;
             while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
                 String location = getLocationHeader(jobModelResponse);
+                logger.info("try #{} for {}", ++count, location);
 
                 // TODO: tune this. Maybe use exponential backoff?
                 TimeUnit.SECONDS.sleep(10);
                 jobModelResponse = get(user, location, JobModel.class);
             }
         } catch (InterruptedException ex) {
+            logger.info("interrupted ex: {}", ex.getMessage());
+            ex.printStackTrace();
             Thread.currentThread().interrupt();
             throw new IllegalStateException("unexpected interrupt waiting for response");
         }

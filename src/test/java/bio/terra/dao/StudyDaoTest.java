@@ -119,7 +119,7 @@ public class StudyDaoTest {
                 Matchers.lessThan(studies.get(1).getCreatedDate().toEpochMilli()));
 
         // this is skipping the first item returned above
-        // so compare the id from the previous retrieveModel
+        // so compare the id from the previous retrieve
         assertThat("study enumerate offset param works",
             studyDao.enumerate(1, 1, "created_date", "asc", null, studyIds)
                 .getItems().get(0).getId(),

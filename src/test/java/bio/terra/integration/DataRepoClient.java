@@ -94,7 +94,7 @@ public class DataRepoClient {
             logger.info("interrupted ex: {}", ex.getMessage());
             ex.printStackTrace();
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("unexpected interrupt waiting for response");
+            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {

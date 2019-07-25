@@ -29,7 +29,7 @@ public class DatasetDeleteFlight extends Flight {
         // Google auto-magically removes the ACLs from files and BQ objects when SAM
         // deletes the dataset group, so no ACL cleanup is needed beyond that.
         addStep(new DeleteDatasetAuthzResource(samClient, datasetId));
-        // Must delete primary data before metadata; it relies on being able to retrieveModel the
+        // Must delete primary data before metadata; it relies on being able to retrieve the
         // dataset object from the metadata to know what to delete.
         addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao, datasetId, studyService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));

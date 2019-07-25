@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
@@ -8,7 +9,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 public final class TestUtils {
-    private static org.slf4j.Logger logger = LoggerFactory.getLogger(TestUtils.class);
+    private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
 
     private TestUtils() {}
 

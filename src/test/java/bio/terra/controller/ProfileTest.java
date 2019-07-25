@@ -106,7 +106,7 @@ public class ProfileTest {
 
     @Test
     public void testProfileRetrieve() throws Exception {
-        assertThat("Profile retrieveModel with bad id gets 400",
+        assertThat("Profile retrieve with bad id gets 400",
                 mvc.perform(get("/api/resources/v1/profiles/{id}", "blah"))
                         .andReturn().getResponse().getStatus(),
                 equalTo(HttpStatus.BAD_REQUEST.value()));

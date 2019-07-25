@@ -386,7 +386,7 @@ public class FireStoreFileDao {
             return makeFSObjectFromFireStoreObject(currentObject);
         });
 
-        return fireStoreUtils.transactionGet("retrieveModel by id", transaction);
+        return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
     public FSObjectBase retrieveWithContentsByPath(Study study, String fullPath) {
@@ -420,9 +420,9 @@ public class FireStoreFileDao {
 
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("retrieveModel - execution interrupted", ex);
+            throw new FileSystemExecutionException("retrieve - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("retrieveModel - execution exception", ex);
+            throw new FileSystemExecutionException("retrieve - execution exception", ex);
         }
     }
 

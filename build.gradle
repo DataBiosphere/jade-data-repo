@@ -132,7 +132,7 @@ dependencies {
     runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.6'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
-    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
+    compileOnly 'com.google.code.findbugs:annotations:3.0.1u2'
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.6.3'
     liquibaseRuntime 'org.postgresql:postgresql:42.2.5'

@@ -1,5 +1,6 @@
 package bio.terra.fixtures;
 
+import bio.terra.configuration.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -29,10 +30,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
@@ -55,6 +55,7 @@ public class ConnectedOperations {
     private MockMvc mvc;
     private ObjectMapper objectMapper;
     private JsonLoader jsonLoader;
+    private SamConfiguration samConfiguration;
 
     private boolean deleteOnTeardown;
     private List<String> createdDatasetIds;
@@ -62,27 +63,30 @@ public class ConnectedOperations {
     private List<String> createdProfileIds;
     private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
 
-    public static void stubOutSamCalls(SamClientService samService) throws ApiException {
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
-        when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-        doNothing().when(samService).createStudyResource(any(), any());
-        doNothing().when(samService).deleteDatasetResource(any(), any());
-        doNothing().when(samService).deleteStudyResource(any(), any());
-    }
-
     @Autowired
     public ConnectedOperations(MockMvc mvc,
                                ObjectMapper objectMapper,
-                               JsonLoader jsonLoader) {
+                               JsonLoader jsonLoader,
+                               SamConfiguration samConfiguration) {
         this.mvc = mvc;
         this.objectMapper = objectMapper;
         this.jsonLoader = jsonLoader;
+        this.samConfiguration = samConfiguration;
 
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
         createdFileIds = new ArrayList<>();
         createdProfileIds = new ArrayList<>();
         deleteOnTeardown = true;
+    }
+
+    public void stubOutSamCalls(SamClientService samService) throws ApiException {
+        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
+        when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
+        when(samService.createStudyResource(any(), any())).thenReturn(
+            Collections.singletonList(samConfiguration.getStewardsGroupEmail()));
+        doNothing().when(samService).deleteDatasetResource(any(), any());
+        doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
     /**
@@ -117,10 +121,10 @@ public class ConnectedOperations {
     public BillingProfileModel getOrCreateProfileForAccount(String billingAccountId) throws Exception {
         BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(billingAccountId);
-        return getOrCreateProfile(profileRequestModel);
+        return createProfile(profileRequestModel);
     }
 
-    public BillingProfileModel getOrCreateProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
+    public BillingProfileModel createProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
         MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .content(objectMapper.writeValueAsString(profileRequestModel)))
@@ -128,28 +132,18 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = result.getResponse();
         String responseContent = response.getContentAsString();
-        BillingProfileModel billingProfileModel;
+
         if (response.getStatus() == HttpStatus.CREATED.value()) {
-            billingProfileModel = objectMapper.readValue(responseContent, BillingProfileModel.class);
-        } else {
-            ErrorModel errorModel = objectMapper.readValue(responseContent, ErrorModel.class);
-            List<String> errorDetail = errorModel.getErrorDetail();
-            if (errorDetail.size() < 1) {
-                fail("expecting there to be an entry in error details that points to a billing profile");
-            }
-            // get everything after the last space
-            Matcher matcher = Pattern.compile("([^ ]+)$").matcher(errorDetail.get(0));
-            if (matcher.find()) {
-                String profileId = matcher.group();
-                billingProfileModel = getProfileById(profileId);
-            } else {
-                throw new IllegalStateException("could not get the profile id out of the message");
-            }
+            BillingProfileModel billingProfileModel =
+                objectMapper.readValue(responseContent, BillingProfileModel.class);
+            addProfile(billingProfileModel.getId());
+            return billingProfileModel;
         }
-
-        addProfile(billingProfileModel.getId());
-
-        return billingProfileModel;
+        ErrorModel errorModel = objectMapper.readValue(responseContent, ErrorModel.class);
+        List<String> errorDetail = errorModel.getErrorDetail();
+        String message = String.format("couldn't create profile: %s (%s)",
+            errorModel.getMessage(), String.join(", ", errorDetail));
+        throw new IllegalArgumentException(message);
     }
 
     public BillingProfileModel getProfileById(String profileId) throws Exception {

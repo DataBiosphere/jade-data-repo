@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.configuration.SamConfiguration;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.UnauthorizedException;
@@ -20,8 +21,6 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -35,9 +34,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@EnableConfigurationProperties
-@ConfigurationProperties(prefix = "sam")
 public class SamClientService {
+    private final SamConfiguration samConfig;
+
+    public SamClientService(SamConfiguration samConfig) {
+        this.samConfig = samConfig;
+    }
 
     public enum ResourceType {
         DATAREPO,
@@ -136,15 +138,13 @@ public class SamClientService {
         }
     }
 
-    private String basePath;
-    private String stewardsGroupEmail;
     private static Logger logger = LoggerFactory.getLogger(SamClientService.class);
 
     private ApiClient getApiClient(String accessToken) {
         ApiClient apiClient = new ApiClient();
         apiClient.setAccessToken(accessToken);
         apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
-        return apiClient.setBasePath(basePath);
+        return apiClient.setBasePath(samConfig.getBasePath());
     }
 
     private ResourcesApi samResourcesApi(String accessToken) {
@@ -157,22 +157,6 @@ public class SamClientService {
 
     private UsersApi samUsersApi(String accessToken) {
         return new UsersApi(getApiClient(accessToken));
-    }
-
-    public String getBasePath() {
-        return basePath;
-    }
-
-    public void setBasePath(String basePath) {
-        this.basePath = basePath;
-    }
-
-    public String getStewardsGroupEmail() {
-        return stewardsGroupEmail;
-    }
-
-    public void setStewardsGroupEmail(String stewardsGroupEmail) {
-        this.stewardsGroupEmail = stewardsGroupEmail;
     }
 
     public boolean isAuthorized(
@@ -235,7 +219,8 @@ public class SamClientService {
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
-            createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));
+            createAccessPolicy(DataRepoRole.STEWARD.toString(),
+                Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
             DataRepoRole.CUSTODIAN.toString(),
             createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
@@ -271,7 +256,8 @@ public class SamClientService {
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
-            createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));
+            createAccessPolicy(DataRepoRole.STEWARD.toString(),
+                Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
             DataRepoRole.CUSTODIAN.toString(),
             createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
@@ -379,12 +365,10 @@ public class SamClientService {
                 "Missing the required parameter 'resourceCreate' when calling createResource(Async)");
         }
 
-        Object localVarPostBody = resourceCreate;
-
         // create path and map variables
         String localVarPath = "/api/resources/v1/{resourceTypeName}"
             .replaceAll("\\{" + "resourceTypeName" + "\\}",
-                localVarApiClient.escapeString(resourceTypeName.toString()));
+                localVarApiClient.escapeString(resourceTypeName));
 
         List<Pair> localVarQueryParams = new ArrayList<Pair>();
         List<Pair> localVarCollectionQueryParams = new ArrayList<Pair>();
@@ -410,7 +394,7 @@ public class SamClientService {
             "POST",
             localVarQueryParams,
             localVarCollectionQueryParams,
-            localVarPostBody,
+            resourceCreate,
             localVarHeaderParams,
             localVarFormParams,
             localVarAuthNames,

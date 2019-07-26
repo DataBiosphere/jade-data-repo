@@ -52,19 +52,17 @@ public class FileOperationTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DrsIdService drsService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
     private SamClientService samService;
-
-    private ConnectedOperations connectedOperations;
 
     private int validFileCounter;
 
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
-        ConnectedOperations.stubOutSamCalls(samService);
-        connectedOperations = new ConnectedOperations(mvc, objectMapper, jsonLoader);
+        connectedOperations.stubOutSamCalls(samService);
         validFileCounter = 0;
     }
 

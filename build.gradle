@@ -23,7 +23,7 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath('io.swagger:swagger-codegen:2.3.1')
+        classpath('io.swagger:swagger-codegen:2.4.7')
         classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
     }
 }

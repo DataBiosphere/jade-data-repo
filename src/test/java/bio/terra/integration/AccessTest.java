@@ -76,7 +76,7 @@ public class AccessTest extends UsersBase {
     private String custodianToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
-    private static final int samTimeoutSeconds = 300;
+    private static final int samTimeoutSeconds = 60 * 10;
 
     @Before
     public void setup() throws Exception {
@@ -128,7 +128,7 @@ public class AccessTest extends UsersBase {
             enumStudies.getStatusCode(),
             equalTo(HttpStatus.OK));
 
-        boolean custodianHasAccess = TestUtils.flappyExpect(5, samTimeoutSeconds, true, () -> {
+        boolean custodianHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
                 boolean bqDatasetExists = custodianBqProject.datasetExists(studyBqDatasetName);
                 assertThat("study bq dataset exists and is accessible", bqDatasetExists, equalTo(true));
@@ -174,7 +174,7 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        boolean readerHasAccess = TestUtils.flappyExpect(5, samTimeoutSeconds, true, () -> {
+        boolean readerHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
                 boolean datasetExists = readerBqProject.datasetExists(datasetSummaryModel.getName());
                 assertThat("dataset exists and is accessible", datasetExists, equalTo(true));
@@ -247,7 +247,7 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        TestUtils.flappyExpect(5, samTimeout, true, () -> {
+        TestUtils.eventualExpect(5, samTimeout, true, () -> {
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));

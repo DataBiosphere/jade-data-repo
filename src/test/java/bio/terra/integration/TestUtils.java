@@ -13,7 +13,7 @@ public final class TestUtils {
 
     private TestUtils() {}
 
-    public static <T> boolean flappyExpect(
+    public static <T> boolean eventualExpect(
         int secInterval, int secTimeout, T expected, Callable<T> callable) throws Exception {
         LocalDateTime end = LocalDateTime.now().plus(Duration.ofSeconds(secTimeout));
         int tries = 0;

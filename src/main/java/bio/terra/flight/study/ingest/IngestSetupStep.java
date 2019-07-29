@@ -1,6 +1,5 @@
 package bio.terra.flight.study.ingest;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.InvalidUriException;
@@ -8,6 +7,7 @@ import bio.terra.metadata.Study;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoConstant;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -39,15 +39,15 @@ import liquibase.util.StringUtils;
  */
 
 public class IngestSetupStep implements Step {
-    private StudyDao studyDao;
+    private StudyService studyService;
 
-    public IngestSetupStep(StudyDao studyDao) {
-        this.studyDao = studyDao;
+    public IngestSetupStep(StudyService studyService) {
+        this.studyService = studyService;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Study study = IngestUtils.getStudy(context, studyDao);
+        Study study = IngestUtils.getStudy(context, studyService);
         IngestUtils.putStudyName(context, study.getName());
 
         Table targetTable = IngestUtils.getStudyTable(context, study);

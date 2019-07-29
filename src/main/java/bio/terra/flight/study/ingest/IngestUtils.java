@@ -1,6 +1,5 @@
 package bio.terra.flight.study.ingest;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.flight.exception.TableNotFoundException;
 import bio.terra.metadata.Study;
@@ -8,6 +7,7 @@ import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.StringUtils;
@@ -43,11 +43,11 @@ public final class IngestUtils {
         }
     }
 
-    public static Study getStudy(FlightContext context, StudyDao studyDao) {
+    public static Study getStudy(FlightContext context, StudyService studyService) {
         FlightMap inputParameters = context.getInputParameters();
         String id = inputParameters.get(IngestMapKeys.STUDY_ID, String.class);
         UUID studyId = UUID.fromString(id);
-        return studyDao.retrieve(studyId);
+        return studyService.retrieve(studyId);
     }
 
     public static IngestRequestModel getIngestRequestModel(FlightContext context) {

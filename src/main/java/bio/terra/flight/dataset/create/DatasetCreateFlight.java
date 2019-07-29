@@ -6,6 +6,7 @@ import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -23,9 +24,10 @@ public class DatasetCreateFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
+        StudyService studyService = (StudyService) appContext.getBean("studyService");
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetService));
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao));
-        addStep(new AuthorizeDataset(bigQueryPdao, samClient, dependencyDao, datasetDao, gcsPdao));
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao, studyService));
+        addStep(new AuthorizeDataset(bigQueryPdao, samClient, dependencyDao, datasetDao, gcsPdao, studyService));
     }
 }

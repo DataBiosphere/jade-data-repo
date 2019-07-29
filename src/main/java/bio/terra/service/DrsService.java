@@ -9,6 +9,7 @@ import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
+import bio.terra.metadata.Study;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSBundle;
@@ -47,6 +48,7 @@ public class DrsService {
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
+    private final StudyService studyService;
 
     @Autowired
     public DrsService(StudyDao studyDao,
@@ -54,13 +56,15 @@ public class DrsService {
                       FireStoreFileDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
-                      GcsConfiguration gcsConfiguration) {
+                      GcsConfiguration gcsConfiguration,
+                      StudyService studyService) {
         this.studyDao = studyDao;
         this.datasetDao = datasetDao;
         this.fileDao = fileDao;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.gcsConfiguration = gcsConfiguration;
+        this.studyService = studyService;
     }
 
     public DRSObject lookupObjectByDrsId(String drsObjectId) {
@@ -77,9 +81,9 @@ public class DrsService {
 
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
-
+        Study study = studyService.retrieve(UUID.fromString(drsId.getStudyId()));
         FSObjectBase fsObject = fileDao.retrieveWithContents(
-            UUID.fromString(drsId.getStudyId()),
+            study,
             UUID.fromString(drsId.getFsObjectId()));
         if (fsObject.getObjectType() != FSObjectType.DIRECTORY) {
             throw new IllegalArgumentException("Object is not a bundle");

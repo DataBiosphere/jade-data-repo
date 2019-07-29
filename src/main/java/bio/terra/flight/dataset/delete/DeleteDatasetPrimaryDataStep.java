@@ -5,7 +5,9 @@ import bio.terra.exception.NotFoundException;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -20,15 +22,18 @@ public class DeleteDatasetPrimaryDataStep implements Step {
     private DatasetDao datasetDao;
     private FireStoreDependencyDao dependencyDao;
     private UUID datasetId;
+    private StudyService studyService;
 
     public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                         DatasetDao datasetDao,
                                         FireStoreDependencyDao dependencyDao,
-                                        UUID datasetId) {
+                                        UUID datasetId,
+                                        StudyService studyService) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetDao = datasetDao;
         this.dependencyDao = dependencyDao;
         this.datasetId = datasetId;
+        this.studyService = studyService;
     }
 
     @Override
@@ -39,8 +44,9 @@ public class DeleteDatasetPrimaryDataStep implements Step {
 
             // Remove dataset file references from the underlying studies
             for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+                Study study = studyService.retrieve(datasetSource.getStudy().getId());
                 dependencyDao.deleteDatasetFileDependencies(
-                    datasetSource.getStudy().getId().toString(),
+                    study,
                     datasetId.toString());
             }
 

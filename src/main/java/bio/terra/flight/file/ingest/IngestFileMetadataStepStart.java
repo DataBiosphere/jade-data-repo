@@ -31,13 +31,12 @@ public class IngestFileMetadataStepStart implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
 
         FlightMap workingMap = context.getWorkingMap();
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(studyId, loadModel.getTargetPath());
+        FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(study, loadModel.getTargetPath());
         if (fsObject == null) {
             // Nothing exists - create a new file
             FSFile newFile = new FSFile()
@@ -48,7 +47,7 @@ public class IngestFileMetadataStepStart implements Step {
                 .path(loadModel.getTargetPath())
                 .description(loadModel.getDescription());
 
-            UUID objectId = fileDao.createFileStart(newFile);
+            UUID objectId = fileDao.createFileStart(study, newFile);
             workingMap.put(FileMapKeys.OBJECT_ID, objectId.toString());
 
             return StepResult.getStepResultSuccess();
@@ -71,8 +70,7 @@ public class IngestFileMetadataStepStart implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String studyId = inputParameters.get(JobMapKeys.STUDY_ID.getKeyName(), String.class);
-        fileDao.createFileStartUndo(studyId, loadModel.getTargetPath(), context.getFlightId());
+        fileDao.createFileStartUndo(study, loadModel.getTargetPath(), context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

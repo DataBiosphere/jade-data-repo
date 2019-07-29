@@ -1,6 +1,7 @@
 package bio.terra.flight.file.delete;
 
 import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.metadata.Study;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -8,23 +9,25 @@ import bio.terra.stairway.StepResult;
 public class DeleteFileMetadataStepStart implements Step {
     private final FireStoreFileDao fileDao;
     private final String fileId;
-    private final String studyId;
+    private final Study study;
 
-    public DeleteFileMetadataStepStart(String studyId, FireStoreFileDao fileDao, String fileId) {
+    public DeleteFileMetadataStepStart(FireStoreFileDao fileDao,
+                                       String fileId,
+                                       Study study) {
         this.fileDao = fileDao;
         this.fileId = fileId;
-        this.studyId = studyId;
+        this.study = study;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        fileDao.deleteFileStart(studyId, fileId, context.getFlightId());
+        fileDao.deleteFileStart(study, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        fileDao.deleteFileStartUndo(studyId, fileId, context.getFlightId());
+        fileDao.deleteFileStartUndo(study, fileId, context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 

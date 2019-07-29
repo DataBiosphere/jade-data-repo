@@ -8,10 +8,12 @@ import bio.terra.metadata.DatasetMapColumn;
 import bio.terra.metadata.DatasetMapTable;
 import bio.terra.metadata.DatasetSource;
 import bio.terra.metadata.RowIdMatch;
+import bio.terra.metadata.Study;
 import bio.terra.model.DatasetRequestContentsModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -27,13 +29,16 @@ public class CreateDatasetPrimaryDataStep implements Step {
     private BigQueryPdao bigQueryPdao;
     private DatasetDao datasetDao;
     private FireStoreDependencyDao dependencyDao;
+    private StudyService studyService;
 
     public CreateDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                         DatasetDao datasetDao,
-                                        FireStoreDependencyDao dependencyDao) {
+                                        FireStoreDependencyDao dependencyDao,
+                                        StudyService studyService) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetDao = datasetDao;
         this.dependencyDao = dependencyDao;
+        this.studyService = studyService;
     }
 
     DatasetRequestModel getRequestModel(FlightContext context) {
@@ -86,8 +91,9 @@ public class CreateDatasetPrimaryDataStep implements Step {
                             mapTable.getFromTable().getId().toString(),
                             mapColumn.getFromColumn());
 
+                        Study study = studyService.retrieve(datasetSource.getStudy().getId());
                         dependencyDao.storeDatasetFileDependencies(
-                            datasetSource.getStudy().getId().toString(),
+                            study,
                             dataset.getId().toString(),
                             refIds);
                     }
@@ -104,8 +110,9 @@ public class CreateDatasetPrimaryDataStep implements Step {
         DatasetRequestModel requestModel = getRequestModel(context);
         Dataset dataset = datasetDao.retrieveDatasetByName(requestModel.getName());
         for (DatasetSource datasetSource : dataset.getDatasetSources()) {
+            Study study = studyService.retrieve(datasetSource.getStudy().getId());
             dependencyDao.deleteDatasetFileDependencies(
-                datasetSource.getStudy().getId().toString(),
+                study,
                 dataset.getId().toString());
         }
 

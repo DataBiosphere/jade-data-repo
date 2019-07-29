@@ -109,7 +109,7 @@ public class StudyTest {
                 equalTo(HttpStatus.BAD_REQUEST.value()));
 
         UUID missingId = UUID.fromString("cd100f94-e2c6-4d0c-aaf4-9be6651276a6");
-        when(studyService.retrieve(eq(missingId))).thenThrow(
+        when(studyService.retrieveModel(eq(missingId))).thenThrow(
                 new StudyNotFoundException("Study not found for id " + missingId.toString()));
         assertThat("Study retrieve that doesn't exist returns 404",
                 mvc.perform(get("/api/repository/v1/studies/{id}", missingId))
@@ -124,7 +124,7 @@ public class StudyTest {
             .createdDate(Instant.now())
             .dataProjectId("foo-bar-baz");
 
-        when(studyService.retrieve(eq(id))).thenReturn(StudyJsonConversion.studyModelFromStudy(study));
+        when(studyService.retrieveModel(eq(id))).thenReturn(StudyJsonConversion.studyModelFromStudy(study));
         assertThat("Study retrieve returns 200",
                 mvc.perform(get("/api/repository/v1/studies/{id}", id.toString()))
                         .andReturn().getResponse().getStatus(),

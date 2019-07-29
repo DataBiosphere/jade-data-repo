@@ -1,9 +1,9 @@
 package bio.terra.flight.study.create;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -15,17 +15,17 @@ import java.util.UUID;
 public class CreateStudyPrimaryDataStep implements Step {
 
     private final PrimaryDataAccess pdao;
-    private final StudyDao studyDao;
+    private final StudyService studyService;
 
-    public CreateStudyPrimaryDataStep(PrimaryDataAccess pdao, StudyDao studyDao) {
+    public CreateStudyPrimaryDataStep(PrimaryDataAccess pdao, StudyService studyService) {
         this.pdao = pdao;
-        this.studyDao = studyDao;
+        this.studyService = studyService;
     }
 
     Study getStudy(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID studyId = workingMap.get("studyId", UUID.class);
-        return studyDao.retrieve(studyId);
+        return studyService.retrieve(studyId);
     }
 
     @Override

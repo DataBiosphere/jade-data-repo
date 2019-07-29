@@ -7,6 +7,7 @@ import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.SamClientService;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -25,9 +26,10 @@ public class StudyDeleteFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
+        StudyService studyService = (StudyService) appContext.getBean("studyService");
 
-        addStep(new DeleteStudyValidateStep(datasetDao, dependencyDao));
-        addStep(new DeleteStudyPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, studyDao));
+        addStep(new DeleteStudyValidateStep(datasetDao, dependencyDao, studyService));
+        addStep(new DeleteStudyPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, studyService));
         addStep(new DeleteStudyMetadataStep(studyDao));
         addStep(new DeleteStudyAuthzResource(samClient));
     }

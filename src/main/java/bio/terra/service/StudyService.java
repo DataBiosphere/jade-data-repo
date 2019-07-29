@@ -62,10 +62,13 @@ public class StudyService {
         return getResponse(flightId, StudySummaryModel.class);
     }
 
-    public StudyModel retrieve(UUID id) {
+    public Study retrieve(UUID id) {
         Study study = studyDao.retrieve(id);
-        study.dataProject(dataProjectService.getProjectForStudy(study));
-        return StudyJsonConversion.studyModelFromStudy(study);
+        return study.dataProject(dataProjectService.getProjectForStudy(study));
+    }
+
+    public StudyModel retrieveModel(UUID id) {
+        return StudyJsonConversion.studyModelFromStudy(retrieve(id));
     }
 
     public EnumerateStudyModel enumerate(

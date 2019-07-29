@@ -5,10 +5,7 @@ import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
-import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
+import bio.terra.metadata.*;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
 import bio.terra.model.FSObjectModel;
@@ -33,11 +30,13 @@ public class FileService {
 
     private final Stairway stairway;
     private final FireStoreFileDao fileDao;
+    private  final StudyService studyService;
 
     @Autowired
-    public FileService(Stairway stairway, FireStoreFileDao fileDao) {
+    public FileService(Stairway stairway, FireStoreFileDao fileDao, StudyService studyService) {
         this.stairway = stairway;
         this.fileDao = fileDao;
+        this.studyService = studyService;
     }
 
     public String deleteFile(String studyId, String fileId) {
@@ -66,13 +65,15 @@ public class FileService {
     }
 
     FSObjectBase lookupFSObject(String studyId, String fileId) {
-        FSObjectBase fsObject = fileDao.retrieveWithContents(UUID.fromString(studyId), UUID.fromString(fileId));
+        Study study = studyService.retrieve(UUID.fromString(studyId));
+        FSObjectBase fsObject = fileDao.retrieveWithContents(study, UUID.fromString(fileId));
         checkFSObject(fsObject, studyId, fileId);
         return fsObject;
     }
 
     FSObjectBase lookupFSObjectByPath(String studyId, String path) {
-        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(UUID.fromString(studyId), path);
+        Study study = studyService.retrieve(UUID.fromString(studyId));
+        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(study, path);
         checkFSObject(fsObject, studyId, path);
         return fsObject;
     }

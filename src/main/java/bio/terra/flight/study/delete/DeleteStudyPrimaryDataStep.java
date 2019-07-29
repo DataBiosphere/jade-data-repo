@@ -1,11 +1,11 @@
 package bio.terra.flight.study.delete;
 
-import bio.terra.dao.StudyDao;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.StudyService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -18,22 +18,22 @@ public class DeleteStudyPrimaryDataStep implements Step {
     private BigQueryPdao bigQueryPdao;
     private GcsPdao gcsPdao;
     private FireStoreFileDao fileDao;
-    private StudyDao studyDao;
+    private StudyService studyService;
 
     public DeleteStudyPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                       GcsPdao gcsPdao,
                                       FireStoreFileDao fileDao,
-                                      StudyDao studyDao) {
+                                      StudyService studyService) {
         this.bigQueryPdao = bigQueryPdao;
         this.gcsPdao = gcsPdao;
         this.fileDao = fileDao;
-        this.studyDao = studyDao;
+        this.studyService = studyService;
     }
 
     Study getStudy(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         UUID studyId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
-        return studyDao.retrieve(studyId);
+        return studyService.retrieve(studyId);
     }
 
     @Override
@@ -41,7 +41,7 @@ public class DeleteStudyPrimaryDataStep implements Step {
         Study study = getStudy(context);
         bigQueryPdao.deleteStudy(study);
         gcsPdao.deleteFilesFromStudy(study);
-        fileDao.deleteFilesFromStudy(study.getId().toString());
+        fileDao.deleteFilesFromStudy(study);
 
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);

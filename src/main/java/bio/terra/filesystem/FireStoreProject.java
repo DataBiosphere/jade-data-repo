@@ -1,68 +1,46 @@
 package bio.terra.filesystem;
 
-import com.google.auth.Credentials;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class FireStoreProject {
+public final class FireStoreProject {
     private static final Logger logger = LoggerFactory.getLogger(FireStoreProject.class);
-    private static HashMap<ProjectAndCredential, FireStoreProject> fireStoreProjectLookup = new HashMap<>();
+    private static ConcurrentHashMap<String, FireStoreProject> fireStoreProjectCache = new ConcurrentHashMap<>();
+
     private String projectId;
     private Firestore firestore;
-    public FireStoreProject(String projectId) {
-        logger.info("Retrieving firestore project for project id: {}", projectId);
+
+    private FireStoreProject(String projectId) {
         this.projectId = projectId;
-        firestore = FirestoreOptions.newBuilder()
+        this.firestore = FirestoreOptions.newBuilder()
             .setProjectId(projectId)
             .build()
             .getService();
     }
 
-    public FireStoreProject(String projectId, Credentials credentials) {
-        logger.info("Retrieving firestore project for project id: {}", projectId);
-        this.projectId = projectId;
-        firestore = FirestoreOptions.newBuilder()
-            .setProjectId(projectId)
-            .setCredentials(credentials)
-            .build()
-            .getService();
-    }
-
-    public String getProjectId() {
+    String getProjectId() {
         return projectId;
     }
 
-    public void setProjectId(String projectId) {
-        this.projectId = projectId;
-    }
-
-    public Firestore getFirestore() {
+    Firestore getFirestore() {
         return firestore;
     }
 
-    public void setFirestore(Firestore firestore) {
-        this.firestore = firestore;
-    }
-
-    public static FireStoreProject get(String projectId, Credentials credentials) {
-        ProjectAndCredential projectAndCredential = new ProjectAndCredential(projectId, credentials);
-        if (!fireStoreProjectLookup.containsKey(projectAndCredential)) {
-            FireStoreProject fireStoreProject;
-            if (credentials == null) {
-                fireStoreProject = new FireStoreProject(projectId);
-            } else {
-                fireStoreProject = new FireStoreProject(projectId, credentials);
-            }
-            fireStoreProjectLookup.put(projectAndCredential, fireStoreProject);
-        }
-        return fireStoreProjectLookup.get(projectAndCredential);
-    }
-
     public static FireStoreProject get(String projectId) {
-        return get(projectId, null);
+        // We use a concurrent hash map to make sure that two threads both do not create the project at
+        // the same time and corrupt the map. The 'containsKey' is here to avoid the relatively high cost
+        // of building and then tossing a firestore project if it already exists. The 'putIfAbsent' will
+        // toss the project in the unlikely event of a collision on creating a filestore project for this
+        // project id.
+        if (!fireStoreProjectCache.containsKey(projectId)) {
+            FireStoreProject fireStoreProject = new FireStoreProject(projectId);
+            fireStoreProjectCache.putIfAbsent(projectId, fireStoreProject);
+        }
+        return fireStoreProjectCache.get(projectId);
     }
+
 }

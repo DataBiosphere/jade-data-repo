@@ -104,6 +104,7 @@ public class GoogleResourceService {
 
     private GoogleProjectResource newProject(GoogleProjectRequest projectRequest, String googleProjectId) {
         BillingProfile profile = profileService.getProfileById(projectRequest.getProfileId());
+        logger.info("creating a new project: {}", projectRequest.getProjectId());
         if (!profile.isAccessible()) {
             throw new InaccessibleBillingAccountException("The repository needs access to this billing account " +
                 "in order to create: " + googleProjectId);

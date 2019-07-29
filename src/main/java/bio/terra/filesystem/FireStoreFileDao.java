@@ -6,7 +6,12 @@ import bio.terra.filesystem.exception.FileSystemExecutionException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
-import bio.terra.metadata.*;
+import bio.terra.metadata.FSDir;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FSFileInfo;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
+import bio.terra.metadata.Study;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -386,7 +391,7 @@ public class FireStoreFileDao {
             return makeFSObjectFromFireStoreObject(currentObject);
         });
 
-        return fireStoreUtils.transactionGet("retrieveModel by id", transaction);
+        return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
     public FSObjectBase retrieveWithContentsByPath(Study study, String fullPath) {
@@ -420,9 +425,9 @@ public class FireStoreFileDao {
 
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("retrieveModel - execution interrupted", ex);
+            throw new FileSystemExecutionException("retrieve - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("retrieveModel - execution exception", ex);
+            throw new FileSystemExecutionException("retrieve - execution exception", ex);
         }
     }
 

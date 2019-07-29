@@ -105,7 +105,7 @@ public class FileDaoTest {
             "ingest-test-study.json");
         studyId = UUID.fromString(studySummaryModel.getId());
         study = studyService.retrieve(studyId);
-        ConnectedOperations.stubOutSamCalls(samService);
+        connectedOperations.stubOutSamCalls(samService);
     }
     @Test
     public void pathMiscTest() throws Exception {

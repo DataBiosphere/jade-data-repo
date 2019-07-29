@@ -257,10 +257,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
     @Override
     public void grantReadAccessToStudy(Study study, List<String> policyGroupEmails) {
         BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
-        bigQueryProject.addDatasetAcls(prefixName(study.getName()), policyGroupEmails
+        List<Acl> policyGroupAcls = policyGroupEmails
             .stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
-            .collect(Collectors.toList()));
+            .collect(Collectors.toList());
+        bigQueryProject.addDatasetAcls(prefixName(study.getName()), policyGroupAcls);
     }
 
     @Override

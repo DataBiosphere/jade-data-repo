@@ -240,7 +240,7 @@ public class SamClientService {
                 ResourceType.STUDY.toString(),
                 studyId.toString(),
                 role.toString());
-            rolePolicies.add(results.keySet().iterator().next());
+            rolePolicies.add(getPolicyGroupEmailFromResponse(results));
         }
         return rolePolicies;
     }
@@ -279,7 +279,7 @@ public class SamClientService {
             ResourceType.DATASET.toString(),
             datasetId.toString(),
             DataRepoRole.READER.toString());
-        return results.keySet().iterator().next();
+        return getPolicyGroupEmailFromResponse(results);
     }
 
     public List<PolicyModel> retrievePolicies(
@@ -344,11 +344,10 @@ public class SamClientService {
             .memberEmails(emails);
     }
 
-
     // This is a work around for https://broadworkbench.atlassian.net/browse/AP-149
     // This is a copy of the ApiClient.createResourceCall but adds in the validation and
     // the actual execution of the call. And doesn't allow listener callbacks
-    public void createResourceCorrectCall(
+    private void createResourceCorrectCall(
         ApiClient localVarApiClient,
         String resourceTypeName,
         CreateResourceCorrectRequest resourceCreate) throws ApiException {
@@ -366,9 +365,7 @@ public class SamClientService {
         }
 
         // create path and map variables
-        String localVarPath = "/api/resources/v1/{resourceTypeName}"
-            .replaceAll("\\{" + "resourceTypeName" + "\\}",
-                localVarApiClient.escapeString(resourceTypeName));
+        String localVarPath = "/api/resources/v1/" + localVarApiClient.escapeString(resourceTypeName);
 
         List<Pair> localVarQueryParams = new ArrayList<Pair>();
         List<Pair> localVarCollectionQueryParams = new ArrayList<Pair>();
@@ -401,5 +398,19 @@ public class SamClientService {
             null);
         localVarApiClient.execute(localVarCall);
     }
+
+    /**
+     * Syncing a policy with SAM results in a Google group being created that is tied to that policy. The response is an
+     * object with one key that is the policy group email and a value that is a list of objects.
+     * @param syncPolicyResponse map with one key that is an email
+     * @return the policy group email
+     */
+    private String getPolicyGroupEmailFromResponse(Map<String, List<Object>> syncPolicyResponse) {
+        if (syncPolicyResponse.size() != 1) {
+            throw new IllegalArgumentException("Expecting syncPolicyResponse to be an object with one key");
+        }
+        return syncPolicyResponse.keySet().iterator().next();
+    }
+
 
 }

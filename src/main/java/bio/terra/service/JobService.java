@@ -130,7 +130,7 @@ public class JobService {
      * <ol>
      *     <li> Flight is still running. Throw an JobNotComplete exception</li>
      *     <li> Successful flight: extract the resultMap RESPONSE as the target class. If a statusContainer
-     *     is present, we try to retrieveModel the STATUS_CODE from the resultMap and store it in the container.
+     *     is present, we try to retrieve the STATUS_CODE from the resultMap and store it in the container.
      *     That allows flight steps used in async REST API endpoints to set alternate success status codes.
      *     The status code defaults to OK, if it is not set in the resultMap.</li>
      *     <li> Failed flight: if there is an exception, throw it. Note that we can only throw RuntimeExceptions
@@ -138,7 +138,7 @@ public class JobService {
      *     the controller methods; those are not present in the swagger-generated code, so it introduces a
      *     mismatch. Instead, in this code if the caught exception is not a runtime exception, then we
      *     throw JobResponseException passing in the Throwable to the exception. In the global exception
-     *     handler, we retrieveModel the Throwable and use the error text from that in the error model</li>
+     *     handler, we retrieve the Throwable and use the error text from that in the error model</li>
      *     <li> Failed flight: no exception present. We throw InvalidResultState exception</li>
      * </ol>
      * @param jobId to process
@@ -185,7 +185,7 @@ public class JobService {
                 return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
 
             case RUNNING:
-                throw new JobNotCompleteException("Attempt to retrieveModel job result before job is complete; job id: "
+                throw new JobNotCompleteException("Attempt to retrieve job result before job is complete; job id: "
                     + flightState.getFlightId());
 
             default:

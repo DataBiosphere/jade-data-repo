@@ -274,7 +274,7 @@ public class Stairway {
      * Version of makeFlight that accepts the class name instead of the class
      * object as in {@link #makeFlight}
      *
-     * We use the class name to store and retrieveModel from the database when we recover.
+     * We use the class name to store and retrieve from the database when we recover.
      */
     private Flight makeFlightFromName(String className, FlightMap inputMap) {
         try {

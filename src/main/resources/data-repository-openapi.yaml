@@ -115,6 +115,23 @@ paths:
           description: service is broken
       security: []
 
+
+  '/configuration':
+    get:
+      description: Retrieve the repository configuration information
+      operationId: retrieveRepositoryConfig
+      tags:
+        - unauthenticated
+      responses:
+        200:
+          description: Repository Config
+          schema:
+            $ref: '#/definitions/RepositoryConfigurationModel'
+        500:
+          description: Config is unavailable
+      security: []
+
+
   ## Resources interface
 
   '/api/resources/v1/profiles':
@@ -982,6 +999,7 @@ paths:
           description: Successful responses return the type of model specified by the job; otherwise, ErrorModel
           schema:
             type: object
+
 
 ##########################################################################################
 # DRS PATHS
@@ -1906,6 +1924,12 @@ definitions:
       enabled:
         type: boolean
         description: true if the user is enabled in ldap
+
+  RepositoryConfigurationModel:
+    properties:
+      clientId:
+        description: the google defined client id for the repository
+        type: string
 
 ##########################################################################################
 # DRS DEFINITIONS

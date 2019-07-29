@@ -1,10 +1,10 @@
-package bio.terra;
+package bio.terra.configuration;
 
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import org.springframework.context.annotation.Import;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
@@ -28,55 +28,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Configuration
-@EnableConfigurationProperties
-@ConfigurationProperties(prefix = "oauth")
+@Import({OauthConfiguration.class})
 public class SwaggerDocumentationConfig {
 
-    private String schemeName;
-    private String[] scopes;
-    private String loginEndpoint;
-    private String clientId;
-    private String clientSecret;
     private static final String UNUSED = "__unused__";
+    private final OauthConfiguration oauthConfig;
 
-    public String getSchemeName() {
-        return schemeName;
-    }
-
-    public void setSchemeName(String schemeName) {
-        this.schemeName = schemeName;
-    }
-
-    public String getLoginEndpoint() {
-        return loginEndpoint;
-    }
-
-    public void setLoginEndpoint(String loginEndpoint) {
-        this.loginEndpoint = loginEndpoint;
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
-    }
-
-    public String getClientSecret() {
-        return clientSecret;
-    }
-
-    public void setClientSecret(String clientSecret) {
-        this.clientSecret = clientSecret;
-    }
-
-    public String[] getScopes() {
-        return scopes.clone();
-    }
-
-    public void setScopes(String[] scopes) {
-        this.scopes = scopes.clone();
+    @Autowired
+    public SwaggerDocumentationConfig(OauthConfiguration oauthConfig) {
+        this.oauthConfig = oauthConfig;
     }
 
     ApiInfo apiInfo() {
@@ -145,28 +105,29 @@ public class SwaggerDocumentationConfig {
     }
 
     private List<AuthorizationScope> authorizationScopes() {
-        return Arrays.stream(scopes)
+        return Arrays.stream(oauthConfig.getScopes())
                 .map(scope -> new AuthorizationScope(scope, scope))
                 .collect(Collectors.toList());
     }
 
     private List<SecurityReference> defaultAuth() {
         AuthorizationScope[] authorizationScopes = authorizationScopes().toArray(new AuthorizationScope[0]);
-        SecurityReference securityReference = new SecurityReference(schemeName, authorizationScopes);
+        SecurityReference securityReference = new SecurityReference(oauthConfig.getSchemeName(), authorizationScopes);
         return Collections.singletonList(securityReference);
     }
 
     private OAuth securityScheme() {
         List<AuthorizationScope> scopes = authorizationScopes();
-        GrantType grantType = new ImplicitGrant(new LoginEndpoint(loginEndpoint), "access_token");
-        return new OAuth(schemeName, scopes, Collections.singletonList(grantType));
+        GrantType grantType = new ImplicitGrant(new LoginEndpoint(
+            oauthConfig.getLoginEndpoint()), "access_token");
+        return new OAuth(oauthConfig.getSchemeName(), scopes, Collections.singletonList(grantType));
     }
 
     @Bean
     public SecurityConfiguration securityInfo() {
         return new SecurityConfiguration(
-                clientId,
-                clientSecret,
+                oauthConfig.getClientId(),
+                oauthConfig.getClientSecret(),
                 UNUSED,
                 UNUSED,
                 UNUSED,

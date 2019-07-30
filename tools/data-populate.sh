@@ -21,8 +21,8 @@ fi
 
 # create the encode study
 STAMP=$(date +"%Y_%m_%d_%H_%M_%S")
-STUDY_ID=$(cat ../src/test/resources/encodefiletest-study.json \
-    | jq ".defaultProfileId = ${PROFILE_ID} | .name = \"encode_file_test_${STAMP}\"" \
+STUDY_ID=$(cat ../src/test/resources/ingest-test-study.json \
+    | jq ".defaultProfileId = ${PROFILE_ID} | .name = \"ingest_test_${STAMP}\"" \
     | curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
         --header "Authorization: Bearer ${ACCESS_TOKEN}" \
         -d @- "${HOST}/api/repository/v1/studies" \
@@ -35,7 +35,7 @@ INGEST_PAYLOAD=$(cat <<EOF
   "ignore_unknown_values": false,
   "load_tag": "data-populate.sh",
   "max_bad_records": 0,
-  "path": "gs://jade-testdata/encodetest/file.json",
+  "path": "gs://jade-testdata/ingest-test/ingest-test-file.json",
   "table": "file"
 }
 EOF

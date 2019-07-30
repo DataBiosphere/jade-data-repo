@@ -19,7 +19,6 @@ public class StudyCreateFlight extends Flight {
         StudyService studyService = (StudyService) appContext.getBean("studyService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         SamClientService samClient = (SamClientService) appContext.getBean("samClientService");
-        StudyService studyService = (StudyService) appContext.getBean("studyService");
 
         addStep(new CreateStudyMetadataStep(studyDao));
         // TODO: create study data project step

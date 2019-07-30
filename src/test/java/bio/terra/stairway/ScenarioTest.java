@@ -50,7 +50,8 @@ public class ScenarioTest {
         inputParameters.put("filename", filename);
         inputParameters.put("text", "testing 1 2 3");
 
-        String flightId = stairway.submit(TestFlight.class, inputParameters);
+        String flightId = "simpleTest";
+        stairway.submit(flightId, TestFlight.class, inputParameters);
         logger.debug("Submitted flight id: " + flightId);
 
         // Test for done
@@ -81,7 +82,8 @@ public class ScenarioTest {
         inputParameters.put("filename", filename);
         inputParameters.put("text", "testing 1 2 3");
 
-        String flightId = stairway.submit(TestFlight.class, inputParameters);
+        String flightId = "fileTest";
+        stairway.submit(flightId, TestFlight.class, inputParameters);
 
         // Poll waiting for done
         while (!stairway.isDone(flightId)) {
@@ -119,7 +121,8 @@ public class ScenarioTest {
         inputParameters.put("existingFilename", existingFilename);
         inputParameters.put("text", "testing 1 2 3");
 
-        String flightId = stairway.submit(TestFlightUndo.class, inputParameters);
+        String flightId = "undoTest";
+        stairway.submit(flightId, TestFlightUndo.class, inputParameters);
 
         // Wait for done
         stairway.waitForFlight(flightId);

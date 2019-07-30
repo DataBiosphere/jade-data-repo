@@ -684,8 +684,8 @@ paths:
 
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members/{memberEmail}':
-    delete:  ## retrieve
-      description: Adds a member to the specified policy for the snapshot
+    delete:  ## delete
+      description: Removes the member from the specified policy for the snapshot
       operationId: deleteDatasetPolicyMember
       tags:
       - repository
@@ -984,6 +984,16 @@ paths:
           description: Not found - job id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
+    delete:  ## delete job data
+      description: Delete the job and data associated with it
+      operationId: deleteJob
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        204:
+          description: Job was deleted
 
 
   '/api/repository/v1/jobs/{id}/result':

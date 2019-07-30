@@ -1,41 +1,81 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.RepositoryApiController;
 import bio.terra.model.JobModel;
 import bio.terra.service.exception.InvalidResultStateException;
 import bio.terra.service.exception.JobNotCompleteException;
 import bio.terra.service.exception.JobResponseException;
+import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
+import bio.terra.stairway.exception.FlightException;
+import org.broadinstitute.dsde.workbench.client.sam.ApiException;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JobService {
-    // Little class to return HttpStatus when retrieving job result
-    private static class HttpStatusContainer {
-        private HttpStatus statusCode;
 
-        public HttpStatus getStatusCode() {
-            return statusCode;
-        }
-
-        public void setStatusCode(HttpStatus statusCode) {
-            this.statusCode = statusCode;
-        }
-    }
-
+    private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private final Stairway stairway;
+    private SamClientService samClient;
 
     @Autowired
-    public JobService(Stairway stairway) {
+    public JobService(Stairway stairway, SamClientService samClient) {
         this.stairway = stairway;
+        this.samClient = samClient;
+    }
+
+    private String createJobId() {
+        // in the future, if we have multiple stairways, we may need to maintain a connection from job id to flight id
+        return stairway.createFlightId().toString();
+    }
+
+    public String submit(
+        String description, Class<? extends Flight> flightClass, Object request, AuthenticatedUserRequest userInfo) {
+        String jobId = createJobId();
+        try {
+            samClient.createJobResource(userInfo, jobId);
+        } catch (ApiException ex) {
+            logger.warn("couldn't create sam resource for Job", ex);
+            throw new FlightException("Couldn't create sam resource for job", ex);
+        }
+        submitToStairway(jobId, flightClass, new FlightMap(description, request, userInfo));
+        return jobId;
+    }
+
+    public <T> T submitAndWait(
+        String description,
+        Class<? extends Flight> flightClass,
+        Object request,
+        AuthenticatedUserRequest userInfo,
+        Class<T> resultClass) {
+        String jobId = createJobId();
+        submitToStairway(jobId, flightClass, new FlightMap(description, request, userInfo));
+        stairway.waitForFlight(jobId);
+        return retrieveJobResult(jobId, resultClass, null);
+    }
+
+    private void submitToStairway(
+        String jobId, Class<? extends Flight> flightClass, FlightMap inputParams) {
+        stairway.submit(jobId, flightClass, inputParams);
+    }
+
+    public void releaseJob(String jobId, AuthenticatedUserRequest userInfo) throws ApiException {
+        samClient.deleteJobResource(userInfo, jobId);
+        stairway.deleteFlight(jobId);
     }
 
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
@@ -85,47 +125,30 @@ public class JobService {
         return JobModel.JobStatusEnum.FAILED;
     }
 
-    public ResponseEntity<List<JobModel>> enumerateJobs(int offset, int limit) {
-        List<FlightState> flightStateList = stairway.getFlights(offset, limit);
+    public List<JobModel> enumerateJobs(int offset, int limit, List<ResourceAndAccessPolicy> authorizedJobs) {
+        if (authorizedJobs.isEmpty()) {
+            return Collections.EMPTY_LIST;
+        }
+        List<String> resourceIds = authorizedJobs
+            .stream()
+            .map(resource -> resource.getResourceId())
+            .collect(Collectors.toList());
+        List<FlightState> flightStateList = stairway.getFlights(offset, limit, resourceIds); // TODO
         List<JobModel> jobModelList = new ArrayList<>();
         for (FlightState flightState : flightStateList) {
             JobModel jobModel = mapFlightStateToJobModel(flightState);
             jobModelList.add(jobModel);
         }
-        return new ResponseEntity<>(jobModelList, HttpStatus.OK);
+        return jobModelList;
     }
 
-    public ResponseEntity<JobModel> retrieveJob(String jobId) {
+    public JobModel retrieveJob(
+        String jobId) {
         FlightState flightState = stairway.getFlightState(jobId);
-        JobModel jobModel = mapFlightStateToJobModel(flightState);
-        HttpStatus responseStatus;
-        String locationHeader;
-
-        if (flightState.getCompleted().isPresent()) {
-            responseStatus = HttpStatus.OK;
-            locationHeader = String.format("/api/repository/v1/jobs/%s/result", jobId);
-        } else {
-            responseStatus = HttpStatus.ACCEPTED;
-            locationHeader = String.format("/api/repository/v1/jobs/%s", jobId);
-        }
-
-        return ResponseEntity
-                .status(responseStatus)
-                .header("Location", locationHeader)
-                .body(jobModel);
+        return mapFlightStateToJobModel(flightState);
     }
 
     /**
-     * The following code exposes two methods:
-     * <ul>
-     *     <li>{@see retrieveJobResult} is for synchronous endpoints that use flights. It returns a properly typed
-     *     response object. See DatasetService for a usage example.</li>
-     *     <li>{@see retrieveJobResultResponse} is for the generic job result endpoint. It returns a ResponseEntity
-     *     containing the returned RESPONSE and STATUS_CODE. See the jobs endpoint in RepositoryApiController to
-     *     see usage.</li>
-     * </ul>
-     * If should only be called on complete flights. Any service that uses flights and is synchronous
-     * can use this to handle the returned flight state.
      * There are four cases to handle here:
      * <ol>
      *     <li> Flight is still running. Throw an JobNotComplete exception</li>
@@ -144,17 +167,15 @@ public class JobService {
      * @param jobId to process
      * @return object of the result class pulled from the result map
      */
-    public <T> T retrieveJobResult(String jobId, Class<T> resultClass) {
-        return retrieveJobResultWorker(jobId, resultClass, null);
+    public <T> T retrieveJobResult(
+        String jobId, Class<T> resultClass, RepositoryApiController.HttpStatusContainer statContainer) {
+        return retrieveJobResultWorker(jobId, resultClass, statContainer);
     }
 
-    public ResponseEntity retrieveJobResultResponse(String jobId) {
-        HttpStatusContainer statusContainer = new HttpStatusContainer();
-        Object responseBody = retrieveJobResultWorker(jobId, Object.class, statusContainer);
-        return new ResponseEntity(responseBody, statusContainer.getStatusCode());
-    }
-
-    private <T> T retrieveJobResultWorker(String jobId, Class<T> resultClass, HttpStatusContainer statusContainer) {
+    private <T> T retrieveJobResultWorker(
+        String jobId,
+        Class<T> resultClass,
+        RepositoryApiController.HttpStatusContainer statusContainer) {
         FlightState flightState = stairway.getFlightState(jobId);
         FlightMap resultMap = flightState.getResultMap().orElse(null);
         if (resultMap == null) {

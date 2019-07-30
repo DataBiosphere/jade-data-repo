@@ -2,10 +2,7 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import org.apache.commons.dbcp2.PoolableConnection;
-import org.apache.commons.dbcp2.PoolingDataSource;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -14,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Collections;
 import java.util.List;
 
 import static bio.terra.stairway.TestUtil.dubValue;
@@ -36,15 +34,9 @@ import static org.hamcrest.CoreMatchers.is;
 @AutoConfigureMockMvc
 @Category(StairwayUnit.class)
 public class DatabaseOperationsTest {
-    private PoolingDataSource<PoolableConnection> dataSource;
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
-
-    @Before
-    public void setup() {
-        dataSource = TestUtil.setupDataSource(jdbcConfiguration);
-    }
 
     @Test
     public void basicsTest() throws Exception {
@@ -121,7 +113,7 @@ public class DatabaseOperationsTest {
         flightList = database.recover();
         Assert.assertThat(flightList.size(), is(equalTo(0)));
 
-        List<FlightState> flightStateList = database.getFlights(0, 100);
+        List<FlightState> flightStateList = database.getFlights(0, 99, Collections.singletonList(flightId));
         Assert.assertThat(flightStateList.size(), is(1));
         flightState = flightStateList.get(0);
         Assert.assertThat(flightState.getFlightId(), is(flightId));
@@ -135,7 +127,11 @@ public class DatabaseOperationsTest {
     }
 
     private Database createDatabase(boolean forceCleanStart) {
-        return new Database(dataSource, forceCleanStart);
+        Database db = new Database(jdbcConfiguration);
+        if (forceCleanStart) {
+            db.startClean();
+        }
+        return db;
     }
 
     private void checkRunningFlightState(FlightState flightState) {

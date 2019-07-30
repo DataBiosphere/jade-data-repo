@@ -32,12 +32,12 @@ public class StairwayTest {
     @Test(expected = MakeFlightException.class)
     public void testNullFlightClass() {
         FlightMap flightMap = new FlightMap();
-        stairway.submit(null, flightMap);
+        stairway.submit("nullflightclass", null, flightMap);
     }
 
     @Test(expected = MakeFlightException.class)
     public void testNullInputParams() {
-        stairway.submit(TestFlight.class, null);
+        stairway.submit("nullinput", TestFlight.class, null);
     }
 
     @Test(expected = FlightNotFoundException.class)

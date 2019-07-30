@@ -108,7 +108,8 @@ public class DatasetCreateFlightTest {
     public void testHappyPath() {
         FlightMap map = new FlightMap();
         map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
-        String flightId = stairway.submit(DatasetCreateFlight.class, map);
+        String flightId = "successTest";
+        stairway.submit(flightId, DatasetCreateFlight.class, map);
         stairway.waitForFlight(flightId);
 
         FlightState result = stairway.getFlightState(flightId);
@@ -128,7 +129,8 @@ public class DatasetCreateFlightTest {
     public void testUndoAfterPrimaryDataStep() {
         FlightMap map = new FlightMap();
         map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
-        String flightId = stairway.submit(UndoDatasetCreateFlight.class, map);
+        String flightId = "undoTest";
+        stairway.submit(flightId, UndoDatasetCreateFlight.class, map);
         stairway.waitForFlight(flightId);
 
         FlightState result = stairway.getFlightState(flightId);

@@ -44,7 +44,8 @@ public class SamClientService {
     public enum ResourceType {
         DATAREPO(null),
         DATASET("datasets"),
-        DATASNAPSHOT("snapshots");
+        DATASNAPSHOT("snapshots"),
+        DATATREPO_JOB(null);
 
         private String httpPathString;
         ResourceType(String httpPathString) {
@@ -74,6 +75,7 @@ public class SamClientService {
     }
 
     public enum DataRepoRole {
+        ADMIN,
         STEWARD,
         CUSTODIAN,
         INGESTER,
@@ -118,7 +120,9 @@ public class SamClientService {
         CREATE_DATASNAPSHOT,
         EDIT_DATASNAPSHOT,
         READ_DATA,
-        DISCOVER_DATA;
+        DISCOVER_DATA,
+        // jobs
+        READ;
 
         @Override
         @JsonValue
@@ -279,6 +283,18 @@ public class SamClientService {
             snapshotId.toString(),
             DataRepoRole.READER.toString());
         return getPolicyGroupEmailFromResponse(results);
+    }
+
+    public void createJobResource(AuthenticatedUserRequest userReq, String jobId) throws ApiException {
+        CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
+        req.setResourceId(jobId);
+        req.addPoliciesItem(
+            DataRepoRole.ADMIN.toString(),
+            createAccessPolicy(DataRepoRole.ADMIN.toString(), Collections.singletonList(userReq.getEmail())));
+
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        logger.debug(req.toString());
+        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATATREPO_JOB.toString(), req);
     }
 
     public List<PolicyModel> retrievePolicies(

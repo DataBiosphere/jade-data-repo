@@ -2,13 +2,6 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import org.apache.commons.dbcp2.ConnectionFactory;
-import org.apache.commons.dbcp2.DriverManagerConnectionFactory;
-import org.apache.commons.dbcp2.PoolableConnection;
-import org.apache.commons.dbcp2.PoolableConnectionFactory;
-import org.apache.commons.dbcp2.PoolingDataSource;
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.commons.pool2.impl.GenericObjectPool;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,7 +57,7 @@ import static org.hamcrest.Matchers.equalTo;
 @AutoConfigureMockMvc
 @Category(StairwayUnit.class)
 public class RecoveryTest {
-    private PoolingDataSource<PoolableConnection> dataSource;
+//    private PoolingDataSource<PoolableConnection> dataSource;
     private ExecutorService executorService;
 
     @Autowired
@@ -75,19 +68,6 @@ public class RecoveryTest {
         Properties props = new Properties();
         props.setProperty("user", jdbcConfiguration.getUsername());
         props.setProperty("password", jdbcConfiguration.getPassword());
-
-        ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(jdbcConfiguration.getUri(), props);
-
-        PoolableConnectionFactory poolableConnectionFactory =
-                new PoolableConnectionFactory(connectionFactory, null);
-
-        ObjectPool<PoolableConnection> connectionPool =
-                new GenericObjectPool<>(poolableConnectionFactory);
-
-        poolableConnectionFactory.setPool(connectionPool);
-
-        dataSource = new PoolingDataSource<>(connectionPool);
-
         executorService = Executors.newFixedThreadPool(3);
     }
 
@@ -95,7 +75,7 @@ public class RecoveryTest {
     public void successTest() throws Exception {
         // Start with a clean and shiny database environment.
         Stairway stairway1 = new Stairway(executorService, null);
-        stairway1.initialize(dataSource, true);
+        stairway1.initialize(new Database(jdbcConfiguration), true);
 
         FlightMap inputs = new FlightMap();
 
@@ -103,7 +83,8 @@ public class RecoveryTest {
         inputs.put("initialValue", initialValue);
 
         TestStopController.setControl(0);
-        String flightId = stairway1.submit(TestFlightRecovery.class, inputs);
+        String flightId = "successTest";
+        stairway1.submit(flightId, TestFlightRecovery.class, inputs);
 
         // Allow time for the flight thread to go to sleep
         try {
@@ -117,7 +98,7 @@ public class RecoveryTest {
         // Simulate a restart with a new thread pool and stairway. Set control so this one does not sleep
         TestStopController.setControl(1);
         Stairway stairway2 = new Stairway(executorService, null);
-        stairway2.initialize(dataSource, false);
+        stairway2.initialize(new Database(jdbcConfiguration), false);
 
         // Wait for recovery to complete
         stairway2.waitForFlight(flightId);
@@ -132,7 +113,7 @@ public class RecoveryTest {
     public void undoTest() throws Exception {
         // Start with a clean and shiny database environment.
         Stairway stairway1 = new Stairway(executorService, null);
-        stairway1.initialize(dataSource, true);
+        stairway1.initialize(new Database(jdbcConfiguration), true);
 
         FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(2);
@@ -140,7 +121,8 @@ public class RecoveryTest {
 
         // We don't want to stop on the do path; the undo trigger will set the control to 0 and put the flight to sleep
         TestStopController.setControl(1);
-        String flightId = stairway1.submit(TestFlightRecoveryUndo.class, inputs);
+        String flightId = "undoTest";
+        stairway1.submit(flightId, TestFlightRecoveryUndo.class, inputs);
 
         // Allow time for the flight thread to go to sleep
         try {
@@ -154,7 +136,7 @@ public class RecoveryTest {
         // Simulate a restart with a new thread pool and stairway. Reset control so this one does not sleep
         TestStopController.setControl(1);
         Stairway stairway2 = new Stairway(executorService, null);
-        stairway2.initialize(dataSource, false);
+        stairway2.initialize(new Database(jdbcConfiguration), false);
 
         // Wait for recovery to complete
         stairway2.waitForFlight(flightId);

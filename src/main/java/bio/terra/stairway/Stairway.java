@@ -8,7 +8,6 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -61,7 +60,6 @@ public class Stairway {
 
     private ConcurrentHashMap<String, TaskContext> taskContextMap;
     private ExecutorService threadPool;
-    private DataSource dataSource;
     private Database database;
     private Object applicationContext;
 
@@ -75,8 +73,7 @@ public class Stairway {
      *
      * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
      */
-    public Stairway(ExecutorService threadPool,
-                    Object applicationContext) {
+    public Stairway(ExecutorService threadPool, Object applicationContext) {
         this.threadPool = threadPool;
         this.applicationContext = applicationContext;
         this.taskContextMap = new ConcurrentHashMap<>();
@@ -84,16 +81,20 @@ public class Stairway {
 
     /**
      * Second step of initialization
-     * @param dataSource dataSource where stairway stores its log
-     * @param forceCleanStart true will drop any existing stairway data. Otherwise existing flights are
-     *                        recovered during initilization.
+     * @param forceCleanStart true will drop any existing stairway data. Otherwise existing flights are recovered.
      */
-    public void initialize(DataSource dataSource, boolean forceCleanStart) {
-        this.dataSource = dataSource;
-        this.database = new Database(dataSource, forceCleanStart);
-        if (!forceCleanStart) {
+    public void initialize(Database database, boolean forceCleanStart) {
+        this.database = database;
+        if (forceCleanStart) {
+            // Clean up if need be
+            database.startClean();
+        } else {
             recoverFlights();
         }
+    }
+
+    public UUID createFlightId() {
+        return UUID.randomUUID();
     }
 
     /**
@@ -103,7 +104,7 @@ public class Stairway {
      * @param inputParameters key-value map of parameters to the flight
      * @return unique flight id of the submitted flight
      */
-    public String submit(Class<? extends Flight> flightClass, FlightMap inputParameters) {
+    public void submit(String flightId, Class<? extends Flight> flightClass, FlightMap inputParameters) {
         if (flightClass == null || inputParameters == null) {
             throw new MakeFlightException("Must supply non-null flightClass and inputParameters to submit");
         }
@@ -111,23 +112,19 @@ public class Stairway {
 
         // Generate the sequence id as a UUID. We have no dependency on database id generation and no
         // confusion with small integers that might be accidentally valid.
-        flight.context().setFlightId(UUID.randomUUID().toString());
-
+        flight.context().setFlightId(flightId);
         database.submit(flight.context());
-
         launchFlight(flight);
-        return flight.context().getFlightId();
+    }
+
+    public void deleteFlight(String flightId) {
+        releaseFlight(flightId);
+        database.delete(flightId);
     }
 
     // Tests if flight is done
     public boolean isDone(String flightId) {
-        TaskContext taskContext = lookupFlight(flightId);
-        boolean done = taskContext.getFutureResult().isDone();
-        if (done) {
-            taskContextMap.remove(flightId);
-        }
-
-        return done;
+        return getFlightState(flightId).getFlightStatus() != FlightStatus.RUNNING;
     }
 
     /**
@@ -135,12 +132,13 @@ public class Stairway {
      *
      * @param flightId
      */
-    public void waitForFlight(String flightId) {
+    public FlightState waitForFlight(String flightId) {
         TaskContext taskContext = lookupFlight(flightId);
 
         try {
-            taskContext.getFutureResult().get();
-            taskContextMap.remove(flightId);
+            FlightState state = taskContext.getFutureResult().get();
+            releaseFlight(flightId);
+            return state;
         } catch (InterruptedException ex) {
             // Someone is shutting down the application
             Thread.currentThread().interrupt();
@@ -176,16 +174,17 @@ public class Stairway {
      * @param limit
      * @return List of FlightState
      */
-    public List<FlightState> getFlights(int offset, int limit) {
-        return database.getFlights(offset, limit);
+    public List<FlightState> getFlights(int offset, int limit, List<String> resourceIds) {
+        return database.getFlights(offset, limit, resourceIds);
     }
 
     private void releaseFlight(String flightId) {
         TaskContext taskContext = taskContextMap.get(flightId);
         if (taskContext != null) {
-            if (taskContext.getFutureResult().isDone()) {
-                taskContextMap.remove(flightId);
+            if (!taskContext.getFutureResult().isDone()) {
+                logger.warn("Removing flight context for in progress flight " + flightId);
             }
+            taskContextMap.remove(flightId);
         }
     }
 
@@ -298,7 +297,6 @@ public class Stairway {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("taskContextMap", taskContextMap)
                 .append("threadPool", threadPool)
-                .append("dataSource", dataSource)
                 .append("database", database)
                 .append("applicationContext", applicationContext)
                 .toString();

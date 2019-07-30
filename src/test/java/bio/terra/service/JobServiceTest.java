@@ -1,10 +1,12 @@
 package bio.terra.service;
 
 import bio.terra.category.Unit;
+import bio.terra.controller.RepositoryApiController;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -13,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
@@ -39,50 +40,56 @@ public class JobServiceTest {
         // The fids list should be in exactly the same order as the database ordered by submit time.
 
         List<String> fids = new ArrayList<>();
-        for (int i = 0; i < 7; i++) {
-            String fid = runFlight(makeDescription(i));
-            fids.add(fid);
+        try {
+            List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
+            for (int i = 0; i < 7; i++) {
+                String fid = runFlight(makeDescription(i));
+                fids.add(fid);
+                allowedIds.add(new ResourceAndAccessPolicy().resourceId(fid));
+            }
+
+            // Test single retrieval
+            testSingleRetrieval(fids);
+
+            // Test result retrieval - the body should be the description string
+            testResultRetrieval(fids);
+
+            // Retrieve everything
+            testEnumRange(fids, 0, 100, allowedIds);
+
+            // Retrieve the middle 3; offset means skip 2 rows
+            testEnumRange(fids, 2, 3, allowedIds);
+
+            // Retrieve from the end; should only get the last one back
+            testEnumCount(1, 6, 3, allowedIds);
+
+            // Retrieve past the end; should get nothing
+            testEnumCount(0, 22, 3, allowedIds);
+        } finally {
+            fids.stream().forEach(fid -> stairway.deleteFlight(fid));
         }
-
-        // Test single retrieval
-        testSingleRetrieval(fids);
-
-        // Test result retrieval - the body should be the description string
-        testResultRetrieval(fids);
-
-        // Retrieve everything
-        testEnumRange(fids, 0, 100);
-
-        // Retrieve the middle 3; offset means skip 2 rows
-        testEnumRange(fids, 2, 3);
-
-        // Retrieve from the end; should only get the last one back
-        testEnumCount(1, 6, 3);
-
-        // Retrieve past the end; should get nothing
-        testEnumCount(0, 22, 3);
     }
 
     private void testSingleRetrieval(List<String> fids) {
-        ResponseEntity<JobModel> response = jobService.retrieveJob(fids.get(2));
-        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        JobModel job3 = response.getBody();
-        Assert.assertNotNull(job3);
-        validateJobModel(job3, 2, fids);
+        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
+        JobModel response = jobService.retrieveJob(fids.get(2));
+        Assert.assertThat(statContainer.getStatusCode(), is(equalTo(HttpStatus.OK)));
+        Assert.assertNotNull(response);
+        validateJobModel(response, 2, fids);
     }
 
     private void testResultRetrieval(List<String> fids) {
-        ResponseEntity<Object> result = jobService.retrieveJobResultResponse(fids.get(2));
-        Assert.assertThat(result.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-        String resultDesc = (String) result.getBody();
+        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
+        Object result =
+            jobService.retrieveJobResultResponse(fids.get(2), statContainer);
+        Assert.assertThat(statContainer.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
+        String resultDesc = (String) result;
         Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
     }
 
     // Get some range and compare it with the fids
-    private void testEnumRange(List<String> fids, int offset, int limit) {
-        ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(offset, limit);
-        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        List<JobModel> jobList = response.getBody();
+    private void testEnumRange(List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds) {
+        List<JobModel> jobList = jobService.enumerateJobs(offset, limit, resourceIds);
         Assert.assertNotNull(jobList);
         int index = offset;
         for (JobModel job : jobList) {
@@ -92,10 +99,8 @@ public class JobServiceTest {
     }
 
     // Get some range and make sure we got the number we expected
-    private void testEnumCount(int count, int offset, int length) {
-        ResponseEntity<List<JobModel>> response = jobService.enumerateJobs(offset, length);
-        Assert.assertThat(response.getStatusCode(), is(equalTo(HttpStatus.OK)));
-        List<JobModel> jobList = response.getBody();
+    private void testEnumCount(int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds) {
+        List<JobModel> jobList = jobService.enumerateJobs(offset, length, resourceIds);
         Assert.assertNotNull(jobList);
         Assert.assertThat(jobList.size(), is(count));
     }
@@ -107,7 +112,7 @@ public class JobServiceTest {
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        jobService.retrieveJobResultResponse("abcdef");
+        jobService.retrieveJobResultResponse("abcdef", null);
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {
@@ -122,7 +127,8 @@ public class JobServiceTest {
         FlightMap inputs = new FlightMap();
         inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
 
-        String flightId = stairway.submit(JobServiceTestFlight.class, inputs);
+        String flightId = description;
+        stairway.submit(flightId, JobServiceTestFlight.class, inputs);
         stairway.waitForFlight(flightId);
         return flightId;
     }

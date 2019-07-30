@@ -55,28 +55,8 @@ public class JobTest {
 
 
     @Before
-   public void setup() {
+    public void setup() {
         jobModel = new JobModel().id(testFlightId).description("This is not a job");
-    }
-
-
-    @Test
-    public void enumerateJobsTest() throws Exception {
-        FlightState flightState = FlightStates.makeFlightCompletedState();
-
-        Integer offset = 0;
-        Integer limit = 1;
-
-        when(stairway.getFlights(eq(offset), eq(limit))).thenReturn(Arrays.asList(flightState));
-
-        mvc.perform(get("/api/repository/v1/jobs?offset=0&limit=1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Arrays.asList(jobModel))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[:1].id").value(testFlightId))
-                .andExpect(jsonPath("$[:1].description").value(buildMinimalDatasetSummary().getDescription()))
-                .andExpect(jsonPath("$[:1].job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
-                .andExpect(jsonPath("$[:1].completed").value(completedTimeFormatted));
     }
 
     @Test
@@ -121,11 +101,12 @@ public class JobTest {
         DatasetSummaryModel req = buildMinimalDatasetSummary();
 
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s/result", testFlightId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isIAmATeapot())
-                .andExpect(jsonPath("$.id").value(req.getId()))
-                .andExpect(jsonPath("$.name").value(req.getName()))
-                .andExpect(jsonPath("$.description").value(req.getDescription()));
+            .header("Authorization", "Bearer: faketoken")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isIAmATeapot())
+            .andExpect(jsonPath("$.id").value(req.getId()))
+            .andExpect(jsonPath("$.name").value(req.getName()))
+            .andExpect(jsonPath("$.description").value(req.getDescription()));
     }
 }

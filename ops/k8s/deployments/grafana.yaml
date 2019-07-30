@@ -23,20 +23,36 @@ spec:
         - mountPath: /var/lib/grafana
           name: grafana-storage
         - mountPath: /etc/grafana/provisioning/datasources
-          name: grafana-config
+          name: "grafana-config-stackdriverdatasource"
+        - mountPath: /etc/grafana/provisioning/dashboards
+          name: "grafana-config-dashboards"
+        - mountPath: /var/lib/grafana/dashboards
+          name: "grafana-config-sqldashboard"
         env:
         - name: GF_SERVER_HTTP_PORT
-          value: 3000
+          value: "3000"
         - name: GF_SECURITY_ADMIN_PASSWORD
-          value: helloworld
+          value: "helloworld"
         - name: GF_INSTALL_PLUGINS
-          value: grafana-kubernetes-app
+          value: "grafana-kubernetes-app"
       volumes:
       - name: grafana-storage
         emptyDir: {}
-      - name: grafana-config
+      - name: "grafana-config-stackdriverdatasource"
         configMap:
-          name: grafana-config
+          name: "grafana-config"
           items:
-            - key: stackdriver
+            - key: stackdriverdatasource
               path: stackdriver.yaml
+      - name: "grafana-config-dashboards"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: dashboards
+              path: dashboards
+      - name: "grafana-config-sqldashboard"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: sqldashboard
+              path: sqldashboard.json

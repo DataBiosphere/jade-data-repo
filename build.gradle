@@ -129,7 +129,7 @@ dependencies {
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
-    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.6'
+    runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
     compileOnly 'com.google.code.findbugs:annotations:3.0.1u2'

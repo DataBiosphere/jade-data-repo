@@ -186,11 +186,10 @@ public class SamClientService {
         String resourceId,
         SamClientService.DataRepoAction action) {
         final String userEmail = userReq.getEmail();
-        final String institute = userEmail.substring(userEmail.indexOf("@") + 1, userEmail.lastIndexOf("."));
+        final String institute = userEmail.substring(userEmail.indexOf("@") + 1);
 
-        logger.error("user email address", userEmail);
-        logger.error("user action", action);
-        logger.error("institute", institute);
+        logger.error("user email address: ", userEmail, ", user action: ", action, ", institute: ", institute);
+        // TODO add user id
         if (!isAuthorized(userReq, resourceType, resourceId, action)) {
             throw new UnauthorizedException("User does not have required action: " + action);
         }

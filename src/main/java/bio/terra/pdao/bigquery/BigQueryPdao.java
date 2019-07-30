@@ -248,10 +248,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void addReaderGroupToDataset(bio.terra.metadata.Dataset dataset, String readersEmail) {
+    public void addReaderGroupToDataset(bio.terra.metadata.Dataset dataset, String readerPolicyGroupEmail) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         bigQueryProject.addDatasetAcls(dataset.getName(),
-            Collections.singletonList(Acl.of(new Acl.Group(readersEmail), Acl.Role.READER)));
+            Collections.singletonList(Acl.of(new Acl.Group(readerPolicyGroupEmail), Acl.Role.READER)));
+    }
+
+    @Override
+    public void grantReadAccessToStudy(Study study, List<String> policyGroupEmails) {
+        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        List<Acl> policyGroupAcls = policyGroupEmails
+            .stream()
+            .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
+            .collect(Collectors.toList());
+        bigQueryProject.addDatasetAcls(prefixName(study.getName()), policyGroupAcls);
     }
 
     @Override

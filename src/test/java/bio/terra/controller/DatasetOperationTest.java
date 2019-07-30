@@ -108,6 +108,7 @@ public class DatasetOperationTest {
     @Autowired private ProfileDao profileDao;
     @Autowired private DataProjectService dataProjectService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
     private SamClientService samService;
@@ -122,7 +123,7 @@ public class DatasetOperationTest {
         // TODO all of this should be refactored to use connected operations, and that should be made a component
         createdDatasetIds = new ArrayList<>();
         createdStudyIds = new ArrayList<>();
-        ConnectedOperations.stubOutSamCalls(samService);
+        connectedOperations.stubOutSamCalls(samService);
         billingProfile = ProfileFixtures.billingProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
         UUID profileId = profileDao.createBillingProfile(billingProfile);
         billingProfile.id(profileId);

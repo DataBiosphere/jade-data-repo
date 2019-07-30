@@ -89,6 +89,8 @@ public interface PrimaryDataAccess {
      */
     void addReaderGroupToDataset(Dataset dataset, String readersEmail);
 
+    void grantReadAccessToStudy(Study study, List<String> readerEmails);
+
     /**
      * Checks to see if a study exists
      * @param study

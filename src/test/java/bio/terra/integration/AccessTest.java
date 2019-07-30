@@ -14,14 +14,13 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.pdao.bigquery.BigQueryProject;
-import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
@@ -53,6 +52,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
@@ -88,9 +88,9 @@ public class AccessTest extends UsersBase {
         studyId = studySummaryModel.getId();
     }
 
-    private BigQueryProject getBigQueryProject(String projectId, String token) {
+    private BigQuery getBigQuery(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        return BigQueryProject.get(projectId, googleCredentials);
+        return BigQueryFixtures.getBigQuery(projectId, googleCredentials);
     }
 
     private GcsProject getGcsProject(String projectId, String token) {
@@ -122,12 +122,12 @@ public class AccessTest extends UsersBase {
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
 
         DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
-        BigQueryProject bigQueryProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
+        BigQuery bigQuery = getBigQuery(datasetModel.getDataProject(), readerToken);
         try {
-            bigQueryProject.datasetExists(datasetSummaryModel.getName());
+            BigQueryFixtures.datasetExists(bigQuery, datasetModel.getDataProject(), datasetSummaryModel.getName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
-        } catch (PdaoException e) {
-            assertThat("checking message for pdao exception error",
+        } catch (IllegalStateException e) {
+            assertThat("checking message for exception error",
                  e.getMessage(),
                  equalTo("existence check failed for ".concat(datasetSummaryModel.getName())));
         }
@@ -148,10 +148,12 @@ public class AccessTest extends UsersBase {
 
         boolean hasAccess = TestUtils.flappyExpect(5, samTimeoutSeconds, true, () -> {
             try {
-                boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
-                assertThat("dataset exists and is accessible", datasetExists, equalTo(true));
+                boolean datasetExists = BigQueryFixtures.datasetExists(bigQuery,
+                    datasetModel.getDataProject(),
+                    datasetSummaryModel.getName());
+                assertTrue("dataset exists and is accessible", datasetExists);
                 return true;
-            } catch (PdaoException e) {
+            } catch (IllegalStateException e) {
                 assertThat(
                     "access is denied until SAM syncs the reader policy with Google",
                     e.getCause().getMessage(),
@@ -160,11 +162,9 @@ public class AccessTest extends UsersBase {
             }
         });
 
-
         assertThat("reader can access the dataset after it has been shared",
             hasAccess,
             equalTo(true));
-
     }
 
     @Test
@@ -173,7 +173,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addStudyPolicyMember(
             steward(), studySummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
         StudyModel studyModel = dataRepoFixtures.getStudy(steward(), studySummaryModel.getId());
-        BigQueryProject bigQueryProject = getBigQueryProject(studyModel.getDataProject(), readerToken);
+        BigQuery bigQuery = getBigQuery(studyModel.getDataProject(), readerToken);
 
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
 
@@ -223,10 +223,14 @@ public class AccessTest extends UsersBase {
 
         TestUtils.flappyExpect(5, samTimeout, true, () -> {
             try {
-                boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
+                boolean datasetExists = BigQueryFixtures.datasetExists(
+                    bigQuery,
+                    studyModel.getDataProject(),
+                    datasetSummaryModel.getName());
+
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
                 return true;
-            } catch (PdaoException e) {
+            } catch (IllegalStateException e) {
                 assertThat(
                     "checking message for pdao exception error",
                     e.getCause().getMessage(),
@@ -235,12 +239,11 @@ public class AccessTest extends UsersBase {
             }
         });
 
-        BigQueryProject bigQueryProjectReader = getBigQueryProject(testConfiguration.getGoogleProjectId(), readerToken);
-        String query = String.format("SELECT file_ref FROM `%s.%s.file`",
-            bigQueryProject.getProjectId(), datasetSummaryModel.getName());
+        BigQuery bigQueryReader = getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        String sql = String.format("SELECT file_ref FROM `%s.%s.file`",
+            testConfiguration.getGoogleProjectId(), datasetSummaryModel.getName());
 
-
-        TableResult ids = bigQueryProjectReader.query(query);
+        TableResult ids = BigQueryFixtures.query(sql, bigQueryReader);
 
         String drsId = null;
         for (FieldValueList fieldValueList : ids.iterateAll()) {

@@ -47,12 +47,13 @@ public class StudyConnectedTest {
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ProfileDao profileDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean private SamClientService samService;
 
     @Test
     public void testCreateOmopStudy() throws Exception {
-        ConnectedOperations.stubOutSamCalls(samService);
+        connectedOperations.stubOutSamCalls(samService);
         String accountId = googleResourceConfiguration.getCoreBillingAccount();
 
         StudyRequestModel studyRequest = jsonLoader.loadObject("it-study-omop.json", StudyRequestModel.class);

@@ -66,7 +66,7 @@ public class BigQueryPdaoTest {
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
-        ConnectedOperations.stubOutSamCalls(samService);
+        connectedOperations.stubOutSamCalls(samService);
 
         String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccount);

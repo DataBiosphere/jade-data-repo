@@ -61,9 +61,6 @@ import static org.junit.Assert.fail;
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class AccessTest extends UsersBase {
-    private static final String omopStudyName = "it_study_omop";
-    private static final String omopStudyDesc =
-        "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
     private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 
     @Autowired private DataRepoFixtures dataRepoFixtures;
@@ -76,14 +73,16 @@ public class AccessTest extends UsersBase {
     private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
 
     private String readerToken;
+    private String custodianToken;
     private StudySummaryModel studySummaryModel;
     private String studyId;
-    private static final int samTimeoutSeconds = 300;
+    private static final int samTimeoutSeconds = 60 * 10;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
+        custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
@@ -95,9 +94,7 @@ public class AccessTest extends UsersBase {
 
     private GcsProject getGcsProject(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        GcsProject gcsProject = new GcsProject(projectId, googleCredentials);
-
-        return gcsProject;
+        return new GcsProject(projectId, googleCredentials);
     }
 
     @Test
@@ -107,6 +104,19 @@ public class AccessTest extends UsersBase {
 
         dataRepoFixtures.ingestJsonData(
             steward(), studyId, "sample", "ingest-test/ingest-test-sample.json");
+
+        StudyModel study = dataRepoFixtures.getStudy(steward(), studyId);
+        String studyBqDatasetName = "datarepo_" + study.getName();
+        BigQueryProject custodianBqProject = getBigQueryProject(study.getDataProject(), custodianToken);
+
+        try {
+            custodianBqProject.datasetExists(studyBqDatasetName);
+            fail("custodian shouldn't be able to access bq dataset before it is shared with them");
+        } catch (PdaoException e) {
+            assertThat("checking message for pdao exception error",
+                e.getMessage(),
+                equalTo("existence check failed for " + studyBqDatasetName));
+        }
 
         dataRepoFixtures.addStudyPolicyMember(
             steward(),
@@ -118,13 +128,31 @@ public class AccessTest extends UsersBase {
             enumStudies.getStatusCode(),
             equalTo(HttpStatus.OK));
 
+        boolean custodianHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
+            try {
+                boolean bqDatasetExists = custodianBqProject.datasetExists(studyBqDatasetName);
+                assertThat("study bq dataset exists and is accessible", bqDatasetExists, equalTo(true));
+                return true;
+            } catch (PdaoException e) {
+                assertThat(
+                    "access is denied until SAM syncs the custodian policy with Google",
+                    e.getCause().getMessage(),
+                    startsWith("Access Denied:"));
+                return false;
+            }
+        });
+
+        assertThat("custodian can access the bq dataset after it has been shared",
+            custodianHasAccess,
+            equalTo(true));
+
         DatasetSummaryModel datasetSummaryModel =
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
 
         DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
-        BigQueryProject bigQueryProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
+        BigQueryProject readerBqProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
         try {
-            bigQueryProject.datasetExists(datasetSummaryModel.getName());
+            readerBqProject.datasetExists(datasetSummaryModel.getName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
         } catch (PdaoException e) {
             assertThat("checking message for pdao exception error",
@@ -146,9 +174,9 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        boolean hasAccess = TestUtils.flappyExpect(5, samTimeoutSeconds, true, () -> {
+        boolean readerHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
-                boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
+                boolean datasetExists = readerBqProject.datasetExists(datasetSummaryModel.getName());
                 assertThat("dataset exists and is accessible", datasetExists, equalTo(true));
                 return true;
             } catch (PdaoException e) {
@@ -160,11 +188,9 @@ public class AccessTest extends UsersBase {
             }
         });
 
-
         assertThat("reader can access the dataset after it has been shared",
-            hasAccess,
+            readerHasAccess,
             equalTo(true));
-
     }
 
     @Test
@@ -221,7 +247,7 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        TestUtils.flappyExpect(5, samTimeout, true, () -> {
+        TestUtils.eventualExpect(5, samTimeout, true, () -> {
             try {
                 boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));

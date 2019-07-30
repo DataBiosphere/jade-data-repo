@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.configuration.SamConfiguration;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.UnauthorizedException;
@@ -20,11 +21,10 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -34,9 +34,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Component
-@EnableConfigurationProperties
-@ConfigurationProperties(prefix = "sam")
 public class SamClientService {
+    private final SamConfiguration samConfig;
+
+    public SamClientService(SamConfiguration samConfig) {
+        this.samConfig = samConfig;
+    }
 
     public enum ResourceType {
         DATAREPO,
@@ -135,15 +138,13 @@ public class SamClientService {
         }
     }
 
-    private String basePath;
-    private String stewardsGroupEmail;
     private static Logger logger = LoggerFactory.getLogger(SamClientService.class);
 
     private ApiClient getApiClient(String accessToken) {
         ApiClient apiClient = new ApiClient();
         apiClient.setAccessToken(accessToken);
         apiClient.setUserAgent("OpenAPI-Generator/1.0.0 java");  // only logs an error in sam
-        return apiClient.setBasePath(basePath);
+        return apiClient.setBasePath(samConfig.getBasePath());
     }
 
     private ResourcesApi samResourcesApi(String accessToken) {
@@ -156,22 +157,6 @@ public class SamClientService {
 
     private UsersApi samUsersApi(String accessToken) {
         return new UsersApi(getApiClient(accessToken));
-    }
-
-    public String getBasePath() {
-        return basePath;
-    }
-
-    public void setBasePath(String basePath) {
-        this.basePath = basePath;
-    }
-
-    public String getStewardsGroupEmail() {
-        return stewardsGroupEmail;
-    }
-
-    public void setStewardsGroupEmail(String stewardsGroupEmail) {
-        this.stewardsGroupEmail = stewardsGroupEmail;
     }
 
     public boolean isAuthorized(
@@ -229,12 +214,13 @@ public class SamClientService {
         samResourceApi.deleteResource(ResourceType.DATASET.toString(), datsetId.toString());
     }
 
-    public void createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+    public List<String> createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(studyId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
-            createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));
+            createAccessPolicy(DataRepoRole.STEWARD.toString(),
+                Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
             DataRepoRole.CUSTODIAN.toString(),
             createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
@@ -245,6 +231,18 @@ public class SamClientService {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
+
+        // we'll want all of these roles to have read access to the underlying data, so we sync and return the emails
+        // for the policies that get created by SAM
+        ArrayList<String> rolePolicies = new ArrayList<>();
+        for (DataRepoRole role : Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
+            Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
+                ResourceType.STUDY.toString(),
+                studyId.toString(),
+                role.toString());
+            rolePolicies.add(getPolicyGroupEmailFromResponse(results));
+        }
+        return rolePolicies;
     }
 
     public String createDatasetResource(
@@ -258,7 +256,8 @@ public class SamClientService {
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
-            createAccessPolicy(DataRepoRole.STEWARD.toString(), Collections.singletonList(stewardsGroupEmail)));
+            createAccessPolicy(DataRepoRole.STEWARD.toString(),
+                Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
             DataRepoRole.CUSTODIAN.toString(),
             createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
@@ -280,7 +279,7 @@ public class SamClientService {
             ResourceType.DATASET.toString(),
             datasetId.toString(),
             DataRepoRole.READER.toString());
-        return results.keySet().iterator().next();
+        return getPolicyGroupEmailFromResponse(results);
     }
 
     public List<PolicyModel> retrievePolicies(
@@ -345,11 +344,10 @@ public class SamClientService {
             .memberEmails(emails);
     }
 
-
     // This is a work around for https://broadworkbench.atlassian.net/browse/AP-149
     // This is a copy of the ApiClient.createResourceCall but adds in the validation and
     // the actual execution of the call. And doesn't allow listener callbacks
-    public void createResourceCorrectCall(
+    private void createResourceCorrectCall(
         ApiClient localVarApiClient,
         String resourceTypeName,
         CreateResourceCorrectRequest resourceCreate) throws ApiException {
@@ -366,12 +364,8 @@ public class SamClientService {
                 "Missing the required parameter 'resourceCreate' when calling createResource(Async)");
         }
 
-        Object localVarPostBody = resourceCreate;
-
         // create path and map variables
-        String localVarPath = "/api/resources/v1/{resourceTypeName}"
-            .replaceAll("\\{" + "resourceTypeName" + "\\}",
-                localVarApiClient.escapeString(resourceTypeName.toString()));
+        String localVarPath = "/api/resources/v1/" + localVarApiClient.escapeString(resourceTypeName);
 
         List<Pair> localVarQueryParams = new ArrayList<Pair>();
         List<Pair> localVarCollectionQueryParams = new ArrayList<Pair>();
@@ -397,12 +391,26 @@ public class SamClientService {
             "POST",
             localVarQueryParams,
             localVarCollectionQueryParams,
-            localVarPostBody,
+            resourceCreate,
             localVarHeaderParams,
             localVarFormParams,
             localVarAuthNames,
             null);
         localVarApiClient.execute(localVarCall);
     }
+
+    /**
+     * Syncing a policy with SAM results in a Google group being created that is tied to that policy. The response is an
+     * object with one key that is the policy group email and a value that is a list of objects.
+     * @param syncPolicyResponse map with one key that is an email
+     * @return the policy group email
+     */
+    private String getPolicyGroupEmailFromResponse(Map<String, List<Object>> syncPolicyResponse) {
+        if (syncPolicyResponse.size() != 1) {
+            throw new IllegalArgumentException("Expecting syncPolicyResponse to be an object with one key");
+        }
+        return syncPolicyResponse.keySet().iterator().next();
+    }
+
 
 }

@@ -26,6 +26,7 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -39,6 +40,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -48,9 +50,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -67,11 +69,11 @@ public class AccessTest extends UsersBase {
     @Autowired private AuthService authService;
     @Autowired private SamClientService samClientService;
     @Autowired private TestConfiguration testConfiguration;
-    @Autowired private Storage storage;
 
     private static final int samTimeout = 300;
     private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
 
+    private String discovererToken;
     private String readerToken;
     private String custodianToken;
     private StudySummaryModel studySummaryModel;
@@ -81,6 +83,7 @@ public class AccessTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
+        discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
@@ -90,6 +93,14 @@ public class AccessTest extends UsersBase {
     private BigQuery getBigQuery(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
         return BigQueryFixtures.getBigQuery(projectId, googleCredentials);
+    }
+
+    private Storage getStorage(String token) {
+        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
+        StorageOptions storageOptions = StorageOptions.newBuilder()
+            .setCredentials(googleCredentials)
+            .build();
+        return storageOptions.getService();
     }
 
     private GcsProject getGcsProject(String projectId, String token) {
@@ -204,23 +215,23 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addStudyPolicyMember(
             steward(), studySummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
         StudyModel studyModel = dataRepoFixtures.getStudy(steward(), studySummaryModel.getId());
-        BigQuery bigQuery = getBigQuery(studyModel.getDataProject(), readerToken);
 
+        // Step 1. Ingest a file into the study
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
-
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
             steward(),
             studySummaryModel.getId(),
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
 
+        // Step 2. Ingest one row into the study 'file' table with a reference to that ingested file
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fsObjectModel.getObjectId());
-
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
         BlobInfo targetBlobInfo = BlobInfo
             .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
             .build();
 
+        Storage storage = StorageOptions.getDefaultInstance().getService();
         try (WriteChannel writer = storage.writer(targetBlobInfo)) {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
@@ -233,6 +244,7 @@ public class AccessTest extends UsersBase {
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
+        // Step 3. Create a dataset exposing the one row and grant read access to our reader.
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(
             custodian(),
             studySummaryModel,
@@ -252,10 +264,16 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
+        // Step 4. Wait for SAM to sync the access change out to GCP.
+        //
+        // We make a BigQuery context for the reader in the test project. The reader doesn't have access
+        // to run queries in the dataset project.
+        BigQuery bigQueryReader = getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+
         TestUtils.eventualExpect(5, samTimeout, true, () -> {
             try {
                 boolean datasetExists = BigQueryFixtures.datasetExists(
-                    bigQuery,
+                    bigQueryReader,
                     studyModel.getDataProject(),
                     datasetSummaryModel.getName());
 
@@ -263,14 +281,14 @@ public class AccessTest extends UsersBase {
                 return true;
             } catch (IllegalStateException e) {
                 assertThat(
-                    "checking message for pdao exception error",
+                    "checking message for exception error",
                     e.getCause().getMessage(),
                     startsWith("Access Denied:"));
                 return false;
             }
         });
 
-        BigQuery bigQueryReader = getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
         String sql = String.format("SELECT file_ref FROM `%s.%s.file`",
             testConfiguration.getGoogleProjectId(), datasetSummaryModel.getName());
 
@@ -287,6 +305,7 @@ public class AccessTest extends UsersBase {
         assertThat("matcher found a match in the drs id", matcher.find(), equalTo(true));
         drsId = matcher.group();
 
+        // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
         Optional<DRSObject> optionalDRSObject = dataRepoFixtures.resolveDrsId(
             reader(),
             drsId).getResponseObject();
@@ -297,18 +316,30 @@ public class AccessTest extends UsersBase {
 
         assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
 
+        // Step 7. Pull our the gs path try to read the file as reader and discoverer
         DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
 
         String[] strings = accessUrl.getUrl().split("/", 4);
 
         String bucketName = strings[2];
         String blobName = strings[3];
+        BlobId blobId = BlobId.of(bucketName, blobName);
 
-        try (ReadChannel reader = storage.reader(BlobId.of(bucketName, blobName))) {
+        Storage readerStorage = getStorage(readerToken);
+        assertTrue("Reader can read some bytes of the file", canReadBlob(readerStorage, blobId));
+
+        Storage discovererStorage = getStorage(discovererToken);
+        assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
+    }
+
+    private boolean canReadBlob(Storage storage, BlobId blobId) {
+        try (ReadChannel reader = storage.reader(blobId)) {
             ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
-            assertThat("Reader can read some bytes of the pdf", reader.read(bytes), greaterThan(0));
+            int bytesRead = reader.read(bytes);
+            return (bytesRead > 0);
+        } catch (IOException e) {
+            return false;
         }
-
     }
 
 }

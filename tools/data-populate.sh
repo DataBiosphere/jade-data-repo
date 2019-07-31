@@ -30,8 +30,9 @@ fi
 
 # create the encode study
 STAMP=$(date +"%m_%d_%H_%M")
+STUDY_NAME="ingest_test_${STAMP}"
 STUDY_ID=$(cat ../src/test/resources/ingest-test-study.json \
-    | jq ".defaultProfileId = ${PROFILE_ID} | .name = \"ingest_test_${STAMP}\"" \
+    | jq ".defaultProfileId = ${PROFILE_ID} | .name = \"${STUDY_NAME}\"" \
     | curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
         --header "Authorization: Bearer ${ACCESS_TOKEN}" \
         -d @- "${HOST}/api/repository/v1/studies" \
@@ -59,3 +60,12 @@ do
             --header "Authorization: Bearer ${ACCESS_TOKEN}" \
             -d @- "${HOST}/api/repository/v1/studies/${STUDY_ID}/ingest"
 done
+
+sleep 5
+
+cat ../src/test/resources/ingest-test-dataset.json \
+    | jq ".name = \"ingest_test_ds_${STAMP}\" | .contents[0].source.studyName = \"${STUDY_NAME}\"" \
+    | jq ".profileId = ${PROFILE_ID}" \
+    | curl -v -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
+        --header "Authorization: Bearer ${ACCESS_TOKEN}" \
+        -d @- "${HOST}/api/repository/v1/datasets"

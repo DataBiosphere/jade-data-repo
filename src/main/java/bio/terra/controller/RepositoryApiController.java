@@ -190,6 +190,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
                                                @PathVariable("fileid") String fileid) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.UPDATE_DATA);
         String jobId = fileService.deleteFile(id, fileid);
         return jobService.retrieveJob(jobId);
     }
@@ -197,6 +202,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> ingestFile(@PathVariable("id") String id,
                                                @Valid @RequestBody FileLoadModel ingestFile) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = fileService.ingestFile(id, ingestFile);
         return jobService.retrieveJob(jobId);
     }
@@ -204,6 +214,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<FSObjectModel> lookupFileObjectById(@PathVariable("id") String id,
                                                 @PathVariable("fileid") String fileid) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
         FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid);
         return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
@@ -211,6 +226,11 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<FSObjectModel> lookupFileObjectByPath(@PathVariable("id") String id,
                                                 @RequestParam(value = "path", required = true) String path) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.STUDY,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }

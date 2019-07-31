@@ -80,10 +80,9 @@ public class JobServiceTest {
 
     private void testResultRetrieval(List<String> fids) {
         RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
-        Object result =
-            jobService.retrieveJobResultResponse(fids.get(2), statContainer);
+        String resultDesc =
+            jobService.retrieveJobResult(fids.get(2), String.class, statContainer);
         Assert.assertThat(statContainer.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-        String resultDesc = (String) result;
         Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
     }
 
@@ -112,7 +111,7 @@ public class JobServiceTest {
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        jobService.retrieveJobResultResponse("abcdef", null);
+        jobService.retrieveJobResult("abcdef", Object.class, null);
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {

@@ -107,12 +107,12 @@ public class AccessTest extends UsersBase {
 
         StudyModel study = dataRepoFixtures.getStudy(steward(), studyId);
         String studyBqDatasetName = "datarepo_" + study.getName();
-        BigQueryProject custodianBqProject = getBigQueryProject(study.getDataProject(), custodianToken);
 
+        BigQuery custodianBigQuery = getBigQuery(study.getDataProject(), custodianToken);
         try {
-            custodianBqProject.datasetExists(studyBqDatasetName);
+            BigQueryFixtures.datasetExists(custodianBigQuery, study.getDataProject(), studyBqDatasetName);
             fail("custodian shouldn't be able to access bq dataset before it is shared with them");
-        } catch (PdaoException e) {
+        } catch (IllegalStateException e) {
             assertThat("checking message for pdao exception error",
                 e.getMessage(),
                 equalTo("existence check failed for " + studyBqDatasetName));
@@ -130,10 +130,13 @@ public class AccessTest extends UsersBase {
 
         boolean custodianHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
-                boolean bqDatasetExists = custodianBqProject.datasetExists(studyBqDatasetName);
+                boolean bqDatasetExists = BigQueryFixtures.datasetExists(
+                    custodianBigQuery,
+                    study.getDataProject(),
+                    studyBqDatasetName);
                 assertThat("study bq dataset exists and is accessible", bqDatasetExists, equalTo(true));
                 return true;
-            } catch (PdaoException e) {
+            } catch (IllegalStateException e) {
                 assertThat(
                     "access is denied until SAM syncs the custodian policy with Google",
                     e.getCause().getMessage(),

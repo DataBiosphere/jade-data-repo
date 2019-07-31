@@ -36,6 +36,7 @@ public final class BigQueryFixtures {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
             return bigQuery.query(queryConfig);
         } catch (InterruptedException | BigQueryException e) {
+            e.printStackTrace(System.out);
             throw new IllegalStateException("Query failed", e);
         }
     }

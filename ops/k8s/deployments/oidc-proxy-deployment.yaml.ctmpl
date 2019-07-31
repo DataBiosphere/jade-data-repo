@@ -61,14 +61,12 @@ spec:
           - name: FILTER2
             value: 'AddOutputFilterByType DEFLATE application/json text/plain text/html application/javascript application/x-javascript'
         volumeMounts:
-          - mountPath: /etc/apache2/sites-available
+          - mountPath: /etc/apache2/sites-available/site.conf
             name: config
+            subPath: site.conf
       volumes:
         - name: "config"
           configMap:
             name: "siteconf"
-            items:
-              - key: config
-                path: site.conf
 
 {{end}}

@@ -78,7 +78,8 @@ kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-rep
 kubectl apply -f "${WD}/k8s/namespace.yaml"
 
 # put site.conf in the configMap
-kubectl create -f ${WD}/k8s/secrets/odic-config.yaml  --namespace data-repo 
+kubectl create --namespace data-repo configmap siteconf --from-file=${WD}/site.conf
+
 #render and put stackdriver.yaml in configMap
 consul-template -template "${WD}/k8s/secrets/grafana-config.yaml.ctmpl:${SCRATCH}/grafana-config.yaml" -once
 kubectl create -f ${SCRATCH}/grafana-config.yaml --namespace data-repo

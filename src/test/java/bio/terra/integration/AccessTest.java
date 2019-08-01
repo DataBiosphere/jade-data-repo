@@ -290,7 +290,7 @@ public class AccessTest extends UsersBase {
 
         // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
         String sql = String.format("SELECT file_ref FROM `%s.%s.file`",
-            testConfiguration.getGoogleProjectId(), datasetSummaryModel.getName());
+            studyModel.getDataProject(), datasetSummaryModel.getName());
 
         TableResult ids = BigQueryFixtures.query(sql, bigQueryReader);
 

@@ -7,7 +7,6 @@ import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetDataProject;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DRSBundle;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FSObjectModel;
@@ -62,7 +61,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 @RunWith(SpringRunner.class)
@@ -235,17 +233,6 @@ public class EncodeFileTest {
         }
     }
 
-    // TODO: Bundle testing - complete when we have a method for getting a bundle id
-    private void getOneBundle(String bundleId) throws Exception {
-        String url = "/ga4gh/drs/v1/bundles/" + bundleId;
-        MvcResult result = mvc.perform(get(url)).andReturn();
-        MockHttpServletResponse response = result.getResponse();
-        if (response.getStatus() == 200) {
-            DRSBundle bundle = objectMapper.readValue(response.getContentAsString(), DRSBundle.class);
-            System.out.println(bundle);
-        }
-    }
-
     private String loadFiles(String studyId, boolean insertBadId, boolean insertBadRow) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
@@ -286,7 +273,6 @@ public class EncodeFileTest {
                     } else {
                         bamFileId = bamFile.getObjectId();
                     }
-
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {

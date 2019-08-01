@@ -4,31 +4,26 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.exception.NotImplementedException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Study;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
-import bio.terra.model.DRSBundle;
-import bio.terra.model.DRSBundleObject;
 import bio.terra.model.DRSChecksum;
+import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.pdao.gcs.GcsConfiguration;
 import bio.terra.service.exception.DrsObjectNotFoundException;
 import bio.terra.service.exception.InvalidDrsIdException;
-import org.apache.commons.codec.digest.PureJavaCrc32C;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -67,17 +62,146 @@ public class DrsService {
         this.studyService = studyService;
     }
 
-    public DRSObject lookupObjectByDrsId(String drsObjectId) {
+    public DRSObject lookupObjectByDrsId(String drsObjectId, Boolean expand) {
+        // TODO: Implement recursive directory expansion
+        if (expand) {
+            throw new NotImplementedException("Expand is not yet implemented");
+        }
+
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
 
         FSObjectBase fsObject = fileService.lookupFSObject(
             drsId.getStudyId(),
             drsId.getFsObjectId());
-        if (fsObject.getObjectType() != FSObjectType.FILE) {
-            throw new IllegalArgumentException("Object is not a blob");
+
+        switch (fsObject.getObjectType()) {
+            case FILE:
+                return drsObjectFromFSFile((FSFile)fsObject, drsId.getDatasetId());
+
+            case DIRECTORY:
+                return drsObjectFromFSDir((FSDir)fsObject, drsId.getDatasetId());
+
+            default:
+                throw new IllegalArgumentException("Invalid object type");
         }
-        return drsObjectFromFSFile((FSFile)fsObject, drsId.getDatasetId());
     }
+
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
+        DRSObject fileObject = makeCommonDrsObject(fsFile, datasetId);
+
+        DRSAccessURL accessURL = new DRSAccessURL()
+            .url(fsFile.getGspath());
+
+        DRSAccessMethod accessMethod = new DRSAccessMethod()
+            .type(DRSAccessMethod.TypeEnum.GS)
+            .accessUrl(accessURL)
+            .region(gcsConfiguration.getRegion());
+
+        fileObject
+            .size(fsFile.getSize())
+            .mimeType(fsFile.getMimeType())
+            .checksums(fileService.makeChecksums(fsFile))
+            .accessMethods(Collections.singletonList(accessMethod));
+
+        return fileObject;
+    }
+
+    private DRSObject drsObjectFromFSDir(FSDir fsDir, String datasetId) {
+        DRSObject dirObject = makeCommonDrsObject(fsDir, datasetId);
+
+        // TODO: Directory size and checksum not yet implemented
+        DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
+        dirObject
+            .size(0L)
+            .addChecksumsItem(drsChecksum)
+            .contents(makeContentsList(fsDir, datasetId));
+
+        return dirObject;
+    }
+
+    private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String datasetId) {
+        // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
+        String theTime = fsObject.getCreatedDate().toString();
+        DrsId drsId = makeDrsId(fsObject, datasetId);
+
+        return new DRSObject()
+            .id(drsId.toDrsObjectId())
+            .name(getLastNameFromPath(fsObject.getPath()))
+            .created(theTime)
+            .updated(theTime)
+            .version(DRS_OBJECT_VERSION)
+            .description(fsObject.getDescription())
+            .aliases(Collections.singletonList(fsObject.getPath()));
+    }
+
+    private List<DRSContentsObject> makeContentsList(FSDir fsDir, String datasetId) {
+        List<DRSContentsObject> contentsList = new ArrayList<>();
+
+        for (FSObjectBase fsObject : fsDir.getContents()) {
+            contentsList.add(makeDrsContentsObject(fsObject, datasetId));
+        }
+
+        return contentsList;
+    }
+
+    private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String datasetId) {
+        DrsId drsId = makeDrsId(fsObject, datasetId);
+
+        List<String> drsUris = new ArrayList<>();
+        drsUris.add(drsId.toDrsUri());
+
+        DRSContentsObject contentsObject = new DRSContentsObject()
+            .name(getLastNameFromPath(fsObject.getPath()))
+            .id(drsId.toDrsObjectId())
+            .drsUri(drsUris);
+
+        // If the object is an enumerated directory, we fill in the contents array.
+        if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+            FSDir fsDir = (FSDir) fsObject;
+            if (fsDir.isEnumerated()) {
+                contentsObject.contents(makeContentsList(fsDir, datasetId));
+            }
+        }
+
+        return contentsObject;
+    }
+
+    private DrsId makeDrsId(FSObjectBase fsObject, String datasetId) {
+        return DrsId.builder()
+            .studyId(fsObject.getStudyId().toString())
+            .datasetId(datasetId)
+            .fsObjectId(fsObject.getObjectId().toString())
+            .build();
+    }
+
+    private String getLastNameFromPath(String path) {
+        String[] pathParts = StringUtils.split(path, '/');
+        return pathParts[pathParts.length - 1];
+    }
+
+    // Take an object or bundle id. Make sure it parses and make sure that the study and dataset
+    // that it claims to be part of actually exist.
+    // TODO: add permission checking here I think
+    private DrsId parseAndValidateDrsId(String drsObjectId) {
+        DrsId drsId = drsIdService.fromObjectId(drsObjectId);
+        try {
+            UUID studyId = UUID.fromString(drsId.getStudyId());
+            studyDao.retrieveSummaryById(studyId);
+
+            UUID datasetId = UUID.fromString(drsId.getDatasetId());
+            datasetDao.retrieveDatasetSummary(datasetId);
+
+            return drsId;
+        } catch (IllegalArgumentException ex) {
+            throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
+        } catch (StudyNotFoundException ex) {
+            throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
+        } catch (DatasetNotFoundException ex) {
+            throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
+        }
+    }
+
+/*
 
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
@@ -104,28 +228,6 @@ public class DrsService {
             .aliases(Collections.singletonList(dirObject.getPath()));
 
         return makeBundleObjects(bundle, fsObjectList, drsId.getDatasetId());
-    }
-
-    // Take an object or bundle id. Make sure it parses and make sure that the study and dataset
-    // that it claims to be part of actually exist.
-    // TODO: add permission checking here I think
-    private DrsId parseAndValidateDrsId(String drsObjectId) {
-        DrsId drsId = drsIdService.fromObjectId(drsObjectId);
-        try {
-            UUID studyId = UUID.fromString(drsId.getStudyId());
-            studyDao.retrieveSummaryById(studyId);
-
-            UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            datasetDao.retrieveDatasetSummary(datasetId);
-
-            return drsId;
-        } catch (IllegalArgumentException ex) {
-            throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (StudyNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
-        } catch (DatasetNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
-        }
     }
 
     private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String datasetId) {
@@ -210,43 +312,6 @@ public class DrsService {
         return bundle;
     }
 
-    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
-        // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
-        String theTime = fsFile.getCreatedDate().toString();
-
-        DRSAccessURL accessURL = new DRSAccessURL()
-            .url(fsFile.getGspath());
-
-        DRSAccessMethod accessMethod = new DRSAccessMethod()
-            .type(DRSAccessMethod.TypeEnum.GS)
-            .accessUrl(accessURL)
-            .region(gcsConfiguration.getRegion());
-
-        DrsId drsId = DrsId.builder()
-            .studyId(fsFile.getStudyId().toString())
-            .datasetId(datasetId)
-            .fsObjectId(fsFile.getObjectId().toString())
-            .build();
-
-        DRSObject fileModel = new DRSObject()
-            .id(drsId.toDrsObjectId())
-            .name(getLastNameFromPath(fsFile.getPath()))
-            .size(fsFile.getSize())
-            .created(theTime)
-            .updated(theTime)
-            .version(DRS_OBJECT_VERSION)
-            .mimeType(fsFile.getMimeType())
-            .checksums(fileService.makeChecksums(fsFile))
-            .accessMethods(Collections.singletonList(accessMethod))
-            .description(fsFile.getDescription())
-            .aliases(Collections.singletonList(fsFile.getPath()));
-
-        return fileModel;
-    }
-
-    private String getLastNameFromPath(String path) {
-        String[] pathParts = StringUtils.split(path, '/');
-        return pathParts[pathParts.length - 1];
-    }
+ */
 
 }

@@ -4,6 +4,7 @@ import bio.terra.exception.BadRequestException;
 import bio.terra.exception.DataRepoException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.NotFoundException;
+import bio.terra.exception.NotImplementedException;
 import bio.terra.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.exception.JobResponseException;
@@ -41,6 +42,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InternalServerErrorException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorModel internalServerErrorHandler(DataRepoException ex) {
+        return buildErrorModel(ex, ex.getErrorDetails());
+    }
+
+    @ExceptionHandler(NotImplementedException.class)
+    @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
+    public ErrorModel notImplementedHandler(DataRepoException ex) {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 

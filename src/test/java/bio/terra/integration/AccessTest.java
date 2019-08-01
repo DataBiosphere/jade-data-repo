@@ -180,7 +180,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
+            new AuthenticatedUserRequest(reader().getEmail(), reader().getSubjectId(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,
@@ -256,7 +256,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
+            new AuthenticatedUserRequest(reader().getEmail(), reader().getSubjectId(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,

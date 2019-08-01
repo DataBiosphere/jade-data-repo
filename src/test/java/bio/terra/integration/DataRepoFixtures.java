@@ -313,11 +313,11 @@ public class DataRepoFixtures {
 
     public FSObjectModel ingestFile(
         TestConfiguration.User user, String studyId, String sourceGsPath, String targetPath) throws Exception {
-        DataRepoResponse<JobModel> launchResp = ingestFileLaunch(user, studyId, sourceGsPath, targetPath);
-        assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
-        assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
+        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, studyId, sourceGsPath, targetPath);
+        assertTrue("ingest launch succeeded", resp.getStatusCode().is2xxSuccessful());
+        assertTrue("ingest launch response is present", resp.getResponseObject().isPresent());
 
-        DataRepoResponse<FSObjectModel> response = dataRepoClient.waitForResponse(user, launchResp, FSObjectModel.class);
+        DataRepoResponse<FSObjectModel> response = dataRepoClient.waitForResponse(user, resp, FSObjectModel.class);
         assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();

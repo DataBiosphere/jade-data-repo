@@ -40,7 +40,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -337,7 +336,8 @@ public class AccessTest extends UsersBase {
             ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
             int bytesRead = reader.read(bytes);
             return (bytesRead > 0);
-        } catch (IOException e) {
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
             return false;
         }
     }

@@ -1398,6 +1398,11 @@ definitions:
         items:
           $ref: '#/definitions/ColumnModel'
 
+      primaryKey:
+        type: array
+        items:
+          $ref: '#/definitions/ObjectNameProperty'
+
   RelationshipTermModel:
     description: Describes a table, columns and cardinality for a relationship
     type: object

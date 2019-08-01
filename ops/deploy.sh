@@ -78,11 +78,11 @@ kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-rep
 kubectl apply -f "${WD}/k8s/namespace.yaml"
 
 # put site.conf in the configMap
-kubectl create --namespace data-repo configmap siteconf --from-file=${WD}/site.conf
+kubectl create -f "${WD}/k8s/secrets/odic-config.yaml" --namespace data-repo
 
 #render and put stackdriver.yaml in configMap
-consul-template -template "${WD}/k8s/secrets/stackdriver.yaml.ctmpl:${SCRATCH}/stackdriver.yaml" -once
-kubectl create --namespace data-repo configmap stackdriver-datasource --from-file=${SCRATCH}/stackdriver.yaml
+consul-template -template "${WD}/k8s/secrets/grafana-config.yaml.ctmpl:${SCRATCH}/grafana-config.yaml" -once
+kubectl create -f ${SCRATCH}/grafana-config.yaml --namespace data-repo
 
 # create service account and pod security policy
 kubectl apply --namespace data-repo -f "${WD}/k8s/psp"

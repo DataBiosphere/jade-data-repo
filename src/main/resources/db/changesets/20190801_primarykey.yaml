@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: primarykey
+      author: bcarlin
+      changes:
+        - addColumn:
+            tableName: study_table
+            columns:
+              - column:
+                  name: primary_key
+                  type: text []

@@ -102,34 +102,34 @@ public class FileTest extends UsersBase {
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
+        // validates success
         dataRepoFixtures.getFileById(steward(), studyId, fileId);
         dataRepoFixtures.getFileById(custodian(), studyId, fileId);
 
-        DataRepoResponse<FSObjectModel> getResp = dataRepoFixtures.getFileByIdRaw(reader(), studyId, fileId);
+        DataRepoResponse<FSObjectModel> readerResp = dataRepoFixtures.getFileByIdRaw(reader(), studyId, fileId);
         assertThat("Reader is not authorized to get a file from a study",
-            getResp.getStatusCode(),
+            readerResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // get file by id
-        DataRepoResponse<FSObjectModel> fileResp = dataRepoFixtures.getFileByIdRaw(discoverer(), studyId, fileId);
+        DataRepoResponse<FSObjectModel> discovererResp = dataRepoFixtures.getFileByIdRaw(discoverer(), studyId, fileId);
         assertThat("Discoverer is not authorized to get a file from a study",
-            fileResp.getStatusCode(),
+            discovererResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        // get file by name
+        // get file by name validates success
         dataRepoFixtures.getFileByName(steward(), studyId, filePath);
         dataRepoFixtures.getFileByName(custodian(), studyId, filePath);
-        DataRepoResponse<FSObjectModel> getResp2 = dataRepoFixtures.getFileByNameRaw(reader(), studyId, filePath);
+
+        readerResp = dataRepoFixtures.getFileByNameRaw(reader(), studyId, filePath);
         assertThat("Reader is not authorized to get a file from a study",
-            getResp2.getStatusCode(),
+            readerResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        DataRepoResponse<FSObjectModel> fileResp2 =
-            dataRepoFixtures.getFileByNameRaw(discoverer(), studyId, filePath);
+        discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), studyId, filePath);
         assertThat("Discoverer is not authorized to get file",
-            fileResp2.getStatusCode(),
+            discovererResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
-
 
         // delete
         DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), studyId, fileId);
@@ -142,6 +142,7 @@ public class FileTest extends UsersBase {
             job.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
+        // validates success
         dataRepoFixtures.deleteFile(steward(), studyId, fileId);
     }
 }

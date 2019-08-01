@@ -11,6 +11,7 @@ import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
+import javax.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -92,19 +93,35 @@ public final class StudyJsonConversion {
     }
 
     public static Table tableModelToTable(TableModel tableModel) {
-        Table studyTable = new Table()
-                .name(tableModel.getName());
-        studyTable
-                .columns(tableModel.getColumns()
-                        .stream()
-                        .map(columnModel -> columnModelToStudyColumn(columnModel).table(studyTable))
-                        .collect(Collectors.toList()));
-        return studyTable;
+        Map<String, Column> columnMap = new HashMap<>();
+        List<Column> columns = new ArrayList<>();
+        Table studyTable = new Table().name(tableModel.getName());
+
+        for (ColumnModel columnModel : tableModel.getColumns()) {
+            Column column = columnModelToStudyColumn(columnModel).table(studyTable);
+            columnMap.put(column.getName(), column);
+            columns.add(column);
+        }
+
+        List<String> primaryKey = tableModel.getPrimaryKey();
+        if (primaryKey != null) {
+            List<Column> primaryKeyColumns = primaryKey
+                .stream()
+                .map(columnMap::get)
+                .collect(Collectors.toList());
+            studyTable.primaryKey(primaryKeyColumns);
+        }
+
+        return studyTable.columns(columns);
     }
 
     public static TableModel tableModelFromTable(Table studyTable) {
         return new TableModel()
                 .name(studyTable.getName())
+                .primaryKey(studyTable.getPrimaryKey()
+                    .stream()
+                    .map(Column::getName)
+                    .collect(Collectors.toList()))
                 .columns(studyTable.getColumns()
                         .stream()
                         .map(column -> columnModelFromStudyColumn(column))

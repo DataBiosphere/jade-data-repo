@@ -13,6 +13,7 @@ import java.util.UUID;
 public class Table {
     private UUID id;
     private String name;
+    private List<Column> primaryKey;
     private List<Column> columns = Collections.emptyList();
 
     public UUID getId() {
@@ -30,6 +31,15 @@ public class Table {
 
     public Table name(String name) {
         this.name = name;
+        return this;
+    }
+
+    public List<Column> getPrimaryKey() {
+        return primaryKey;
+    }
+
+    public Table primaryKey(List<Column> primaryKey) {
+        this.primaryKey = primaryKey;
         return this;
     }
 

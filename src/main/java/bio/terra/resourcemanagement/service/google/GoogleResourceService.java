@@ -19,6 +19,7 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
+import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Operation;
@@ -179,15 +180,22 @@ public class GoogleResourceService {
                 "in order to create: " + googleProjectId);
         }
 
+        // projects created by service accounts must live under a parent resource (either a folder or an organization)
+        ResourceId parentResource = new ResourceId()
+            .setType(resourceConfiguration.getParentResourceType())
+            .setId(resourceConfiguration.getParentResourceId());
         Project requestBody = new Project()
             .setName(googleProjectId)
-            .setProjectId(googleProjectId);
+            .setProjectId(googleProjectId)
+            .setParent(parentResource);
         try {
+            // kick off a project create request and poll until it is done
             CloudResourceManager resourceManager = cloudResourceManager();
             CloudResourceManager.Projects.Create request = resourceManager.projects().create(requestBody);
             Operation operation = request.execute();
             long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
             blockUntilResourceOperationComplete(resourceManager, operation, timeout);
+            // it should be retrievable once the create operation is complete
             Project project = getProject(googleProjectId);
             if (project == null) {
                 throw new GoogleResourceException("Could not get project after creation");

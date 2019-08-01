@@ -98,7 +98,7 @@ public class DataRepoClient {
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
-            throw new IllegalStateException("unexpected interrupt waiting for response");
+            throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
         }
 
         String location = getLocationHeader(jobModelResponse);

@@ -2,7 +2,7 @@
 
 : ${DB:?}
 : ${ENVIRONMENT:?}
-: ${SUFFIX:-$ENVIRONMENT}
+SUFFIX=${SUFFIX:-$ENVIRONMENT}
 
 VAULT_PATH="secret/dsde/datarepo/${ENVIRONMENT}/api-secrets-${SUFFIX}.json"
 echo $VAULT_PATH

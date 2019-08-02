@@ -14,19 +14,19 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.StudyModel;
 import bio.terra.model.StudySummaryModel;
-import bio.terra.pdao.bigquery.BigQueryProject;
-import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -49,10 +49,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
@@ -67,11 +68,11 @@ public class AccessTest extends UsersBase {
     @Autowired private AuthService authService;
     @Autowired private SamClientService samClientService;
     @Autowired private TestConfiguration testConfiguration;
-    @Autowired private Storage storage;
 
     private static final int samTimeout = 300;
     private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
 
+    private String discovererToken;
     private String readerToken;
     private String custodianToken;
     private StudySummaryModel studySummaryModel;
@@ -81,15 +82,24 @@ public class AccessTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
+        discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
         studyId = studySummaryModel.getId();
     }
 
-    private BigQueryProject getBigQueryProject(String projectId, String token) {
+    private BigQuery getBigQuery(String projectId, String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        return new BigQueryProject(projectId, googleCredentials);
+        return BigQueryFixtures.getBigQuery(projectId, googleCredentials);
+    }
+
+    private Storage getStorage(String token) {
+        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
+        StorageOptions storageOptions = StorageOptions.newBuilder()
+            .setCredentials(googleCredentials)
+            .build();
+        return storageOptions.getService();
     }
 
     private GcsProject getGcsProject(String projectId, String token) {
@@ -107,12 +117,12 @@ public class AccessTest extends UsersBase {
 
         StudyModel study = dataRepoFixtures.getStudy(steward(), studyId);
         String studyBqDatasetName = "datarepo_" + study.getName();
-        BigQueryProject custodianBqProject = getBigQueryProject(study.getDataProject(), custodianToken);
 
+        BigQuery custodianBigQuery = getBigQuery(study.getDataProject(), custodianToken);
         try {
-            custodianBqProject.datasetExists(studyBqDatasetName);
+            BigQueryFixtures.datasetExists(custodianBigQuery, study.getDataProject(), studyBqDatasetName);
             fail("custodian shouldn't be able to access bq dataset before it is shared with them");
-        } catch (PdaoException e) {
+        } catch (IllegalStateException e) {
             assertThat("checking message for pdao exception error",
                 e.getMessage(),
                 equalTo("existence check failed for " + studyBqDatasetName));
@@ -130,10 +140,13 @@ public class AccessTest extends UsersBase {
 
         boolean custodianHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
-                boolean bqDatasetExists = custodianBqProject.datasetExists(studyBqDatasetName);
+                boolean bqDatasetExists = BigQueryFixtures.datasetExists(
+                    custodianBigQuery,
+                    study.getDataProject(),
+                    studyBqDatasetName);
                 assertThat("study bq dataset exists and is accessible", bqDatasetExists, equalTo(true));
                 return true;
-            } catch (PdaoException e) {
+            } catch (IllegalStateException e) {
                 assertThat(
                     "access is denied until SAM syncs the custodian policy with Google",
                     e.getCause().getMessage(),
@@ -150,12 +163,12 @@ public class AccessTest extends UsersBase {
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
 
         DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
-        BigQueryProject readerBqProject = getBigQueryProject(datasetModel.getDataProject(), readerToken);
+        BigQuery bigQuery = getBigQuery(datasetModel.getDataProject(), readerToken);
         try {
-            readerBqProject.datasetExists(datasetSummaryModel.getName());
+            BigQueryFixtures.datasetExists(bigQuery, datasetModel.getDataProject(), datasetSummaryModel.getName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
-        } catch (PdaoException e) {
-            assertThat("checking message for pdao exception error",
+        } catch (IllegalStateException e) {
+            assertThat("checking message for exception error",
                  e.getMessage(),
                  equalTo("existence check failed for ".concat(datasetSummaryModel.getName())));
         }
@@ -176,10 +189,12 @@ public class AccessTest extends UsersBase {
 
         boolean readerHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
-                boolean datasetExists = readerBqProject.datasetExists(datasetSummaryModel.getName());
-                assertThat("dataset exists and is accessible", datasetExists, equalTo(true));
+                boolean datasetExists = BigQueryFixtures.datasetExists(bigQuery,
+                    datasetModel.getDataProject(),
+                    datasetSummaryModel.getName());
+                assertTrue("dataset exists and is accessible", datasetExists);
                 return true;
-            } catch (PdaoException e) {
+            } catch (IllegalStateException e) {
                 assertThat(
                     "access is denied until SAM syncs the reader policy with Google",
                     e.getCause().getMessage(),
@@ -199,23 +214,23 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addStudyPolicyMember(
             steward(), studySummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
         StudyModel studyModel = dataRepoFixtures.getStudy(steward(), studySummaryModel.getId());
-        BigQueryProject bigQueryProject = getBigQueryProject(studyModel.getDataProject(), readerToken);
 
+        // Step 1. Ingest a file into the study
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
-
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
             steward(),
             studySummaryModel.getId(),
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
 
+        // Step 2. Ingest one row into the study 'file' table with a reference to that ingested file
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fsObjectModel.getObjectId());
-
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
         BlobInfo targetBlobInfo = BlobInfo
             .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
             .build();
 
+        Storage storage = StorageOptions.getDefaultInstance().getService();
         try (WriteChannel writer = storage.writer(targetBlobInfo)) {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
@@ -228,6 +243,7 @@ public class AccessTest extends UsersBase {
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
+        // Step 3. Create a dataset exposing the one row and grant read access to our reader.
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(
             custodian(),
             studySummaryModel,
@@ -247,26 +263,35 @@ public class AccessTest extends UsersBase {
             datasetSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
+        // Step 4. Wait for SAM to sync the access change out to GCP.
+        //
+        // We make a BigQuery context for the reader in the test project. The reader doesn't have access
+        // to run queries in the dataset project.
+        BigQuery bigQueryReader = getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+
         TestUtils.eventualExpect(5, samTimeout, true, () -> {
             try {
-                boolean datasetExists = bigQueryProject.datasetExists(datasetSummaryModel.getName());
+                boolean datasetExists = BigQueryFixtures.datasetExists(
+                    bigQueryReader,
+                    studyModel.getDataProject(),
+                    datasetSummaryModel.getName());
+
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
                 return true;
-            } catch (PdaoException e) {
+            } catch (IllegalStateException e) {
                 assertThat(
-                    "checking message for pdao exception error",
+                    "checking message for exception error",
                     e.getCause().getMessage(),
                     startsWith("Access Denied:"));
                 return false;
             }
         });
 
-        BigQueryProject bigQueryProjectReader = getBigQueryProject(testConfiguration.getGoogleProjectId(), readerToken);
-        String query = String.format("SELECT file_ref FROM `%s.%s.file`",
-            bigQueryProject.getProjectId(), datasetSummaryModel.getName());
+        // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
+        String sql = String.format("SELECT file_ref FROM `%s.%s.file`",
+            studyModel.getDataProject(), datasetSummaryModel.getName());
 
-
-        TableResult ids = bigQueryProjectReader.query(query);
+        TableResult ids = BigQueryFixtures.query(sql, bigQueryReader);
 
         String drsId = null;
         for (FieldValueList fieldValueList : ids.iterateAll()) {
@@ -279,6 +304,7 @@ public class AccessTest extends UsersBase {
         assertThat("matcher found a match in the drs id", matcher.find(), equalTo(true));
         drsId = matcher.group();
 
+        // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
         Optional<DRSObject> optionalDRSObject = dataRepoFixtures.resolveDrsId(
             reader(),
             drsId).getResponseObject();
@@ -289,18 +315,31 @@ public class AccessTest extends UsersBase {
 
         assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
 
+        // Step 7. Pull our the gs path try to read the file as reader and discoverer
         DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
 
         String[] strings = accessUrl.getUrl().split("/", 4);
 
         String bucketName = strings[2];
         String blobName = strings[3];
+        BlobId blobId = BlobId.of(bucketName, blobName);
 
-        try (ReadChannel reader = storage.reader(BlobId.of(bucketName, blobName))) {
+        Storage readerStorage = getStorage(readerToken);
+        assertTrue("Reader can read some bytes of the file", canReadBlob(readerStorage, blobId));
+
+        Storage discovererStorage = getStorage(discovererToken);
+        assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
+    }
+
+    private boolean canReadBlob(Storage storage, BlobId blobId) {
+        try (ReadChannel reader = storage.reader(blobId)) {
             ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
-            assertThat("Reader can read some bytes of the pdf", reader.read(bytes), greaterThan(0));
+            int bytesRead = reader.read(bytes);
+            return (bytesRead > 0);
+        } catch (Exception e) {
+            e.printStackTrace(System.out);
+            return false;
         }
-
     }
 
 }

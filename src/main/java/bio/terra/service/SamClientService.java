@@ -43,8 +43,8 @@ public class SamClientService {
 
     public enum ResourceType {
         DATAREPO,
-        STUDY,
-        DATASET;
+        DATASET,
+        SNAPSHOT;
 
         @Override
         @JsonValue
@@ -55,7 +55,7 @@ public class SamClientService {
         public String toPluralString() {
             String pluralString = "";
             switch (this) {
-                case STUDY: pluralString = "studies";
+                case DATASET: pluralString = "datasets";
                             break;
                 default: pluralString = this.toString() + "s";
             }
@@ -109,15 +109,15 @@ public class SamClientService {
         READ_POLICIES,
         ALTER_POLICIES,
         // datarepo
-        CREATE_STUDY,
-        // study
-        EDIT_STUDY,
-        READ_STUDY,
+        CREATE_DATASET,
+        // dataset
+        EDIT_DATASET,
+        READ_DATASET,
         INGEST_DATA,
         UPDATE_DATA,
-        // datasets
-        CREATE_DATASET,
-        EDIT_DATASET,
+        // snapshots
+        CREATE_SNAPSHOT,
+        EDIT_SNAPSHOT,
         READ_DATA,
         DISCOVER_DATA;
 
@@ -204,19 +204,19 @@ public class SamClientService {
         return samResourceApi.resourceAction(samResourceType, samResource, action);
     }
 
-    public void deleteStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        samResourceApi.deleteResource(ResourceType.STUDY.toString(), studyId.toString());
+        samResourceApi.deleteResource(ResourceType.DATASET.toString(), datasetId.toString());
     }
 
-    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
+    public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        samResourceApi.deleteResource(ResourceType.DATASET.toString(), datsetId.toString());
+        samResourceApi.deleteResource(ResourceType.SNAPSHOT.toString(), datsetId.toString());
     }
 
-    public List<String> createStudyResource(AuthenticatedUserRequest userReq, UUID studyId) throws ApiException {
+    public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
-        req.setResourceId(studyId.toString());
+        req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
             createAccessPolicy(DataRepoRole.STEWARD.toString(),
@@ -230,30 +230,30 @@ public class SamClientService {
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
-        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.STUDY.toString(), req);
+        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASET.toString(), req);
 
         // we'll want all of these roles to have read access to the underlying data, so we sync and return the emails
         // for the policies that get created by SAM
         ArrayList<String> rolePolicies = new ArrayList<>();
         for (DataRepoRole role : Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
             Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
-                ResourceType.STUDY.toString(),
-                studyId.toString(),
+                ResourceType.DATASET.toString(),
+                datasetId.toString(),
                 role.toString());
             rolePolicies.add(getPolicyGroupEmailFromResponse(results));
         }
         return rolePolicies;
     }
 
-    public String createDatasetResource(
+    public String createSnapshotResource(
         AuthenticatedUserRequest userReq,
-        UUID datasetId,
+        UUID snapshotId,
         Optional<List<String>> readersList
     ) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
 
 
-        req.setResourceId(datasetId.toString());
+        req.setResourceId(snapshotId.toString());
         req.addPoliciesItem(
             DataRepoRole.STEWARD.toString(),
             createAccessPolicy(DataRepoRole.STEWARD.toString(),
@@ -271,13 +271,13 @@ public class SamClientService {
         // create the resource in sam
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
-        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASET.toString(), req);
+        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.SNAPSHOT.toString(), req);
 
         // sync the readers policy
         // Map[WorkbenchEmail, Seq[SyncReportItem]]
         Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
-            ResourceType.DATASET.toString(),
-            datasetId.toString(),
+            ResourceType.SNAPSHOT.toString(),
+            snapshotId.toString(),
             DataRepoRole.READER.toString());
         return getPolicyGroupEmailFromResponse(results);
     }

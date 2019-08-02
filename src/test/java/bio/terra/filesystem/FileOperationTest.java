@@ -9,7 +9,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
@@ -79,15 +79,15 @@ public class FileOperationTest {
     public void fileOperationsTest() throws Exception {
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         BillingProfileModel profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
-        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
-            "dataset-test-study.json");
+        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+            "snapshot-test-dataset.json");
         FileLoadModel fileLoadModel = makeFileLoad();
 
-        FSObjectModel fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        FSObjectModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // lookup the file we just created
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/files/" + fileModel.getObjectId();
+        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + fileModel.getObjectId();
         MvcResult result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
@@ -98,12 +98,12 @@ public class FileOperationTest {
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
-        ErrorModel errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        ErrorModel errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
         assertThat("duplicate file error", errorModel.getMessage(),
             containsString("already exists"));
 
         // Lookup the file by path
-        url = "/api/repository/v1/studies/" + studySummary.getId() + "/filesystem/objects?path=" + fileModel.getPath();
+        url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/filesystem/objects?path=" + fileModel.getPath();
         result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
@@ -113,8 +113,8 @@ public class FileOperationTest {
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(studySummary.getId(), fileModel.getObjectId());
-        fileModel = connectedOperations.ingestFileSuccess(studySummary.getId(), fileLoadModel);
+        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
+        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // Error: Non-existent source file
@@ -132,7 +132,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(badPath);
 
-        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
         assertThat("source file does not exist", errorModel.getMessage(),
             containsString("file not found"));
 
@@ -143,7 +143,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(makeValidUniqueFilePath());
 
-        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
         assertThat("Not a gs schema", errorModel.getMessage(),
             containsString("not a gs"));
 
@@ -154,7 +154,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(makeValidUniqueFilePath());
 
-        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
         assertThat("Invalid bucket name", errorModel.getMessage(),
             containsString("Invalid bucket name"));
 
@@ -165,7 +165,7 @@ public class FileOperationTest {
             .mimeType(testMimeType)
             .targetPath(makeValidUniqueFilePath());
 
-        errorModel = connectedOperations.ingestFileFailure(studySummary.getId(), fileLoadModel);
+        errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
     }

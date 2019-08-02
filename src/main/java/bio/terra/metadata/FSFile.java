@@ -65,8 +65,8 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
-    public FSFile studyId(UUID studyId) {
-        super.studyId(studyId);
+    public FSFile datasetId(UUID datasetId) {
+        super.datasetId(datasetId);
         return this;
     }
 

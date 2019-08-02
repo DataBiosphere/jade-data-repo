@@ -4,9 +4,9 @@ import bio.terra.configuration.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
@@ -14,8 +14,8 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -48,7 +48,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// Common code for creating and deleting studies and datasets via MockMvc
+// Common code for creating and deleting datasets and snapshots via MockMvc
 // and tracking what is created so it can be deleted.
 @Component
 public class ConnectedOperations {
@@ -58,10 +58,10 @@ public class ConnectedOperations {
     private SamConfiguration samConfiguration;
 
     private boolean deleteOnTeardown;
+    private List<String> createdSnapshotIds;
     private List<String> createdDatasetIds;
-    private List<String> createdStudyIds;
     private List<String> createdProfileIds;
-    private List<String[]> createdFileIds; // [0] is studyid, [1] is fileid
+    private List<String[]> createdFileIds; // [0] is datasetid, [1] is fileid
 
     @Autowired
     public ConnectedOperations(MockMvc mvc,
@@ -73,49 +73,49 @@ public class ConnectedOperations {
         this.jsonLoader = jsonLoader;
         this.samConfiguration = samConfiguration;
 
+        createdSnapshotIds = new ArrayList<>();
         createdDatasetIds = new ArrayList<>();
-        createdStudyIds = new ArrayList<>();
         createdFileIds = new ArrayList<>();
         createdProfileIds = new ArrayList<>();
         deleteOnTeardown = true;
     }
 
     public void stubOutSamCalls(SamClientService samService) throws ApiException {
-        when(samService.createDatasetResource(any(), any(), any())).thenReturn("hi@hi.com");
+        when(samService.createSnapshotResource(any(), any(), any())).thenReturn("hi@hi.com");
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-        when(samService.createStudyResource(any(), any())).thenReturn(
+        when(samService.createDatasetResource(any(), any())).thenReturn(
             Collections.singletonList(samConfiguration.getStewardsGroupEmail()));
+        doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
-        doNothing().when(samService).deleteStudyResource(any(), any());
     }
 
     /**
-     * Creating a study through the http layer causes a study create flight to run, creating metadata and primary data
+     * Creating a dataset through the http layer causes a dataset create flight to run, creating metadata and primary data
      * to be modified.
      *
-     * @param resourcePath path to json used for a study create request
-     * @return summary of the study created
+     * @param resourcePath path to json used for a dataset create request
+     * @return summary of the dataset created
      * @throws Exception
      */
-    public StudySummaryModel createStudyWithFlight(BillingProfileModel profileModel,
+    public DatasetSummaryModel createDatasetWithFlight(BillingProfileModel profileModel,
                                                    String resourcePath) throws Exception {
-        StudyRequestModel studyRequest = jsonLoader.loadObject(resourcePath, StudyRequestModel.class);
-        studyRequest
-            .name(Names.randomizeName(studyRequest.getName()))
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(profileModel.getId());
 
-        MvcResult result = mvc.perform(post("/api/repository/v1/studies")
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(studyRequest)))
+            .content(objectMapper.writeValueAsString(datasetRequest)))
             .andExpect(status().isCreated())
             .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        StudySummaryModel studySummaryModel =
-            objectMapper.readValue(response.getContentAsString(), StudySummaryModel.class);
+        DatasetSummaryModel datasetSummaryModel =
+            objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
 
-        addStudy(studySummaryModel.getId());
-        return studySummaryModel;
+        addDataset(datasetSummaryModel.getId());
+        return datasetSummaryModel;
     }
 
     public BillingProfileModel getOrCreateProfileForAccount(String billingAccountId) throws Exception {
@@ -154,35 +154,35 @@ public class ConnectedOperations {
         return objectMapper.readValue(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
-    public MockHttpServletResponse launchCreateDataset(StudySummaryModel studySummaryModel,
+    public MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
                                                         String resourcePath,
                                                         String infix) throws Exception {
 
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        String datasetName = Names.randomizeNameInfix(datasetRequest.getName(), infix);
-        datasetRequest.setName(datasetName);
+        SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
+        String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
+        snapshotRequest.setName(snapshotName);
 
-        // TODO: the next two lines assume SingleStudyDataset
-        datasetRequest.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
-        datasetRequest.profileId(studySummaryModel.getDefaultProfileId());
+        // TODO: the next two lines assume SingleDatasetSnapshot
+        snapshotRequest.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
+        snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
 
-        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+        MvcResult result = mvc.perform(post("/api/repository/v1/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(datasetRequest)))
+            .content(objectMapper.writeValueAsString(snapshotRequest)))
             .andReturn();
 
         return validateJobModelAndWait(result);
     }
 
-    public DatasetModel getDataset(String datasetId) throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
+    public SnapshotModel getSnapshot(String snapshotId) throws Exception {
+        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + snapshotId)).andReturn();
         MockHttpServletResponse response = result.getResponse();
-        return objectMapper.readValue(response.getContentAsString(), DatasetModel.class);
+        return objectMapper.readValue(response.getContentAsString(), SnapshotModel.class);
     }
 
-    public DatasetSummaryModel handleCreateDatasetSuccessCase(MockHttpServletResponse response) throws Exception {
-        DatasetSummaryModel summaryModel = handleAsyncSuccessCase(response, DatasetSummaryModel.class);
-        addDataset(summaryModel.getId());
+    public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {
+        SnapshotSummaryModel summaryModel = handleAsyncSuccessCase(response, SnapshotSummaryModel.class);
+        addSnapshot(summaryModel.getId());
         return summaryModel;
     }
 
@@ -217,28 +217,28 @@ public class ConnectedOperations {
         return objectMapper.readValue(responseBody, ErrorModel.class);
     }
 
-    public void deleteTestStudy(String id) throws Exception {
+    public void deleteTestDataset(String id) throws Exception {
         // We only use this for @After, so we don't check return values
-        MvcResult result = mvc.perform(delete("/api/repository/v1/studies/" + id)).andReturn();
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         checkDeleteResponse(result.getResponse());
     }
 
     public void deleteTestProfile(String id) throws Exception {
         mvc.perform(delete("/api/resources/v1/profiles/" + id)).andReturn();
-        // not checking the response -- it's possible other studies are using this profile. if we spin up separate
+        // not checking the response -- it's possible other datasets are using this profile. if we spin up separate
         // databases for these tests it would make it easier to do these types of checks
     }
 
-    public void deleteTestDataset(String id) throws Exception {
-        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
+    public void deleteTestSnapshot(String id) throws Exception {
+        MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         checkDeleteResponse(response);
     }
 
-    public void deleteTestFile(String studyId, String fileId) throws Exception {
+    public void deleteTestFile(String datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
-            delete("/api/repository/v1/studies/" + studyId + "/files/" + fileId))
+            delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
                 .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
@@ -254,11 +254,11 @@ public class ConnectedOperations {
     }
 
     public IngestResponseModel ingestTableSuccess(
-        String studyId,
+        String datasetId,
         IngestRequestModel ingestRequestModel) throws Exception {
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/ingest";
+        String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -273,9 +273,9 @@ public class ConnectedOperations {
         return ingestResponse;
     }
 
-    public FSObjectModel ingestFileSuccess(String studyId, FileLoadModel fileLoadModel) throws Exception {
+    public FSObjectModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/files";
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
@@ -295,14 +295,14 @@ public class ConnectedOperations {
                     StringUtils.equals(checksum.getType(), "md5")));
         }
 
-        addFile(studyId, fileModel.getObjectId());
+        addFile(datasetId, fileModel.getObjectId());
 
         return fileModel;
     }
 
-    public ErrorModel ingestFileFailure(String studyId, FileLoadModel fileLoadModel) throws Exception {
+    public ErrorModel ingestFileFailure(String datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
-        String url = "/api/repository/v1/studies/" + studyId + "/files";
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
@@ -352,20 +352,20 @@ public class ConnectedOperations {
 
     // -- tracking methods --
 
-    public void addStudy(String id) {
-        createdStudyIds.add(id);
-    }
-
     public void addDataset(String id) {
         createdDatasetIds.add(id);
+    }
+
+    public void addSnapshot(String id) {
+        createdSnapshotIds.add(id);
     }
 
     public void addProfile(String id) {
         createdProfileIds.add(id);
     }
 
-    public void addFile(String studyId, String fileId) {
-        String[] createdFile = new String[]{studyId, fileId};
+    public void addFile(String datasetId, String fileId) {
+        String[] createdFile = new String[]{datasetId, fileId};
         createdFileIds.add(createdFile);
     }
 
@@ -375,18 +375,18 @@ public class ConnectedOperations {
 
     public void teardown() throws Exception {
         if (deleteOnTeardown) {
-            // Order is important: delete all the datasets first so we eliminate dependencies
-            // Then delete the files before the studies
-            for (String datasetId : createdDatasetIds) {
-                deleteTestDataset(datasetId);
+            // Order is important: delete all the snapshots first so we eliminate dependencies
+            // Then delete the files before the datasets
+            for (String snapshotId : createdSnapshotIds) {
+                deleteTestSnapshot(snapshotId);
             }
 
             for (String[] fileInfo : createdFileIds) {
                 deleteTestFile(fileInfo[0], fileInfo[1]);
             }
 
-            for (String studyId : createdStudyIds) {
-                deleteTestStudy(studyId);
+            for (String datasetId : createdDatasetIds) {
+                deleteTestDataset(datasetId);
             }
 
             for (String profileId : createdProfileIds) {
@@ -394,9 +394,9 @@ public class ConnectedOperations {
             }
         }
 
-        createdDatasetIds = new ArrayList<>();
+        createdSnapshotIds = new ArrayList<>();
         createdFileIds = new ArrayList<>();
-        createdStudyIds = new ArrayList<>();
+        createdDatasetIds = new ArrayList<>();
         createdProfileIds = new ArrayList<>();
     }
 }

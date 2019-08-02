@@ -1,0 +1,18 @@
+{
+  "name":        "encodefiletest_snapshot",
+  "description": "Female donors",
+  "contents": [
+    {
+      "source":
+      {
+        "datasetName": "TBD",
+        "assetName": "donor_asset"
+      },
+      "rootValues": [
+          "ENCDO000AAE",
+          "ENCDO000AAD",
+          "ENCDO000AAB"
+      ]
+    }
+  ]
+}

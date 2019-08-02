@@ -1,9 +1,0 @@
-{
-  "name":"demo",
-  "description":"desc",
-  "contents":[
-    { "source": {"studyName":"Minimal", "assetName":"sample"},
-      "rootValues":["sample1","sample2"]
-    }
-  ]
-}

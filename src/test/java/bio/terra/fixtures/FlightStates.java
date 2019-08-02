@@ -1,6 +1,6 @@
 package bio.terra.fixtures;
 
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -10,7 +10,7 @@ import org.springframework.http.HttpStatus;
 import java.time.Instant;
 import java.util.Optional;
 
-import static bio.terra.fixtures.StudyFixtures.buildMinimalStudySummary;
+import static bio.terra.fixtures.DatasetFixtures.buildMinimalDatasetSummary;
 
 
 public final class FlightStates {
@@ -26,7 +26,7 @@ public final class FlightStates {
     public static FlightState makeFlightSimpleState() {
         // Construct a mock FlightState
         FlightMap resultMap = new FlightMap();
-        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), buildMinimalStudySummary());
+        resultMap.put(JobMapKeys.RESPONSE.getKeyName(), buildMinimalDatasetSummary());
         resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
 
         FlightState flightState = new FlightState();
@@ -41,7 +41,7 @@ public final class FlightStates {
     }
 
     public static FlightState makeFlightRunningState() {
-        StudySummaryModel req = buildMinimalStudySummary();
+        DatasetSummaryModel req = buildMinimalDatasetSummary();
         FlightMap resultMap = new FlightMap();
         resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
         resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);
@@ -59,7 +59,7 @@ public final class FlightStates {
     }
 
     public static FlightState makeFlightCompletedState() {
-        StudySummaryModel req = buildMinimalStudySummary();
+        DatasetSummaryModel req = buildMinimalDatasetSummary();
         FlightMap resultMap = new FlightMap();
         resultMap.put(JobMapKeys.RESPONSE.getKeyName(), req);
         resultMap.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.I_AM_A_TEAPOT);

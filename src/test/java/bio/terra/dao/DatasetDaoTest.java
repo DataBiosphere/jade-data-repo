@@ -1,22 +1,19 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
+import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.ProfileFixtures;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetMapColumn;
-import bio.terra.metadata.DatasetMapTable;
-import bio.terra.metadata.DatasetSource;
-import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.AssetSpecification;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.Table;
+import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.StudyJsonConversion;
-import bio.terra.model.StudyRequestModel;
 import bio.terra.resourcemanagement.dao.ProfileDao;
-import bio.terra.service.DatasetService;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,15 +22,16 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -43,226 +41,182 @@ import static org.junit.Assert.assertThat;
 public class DatasetDaoTest {
 
     @Autowired
-    private DatasetDao datasetDao;
+    private JsonLoader jsonLoader;
 
     @Autowired
-    private StudyDao studyDao;
+    private DatasetDao datasetDao;
 
     @Autowired
     private ProfileDao profileDao;
 
     @Autowired
-    private DatasetService datasetService;
+    private NamedParameterJdbcTemplate jdbcTemplate;
 
-    @Autowired
-    private JsonLoader jsonLoader;
-
-    private Study study;
-    private UUID studyId;
-    private DatasetRequestModel datasetRequest;
+    private Dataset dataset;
     private UUID datasetId;
-    private UUID profileId;
+    private Dataset fromDB;
+    private BillingProfile billingProfile;
+    private boolean deleted;
 
     @Before
     public void setup() throws Exception {
-        profileId = profileDao.createBillingProfile(ProfileFixtures.randomBillingProfile());
+        billingProfile = ProfileFixtures.randomBillingProfile();
+        UUID profileId = profileDao.createBillingProfile(billingProfile);
+        billingProfile.id(profileId);
 
-        StudyRequestModel studyRequest = jsonLoader.loadObject("dataset-test-study.json",
-            StudyRequestModel.class);
-        studyRequest
-            .name(studyRequest.getName() + UUID.randomUUID().toString())
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-create-test.json",
+            DatasetRequestModel.class);
+        datasetRequest
+            .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
-        studyId = studyDao.create(StudyJsonConversion.studyRequestToStudy(studyRequest));
-        study = studyDao.retrieve(studyId);
-
-        datasetRequest = jsonLoader.loadObject("dataset-test-dataset.json", DatasetRequestModel.class)
-            .profileId(profileId.toString());
-        datasetRequest.getContents().get(0).getSource().setStudyName(study.getName());
-
-        // Populate the datasetId with random; delete should quietly not find it.
-        datasetId = UUID.randomUUID();
+        dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
+        datasetId = datasetDao.create(dataset);
+        fromDB = datasetDao.retrieve(datasetId);
     }
 
     @After
     public void teardown() throws Exception {
-        datasetDao.delete(datasetId);
-        studyDao.delete(studyId);
-        profileDao.deleteBillingProfileById(profileId);
+        if (!deleted) {
+            datasetDao.delete(datasetId);
+        }
+        datasetId = null;
+        fromDB = null;
+        profileDao.deleteBillingProfileById(billingProfile.getId());
+    }
+
+    private UUID createMinimalDataset() throws IOException {
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-minimal.json",
+            DatasetRequestModel.class);
+        datasetRequest
+            .name(datasetRequest.getName() + UUID.randomUUID().toString())
+            .defaultProfileId(billingProfile.getId().toString());
+        return datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+    }
+
+    @Test(expected = DatasetNotFoundException.class)
+    public void datasetDeleteTest() {
+        boolean success = datasetDao.delete(datasetId);
+        deleted = success;
+        datasetDao.retrieve(datasetId);
     }
 
     @Test
-    public void happyInOutTest() throws Exception {
-        datasetRequest.name(datasetRequest.getName() + UUID.randomUUID().toString());
+    public void enumerateTest() throws Exception {
+        UUID dataset1 = createMinimalDataset();
+        List<UUID> datasetIds = new ArrayList<>();
+        datasetIds.add(dataset1);
+        datasetIds.add(datasetId);
 
-        Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-        datasetId = datasetDao.create(dataset);
-        Dataset fromDB = datasetDao.retrieveDataset(datasetId);
+        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.enumerate(0, 2, "created_date",
+            "asc", null, datasetIds);
+        List<DatasetSummary> datasets = summaryEnum.getItems();
+        assertThat("dataset enumerate limit param works",
+            datasets.size(),
+            equalTo(2));
 
-        assertThat("dataset name set correctly",
+        assertThat("dataset enumerate returns datasets in the order created",
+            datasets.get(0).getCreatedDate().toEpochMilli(),
+                Matchers.lessThan(datasets.get(1).getCreatedDate().toEpochMilli()));
+
+        // this is skipping the first item returned above
+        // so compare the id from the previous retrieve
+        assertThat("dataset enumerate offset param works",
+            datasetDao.enumerate(1, 1, "created_date", "asc", null, datasetIds)
+                .getItems().get(0).getId(),
+            equalTo(datasets.get(1).getId()));
+
+        datasetDao.delete(dataset1);
+    }
+
+    @Test
+    public void datasetTest() throws Exception {
+        assertThat("dataset name is set correctly",
                 fromDB.getName(),
                 equalTo(dataset.getName()));
 
-        assertThat("dataset description set correctly",
-                fromDB.getDescription(),
-                equalTo(dataset.getDescription()));
-
-        assertThat("correct number of tables created",
+        // verify tables
+        assertThat("correct number of tables created for dataset",
                 fromDB.getTables().size(),
-                equalTo(1));
+                equalTo(2));
+        fromDB.getTables().forEach(this::assertDatasetTable);
 
-        assertThat("correct number of sources created",
-                fromDB.getDatasetSources().size(),
-                equalTo(1));
+        assertThat("correct number of relationships are created for dataset",
+                fromDB.getRelationships().size(),
+                equalTo(2));
 
-        // verify source and map
-        DatasetSource source = fromDB.getDatasetSources().get(0);
-        assertThat("source points back to dataset",
-                source.getDataset().getId(),
-                equalTo(dataset.getId()));
+        assertTablesInRelationship(fromDB);
 
-        assertThat("source points to the asset spec",
-                source.getAssetSpecification().getId(),
-                equalTo(study.getAssetSpecifications().get(0).getId()));
-
-        assertThat("correct number of map tables",
-                source.getDatasetMapTables().size(),
-                equalTo(1));
-
-        // Verify map table
-        DatasetMapTable mapTable = source.getDatasetMapTables().get(0);
-        Table studyTable = study.getTables().get(0);
-        Table datasetTable = dataset.getTables().get(0);
-
-        assertThat("correct map table study table",
-                mapTable.getFromTable().getId(),
-                equalTo(studyTable.getId()));
-
-        assertThat("correct map table dataset table",
-                mapTable.getToTable().getId(),
-                equalTo(datasetTable.getId()));
-
-        assertThat("correct number of map columns",
-                mapTable.getDatasetMapColumns().size(),
-                equalTo(1));
-
-        // Verify map columns
-        DatasetMapColumn mapColumn = mapTable.getDatasetMapColumns().get(0);
-        // Why is study columns Collection and not List?
-        Column studyColumn = studyTable.getColumns().iterator().next();
-        Column datasetColumn = datasetTable.getColumns().get(0);
-
-        assertThat("correct map column study column",
-                mapColumn.getFromColumn().getId(),
-                equalTo(studyColumn.getId()));
-
-        assertThat("correct map column dataset column",
-                mapColumn.getToColumn().getId(),
-                equalTo(datasetColumn.getId()));
+        // verify assets
+        assertThat("correct number of assets created for dataset",
+                fromDB.getAssetSpecifications().size(),
+                equalTo(2));
+        fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
     }
 
-    @Test
-    public void datasetEnumerateTest() throws Exception {
-        List<UUID> datasetIds = new ArrayList<>();
-        String datasetName = datasetRequest.getName() + UUID.randomUUID().toString();
-
-        for (int i = 0; i < 6; i++) {
-            datasetRequest
-                .name(makeName(datasetName, i))
-                // set the description to a random string so we can verify the sorting is working independently of the
-                // study name or created_date. add a suffix to filter on for the even datasets
-                .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
-            Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequest);
-            datasetId = datasetDao.create(dataset);
-            datasetIds.add(datasetId);
-        }
-
-        testOneEnumerateRange(datasetIds, datasetName, 0, 1000);
-        testOneEnumerateRange(datasetIds, datasetName, 1, 3);
-        testOneEnumerateRange(datasetIds, datasetName, 3, 5);
-        testOneEnumerateRange(datasetIds, datasetName, 4, 7);
-
-        testSortingNames(datasetIds, datasetName, 0, 10, "asc");
-        testSortingNames(datasetIds, datasetName, 0, 3, "asc");
-        testSortingNames(datasetIds, datasetName, 1, 3, "asc");
-        testSortingNames(datasetIds, datasetName, 2, 5, "asc");
-        testSortingNames(datasetIds, datasetName, 0, 10, "desc");
-        testSortingNames(datasetIds, datasetName, 0, 3, "desc");
-        testSortingNames(datasetIds, datasetName, 1, 3, "desc");
-        testSortingNames(datasetIds, datasetName, 2, 5, "desc");
-
-        testSortingDescriptions(datasetIds, "desc");
-        testSortingDescriptions(datasetIds, "asc");
-
-
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 2, null,
-            null, "==foo==", datasetIds);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
-        assertThat("filtered and retrieved 2 datasets", summaryList.size(), equalTo(2));
-        assertThat("filtered total 3", summaryEnum.getTotal(), equalTo(3));
-        for (int i = 0; i < 2; i++) {
-            assertThat("first 2 ids match", datasetIds.get(i * 2), equalTo(summaryList.get(i).getId()));
-        }
-
-        MetadataEnumeration<DatasetSummary> emptyEnum = datasetDao.retrieveDatasets(0, 6, null,
-            null, "__", datasetIds);
-        assertThat("underscores don't act as wildcards", emptyEnum.getItems().size(), equalTo(0));
-
-        for (UUID datasetId : datasetIds) {
-            datasetDao.delete(datasetId);
-        }
+    protected void assertTablesInRelationship(Dataset dataset) {
+        String sqlFrom = "SELECT from_table "
+                + "FROM dataset_relationship WHERE id = :id";
+        String sqlTo = "SELECT to_table "
+                + "FROM dataset_relationship WHERE id = :id";
+        dataset.getRelationships().stream().forEach(rel -> {
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", rel.getId());
+            UUID fromUUID = jdbcTemplate.queryForObject(sqlFrom, params, UUID.class);
+            assertThat("from table id in DB matches that in retrieved object",
+                    fromUUID,
+                    equalTo(rel.getFromColumn().getTable().getId()));
+            UUID toUUID = jdbcTemplate.queryForObject(sqlTo, params, UUID.class);
+            assertThat("to table id in DB matches that in retrieved object",
+                    toUUID,
+                    equalTo(rel.getToColumn().getTable().getId()));
+        });
     }
 
-    private String makeName(String baseName, int index) {
-        return baseName + "-" + index;
-    }
-
-    private void testSortingNames(List<UUID> datasetIds, String datasetName, int offset, int limit, String direction) {
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "name",
-            direction, null, datasetIds);
-        List<DatasetSummary>  summaryList = summaryEnum.getItems();
-        int index = (direction.equals("asc")) ? offset : datasetIds.size() - offset - 1;
-        for (DatasetSummary summary : summaryList) {
-            assertThat("correct id", datasetIds.get(index), equalTo(summary.getId()));
-            assertThat("correct name", makeName(datasetName, index), equalTo(summary.getName()));
-            index += (direction.equals("asc")) ? 1 : -1;
-        }
-    }
-
-    private void testSortingDescriptions(List<UUID> datasetIds, String direction) {
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(0, 6,
-            "description", direction, null, datasetIds);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
-        assertThat("the full list comes back", summaryList.size(), equalTo(6));
-        String previous = summaryList.get(0).getDescription();
-        for (int i = 1; i < summaryList.size(); i++) {
-            String next = summaryList.get(i).getDescription();
-            if (direction.equals("asc")) {
-                assertThat("ascending order", previous, lessThan(next));
-            } else {
-                assertThat("descending order", previous, greaterThan(next));
-            }
-            previous = next;
+    protected void assertDatasetTable(Table table) {
+        if (table.getName().equals("participant")) {
+            assertThat("participant table has 4 columns",
+                    table.getColumns().size(),
+                    equalTo(4));
+        } else {
+            assertThat("other table created is sample",
+                    table.getName(),
+                    equalTo("sample"));
+            assertThat("sample table has 3 columns",
+                    table.getColumns().size(),
+                    equalTo(3));
         }
 
     }
 
-    private void testOneEnumerateRange(List<UUID> datasetIds,
-                                       String datasetName,
-                                       int offset,
-                                       int limit) {
-        // We expect the datasets to be returned in their created order
-        MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.retrieveDatasets(offset, limit, "created_date",
-            "asc", null, datasetIds);
-        List<DatasetSummary> summaryList = summaryEnum.getItems();
-        int index = offset;
-        for (DatasetSummary summary : summaryList) {
-            assertThat("correct dataset id",
-                    datasetIds.get(index),
-                    equalTo(summary.getId()));
-            assertThat("correct dataset namee",
-                    makeName(datasetName, index),
-                    equalTo(summary.getName()));
-            index++;
+    protected void assertAssetSpecs(AssetSpecification spec) {
+        if (spec.getName().equals("Trio")) {
+            assertThat("Trio asset has 2 tables",
+                    spec.getAssetTables().size(),
+                    equalTo(2));
+            assertThat("participant is the root table for Trio",
+                    spec.getRootTable().getTable().getName(),
+                    equalTo("participant"));
+            assertThat("participant asset table has only 3 columns",
+                    spec.getRootTable().getColumns().size(),
+                    equalTo(3));
+            assertThat("Trio asset follows 2 relationships",
+                    spec.getAssetRelationships().size(),
+                    equalTo(2));
+        } else {
+            assertThat("other asset created is Sample",
+                    spec.getName(),
+                    equalTo("sample"));
+            assertThat("Sample asset has 2 tables",
+                    spec.getAssetTables().size(),
+                    equalTo(2));
+            assertThat("sample is the root table",
+                    spec.getRootTable().getTable().getName(),
+                    equalTo("sample"));
+            assertThat("and 3 columns",
+                    spec.getRootTable().getColumns().size(),
+                    equalTo(3));
+            assertThat("Sample asset follows 1 relationship",
+                    spec.getAssetRelationships().size(),
+                    equalTo(1));
         }
     }
 }

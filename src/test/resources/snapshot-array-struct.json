@@ -1,0 +1,18 @@
+{
+  "name":        "snapshot_array_struct",
+  "description": "Very simple snapshot for test",
+  "contents": [
+    {
+      "source":
+      {
+        "datasetName": "ArrayStruct",
+        "assetName": "sample_centric"
+      },
+      "rootValues": [
+        "sample1",
+        "sample3",
+        "sample5"
+      ]
+    }
+  ]
+}

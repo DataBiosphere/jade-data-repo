@@ -37,29 +37,29 @@ public class SamClientServiceTest {
     private SamClientService sam;
 
     @Test(expected = ApiException.class)
-    public void testCreateStudyResourceException() throws Exception {
-        UUID studyId = UUID.randomUUID();
-        // TODO this code below is not mocked correctly
-        willThrow(new ApiException("test"))
-            .given(samResourceApi)
-            .createResource(eq(SamClientService.ResourceType.STUDY.toString()), any());
-        sam.createStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
-    }
-
-    @Test(expected = ApiException.class)
     public void testCreateDatasetResourceException() throws Exception {
         UUID datasetId = UUID.randomUUID();
         // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.DATASET.toString()), any());
-        Optional<List<String>> readerList = Optional.of(Collections.singletonList("email@email.com"));
-        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId, readerList);
+        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
     }
 
     @Test(expected = ApiException.class)
-    public void testCreateDatasetResourceExceptionWithReaders() throws Exception {
-        UUID datasetId = UUID.randomUUID();
+    public void testCreateSnapshotResourceException() throws Exception {
+        UUID snapshotId = UUID.randomUUID();
+        // TODO this code below is not mocked correctly
+        willThrow(new ApiException("test"))
+            .given(samResourceApi)
+            .createResource(eq(SamClientService.ResourceType.SNAPSHOT.toString()), any());
+        Optional<List<String>> readerList = Optional.of(Collections.singletonList("email@email.com"));
+        sam.createSnapshotResource(new AuthenticatedUserRequest("blah", "blah"), snapshotId, readerList);
+    }
+
+    @Test(expected = ApiException.class)
+    public void testCreateSnapshotResourceExceptionWithReaders() throws Exception {
+        UUID snapshotId = UUID.randomUUID();
         Optional<List<String>> readersList = Optional.of(Collections.singletonList("email@email.com"));
         CreateResourceRequest createResourceRequest = new CreateResourceRequest();
         CreateResourceCorrectRequest createResourceCorrectRequest = new CreateResourceCorrectRequest();
@@ -70,18 +70,9 @@ public class SamClientServiceTest {
         // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .createResource(eq(SamClientService.ResourceType.DATASET.toString()), eq(createResourceRequest));
+            .createResource(eq(SamClientService.ResourceType.SNAPSHOT.toString()), eq(createResourceRequest));
 
-        sam.createDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId, readersList);
-    }
-
-    @Test(expected = ApiException.class)
-    public void testDeleteStudyResourceException() throws Exception {
-        UUID studyId = UUID.randomUUID();
-        willThrow(new ApiException("test"))
-            .given(samResourceApi)
-            .deleteResource(eq(SamClientService.ResourceType.STUDY.toString()), eq(studyId.toString()));
-        sam.deleteStudyResource(new AuthenticatedUserRequest("blah", "blah"), studyId);
+        sam.createSnapshotResource(new AuthenticatedUserRequest("blah", "blah"), snapshotId, readersList);
     }
 
     @Test(expected = ApiException.class)
@@ -91,5 +82,14 @@ public class SamClientServiceTest {
             .given(samResourceApi)
             .deleteResource(eq(SamClientService.ResourceType.DATASET.toString()), eq(datasetId.toString()));
         sam.deleteDatasetResource(new AuthenticatedUserRequest("blah", "blah"), datasetId);
+    }
+
+    @Test(expected = ApiException.class)
+    public void testDeleteSnapshotResourceException() throws Exception {
+        UUID snapshotId = UUID.randomUUID();
+        willThrow(new ApiException("test"))
+            .given(samResourceApi)
+            .deleteResource(eq(SamClientService.ResourceType.SNAPSHOT.toString()), eq(snapshotId.toString()));
+        sam.deleteSnapshotResource(new AuthenticatedUserRequest("blah", "blah"), snapshotId);
     }
 }

@@ -2,17 +2,17 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
-import bio.terra.dao.StudyDao;
+import bio.terra.dao.DatasetDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.StudyJsonConversion;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetJsonConversion;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.google.cloud.storage.BlobInfo;
@@ -53,14 +53,14 @@ public class BigQueryPdaoTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
-    @Autowired private StudyDao studyDao;
+    @Autowired private DatasetDao datasetDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
     private SamClientService samService;
 
-    private Study study;
+    private Dataset dataset;
     private BillingProfileModel profileModel;
 
     @Before
@@ -70,53 +70,53 @@ public class BigQueryPdaoTest {
 
         String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccount);
-        // TODO: this next bit should be in connected operations, need to make it a component and autowire a studydao
-        StudyRequestModel studyRequest = jsonLoader.loadObject("ingest-test-study.json",
-            StudyRequestModel.class);
-        studyRequest
+        // TODO: this next bit should be in connected operations, need to make it a component and autowire a datasetdao
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject("ingest-test-dataset.json",
+            DatasetRequestModel.class);
+        datasetRequest
             .defaultProfileId(profileModel.getId())
-            .name(studyName());
-        study = StudyJsonConversion.studyRequestToStudy(studyRequest);
-        UUID studyId = studyDao.create(study);
-        study.id(studyId);
-        logger.info("Created study in setup: {}", studyId);
+            .name(datasetName());
+        dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
+        UUID datasetId = datasetDao.create(dataset);
+        dataset.id(datasetId);
+        logger.info("Created dataset in setup: {}", datasetId);
     }
 
     @After
     public void teardown() throws Exception {
-        studyDao.delete(study.getId());
+        datasetDao.delete(dataset.getId());
         connectedOperations.teardown();
     }
 
-    private String studyName() {
+    private String datasetName() {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
     @Test
     public void basicTest() throws Exception {
-        boolean exists = bigQueryPdao.studyExists(study);
+        boolean exists = bigQueryPdao.datasetExists(dataset);
         Assert.assertThat(exists, is(equalTo(false)));
 
-        bigQueryPdao.createStudy(study);
+        bigQueryPdao.createDataset(dataset);
 
-        exists = bigQueryPdao.studyExists(study);
+        exists = bigQueryPdao.datasetExists(dataset);
         Assert.assertThat(exists, is(equalTo(true)));
 
         // Perform the redo, which should delete and re-create
-        bigQueryPdao.createStudy(study);
-        exists = bigQueryPdao.studyExists(study);
+        bigQueryPdao.createDataset(dataset);
+        exists = bigQueryPdao.datasetExists(dataset);
         Assert.assertThat(exists, is(equalTo(true)));
 
 
         // Now delete it and test that it is gone
-        bigQueryPdao.deleteStudy(study);
-        exists = bigQueryPdao.studyExists(study);
+        bigQueryPdao.deleteDataset(dataset);
+        exists = bigQueryPdao.datasetExists(dataset);
         Assert.assertThat(exists, is(equalTo(false)));
     }
 
     @Test
     public void datasetTest() throws Exception {
-        bigQueryPdao.createStudy(study);
+        bigQueryPdao.createDataset(dataset);
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -138,29 +138,29 @@ public class BigQueryPdaoTest {
             storage.create(sampleBlob, readFile("ingest-test-sample.json"));
             storage.create(fileBlob, readFile("ingest-test-file.json"));
 
-            // Ingest staged data into the new study.
+            // Ingest staged data into the new dataset.
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
 
-            String studyId = study.getId().toString();
-            connectedOperations.ingestTableSuccess(studyId,
+            String datasetId = dataset.getId().toString();
+            connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("participant").path(gsPath(participantBlob)));
-            connectedOperations.ingestTableSuccess(studyId,
+            connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("sample").path(gsPath(sampleBlob)));
-            connectedOperations.ingestTableSuccess(studyId,
+            connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("file").path(gsPath(fileBlob)));
 
-            // Create a dataset!
-            StudySummaryModel studySummary =
-                StudyJsonConversion.studySummaryModelFromStudySummary(study.getStudySummary());
-            MockHttpServletResponse datasetResponse =
-                connectedOperations.launchCreateDataset(studySummary, "ingest-test-dataset.json", "");
-            DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(datasetResponse);
-            DatasetModel dataset = connectedOperations.getDataset(datasetSummary.getId());
+            // Create a snapshot!
+            DatasetSummaryModel datasetSummaryModel =
+                DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
+            MockHttpServletResponse snapshotResponse =
+                connectedOperations.launchCreateSnapshot(datasetSummaryModel, "ingest-test-snapshot.json", "");
+            SnapshotSummaryModel snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
+            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-            // TODO: Assert that the dataset contains the rows we expect.
+            // TODO: Assert that the snapshot contains the rows we expect.
             // Skipping that for now because there's no REST API to query table contents.
-            Assert.assertThat(dataset.getTables().size(), is(equalTo(3)));
+            Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
         }

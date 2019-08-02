@@ -9,10 +9,10 @@ import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
 import bio.terra.metadata.SnapshotSource;
 import bio.terra.metadata.RowIdMatch;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
 import bio.terra.metadata.SnapshotDataProject;
-import bio.terra.metadata.StudyDataProject;
+import bio.terra.metadata.DatasetDataProject;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
@@ -71,9 +71,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
         this.dataProjectService = dataProjectService;
     }
 
-    private BigQueryProject bigQueryProjectForStudy(Study study) {
-        StudyDataProject projectForStudy = dataProjectService.getProjectForStudy(study);
-        return BigQueryProject.get(projectForStudy.getGoogleProjectId());
+    private BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
+        DatasetDataProject projectForDataset = dataProjectService.getProjectForDataset(dataset);
+        return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
 
     private BigQueryProject bigQueryProjectForSnapshot(bio.terra.metadata.Snapshot snapshot) {
@@ -82,33 +82,33 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void createStudy(Study study) {
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+    public void createDataset(Dataset dataset) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
 
-        // Keep the study name from colliding with a snapshot name by prefixing it.
+        // Keep the dataset name from colliding with a snapshot name by prefixing it.
         // TODO: validate against people using the prefix for snapshots
-        String studyName = prefixName(study.getName());
+        String datasetName = prefixName(dataset.getName());
         try {
-            // For idempotency, if we find the study exists, we assume that we started to
+            // For idempotency, if we find the dataset exists, we assume that we started to
             // create it before and failed in the middle. We delete it and re-create it from scratch.
-            if (bigQueryProject.datasetExists(studyName)) {
-                bigQueryProject.deleteDataset(studyName);
+            if (bigQueryProject.datasetExists(datasetName)) {
+                bigQueryProject.deleteDataset(datasetName);
             }
 
-            bigQueryProject.createDataset(studyName, study.getDescription());
-            for (Table table : study.getTables()) {
+            bigQueryProject.createDataset(datasetName, dataset.getDescription());
+            for (Table table : dataset.getTables()) {
                 Schema schema = buildSchema(table, true);
-                bigQueryProject.createTable(studyName, table.getName(), schema);
+                bigQueryProject.createTable(datasetName, table.getName(), schema);
             }
         } catch (Exception ex) {
-            throw new PdaoException("create study failed for " + studyName, ex);
+            throw new PdaoException("create dataset failed for " + datasetName, ex);
         }
     }
 
     @Override
-    public boolean deleteStudy(Study study) {
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
-        return bigQueryProject.deleteDataset(prefixName(study.getName()));
+    public boolean deleteDataset(Dataset dataset) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        return bigQueryProject.deleteDataset(prefixName(dataset.getName()));
     }
 
     // compute the row ids from the input ids and validate all inputs have matches
@@ -134,18 +134,18 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId = bigQueryProject.getProjectId();
         /*
             Making this SQL query:
-            SELECT T.datarepo_row_id, T.<study-column>, V.inputValue
+            SELECT T.datarepo_row_id, T.<dataset-column>, V.inputValue
             FROM (select inputValue from unnest(['inputValue0', 'inputValue1', ...]) as inputValue) AS V
-            LEFT JOIN <study-table> AS T
-            ON T.<study-column> = V.inputValue
+            LEFT JOIN <dataset-table> AS T
+            ON T.<dataset-column> = V.inputValue
         */
 
         // One source: grab it and navigate to the relevant parts
         AssetSpecification asset = source.getAssetSpecification();
-        Column column = asset.getRootColumn().getStudyColumn();
-        String studyColumnName = column.getName();
-        String studyTableName = column.getTable().getName();
-        String studyBqDatasetName = prefixName(source.getStudy().getName());
+        Column column = asset.getRootColumn().getDatasetColumn();
+        String datasetColumnName = column.getName();
+        String datasetTableName = column.getTable().getName();
+        String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT T.")
@@ -162,11 +162,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
         builder.append("]) AS inputValue) AS V LEFT JOIN `")
                 .append(projectId)
                 .append('.')
-                .append(studyBqDatasetName)
+                .append(datasetBqDatasetName)
                 .append('.')
-                .append(studyTableName)
+                .append(datasetTableName)
                 .append("` AS T ON V.inputValue = T.")
-                .append(studyColumnName);
+                .append(datasetColumnName);
 
         // Execute the query building the row id match structure that tracks the matching
         // ids and the mismatched ids
@@ -209,7 +209,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
             SnapshotSource source = snapshot.getSnapshotSources().get(0);
-            String studyBqDatasetName = prefixName(source.getStudy().getName());
+            String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
             AssetSpecification asset = source.getAssetSpecification();
             Table rootTable = asset.getRootTable().getTable();
@@ -218,7 +218,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             if (sql != null) {
                 bigQueryProject.query(sql);
             }
-            sql = validateRowIdsForRootSql(studyBqDatasetName, snapshotName, rootTable.getName(), projectId);
+            sql = validateRowIdsForRootSql(datasetBqDatasetName, snapshotName, rootTable.getName(), projectId);
 
             TableResult result = bigQueryProject.query(sql);
             FieldValueList row = result.iterateAll().iterator().next();
@@ -234,14 +234,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             // walk and populate relationship table row ids
             List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
-            walkRelationships(studyBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
 
             // create the views
-            List<String> bqTableNames = createViews(studyBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+            List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
 
             // set authorization on views
             List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
-            bigQueryProject.addDatasetAcls(studyBqDatasetName, acls);
+            bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
         } catch (Exception ex) {
             throw new PdaoException("createSnapshot failed", ex);
         }
@@ -255,21 +255,21 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void grantReadAccessToStudy(Study study, List<String> policyGroupEmails) {
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+    public void grantReadAccessToDataset(Dataset dataset, List<String> policyGroupEmails) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         List<Acl> policyGroupAcls = policyGroupEmails
             .stream()
             .map(email -> Acl.of(new Acl.Group(email), Acl.Role.READER))
             .collect(Collectors.toList());
-        bigQueryProject.addDatasetAcls(prefixName(study.getName()), policyGroupAcls);
+        bigQueryProject.addDatasetAcls(prefixName(dataset.getName()), policyGroupAcls);
     }
 
     @Override
-    public boolean studyExists(Study study) {
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
-        String studyName = prefixName(study.getName());
+    public boolean datasetExists(Dataset dataset) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String datasetName = prefixName(dataset.getName());
         // bigQueryProject.datasetExists checks whether the BigQuery dataset by the provided name exists
-        return bigQueryProject.datasetExists(studyName);
+        return bigQueryProject.datasetExists(datasetName);
     }
 
     @Override
@@ -292,13 +292,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     // Load data
-    public PdaoLoadStatistics loadToStagingTable(Study study,
+    public PdaoLoadStatistics loadToStagingTable(Dataset dataset,
                                                  Table targetTable,
                                                  String stagingTableName,
                                                  IngestRequestModel ingestRequest) {
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
-        TableId tableId = TableId.of(prefixName(study.getName()), stagingTableName);
+        TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
         Schema schema = buildSchema(targetTable, true); // Source does not have row_id
         LoadJobConfiguration.Builder loadBuilder = LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
                 .setFormatOptions(buildFormatOptions(ingestRequest))
@@ -357,19 +357,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return pdaoLoadStatistics;
     }
 
-    public void addRowIdsToStagingTable(Study study, String stagingTableName) {
+    public void addRowIdsToStagingTable(Dataset dataset, String stagingTableName) {
         /*
          * UPDATE `project.dataset.stagingtable`
          * SET datarepo_row_id = GENERATE_UUID()
          * WHERE datarepo_row_id IS NULL
          */
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         StringBuilder sql = new StringBuilder();
         sql.append("UPDATE ")
             .append("`")
             .append(bigQueryProject.getProjectId())
             .append(".")
-            .append(prefixName(study.getName()))
+            .append(prefixName(dataset.getName()))
             .append(".")
             .append(stagingTableName)
             .append("` SET ")
@@ -381,23 +381,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sql.toString());
     }
 
-    public void insertIntoStudyTable(Study study,
+    public void insertIntoDatasetTable(Dataset dataset,
                                      Table targetTable,
                                      String stagingTableName) {
         /*
-         * INSERT INTO `project.dataset.studytable`
+         * INSERT INTO `project.dataset.datasettable`
          * (<column names...>)
          * SELECT <column names...>
-         * FROM `project.dataset.studytable`
+         * FROM `project.dataset.datasettable`
          */
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT ")
             .append("`")
             .append(projectId)
             .append(".")
-            .append(prefixName(study.getName()))
+            .append(prefixName(dataset.getName()))
             .append(".")
             .append(targetTable.getName())
             .append("` (");
@@ -407,7 +407,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         sql.append(" FROM `")
             .append(projectId)
             .append(".")
-            .append(prefixName(study.getName()))
+            .append(prefixName(dataset.getName()))
             .append(".")
             .append(stagingTableName)
             .append("`");
@@ -447,12 +447,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return options;
     }
 
-    public boolean deleteStudyTable(Study study, String tableName) {
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
-        return bigQueryProject.deleteTable(prefixName(study.getName()), tableName);
+    public boolean deleteDatasetTable(Dataset dataset, String tableName) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName);
     }
 
-    public List<String> getRefIds(Study study, String tableName, Column refColumn) {
+    public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) {
         /*
           For simple columns:
             SELECT refColumnName FROM stagingTable
@@ -461,16 +461,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
             FROM stagingTable
             CROSS JOIN UNNEST(refColumnName) AS x
          */
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
         List<String> refIdArray = new ArrayList<>();
 
-        String studyBqDatasetName = prefixName(study.getName());
+        String datasetBqDatasetName = prefixName(dataset.getName());
         StringBuilder builder = new StringBuilder();
 
         if (refColumn.isArrayOf()) {
             builder.append("SELECT x FROM `")
-                .append(projectId).append('.').append(studyBqDatasetName).append('.').append(tableName)
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
                 .append("` CROSS JOIN UNNEST(")
                 .append(refColumn.getName())
                 .append(") AS x");
@@ -478,7 +478,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             builder.append("SELECT ")
                 .append(refColumn.getName())
                 .append(" FROM `")
-                .append(projectId).append('.').append(studyBqDatasetName).append('.').append(tableName)
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
                 .append("`");
         }
         String sql = builder.toString();
@@ -493,7 +493,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
-    public List<String> getSnapshotRefIds(Study study,
+    public List<String> getSnapshotRefIds(Dataset dataset,
                                          String snapshotName,
                                          String tableName,
                                          String tableId,
@@ -501,29 +501,29 @@ public class BigQueryPdao implements PrimaryDataAccess {
         /*
           For scalar columns we do this:
             SELECT refColumnName
-            FROM <study table> S, datarepo_row_ids R
+            FROM <dataset table> S, datarepo_row_ids R
             WHERE S.datarepo_row_id = R.datarepo_row_id
-            AND R.datarepo_table_id = '<study table id>'
+            AND R.datarepo_table_id = '<dataset table id>'
 
           For array columns we flatten the ref column by adding the cross join:
             SELECT refColumnName
-            FROM <study table> S, datarepo_row_ids R
+            FROM <dataset table> S, datarepo_row_ids R
 
             CROSS JOIN UNNEST(S.refColumnName) AS refColumnName
 
             WHERE S.datarepo_row_id = R.datarepo_row_id
-            AND R.datarepo_table_id = '<study table id>'
+            AND R.datarepo_table_id = '<dataset table id>'
          */
         List<String> refIdArray = new ArrayList<>();
-        BigQueryProject bigQueryProject = bigQueryProjectForStudy(study);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
-        String studyBqDatasetName = prefixName(study.getName());
+        String datasetBqDatasetName = prefixName(dataset.getName());
         String refColumnName = refColumn.getName();
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT ")
             .append(refColumnName)
             .append(" FROM `")
-            .append(projectId).append('.').append(studyBqDatasetName).append('.').append(tableName)
+            .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
             .append("` S, `")
             .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
             .append("` R");
@@ -626,18 +626,18 @@ public class BigQueryPdao implements PrimaryDataAccess {
      * for each row id table row. So we validate by comparing the count of the joined rows against the
      * count of incoming row ids. This will catch duplicate and mismatched row ids.
      *
-     * @param studyBqDatasetName
+     * @param datasetBqDatasetName
      * @param snapshotName
      * @param rootTableName
      * @param projectId
      */
-    private String validateRowIdsForRootSql(String studyBqDatasetName,
+    private String validateRowIdsForRootSql(String datasetBqDatasetName,
                                           String snapshotName,
                                           String rootTableName,
                                           String projectId) {
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT COUNT(*) FROM `")
-                .append(projectId).append('.').append(studyBqDatasetName).append('.').append(rootTableName)
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(rootTableName)
                 .append("` AS T, `")
                 .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
                 .append("` AS R WHERE R.")
@@ -648,7 +648,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     /**
      * Recursive walk of the relationships. Note that we only follow what is connected.
      * If there are relationships in the asset that are not connected to the root, they will
-     * simply be ignored. See the related comment in study validator.
+     * simply be ignored. See the related comment in dataset validator.
      *
      * We operate on a pdao-specific list of the asset relationships so that we can
      * bookkeep which ones we have visited. Since we need to walk relationships in both
@@ -657,12 +657,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
      *
      * TODO: REVIEWERS: should this code detect circular references?
      *
-     * @param studyBqDatasetName
+     * @param datasetBqDatasetName
      * @param snapshotName
      * @param walkRelationships - list of relationships to consider walking
      * @param startTableId
      */
-    private void walkRelationships(String studyBqDatasetName,
+    private void walkRelationships(String datasetBqDatasetName,
                                    String snapshotName,
                                    List<WalkRelationship> walkRelationships,
                                    String startTableId,
@@ -685,8 +685,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             relationship.setVisited();
-            storeRowIdsForRelatedTable(studyBqDatasetName, snapshotName, relationship, projectId, bigQuery);
-            walkRelationships(studyBqDatasetName, snapshotName, walkRelationships, relationship.getToTableId(), projectId,
+            storeRowIdsForRelatedTable(datasetBqDatasetName, snapshotName, relationship, projectId, bigQuery);
+            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, relationship.getToTableId(), projectId,
                 bigQuery);
         }
     }
@@ -696,14 +696,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
      * This may be walking the relationship from the from table to the to table,
      * or walking the relationship from the to table to the from table.
      *
-     * @param studyBqDatasetName - name of the study BigQuery dataset
+     * @param datasetBqDatasetName - name of the dataset BigQuery dataset
      * @param snapshotName - name of the new snapshot's BigQuery dataset
      * @param relationship - relationship we are walking with its direction set. The class returns
      *                       the appropriate from and to based on that direction.
      * @param projectId - the project id that this bigquery dataset exists in
      * @param bigQuery - a BigQuery instance
      */
-    private void storeRowIdsForRelatedTable(String studyBqDatasetName,
+    private void storeRowIdsForRelatedTable(String datasetBqDatasetName,
                                             String snapshotName,
                                             WalkRelationship relationship,
                                             String projectId,
@@ -748,11 +748,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 .append(PDAO_ROW_ID_COLUMN)
                 .append(" FROM `")
                 .append(projectId).append('.')
-                .append(studyBqDatasetName).append('.')
+                .append(datasetBqDatasetName).append('.')
                 .append(relationship.getToTableName())
                 .append("` AS T, `")
                 .append(projectId).append('.')
-                .append(studyBqDatasetName).append('.')
+                .append(datasetBqDatasetName).append('.')
                 .append(relationship.getFromTableName())
                 .append("` AS F, `")
                 .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
@@ -802,7 +802,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private List<String> createViews(String studyBqDatasetName, String snapshotName, bio.terra.metadata.Snapshot snapshot,
+    private List<String> createViews(String datasetBqDatasetName, String snapshotName, bio.terra.metadata.Snapshot snapshot,
                                      String projectId, BigQuery bigQuery) {
         return snapshot.getTables().stream().map(table -> {
                 StringBuilder builder = new StringBuilder();
@@ -810,10 +810,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 /*
                   Building this SQL:
                     SELECT <column list from snapshot table> FROM
-                      (SELECT <column list mapping study to snapshot columns>
-                       FROM <study table> S, datarepo_row_ids R
+                      (SELECT <column list mapping dataset to snapshot columns>
+                       FROM <dataset table> S, datarepo_row_ids R
                        WHERE S.datarepo_row_id = R.datarepo_row_id
-                         AND R.datarepo_table_id = '<study table id>')
+                         AND R.datarepo_table_id = '<dataset table id>')
                  */
 
                 builder.append("SELECT ");
@@ -823,7 +823,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 // Build the FROM clause from the source
                 // NOTE: we can put this in a loop when we do multiple sources
                 SnapshotSource source = snapshot.getSnapshotSources().get(0);
-                buildSource(builder, projectId, studyBqDatasetName, snapshotName, table, source, snapshot);
+                buildSource(builder, projectId, datasetBqDatasetName, snapshotName, table, source, snapshot);
 
                 // create the view
                 String tableName = table.getName();
@@ -853,7 +853,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private void buildSource(StringBuilder builder,
                              String projectId,
-                             String studyBqDatasetName,
+                             String datasetBqDatasetName,
                              String snapshotName,
                              Table table,
                              SnapshotSource source,
@@ -872,10 +872,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         buildSourceSelectList(builder, table, mapTable, snapshot, source);
 
         builder.append(" FROM `")
-                // base study table
+                // base dataset table
                 .append(projectId)
                 .append('.')
-                .append(studyBqDatasetName)
+                .append(datasetBqDatasetName)
                 .append('.')
                 .append(mapTable.getFromTable().getName())
                 .append('`')
@@ -926,12 +926,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             } else if (StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "FILEREF") ||
                 StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "DIRREF")) {
                 if (targetColumn.isArrayOf()) {
-                    // ARRAY( SELECT CONCAT('drs://datarepodnsname/v1_studyid_snapshotid_', x)
+                    // ARRAY( SELECT CONCAT('drs://datarepodnsname/v1_datasetid_snapshotid_', x)
                     //        FROM UNNEST(fromColumnName) AS x ) AS target
                     builder.append("ARRAY( SELECT CONCAT('drs://")
                         .append(datarepoDnsName)
                         .append("/v1_")
-                        .append(source.getStudy().getId().toString())
+                        .append(source.getDataset().getId().toString())
                         .append("_")
                         .append(snapshot.getId().toString())
                         .append("_',x) FROM UNNEST(")
@@ -939,11 +939,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
                         .append(") AS x ) AS ")
                         .append(targetColumnName);
                 } else {
-                    // CONCAT('drs://datarepodnsname/v1_studyid_snapshotid_', fromColumnName) AS target
+                    // CONCAT('drs://datarepodnsname/v1_datasetid_snapshotid_', fromColumnName) AS target
                     builder.append("CONCAT('drs://")
                         .append(datarepoDnsName)
                         .append("/v1_")
-                        .append(source.getStudy().getId().toString())
+                        .append(source.getDataset().getId().toString())
                         .append("_")
                         .append(snapshot.getId().toString())
                         .append("_',")

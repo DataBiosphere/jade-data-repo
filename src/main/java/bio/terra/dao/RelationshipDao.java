@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
-import bio.terra.metadata.Study;
-import bio.terra.metadata.StudyRelationship;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetRelationship;
 import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel;
@@ -25,47 +25,47 @@ public class RelationshipDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // part of a transaction propagated from StudyDao
-    public void createStudyRelationships(Study study) {
-        for (StudyRelationship rel : study.getRelationships()) {
+    // part of a transaction propagated from DatasetDao
+    public void createDatasetRelationships(Dataset dataset) {
+        for (DatasetRelationship rel : dataset.getRelationships()) {
             create(rel);
         }
     }
 
-    protected void create(StudyRelationship studyRelationship) {
-        String sql = "INSERT INTO study_relationship " +
+    protected void create(DatasetRelationship datasetRelationship) {
+        String sql = "INSERT INTO dataset_relationship " +
                 "(name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column) VALUES " +
                 "(:name, :from_cardinality, :to_cardinality, :from_table, :from_column, :to_table, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", studyRelationship.getName())
-                .addValue("from_cardinality", studyRelationship.getFromCardinality().toString())
-                .addValue("to_cardinality", studyRelationship.getToCardinality().toString())
-                .addValue("from_table", studyRelationship.getFromTable().getId())
-                .addValue("from_column", studyRelationship.getFromColumn().getId())
-                .addValue("to_table", studyRelationship.getToTable().getId())
-                .addValue("to_column", studyRelationship.getToColumn().getId());
+                .addValue("name", datasetRelationship.getName())
+                .addValue("from_cardinality", datasetRelationship.getFromCardinality().toString())
+                .addValue("to_cardinality", datasetRelationship.getToCardinality().toString())
+                .addValue("from_table", datasetRelationship.getFromTable().getId())
+                .addValue("from_column", datasetRelationship.getFromColumn().getId())
+                .addValue("to_table", datasetRelationship.getToTable().getId())
+                .addValue("to_column", datasetRelationship.getToColumn().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID relationshipId = keyHolder.getId();
-        studyRelationship.id(relationshipId);
+        datasetRelationship.id(relationshipId);
     }
 
-    public void retrieve(Study study) {
+    public void retrieve(Dataset dataset) {
         List<UUID> columnIds = new ArrayList<>();
-        study.getTables().forEach(table ->
+        dataset.getTables().forEach(table ->
                 table.getColumns().forEach(column -> columnIds.add(column.getId())));
-        study.relationships(retrieveStudyRelationships(columnIds, study.getTablesById(), study.getAllColumnsById()));
+        dataset.relationships(retrieveDatasetRelationships(columnIds, dataset.getTablesById(), dataset.getAllColumnsById()));
     }
 
-    private List<StudyRelationship> retrieveStudyRelationships(
+    private List<DatasetRelationship> retrieveDatasetRelationships(
             List<UUID> columnIds,
             Map<UUID, Table> tables,
             Map<UUID, Column> columns) {
         String sql = "SELECT id, name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column "
-                + "FROM study_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
+                + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
-                new StudyRelationship()
+                new DatasetRelationship()
                         .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name"))
                         .fromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(

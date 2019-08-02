@@ -133,7 +133,8 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.DATAREPO,
             appConfig.datarepoId(),
             SamClientService.DataRepoAction.CREATE_DATASET);
-        return new ResponseEntity<>(datasetService.createDataset(datasetRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
+        return new ResponseEntity<>(datasetService.createDataset(datasetRequest, getAuthenticatedInfo()),
+            HttpStatus.CREATED);
     }
 
     @Override
@@ -314,7 +315,8 @@ public class RepositoryApiController implements RepositoryApi {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, getAuthenticatedInfo());
             return jobService.retrieveJob(jobId);
         }
-        throw new UnauthorizedException("User is not authorized to create snapshots for these datasets " + unauthorized);
+        throw new UnauthorizedException(
+            "User is not authorized to create snapshots for these datasets " + unauthorized);
     }
 
     @Override

@@ -530,7 +530,10 @@ public class SnapshotOperationTest {
     }
 
     // Get the count of rows in a table or view
-    private long queryForCount(String snapshotName, String tableName, BigQueryProject bigQueryProject) throws Exception {
+    private long queryForCount(
+        String snapshotName,
+        String tableName,
+        BigQueryProject bigQueryProject) throws Exception {
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         StringBuilder builder = new StringBuilder();

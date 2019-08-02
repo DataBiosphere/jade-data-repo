@@ -594,7 +594,8 @@ public class FireStoreFileDao {
     private QueryDocumentSnapshot lookupByObjectId(Dataset dataset, String objectId, Transaction xn) {
         try {
             FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-            CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
+            CollectionReference datasetCollection =
+                fireStoreProject.getFirestore().collection(dataset.getId().toString());
             Query query = datasetCollection.whereEqualTo("objectId", objectId);
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
 
@@ -620,7 +621,8 @@ public class FireStoreFileDao {
     private boolean lookupByIdAndType(Dataset dataset, String objectId, FSObjectType objectType) {
         try {
             FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-            CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
+            CollectionReference datasetCollection =
+                fireStoreProject.getFirestore().collection(dataset.getId().toString());
             Query query = datasetCollection
                 .whereEqualTo("objectId", objectId)
                 .whereEqualTo("objectTypeLetter", objectType.toLetter());

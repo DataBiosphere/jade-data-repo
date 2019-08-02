@@ -112,7 +112,8 @@ public class FileTest extends UsersBase {
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // get file by id
-        DataRepoResponse<FSObjectModel> discovererResp = dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
+        DataRepoResponse<FSObjectModel> discovererResp =
+            dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
         assertThat("Discoverer is not authorized to get a file from a dataset",
             discovererResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));

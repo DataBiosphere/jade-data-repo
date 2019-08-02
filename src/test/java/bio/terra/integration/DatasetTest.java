@@ -133,7 +133,8 @@ public class DatasetTest extends UsersBase {
             summaryModel = dataRepoFixtures.createDataset(steward(), "dataset-minimal.json");
             logger.info("dataset id is " + summaryModel.getId());
 
-            DataRepoResponse<DatasetModel> getDatasetResp = dataRepoFixtures.getDatasetRaw(reader(), summaryModel.getId());
+            DataRepoResponse<DatasetModel> getDatasetResp =
+                dataRepoFixtures.getDatasetRaw(reader(), summaryModel.getId());
             assertThat("Reader is not authorized to get dataset",
                 getDatasetResp.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));

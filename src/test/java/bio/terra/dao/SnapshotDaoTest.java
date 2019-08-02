@@ -216,7 +216,12 @@ public class SnapshotDaoTest {
         return baseName + "-" + index;
     }
 
-    private void testSortingNames(List<UUID> snapshotIds, String snapshotName, int offset, int limit, String direction) {
+    private void testSortingNames(
+        List<UUID> snapshotIds,
+        String snapshotName,
+        int offset,
+        int limit,
+        String direction) {
         MetadataEnumeration<SnapshotSummary> summaryEnum = snapshotDao.retrieveSnapshots(offset, limit, "name",
             direction, null, snapshotIds);
         List<SnapshotSummary>  summaryList = summaryEnum.getItems();

@@ -182,7 +182,9 @@ public class SnapshotService {
         return snapshot;
     }
 
-    private SnapshotSource makeSourceFromRequestContents(SnapshotRequestContentsModel requestContents, Snapshot snapshot) {
+    private SnapshotSource makeSourceFromRequestContents(
+        SnapshotRequestContentsModel requestContents,
+        Snapshot snapshot) {
         SnapshotRequestSourceModel requestSource = requestContents.getSource();
         Dataset dataset = datasetDao.retrieveByName(requestSource.getDatasetName());
 

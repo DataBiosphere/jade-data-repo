@@ -90,8 +90,8 @@ public class ConnectedOperations {
     }
 
     /**
-     * Creating a dataset through the http layer causes a dataset create flight to run, creating metadata and primary data
-     * to be modified.
+     * Creating a dataset through the http layer causes a dataset create flight to run, creating metadata and primary
+     * data to be modified.
      *
      * @param resourcePath path to json used for a dataset create request
      * @return summary of the dataset created

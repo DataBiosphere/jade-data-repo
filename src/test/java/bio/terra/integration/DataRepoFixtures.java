@@ -126,7 +126,9 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<DatasetModel> getDatasetRaw(TestConfiguration.User user, String datasetId) throws Exception {
+    public DataRepoResponse<DatasetModel> getDatasetRaw(
+        TestConfiguration.User user,
+        String datasetId) throws Exception {
         return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
     }
 
@@ -219,7 +221,8 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsRaw(TestConfiguration.User user) throws Exception {
+    public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsRaw(
+        TestConfiguration.User user) throws Exception {
         return dataRepoClient.get(user,
             "/api/repository/v1/snapshots?sort=created_date&direction=desc",
             EnumerateSnapshotModel.class);

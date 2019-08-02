@@ -31,7 +31,8 @@ public class SnapshotDeleteFlight extends Flight {
         addStep(new DeleteSnapshotAuthzResource(samClient, snapshotId));
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // snapshot object from the metadata to know what to delete.
-        addStep(new DeleteSnapshotPrimaryDataStep(bigQueryPdao, snapshotDao, dependencyDao, snapshotId, datasetService));
+        addStep(
+            new DeleteSnapshotPrimaryDataStep(bigQueryPdao, snapshotDao, dependencyDao, snapshotId, datasetService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     }
 }

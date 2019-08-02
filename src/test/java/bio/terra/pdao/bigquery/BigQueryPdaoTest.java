@@ -155,7 +155,8 @@ public class BigQueryPdaoTest {
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
             MockHttpServletResponse snapshotResponse =
                 connectedOperations.launchCreateSnapshot(datasetSummaryModel, "ingest-test-snapshot.json", "");
-            SnapshotSummaryModel snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
+            SnapshotSummaryModel snapshotSummary =
+                connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             // TODO: Assert that the snapshot contains the rows we expect.

@@ -54,7 +54,8 @@ public class RelationshipDao {
         List<UUID> columnIds = new ArrayList<>();
         dataset.getTables().forEach(table ->
                 table.getColumns().forEach(column -> columnIds.add(column.getId())));
-        dataset.relationships(retrieveDatasetRelationships(columnIds, dataset.getTablesById(), dataset.getAllColumnsById()));
+        dataset.relationships(
+            retrieveDatasetRelationships(columnIds, dataset.getTablesById(), dataset.getAllColumnsById()));
     }
 
     private List<DatasetRelationship> retrieveDatasetRelationships(

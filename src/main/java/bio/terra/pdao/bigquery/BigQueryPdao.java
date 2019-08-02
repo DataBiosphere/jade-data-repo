@@ -686,7 +686,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             relationship.setVisited();
             storeRowIdsForRelatedTable(datasetBqDatasetName, snapshotName, relationship, projectId, bigQuery);
-            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, relationship.getToTableId(), projectId,
+            walkRelationships(
+                datasetBqDatasetName,
+                snapshotName,
+                walkRelationships,
+                relationship.getToTableId(),
+                projectId,
                 bigQuery);
         }
     }
@@ -802,8 +807,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
-    private List<String> createViews(String datasetBqDatasetName, String snapshotName, bio.terra.metadata.Snapshot snapshot,
-                                     String projectId, BigQuery bigQuery) {
+    private List<String> createViews(
+        String datasetBqDatasetName,
+        String snapshotName,
+        bio.terra.metadata.Snapshot snapshot,
+        String projectId,
+        BigQuery bigQuery) {
         return snapshot.getTables().stream().map(table -> {
                 StringBuilder builder = new StringBuilder();
 

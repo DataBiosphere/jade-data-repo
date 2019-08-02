@@ -25,7 +25,8 @@ public class CreateDatasetMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        DatasetRequestModel datasetRequest =
+            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
         Dataset newDataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
         UUID datasetId = datasetDao.create(newDataset);
         workingMap.put("datasetId", datasetId);
@@ -38,7 +39,8 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        DatasetRequestModel datasetRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
+        DatasetRequestModel datasetRequest =
+            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
         String datasetName = datasetRequest.getName();
         datasetDao.deleteByName(datasetName);
         return StepResult.getStepResultSuccess();

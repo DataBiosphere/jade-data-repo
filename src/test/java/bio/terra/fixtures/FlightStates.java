@@ -49,7 +49,7 @@ public final class FlightStates {
 
         FlightState flightState = new FlightState();
         flightState.setFlightId(testFlightId);
-        flightState.setFlightStatus(FlightStatus.SUCCESS);
+        flightState.setFlightStatus(FlightStatus.RUNNING);
         flightState.setSubmitted(submittedTime);
         flightState.setInputParameters(resultMap);
         flightState.setResultMap(Optional.of(resultMap));

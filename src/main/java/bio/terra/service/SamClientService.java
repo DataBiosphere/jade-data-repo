@@ -1,7 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.configuration.SamConfiguration;
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.UnauthorizedException;
 import bio.terra.model.PolicyModel;
@@ -111,6 +111,7 @@ public class SamClientService {
         ALTER_POLICIES,
         // datarepo
         CREATE_DATASET,
+        MANAGE_JOBS,
         // dataset
         EDIT_DATASET,
         READ_DATASET,
@@ -120,9 +121,7 @@ public class SamClientService {
         CREATE_DATASNAPSHOT,
         EDIT_DATASNAPSHOT,
         READ_DATA,
-        DISCOVER_DATA,
-        // jobs
-        READ;
+        DISCOVER_DATA;
 
         @Override
         @JsonValue
@@ -163,7 +162,7 @@ public class SamClientService {
     }
 
     public boolean isAuthorized(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         SamClientService.ResourceType resourceType,
         String resourceId,
         SamClientService.DataRepoAction action) {
@@ -182,7 +181,7 @@ public class SamClientService {
     }
 
     public void verifyAuthorization(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         SamClientService.ResourceType resourceType,
         String resourceId,
         SamClientService.DataRepoAction action) {
@@ -192,13 +191,13 @@ public class SamClientService {
     }
 
     public List<ResourceAndAccessPolicy> listAuthorizedResources(
-        AuthenticatedUserRequest userReq, ResourceType resourceType) throws ApiException {
+        AuthenticatedUser userReq, ResourceType resourceType) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         return samResourceApi.listResourcesAndPolicies(resourceType.toString());
     }
 
     private boolean checkResourceAction(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         String samResourceType,
         String samResource,
         String action)
@@ -207,17 +206,17 @@ public class SamClientService {
         return samResourceApi.resourceAction(samResourceType, samResource, action);
     }
 
-    public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
+    public void deleteDatasetResource(AuthenticatedUser userReq, UUID datasetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         samResourceApi.deleteResource(ResourceType.DATASET.toString(), datasetId.toString());
     }
 
-    public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
+    public void deleteSnapshotResource(AuthenticatedUser userReq, UUID datsetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         samResourceApi.deleteResource(ResourceType.DATASNAPSHOT.toString(), datsetId.toString());
     }
 
-    public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
+    public List<String> createDatasetResource(AuthenticatedUser userReq, UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
@@ -249,7 +248,7 @@ public class SamClientService {
     }
 
     public String createSnapshotResource(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         UUID snapshotId,
         Optional<List<String>> readersList
     ) throws ApiException {
@@ -285,20 +284,8 @@ public class SamClientService {
         return getPolicyGroupEmailFromResponse(results);
     }
 
-    public void createJobResource(AuthenticatedUserRequest userReq, String jobId) throws ApiException {
-        CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
-        req.setResourceId(jobId);
-        req.addPoliciesItem(
-            DataRepoRole.ADMIN.toString(),
-            createAccessPolicy(DataRepoRole.ADMIN.toString(), Collections.singletonList(userReq.getEmail())));
-
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        logger.debug(req.toString());
-        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATATREPO_JOB.toString(), req);
-    }
-
     public List<PolicyModel> retrievePolicies(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         ResourceType resourceType,
         UUID resourceId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
@@ -312,7 +299,7 @@ public class SamClientService {
     }
 
     public PolicyModel addPolicyMember(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         ResourceType resourceType,
         UUID resourceId,
         String policyName,
@@ -329,7 +316,7 @@ public class SamClientService {
     }
 
     public PolicyModel deletePolicyMember(
-        AuthenticatedUserRequest userReq,
+        AuthenticatedUser userReq,
         ResourceType resourceType,
         UUID resourceId,
         String policyName,
@@ -345,7 +332,7 @@ public class SamClientService {
 
     }
 
-    public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) throws ApiException {
+    public UserStatusInfo getUserInfo(AuthenticatedUser userReq) throws ApiException {
         UsersApi samUsersApi = samUsersApi(userReq.getToken());
         org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo samInfo = samUsersApi.getUserStatusInfo();
         return new UserStatusInfo().userSubjectId(samInfo.getUserSubjectId())

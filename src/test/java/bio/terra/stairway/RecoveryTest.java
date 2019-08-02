@@ -2,6 +2,7 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.controller.AuthenticatedUser;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
@@ -59,6 +61,7 @@ import static org.hamcrest.Matchers.equalTo;
 public class RecoveryTest {
 //    private PoolingDataSource<PoolableConnection> dataSource;
     private ExecutorService executorService;
+    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
@@ -75,7 +78,7 @@ public class RecoveryTest {
     public void successTest() throws Exception {
         // Start with a clean and shiny database environment.
         Stairway stairway1 = new Stairway(executorService, null);
-        stairway1.initialize(new Database(jdbcConfiguration), true);
+        stairway1.initialize(new FlightDao(jdbcConfiguration), true);
 
         FlightMap inputs = new FlightMap();
 
@@ -84,7 +87,7 @@ public class RecoveryTest {
 
         TestStopController.setControl(0);
         String flightId = "successTest";
-        stairway1.submit(flightId, TestFlightRecovery.class, inputs);
+        stairway1.submit(flightId, TestFlightRecovery.class, inputs, testUser);
 
         // Allow time for the flight thread to go to sleep
         try {
@@ -93,12 +96,12 @@ public class RecoveryTest {
             Thread.currentThread().interrupt();
         }
 
-        Assert.assertThat(stairway1.isDone(flightId), is(equalTo(false)));
+        Assert.assertThat(TestUtil.isDone(stairway1, flightId), is(equalTo(false)));
 
         // Simulate a restart with a new thread pool and stairway. Set control so this one does not sleep
         TestStopController.setControl(1);
         Stairway stairway2 = new Stairway(executorService, null);
-        stairway2.initialize(new Database(jdbcConfiguration), false);
+        stairway2.initialize(new FlightDao(jdbcConfiguration), false);
 
         // Wait for recovery to complete
         stairway2.waitForFlight(flightId);
@@ -113,7 +116,7 @@ public class RecoveryTest {
     public void undoTest() throws Exception {
         // Start with a clean and shiny database environment.
         Stairway stairway1 = new Stairway(executorService, null);
-        stairway1.initialize(new Database(jdbcConfiguration), true);
+        stairway1.initialize(new FlightDao(jdbcConfiguration), true);
 
         FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(2);
@@ -122,7 +125,7 @@ public class RecoveryTest {
         // We don't want to stop on the do path; the undo trigger will set the control to 0 and put the flight to sleep
         TestStopController.setControl(1);
         String flightId = "undoTest";
-        stairway1.submit(flightId, TestFlightRecoveryUndo.class, inputs);
+        stairway1.submit(flightId, TestFlightRecoveryUndo.class, inputs, testUser);
 
         // Allow time for the flight thread to go to sleep
         try {
@@ -131,12 +134,12 @@ public class RecoveryTest {
             Thread.currentThread().interrupt();
         }
 
-        Assert.assertThat(stairway1.isDone(flightId), is(equalTo(false)));
+        Assert.assertThat(stairway1.getFlightState(flightId), not(equalTo(FlightStatus.RUNNING)));
 
         // Simulate a restart with a new thread pool and stairway. Reset control so this one does not sleep
         TestStopController.setControl(1);
         Stairway stairway2 = new Stairway(executorService, null);
-        stairway2.initialize(new Database(jdbcConfiguration), false);
+        stairway2.initialize(new FlightDao(jdbcConfiguration), false);
 
         // Wait for recovery to complete
         stairway2.waitForFlight(flightId);

@@ -2,6 +2,7 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.controller.AuthenticatedUser;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -11,7 +12,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Collections;
 import java.util.List;
 
 import static bio.terra.stairway.TestUtil.dubValue;
@@ -34,26 +34,27 @@ import static org.hamcrest.CoreMatchers.is;
 @AutoConfigureMockMvc
 @Category(StairwayUnit.class)
 public class DatabaseOperationsTest {
+    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Test
     public void basicsTest() throws Exception {
-        Database database = createDatabase(true);
+        FlightDao flightDao = createFlightDao(true);
 
         FlightMap inputs = new FlightMap();
         inputs.put(ikey, intValue);
         inputs.put(skey, strValue);
         inputs.put(fkey, dubValue);
 
-        FlightContext flightContext = new FlightContext(inputs, "notArealClass");
+        FlightContext flightContext = new FlightContext(inputs, "notArealClass", testUser);
         flightContext.setFlightId(flightId);
 
-        database.submit(flightContext);
+        flightDao.submit(flightContext);
 
         // Use recover to retrieve the internal state of the flight
-        List<FlightContext> flightList = database.recover();
+        List<FlightContext> flightList = flightDao.recover();
         Assert.assertThat(flightList.size(), is(equalTo(1)));
         FlightContext recoveredFlight = flightList.get(0);
 
@@ -68,13 +69,13 @@ public class DatabaseOperationsTest {
         checkInputs(recoveredInputs);
 
         // Use getFlightState to retrieve the externally visible state of the flight
-        FlightState flightState = database.getFlightState(flightId);
+        FlightState flightState = flightDao.getFlightState(flightId);
         checkRunningFlightState(flightState);
         FlightMap stateInputs = flightState.getInputParameters();
         checkInputs(stateInputs);
 
         flightContext.setStepIndex(1);
-        database.step(flightContext);
+        flightDao.step(flightContext);
 
         Thread.sleep(1000);
 
@@ -87,9 +88,9 @@ public class DatabaseOperationsTest {
         flightContext.getWorkingMap().put(wikey, intValue);
         flightContext.getWorkingMap().put(wskey, strValue);
 
-        database.step(flightContext);
+        flightDao.step(flightContext);
 
-        flightList = database.recover();
+        flightList = flightDao.recover();
         Assert.assertThat(flightList.size(), is(equalTo(1)));
         recoveredFlight = flightList.get(0);
         Assert.assertThat(recoveredFlight.getStepIndex(), is(equalTo(2)));
@@ -101,19 +102,19 @@ public class DatabaseOperationsTest {
         FlightMap recoveredWork = recoveredFlight.getWorkingMap();
         checkOutputs(recoveredWork);
 
-        flightState = database.getFlightState(flightId);
+        flightState = flightDao.getFlightState(flightId);
         checkRunningFlightState(flightState);
         stateInputs = flightState.getInputParameters();
         checkInputs(stateInputs);
 
         flightContext.setFlightStatus(FlightStatus.ERROR);
 
-        database.complete(flightContext);
+        flightDao.complete(flightContext);
 
-        flightList = database.recover();
+        flightList = flightDao.recover();
         Assert.assertThat(flightList.size(), is(equalTo(0)));
 
-        List<FlightState> flightStateList = database.getFlights(0, 99, Collections.singletonList(flightId));
+        List<FlightState> flightStateList = flightDao.getFlights(0, 99);
         Assert.assertThat(flightStateList.size(), is(1));
         flightState = flightStateList.get(0);
         Assert.assertThat(flightState.getFlightId(), is(flightId));
@@ -126,8 +127,8 @@ public class DatabaseOperationsTest {
         Assert.assertThat(flightState.getException().get().toString(), containsString(errString));
     }
 
-    private Database createDatabase(boolean forceCleanStart) {
-        Database db = new Database(jdbcConfiguration);
+    private FlightDao createFlightDao(boolean forceCleanStart) {
+        FlightDao db = new FlightDao(jdbcConfiguration);
         if (forceCleanStart) {
             db.startClean();
         }

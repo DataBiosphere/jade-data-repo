@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.dao.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
@@ -49,7 +49,7 @@ public class DatasetService {
         this.dataLocationService = dataLocationService;
     }
 
-    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userInfo) {
+    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUser userInfo) {
         return jobService.submitAndWait(
             "Create dataset " + datasetRequest.getName(),
             DatasetCreateFlight.class,
@@ -85,7 +85,7 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(UUID id, AuthenticatedUserRequest userInfo) {
+    public DeleteResponseModel delete(UUID id, AuthenticatedUser userInfo) {
         return jobService.submitAndWait(
             "Delete dataset " + id,
             DatasetDeleteFlight.class,

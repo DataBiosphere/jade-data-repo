@@ -1,6 +1,7 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.SnapshotDao;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.dao.DatasetDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.FireStoreFileDao;
@@ -14,8 +15,9 @@ import org.springframework.context.ApplicationContext;
 
 public class DatasetDeleteFlight extends Flight {
 
-    public DatasetDeleteFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public DatasetDeleteFlight(
+        FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+        super(inputParameters, applicationContext, userInfo);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;

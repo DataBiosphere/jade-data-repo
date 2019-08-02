@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.create;
 
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
@@ -38,8 +38,8 @@ public class CreateDatasetAuthzResource implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        AuthenticatedUser userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUser.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         Dataset dataset = datasetService.retrieve(datasetId);
@@ -56,8 +56,8 @@ public class CreateDatasetAuthzResource implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        AuthenticatedUser userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUser.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get("datasetId", UUID.class);
         try {

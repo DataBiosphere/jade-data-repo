@@ -1,5 +1,8 @@
 package bio.terra.stairway;
 
+import bio.terra.controller.AuthenticatedUser;
+import bio.terra.exception.UnauthorizedException;
+import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
@@ -7,6 +10,8 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -20,14 +25,14 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * Stairway is the object that drives execution of Flights. The class is constructed
- * with inputs that allow the caller to specify the thread pool, the database source, and the
+ * with inputs that allow the caller to specify the thread pool, the flightDao source, and the
  * table name stem to use.
  *
  * Each Stairway runs, logs, and recovers independently.
  *
  * There are two techniques you can use to wait for a flight. One is polling by calling getFlightState. That
- * reads the flight state from the stairway database so will report correct state for as long as the flight
- * lives in the database. (Since we haven't implemented pruning, that means forever.) If you poll in this way,
+ * reads the flight state from the stairway flightDao so will report correct state for as long as the flight
+ * lives in the flightDao. (Since we haven't implemented pruning, that means forever.) If you poll in this way,
  * then the in-memory resources are released on the first call to getFlightState that reports the flight has
  * completed in some way.
  *
@@ -60,15 +65,15 @@ public class Stairway {
 
     private ConcurrentHashMap<String, TaskContext> taskContextMap;
     private ExecutorService threadPool;
-    private Database database;
+    private FlightDao flightDao;
     private Object applicationContext;
 
     /**
      * We do initialization in two steps. The constructor does the first step of constructing the object
-     * and remembering the inputs. It does not do any database activity. That lets the rest of the
-     * application come up and do any database configuration.
+     * and remembering the inputs. It does not do any flightDao activity. That lets the rest of the
+     * application come up and do any flightDao configuration.
      *
-     * The second step is the 'initialize' call (below) that sets up the database and performs
+     * The second step is the 'initialize' call (below) that sets up the flightDao and performs
      * any recovery needed.
      *
      * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
@@ -83,11 +88,11 @@ public class Stairway {
      * Second step of initialization
      * @param forceCleanStart true will drop any existing stairway data. Otherwise existing flights are recovered.
      */
-    public void initialize(Database database, boolean forceCleanStart) {
-        this.database = database;
+    public void initialize(FlightDao flightDao, boolean forceCleanStart) {
+        this.flightDao = flightDao;
         if (forceCleanStart) {
             // Clean up if need be
-            database.startClean();
+            flightDao.startClean();
         } else {
             recoverFlights();
         }
@@ -104,31 +109,49 @@ public class Stairway {
      * @param inputParameters key-value map of parameters to the flight
      * @return unique flight id of the submitted flight
      */
-    public void submit(String flightId, Class<? extends Flight> flightClass, FlightMap inputParameters) {
+    public void submit(
+        String flightId,
+        Class<? extends Flight> flightClass,
+        FlightMap inputParameters,
+        AuthenticatedUser userInfo) {
         if (flightClass == null || inputParameters == null) {
             throw new MakeFlightException("Must supply non-null flightClass and inputParameters to submit");
         }
-        Flight flight = makeFlight(flightClass, inputParameters);
+        Flight flight = makeFlight(flightClass, inputParameters, userInfo);
 
-        // Generate the sequence id as a UUID. We have no dependency on database id generation and no
+        // Generate the sequence id as a UUID. We have no dependency on flightDao id generation and no
         // confusion with small integers that might be accidentally valid.
         flight.context().setFlightId(flightId);
-        database.submit(flight.context());
+        flightDao.submit(flight.context());
         launchFlight(flight);
     }
 
-    public void deleteFlight(String flightId) {
-        releaseFlight(flightId);
-        database.delete(flightId);
+    public void verifyFlightAccess(String flightId, AuthenticatedUser userInfo) {
+        if (userInfo != null) {
+            boolean hasAccess = false;
+            try {
+                hasAccess = flightDao.ownsFlight(flightId, userInfo.getSubjectId());
+            } catch (EmptyResultDataAccessException emptyEx) {
+                throw new FlightNotFoundException(emptyEx);
+            } catch (IncorrectResultSizeDataAccessException multiEx) {
+                throw new DatabaseOperationException("Multiple flights with the same id?! " + flightId, multiEx);
+            }
+            if (!hasAccess) {
+                throw new UnauthorizedException("user " + userInfo.getEmail() + " does not own flight " + flightId);
+            }
+        }
     }
 
-    // Tests if flight is done
-    public boolean isDone(String flightId) {
-        return getFlightState(flightId).getFlightStatus() != FlightStatus.RUNNING;
+
+
+    public void deleteFlight(String flightId) {
+        releaseFlight(flightId);
+        flightDao.delete(flightId);
     }
 
     /**
      * Wait for a flight to complete. When it completes, the flight is removed from the taskContextMap.
+     * Callers must be sure user has access to flight results
      *
      * @param flightId
      */
@@ -158,7 +181,7 @@ public class Stairway {
      * @return FlightState
      */
     public FlightState getFlightState(String flightId) {
-        FlightState flightState = database.getFlightState(flightId);
+        FlightState flightState = flightDao.getFlightState(flightId);
         if (flightState.getFlightStatus() != FlightStatus.RUNNING) {
             releaseFlight(flightId);
         }
@@ -174,8 +197,12 @@ public class Stairway {
      * @param limit
      * @return List of FlightState
      */
-    public List<FlightState> getFlights(int offset, int limit, List<String> resourceIds) {
-        return database.getFlights(offset, limit, resourceIds);
+    public List<FlightState> getFlights(int offset, int limit) {
+        return flightDao.getFlights(offset, limit);
+    }
+
+    public List<FlightState> getFlightsForUser(int offset, int limit, AuthenticatedUser userReq) {
+        return flightDao.getFlightsForUser(offset, limit, userReq.getSubjectId());
     }
 
     private void releaseFlight(String flightId) {
@@ -206,9 +233,10 @@ public class Stairway {
      * step index.
      */
     private void recoverFlights() {
-        List<FlightContext> flightList = database.recover();
+        List<FlightContext> flightList = flightDao.recover();
         for (FlightContext flightContext : flightList) {
-            Flight flight = makeFlightFromName(flightContext.getFlightClassName(), flightContext.getInputParameters());
+            Flight flight = makeFlightFromName(
+                flightContext.getFlightClassName(), flightContext.getInputParameters(), flightContext.getUser());
             flightContext.nextStepIndex();
             flight.setFlightContext(flightContext);
             launchFlight(flight);
@@ -223,8 +251,8 @@ public class Stairway {
      * @param flight
      */
     private void launchFlight(Flight flight) {
-        // Give the flight the database object so it can properly record its steps
-        flight.setDatabase(database);
+        // Give the flight the flightDao object so it can properly record its steps
+        flight.setFlightDao(flightDao);
 
         // Build the task context to keep track of the running task
         TaskContext taskContext = new TaskContext(new FutureTask<FlightState>(flight), flight);
@@ -254,12 +282,14 @@ public class Stairway {
      * @param inputParameters key-value map of parameters to the flight
      * @return flight object suitable for submitting for execution
      */
-    private Flight makeFlight(Class<? extends Flight> flightClass, FlightMap inputParameters) {
+    private Flight makeFlight(
+        Class<? extends Flight> flightClass, FlightMap inputParameters, AuthenticatedUser userInfo) {
         try {
             // Find the flightClass constructor that takes the input parameter map and
             // use it to make the flight.
-            Constructor constructor = flightClass.getConstructor(FlightMap.class, Object.class);
-            Flight flight = (Flight)constructor.newInstance(inputParameters, applicationContext);
+            Constructor constructor = flightClass.getConstructor(
+                FlightMap.class, Object.class, AuthenticatedUser.class);
+            Flight flight = (Flight)constructor.newInstance(inputParameters, applicationContext, userInfo);
             return flight;
         } catch (InvocationTargetException |
                 NoSuchMethodException |
@@ -273,14 +303,14 @@ public class Stairway {
      * Version of makeFlight that accepts the class name instead of the class
      * object as in {@link #makeFlight}
      *
-     * We use the class name to store and retrieve from the database when we recover.
+     * We use the class name to store and retrieve from the flightDao when we recover.
      */
-    private Flight makeFlightFromName(String className, FlightMap inputMap) {
+    private Flight makeFlightFromName(String className, FlightMap inputMap, AuthenticatedUser user) {
         try {
             Class<?> someClass = Class.forName(className);
             if (Flight.class.isAssignableFrom(someClass)) {
                 Class<? extends Flight> flightClass = (Class<? extends Flight>) someClass;
-                return makeFlight(flightClass, inputMap);
+                return makeFlight(flightClass, inputMap, user);
             }
             // Error case
             throw new MakeFlightException("Failed to make a flight from class name '" + className +
@@ -297,7 +327,7 @@ public class Stairway {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
                 .append("taskContextMap", taskContextMap)
                 .append("threadPool", threadPool)
-                .append("database", database)
+                .append("flightDao", flightDao)
                 .append("applicationContext", applicationContext)
                 .toString();
     }

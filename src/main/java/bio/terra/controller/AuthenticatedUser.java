@@ -6,25 +6,37 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 import java.util.UUID;
 
-public class AuthenticatedUserRequest {
+public class AuthenticatedUser {
 
     private String email;
+    private String subjectId;
     private String token;
     private UUID reqId;
 
-    public AuthenticatedUserRequest() {}
-
-    public AuthenticatedUserRequest(String email, String token) {
-        this.email = email;
-        this.token = token;
+    public AuthenticatedUser() {
         this.reqId = UUID.randomUUID();
+    }
+
+    public AuthenticatedUser(String email, String subjectId, String token) {
+        this.email = email;
+        this.subjectId = subjectId;
+        this.token = token;
+    }
+
+    public String getSubjectId() {
+        return subjectId;
+    }
+
+    public AuthenticatedUser subjectId(String subjectId) {
+        this.subjectId = subjectId;
+        return this;
     }
 
     public String getEmail() {
         return email;
     }
 
-    public AuthenticatedUserRequest email(String email) {
+    public AuthenticatedUser email(String email) {
         this.email = email;
         return this;
     }
@@ -33,7 +45,7 @@ public class AuthenticatedUserRequest {
         return token;
     }
 
-    public AuthenticatedUserRequest token(String token) {
+    public AuthenticatedUser token(String token) {
         this.token = token;
         return this;
     }
@@ -42,14 +54,14 @@ public class AuthenticatedUserRequest {
         return reqId;
     }
 
-    public AuthenticatedUserRequest reqId(UUID reqId) {
+    public AuthenticatedUser reqId(UUID reqId) {
         this.reqId = reqId;
         return this;
     }
 
-    // Static method to build an AuthenticatedUserRequest from data available to the controller
-    public static AuthenticatedUserRequest from(Optional<HttpServletRequest> servletRequest,
-                                                String appConfigUserEmail) {
+    // Static method to build an AuthenticatedUser from data available to the controller
+    public static AuthenticatedUser from(Optional<HttpServletRequest> servletRequest,
+                                         String appConfigUserEmail) {
 
         if (!servletRequest.isPresent()) {
             throw new BadRequestException("No valid request found.");
@@ -57,6 +69,7 @@ public class AuthenticatedUserRequest {
         HttpServletRequest req = servletRequest.get();
         String email = req.getHeader("oidc_claim_email");
         String token = req.getHeader("oidc_access_token");
+        String userId = req.getHeader("oidc_claim_user_id");
 
         if (token == null) {
             String authHeader = req.getHeader("Authorization");
@@ -71,7 +84,10 @@ public class AuthenticatedUserRequest {
                 email = appConfigUserEmail;
             }
         }
-        return new AuthenticatedUserRequest(email, token);
+        if (userId == null) {
+            userId = "999999999999";
+        }
+        return new AuthenticatedUser().email(email).subjectId(userId).token(token);
     }
 
 }

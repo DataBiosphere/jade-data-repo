@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.category.Unit;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.controller.RepositoryApiController;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
@@ -28,6 +29,8 @@ import static org.hamcrest.CoreMatchers.is;
 @SpringBootTest
 @Category(Unit.class)
 public class JobServiceTest {
+    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+
     @Autowired
     private Stairway stairway;
 
@@ -71,9 +74,8 @@ public class JobServiceTest {
     }
 
     private void testSingleRetrieval(List<String> fids) {
-        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
-        JobModel response = jobService.retrieveJob(fids.get(2));
-        Assert.assertThat(statContainer.getStatusCode(), is(equalTo(HttpStatus.OK)));
+//        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
+        JobModel response = jobService.retrieveJob(fids.get(2), testUser);
         Assert.assertNotNull(response);
         validateJobModel(response, 2, fids);
     }
@@ -81,14 +83,14 @@ public class JobServiceTest {
     private void testResultRetrieval(List<String> fids) {
         RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
         String resultDesc =
-            jobService.retrieveJobResult(fids.get(2), String.class, statContainer);
+            jobService.retrieveJobResult(fids.get(2), String.class, statContainer, testUser);
         Assert.assertThat(statContainer.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
         Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
     }
 
     // Get some range and compare it with the fids
     private void testEnumRange(List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds) {
-        List<JobModel> jobList = jobService.enumerateJobs(offset, limit, resourceIds);
+        List<JobModel> jobList = jobService.enumerateJobs(offset, limit, testUser);
         Assert.assertNotNull(jobList);
         int index = offset;
         for (JobModel job : jobList) {
@@ -99,19 +101,19 @@ public class JobServiceTest {
 
     // Get some range and make sure we got the number we expected
     private void testEnumCount(int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds) {
-        List<JobModel> jobList = jobService.enumerateJobs(offset, length, resourceIds);
+        List<JobModel> jobList = jobService.enumerateJobs(offset, length, testUser);
         Assert.assertNotNull(jobList);
         Assert.assertThat(jobList.size(), is(count));
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveJob() {
-        jobService.retrieveJob("abcdef");
+        jobService.retrieveJob("abcdef", testUser);
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        jobService.retrieveJobResult("abcdef", Object.class, null);
+        jobService.retrieveJobResult("abcdef", Object.class, null, testUser);
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {
@@ -127,7 +129,7 @@ public class JobServiceTest {
         inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
 
         String flightId = description;
-        stairway.submit(flightId, JobServiceTestFlight.class, inputs);
+        stairway.submit(flightId, JobServiceTestFlight.class, inputs, testUser);
         stairway.waitForFlight(flightId);
         return flightId;
     }

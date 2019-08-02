@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DRSAccessMethod;
@@ -140,8 +140,8 @@ public class AccessTest extends UsersBase {
             SamClientService.DataRepoRole.READER,
             reader().getEmail());
 
-        AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
+        AuthenticatedUser authenticatedReaderRequest =
+            new AuthenticatedUser().email(reader().getEmail()).token(readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,
@@ -204,8 +204,8 @@ public class AccessTest extends UsersBase {
             SamClientService.DataRepoRole.READER,
             reader().getEmail());
 
-        AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
+        AuthenticatedUser authenticatedReaderRequest =
+            new AuthenticatedUser().email(reader().getEmail()).token(readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,

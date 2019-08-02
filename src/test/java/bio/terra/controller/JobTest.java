@@ -2,8 +2,9 @@ package bio.terra.controller;
 
 import bio.terra.category.Unit;
 import bio.terra.fixtures.FlightStates;
-import bio.terra.model.JobModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.JobModel;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,10 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Arrays;
-
 import static bio.terra.fixtures.DatasetFixtures.buildMinimalDatasetSummary;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -40,6 +38,9 @@ public class JobTest {
 
     @MockBean
     private Stairway stairway;
+
+    @MockBean
+    private SamClientService sam;
 
     @Autowired
     private MockMvc mvc;
@@ -71,7 +72,7 @@ public class JobTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(testFlightId))
                 .andExpect(jsonPath("$.description").value(buildMinimalDatasetSummary().getDescription()))
-                .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
+                .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.RUNNING.toString()))
                 .andExpect(jsonPath("$.submitted").value(submittedTimeFormatted))
                 .andExpect(jsonPath("$.completed").isEmpty());
     }

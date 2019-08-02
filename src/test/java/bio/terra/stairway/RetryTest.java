@@ -3,6 +3,7 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.controller.AuthenticatedUser;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +26,7 @@ import static org.hamcrest.Matchers.equalTo;
 @Category(StairwayUnit.class)
 public class RetryTest {
     private Stairway stairway;
+    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
@@ -44,7 +46,7 @@ public class RetryTest {
         inputParameters.put("maxCount", Integer.valueOf(4));
 
         String flightId = "successTest";
-        stairway.submit(flightId, TestFlightRetry.class, inputParameters);
+        stairway.submit(flightId, TestFlightRetry.class, inputParameters, testUser);
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
@@ -67,7 +69,7 @@ public class RetryTest {
         // and not too long... whatever that is. How about (maxCount+1 * intervalSeconds
         LocalDateTime startTime = LocalDateTime.now();
         String flightId = "failureTest";
-        stairway.submit(flightId, TestFlightRetry.class, inputParameters);
+        stairway.submit(flightId, TestFlightRetry.class, inputParameters, testUser);
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         LocalDateTime endTime = LocalDateTime.now();
@@ -90,7 +92,7 @@ public class RetryTest {
         inputParameters.put("maxOperationTimeSeconds", Long.valueOf(100));
 
         String flightId = "exponentialTest";
-        stairway.submit(flightId, TestFlightRetry.class, inputParameters);
+        stairway.submit(flightId, TestFlightRetry.class, inputParameters, testUser);
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         Assert.assertThat(result.getFlightStatus(), is(equalTo(FlightStatus.SUCCESS)));
@@ -109,7 +111,7 @@ public class RetryTest {
         inputParameters.put("maxOperationTimeSeconds", Long.valueOf(10));
 
         String flightId = "expOpTimeTest";
-        stairway.submit(flightId, TestFlightRetry.class, inputParameters);
+        stairway.submit(flightId, TestFlightRetry.class, inputParameters, testUser);
 
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
@@ -131,7 +133,7 @@ public class RetryTest {
 
         LocalDateTime startTime = LocalDateTime.now();
         String flightId = "expMaxTest";
-        stairway.submit(flightId, TestFlightRetry.class, inputParameters);
+        stairway.submit(flightId, TestFlightRetry.class, inputParameters, testUser);
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
         LocalDateTime endTime = LocalDateTime.now();

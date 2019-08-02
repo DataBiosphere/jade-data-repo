@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.controller.RepositoryApiController;
 import bio.terra.model.JobModel;
 import bio.terra.service.exception.InvalidResultStateException;
@@ -11,9 +11,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.exception.FlightException;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,21 +18,17 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Component
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private final Stairway stairway;
-    private SamClientService samClient;
 
     @Autowired
     public JobService(Stairway stairway, SamClientService samClient) {
         this.stairway = stairway;
-        this.samClient = samClient;
     }
 
     private String createJobId() {
@@ -44,15 +37,9 @@ public class JobService {
     }
 
     public String submit(
-        String description, Class<? extends Flight> flightClass, Object request, AuthenticatedUserRequest userInfo) {
+        String description, Class<? extends Flight> flightClass, Object request, AuthenticatedUser userInfo) {
         String jobId = createJobId();
-        try {
-            samClient.createJobResource(userInfo, jobId);
-        } catch (ApiException ex) {
-            logger.warn("couldn't create sam resource for Job", ex);
-            throw new FlightException("Couldn't create sam resource for job", ex);
-        }
-        submitToStairway(jobId, flightClass, new FlightMap(description, request, userInfo));
+        submitToStairway(jobId, flightClass, new FlightMap(description, request), userInfo);
         return jobId;
     }
 
@@ -60,22 +47,26 @@ public class JobService {
         String description,
         Class<? extends Flight> flightClass,
         Object request,
-        AuthenticatedUserRequest userInfo,
+        AuthenticatedUser userInfo,
         Class<T> resultClass) {
         String jobId = createJobId();
-        submitToStairway(jobId, flightClass, new FlightMap(description, request, userInfo));
+        submitToStairway(jobId, flightClass, new FlightMap(description, request), userInfo);
         stairway.waitForFlight(jobId);
-        return retrieveJobResult(jobId, resultClass, null);
+        return retrieveJobResult(jobId, resultClass, null, userInfo);
     }
 
     private void submitToStairway(
-        String jobId, Class<? extends Flight> flightClass, FlightMap inputParams) {
-        stairway.submit(jobId, flightClass, inputParams);
+        String jobId, Class<? extends Flight> flightClass, FlightMap inputParams, AuthenticatedUser userInfo) {
+        stairway.submit(jobId, flightClass, inputParams, userInfo);
     }
 
-    public void releaseJob(String jobId, AuthenticatedUserRequest userInfo) throws ApiException {
-        samClient.deleteJobResource(userInfo, jobId);
+    public void releaseJobAsAdmin(String jobId) {
         stairway.deleteFlight(jobId);
+    }
+
+    public void releaseJob(String jobId, AuthenticatedUser userInfo) {
+        stairway.verifyFlightAccess(jobId, userInfo);
+        retrieveJobAsAdmin(jobId);
     }
 
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
@@ -125,15 +116,9 @@ public class JobService {
         return JobModel.JobStatusEnum.FAILED;
     }
 
-    public List<JobModel> enumerateJobs(int offset, int limit, List<ResourceAndAccessPolicy> authorizedJobs) {
-        if (authorizedJobs.isEmpty()) {
-            return Collections.EMPTY_LIST;
-        }
-        List<String> resourceIds = authorizedJobs
-            .stream()
-            .map(resource -> resource.getResourceId())
-            .collect(Collectors.toList());
-        List<FlightState> flightStateList = stairway.getFlights(offset, limit, resourceIds); // TODO
+    public List<JobModel> enumerateJobsAsAdmin(
+        int offset, int limit) {
+        List<FlightState> flightStateList = stairway.getFlights(offset, limit);
         List<JobModel> jobModelList = new ArrayList<>();
         for (FlightState flightState : flightStateList) {
             JobModel jobModel = mapFlightStateToJobModel(flightState);
@@ -142,8 +127,24 @@ public class JobService {
         return jobModelList;
     }
 
-    public JobModel retrieveJob(
-        String jobId) {
+    public List<JobModel> enumerateJobs(
+        int offset, int limit, AuthenticatedUser userReq) {
+        List<FlightState> flightStateList = stairway.getFlightsForUser(offset, limit, userReq);
+        List<JobModel> jobModelList = new ArrayList<>();
+        for (FlightState flightState : flightStateList) {
+            JobModel jobModel = mapFlightStateToJobModel(flightState);
+            jobModelList.add(jobModel);
+        }
+        return jobModelList;
+    }
+
+    public JobModel retrieveJobAsAdmin(String jobId) {
+        FlightState flightState = stairway.getFlightState(jobId);
+        return mapFlightStateToJobModel(flightState);
+    }
+
+    public JobModel retrieveJob(String jobId, AuthenticatedUser userReq) {
+        stairway.verifyFlightAccess(jobId, userReq);
         FlightState flightState = stairway.getFlightState(jobId);
         return mapFlightStateToJobModel(flightState);
     }
@@ -167,8 +168,19 @@ public class JobService {
      * @param jobId to process
      * @return object of the result class pulled from the result map
      */
+    public <T> T retrieveJobResultAsAdmin(
+        String jobId,
+        Class<T> resultClass,
+        RepositoryApiController.HttpStatusContainer statContainer) {
+        return retrieveJobResultWorker(jobId, resultClass, statContainer);
+    }
+
     public <T> T retrieveJobResult(
-        String jobId, Class<T> resultClass, RepositoryApiController.HttpStatusContainer statContainer) {
+        String jobId,
+        Class<T> resultClass,
+        RepositoryApiController.HttpStatusContainer statContainer,
+        AuthenticatedUser userReq) {
+        stairway.verifyFlightAccess(jobId, userReq);
         return retrieveJobResultWorker(jobId, resultClass, statContainer);
     }
 

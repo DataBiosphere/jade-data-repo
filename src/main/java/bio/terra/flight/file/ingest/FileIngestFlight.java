@@ -1,5 +1,6 @@
 package bio.terra.flight.file.ingest;
 
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
@@ -15,8 +16,8 @@ import java.util.UUID;
 
 public class FileIngestFlight extends Flight {
 
-    public FileIngestFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public FileIngestFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+        super(inputParameters, applicationContext, userInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");

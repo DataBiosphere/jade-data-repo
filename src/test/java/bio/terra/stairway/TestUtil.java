@@ -24,7 +24,11 @@ final class TestUtil {
     static Stairway setupStairway(StairwayJdbcConfiguration jdbcConfiguration) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         Stairway stairway = new Stairway(executorService, null);
-        stairway.initialize(new Database(jdbcConfiguration), true);
+        stairway.initialize(new FlightDao(jdbcConfiguration), true);
         return stairway;
+    }
+
+    static boolean isDone(Stairway stairway, String flightId) {
+        return stairway.getFlightState(flightId).getFlightStatus() != FlightStatus.RUNNING;
     }
 }

@@ -1,7 +1,7 @@
 package bio.terra;
 
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import bio.terra.stairway.Database;
+import bio.terra.stairway.FlightDao;
 import bio.terra.stairway.Stairway;
 import bio.terra.upgrade.Migrate;
 import org.slf4j.Logger;
@@ -24,6 +24,6 @@ public final class StartupInitializer {
         logger.info("Migrating all databases");
         migrate.migrateAllDatabases();
 
-        stairway.initialize(new Database(stairwayJdbcConfiguration), stairwayJdbcConfiguration.isForceClean());
+        stairway.initialize(new FlightDao(stairwayJdbcConfiguration), stairwayJdbcConfiguration.isForceClean());
     }
 }

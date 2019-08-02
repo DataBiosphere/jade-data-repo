@@ -1,11 +1,12 @@
 package bio.terra.stairway;
 
+import bio.terra.controller.AuthenticatedUser;
 import org.apache.commons.lang3.StringUtils;
 
 public class TestFlightRetry extends Flight {
 
-    public TestFlightRetry(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public TestFlightRetry(FlightMap inputParameters, Object applicationContext, AuthenticatedUser testUser) {
+        super(inputParameters, applicationContext, testUser);
 
         RetryRule retryRule;
 

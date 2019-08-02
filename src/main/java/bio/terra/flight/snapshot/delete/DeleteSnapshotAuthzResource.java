@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.delete;
 
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
 import bio.terra.service.JobMapKeys;
@@ -28,8 +28,8 @@ public class DeleteSnapshotAuthzResource implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        AuthenticatedUser userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUser.class);
         try {
             sam.deleteSnapshotResource(userReq, snapshotId);
         } catch (ApiException ex) {

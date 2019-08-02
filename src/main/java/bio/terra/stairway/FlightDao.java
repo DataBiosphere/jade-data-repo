@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
@@ -27,11 +28,13 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
- * The general layout of the database is:
+ * The general layout of the stairway database is:
  * flight table - records the flight, its inputs, and its outputs if any
  * flight log - records the steps of a running flight for recovery
  * This code assumes that the database is created and matches this codes schema
@@ -48,7 +51,7 @@ import java.util.Optional;
  * is not part of construction. It just makes sure that the database is ready.
  */
 @Repository
-public class Database {
+public class FlightDao {
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
@@ -56,7 +59,7 @@ public class Database {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final StairwayJdbcConfiguration jdbcConfiguration;
 
-    public Database(StairwayJdbcConfiguration jdbcConfiguration) {
+    public FlightDao(StairwayJdbcConfiguration jdbcConfiguration) {
         this.jdbcConfiguration = jdbcConfiguration;
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
     }
@@ -77,14 +80,17 @@ public class Database {
     public void submit(FlightContext flightContext) {
         final String sqlInsertFlight =
             "INSERT INTO " + FLIGHT_TABLE +
-                " (flightId, submit_time, class_name, input_parameters, status)" +
-                "VALUES (:flightid, CURRENT_TIMESTAMP, :class_name, :inputs, :status)";
+                " (flightId, submit_time, class_name, input_parameters, status, owner_id, owner_email)" +
+                "VALUES (:flightid, CURRENT_TIMESTAMP, :class_name, :inputs, :status, :subject, :email)";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("flightid", flightContext.getFlightId())
             .addValue("class_name", flightContext.getFlightClassName())
             .addValue("inputs", flightContext.getInputParameters().toJson())
-            .addValue("status", flightContext.getFlightStatus().name());
+            .addValue("status", flightContext.getFlightStatus().name())
+            .addValue("subject", flightContext.getUser().getSubjectId())
+            .addValue("email", flightContext.getUser().getEmail());
+
 
         jdbcTemplate.update(sqlInsertFlight, params);
     }
@@ -157,12 +163,22 @@ public class Database {
         jdbcTemplate.update(sqlDeleteFlight, params);
     }
 
+    public boolean ownsFlight(String flightId, String subject) {
+        final String sqlFlight = "SELECT owner_id" +
+            " FROM " + FLIGHT_TABLE +
+            " WHERE flightId = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("flightid", flightId);
+        String flightSubject = jdbcTemplate.queryForObject(sqlFlight, params, String.class);
+        return subject.equals(flightSubject);
+    }
+
     /**
      * Find all incomplete flights and return the context
      */
     public List<FlightContext> recover() {
 
-        final String sqlActiveFlights = "SELECT flightid, class_name, input_parameters" +
+        final String sqlActiveFlights = "SELECT flightid, class_name, input_parameters, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             " WHERE status = 'RUNNING'";
 
@@ -178,8 +194,12 @@ public class Database {
                 FlightMap inputParameters = new FlightMap();
                 inputParameters.fromJson(rs.getString("input_parameters"));
 
-                FlightContext flightContext = new FlightContext(inputParameters,
-                    rs.getString("class_name"));
+                FlightContext flightContext = new FlightContext(
+                    inputParameters,
+                    rs.getString("class_name"),
+                    new AuthenticatedUser()
+                        .subjectId(rs.getString("owner_id"))
+                        .email(rs.getString("owner_email")));
                 flightContext.setFlightId(rs.getString("flightid"));
                 return flightContext;
             }
@@ -230,7 +250,7 @@ public class Database {
      */
     public FlightState getFlightState(String flightId) {
         final String sqlOneFlight = "SELECT flightid, submit_time, input_parameters," +
-            " completed_time, output_parameters, status, exception" +
+            " completed_time, output_parameters, status, exception, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             " WHERE flightid = :flightid";
 
@@ -241,27 +261,35 @@ public class Database {
         } catch (EmptyResultDataAccessException emptyEx) {
             throw new FlightNotFoundException("Flight not found: " + flightId, emptyEx);
         } catch (IncorrectResultSizeDataAccessException sizeEx) {
-            throw new DatabaseOperationException("Multiple flights with the same id?!", sizeEx);
+            throw new DatabaseOperationException("Multiple flights with the same id?! " + flightId, sizeEx);
         }
     }
 
-    public List<FlightState> getFlights(int offset, int limit, List<String> resourceIds) {
+    public List<FlightState> getFlights(int offset, int limit) {
+        return getFlights(offset, limit, "", Collections.EMPTY_MAP);
+    }
+
+    public List<FlightState> getFlightsForUser(int offset, int limit, String subject) {
+        return getFlights(offset, limit, " WHERE owner_id = :subject ", Collections.singletonMap("subject", subject));
+    }
+
+    private List<FlightState> getFlights(int offset, int limit, String whereClause, Map<String, ?> whereParams) {
         final String sqlFlightRange = "SELECT flightid, submit_time, input_parameters," +
-            " completed_time, output_parameters, status, exception" +
+            " completed_time, output_parameters, status, exception, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
-            " WHERE flightid in (:idlist) " +
+            whereClause +
             " ORDER BY submit_time" +  // should this be descending?
             " LIMIT :limit OFFSET :offset";
 
-        MapSqlParameterSource params = new MapSqlParameterSource();
-
-        params.addValue("idlist", resourceIds);
-        params.addValue("limit", limit);
-        params.addValue("offset", offset);
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("limit", limit)
+            .addValue("offset", offset)
+            .addValues(whereParams);
 
         List<FlightState> flightStateList = jdbcTemplate.query(sqlFlightRange, params, new FlightStateMapper());
         return flightStateList;
     }
+
 
     private static class FlightStateMapper implements RowMapper<FlightState> {
         public FlightState mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -271,6 +299,9 @@ public class Database {
             flightState.setFlightId(rs.getString("flightid"));
             flightState.setFlightStatus(FlightStatus.valueOf(rs.getString("status")));
             flightState.setSubmitted(rs.getTimestamp("submit_time").toInstant());
+            flightState.setUser(new AuthenticatedUser()
+                .subjectId(rs.getString("owner_id"))
+                .email(rs.getString("owner_email")));
 
             FlightMap inputParameters = new FlightMap();
             inputParameters.fromJson(rs.getString("input_parameters"));

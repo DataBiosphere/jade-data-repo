@@ -3,6 +3,7 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,6 +31,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class ScenarioTest {
     private Stairway stairway;
     private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
+    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
@@ -51,11 +53,11 @@ public class ScenarioTest {
         inputParameters.put("text", "testing 1 2 3");
 
         String flightId = "simpleTest";
-        stairway.submit(flightId, TestFlight.class, inputParameters);
+        stairway.submit(flightId, TestFlight.class, inputParameters, testUser);
         logger.debug("Submitted flight id: " + flightId);
 
         // Test for done
-        boolean done = stairway.isDone(flightId);
+        boolean done = TestUtil.isDone(stairway, flightId);
         logger.debug("Flight done: " + done);
 
         // Wait for done
@@ -83,10 +85,11 @@ public class ScenarioTest {
         inputParameters.put("text", "testing 1 2 3");
 
         String flightId = "fileTest";
-        stairway.submit(flightId, TestFlight.class, inputParameters);
+        stairway.submit(
+            flightId, TestFlight.class, inputParameters, testUser);
 
         // Poll waiting for done
-        while (!stairway.isDone(flightId)) {
+        while (!TestUtil.isDone(stairway, flightId)) {
             Thread.sleep(1000);
         }
 
@@ -122,7 +125,8 @@ public class ScenarioTest {
         inputParameters.put("text", "testing 1 2 3");
 
         String flightId = "undoTest";
-        stairway.submit(flightId, TestFlightUndo.class, inputParameters);
+        stairway.submit(
+            flightId, TestFlightUndo.class, inputParameters, testUser);
 
         // Wait for done
         stairway.waitForFlight(flightId);

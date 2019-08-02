@@ -1,6 +1,5 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,11 +30,10 @@ public class FlightMap {
         map = new HashMap<>();
     }
 
-    public FlightMap(String description, Object request, AuthenticatedUserRequest userInfo) {
+    public FlightMap(String description, Object request) {
         this();
         map.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
         map.put(JobMapKeys.REQUEST.getKeyName(), request);
-        map.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
     }
 
     /**

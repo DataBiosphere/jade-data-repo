@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
@@ -38,7 +38,7 @@ public class FileService {
         this.datasetService = datasetService;
     }
 
-    public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userInfo) {
+    public String deleteFile(String datasetId, String fileId, AuthenticatedUser userInfo) {
         return jobService.submit(
             "Delete file from dataset " + datasetId + " file " + fileId,
             FileDeleteFlight.class,
@@ -46,7 +46,7 @@ public class FileService {
             userInfo);
     }
 
-    public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userInfo) {
+    public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUser userInfo) {
         return jobService.submit(
             "Ingest file " + fileLoad.getTargetPath(),
             FileIngestFlight.class,

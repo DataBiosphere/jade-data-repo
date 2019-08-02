@@ -121,8 +121,8 @@ public class RepositoryApiController implements RepositoryApi {
         return Optional.ofNullable(request);
     }
 
-    private AuthenticatedUserRequest getAuthenticatedInfo() {
-        return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
+    private AuthenticatedUser getAuthenticatedInfo() {
+        return AuthenticatedUser.from(getRequest(), appConfig.getUserEmail());
     }
 
     // -- dataset --
@@ -183,8 +183,8 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.DATASET,
             id,
             SamClientService.DataRepoAction.INGEST_DATA);
-        String jobId = datasetService.ingestDataset(id, ingest);
-        return retrieveJobAsResponseEntity(jobId);
+        String jobId = datasetService.ingestDataset(id, ingest, getAuthenticatedInfo());
+        return jobToResponse(jobService.retrieveJobAsAdmin(jobId));
     }
 
     // -- dataset-file --
@@ -197,7 +197,7 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             SamClientService.DataRepoAction.UPDATE_DATA);
         String jobId = fileService.deleteFile(id, fileid, getAuthenticatedInfo());
-        return retrieveJobAsResponseEntity(jobId);
+        return jobToResponse(jobService.retrieveJobAsAdmin(jobId));
     }
 
     @Override
@@ -209,7 +209,7 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = fileService.ingestFile(id, ingestFile, getAuthenticatedInfo());
-        return retrieveJobAsResponseEntity(jobId);
+        return jobToResponse(jobService.retrieveJobAsAdmin(jobId));
     }
 
     @Override
@@ -298,12 +298,13 @@ public class RepositoryApiController implements RepositoryApi {
     // -- snapshot --
     @Override
     public ResponseEntity<JobModel> createSnapshot(@Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
+        AuthenticatedUser userReq = getAuthenticatedInfo();
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
         List<SnapshotSource> sources = snapshot.getSnapshotSources();
         List<SnapshotSource> unauthorized = new ArrayList();
         sources.forEach(source -> {
                 if (!samService.isAuthorized(
-                    getAuthenticatedInfo(),
+                    userReq,
                     SamClientService.ResourceType.DATASET,
                     source.getDataset().getId().toString(),
                     SamClientService.DataRepoAction.CREATE_DATASNAPSHOT)) {
@@ -312,8 +313,8 @@ public class RepositoryApiController implements RepositoryApi {
             }
         );
         if (unauthorized.isEmpty()) {
-            String jobId = snapshotService.createSnapshot(snapshotRequestModel, getAuthenticatedInfo());
-            return retrieveJobAsResponseEntity(jobId);
+            String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
+            return jobToResponse(jobService.retrieveJobAsAdmin(jobId));
         }
         throw new UnauthorizedException(
             "User is not authorized to create snapshots for these datasets " + unauthorized);
@@ -321,13 +322,14 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") String id) {
+        AuthenticatedUser userReq = getAuthenticatedInfo();
         samService.verifyAuthorization(
-            getAuthenticatedInfo(),
+            userReq,
             SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.DELETE);
-        String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), getAuthenticatedInfo());
-        return retrieveJobAsResponseEntity(jobId);
+        String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), userReq);
+        return jobToResponse(jobService.retrieveJobAsAdmin(jobId));
     }
 
     @Override
@@ -441,17 +443,23 @@ public class RepositoryApiController implements RepositoryApi {
         }
     }
 
+    private boolean canUserManageJobs(AuthenticatedUser userReq) {
+        return samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.datarepoId(),
+            SamClientService.DataRepoAction.MANAGE_JOBS);
+    }
 
-    private ResponseEntity retrieveJobAsResponseEntity(String jobId) {
-        JobModel job = jobService.retrieveJob(jobId);
+    private ResponseEntity<JobModel> jobToResponse(JobModel job) {
         if (job.getJobStatus() == JobModel.JobStatusEnum.RUNNING) {
             return ResponseEntity
-                .status(job.getStatusCode())
+                .status(HttpStatus.ACCEPTED)
                 .header("Location", String.format("/api/repository/v1/jobs/%s", job.getId()))
                 .body(job);
         } else {
             return ResponseEntity
-                .status(job.getStatusCode())
+                .status(HttpStatus.OK)
                 .header("Location", String.format("/api/repository/v1/jobs/%s/result", job.getId()))
                 .body(job);
         }
@@ -463,53 +471,50 @@ public class RepositoryApiController implements RepositoryApi {
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         validiateOffsetAndLimit(offset, limit);
-        try {
-            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
-                getAuthenticatedInfo(), SamClientService.ResourceType.DATATREPO_JOB);
-            List<JobModel> results = jobService.enumerateJobs(offset, limit, resources);
-            return new ResponseEntity<>(results, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
+        AuthenticatedUser userReq = getAuthenticatedInfo();
+        List<JobModel> results = null;
+        if (canUserManageJobs(userReq)) {
+            results = jobService.enumerateJobsAsAdmin(offset, limit);
+        } else {
+            results = jobService.enumerateJobs(offset, limit, userReq);
         }
+        return new ResponseEntity<>(results, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATATREPO_JOB,
-            id,
-            SamClientService.DataRepoAction.READ);
-        return retrieveJobAsResponseEntity(id);
+        AuthenticatedUser userReq = getAuthenticatedInfo();
+        JobModel job = null;
+        if (canUserManageJobs(userReq)) {
+            job = jobService.retrieveJobAsAdmin(id);
+        } else {
+            job = jobService.retrieveJob(id, userReq);
+        }
+        return jobToResponse(job);
     }
 
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATATREPO_JOB,
-            id,
-            SamClientService.DataRepoAction.READ);
+        AuthenticatedUser userReq = getAuthenticatedInfo();
         HttpStatusContainer stat = new HttpStatusContainer();
-        Object result = jobService.retrieveJobResult(id, Object.class, stat);
-        return ResponseEntity.status(stat.getStatusCode())
-            .body(result);
+        Object result = null;
+        if (canUserManageJobs(userReq)) {
+            result = jobService.retrieveJobResultAsAdmin(id, Object.class, stat);
+        } else {
+            result = jobService.retrieveJobResult(id, Object.class, stat, userReq);
+        }
+        return ResponseEntity.status(stat.getStatusCode()).body(result);
     }
 
     @Override
     public ResponseEntity<Void> deleteJob(@PathVariable("id") String id) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATATREPO_JOB,
-            id,
-            SamClientService.DataRepoAction.DELETE);
-        try {
-            jobService.releaseJob(id, getAuthenticatedInfo());
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (ApiException ex) {
-            logger.warn("Caught sam excpetion" + ex.toString());
-            throw new InternalServerErrorException(ex);
+        AuthenticatedUser userReq = getAuthenticatedInfo();
+        if (canUserManageJobs(userReq)) {
+            jobService.releaseJobAsAdmin(id);
+        } else {
+            jobService.releaseJob(id, userReq);
         }
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
 

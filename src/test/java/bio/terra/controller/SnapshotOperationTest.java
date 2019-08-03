@@ -149,7 +149,7 @@ public class SnapshotOperationTest {
         loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
 
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_happy_");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
         SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
@@ -226,7 +226,7 @@ public class SnapshotOperationTest {
         // Just make sure we get the same snapshot summary that we made.
         List<SnapshotSummaryModel> snapshotList = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_enum_");
+            MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_en_");
             SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
             snapshotList.add(summaryModel);
         }

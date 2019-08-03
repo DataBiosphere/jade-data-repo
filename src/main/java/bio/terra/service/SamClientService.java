@@ -44,7 +44,7 @@ public class SamClientService {
     public enum ResourceType {
         DATAREPO,
         DATASET,
-        SNAPSHOT;
+        DATASNAPSHOT;
 
         @Override
         @JsonValue
@@ -53,19 +53,13 @@ public class SamClientService {
         }
 
         public String toPluralString() {
-            String pluralString = "";
-            switch (this) {
-                case DATASET: pluralString = "datasets";
-                            break;
-                default: pluralString = this.toString() + "s";
-            }
-            return pluralString;
+            return this.toString() + "s";
         }
 
         @JsonCreator
         public static ResourceType fromValue(String text) {
             for (ResourceType b : ResourceType.values()) {
-                if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
+                if (b.name().equals(StringUtils.upperCase(text))) {
                     return b;
                 }
             }
@@ -116,8 +110,8 @@ public class SamClientService {
         INGEST_DATA,
         UPDATE_DATA,
         // snapshots
-        CREATE_SNAPSHOT,
-        EDIT_SNAPSHOT,
+        CREATE_DATASNAPSHOT,
+        EDIT_DATASNAPSHOT,
         READ_DATA,
         DISCOVER_DATA;
 
@@ -211,7 +205,7 @@ public class SamClientService {
 
     public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
-        samResourceApi.deleteResource(ResourceType.SNAPSHOT.toString(), datsetId.toString());
+        samResourceApi.deleteResource(ResourceType.DATASNAPSHOT.toString(), datsetId.toString());
     }
 
     public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
@@ -271,12 +265,12 @@ public class SamClientService {
         // create the resource in sam
         ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
         logger.debug(req.toString());
-        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.SNAPSHOT.toString(), req);
+        createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASNAPSHOT.toString(), req);
 
         // sync the readers policy
         // Map[WorkbenchEmail, Seq[SyncReportItem]]
         Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
-            ResourceType.SNAPSHOT.toString(),
+            ResourceType.DATASNAPSHOT.toString(),
             snapshotId.toString(),
             DataRepoRole.READER.toString());
         return getPolicyGroupEmailFromResponse(results);

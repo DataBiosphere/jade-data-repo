@@ -306,7 +306,7 @@ public class RepositoryApiController implements RepositoryApi {
                     getAuthenticatedInfo(),
                     SamClientService.ResourceType.DATASET,
                     source.getDataset().getId().toString(),
-                    SamClientService.DataRepoAction.CREATE_SNAPSHOT)) {
+                    SamClientService.DataRepoAction.CREATE_DATASNAPSHOT)) {
                     unauthorized.add(source);
                 }
             }
@@ -323,7 +323,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") String id) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
-            SamClientService.ResourceType.SNAPSHOT,
+            SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.DELETE);
         String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), getAuthenticatedInfo());
@@ -340,7 +340,7 @@ public class RepositoryApiController implements RepositoryApi {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
         try {
             List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
-                getAuthenticatedInfo(), SamClientService.ResourceType.SNAPSHOT);
+                getAuthenticatedInfo(), SamClientService.ResourceType.DATASNAPSHOT);
             EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
                 direction, filter, resources);
             return new ResponseEntity<>(edm, HttpStatus.OK);
@@ -353,7 +353,7 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<SnapshotModel> retrieveSnapshot(@PathVariable("id") String id) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
-            SamClientService.ResourceType.SNAPSHOT,
+            SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.READ_DATA);
         SnapshotModel snapshotModel = snapshotService.retrieveSnapshot(UUID.fromString(id));
@@ -370,7 +370,7 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
                 samService.addPolicyMember(
                     getAuthenticatedInfo(),
-                    SamClientService.ResourceType.SNAPSHOT,
+                    SamClientService.ResourceType.DATASNAPSHOT,
                     UUID.fromString(id),
                     policyName,
                     policyMember.getEmail())));
@@ -386,7 +386,7 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyResponse response = new PolicyResponse().policies(
                 samService.retrievePolicies(
                     getAuthenticatedInfo(),
-                    SamClientService.ResourceType.SNAPSHOT,
+                    SamClientService.ResourceType.DATASNAPSHOT,
                     UUID.fromString(id)));
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (ApiException ex) {
@@ -406,7 +406,7 @@ public class RepositoryApiController implements RepositoryApi {
             PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
                 samService.deletePolicyMember(
                     getAuthenticatedInfo(),
-                    SamClientService.ResourceType.SNAPSHOT,
+                    SamClientService.ResourceType.DATASNAPSHOT,
                     UUID.fromString(id),
                     policyName,
                     memberEmail)));

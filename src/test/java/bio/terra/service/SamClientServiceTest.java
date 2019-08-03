@@ -52,7 +52,7 @@ public class SamClientServiceTest {
         // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .createResource(eq(SamClientService.ResourceType.SNAPSHOT.toString()), any());
+            .createResource(eq(SamClientService.ResourceType.DATASNAPSHOT.toString()), any());
         Optional<List<String>> readerList = Optional.of(Collections.singletonList("email@email.com"));
         sam.createSnapshotResource(new AuthenticatedUserRequest("blah", "blah"), snapshotId, readerList);
     }
@@ -70,7 +70,7 @@ public class SamClientServiceTest {
         // TODO this code below is not mocked correctly
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .createResource(eq(SamClientService.ResourceType.SNAPSHOT.toString()), eq(createResourceRequest));
+            .createResource(eq(SamClientService.ResourceType.DATASNAPSHOT.toString()), eq(createResourceRequest));
 
         sam.createSnapshotResource(new AuthenticatedUserRequest("blah", "blah"), snapshotId, readersList);
     }
@@ -89,7 +89,7 @@ public class SamClientServiceTest {
         UUID snapshotId = UUID.randomUUID();
         willThrow(new ApiException("test"))
             .given(samResourceApi)
-            .deleteResource(eq(SamClientService.ResourceType.SNAPSHOT.toString()), eq(snapshotId.toString()));
+            .deleteResource(eq(SamClientService.ResourceType.DATASNAPSHOT.toString()), eq(snapshotId.toString()));
         sam.deleteSnapshotResource(new AuthenticatedUserRequest("blah", "blah"), snapshotId);
     }
 }

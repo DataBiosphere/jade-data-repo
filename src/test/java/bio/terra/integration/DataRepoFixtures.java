@@ -176,7 +176,7 @@ public class DataRepoFixtures {
                                        String snapshotId,
                                        SamClientService.DataRepoRole role,
                                        String newMemberEmail) throws Exception {
-        addPolicyMember(user, snapshotId, role, newMemberEmail, SamClientService.ResourceType.SNAPSHOT);
+        addPolicyMember(user, snapshotId, role, newMemberEmail, SamClientService.ResourceType.DATASNAPSHOT);
     }
 
     public DataRepoResponse<JobModel> createSnapshotLaunch(

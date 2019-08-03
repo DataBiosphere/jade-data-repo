@@ -14,8 +14,6 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.pdao.bigquery.BigQueryProject;
-import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;

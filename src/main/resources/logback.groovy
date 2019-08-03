@@ -27,6 +27,7 @@ appender("File-Appender", FileAppender) {
 // logger("bio.terra.stairway", DEBUG)
 logger("org.springframework", WARN)
 logger("liquibase.executor", WARN)
+logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)
 
 // root sets the default logging level and appenders
 root(INFO, ["Console-Appender", "File-Appender"])

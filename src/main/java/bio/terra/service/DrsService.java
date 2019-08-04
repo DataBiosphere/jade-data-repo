@@ -29,8 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-// TODO: NOTE: This code implements an out-of-date version of the DRS spec. See DR-409.
-// It probably works, but is not useful.
 @Component
 public class DrsService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DrsService");

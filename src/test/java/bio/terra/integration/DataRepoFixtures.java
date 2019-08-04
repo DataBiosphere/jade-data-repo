@@ -25,6 +25,10 @@ import bio.terra.model.StudySummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -257,16 +261,6 @@ public class DataRepoFixtures {
                 deleteModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
-
-    /**
-     * Ingests JSON data taking the defaults for the ingest specification
-     *
-     * @param studyId   - id of study to load
-     * @param tableName - name of table to load data into
-     * @param filePath  - file path within the bucket from property integrationtest.ingestbucket
-     * @return ingest response
-     * @throws Exception
-     */
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
         TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
         String ingestBody = buildSimpleIngest(tableName, filePath);
@@ -331,6 +325,14 @@ public class DataRepoFixtures {
             "/api/repository/v1/studies/" + studyId + "/files/" + fileId,
             JobModel.class);
         return dataRepoClient.waitForResponse(user, deleteResponse, DeleteResponseModel.class);
+    }
+
+    public Storage getStorage(String token) {
+        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
+        StorageOptions storageOptions = StorageOptions.newBuilder()
+            .setCredentials(googleCredentials)
+            .build();
+        return storageOptions.getService();
     }
 
     private String buildSimpleIngest(String table, String filename) throws Exception {

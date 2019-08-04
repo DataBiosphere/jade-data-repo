@@ -287,7 +287,7 @@ public class DataRepoFixtures {
         return ingestResponse;
     }
 
-    public DataRepoResponse<FSObjectModel> ingestFileRaw(
+    public DataRepoResponse<JobModel> ingestFileLaunch(
         TestConfiguration.User user, String studyId, String sourceGsPath, String targetPath) throws Exception {
 
         FileLoadModel fileLoadModel = new FileLoadModel()
@@ -298,33 +298,69 @@ public class DataRepoFixtures {
 
         String json = objectMapper.writeValueAsString(fileLoadModel);
 
-        DataRepoResponse<JobModel> postResponse = dataRepoClient.post(
+        return dataRepoClient.post(
             user,
             "/api/repository/v1/studies/" + studyId + "/files",
             json,
             JobModel.class);
-        return dataRepoClient.waitForResponse(user, postResponse, FSObjectModel.class);
     }
 
     public FSObjectModel ingestFile(
         TestConfiguration.User user, String studyId, String sourceGsPath, String targetPath) throws Exception {
-        DataRepoResponse<FSObjectModel> response = ingestFileRaw(user, studyId, sourceGsPath, targetPath);
+        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, studyId, sourceGsPath, targetPath);
+        assertTrue("ingest launch succeeded", resp.getStatusCode().is2xxSuccessful());
+        assertTrue("ingest launch response is present", resp.getResponseObject().isPresent());
 
+        DataRepoResponse<FSObjectModel> response = dataRepoClient.waitForResponse(user, resp, FSObjectModel.class);
         assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
-
-        FSObjectModel ingestResponse = response.getResponseObject().get();
-        return ingestResponse;
+        return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteFileRaw(
+    public DataRepoResponse<FSObjectModel> getFileByIdRaw(
         TestConfiguration.User user, String studyId, String fileId) throws Exception {
+        return dataRepoClient.get(
+            user, "/api/repository/v1/studies/" + studyId + "/files/" + fileId, FSObjectModel.class);
+    }
 
-        DataRepoResponse<JobModel> deleteResponse = dataRepoClient.delete(
+    public FSObjectModel getFileById(TestConfiguration.User user, String studyId, String fileId) throws Exception {
+        DataRepoResponse<FSObjectModel> response = getFileByIdRaw(user, studyId, fileId);
+        assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("file get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<FSObjectModel> getFileByNameRaw(
+        TestConfiguration.User user, String studyId, String path) throws Exception {
+        return dataRepoClient.get(
+            user,
+            "/api/repository/v1/studies/" + studyId + "/filesystem/objects?path=" + path,
+            FSObjectModel.class);
+    }
+
+    public FSObjectModel getFileByName(TestConfiguration.User user, String studyId, String path) throws Exception {
+        DataRepoResponse<FSObjectModel> response = getFileByNameRaw(user, studyId, path);
+        assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("file get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<JobModel> deleteFileLaunch(
+        TestConfiguration.User user, String studyId, String fileId) throws Exception {
+        return dataRepoClient.delete(
             user,
             "/api/repository/v1/studies/" + studyId + "/files/" + fileId,
             JobModel.class);
-        return dataRepoClient.waitForResponse(user, deleteResponse, DeleteResponseModel.class);
+    }
+
+    public void deleteFile(
+        TestConfiguration.User user, String studyId, String fileId) throws Exception {
+        DataRepoResponse<JobModel> launchResp = deleteFileLaunch(user, studyId, fileId);
+        assertTrue("delete launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
+        assertTrue("delete launch response is present", launchResp.getResponseObject().isPresent());
+        DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
+            user, launchResp, DeleteResponseModel.class);
+        assertGoodDeleteResponse(deleteResponse);
     }
 
     public Storage getStorage(String token) {

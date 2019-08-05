@@ -1,18 +1,54 @@
 #!/bin/bash
 set -e
 
-: ${ENVIRONMENT:?}
-: ${SUFFIX:?}
-: ${STEWARD_ACCT:?}
+usage () {
+    cat <<HELP_USAGE
 
-SAVED_ACCT=$(gcloud config get-value account)
+    $0  [-u <url>]
+
+    -u  pass a url in to hit, like http://localhost:8080
+    -h  print this help message
+HELP_USAGE
+}
+
+while getopts ":u:h" opt; do
+    case $opt in
+        u)
+            echo "overriding host value" >&2
+            HOST=$OPTARG
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
+        \?)
+            echo "invalid option: -$OPTARG" >&2
+            usage
+            exit 1
+            ;;
+        :)
+            echo "option -$OPTARG requires an argument" >&2
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z ${HOST+x} ]; then
+    : ${ENVIRONMENT:?}
+    : ${SUFFIX:?}
+    HOST="https://jade-${SUFFIX}.datarepo-${ENVIRONMENT}.broadinstitute.org"
+    echo "hitting $HOST"
+fi
+
 # switch to the steward account to get the right access token then switch back
+: ${STEWARD_ACCT:?}
+SAVED_ACCT=$(gcloud config get-value account)
 gcloud config set account $STEWARD_ACCT
 ACCESS_TOKEN=$(gcloud auth print-access-token)
 gcloud config set account $SAVED_ACCT
 
-HOST="https://jade-${SUFFIX}.datarepo-${ENVIRONMENT}.broadinstitute.org"
-#HOST=http://localhost:8080
+# this will be the path to the tools directory
+WD=$( dirname "${BASH_SOURCE[0]}" )
 
 # use the first profile id if it is there
 PROFILE_ID=$(curl --header 'Accept: application/json' --header "Authorization: Bearer ${ACCESS_TOKEN}" \
@@ -31,7 +67,7 @@ fi
 # create the encode study
 STAMP=$(date +"%m_%d_%H_%M")
 STUDY_NAME="ingest_test_${STAMP}"
-STUDY_ID=$(cat ../src/test/resources/ingest-test-study.json \
+STUDY_ID=$(cat ${WD}/../src/test/resources/ingest-test-study.json \
     | jq ".defaultProfileId = ${PROFILE_ID} | .name = \"${STUDY_NAME}\"" \
     | curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \
         --header "Authorization: Bearer ${ACCESS_TOKEN}" \
@@ -63,7 +99,7 @@ done
 
 sleep 5
 
-cat ../src/test/resources/ingest-test-dataset.json \
+cat ${WD}/../src/test/resources/ingest-test-dataset.json \
     | jq ".name = \"ingest_test_ds_${STAMP}\" | .contents[0].source.studyName = \"${STUDY_NAME}\"" \
     | jq ".profileId = ${PROFILE_ID}" \
     | curl -v -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' \

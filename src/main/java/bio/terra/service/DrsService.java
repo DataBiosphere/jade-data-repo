@@ -1,15 +1,15 @@
 package bio.terra.service;
 
+import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.DatasetDao;
-import bio.terra.dao.StudyDao;
+import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.dao.exception.DatasetNotFoundException;
-import bio.terra.dao.exception.StudyNotFoundException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSBundle;
@@ -42,48 +42,48 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
 
-    private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final SnapshotDao snapshotDao;
     private final FireStoreFileDao fileDao;
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
-    private final StudyService studyService;
+    private final DatasetService datasetService;
 
     @Autowired
-    public DrsService(StudyDao studyDao,
-                      DatasetDao datasetDao,
+    public DrsService(DatasetDao datasetDao,
+                      SnapshotDao snapshotDao,
                       FireStoreFileDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
-                      StudyService studyService) {
-        this.studyDao = studyDao;
+                      DatasetService datasetService) {
         this.datasetDao = datasetDao;
+        this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.gcsConfiguration = gcsConfiguration;
-        this.studyService = studyService;
+        this.datasetService = datasetService;
     }
 
     public DRSObject lookupObjectByDrsId(String drsObjectId) {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
 
         FSObjectBase fsObject = fileService.lookupFSObject(
-            drsId.getStudyId(),
+            drsId.getDatasetId(),
             drsId.getFsObjectId());
         if (fsObject.getObjectType() != FSObjectType.FILE) {
             throw new IllegalArgumentException("Object is not a blob");
         }
-        return drsObjectFromFSFile((FSFile)fsObject, drsId.getDatasetId());
+        return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId());
     }
 
     public DRSBundle lookupBundleByDrsId(String drsBundleId) {
         DrsId drsId = parseAndValidateDrsId(drsBundleId);
-        Study study = studyService.retrieve(UUID.fromString(drsId.getStudyId()));
+        Dataset dataset = datasetService.retrieve(UUID.fromString(drsId.getDatasetId()));
         FSObjectBase fsObject = fileDao.retrieveWithContents(
-            study,
+            dataset,
             UUID.fromString(drsId.getFsObjectId()));
         if (fsObject.getObjectType() != FSObjectType.DIRECTORY) {
             throw new IllegalArgumentException("Object is not a bundle");
@@ -103,32 +103,32 @@ public class DrsService {
             .description(dirObject.getDescription())
             .aliases(Collections.singletonList(dirObject.getPath()));
 
-        return makeBundleObjects(bundle, fsObjectList, drsId.getDatasetId());
+        return makeBundleObjects(bundle, fsObjectList, drsId.getSnapshotId());
     }
 
-    // Take an object or bundle id. Make sure it parses and make sure that the study and dataset
+    // Take an object or bundle id. Make sure it parses and make sure that the dataset and snapshot
     // that it claims to be part of actually exist.
     // TODO: add permission checking here I think
     private DrsId parseAndValidateDrsId(String drsObjectId) {
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         try {
-            UUID studyId = UUID.fromString(drsId.getStudyId());
-            studyDao.retrieveSummaryById(studyId);
-
             UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            datasetDao.retrieveDatasetSummary(datasetId);
+            datasetDao.retrieveSummaryById(datasetId);
+
+            UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+            snapshotDao.retrieveSnapshotSummary(snapshotId);
 
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (StudyNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
         } catch (DatasetNotFoundException ex) {
             throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
+        } catch (SnapshotNotFoundException ex) {
+            throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
         }
     }
 
-    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String datasetId) {
+    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String snapshotId) {
         // TODO: this computation does not conform to the current spec. With fine-grain access
         // control, we cannot pre-compute the sizes or checksums of contained bundles. I have raised
         // the question in the GA4GH cloud stream.
@@ -139,12 +139,12 @@ public class DrsService {
 
         for (FSObjectBase fsObject : fsObjectList) {
             String drsUri = drsIdService.toDrsUri(
-                fsObject.getStudyId().toString(),
-                datasetId,
+                fsObject.getDatasetId().toString(),
+                snapshotId,
                 fsObject.getObjectId().toString());
             String drsObjectId = drsIdService.toDrsObjectId(
-                fsObject.getStudyId().toString(),
-                datasetId,
+                fsObject.getDatasetId().toString(),
+                snapshotId,
                 fsObject.getObjectId().toString());
 
             DRSBundleObject.TypeEnum objectType = DRSBundleObject.TypeEnum.BUNDLE;
@@ -210,7 +210,7 @@ public class DrsService {
         return bundle;
     }
 
-    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsFile.getCreatedDate().toString();
 
@@ -223,8 +223,8 @@ public class DrsService {
             .region(gcsConfiguration.getRegion());
 
         DrsId drsId = DrsId.builder()
-            .studyId(fsFile.getStudyId().toString())
-            .datasetId(datasetId)
+            .datasetId(fsFile.getDatasetId().toString())
+            .snapshotId(snapshotId)
             .fsObjectId(fsFile.getObjectId().toString())
             .build();
 

@@ -1,9 +1,9 @@
 package bio.terra.pdao;
 
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
+import bio.terra.metadata.Snapshot;
+import bio.terra.metadata.SnapshotSource;
 import bio.terra.metadata.RowIdMatch;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 
 import java.util.List;
 
@@ -13,19 +13,19 @@ import java.util.List;
  * build another one.
  *
  * We use the term "container" for the object that contains a set of tables. In BigQuery, this would be a
- * BigQuery dataset. In Postgresql, it would probably be a schema.
+ * BigQuery snapshot. In Postgresql, it would probably be a schema.
  *
  * The expected sequence of calls to ensure idempotence:
  * <ul>
  *     <li>do sequence</li>
  *     <ol>
- *         <li>studyExists - validate that the study does not exist before calling create</li>
- *         <li>createStudy - if it finds the study, it deletes it and recreates. That covers the case where the
+ *         <li>datasetExists - validate that the dataset does not exist before calling create</li>
+ *         <li>createDataset - if it finds the dataset, it deletes it and recreates. That covers the case where the
  *         create operation is interrupted by a service failure and restarts.</li>
  *     </ol>
  *     <li>undo</li>
  *     <ol>
- *         <li>deleteStudy - called on undo; does not fail if the study has already been deleted</li>
+ *         <li>deleteDataset - called on undo; does not fail if the dataset has already been deleted</li>
  *     </ol>
  * </ul>
  *
@@ -35,42 +35,12 @@ import java.util.List;
 public interface PrimaryDataAccess {
 
     /**
-     * Create the container and tables for a study.
-     * BigQuery: container is a BigQuery dataset
-     *
-     * @param study
-     */
-    void createStudy(Study study);
-
-    /**
-     * Delete the study. All tables within the container and the container are deleted
-     *
-     * @param study
-     * @return true if the study was deleted; false if it was not found; throw on other errors
-     */
-    boolean deleteStudy(Study study);
-
-    /**
-     * Given inputs from one asset, compute the row ids from the input values. The
-     * returned structure provides a list suitable to pass into createDataset and
-     * information to return meaningful errors for mismatched input values.
+     * Create the container and tables for a dataset.
+     * BigQuery: container is a BigQuery snapshot
      *
      * @param dataset
-     * @param source - source in the dataset we are mapping
-     * @param inputValues
-     * @return RowIdMatch
      */
-    RowIdMatch mapValuesToRows(bio.terra.metadata.Dataset dataset,
-                                      DatasetSource source,
-                                      List<String> inputValues);
-
-    /**
-     * Create the container, tables and views for a dataset.
-     * BigQuery: container is a BigQuery dataset
-     * @param dataset
-     * @param rowIds - row ids for the root table
-     */
-    void createDataset(Dataset dataset, List<String> rowIds);
+    void createDataset(Dataset dataset);
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted
@@ -80,23 +50,46 @@ public interface PrimaryDataAccess {
      */
     boolean deleteDataset(Dataset dataset);
 
+    /**
+     * Given inputs from one asset, compute the row ids from the input values. The
+     * returned structure provides a list suitable to pass into createSnapshot and
+     * information to return meaningful errors for mismatched input values.
+     *
+     * @param snapshot
+     * @param source - source in the snapshot we are mapping
+     * @param inputValues
+     * @return RowIdMatch
+     */
+    RowIdMatch mapValuesToRows(bio.terra.metadata.Snapshot snapshot,
+                                      SnapshotSource source,
+                                      List<String> inputValues);
 
     /**
-     * Add the google group for the dataset readers to the BQ dataset
+     * Create the container, tables and views for a snapshot.
+     * BigQuery: container is a BigQuery snapshot
+     * @param snapshot
+     * @param rowIds - row ids for the root table
+     */
+    void createSnapshot(Snapshot snapshot, List<String> rowIds);
+
+    /**
+     * Delete the snapshot. All tables within the container and the container are deleted
      *
-     * @param dataset dataset metadata
+     * @param snapshot
+     * @return true if the snapshot was deleted; false if it was not found; throw on other errors
+     */
+    boolean deleteSnapshot(Snapshot snapshot);
+
+
+    /**
+     * Add the google group for the snapshot readers to the BQ snapshot
+     *
+     * @param snapshot snapshot metadata
      * @param readersEmail email address for readers group (as returned by SAM)
      */
-    void addReaderGroupToDataset(Dataset dataset, String readersEmail);
+    void addReaderGroupToSnapshot(Snapshot snapshot, String readersEmail);
 
-    void grantReadAccessToStudy(Study study, List<String> readerEmails);
-
-    /**
-     * Checks to see if a study exists
-     * @param study
-     * @return true if the study exists, false otherwise
-     */
-    boolean studyExists(Study study);
+    void grantReadAccessToDataset(Dataset dataset, List<String> readerEmails);
 
     /**
      * Checks to see if a dataset exists
@@ -104,5 +97,12 @@ public interface PrimaryDataAccess {
      * @return true if the dataset exists, false otherwise
      */
     boolean datasetExists(Dataset dataset);
+
+    /**
+     * Checks to see if a snapshot exists
+     * @param snapshot
+     * @return true if the snapshot exists, false otherwise
+     */
+    boolean snapshotExists(Snapshot snapshot);
 
 }

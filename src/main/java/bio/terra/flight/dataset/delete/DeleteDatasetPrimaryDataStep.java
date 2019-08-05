@@ -1,67 +1,56 @@
 package bio.terra.flight.dataset.delete;
 
-import bio.terra.dao.DatasetDao;
-import bio.terra.exception.NotFoundException;
-import bio.terra.filesystem.FireStoreDependencyDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
-import bio.terra.metadata.Study;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.StudyService;
+import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
+import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
 
 public class DeleteDatasetPrimaryDataStep implements Step {
-
-
     private BigQueryPdao bigQueryPdao;
-    private DatasetDao datasetDao;
-    private FireStoreDependencyDao dependencyDao;
-    private UUID datasetId;
-    private StudyService studyService;
+    private GcsPdao gcsPdao;
+    private FireStoreFileDao fileDao;
+    private DatasetService datasetService;
 
     public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        DatasetDao datasetDao,
-                                        FireStoreDependencyDao dependencyDao,
-                                        UUID datasetId,
-                                        StudyService studyService) {
+                                      GcsPdao gcsPdao,
+                                      FireStoreFileDao fileDao,
+                                      DatasetService datasetService) {
         this.bigQueryPdao = bigQueryPdao;
-        this.datasetDao = datasetDao;
-        this.dependencyDao = dependencyDao;
-        this.datasetId = datasetId;
-        this.studyService = studyService;
+        this.gcsPdao = gcsPdao;
+        this.fileDao = fileDao;
+        this.datasetService = datasetService;
+    }
+
+    Dataset getDataset(FlightContext context) {
+        FlightMap inputParameters = context.getInputParameters();
+        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
+        return datasetService.retrieve(datasetId);
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        try {
-            Dataset dataset = datasetDao.retrieveDataset(datasetId);
-            bigQueryPdao.deleteDataset(dataset);
+        Dataset dataset = getDataset(context);
+        bigQueryPdao.deleteDataset(dataset);
+        gcsPdao.deleteFilesFromDataset(dataset);
+        fileDao.deleteFilesFromDataset(dataset);
 
-            // Remove dataset file references from the underlying studies
-            for (DatasetSource datasetSource : dataset.getDatasetSources()) {
-                Study study = studyService.retrieve(datasetSource.getStudy().getId());
-                dependencyDao.deleteDatasetFileDependencies(
-                    study,
-                    datasetId.toString());
-            }
-
-        } catch (NotFoundException nfe) {
-            // If we do not find the study, we assume things are already clean
-        }
+        FlightMap map = context.getWorkingMap();
+        map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // This step is not undoable. We only get here when the
-        // metadata delete that comes after will has a dismal failure.
-        return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                new IllegalStateException("Attempt to undo permanent delete"));
+        // can't undo delete
+        return StepResult.getStepResultSuccess();
     }
 }
-

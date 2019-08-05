@@ -8,15 +8,15 @@ import java.util.List;
 import java.util.Optional;
 
 public class AssetTable {
-    private Table studyTable;
+    private Table datasetTable;
     private List<AssetColumn> columns = new ArrayList<>();
 
     public Table getTable() {
-        return studyTable;
+        return datasetTable;
     }
 
-    public AssetTable studyTable(Table studyTable) {
-        this.studyTable = studyTable;
+    public AssetTable datasetTable(Table datasetTable) {
+        this.datasetTable = datasetTable;
         return this;
     }
 
@@ -29,11 +29,11 @@ public class AssetTable {
         return this;
     }
 
-    public Optional<Column> getStudyColumnByName(String name) {
+    public Optional<Column> getDatasetColumnByName(String name) {
         for (AssetColumn assetColumn : getColumns()) {
-            Column studyColumn = assetColumn.getStudyColumn();
-            if (StringUtils.equals(name, studyColumn.getName())) {
-                return Optional.of(studyColumn);
+            Column datasetColumn = assetColumn.getDatasetColumn();
+            if (StringUtils.equals(name, datasetColumn.getName())) {
+                return Optional.of(datasetColumn);
             }
         }
         return Optional.empty();

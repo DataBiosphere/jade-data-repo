@@ -1,14 +1,16 @@
 package bio.terra.metadata;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public class DatasetSummary {
     private UUID id;
     private String name;
     private String description;
+    private UUID defaultProfileId;
+    private List<UUID> additionalProfileIds;
     private Instant createdDate;
-    private UUID profileId;
 
     public UUID getId() {
         return id;
@@ -37,6 +39,24 @@ public class DatasetSummary {
         return this;
     }
 
+    public UUID getDefaultProfileId() {
+        return defaultProfileId;
+    }
+
+    public DatasetSummary defaultProfileId(UUID defaultProfileId) {
+        this.defaultProfileId = defaultProfileId;
+        return this;
+    }
+
+    public List<UUID> getAdditionalProfileIds() {
+        return additionalProfileIds;
+    }
+
+    public DatasetSummary additionalProfileIds(List<UUID> additionalProfileIds) {
+        this.additionalProfileIds = additionalProfileIds;
+        return this;
+    }
+
     public Instant getCreatedDate() {
         return createdDate;
     }
@@ -46,12 +66,4 @@ public class DatasetSummary {
         return this;
     }
 
-    public UUID getProfileId() {
-        return profileId;
-    }
-
-    public DatasetSummary profileId(UUID profileId) {
-        this.profileId = profileId;
-        return this;
-    }
 }

@@ -1,10 +1,10 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.SamClientService;
 import org.junit.After;
 import org.junit.Before;
@@ -35,68 +35,68 @@ public class IngestTest extends UsersBase {
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
 
-    private StudySummaryModel studySummaryModel;
-    private String studyId;
-    private List<String> createdDatasetIds = new ArrayList<>();
+    private DatasetSummaryModel datasetSummaryModel;
+    private String datasetId;
+    private List<String> createdSnapshotIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
-        studyId = studySummaryModel.getId();
-        dataRepoFixtures.addStudyPolicyMember(
-            steward(), studyId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        datasetId = datasetSummaryModel.getId();
+        dataRepoFixtures.addDatasetPolicyMember(
+            steward(), datasetId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After
     public void teardown() throws Exception {
-        for (String datasetId : createdDatasetIds) {
-            dataRepoFixtures.deleteDataset(custodian(), datasetId);
+        for (String snapshotId : createdSnapshotIds) {
+            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
         }
 
-        if (studyId != null) {
-            dataRepoFixtures.deleteStudy(steward(), studyId);
+        if (datasetId != null) {
+            dataRepoFixtures.deleteDataset(steward(), datasetId);
         }
     }
 
-    @Ignore  // subset of the dataset test; not worth running everytime, but useful for debugging
+    @Ignore  // subset of the snapshot test; not worth running everytime, but useful for debugging
     @Test
     public void ingestParticipants() throws Exception {
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(
-                steward(), studyId, "participant", "ingest-test/ingest-test-participant.json");
+                steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
 
     @Test
-    public void ingestBuildDataset() throws Exception {
+    public void ingestBuildSnapshot() throws Exception {
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(
-                steward(), studyId, "participant", "ingest-test/ingest-test-participant.json");
+                steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
         ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), studyId, "sample", "ingest-test/ingest-test-sample.json");
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
         assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
         ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), studyId, "file", "ingest-test/ingest-test-file.json");
+            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
-        DatasetSummaryModel datasetSummary =
-            dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
-        createdDatasetIds.add(datasetSummary.getId());
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
+        createdSnapshotIds.add(snapshotSummary.getId());
     }
 
     @Test
     public void ingestUnauthorizedTest() throws Exception {
         DataRepoResponse<JobModel> ingestCustResp = dataRepoFixtures.ingestJsonDataLaunch(
-                custodian(), studyId, "participant", "ingest-test/ingest-test-participant.json");
+                custodian(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("Custodian is not authorized to ingest data",
             ingestCustResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
         DataRepoResponse<JobModel> ingestReadResp = dataRepoFixtures.ingestJsonDataLaunch(
-                reader(), studyId, "participant", "ingest-test/ingest-test-participant.json");
+                reader(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
         assertThat("Reader is not authorized to ingest data",
             ingestReadResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));

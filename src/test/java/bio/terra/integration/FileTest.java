@@ -5,7 +5,7 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.SamClientService;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -39,7 +39,7 @@ import static org.junit.Assert.assertThat;
 @Category(Integration.class)
 public class FileTest extends UsersBase {
 
-    private static Logger logger = LoggerFactory.getLogger(StudyTest.class);
+    private static Logger logger = LoggerFactory.getLogger(DatasetTest.class);
 
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
@@ -50,23 +50,23 @@ public class FileTest extends UsersBase {
     @Autowired
     private Storage storage;
 
-    private StudySummaryModel studySummaryModel;
-    private String studyId;
+    private DatasetSummaryModel datasetSummaryModel;
+    private String datasetId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        studySummaryModel = dataRepoFixtures.createStudy(steward(), "file-acl-test-study.json");
-        studyId = studySummaryModel.getId();
-        logger.info("created study " + studyId);
-        dataRepoFixtures.addStudyPolicyMember(
-            steward(), studySummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        datasetId = datasetSummaryModel.getId();
+        logger.info("created dataset " + datasetId);
+        dataRepoFixtures.addDatasetPolicyMember(
+            steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After
     public void tearDown() throws Exception {
-        if (studyId != null) {
-            dataRepoFixtures.deleteStudy(steward(), studyId);
+        if (datasetId != null) {
+            dataRepoFixtures.deleteDataset(steward(), datasetId);
         }
     }
 
@@ -77,13 +77,13 @@ public class FileTest extends UsersBase {
         String filePath = "/foo/bar";
 
         DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-            custodian(), studyId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
+            custodian(), datasetId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
         assertThat("Custodian is not authorized to ingest a file",
             launchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
-            steward(), studyId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
+            steward(), datasetId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
         String fileId = fsObjectModel.getObjectId();
 
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
@@ -98,51 +98,52 @@ public class FileTest extends UsersBase {
         }
 
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(), studyId, "file", targetPath);
+            steward(), datasetId, "file", targetPath);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
         // validates success
-        dataRepoFixtures.getFileById(steward(), studyId, fileId);
-        dataRepoFixtures.getFileById(custodian(), studyId, fileId);
+        dataRepoFixtures.getFileById(steward(), datasetId, fileId);
+        dataRepoFixtures.getFileById(custodian(), datasetId, fileId);
 
-        DataRepoResponse<FSObjectModel> readerResp = dataRepoFixtures.getFileByIdRaw(reader(), studyId, fileId);
-        assertThat("Reader is not authorized to get a file from a study",
+        DataRepoResponse<FSObjectModel> readerResp = dataRepoFixtures.getFileByIdRaw(reader(), datasetId, fileId);
+        assertThat("Reader is not authorized to get a file from a dataset",
             readerResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // get file by id
-        DataRepoResponse<FSObjectModel> discovererResp = dataRepoFixtures.getFileByIdRaw(discoverer(), studyId, fileId);
-        assertThat("Discoverer is not authorized to get a file from a study",
+        DataRepoResponse<FSObjectModel> discovererResp =
+            dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
+        assertThat("Discoverer is not authorized to get a file from a dataset",
             discovererResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // get file by name validates success
-        dataRepoFixtures.getFileByName(steward(), studyId, filePath);
-        dataRepoFixtures.getFileByName(custodian(), studyId, filePath);
+        dataRepoFixtures.getFileByName(steward(), datasetId, filePath);
+        dataRepoFixtures.getFileByName(custodian(), datasetId, filePath);
 
-        readerResp = dataRepoFixtures.getFileByNameRaw(reader(), studyId, filePath);
-        assertThat("Reader is not authorized to get a file from a study",
+        readerResp = dataRepoFixtures.getFileByNameRaw(reader(), datasetId, filePath);
+        assertThat("Reader is not authorized to get a file from a dataset",
             readerResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), studyId, filePath);
+        discovererResp = dataRepoFixtures.getFileByNameRaw(discoverer(), datasetId, filePath);
         assertThat("Discoverer is not authorized to get file",
             discovererResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // delete
-        DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), studyId, fileId);
+        DataRepoResponse<JobModel> job = dataRepoFixtures.deleteFileLaunch(reader(), datasetId, fileId);
         assertThat("Reader is not authorized to delete file",
             job.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        job = dataRepoFixtures.deleteFileLaunch(custodian(), studyId, fileId);
+        job = dataRepoFixtures.deleteFileLaunch(custodian(), datasetId, fileId);
         assertThat("Custodian is not authorized to delete file",
             job.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // validates success
-        dataRepoFixtures.deleteFile(steward(), studyId, fileId);
+        dataRepoFixtures.deleteFile(steward(), datasetId, fileId);
     }
 }

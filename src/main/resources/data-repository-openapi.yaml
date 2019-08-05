@@ -237,12 +237,262 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Profile in use by at least one study
+          description: Profile in use by at least one dataset
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
   ## Repository Interface
+
+  '/api/repository/v1/snapshots':
+    get:  ## enumerate
+      description: |
+        Returns a list of all of the snapshots the caller has access to
+      operationId: enumerateSnapshots
+      tags:
+      - repository
+      parameters:
+      - in: query
+        name: offset
+        type: integer
+        default: 0
+        description: The number of items to skip before starting to collect the result set.
+      - in: query
+        name: limit
+        type: integer
+        description: The numbers of items to return.
+        default: 10
+      - in: query
+        name: sort
+        type: string
+        default: created_date
+        enum:
+        - name
+        - description
+        - created_date
+        description: The field to use for sorting.
+      - in: query
+        name: direction
+        type: string
+        default: desc
+        enum:
+        - asc
+        - desc
+        description: The direction to sort.
+      - in: query
+        name: filter
+        type: string
+        description: Filter the results where this string is a case insensitive match in the name or description.
+      responses:
+        200:
+          description: List of snapshots
+          schema:
+            $ref: '#/definitions/EnumerateSnapshotModel'
+
+    post:
+      description: Create a new snapshot
+      operationId: createSnapshot
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: snapshot
+        description: Snapshot to create
+        schema:
+          $ref: '#/definitions/SnapshotRequestModel'
+      responses:
+        202:
+          description: Job status of snapshot creation job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for snapshot successful creation
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid name, badly formed or user email not found
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to create snapshots
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Snapshot with this name already exists
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
+  '/api/repository/v1/snapshots/{id}':
+    get:  ## retrieve
+      description: Retrieve a snapshot by id
+      operationId: retrieveSnapshot
+      tags:
+      - repository
+      parameters:
+        - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Snapshot
+          schema:
+            $ref: '#/definitions/SnapshotModel'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to see snapshot
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+    delete: ## delete
+      description: Delete a snapshot by id
+      operationId: deleteSnapshot
+      tags:
+      - repository
+      parameters:
+        - $ref: '#/parameters/Id'
+      responses:
+        202:
+          description: Job status of snapshot creation job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for snapshot successful creation
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to delete snapshot
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Snapshot in use?
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/snapshots/{id}/policies':
+    get:  ## retrieve
+      description: Retrieve the read and discover policies for the snapshot
+      operationId: retrieveSnapshotPolicies
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      responses:
+        200:
+          description: Policy
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to see policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
+  '/api/repository/v1/snapshots/{id}/policies/{policyName}/members':
+    post:  ## retrieve
+      description: Adds a member to the specified policy for the snapshot
+      operationId: addSnapshotPolicyMember
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: policyMember
+        description: Snapshot to change the policy of
+        schema:
+          $ref: '#/definitions/PolicyMemberRequest'
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/SnapshotPolicyName'
+      responses:
+        201:
+          description: PolicyResponse
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed, or email not found
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to update policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
+  '/api/repository/v1/snapshots/{id}/policies/{policyName}/members/{memberEmail}':
+    delete:  ## retrieve
+      description: Adds a member to the specified policy for the snapshot
+      operationId: deleteSnapshotPolicyMember
+      tags:
+      - repository
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/SnapshotPolicyName'
+      - name: memberEmail
+        description: The email of the user to remove
+        required: true
+        in: path
+        type: string
+      responses:
+        200:
+          description: PolicyResponse
+          schema:
+            $ref: '#/definitions/PolicyResponse'
+        400:
+          description: Bad request - invalid id, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to update policies
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - snapshot id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
 
   '/api/repository/v1/datasets':
     get:  ## enumerate
@@ -256,11 +506,11 @@ paths:
         name: offset
         type: integer
         default: 0
-        description: The number of items to skip before starting to collect the result set.
+        description: The number of datasets to skip before when retrieving the next page
       - in: query
         name: limit
         type: integer
-        description: The numbers of items to return.
+        description: The numbers datasets to retrieve and return.
         default: 10
       - in: query
         name: sort
@@ -303,35 +553,18 @@ paths:
         schema:
           $ref: '#/definitions/DatasetRequestModel'
       responses:
-        202:
-          description: Job status of dataset creation job & url for polling in the response header
+        201:
+          description: Dataset created successfully and a summary is returned
           schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job polling
-        200:
-          description: Redirect for dataset successful creation
-          schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job result
+            $ref: '#/definitions/DatasetSummaryModel'
         400:
-          description: Bad request - invalid name, badly formed or user email not found
+          description: Bad request - duplicate name, invalid name, badly formed schema
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
           description: No permission to create datasets
           schema:
             $ref: '#/definitions/ErrorModel'
-        409:
-          description: Dataset with this name already exists
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
 
   '/api/repository/v1/datasets/{id}':
     get:  ## retrieve
@@ -340,7 +573,7 @@ paths:
       tags:
       - repository
       parameters:
-        - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/Id'
       responses:
         200:
           description: Dataset
@@ -365,24 +598,12 @@ paths:
       tags:
       - repository
       parameters:
-        - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/Id'
       responses:
-        202:
-          description: Job status of dataset creation job & url for polling in the response header
-          schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job polling
         200:
-          description: Redirect for dataset successful creation
+          description: Successful deletion
           schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job result
+            $ref: '#/definitions/DeleteResponseModel'
         400:
           description: Bad request - invalid id, badly formed
           schema:
@@ -396,13 +617,13 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         409:
-          description: Dataset in use?
+          description: Dataset in use by at least one snapshot
           schema:
             $ref: '#/definitions/ErrorModel'
 
   '/api/repository/v1/datasets/{id}/policies':
     get:  ## retrieve
-      description: Retrieve the read and discover policies for the dataset
+      description: Retrieve the read and discover policies for the snapshot
       operationId: retrieveDatasetPolicies
       tags:
       - repository
@@ -422,14 +643,14 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members':
-    post:  ## retrieve
-      description: Adds a member to the specified policy for the dataset
+    post:
+      description: Adds a member to the specified policy for the snapshot
       operationId: addDatasetPolicyMember
       tags:
       - repository
@@ -438,7 +659,7 @@ paths:
       parameters:
       - in: body
         name: policyMember
-        description: Dataset to change the policy of
+        description: Snapshot to change the policy of
         schema:
           $ref: '#/definitions/PolicyMemberRequest'
       - $ref: '#/parameters/Id'
@@ -457,14 +678,14 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
 
   '/api/repository/v1/datasets/{id}/policies/{policyName}/members/{memberEmail}':
     delete:  ## retrieve
-      description: Adds a member to the specified policy for the dataset
+      description: Adds a member to the specified policy for the snapshot
       operationId: deleteDatasetPolicyMember
       tags:
       - repository
@@ -490,235 +711,14 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - dataset id does not exist
+          description: Not found - snapshot id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies':
-    get:  ## enumerate
-      description: |
-        Returns a list of all of the studies the caller has access to
-      operationId: enumerateStudies
-      tags:
-      - repository
-      parameters:
-      - in: query
-        name: offset
-        type: integer
-        default: 0
-        description: The number of studies to skip before when retrieving the next page
-      - in: query
-        name: limit
-        type: integer
-        description: The numbers studies to retrieve and return.
-        default: 10
-      - in: query
-        name: sort
-        type: string
-        default: created_date
-        enum:
-        - name
-        - description
-        - created_date
-        description: The field to use for sorting.
-      - in: query
-        name: direction
-        type: string
-        default: desc
-        enum:
-        - asc
-        - desc
-        description: The direction to sort.
-      - in: query
-        name: filter
-        type: string
-        description: Filter the results where this string is a case insensitive match in the name or description.
-      responses:
-        200:
-          description: List of studies
-          schema:
-            $ref: '#/definitions/EnumerateStudyModel'
-
+  '/api/repository/v1/datasets/{id}/ingest':
     post:
-      description: Create a new study
-      operationId: createStudy
-      tags:
-      - repository
-      consumes:
-      - application/json
-      parameters:
-      - in: body
-        name: study
-        description: Study to create
-        schema:
-          $ref: '#/definitions/StudyRequestModel'
-      responses:
-        201:
-          description: Study created successfully and a summary is returned
-          schema:
-            $ref: '#/definitions/StudySummaryModel'
-        400:
-          description: Bad request - duplicate name, invalid name, badly formed schema
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to create studies
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-  '/api/repository/v1/studies/{id}':
-    get:  ## retrieve
-      description: Retrieve a study by id
-      operationId: retrieveStudy
-      tags:
-      - repository
-      parameters:
-      - $ref: '#/parameters/Id'
-      responses:
-        200:
-          description: Study
-          schema:
-            $ref: '#/definitions/StudyModel'
-        400:
-          description: Bad request - invalid id, badly formed
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to see study
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        404:
-          description: Not found - study id does not exist
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-    delete: ## delete
-      description: Delete a study by id
-      operationId: deleteStudy
-      tags:
-      - repository
-      parameters:
-      - $ref: '#/parameters/Id'
-      responses:
-        200:
-          description: Successful deletion
-          schema:
-            $ref: '#/definitions/DeleteResponseModel'
-        400:
-          description: Bad request - invalid id, badly formed
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to delete study
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        404:
-          description: Not found - study id does not exist
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        409:
-          description: Study in use by at least one dataset
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-  '/api/repository/v1/studies/{id}/policies':
-    get:  ## retrieve
-      description: Retrieve the read and discover policies for the dataset
-      operationId: retrieveStudyPolicies
-      tags:
-      - repository
-      parameters:
-      - $ref: '#/parameters/Id'
-      responses:
-        200:
-          description: Policy
-          schema:
-            $ref: '#/definitions/PolicyResponse'
-        400:
-          description: Bad request - invalid id, badly formed
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to see policies
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        404:
-          description: Not found - dataset id does not exist
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-
-  '/api/repository/v1/studies/{id}/policies/{policyName}/members':
-    post:
-      description: Adds a member to the specified policy for the dataset
-      operationId: addStudyPolicyMember
-      tags:
-      - repository
-      consumes:
-      - application/json
-      parameters:
-      - in: body
-        name: policyMember
-        description: Dataset to change the policy of
-        schema:
-          $ref: '#/definitions/PolicyMemberRequest'
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/StudyPolicyName'
-      responses:
-        201:
-          description: PolicyResponse
-          schema:
-            $ref: '#/definitions/PolicyResponse'
-        400:
-          description: Bad request - invalid id, badly formed, or email not found
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to update policies
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        404:
-          description: Not found - dataset id does not exist
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-
-  '/api/repository/v1/studies/{id}/policies/{policyName}/members/{memberEmail}':
-    delete:  ## retrieve
-      description: Adds a member to the specified policy for the dataset
-      operationId: deleteStudyPolicyMember
-      tags:
-      - repository
-      parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/StudyPolicyName'
-      - name: memberEmail
-        description: The email of the user to remove
-        required: true
-        in: path
-        type: string
-      responses:
-        200:
-          description: PolicyResponse
-          schema:
-            $ref: '#/definitions/PolicyResponse'
-        400:
-          description: Bad request - invalid id, badly formed
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to update policies
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        404:
-          description: Not found - dataset id does not exist
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-  '/api/repository/v1/studies/{id}/ingest':
-    post:
-      description: Ingest data into a study table
-      operationId: ingestStudy
+      description: Ingest data into a dataset table
+      operationId: ingestDataset
       tags:
       - repository
       consumes:
@@ -773,9 +773,9 @@ paths:
           schema:
             $ref: '#/definitions/UserStatusInfo'
 
-  '/api/repository/v1/studies/{id}/files':
+  '/api/repository/v1/datasets/{id}/files':
     post:
-      description: Ingest one file into the study file system; async returns a FSObjectModel
+      description: Ingest one file into the dataset file system; async returns a FSObjectModel
       operationId: ingestFile
       tags:
       - repository
@@ -818,7 +818,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/files/{fileid}':
+  '/api/repository/v1/datasets/{id}/files/{fileid}':
     get:
       description: Lookup metadata for one file
       operationId: lookupFileObjectById
@@ -852,7 +852,7 @@ paths:
     delete: ## delete
       description: |
         Hard delete of a file by id. The file is deleted even if it is in use by
-        a study. Subsequent lookups will give not found errors.
+        a dataset. Subsequent lookups will give not found errors.
       operationId: deleteFile
       tags:
       - repository
@@ -861,7 +861,7 @@ paths:
       - $ref: '#/parameters/FileId'
       responses:
         202:
-          description: Job status of dataset creation job & url for polling in the response header
+          description: Job status of snapshot creation job & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -869,7 +869,7 @@ paths:
               type: string
               description: url for the job polling
         200:
-          description: Redirect for dataset successful creation
+          description: Redirect for snapshot successful creation
           schema:
             $ref: '#/definitions/JobModel'
           headers:
@@ -885,11 +885,11 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - study id or file id does not exist
+          description: Not found - dataset id or file id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/studies/{id}/filesystem/objects':
+  '/api/repository/v1/datasets/{id}/filesystem/objects':
     get:
       description: Lookup metadata for one file
       operationId: lookupFileObjectByPath
@@ -1150,11 +1150,11 @@ paths:
 parameters:
   Id:
     name: id
-    description: A study or dataset id
+    description: A dataset or snapshot id
     required: true
     type: string
     in: path
-  DatasetPolicyName:
+  SnapshotPolicyName:
     name: policyName
     in: path
     description: The relevant policy
@@ -1163,7 +1163,7 @@ parameters:
     enum:
       - reader
       - discoverer
-  StudyPolicyName:
+  DatasetPolicyName:
     name: policyName
     in: path
     description: The relevant policy
@@ -1206,7 +1206,7 @@ definitions:
 
   UniqueIdProperty:
     description: |
-      Unique identifier for a study, dataset, etc.
+      Unique identifier for a dataset, snapshot, etc.
     type: string
     pattern: '^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}' ## eg:957117a6-79fd-4f2c-a63c-f6dc84a94d9c
 
@@ -1263,11 +1263,11 @@ definitions:
         items:
           $ref: '#/definitions/BillingProfileModel'
 
-  ## Study ##
+  ## Dataset ##
 
-  StudyModel:
+  DatasetModel:
     description: |
-      Complete definition of a study.
+      Complete definition of a dataset.
     type: object
     properties:
       id:
@@ -1276,30 +1276,30 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the study
+        description: Description of the dataset
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: This is the profile id used for core study resources
+        description: This is the profile id used for core dataset resources
       dataProject:
         type: string
         description: Project id of the project where tabular data in BigQuery lives
       additionalProfileIds:
         type: array
-        description: Additional profile ids to be used for this study
+        description: Additional profile ids to be used for this dataset
         items:
           $ref: '#/definitions/UniqueIdProperty'
-      defaultDatasetId:
+      defaultSnapshotId:
         type: string
-        description: Id of the auto-generated default passthru dataset
+        description: Id of the auto-generated default passthru snapshot
       schema:
-        $ref: '#/definitions/StudySpecificationModel'
+        $ref: '#/definitions/DatasetSpecificationModel'
       createdDate:
         type: string
-        description: Date the study was created
+        description: Date the dataset was created
 
-  StudySummaryModel:
+  DatasetSummaryModel:
     description: |
-      Summary of a study.
+      Summary of a dataset.
     type: object
     properties:
       id:
@@ -1308,22 +1308,22 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the study
+        description: Description of the dataset
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: This is the ID of the profile used for core study resources
+        description: This is the ID of the profile used for core dataset resources
       additionalProfileIds:
         type: array
-        description: Additional profile IDs to be used for this study
+        description: Additional profile IDs to be used for this dataset
         items:
           $ref: '#/definitions/UniqueIdProperty'
       createdDate:
         type: string
-        description: Date the study was created
+        description: Date the dataset was created
 
-  StudyRequestModel:
+  DatasetRequestModel:
     description: |
-      Complete definition of a study without the id (used to create a study)
+      Complete definition of a dataset without the id (used to create a dataset)
     type: object
     required:
     - name
@@ -1334,30 +1334,30 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the study
+        description: Description of the dataset
       defaultProfileId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: This is the ID of the profile used for core study resources
+        description: This is the ID of the profile used for core dataset resources
       additionalProfileIds:
         type: array
-        description: Additional profile IDs to be used for this study
+        description: Additional profile IDs to be used for this dataset
         items:
           $ref: '#/definitions/UniqueIdProperty'
       schema:
-        $ref: '#/definitions/StudySpecificationModel'
+        $ref: '#/definitions/DatasetSpecificationModel'
 
-  EnumerateStudyModel:
+  EnumerateDatasetModel:
     description: |
-      The total number of studies available that match the filter criteria and a page of summaries
+      The total number of datasets available that match the filter criteria and a page of summaries
     type: object
     properties:
       total:
         type: integer
-        description: Total number of studies
+        description: Total number of datasets
       items:
         type: array
         items:
-          $ref: '#/definitions/StudySummaryModel'
+          $ref: '#/definitions/DatasetSummaryModel'
 
 
   ## Schema Definitions ##
@@ -1440,7 +1440,7 @@ definitions:
   AssetTableModel:
     description: |
       Used in the asset definition to describe a table that is included in the asset. This is used to define
-      the view of the asset table in the dataset. Columns can be an empty array indicating that all columns
+      the view of the asset table in the snapshot. Columns can be an empty array indicating that all columns
       should be included.
     type: object
     required:
@@ -1481,7 +1481,7 @@ definitions:
         items:
           $ref: '#/definitions/ObjectNameProperty'
 
-  StudySpecificationModel:
+  DatasetSpecificationModel:
     description: data model definition
     type: object
     required:
@@ -1501,10 +1501,10 @@ definitions:
         items:
           $ref: '#/definitions/AssetModel'
 
-  ## Study Ingest Definitions ##
+  ## Dataset Ingest Definitions ##
   IngestRequestModel:
     description: |
-      Request to ingest data from a file in GCS into a table in a study.
+      Request to ingest data from a file in GCS into a table in a dataset.
       The ingest source must be readable by the DR manager.
       TODO: other input forms
     type: object
@@ -1565,12 +1565,12 @@ definitions:
       - path
       - row_count
     properties:
-      study_id:
+      dataset_id:
         $ref: '#/definitions/UniqueIdProperty'
-        description: unique id of the study
-      study:
+        description: unique id of the dataset
+      dataset:
         $ref: '#/definitions/ObjectNameProperty'
-        description: name of the study
+        description: name of the dataset
       table:
         $ref: '#/definitions/ObjectNameProperty'
         description: name of the target table for ingest
@@ -1591,7 +1591,7 @@ definitions:
   FileLoadModel:
     description: |
       Information needed to copy a file from a source bucket into the
-      study bucket.
+      dataset bucket.
       Eventually, this will include attributes of the storage including
       billing, temperature, geography, etc. But for now...
     type: object
@@ -1605,7 +1605,7 @@ definitions:
       target_path:
         type: string
         description: |
-          Full path within the study where the file should be placed.
+          Full path within the dataset where the file should be placed.
           The path must start with /.
       mime_type:
         type: string
@@ -1623,13 +1623,13 @@ definitions:
     properties:
       objectId:
         type: string
-        description: Unique id of the filesystem object within the study
-      studyId:
+        description: Unique id of the filesystem object within the dataset
+      datasetId:
         type: string
-        description: Study holding the file
+        description: Dataset holding the file
       path:
         type: string
-        description: full path of the file in the study
+        description: full path of the file in the dataset
       size:
         type: integer
         format: int64
@@ -1678,18 +1678,18 @@ definitions:
         items:
           $ref: '#/definitions/FSObjectModel'
 
-  ## Dataset Definitions ##
+  ## Snapshot Definitions ##
 
-  DatasetRequestModel:
+  SnapshotRequestModel:
     description: |
-      Request for creating a dataset.
-      For now, the API only supports datasets defined as a single study asset and
-      row ids for the root table of that asset. The dataset has exactly the tables
+      Request for creating a snapshot.
+      For now, the API only supports snapshots defined as a single dataset asset and
+      row ids for the root table of that asset. The snapshot has exactly the tables
       and columns of the asset. An optional list of users can be provided to set as
-      readers on the dataset.
-      In the future, we will need to extend this to handle cross-study datasets
+      readers on the snapshot.
+      In the future, we will need to extend this to handle cross-dataset snapshots
       from disparate assets, so we will need to support column and datatype
-      mapping from asset tables to the target dataset tables.
+      mapping from asset tables to the target snapshot tables.
     type: object
     required:
       - name
@@ -1699,22 +1699,22 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the dataset
+        description: Description of the snapshot
       contents:
         type: array
         items:
-          $ref: '#/definitions/DatasetRequestContentsModel'
+          $ref: '#/definitions/SnapshotRequestContentsModel'
       readers:
         type: array
         items:
           type: string
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: The profile id to use for this dataset
+        description: The profile id to use for this snapshot
 
-  DatasetRequestContentsModel:
+  SnapshotRequestContentsModel:
     description: |
-      The contents specifies the source of the data (study and asset)
+      The contents specifies the source of the data (dataset and asset)
       and the rows to include (field and rootValues).
       TODO: field will move the asset object; it is here as a stepping stone
     type: object
@@ -1723,28 +1723,28 @@ definitions:
       - rootValues
     properties:
       source:
-        $ref: '#/definitions/DatasetRequestSourceModel'
+        $ref: '#/definitions/SnapshotRequestSourceModel'
       rootValues:
         type: array
         items:
           type: string
 
-  DatasetRequestSourceModel:
+  SnapshotRequestSourceModel:
     description: |
-      The datasource identifies the study and asset from which to source the data.
+      The datasource identifies the dataset and asset from which to source the data.
     type: object
     required:
-      - studyName
+      - datasetName
       - assetName
     properties:
-      studyName:
+      datasetName:
         $ref: '#/definitions/ObjectNameProperty'
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
 
-  DatasetSummaryModel:
+  SnapshotSummaryModel:
     description: |
-      summary of dataset
+      summary of snapshot
     type: object
     properties:
       id:
@@ -1753,30 +1753,30 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the dataset
+        description: Description of the snapshot
       createdDate:
         type: string
-        description: Date the dataset was created
+        description: Date the snapshot was created
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: The profile id for this dataset
+        description: The profile id for this snapshot
 
-  EnumerateDatasetModel:
+  EnumerateSnapshotModel:
     description: |
-      The total number of datasets available that match the criteria and a page of summaries
+      The total number of snapshots available that match the criteria and a page of summaries
     type: object
     properties:
       total:
         type: integer
-        description: Total number of datasets
+        description: Total number of snapshots
       items:
         type: array
         items:
-          $ref: '#/definitions/DatasetSummaryModel'
+          $ref: '#/definitions/SnapshotSummaryModel'
 
-  DatasetModel:
+  SnapshotModel:
     description: |
-      DatasetModel returns detailed data about an existing dataset.
+      SnapshotModel returns detailed data about an existing snapshot.
     type: object
     properties:
       id:
@@ -1785,35 +1785,35 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       description:
         type: string
-        description: Description of the dataset
+        description: Description of the snapshot
       createdDate:
         type: string
-        description: Date the dataset was created
+        description: Date the snapshot was created
       source:
         type: array
         items:
-          $ref: '#/definitions/DatasetSourceModel'
+          $ref: '#/definitions/SnapshotSourceModel'
       tables:
         type: array
         items:
           $ref: '#/definitions/TableModel'
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
-        description: The profile id of this dataset
+        description: The profile id of this snapshot
       dataProject:
         type: string
-        description: Project id of the dataset data project
+        description: Project id of the snapshot data project
 
-  DatasetSourceModel:
+  SnapshotSourceModel:
     description: |
-      DatasetSourceModel returns data about the source for an existing dataset
+      SnapshotSourceModel returns data about the source for an existing snapshot
     type: object
     required:
-      - study
+      - dataset
       - asset
     properties:
-      study:
-        $ref: '#/definitions/StudySummaryModel'
+      dataset:
+        $ref: '#/definitions/DatasetSummaryModel'
       asset:
         $ref: '#/definitions/ObjectNameProperty'
 

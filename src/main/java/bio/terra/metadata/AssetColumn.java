@@ -4,8 +4,8 @@ import java.util.UUID;
 
 public class AssetColumn {
     private UUID id;
-    private Table studyTable;
-    private Column studyColumn;
+    private Table datasetTable;
+    private Column datasetColumn;
 
     public UUID getId() {
         return id;
@@ -16,21 +16,21 @@ public class AssetColumn {
         return this;
     }
 
-    public Column getStudyColumn() {
-        return studyColumn;
+    public Column getDatasetColumn() {
+        return datasetColumn;
     }
 
-    public AssetColumn studyColumn(Column studyColumn) {
-        this.studyColumn = studyColumn;
+    public AssetColumn datasetColumn(Column datasetColumn) {
+        this.datasetColumn = datasetColumn;
         return this;
     }
 
     public Table getTable() {
-        return studyTable;
+        return datasetTable;
     }
 
-    public AssetColumn studyTable(Table studyTable) {
-        this.studyTable = studyTable;
+    public AssetColumn datasetTable(Table datasetTable) {
+        this.datasetTable = datasetTable;
         return this;
     }
 }

@@ -145,7 +145,7 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        SamClientService.ResourceType resourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.toPluralString() + "/" +
+        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.toApiString() + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }

@@ -52,7 +52,11 @@ public class SamClientService {
             return StringUtils.lowerCase(name());
         }
 
-        public String toPluralString() {
+        // this is how this resource type is represented in the url
+        public String toApiString() {
+            if (this.toString().equals("datasnapshot")) {
+                return "snapshots";
+            }
             return this.toString() + "s";
         }
 

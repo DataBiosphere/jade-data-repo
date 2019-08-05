@@ -54,14 +54,6 @@ public class DataRepoFixtures {
     @Autowired
     private ObjectMapper objectMapper;
 
-
-    public DataRepoResponse<DRSObject> resolveDrsId(TestConfiguration.User user, String objectId) throws Exception {
-        return dataRepoClient.get(
-            user,
-            "/ga4gh/drs/v1/objects/" + objectId,
-            DRSObject.class
-        );
-    }
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
 
@@ -361,6 +353,20 @@ public class DataRepoFixtures {
         DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
             user, launchResp, DeleteResponseModel.class);
         assertGoodDeleteResponse(deleteResponse);
+    }
+
+    public DrsResponse<DRSObject> drsGetObjectRaw(TestConfiguration.User user, String drsObjectId) throws Exception {
+        return dataRepoClient.drsGet(
+            user,
+            "/ga4gh/drs/v1/objects/" + drsObjectId,
+            DRSObject.class);
+    }
+
+    public DRSObject drsGetObject(TestConfiguration.User user, String drsObjectId) throws Exception {
+        DrsResponse<DRSObject> response = drsGetObjectRaw(user, drsObjectId);
+        assertThat("object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("object get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
     }
 
     public Storage getStorage(String token) {

@@ -3,7 +3,10 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
+import com.google.cloud.bigquery.BigQuery;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -11,14 +14,12 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
-@AutoConfigureMockMvc
+@SpringBootTest // TODO: Do we need this?
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class DrsTest extends UsersBase {
@@ -30,47 +31,37 @@ public class DrsTest extends UsersBase {
     @Autowired private TestConfiguration testConfiguration;
 
     private String readerToken;
-    private DatasetSummaryModel datasetSummary;
+    private DatasetModel datasetModel;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
-        datasetSummary = encodeFixture.setupEncode(steward(), custodian(), reader());
+        DatasetSummaryModel datasetSummary = encodeFixture.setupEncode(steward(), custodian(), reader());
+        datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummary.getId());
     }
 
     @Test
-    public void drsTest() {
+    public void drsHackyTest() throws Exception {
+        // Get a DRS ID from the dataset
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
+            datasetModel,
+            "file",
+            "file_ref");
 
+        // DRS lookup the file
+        DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
 
-        BigQueryProject bigQueryProjectReader = getBigQueryProject(testConfiguration.getGoogleProjectId(), readerToken);
-        String query = String.format("SELECT file_ref FROM `%s.%s.file`",
-            bigQueryProject.getProjectId(), datasetSummaryModel.getName());
-
-
-        TableResult ids = bigQueryProjectReader.query(query);
-
-        String drsId = null;
-        for (FieldValueList fieldValueList : ids.iterateAll()) {
-            drsId = fieldValueList.get(0).getStringValue();
-        }
-
-
-
-        // query for one bam file
-        // DRS lookup
-        // use the path - 1 to get a dir path
+        // <<< YOU ARE HERE >>>
+        // use the file path parent to get a dir path
         // lookup the dir path
         // generate a DRS ID
-        // DRS lookup
-
-
-
-
-
+        // DRS lookup the dire
 
 
     }
+
 
 
 

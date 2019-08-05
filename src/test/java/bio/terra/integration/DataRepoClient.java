@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.DRSError;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,11 +53,13 @@ public class DataRepoClient {
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON_UTF8));
     }
 
-    private HttpHeaders getHeaders(TestConfiguration.User user) {
-        HttpHeaders copy = new HttpHeaders(headers);
-        copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
-        copy.set("From", user.getEmail());
-        return copy;
+    // -- RepositoryController Client --
+
+    private <T> DataRepoResponse<T> makeDataRepoRequest(String path,
+                                                        HttpMethod method,
+                                                        HttpEntity entity,
+                                                        Class<T> responseClass) throws Exception {
+        return (DataRepoResponse<T>) makeRequest(path, method, entity, responseClass, ErrorModel.class);
     }
 
     public <T> DataRepoResponse<T> get(TestConfiguration.User user, String path, Class<T> responseClass)
@@ -114,10 +117,28 @@ public class DataRepoClient {
         return jobModelResponse.getLocationHeader().get();
     }
 
-    private <T> DataRepoResponse<T> makeDataRepoRequest(String path,
-                                                        HttpMethod method,
-                                                        HttpEntity entity,
-                                                        Class<T> responseClass) throws Exception {
+    // -- DataRepositoryServerController Client --
+
+    public <T> DrsResponse<T> drsGet(TestConfiguration.User user, String path, Class<T> responseClass)
+        throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
+        return makeDrsRequest(path, HttpMethod.GET, entity, responseClass);
+    }
+
+    private <T> DrsResponse<T> makeDrsRequest(String path,
+                                              HttpMethod method,
+                                              HttpEntity entity,
+                                              Class<T> responseClass) throws Exception {
+        return (DrsResponse<T>) makeRequest(path, method, entity, responseClass, DRSError.class);
+    }
+
+    // -- Common Client Code --
+
+    private <S, T> ObjectOrErrorResponse<S, T> makeRequest(String path,
+                                                      HttpMethod method,
+                                                      HttpEntity entity,
+                                                      Class<T> responseClass,
+                                                      Class<S> errorClass) throws Exception {
 
         ResponseEntity<String> response = restTemplate.exchange(
             testConfig.getJadeApiUrl() + path,
@@ -125,7 +146,7 @@ public class DataRepoClient {
             entity,
             String.class);
 
-        DataRepoResponse<T> drResponse = new DataRepoResponse<>();
+        ObjectOrErrorResponse<S, T> drResponse = new ObjectOrErrorResponse<>();
         drResponse.setStatusCode(response.getStatusCode());
 
         URI uri = response.getHeaders().getLocation();
@@ -140,12 +161,21 @@ public class DataRepoClient {
             }
             drResponse.setErrorModel(Optional.empty());
         } else {
-            ErrorModel errorModel = objectMapper.readValue(response.getBody(), ErrorModel.class);
-            drResponse.setErrorModel(Optional.of(errorModel));
+            S errorObject = objectMapper.readValue(response.getBody(), errorClass);
+            drResponse.setErrorModel(Optional.of(errorObject));
             drResponse.setResponseObject(Optional.empty());
         }
 
         return drResponse;
     }
+
+    private HttpHeaders getHeaders(TestConfiguration.User user) {
+        HttpHeaders copy = new HttpHeaders(headers);
+        copy.setBearerAuth(authService.getAuthToken(user.getEmail()));
+        copy.set("From", user.getEmail());
+        return copy;
+    }
+
+
 
 }

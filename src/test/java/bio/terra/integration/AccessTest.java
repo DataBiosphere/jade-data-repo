@@ -21,8 +21,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -43,13 +41,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -89,11 +84,6 @@ public class AccessTest extends UsersBase {
         studyId = studySummaryModel.getId();
     }
 
-    private BigQuery getBigQuery(String projectId, String token) {
-        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        return BigQueryFixtures.getBigQuery(projectId, googleCredentials);
-    }
-
     private Storage getStorage(String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
         StorageOptions storageOptions = StorageOptions.newBuilder()
@@ -118,7 +108,7 @@ public class AccessTest extends UsersBase {
         StudyModel study = dataRepoFixtures.getStudy(steward(), studyId);
         String studyBqDatasetName = "datarepo_" + study.getName();
 
-        BigQuery custodianBigQuery = getBigQuery(study.getDataProject(), custodianToken);
+        BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(study.getDataProject(), custodianToken);
         try {
             BigQueryFixtures.datasetExists(custodianBigQuery, study.getDataProject(), studyBqDatasetName);
             fail("custodian shouldn't be able to access bq dataset before it is shared with them");
@@ -163,7 +153,7 @@ public class AccessTest extends UsersBase {
             dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
 
         DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
-        BigQuery bigQuery = getBigQuery(datasetModel.getDataProject(), readerToken);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(datasetModel.getDataProject(), readerToken);
         try {
             BigQueryFixtures.datasetExists(bigQuery, datasetModel.getDataProject(), datasetSummaryModel.getName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
@@ -249,9 +239,11 @@ public class AccessTest extends UsersBase {
             studySummaryModel,
             "file-acl-test-dataset.json");
 
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
+
         dataRepoFixtures.addDatasetPolicyMember(
             custodian(),
-            datasetSummaryModel.getId(),
+            datasetModel.getId(),
             SamClientService.DataRepoRole.READER,
             reader().getEmail());
 
@@ -260,21 +252,21 @@ public class AccessTest extends UsersBase {
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASET,
-            datasetSummaryModel.getId(),
+            datasetModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
         // Step 4. Wait for SAM to sync the access change out to GCP.
         //
         // We make a BigQuery context for the reader in the test project. The reader doesn't have access
         // to run queries in the dataset project.
-        BigQuery bigQueryReader = getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
 
         TestUtils.eventualExpect(5, samTimeout, true, () -> {
             try {
                 boolean datasetExists = BigQueryFixtures.datasetExists(
                     bigQueryReader,
                     studyModel.getDataProject(),
-                    datasetSummaryModel.getName());
+                    datasetModel.getName());
 
                 assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
                 return true;
@@ -288,31 +280,14 @@ public class AccessTest extends UsersBase {
         });
 
         // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
-        String sql = String.format("SELECT file_ref FROM `%s.%s.file`",
-            studyModel.getDataProject(), datasetSummaryModel.getName());
-
-        TableResult ids = BigQueryFixtures.query(sql, bigQueryReader);
-
-        String drsId = null;
-        for (FieldValueList fieldValueList : ids.iterateAll()) {
-            drsId = fieldValueList.get(0).getStringValue();
-        }
-
-        assertThat("drs id was found", drsId, notNullValue());
-        Matcher matcher = drsIdRegex.matcher(drsId);
-
-        assertThat("matcher found a match in the drs id", matcher.find(), equalTo(true));
-        drsId = matcher.group();
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
+            datasetModel,
+            "file",
+            "file_ref");
 
         // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
-        Optional<DRSObject> optionalDRSObject = dataRepoFixtures.resolveDrsId(
-            reader(),
-            drsId).getResponseObject();
-
-        assertThat("there is a response", optionalDRSObject.isPresent(), equalTo(true));
-
-        List<DRSAccessMethod> accessMethods = optionalDRSObject.get().getAccessMethods();
-
+        DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
+        List<DRSAccessMethod> accessMethods = drsObject.getAccessMethods();
         assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
 
         // Step 7. Pull our the gs path try to read the file as reader and discoverer

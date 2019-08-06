@@ -144,10 +144,20 @@ public class SnapshotService {
      * @param id
      * @return snapshot model
      */
-    public SnapshotModel retrieveSnapshot(UUID id) {
+    public SnapshotModel retrieveSnapshotModel(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
         snapshot.dataProject(dataProjectService.getProjectForSnapshot(snapshot));
         return makeSnapshotModelFromSnapshot(snapshot);
+    }
+
+    /**
+     * Return the snapshot
+     * @param id
+     * @return snapshot
+     */
+    public Snapshot retrieveSnapshot(UUID id) {
+        Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
+        return snapshot.dataProject(dataProjectService.getProjectForSnapshot(snapshot));
     }
 
     /**

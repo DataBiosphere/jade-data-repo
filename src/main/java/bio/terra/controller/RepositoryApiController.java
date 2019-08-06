@@ -356,7 +356,7 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.READ_DATA);
-        SnapshotModel snapshotModel = snapshotService.retrieveSnapshot(UUID.fromString(id));
+        SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(UUID.fromString(id));
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
 

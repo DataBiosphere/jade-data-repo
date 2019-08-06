@@ -12,15 +12,15 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-@Profile("terra")
+@Profile({"terra", "google"})
 public class OneProjectPerProfileIdSelector implements DataProjectIdSelector {
-    @Autowired
-    private ProfileService profileService;
-
     private final GoogleResourceConfiguration resourceConfiguration;
+    private final ProfileService profileService;
 
-    public OneProjectPerProfileIdSelector(GoogleResourceConfiguration resourceConfiguration) {
+    @Autowired
+    public OneProjectPerProfileIdSelector(GoogleResourceConfiguration resourceConfiguration, ProfileService profileService) {
         this.resourceConfiguration = resourceConfiguration;
+        this.profileService = profileService;
     }
 
     @Override
@@ -36,7 +36,7 @@ public class OneProjectPerProfileIdSelector implements DataProjectIdSelector {
     private String getSuffixForProfileId(UUID profileId) {
         BillingProfile profile = profileService.getProfileById(profileId);
         String lowercaseProfileName = profile.getName().toLowerCase();
-        String profileSuffix = "-" + lowercaseProfileName.replaceAll("[^a-z-]", "-");
+        String profileSuffix = "-" + lowercaseProfileName.replaceAll("[^a-z-0-9]", "-");
 
         return resourceConfiguration.getProjectId() + profileSuffix;
     }

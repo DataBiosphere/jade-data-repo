@@ -31,7 +31,7 @@ import static org.junit.Assert.assertThat;
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
-public class DataSnapshotTest extends UsersBase {
+public class SnapshotTest extends UsersBase {
     @Autowired
     private DataRepoClient dataRepoClient;
 
@@ -41,7 +41,7 @@ public class DataSnapshotTest extends UsersBase {
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
 
-    private static Logger logger = LoggerFactory.getLogger(DataSnapshotTest.class);
+    private static Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private List<String> createdDatasetIds = new ArrayList<>();
@@ -49,7 +49,7 @@ public class DataSnapshotTest extends UsersBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-study.json");
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-datset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());

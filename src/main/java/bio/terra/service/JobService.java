@@ -27,7 +27,7 @@ public class JobService {
     private final Stairway stairway;
 
     @Autowired
-    public JobService(Stairway stairway, SamClientService samClient) {
+    public JobService(Stairway stairway) {
         this.stairway = stairway;
     }
 

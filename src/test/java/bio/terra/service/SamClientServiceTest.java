@@ -43,7 +43,7 @@ public class SamClientServiceTest {
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.DATASET.toString()), any());
-        sam.createDatasetResource(new AuthenticatedUser().email("blah").token("blah"), datasetId);
+        sam.createDatasetResource(new AuthenticatedUser().email("blah").subjectId("myId").token("blah"), datasetId);
     }
 
     @Test(expected = ApiException.class)
@@ -54,7 +54,8 @@ public class SamClientServiceTest {
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.DATASNAPSHOT.toString()), any());
         Optional<List<String>> readerList = Optional.of(Collections.singletonList("email@email.com"));
-        sam.createSnapshotResource(new AuthenticatedUser().email("blah").token("blah"), snapshotId, readerList);
+        sam.createSnapshotResource(
+            new AuthenticatedUser().email("blah").subjectId("myId").token("blah"), snapshotId, readerList);
     }
 
     @Test(expected = ApiException.class)
@@ -72,7 +73,8 @@ public class SamClientServiceTest {
             .given(samResourceApi)
             .createResource(eq(SamClientService.ResourceType.DATASNAPSHOT.toString()), eq(createResourceRequest));
 
-        sam.createSnapshotResource(new AuthenticatedUser().email("blah").token("blah"), snapshotId, readersList);
+        sam.createSnapshotResource(
+            new AuthenticatedUser().email("blah").subjectId("myId").token("blah"), snapshotId, readersList);
     }
 
     @Test(expected = ApiException.class)
@@ -81,7 +83,7 @@ public class SamClientServiceTest {
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .deleteResource(eq(SamClientService.ResourceType.DATASET.toString()), eq(datasetId.toString()));
-        sam.deleteDatasetResource(new AuthenticatedUser().email("blah").token("blah"), datasetId);
+        sam.deleteDatasetResource(new AuthenticatedUser().email("blah").subjectId("myId").token("blah"), datasetId);
     }
 
     @Test(expected = ApiException.class)
@@ -90,6 +92,6 @@ public class SamClientServiceTest {
         willThrow(new ApiException("test"))
             .given(samResourceApi)
             .deleteResource(eq(SamClientService.ResourceType.DATASNAPSHOT.toString()), eq(snapshotId.toString()));
-        sam.deleteSnapshotResource(new AuthenticatedUser().email("blah").token("blah"), snapshotId);
+        sam.deleteSnapshotResource(new AuthenticatedUser().email("blah").subjectId("myId").token("blah"), snapshotId);
     }
 }

@@ -11,8 +11,7 @@ import org.springframework.context.ApplicationContext;
 
 public class DatasetCreateFlight extends Flight {
 
-    public DatasetCreateFlight(
-        FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+    public DatasetCreateFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
         super(inputParameters, applicationContext, userInfo);
 
         // get the required daos and services to pass into the steps

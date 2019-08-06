@@ -2,7 +2,6 @@ package bio.terra.flight.dataset.delete;
 
 import bio.terra.dao.SnapshotDao;
 import bio.terra.controller.AuthenticatedUser;
-import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.DatasetDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.FireStoreFileDao;

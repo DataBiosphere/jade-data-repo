@@ -1,10 +1,12 @@
 package bio.terra.flight.snapshot.delete;
 
+import bio.terra.controller.AuthenticatedUser;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.SamClientService;
 import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -13,8 +15,8 @@ import java.util.UUID;
 
 public class SnapshotDeleteFlight extends Flight {
 
-    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+        super(inputParameters, applicationContext, userInfo);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -23,7 +25,7 @@ public class SnapshotDeleteFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
-        UUID snapshotId = inputParameters.get("id", UUID.class);
+        UUID snapshotId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
 
         // Delete access control first so Readers and Discoverers can no longer see snapshot
         // Google auto-magically removes the ACLs from files and BQ objects when SAM

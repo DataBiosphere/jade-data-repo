@@ -5,7 +5,6 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
 import bio.terra.flight.dataset.ingest.DatasetIngestFlight;
-import bio.terra.flight.dataset.ingest.IngestMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSummary;
 import bio.terra.metadata.MetadataEnumeration;
@@ -94,7 +93,7 @@ public class DatasetService {
             DeleteResponseModel.class);
     }
 
-    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userInfo) {
+    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUser userInfo) {
         // Fill in a default load id if the caller did not provide one in the ingest request.
         if (StringUtils.isEmpty(ingestRequestModel.getLoadTag())) {
             String loadTag = "load-at-" + Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);

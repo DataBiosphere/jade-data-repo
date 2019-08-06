@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.io.BufferedReader;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.util.UUID;
@@ -47,7 +48,7 @@ public class EncodeFixture {
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
 
-        DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(steward, "encodefiletest-study.json");
+        DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(steward, "encodefiletest-dataset.json");
         String datasetId = datasetSummary.getId();
 
         // TODO: Fix use of SamClientService - see DR-494
@@ -74,7 +75,7 @@ public class EncodeFixture {
 
         // At this point, we have files and tabular data. Let's make a data snapshot!
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
-            custodian, datasetSummary, "encodefiletest-dataset.json");
+            custodian, datasetSummary, "encodefiletest-snapshot.json");
 
         // TODO: Fix use of SamClientService - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
@@ -114,15 +115,11 @@ public class EncodeFixture {
                 String bamiFileId = null;
 
                 if (encodeFileIn.getFile_gs_path() != null) {
-                    FSObjectModel bamFile = dataRepoFixtures.ingestFile(
-                        user, datasetId, encodeFileIn.getFile_gs_path(), targetPath);
-                    bamFileId = bamFile.getObjectId();
+                    bamFileId = loadOneFile(user, datasetId, encodeFileIn.getFile_gs_path());
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
-                    FSObjectModel bamiFile = dataRepoFixtures.ingestFile(
-                        user, datasetId, encodeFileIn.getFile_index_gs_path(), targetPath);
-                    bamiFileId = bamiFile.getObjectId();
+                    bamiFileId = loadOneFile(user, datasetId, encodeFileIn.getFile_index_gs_path());
                 }
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
@@ -133,5 +130,12 @@ public class EncodeFixture {
 
         return targetPath;
     }
+
+    private String loadOneFile(TestConfiguration.User user, String datasetId, String gsPath) throws Exception {
+        String filePath = URI.create(gsPath).getPath();
+        FSObjectModel fsObject = dataRepoFixtures.ingestFile(user, datasetId, gsPath, filePath);
+        return fsObject.getObjectId();
+    }
+
 
 }

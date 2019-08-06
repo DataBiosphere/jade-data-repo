@@ -59,7 +59,7 @@ public class DataRepoClient {
                                                         HttpMethod method,
                                                         HttpEntity entity,
                                                         Class<T> responseClass) throws Exception {
-        return (DataRepoResponse<T>) makeRequest(path, method, entity, responseClass, ErrorModel.class);
+        return new DataRepoResponse<T>(makeRequest(path, method, entity, responseClass, ErrorModel.class));
     }
 
     public <T> DataRepoResponse<T> get(TestConfiguration.User user, String path, Class<T> responseClass)
@@ -129,7 +129,7 @@ public class DataRepoClient {
                                               HttpMethod method,
                                               HttpEntity entity,
                                               Class<T> responseClass) throws Exception {
-        return (DrsResponse<T>) makeRequest(path, method, entity, responseClass, DRSError.class);
+        return new DrsResponse<T>(makeRequest(path, method, entity, responseClass, DRSError.class));
     }
 
     // -- Common Client Code --

@@ -7,13 +7,13 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
@@ -32,7 +32,6 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
@@ -53,7 +52,6 @@ import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class AccessTest extends UsersBase {

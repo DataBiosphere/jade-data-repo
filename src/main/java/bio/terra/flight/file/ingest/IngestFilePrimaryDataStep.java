@@ -7,7 +7,7 @@ import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.JobMapKeys;
@@ -21,14 +21,14 @@ import java.util.UUID;
 public class IngestFilePrimaryDataStep implements Step {
     private final FireStoreFileDao fileDao;
     private final GcsPdao gcsPdao;
-    private final Study study;
+    private final Dataset dataset;
 
     public IngestFilePrimaryDataStep(FireStoreFileDao fileDao,
-                                     Study study,
+                                     Dataset dataset,
                                      GcsPdao gcsPdao) {
         this.fileDao = fileDao;
         this.gcsPdao = gcsPdao;
-        this.study = study;
+        this.dataset = dataset;
     }
 
     @Override
@@ -38,12 +38,12 @@ public class IngestFilePrimaryDataStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-        FSObjectBase fsObject = fileDao.retrieve(study, objectId);
+        FSObjectBase fsObject = fileDao.retrieve(dataset, objectId);
         if (fsObject.getObjectType() != FSObjectType.INGESTING_FILE) {
             throw new FileSystemCorruptException("This should be a file!");
         }
 
-        FSFileInfo fsFileInfo = gcsPdao.copyFile(study, fileLoadModel, (FSFile)fsObject);
+        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, (FSFile)fsObject);
         workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
         return StepResult.getStepResultSuccess();
     }
@@ -52,7 +52,7 @@ public class IngestFilePrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
-        gcsPdao.deleteFile(study, objectId);
+        gcsPdao.deleteFile(dataset, objectId);
         return StepResult.getStepResultSuccess();
     }
 

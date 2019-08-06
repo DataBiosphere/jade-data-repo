@@ -1,9 +1,9 @@
 package bio.terra.service;
 
 import bio.terra.dao.DatasetDao;
-import bio.terra.dao.StudyDao;
+import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
-import bio.terra.dao.exception.StudyNotFoundException;
+import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.NotImplementedException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSDir;
@@ -35,29 +35,29 @@ public class DrsService {
 
     private static final String DRS_OBJECT_VERSION = "0";
 
-    private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final SnapshotDao snapshotDao;
     private final FireStoreFileDao fileDao;
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
-    private final StudyService studyService;
+    private final DatasetService datasetService;
 
     @Autowired
-    public DrsService(StudyDao studyDao,
-                      DatasetDao datasetDao,
+    public DrsService(DatasetDao datasetDao,
+                      SnapshotDao snapshotDao,
                       FireStoreFileDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
-                      StudyService studyService) {
-        this.studyDao = studyDao;
+                      DatasetService datasetService) {
         this.datasetDao = datasetDao;
+        this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
         this.fileService = fileService;
         this.drsIdService = drsIdService;
         this.gcsConfiguration = gcsConfiguration;
-        this.studyService = studyService;
+        this.datasetService = datasetService;
     }
 
     public DRSObject lookupObjectByDrsId(String drsObjectId, Boolean expand) {
@@ -69,15 +69,15 @@ public class DrsService {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
 
         FSObjectBase fsObject = fileService.lookupFSObject(
-            drsId.getStudyId(),
+            drsId.getDatasetId(),
             drsId.getFsObjectId());
 
         switch (fsObject.getObjectType()) {
             case FILE:
-                return drsObjectFromFSFile((FSFile)fsObject, drsId.getDatasetId());
+                return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId());
 
             case DIRECTORY:
-                return drsObjectFromFSDir((FSDir)fsObject, drsId.getDatasetId());
+                return drsObjectFromFSDir((FSDir)fsObject, drsId.getSnapshotId());
 
             default:
                 throw new IllegalArgumentException("Invalid object type");
@@ -164,10 +164,10 @@ public class DrsService {
         return contentsObject;
     }
 
-    private DrsId makeDrsId(FSObjectBase fsObject, String datasetId) {
+    private DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
         return DrsId.builder()
-            .studyId(fsObject.getStudyId().toString())
-            .datasetId(datasetId)
+            .datasetId(fsObject.getDatasetId().toString())
+            .snapshotId(snapshotId)
             .fsObjectId(fsObject.getObjectId().toString())
             .build();
     }
@@ -177,139 +177,22 @@ public class DrsService {
         return pathParts[pathParts.length - 1];
     }
 
-    // Take an object or bundle id. Make sure it parses and make sure that the study and dataset
-    // that it claims to be part of actually exist.
-    // TODO: add permission checking here I think
     private DrsId parseAndValidateDrsId(String drsObjectId) {
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         try {
-            UUID studyId = UUID.fromString(drsId.getStudyId());
-            studyDao.retrieveSummaryById(studyId);
-
             UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            datasetDao.retrieveDatasetSummary(datasetId);
+            datasetDao.retrieveSummaryById(datasetId);
+
+            UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
+            snapshotDao.retrieveSnapshotSummary(snapshotId);
 
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (StudyNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No study found for DRS object id '" + drsObjectId + "'", ex);
         } catch (DatasetNotFoundException ex) {
             throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
+        } catch (SnapshotNotFoundException ex) {
+            throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
         }
     }
-
-/*
-
-    public DRSBundle lookupBundleByDrsId(String drsBundleId) {
-        DrsId drsId = parseAndValidateDrsId(drsBundleId);
-        Study study = studyService.retrieve(UUID.fromString(drsId.getStudyId()));
-        FSObjectBase fsObject = fileDao.retrieveWithContents(
-            study,
-            UUID.fromString(drsId.getFsObjectId()));
-        if (fsObject.getObjectType() != FSObjectType.DIRECTORY) {
-            throw new IllegalArgumentException("Object is not a bundle");
-        }
-        FSDir dirObject = (FSDir)fsObject;
-        List<FSObjectBase> fsObjectList = dirObject.getContents();
-
-        // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
-        String theTime = dirObject.getCreatedDate().toString();
-
-        DRSBundle bundle = new DRSBundle()
-            .id(drsBundleId)
-            .name(getLastNameFromPath(dirObject.getPath()))
-            .created(theTime)
-            .updated(theTime)
-            .version(DRS_OBJECT_VERSION)
-            .description(dirObject.getDescription())
-            .aliases(Collections.singletonList(dirObject.getPath()));
-
-        return makeBundleObjects(bundle, fsObjectList, drsId.getDatasetId());
-    }
-
-    private DRSBundle makeBundleObjects(DRSBundle bundle, List<FSObjectBase> fsObjectList, String datasetId) {
-        // TODO: this computation does not conform to the current spec. With fine-grain access
-        // control, we cannot pre-compute the sizes or checksums of contained bundles. I have raised
-        // the question in the GA4GH cloud stream.
-        boolean md5IsValid = true;
-        List<String> md5List = new ArrayList<>();
-        List<String> crc32cList = new ArrayList<>();
-        long totalSize = 0;
-
-        for (FSObjectBase fsObject : fsObjectList) {
-            String drsUri = drsIdService.toDrsUri(
-                fsObject.getStudyId().toString(),
-                datasetId,
-                fsObject.getObjectId().toString());
-            String drsObjectId = drsIdService.toDrsObjectId(
-                fsObject.getStudyId().toString(),
-                datasetId,
-                fsObject.getObjectId().toString());
-
-            DRSBundleObject.TypeEnum objectType = DRSBundleObject.TypeEnum.BUNDLE;
-
-            if (fsObject.getObjectType() == FSObjectType.FILE) {
-                FSFile fsFile = (FSFile)fsObject;
-                objectType = DRSBundleObject.TypeEnum.OBJECT;
-
-                if (fsFile.getChecksumMd5() == null) {
-                    md5IsValid = false; // can't compute aggregate when not all objects have values
-                } else {
-                    md5List.add(fsFile.getChecksumMd5());
-                }
-                crc32cList.add(fsFile.getChecksumCrc32c());
-                totalSize += fsFile.getSize();
-            }
-
-            DRSBundleObject bundleObject = new DRSBundleObject()
-                .name(getLastNameFromPath(fsObject.getPath()))
-                .id(drsObjectId)
-                .drsUri(Collections.singletonList(drsUri))
-                .type(objectType);
-
-            bundle.addContentsItem(bundleObject);
-        }
-
-        // Deal with the aggregates
-        String crc32cString = "0";
-        Collections.sort(crc32cList);
-        String allCrc = StringUtils.join(crc32cList);
-        if (!allCrc.isEmpty()) {
-            byte[] crcbytes = allCrc.getBytes(StandardCharsets.UTF_8);
-
-            PureJavaCrc32C crc32cMaker = new PureJavaCrc32C();
-            crc32cMaker.update(crcbytes, 0, crcbytes.length);
-            crc32cString = Long.toHexString(crc32cMaker.getValue());
-        }
-        DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum(crc32cString);
-        bundle.addChecksumsItem(drsChecksum);
-
-        if (md5IsValid) {
-            Collections.sort(md5List);
-            String allMd5 = StringUtils.join(md5List, "");
-
-            try {
-                MessageDigest md = MessageDigest.getInstance("MD5");
-                byte[] hashInBytes = md.digest(allMd5.getBytes(StandardCharsets.UTF_8));
-
-                StringBuilder sb = new StringBuilder();
-                for (byte b : hashInBytes) {
-                    sb.append(String.format("%02x", b));
-                }
-
-                DRSChecksum md5Checksum = new DRSChecksum().type("md5").checksum(sb.toString());
-                bundle.addChecksumsItem(md5Checksum);
-            } catch (NoSuchAlgorithmException ex) {
-                logger.warn("No MD5 digest available! Skipped returning an MD5 hash");
-            }
-        }
-
-        bundle.size(totalSize);
-
-        return bundle;
-    }
-
- */
-
 }

@@ -119,7 +119,7 @@ public class JobService {
      * The following code exposes two methods:
      * <ul>
      *     <li>{@see retrieveJobResult} is for synchronous endpoints that use flights. It returns a properly typed
-     *     response object. See StudyService for a usage example.</li>
+     *     response object. See DatasetService for a usage example.</li>
      *     <li>{@see retrieveJobResultResponse} is for the generic job result endpoint. It returns a ResponseEntity
      *     containing the returned RESPONSE and STATUS_CODE. See the jobs endpoint in RepositoryApiController to
      *     see usage.</li>

@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class AssetRelationship {
     private UUID id;
-    private StudyRelationship studyRelationship;
+    private DatasetRelationship datasetRelationship;
 
     public UUID getId() {
         return id;
@@ -15,12 +15,12 @@ public class AssetRelationship {
         return this;
     }
 
-    public StudyRelationship getStudyRelationship() {
-        return studyRelationship;
+    public DatasetRelationship getDatasetRelationship() {
+        return datasetRelationship;
     }
 
-    public AssetRelationship studyRelationship(StudyRelationship studyRelationship) {
-        this.studyRelationship = studyRelationship;
+    public AssetRelationship datasetRelationship(DatasetRelationship datasetRelationship) {
+        this.datasetRelationship = datasetRelationship;
         return this;
     }
 }

@@ -11,8 +11,8 @@
     <property name="identifier_type" value="varchar(63)"/>
     <property name="description_type" value="varchar(2047)"/>
 
-    <include file="changesets/20181203_studytable.yaml" relativeToChangelogFile="true"/>
-    <include file="changesets/20190214_datasets.yaml" relativeToChangelogFile="true"/>
+    <include file="changesets/20181203_datasettable.yaml" relativeToChangelogFile="true"/>
+    <include file="changesets/20190214_snapshots.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20190606_billingprofiles.yaml" relativeToChangelogFile="true"/>
-    <include file="changesets/20190609_studyresource.yaml" relativeToChangelogFile="true"/>
+    <include file="changesets/20190609_datasetresource.yaml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

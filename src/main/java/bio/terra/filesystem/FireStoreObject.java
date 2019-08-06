@@ -16,7 +16,7 @@ package bio.terra.filesystem;
 public class FireStoreObject {
     // common fields
     private String objectId;
-    private String studyId;
+    private String datasetId;
     private String objectTypeLetter;
     private String path; // path to the object
     private String name; // name of the object
@@ -42,12 +42,12 @@ public class FireStoreObject {
         return this;
     }
 
-    public String getStudyId() {
-        return studyId;
+    public String getDatasetId() {
+        return datasetId;
     }
 
-    public FireStoreObject studyId(String studyId) {
-        this.studyId = studyId;
+    public FireStoreObject datasetId(String datasetId) {
+        this.datasetId = datasetId;
         return this;
     }
 

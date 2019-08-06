@@ -2,17 +2,17 @@ package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dao.SnapshotDao;
 import bio.terra.fixtures.ConnectedOperations;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetDataProject;
+import bio.terra.metadata.Snapshot;
+import bio.terra.metadata.SnapshotDataProject;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
@@ -76,7 +76,7 @@ public class EncodeFileTest {
     @Autowired private Storage storage;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DataProjectService dataProjectService;
-    @Autowired private DatasetDao datasetDao;
+    @Autowired private SnapshotDao snapshotDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
 
@@ -104,9 +104,9 @@ public class EncodeFileTest {
     // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
-            "encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), false, false);
+        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+            "encodefiletest-dataset.json");
+        String targetPath = loadFiles(datasetSummary.getId(), false, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -114,7 +114,7 @@ public class EncodeFileTest {
             .table("file")
             .path(gsPath);
 
-        connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
         // Delete the scratch blob
         Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
@@ -127,33 +127,33 @@ public class EncodeFileTest {
             .table("donor")
             .path("gs://" + testConfig.getIngestbucket() + "/encodetest/donor.json");
 
-        connectedOperations.ingestTableSuccess(studySummary.getId(), ingestRequest);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
-        // At this point, we have files and tabular data. Let's make a dataset!
+        // At this point, we have files and tabular data. Let's make a snapshot!
 
-        MockHttpServletResponse response = connectedOperations.launchCreateDataset(
-            studySummary, "encodefiletest-dataset.json", "");
-        DatasetSummaryModel datasetSummary = connectedOperations.handleCreateDatasetSuccessCase(response);
+        MockHttpServletResponse response = connectedOperations.launchCreateSnapshot(
+            datasetSummary, "encodefiletest-snapshot.json", "");
+        SnapshotSummaryModel snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(response);
 
-        String datasetFileId = getFileRefIdFromDataset(datasetSummary);
+        String snapshotFileId = getFileRefIdFromSnapshot(snapshotSummary);
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
-            delete("/api/repository/v1/studies/" + studySummary.getId() + "/files/" + datasetFileId))
+            delete("/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + snapshotFileId))
             .andReturn();
         response = connectedOperations.validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
 
         ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
         assertThat("correct dependency error message",
-            errorModel.getMessage(), containsString("used by at least one dataset"));
+            errorModel.getMessage(), containsString("used by at least one snapshot"));
     }
 
     @Test
     public void encodeFileBadFileId() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
-            "encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), true, false);
+        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+            "encodefiletest-dataset.json");
+        String targetPath = loadFiles(datasetSummary.getId(), true, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -162,7 +162,7 @@ public class EncodeFileTest {
             .path(gsPath);
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
+        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -187,9 +187,9 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadRowTest() throws Exception {
-        StudySummaryModel studySummary = connectedOperations.createStudyWithFlight(profileModel,
-            "encodefiletest-study.json");
-        String targetPath = loadFiles(studySummary.getId(), false, true);
+        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+            "encodefiletest-dataset.json");
+        String targetPath = loadFiles(datasetSummary.getId(), false, true);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
         IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -198,7 +198,7 @@ public class EncodeFileTest {
             .path(gsPath);
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
-        String url = "/api/repository/v1/studies/" + studySummary.getId() + "/ingest";
+        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -233,7 +233,7 @@ public class EncodeFileTest {
         }
     }
 
-    private String loadFiles(String studyId, boolean insertBadId, boolean insertBadRow) throws Exception {
+    private String loadFiles(String datasetId, boolean insertBadId, boolean insertBadRow) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -265,7 +265,7 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
-                    FSObjectModel bamFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    FSObjectModel bamFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
                         bamFileId = bamFile.getObjectId() + ID_GARBAGE;
@@ -277,7 +277,7 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_index_gs_path());
-                    FSObjectModel bamiFile = connectedOperations.ingestFileSuccess(studyId, fileLoadModel);
+                    FSObjectModel bamiFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
                     bamiFileId = bamiFile.getObjectId();
                 }
 
@@ -295,16 +295,16 @@ public class EncodeFileTest {
         return targetPath;
     }
 
-    private String getFileRefIdFromDataset(DatasetSummaryModel datasetSummary) {
-        Dataset dataset = datasetDao.retrieveDatasetByName(datasetSummary.getName());
-        DatasetDataProject dataProject = dataProjectService.getProjectForDataset(dataset);
+    private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) {
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
+        SnapshotDataProject dataProject = dataProjectService.getProjectForSnapshot(snapshot);
         BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
 
         StringBuilder builder = new StringBuilder()
             .append("SELECT file_ref FROM `")
             .append(dataProject.getGoogleProjectId())
             .append('.')
-            .append(dataset.getName())
+            .append(snapshot.getName())
             .append(".file` AS T")
             .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
 
@@ -319,7 +319,7 @@ public class EncodeFileTest {
             String[] drsParts = StringUtils.split(drsUri, '_');
             return drsParts[drsParts.length - 1];
         } catch (InterruptedException ie) {
-            throw new PdaoException("get file ref id from dataset unexpectedly interrupted", ie);
+            throw new PdaoException("get file ref id from snapshot unexpectedly interrupted", ie);
         }
     }
 

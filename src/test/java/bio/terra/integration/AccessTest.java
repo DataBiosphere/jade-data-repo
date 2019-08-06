@@ -7,13 +7,13 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateStudyModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.model.StudyModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
@@ -70,8 +70,8 @@ public class AccessTest extends UsersBase {
     private String discovererToken;
     private String readerToken;
     private String custodianToken;
-    private StudySummaryModel studySummaryModel;
-    private String studyId;
+    private DatasetSummaryModel datasetSummaryModel;
+    private String datasetId;
     private static final int samTimeoutSeconds = 60 * 10;
 
     @Before
@@ -80,8 +80,8 @@ public class AccessTest extends UsersBase {
         discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
-        studySummaryModel = dataRepoFixtures.createStudy(steward(), "ingest-test-study.json");
-        studyId = studySummaryModel.getId();
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        datasetId = datasetSummaryModel.getId();
     }
 
     private Storage getStorage(String token) {
@@ -100,40 +100,40 @@ public class AccessTest extends UsersBase {
     @Test
     public void checkShared() throws  Exception {
         dataRepoFixtures.ingestJsonData(
-            steward(), studyId, "participant", "ingest-test/ingest-test-participant.json");
+            steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
 
         dataRepoFixtures.ingestJsonData(
-            steward(), studyId, "sample", "ingest-test/ingest-test-sample.json");
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
 
-        StudyModel study = dataRepoFixtures.getStudy(steward(), studyId);
-        String studyBqDatasetName = "datarepo_" + study.getName();
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        String datasetBqSnapshotName = "datarepo_" + dataset.getName();
 
-        BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(study.getDataProject(), custodianToken);
+        BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
         try {
-            BigQueryFixtures.datasetExists(custodianBigQuery, study.getDataProject(), studyBqDatasetName);
+            BigQueryFixtures.datasetExists(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
             fail("custodian shouldn't be able to access bq dataset before it is shared with them");
         } catch (IllegalStateException e) {
             assertThat("checking message for pdao exception error",
                 e.getMessage(),
-                equalTo("existence check failed for " + studyBqDatasetName));
+                equalTo("existence check failed for " + datasetBqSnapshotName));
         }
 
-        dataRepoFixtures.addStudyPolicyMember(
+        dataRepoFixtures.addDatasetPolicyMember(
             steward(),
-            studyId,
+            datasetId,
             SamClientService.DataRepoRole.CUSTODIAN,
             custodian().getEmail());
-        DataRepoResponse<EnumerateStudyModel> enumStudies = dataRepoFixtures.enumerateStudiesRaw(custodian());
-        assertThat("Custodian is authorized to enumerate studies",
-            enumStudies.getStatusCode(),
+        DataRepoResponse<EnumerateDatasetModel> enumDatasets = dataRepoFixtures.enumerateDatasetsRaw(custodian());
+        assertThat("Custodian is authorized to enumerate datasets",
+            enumDatasets.getStatusCode(),
             equalTo(HttpStatus.OK));
 
         boolean custodianHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
                 boolean bqDatasetExists = BigQueryFixtures.datasetExists(
                     custodianBigQuery,
-                    study.getDataProject(),
-                    studyBqDatasetName);
+                    dataset.getDataProject(),
+                    datasetBqSnapshotName);
                 assertThat("study bq dataset exists and is accessible", bqDatasetExists, equalTo(true));
                 return true;
             } catch (IllegalStateException e) {
@@ -145,27 +145,27 @@ public class AccessTest extends UsersBase {
             }
         });
 
-        assertThat("custodian can access the bq dataset after it has been shared",
+        assertThat("custodian can access the bq snapshot after it has been shared",
             custodianHasAccess,
             equalTo(true));
 
-        DatasetSummaryModel datasetSummaryModel =
-            dataRepoFixtures.createDataset(custodian(), studySummaryModel, "ingest-test-dataset.json");
+        SnapshotSummaryModel snapshotSummaryModel =
+            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
 
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
-        BigQuery bigQuery = BigQueryFixtures.getBigQuery(datasetModel.getDataProject(), readerToken);
+        DatasetModel snapshotModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
-            BigQueryFixtures.datasetExists(bigQuery, datasetModel.getDataProject(), datasetSummaryModel.getName());
+            BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
             fail("reader shouldn't be able to access bq dataset before it is shared with them");
         } catch (IllegalStateException e) {
             assertThat("checking message for exception error",
                  e.getMessage(),
-                 equalTo("existence check failed for ".concat(datasetSummaryModel.getName())));
+                 equalTo("existence check failed for ".concat(snapshotSummaryModel.getName())));
         }
 
-        dataRepoFixtures.addDatasetPolicyMember(
+        dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
-            datasetSummaryModel.getId(),
+            snapshotSummaryModel.getId(),
             SamClientService.DataRepoRole.READER,
             reader().getEmail());
 
@@ -173,16 +173,16 @@ public class AccessTest extends UsersBase {
             new AuthenticatedUserRequest(reader().getEmail(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
-            SamClientService.ResourceType.DATASET,
-            datasetSummaryModel.getId(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            snapshotSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
         boolean readerHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
             try {
-                boolean datasetExists = BigQueryFixtures.datasetExists(bigQuery,
-                    datasetModel.getDataProject(),
-                    datasetSummaryModel.getName());
-                assertTrue("dataset exists and is accessible", datasetExists);
+                boolean snapshotExists = BigQueryFixtures.datasetExists(bigQuery,
+                    snapshotModel.getDataProject(),
+                    snapshotSummaryModel.getName());
+                assertTrue("snapshot exists and is accessible", snapshotExists);
                 return true;
             } catch (IllegalStateException e) {
                 assertThat(
@@ -193,23 +193,23 @@ public class AccessTest extends UsersBase {
             }
         });
 
-        assertThat("reader can access the dataset after it has been shared",
+        assertThat("reader can access the snapshot after it has been shared",
             readerHasAccess,
             equalTo(true));
     }
 
     @Test
     public void fileAclTest() throws Exception {
-        studySummaryModel = dataRepoFixtures.createStudy(steward(), "file-acl-test-study.json");
-        dataRepoFixtures.addStudyPolicyMember(
-            steward(), studySummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
-        StudyModel studyModel = dataRepoFixtures.getStudy(steward(), studySummaryModel.getId());
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        dataRepoFixtures.addDatasetPolicyMember(
+            steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), datasetSummaryModel.getId());
 
         // Step 1. Ingest a file into the study
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
             steward(),
-            studySummaryModel.getId(),
+            datasetSummaryModel.getId(),
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
 
@@ -227,23 +227,23 @@ public class AccessTest extends UsersBase {
 
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
             steward(),
-            studySummaryModel.getId(),
+            datasetSummaryModel.getId(),
             "file",
             targetPath);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
-        // Step 3. Create a dataset exposing the one row and grant read access to our reader.
-        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(
+        // Step 3. Create a snapshot exposing the one row and grant read access to our reader.
+        SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
             custodian(),
-            studySummaryModel,
-            "file-acl-test-dataset.json");
+            datasetSummaryModel,
+            "file-acl-test-snapshot.json");
 
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
 
-        dataRepoFixtures.addDatasetPolicyMember(
+        dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
-            datasetModel.getId(),
+            snapshotModel.getId(),
             SamClientService.DataRepoRole.READER,
             reader().getEmail());
 
@@ -251,8 +251,8 @@ public class AccessTest extends UsersBase {
             new AuthenticatedUserRequest(reader().getEmail(), readerToken);
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
-            SamClientService.ResourceType.DATASET,
-            datasetModel.getId(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            snapshotModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
         // Step 4. Wait for SAM to sync the access change out to GCP.
@@ -263,12 +263,12 @@ public class AccessTest extends UsersBase {
 
         TestUtils.eventualExpect(5, samTimeout, true, () -> {
             try {
-                boolean datasetExists = BigQueryFixtures.datasetExists(
+                boolean snapshotExists = BigQueryFixtures.datasetExists(
                     bigQueryReader,
-                    studyModel.getDataProject(),
-                    datasetModel.getName());
+                    datasetModel.getDataProject(),
+                    snapshotModel.getName());
 
-                assertThat("Dataset wasn't created right", datasetExists, equalTo(true));
+                assertThat("Snapshot wasn't created right", snapshotExists, equalTo(true));
                 return true;
             } catch (IllegalStateException e) {
                 assertThat(
@@ -281,7 +281,7 @@ public class AccessTest extends UsersBase {
 
         // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
         String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
-            datasetModel,
+            snapshotModel,
             "file",
             "file_ref");
 

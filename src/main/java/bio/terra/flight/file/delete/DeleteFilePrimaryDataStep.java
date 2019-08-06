@@ -1,6 +1,6 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -8,19 +8,19 @@ import bio.terra.stairway.StepResult;
 
 
 public class DeleteFilePrimaryDataStep implements Step {
-    private final Study study;
+    private final Dataset dataset;
     private final String fileId;
     private final GcsPdao gcsPdao;
 
-    public DeleteFilePrimaryDataStep(Study study, String fileId, GcsPdao gcsPdao) {
-        this.study = study;
+    public DeleteFilePrimaryDataStep(Dataset dataset, String fileId, GcsPdao gcsPdao) {
+        this.dataset = dataset;
         this.fileId = fileId;
         this.gcsPdao = gcsPdao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        gcsPdao.deleteFile(study, fileId);
+        gcsPdao.deleteFile(dataset, fileId);
         return StepResult.getStepResultSuccess();
     }
 

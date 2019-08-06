@@ -7,7 +7,7 @@ import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FSObjectModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
@@ -42,29 +42,29 @@ public class EncodeFixture {
 
     // Create study, load files and tables. Create and return dataset.
     // Steward owns study; custodian is custodian on study; reader has access to the dataset.
-    public DatasetSummaryModel setupEncode(
+    public SnapshotSummaryModel setupEncode(
         TestConfiguration.User steward,
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
 
-        StudySummaryModel studySummary = dataRepoFixtures.createStudy(steward, "encodefiletest-study.json");
-        String studyId = studySummary.getId();
+        DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(steward, "encodefiletest-study.json");
+        String datasetId = datasetSummary.getId();
 
         // TODO: Fix use of SamClientService - see DR-494
-        dataRepoFixtures.addStudyPolicyMember(
+        dataRepoFixtures.addDatasetPolicyMember(
             steward,
-            studyId,
+            datasetId,
             SamClientService.DataRepoRole.CUSTODIAN,
             custodian.getEmail());
 
         // Parse the input data and load the files; generate revised data file
         String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
         Storage stewardStorage = dataRepoFixtures.getStorage(stewardToken);
-        String targetPath = loadFiles(studySummary.getId(), steward, stewardStorage);
+        String targetPath = loadFiles(datasetSummary.getId(), steward, stewardStorage);
 
         // Load the tables
-        dataRepoFixtures.ingestJsonData(steward, studyId, "file", targetPath);
-        dataRepoFixtures.ingestJsonData(steward, studyId, "donor", "encodetest/donor.json");
+        dataRepoFixtures.ingestJsonData(steward, datasetId, "file", targetPath);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, "donor", "encodetest/donor.json");
 
         // Delete the scratch blob
         Blob scratchBlob = stewardStorage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
@@ -72,21 +72,21 @@ public class EncodeFixture {
             scratchBlob.delete();
         }
 
-        // At this point, we have files and tabular data. Let's make a dataset!
-        DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(
-            custodian, studySummary, "encodefiletest-dataset.json");
+        // At this point, we have files and tabular data. Let's make a data snapshot!
+        SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
+            custodian, datasetSummary, "encodefiletest-dataset.json");
 
         // TODO: Fix use of SamClientService - see DR-494
-        dataRepoFixtures.addDatasetPolicyMember(
+        dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
-            datasetSummary.getId(),
+            snapshotSummary.getId(),
             SamClientService.DataRepoRole.READER,
             reader.getEmail());
 
-        return datasetSummary;
+        return snapshotSummary;
     }
 
-    private String loadFiles(String studyId, TestConfiguration.User user, Storage storage) throws Exception {
+    private String loadFiles(String datasetId, TestConfiguration.User user, Storage storage) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -115,13 +115,13 @@ public class EncodeFixture {
 
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FSObjectModel bamFile = dataRepoFixtures.ingestFile(
-                        user, studyId, encodeFileIn.getFile_gs_path(), targetPath);
+                        user, datasetId, encodeFileIn.getFile_gs_path(), targetPath);
                     bamFileId = bamFile.getObjectId();
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
                     FSObjectModel bamiFile = dataRepoFixtures.ingestFile(
-                        user, studyId, encodeFileIn.getFile_index_gs_path(), targetPath);
+                        user, datasetId, encodeFileIn.getFile_index_gs_path(), targetPath);
                     bamiFileId = bamiFile.getObjectId();
                 }
 

@@ -117,7 +117,7 @@ public class ProfileDaoTest {
         MetadataEnumeration<BillingProfile> profileMetadataEnumeration =
             profileDao.enumerateBillingProfiles(offset, limit);
 
-        // We expect the datasets to be returned in their created order
+        // We expect the snapshots to be returned in their created order
         List<BillingProfile> profiles = profileMetadataEnumeration.getItems();
         int total = profileMetadataEnumeration.getTotal();
         int expected = Math.min(total - offset, limit);

@@ -1,18 +1,18 @@
 package bio.terra.service.dataproject;
 
+import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.DatasetDao;
-import bio.terra.dao.StudyDao;
 import bio.terra.dao.exception.DataProjectNotFoundException;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.dao.DataProjectDao;
+import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Study;
-import bio.terra.metadata.DatasetDataProject;
-import bio.terra.metadata.DatasetDataProjectSummary;
+import bio.terra.metadata.SnapshotDataProject;
+import bio.terra.metadata.SnapshotDataProjectSummary;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
-import bio.terra.metadata.StudyDataProject;
-import bio.terra.metadata.StudyDataProjectSummary;
+import bio.terra.metadata.DatasetDataProject;
+import bio.terra.metadata.DatasetDataProjectSummary;
 import bio.terra.resourcemanagement.service.google.GoogleResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,29 +39,64 @@ public class DataProjectService {
     private final DataProjectDao dataProjectDao;
     private final DataProjectIdSelector dataProjectIdSelector;
     private final GoogleResourceService resourceService;
-    private final StudyDao studyDao;
     private final DatasetDao datasetDao;
+    private final SnapshotDao snapshotDao;
 
     @Autowired
     public DataProjectService(
             DataProjectDao dataProjectDao,
             DataProjectIdSelector dataProjectIdSelector,
             GoogleResourceService resourceService,
-            StudyDao studyDao,
-            DatasetDao datasetDao) {
+            DatasetDao datasetDao,
+            SnapshotDao snapshotDao) {
         this.dataProjectDao = dataProjectDao;
         this.dataProjectIdSelector = dataProjectIdSelector;
         this.resourceService = resourceService;
-        this.studyDao = studyDao;
         this.datasetDao = datasetDao;
+        this.snapshotDao = snapshotDao;
     }
+
+    public SnapshotDataProject getProjectForSnapshot(Snapshot snapshot) {
+        SnapshotDataProjectSummary snapshotDataProjectSummary = null;
+        GoogleProjectResource googleProjectResource;
+        GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
+            .projectId(dataProjectIdSelector.projectIdForSnapshot(snapshot))
+            .profileId(snapshot.getProfileId())
+            .serviceIds(DATA_PROJECT_SERVICE_IDS);
+        try {
+            snapshotDataProjectSummary = dataProjectDao.retrieveSnapshotDataProjectBySnapshotId(snapshot.getId());
+            googleProjectResource = resourceService.getProjectResourceById(
+                snapshotDataProjectSummary.getProjectResourceId());
+        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
+            // probably the first time we have seen this snapshot, request a new project resource and save everything
+            googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+            if (snapshotDataProjectSummary != null) {
+                logger.warn("metadata has a project resource id it can't resolve for snapshot: " + snapshot.getName());
+                dataProjectDao.deleteSnapshotDataProject(snapshotDataProjectSummary.getId());
+            }
+            snapshotDataProjectSummary = new SnapshotDataProjectSummary()
+                .projectResourceId(googleProjectResource.getRepositoryId())
+                .snapshotId(snapshot.getId());
+            UUID snapshotDataProjectId = dataProjectDao.createSnapshotDataProject(snapshotDataProjectSummary);
+            snapshotDataProjectSummary.id(snapshotDataProjectId);
+        }
+        return new SnapshotDataProject(snapshotDataProjectSummary)
+            .googleProjectResource(googleProjectResource);
+    }
+
+    public SnapshotDataProject getProjectForSnapshotName(String snapshotName) {
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
+        return getProjectForSnapshot(snapshot);
+    }
+
+    // TODO: DRY this up
 
     public DatasetDataProject getProjectForDataset(Dataset dataset) {
         DatasetDataProjectSummary datasetDataProjectSummary = null;
         GoogleProjectResource googleProjectResource;
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataProjectIdSelector.projectIdForDataset(dataset))
-            .profileId(dataset.getProfileId())
+            .profileId(dataset.getDefaultProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         try {
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProjectByDatasetId(dataset.getId());
@@ -69,6 +104,8 @@ public class DataProjectService {
                 datasetDataProjectSummary.getProjectResourceId());
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
             // probably the first time we have seen this dataset, request a new project resource and save everything
+            // TODO: if we are in production, don't reuse projects we don't know about
+            // TODO: add a property to specify which people can view data projects
             googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
             if (datasetDataProjectSummary != null) {
                 logger.warn("metadata has a project resource id it can't resolve for dataset: " + dataset.getName());
@@ -85,44 +122,7 @@ public class DataProjectService {
     }
 
     public DatasetDataProject getProjectForDatasetName(String datasetName) {
-        Dataset dataset = datasetDao.retrieveDatasetByName(datasetName);
+        Dataset dataset = datasetDao.retrieveByName(datasetName);
         return getProjectForDataset(dataset);
-    }
-
-    // TODO: DRY this up
-
-    public StudyDataProject getProjectForStudy(Study study) {
-        StudyDataProjectSummary studyDataProjectSummary = null;
-        GoogleProjectResource googleProjectResource;
-        GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
-            .projectId(dataProjectIdSelector.projectIdForStudy(study))
-            .profileId(study.getDefaultProfileId())
-            .serviceIds(DATA_PROJECT_SERVICE_IDS);
-        try {
-            studyDataProjectSummary = dataProjectDao.retrieveStudyDataProjectByStudyId(study.getId());
-            googleProjectResource = resourceService.getProjectResourceById(
-                studyDataProjectSummary.getProjectResourceId());
-        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
-            // probably the first time we have seen this study, request a new project resource and save everything
-            // TODO: if we are in production, don't reuse projects we don't know about
-            // TODO: add a property to specify which people can view data projects
-            googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
-            if (studyDataProjectSummary != null) {
-                logger.warn("metadata has a project resource id it can't resolve for study: " + study.getName());
-                dataProjectDao.deleteStudyDataProject(studyDataProjectSummary.getId());
-            }
-            studyDataProjectSummary = new StudyDataProjectSummary()
-                .projectResourceId(googleProjectResource.getRepositoryId())
-                .studyId(study.getId());
-            UUID studyDataProjectId = dataProjectDao.createStudyDataProject(studyDataProjectSummary);
-            studyDataProjectSummary.id(studyDataProjectId);
-        }
-        return new StudyDataProject(studyDataProjectSummary)
-            .googleProjectResource(googleProjectResource);
-    }
-
-    public StudyDataProject getProjectForStudyName(String studyName) {
-        Study study = studyDao.retrieveByName(studyName);
-        return getProjectForStudy(study);
     }
 }

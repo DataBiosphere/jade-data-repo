@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import bio.terra.model.DatasetModel;
+import bio.terra.model.SnapshotModel;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -62,13 +62,13 @@ public final class BigQueryFixtures {
     private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
 
     public static String queryForDrsId(BigQuery bigQuery,
-                                       DatasetModel datasetModel,
+                                       SnapshotModel snapshotModel,
                                        String tableName,
                                        String columnName) {
         String sql = String.format("SELECT %s FROM `%s.%s.%s` WHERE %s IS NOT NULL LIMIT 1",
             columnName,
-            datasetModel.getDataProject(),
-            datasetModel.getName(),
+            snapshotModel.getDataProject(),
+            snapshotModel.getName(),
             tableName,
             columnName);
         TableResult ids = BigQueryFixtures.query(sql, bigQuery);

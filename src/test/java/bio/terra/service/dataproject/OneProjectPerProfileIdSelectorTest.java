@@ -116,7 +116,6 @@ public class OneProjectPerProfileIdSelectorTest {
 
         DatasetSummaryModel datasetSummaryModel =
             connectedOperations.createDatasetWithFlight(profile, "snapshot-test-dataset.json");
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         MockHttpServletResponse response =
             connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");

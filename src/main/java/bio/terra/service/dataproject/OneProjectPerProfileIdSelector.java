@@ -18,7 +18,8 @@ public class OneProjectPerProfileIdSelector implements DataProjectIdSelector {
     private final ProfileService profileService;
 
     @Autowired
-    public OneProjectPerProfileIdSelector(GoogleResourceConfiguration resourceConfiguration, ProfileService profileService) {
+    public OneProjectPerProfileIdSelector(GoogleResourceConfiguration resourceConfiguration,
+                                          ProfileService profileService) {
         this.resourceConfiguration = resourceConfiguration;
         this.profileService = profileService;
     }

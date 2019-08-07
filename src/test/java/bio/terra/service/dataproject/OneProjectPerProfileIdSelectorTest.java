@@ -76,7 +76,8 @@ public class OneProjectPerProfileIdSelectorTest {
             .profileName(profileName);
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
-        DatasetSummaryModel datasetSummaryModel = connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
+        DatasetSummaryModel datasetSummaryModel =
+            connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
@@ -95,7 +96,8 @@ public class OneProjectPerProfileIdSelectorTest {
             .profileName(profileName);
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
-        DatasetSummaryModel datasetSummaryModel = connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
+        DatasetSummaryModel datasetSummaryModel =
+            connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
@@ -112,10 +114,12 @@ public class OneProjectPerProfileIdSelectorTest {
             .profileName(profileName);
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
-        DatasetSummaryModel datasetSummaryModel = connectedOperations.createDatasetWithFlight(profile, "snapshot-test-dataset.json");
+        DatasetSummaryModel datasetSummaryModel =
+            connectedOperations.createDatasetWithFlight(profile, "snapshot-test-dataset.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
-        MockHttpServletResponse response = connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
+        MockHttpServletResponse response =
+            connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
         SnapshotSummaryModel snapshotSummaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
         SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummaryModel.getId());
         Snapshot snapshot = snapshotService.retrieveSnapshot(UUID.fromString(snapshotModel.getId()));

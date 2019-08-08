@@ -14,6 +14,8 @@ public class FSFile extends FSObjectBase {
     private String checksumMd5;
     private String mimeType;
     private String flightId;
+    private String profileId;
+    private String region;
 
     public String getGspath() {
         return gspath;
@@ -92,6 +94,24 @@ public class FSFile extends FSObjectBase {
 
     public FSFile description(String description) {
         super.description(description);
+        return this;
+    }
+
+    public String getProfileId() {
+        return profileId;
+    }
+
+    public FSFile profileId(String profileId) {
+        this.profileId = profileId;
+        return this;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public FSFile region(String region) {
+        this.region = region;
         return this;
     }
 

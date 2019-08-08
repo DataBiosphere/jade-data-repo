@@ -3,6 +3,7 @@ package bio.terra.resourcemanagement.dao.google;
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.dao.DaoKeyHolder;
 import bio.terra.dao.DaoUtils;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.service.exception.GoogleResourceException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,29 @@ public class GoogleResourceDao {
                 .repositoryId(rs.getObject("id", UUID.class))
                 .profileId(rs.getObject("profile_id", UUID.class))
                 .serviceIds(DaoUtils.getStringList(rs, "service_ids"));
+        }
+    }
+
+    private GoogleBucketResource retrieveBucketBy(String column, UUID value) {
+        try {
+            String sql = String.format("SELECT * FROM bucket_resource WHERE %s = :%s LIMIT 1", column, column);
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
+            return jdbcTemplate.queryForObject(sql, params, new DataBucketMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new GoogleResourceNotFoundException(String.format("Bucket not found for %s: %s", column, value));
+        }
+    }
+
+    public GoogleBucketResource retrieveBucketById(UUID bucketResourceId) {
+        return retrieveBucketBy("id", bucketResourceId);
+    }
+
+    private static class DataBucketMapper implements RowMapper<GoogleBucketResource> {
+        public GoogleBucketResource mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new GoogleBucketResource()
+                .projectResourceId(rs.getObject("project_resource_id", UUID.class))
+                .repositoryId(rs.getObject("id", UUID.class))
+                .name(rs.getString("name"));
         }
     }
 }

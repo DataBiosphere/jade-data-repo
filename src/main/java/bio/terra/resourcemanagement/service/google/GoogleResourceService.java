@@ -4,6 +4,8 @@ import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceDao;
 import bio.terra.flight.exception.InaccessibleBillingAccountException;
 import bio.terra.metadata.BillingProfile;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketRequest;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
 import bio.terra.resourcemanagement.service.ProfileService;
@@ -54,6 +56,19 @@ public class GoogleResourceService {
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
+    }
+
+    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
+        return resourceDao.retrieveBucketById(bucketResourceId);
+    }
+
+    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest) {
+        // Naive: this implements a 1-bucket-per-profile approach. If there is already a Google bucket for this
+        // profile we will look up the project by id, otherwise we will generate one and look it up
+        UUID profileId = bucketRequest.getProfileId();
+        try {
+            return resourceDao.retrieveBucketById()
+        }
     }
 
     public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {

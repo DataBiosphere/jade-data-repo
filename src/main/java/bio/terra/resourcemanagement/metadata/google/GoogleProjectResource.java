@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 public class GoogleProjectResource {
-
     private GoogleProjectRequest googleProjectRequest;
     private UUID repositoryId;
     private String googleProjectNumber;

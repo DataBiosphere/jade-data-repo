@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.UUID;
 
 public class GoogleProjectRequest {
-
     private UUID profileId;
     private String projectId;
     private List<String> serviceIds;

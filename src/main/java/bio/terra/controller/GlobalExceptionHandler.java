@@ -94,7 +94,7 @@ public class GlobalExceptionHandler {
     }
 
     private ErrorModel buildErrorModel(Throwable ex, List<String> errorDetail) {
-        logger.error("Global exception handler: catch stack");
+        logger.error("Global exception handler: catch stack", ex);
         for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
             logger.error("   cause: " + cause.toString());
         }

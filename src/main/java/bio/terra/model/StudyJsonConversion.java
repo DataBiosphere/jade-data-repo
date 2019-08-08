@@ -11,7 +11,6 @@ import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
-import javax.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

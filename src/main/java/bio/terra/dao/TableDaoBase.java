@@ -7,13 +7,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 // Base class for study and dataset daos.
@@ -40,9 +38,14 @@ public class TableDaoBase {
     public TableDaoBase(DataRepoJdbcConfiguration jdbcConfiguration,
                         String tableTableName,
                         String columnTableName,
-                        String parentIdColumnName) throws SQLException {
+                        String parentIdColumnName)  {
         this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-        this.connection = jdbcConfiguration.getDataSource().getConnection();
+        try {
+            this.connection = jdbcConfiguration.getDataSource().getConnection();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            throw new IllegalArgumentException(e.getMessage(), e);
+        }
         this.sqlInsertColumn = "INSERT INTO " + columnTableName +
             " (table_id, name, type, array_of) VALUES (:table_id, :name, :type, :arrayOf)";
         this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, " +

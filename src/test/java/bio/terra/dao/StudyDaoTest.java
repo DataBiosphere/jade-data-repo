@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collector;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;

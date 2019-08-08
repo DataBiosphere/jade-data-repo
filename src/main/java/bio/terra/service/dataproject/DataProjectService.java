@@ -1,8 +1,9 @@
 package bio.terra.service.dataproject;
 
-import bio.terra.dao.SnapshotDao;
-import bio.terra.dao.DatasetDao;
 import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FileDataProject;
+import bio.terra.metadata.FileDataProjectSummary;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.dao.DataProjectDao;
 import bio.terra.metadata.Snapshot;
@@ -37,34 +38,61 @@ public class DataProjectService {
     );
 
     private final DataProjectDao dataProjectDao;
-    private final DataProjectIdSelector dataProjectIdSelector;
+    private final DataLocationSelector dataLocationSelector;
     private final GoogleResourceService resourceService;
-    private final DatasetDao datasetDao;
-    private final SnapshotDao snapshotDao;
 
     @Autowired
     public DataProjectService(
             DataProjectDao dataProjectDao,
-            DataProjectIdSelector dataProjectIdSelector,
-            GoogleResourceService resourceService,
-            DatasetDao datasetDao,
-            SnapshotDao snapshotDao) {
+            DataLocationSelector dataLocationSelector,
+            GoogleResourceService resourceService) {
         this.dataProjectDao = dataProjectDao;
-        this.dataProjectIdSelector = dataProjectIdSelector;
+        this.dataLocationSelector = dataLocationSelector;
         this.resourceService = resourceService;
-        this.datasetDao = datasetDao;
-        this.snapshotDao = snapshotDao;
     }
+
+    public FileDataProject getProjectForFile(FSFile fsFile) {
+        FileDataProjectSummary fileDataProjectSummary = null;
+        GoogleProjectResource googleProjectResource;
+        GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
+            .projectId(dataLocationSelector.projectIdForFile(fsFile))
+            .profileId(UUID.fromString(fsFile.getProfileId()))
+            .serviceIds(DATA_PROJECT_SERVICE_IDS);
+        // First see if there is a saved link between a data project resource and this file's object id.
+        try {
+            fileDataProjectSummary = dataProjectDao.retrieveFileDataProject(fsFile.getObjectId());
+            googleProjectResource = resourceService.getProjectResourceById(
+                fileDataProjectSummary.getProjectResourceId());
+        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
+            // either the project doesn't exist or we haven't seen it, so create it or get it and save it
+            googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+            if (fileDataProjectSummary != null) {
+                logger.warn("metadata has a project resource id it can't resolve for file: " + fsFile.getObjectId());
+                dataProjectDao.deleteFileDataProject(fileDataProjectSummary.getId());
+            }
+            // save a link to the google project resource for this file
+            fileDataProjectSummary = new FileDataProjectSummary()
+                .projectResourceId(googleProjectResource.getRepositoryId())
+                .fileObjectId(fsFile.getObjectId());
+            UUID fileDataProjectId = dataProjectDao.createFileDataProject(fileDataProjectSummary);
+            fileDataProjectSummary.id(fileDataProjectId);
+        }
+        return new FileDataProject(fileDataProjectSummary)
+            .googleProjectResource(googleProjectResource);
+    }
+
+    // TODO: get a project/bucket for file, how to store
+
 
     public SnapshotDataProject getProjectForSnapshot(Snapshot snapshot) {
         SnapshotDataProjectSummary snapshotDataProjectSummary = null;
         GoogleProjectResource googleProjectResource;
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
-            .projectId(dataProjectIdSelector.projectIdForSnapshot(snapshot))
+            .projectId(dataLocationSelector.projectIdForSnapshot(snapshot))
             .profileId(snapshot.getProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         try {
-            snapshotDataProjectSummary = dataProjectDao.retrieveSnapshotDataProjectBySnapshotId(snapshot.getId());
+            snapshotDataProjectSummary = dataProjectDao.retrieveSnapshotDataProject(snapshot.getId());
             googleProjectResource = resourceService.getProjectResourceById(
                 snapshotDataProjectSummary.getProjectResourceId());
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
@@ -84,22 +112,17 @@ public class DataProjectService {
             .googleProjectResource(googleProjectResource);
     }
 
-    public SnapshotDataProject getProjectForSnapshotName(String snapshotName) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
-        return getProjectForSnapshot(snapshot);
-    }
-
     // TODO: DRY this up
 
     public DatasetDataProject getProjectForDataset(Dataset dataset) {
         DatasetDataProjectSummary datasetDataProjectSummary = null;
         GoogleProjectResource googleProjectResource;
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
-            .projectId(dataProjectIdSelector.projectIdForDataset(dataset))
+            .projectId(dataLocationSelector.projectIdForDataset(dataset))
             .profileId(dataset.getDefaultProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         try {
-            datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProjectByDatasetId(dataset.getId());
+            datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProject(dataset.getId());
             googleProjectResource = resourceService.getProjectResourceById(
                 datasetDataProjectSummary.getProjectResourceId());
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
@@ -119,10 +142,5 @@ public class DataProjectService {
         }
         return new DatasetDataProject(datasetDataProjectSummary)
             .googleProjectResource(googleProjectResource);
-    }
-
-    public DatasetDataProject getProjectForDatasetName(String datasetName) {
-        Dataset dataset = datasetDao.retrieveByName(datasetName);
-        return getProjectForDataset(dataset);
     }
 }

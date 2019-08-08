@@ -1,16 +1,17 @@
 package bio.terra.dao;
 
+import bio.terra.configuration.DataRepoJdbcConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public class DatasetTableDao extends TableDaoBase {
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
 
     @Autowired
-    public DatasetTableDao(NamedParameterJdbcTemplate jdbcTemplate) {
-        super(jdbcTemplate, "dataset_table", "dataset_column", "parent_id");
-        this.jdbcTemplate = jdbcTemplate;
+    public DatasetTableDao(DataRepoJdbcConfiguration dataRepoJdbcConfiguration) {
+        super(dataRepoJdbcConfiguration, "dataset_table", "dataset_column", "parent_id");
+        this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
     }
 }

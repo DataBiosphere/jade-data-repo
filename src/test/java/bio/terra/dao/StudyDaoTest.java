@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collector;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -128,6 +129,14 @@ public class StudyDaoTest {
         studyDao.delete(study1);
     }
 
+    private Table getParticipantTable(Study study) {
+        return study.getTables()
+            .stream()
+            .filter(table -> table.getName().equals("particpant"))
+            .findFirst()
+            .orElse(null);
+    }
+
     @Test
     public void studyTest() throws Exception {
         assertThat("study name is set correctly",
@@ -139,6 +148,10 @@ public class StudyDaoTest {
                 fromDB.getTables().size(),
                 equalTo(2));
         fromDB.getTables().forEach(this::assertStudyTable);
+
+        assertThat("the participant table has a primary key",
+            getParticipantTable(fromDB).getPrimaryKey(),
+            equalTo(getParticipantTable(study).getPrimaryKey()));
 
         assertThat("correct number of relationships are created for study",
                 fromDB.getRelationships().size(),

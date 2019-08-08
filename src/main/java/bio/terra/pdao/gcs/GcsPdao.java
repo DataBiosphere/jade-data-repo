@@ -28,20 +28,17 @@ import java.util.List;
 @Component
 @Profile("google")
 public class GcsPdao {
-    private GcsConfiguration gcsConfiguration;
-    private Storage storage;
+    private GcsProjectFactory gcsProjectFactory;
 
     @Autowired
-    public GcsPdao(GcsConfiguration gcsConfiguration, Storage storage) {
-        this.gcsConfiguration = gcsConfiguration;
-        this.storage = storage;
+    public GcsPdao(GcsProjectFactory gcsProjectFactory) {
+        this.gcsProjectFactory = gcsProjectFactory;
     }
 
     // We return the incoming FSObject with the blob information filled in
     public FSFileInfo copyFile(Dataset dataset,
                                FileLoadModel fileLoadModel,
                                FSFile fsObject) {
-
         String sourceBucket;
         String sourcePath;
 
@@ -54,7 +51,6 @@ public class GcsPdao {
             if (sourceUri.getPort() != -1) {
                 throw new PdaoInvalidUriException("Source path must not have a port specified: '" +
                     fileLoadModel.getSourcePath() + "'");
-
             }
             sourceBucket = sourceUri.getAuthority();
             sourcePath = StringUtils.removeStart(sourceUri.getPath(), "/");
@@ -67,6 +63,10 @@ public class GcsPdao {
             throw new PdaoInvalidUriException("Invalid gs path: '" +
                 fileLoadModel.getSourcePath() + "'");
         }
+
+        // Figure out where the destination bucket is. Similar to how there is a ProjectIdSelector there will be need
+        // to be a BucketSelector that picks a (Project, Bucket) pair for the file. The Resource Manager will then need
+        // to potentially create the project and/or the bucket inside of that project depending on what already exists.
 
         Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));
         if (sourceBlob == null) {

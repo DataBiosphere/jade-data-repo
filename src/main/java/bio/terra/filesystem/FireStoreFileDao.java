@@ -174,7 +174,8 @@ public class FireStoreFileDao {
                 .checksumMd5(fsFileInfo.getChecksumMd5())
                 .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
                 .size(fsFileInfo.getSize())
-                .fileCreatedDate(fsFileInfo.getCreatedDate());
+                .fileCreatedDate(fsFileInfo.getCreatedDate())
+                .region(fsFileInfo.getRegion());
 
             // transition point from reading to writing in the transaction
 
@@ -692,7 +693,8 @@ public class FireStoreFileDao {
                     .checksumCrc32c(fsFile.getChecksumCrc32c())
                     .checksumMd5(fsFile.getChecksumMd5())
                     .mimeType(fsFile.getMimeType())
-                    .flightId(fsFile.getFlightId());
+                    .flightId(fsFile.getFlightId())
+                    .profileId(fsFile.getProfileId());
                 break;
 
             case DIRECTORY:

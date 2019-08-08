@@ -13,6 +13,7 @@ public class FSFileInfo {
     private String checksumMd5;
     private Long size;
     private String flightId;
+    private String region;
 
     public String getObjectId() {
         return objectId;
@@ -86,6 +87,15 @@ public class FSFileInfo {
         return this;
     }
 
+    public String getRegion() {
+        return region;
+    }
+
+    public FSFileInfo region(String region) {
+        this.region = region;
+        return this;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
@@ -96,6 +106,7 @@ public class FSFileInfo {
             .append("checksumMd5", checksumMd5)
             .append("size", size)
             .append("flightId", flightId)
+            .append("region", region)
             .toString();
     }
 }

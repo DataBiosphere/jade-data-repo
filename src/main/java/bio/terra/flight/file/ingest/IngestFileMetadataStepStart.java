@@ -45,7 +45,8 @@ public class IngestFileMetadataStepStart implements Step {
                 .datasetId(dataset.getId())
                 .objectType(FSObjectType.INGESTING_FILE)
                 .path(loadModel.getTargetPath())
-                .description(loadModel.getDescription());
+                .description(loadModel.getDescription())
+                .profileId(loadModel.getProfileId());
 
             UUID objectId = fileDao.createFileStart(dataset, newFile);
             workingMap.put(FileMapKeys.OBJECT_ID, objectId.toString());

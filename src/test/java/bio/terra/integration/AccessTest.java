@@ -78,15 +78,7 @@ public class AccessTest extends UsersBase {
 
     private Storage getStorage(String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        StorageOptions storageOptions = StorageOptions.newBuilder()
-            .setCredentials(googleCredentials)
-            .build();
-        return storageOptions.getService();
-    }
-
-    private GcsProject getGcsProject(String projectId, String token) {
-        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        return new GcsProject(projectId, googleCredentials);
+        return GcsFixtures.getStorage(googleCredentials);
     }
 
     @Test
@@ -236,7 +228,7 @@ public class AccessTest extends UsersBase {
         List<DRSAccessMethod> accessMethods = drsObject.getAccessMethods();
         assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
 
-        // Step 7. Pull our the gs path try to read the file as reader and discoverer
+        // Step 7. Pull out the gs path try to read the file as reader and discoverer
         DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
 
         String[] strings = accessUrl.getUrl().split("/", 4);

@@ -38,7 +38,7 @@ public class TableDaoBase {
     public TableDaoBase(DataRepoJdbcConfiguration jdbcConfiguration,
                         String tableTableName,
                         String columnTableName,
-                        String parentIdColumnName)  {
+                        String parentIdColumnName) {
         this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
         try {
             this.connection = jdbcConfiguration.getDataSource().getConnection();
@@ -62,13 +62,19 @@ public class TableDaoBase {
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Table table : tableList) {
             params.addValue("name", table.getName());
-            List<String> naturalKeyStringList = table.getPrimaryKey()
-                .stream()
-                .map(Column::getName)
-                .collect(Collectors.toList());
+            List<Column> primaryKey = table.getPrimaryKey();
+
             try {
-                params.addValue("primary_key", DaoUtils.createSqlStringArray(connection,
-                    naturalKeyStringList));
+                if (primaryKey != null) {
+                    List<String> naturalKeyStringList = primaryKey.stream()
+                        .map(Column::getName)
+                        .collect(Collectors.toList());
+                    params.addValue("primary_key", DaoUtils.createSqlStringArray(connection,
+                        naturalKeyStringList));
+                } else {
+                    params.addValue("primary_key", DaoUtils.createSqlStringArray(connection,
+                        Collections.emptyList()));
+                }
             } catch (SQLException e) {
                 logger.error(e.getMessage());
                 throw new IllegalArgumentException(e.getMessage(), e);

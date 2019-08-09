@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -117,7 +118,8 @@ public final class DatasetJsonConversion {
     public static TableModel tableModelFromTable(Table datasetTable) {
         return new TableModel()
             .name(datasetTable.getName())
-            .primaryKey(datasetTable.getPrimaryKey()
+            .primaryKey(Optional.ofNullable(datasetTable.getPrimaryKey())
+                .orElse(Collections.emptyList())
                 .stream()
                 .map(Column::getName)
                 .collect(Collectors.toList()))

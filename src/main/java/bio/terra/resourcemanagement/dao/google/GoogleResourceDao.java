@@ -17,6 +17,8 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -89,22 +91,58 @@ public class GoogleResourceDao {
         }
     }
 
-    private GoogleBucketResource retrieveBucketBy(String column, UUID value) {
-        try {
-            String sql = String.format("SELECT * FROM bucket_resource WHERE %s = :%s LIMIT 1", column, column);
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
-            return jdbcTemplate.queryForObject(sql, params, new DataBucketMapper());
-        } catch (EmptyResultDataAccessException ex) {
+    private List<GoogleBucketResource> retrieveBucketsBy(String column, UUID value) {
+        List<String> selects = Arrays.asList(
+            // project_resource
+            "p.id AS project_resource_id",
+            "google_project_id",
+            "google_project_number",
+            "service_ids",
+            "profile_id",
+
+            // bucket_resource
+            "b.id AS bucket_resource_id",
+            "name"
+        );
+        String query = "SELECT %s " +
+            " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
+            " WHERE %s = :%s";
+        String sql = String.format(query, String.join(", ", selects), column, column);
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
+        List<GoogleBucketResource> bucketResources = jdbcTemplate.query(sql, params, new DataBucketMapper());
+
+        if (bucketResources.size() == 0) {
             throw new GoogleResourceNotFoundException(String.format("Bucket not found for %s: %s", column, value));
         }
+        return bucketResources;
     }
 
     public GoogleBucketResource retrieveBucketById(UUID bucketResourceId) {
-        return retrieveBucketBy("id", bucketResourceId);
+        List<GoogleBucketResource> bucketResources = retrieveBucketsBy("id", bucketResourceId);
+        if (bucketResources.size() > 1) {
+            throw new IllegalStateException(
+                String.format("Found more than one result for bucket resource id: %s", bucketResourceId));
+        }
+        return bucketResources.get(0);
+    }
+
+    public List<GoogleBucketResource> retrieveBucketsByProjectResource(GoogleProjectResource projectResource) {
+        return retrieveBucketsBy("project_resource_id", projectResource.getRepositoryId());
     }
 
     private static class DataBucketMapper implements RowMapper<GoogleBucketResource> {
         public GoogleBucketResource mapRow(ResultSet rs, int rowNum) throws SQLException {
+            /* TODO next: create project resource, use that to construct bucket resource
+            "p.id AS project_resource_id",
+            "google_project_id",
+            "google_project_number",
+            "service_ids",
+            "profile_id",
+
+            // bucket_resource
+            "b.id AS bucket_resource_id",
+            "name"
+             */
             return new GoogleBucketResource()
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class))
                 .repositoryId(rs.getObject("id", UUID.class))

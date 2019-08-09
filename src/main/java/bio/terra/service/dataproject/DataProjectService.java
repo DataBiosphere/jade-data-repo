@@ -1,5 +1,6 @@
 package bio.terra.service.dataproject;
 
+import bio.terra.dao.exception.DataBucketNotFoundException;
 import bio.terra.dao.exception.DataProjectNotFoundException;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FileDataBucket;

@@ -66,7 +66,7 @@ public class IngestSetupStep implements Step {
                 throw new IngestFileNotFoundException("Ingest source file not found: '" + requestModel.getPath());
             }
         } catch (StorageException ex) {
-            throw new InvalidUriException("Failed to access ingest source file: '" + requestModel.getPath());
+            throw new InvalidUriException("Failed to access ingest source file: '" + requestModel.getPath(), ex);
         }
 
         return StepResult.getStepResultSuccess();

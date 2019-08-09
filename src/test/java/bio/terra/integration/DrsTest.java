@@ -63,6 +63,7 @@ public class DrsTest extends UsersBase {
             "file_ref");
 
         // DRS lookup the file and validate
+        logger.info("DRS Object Id - file: {}", drsObjectId);
         DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
         validateDrsObject(drsObject, drsObjectId);
         assertNull("Contents of file is null", drsObject.getContents());
@@ -75,14 +76,20 @@ public class DrsTest extends UsersBase {
         // DRS object id of the directory. Only then do we get to do a directory lookup.
         assertThat("One alias", drsObject.getAliases().size(), equalTo(1));
         String filePath = drsObject.getAliases().get(0);
-        String dirPath = getDirectoryPath(filePath);
+        String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
-        // Get dataset from snapshot; relies on encodeFixture only having one dataset
+        // Get dataset from snapshot; relies on encodeFixture making a snapshot using one dataset.
+        // Note: for now, we have no directory DRS ID support, so the only way to retrieve a
+        // "bundle" is to first do the object lookup by name and then construct the DRS ID.
+        // TODO: Cloning the filesystem (DR-287) will allow us to do file system ops on the
+        // snapshot, so readers will have access to that and be able to do lookup by name.
         String datasetId = snapshotModel.getSource().get(0).getDataset().getId();
-        FSObjectModel fsObject = dataRepoFixtures.getFileByName(reader(), datasetId, dirPath);
+        FSObjectModel fsObject = dataRepoFixtures.getFileByName(steward(), datasetId, dirPath);
         String dirObjectId = "v1_" + datasetId + "_" + snapshotModel.getId() + "_" + fsObject.getObjectId();
 
         drsObject = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
+        logger.info("DRS Object Id - dir: {}", dirObjectId);
+
         validateDrsObject(drsObject, dirObjectId);
         assertNotNull("Contents of directory is not null", drsObject.getContents());
         assertNull("Access method of directory is null", drsObject.getAccessMethods());
@@ -91,7 +98,6 @@ public class DrsTest extends UsersBase {
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
         assertThat("DRS id matches", drsObject.getId(), equalTo(drsObjectId));
         assertThat("Create and update dates match", drsObject.getCreated(), equalTo(drsObject.getUpdated()));
-        assertNull("Contents of file is null", drsObject.getContents());
         assertThat("DRS version is right", drsObject.getVersion(), equalTo("0"));
 
         for (DRSChecksum checksum : drsObject.getChecksums()) {

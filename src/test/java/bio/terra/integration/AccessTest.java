@@ -41,10 +41,8 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -62,15 +60,11 @@ public class AccessTest extends UsersBase {
     @Autowired private SamClientService samClientService;
     @Autowired private TestConfiguration testConfiguration;
 
-    private static final int samTimeout = 300;
-    private static final Pattern drsIdRegex = Pattern.compile("([^/]+)$");
-
     private String discovererToken;
     private String readerToken;
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
-    private static final int samTimeoutSeconds = 60 * 10;
 
     @Before
     public void setup() throws Exception {
@@ -126,22 +120,8 @@ public class AccessTest extends UsersBase {
             enumDatasets.getStatusCode(),
             equalTo(HttpStatus.OK));
 
-        boolean custodianHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
-            try {
-                boolean bqDatasetExists = BigQueryFixtures.datasetExists(
-                    custodianBigQuery,
-                    dataset.getDataProject(),
-                    datasetBqSnapshotName);
-                assertThat("study bq dataset exists and is accessible", bqDatasetExists, equalTo(true));
-                return true;
-            } catch (IllegalStateException e) {
-                assertThat(
-                    "access is denied until SAM syncs the custodian policy with Google",
-                    e.getCause().getMessage(),
-                    startsWith("Access Denied:"));
-                return false;
-            }
-        });
+        boolean custodianHasAccess =
+            BigQueryFixtures.hasAccess(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
         assertThat("custodian can access the bq snapshot after it has been shared",
             custodianHasAccess,
@@ -150,7 +130,7 @@ public class AccessTest extends UsersBase {
         SnapshotSummaryModel snapshotSummaryModel =
             dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
 
-        DatasetModel snapshotModel = dataRepoFixtures.getDataset(custodian(), datasetSummaryModel.getId());
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         try {
             BigQueryFixtures.datasetExists(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
@@ -175,22 +155,8 @@ public class AccessTest extends UsersBase {
             snapshotSummaryModel.getId(),
             SamClientService.DataRepoAction.READ_DATA), equalTo(true));
 
-        boolean readerHasAccess = TestUtils.eventualExpect(5, samTimeoutSeconds, true, () -> {
-            try {
-                boolean snapshotExists = BigQueryFixtures.datasetExists(bigQuery,
-                    snapshotModel.getDataProject(),
-                    snapshotSummaryModel.getName());
-                assertTrue("snapshot exists and is accessible", snapshotExists);
-                return true;
-            } catch (IllegalStateException e) {
-                assertThat(
-                    "access is denied until SAM syncs the reader policy with Google",
-                    e.getCause().getMessage(),
-                    startsWith("Access Denied:"));
-                return false;
-            }
-        });
-
+        boolean readerHasAccess =
+            BigQueryFixtures.hasAccess(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
         assertThat("reader can access the snapshot after it has been shared",
             readerHasAccess,
             equalTo(true));
@@ -201,7 +167,6 @@ public class AccessTest extends UsersBase {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), datasetSummaryModel.getId());
 
         // Step 1. Ingest a file into the study
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
@@ -258,24 +223,7 @@ public class AccessTest extends UsersBase {
         // We make a BigQuery context for the reader in the test project. The reader doesn't have access
         // to run queries in the dataset project.
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
-
-        TestUtils.eventualExpect(5, samTimeout, true, () -> {
-            try {
-                boolean snapshotExists = BigQueryFixtures.datasetExists(
-                    bigQueryReader,
-                    datasetModel.getDataProject(),
-                    snapshotModel.getName());
-
-                assertThat("Snapshot wasn't created right", snapshotExists, equalTo(true));
-                return true;
-            } catch (IllegalStateException e) {
-                assertThat(
-                    "checking message for exception error",
-                    e.getCause().getMessage(),
-                    startsWith("Access Denied:"));
-                return false;
-            }
-        });
+        BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
         // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
         String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,

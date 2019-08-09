@@ -139,6 +139,7 @@ public class DataRepoClient {
                                                       HttpEntity entity,
                                                       Class<T> responseClass,
                                                       Class<S> errorClass) throws Exception {
+        logger.info("api request: method={} path={}", method.toString(), path);
 
         ResponseEntity<String> response = restTemplate.exchange(
             testConfig.getJadeApiUrl() + path,
@@ -161,6 +162,7 @@ public class DataRepoClient {
             }
             drResponse.setErrorModel(Optional.empty());
         } else {
+
             S errorObject = objectMapper.readValue(response.getBody(), errorClass);
             drResponse.setErrorModel(Optional.of(errorObject));
             drResponse.setResponseObject(Optional.empty());

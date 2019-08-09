@@ -7,10 +7,12 @@ import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FSObjectModel;
+import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -39,7 +41,7 @@ public class EncodeFixture {
     @Autowired private DataRepoClient dataRepoClient;
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private AuthService authService;
-    @Autowired private TestConfiguration testConfig;
+    @Autowired private TestConfiguration testConfiguration;
 
     // Create study, load files and tables. Create and return dataset.
     // Steward owns study; custodian is custodian on study; reader has access to the dataset.
@@ -68,7 +70,7 @@ public class EncodeFixture {
         dataRepoFixtures.ingestJsonData(steward, datasetId, "donor", "encodetest/donor.json");
 
         // Delete the scratch blob
-        Blob scratchBlob = stewardStorage.get(BlobId.of(testConfig.getIngestbucket(), targetPath));
+        Blob scratchBlob = stewardStorage.get(BlobId.of(testConfiguration.getIngestbucket(), targetPath));
         if (scratchBlob != null) {
             scratchBlob.delete();
         }
@@ -84,6 +86,15 @@ public class EncodeFixture {
             SamClientService.DataRepoRole.READER,
             reader.getEmail());
 
+        // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent
+        // issues have shown. We make a BigQuery request as the test to see that READER has access.
+        // We need to get the snapshot, rather than the snapshot summary in order to make a query.
+        // TODO: Add dataProject to SnapshotSummaryModel?
+        SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
+        String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
+
         return snapshotSummary;
     }
 
@@ -98,10 +109,10 @@ public class EncodeFixture {
         // For a bigger test use encodetest/file.json (1000+ files)
         // For normal testing encodetest/file_small.json (10 files)
         Blob sourceBlob = storage.get(
-            BlobId.of(testConfig.getIngestbucket(), "encodetest/file_small.json"));
+            BlobId.of(testConfiguration.getIngestbucket(), "encodetest/file_small.json"));
 
         BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(testConfig.getIngestbucket(), targetPath))
+            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
             .build();
 
         try (WriteChannel writer = storage.writer(targetBlobInfo);
@@ -136,6 +147,5 @@ public class EncodeFixture {
         FSObjectModel fsObject = dataRepoFixtures.ingestFile(user, datasetId, gsPath, filePath);
         return fsObject.getObjectId();
     }
-
 
 }

@@ -1,6 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
+import bio.terra.dao.exception.DataBucketNotFoundException;
 import bio.terra.dao.exception.DataProjectNotFoundException;
 import bio.terra.metadata.FileDataBucketSummary;
 import bio.terra.metadata.FileDataProjectSummary;
@@ -47,7 +48,7 @@ public class DataProjectDao {
                 .addValue("file_object_id", fileObjectId);
             return jdbcTemplate.queryForObject(sql, params, new FileDataBucketSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
-            throw new DataProjectNotFoundException("File data project not found for: " + fileObjectId);
+            throw new DataBucketNotFoundException("File data project not found for: " + fileObjectId);
         }
     }
 

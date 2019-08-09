@@ -5,33 +5,21 @@ import java.util.UUID;
 public class GoogleBucketResource {
     private UUID repositoryId;
     private GoogleBucketRequest googleBucketRequest;
-    private GoogleProjectResource googleProjectResource;
 
     public GoogleBucketResource() {
         this.googleBucketRequest = new GoogleBucketRequest();
-        this.googleProjectResource = new GoogleProjectResource();
     }
 
     public GoogleBucketResource(GoogleBucketRequest googleBucketRequest) {
         this.googleBucketRequest = googleBucketRequest;
-        this.googleProjectResource = googleBucketRequest.getGoogleProjectResource();
     }
 
-    public UUID getProjectResourceId() {
-        return googleProjectResource.getRepositoryId();
+    public GoogleProjectResource getProjectResource() {
+        return googleBucketRequest.getGoogleProjectResource();
     }
 
-    public GoogleBucketResource projectResourceId(UUID projectResourceId) {
-        googleProjectResource.repositoryId(projectResourceId);
-        return this;
-    }
-
-    public String getGoogleProjectId() {
-        return googleProjectResource.getGoogleProjectId();
-    }
-
-    public GoogleBucketResource googleProjectId(String googleProjectId) {
-        googleProjectResource.googleProjectId(googleProjectId);
+    public GoogleBucketResource projectResource(GoogleProjectResource projectResource) {
+        googleBucketRequest.googleProjectResource(projectResource);
         return this;
     }
 

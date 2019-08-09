@@ -17,13 +17,18 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
-import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Operation;
+import com.google.api.services.cloudresourcemanager.model.Project;
+import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
 import com.google.api.services.serviceusage.v1beta1.model.Service;
+import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageException;
+import com.google.cloud.storage.StorageOptions;
+import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,11 +68,32 @@ public class GoogleResourceService {
     }
 
     public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest) {
-        // Naive: this implements a 1-bucket-per-profile approach. If there is already a Google bucket for this
-        // profile we will look up the project by id, otherwise we will generate one and look it up
-        UUID profileId = bucketRequest.getProfileId();
+        // Naive: this implements a 1-bucket-per-project approach. If there is already a Google bucket for this
+        // project we will look up the bucket by project resource id, otherwise we will look up the bucket
+        GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
         try {
-            return resourceDao.retrieveBucketById()
+            List<GoogleBucketResource> bucketResources = resourceDao.retrieveBucketsByProjectResource(projectResource);
+            if (bucketResources.size() > 1) {
+                List<String> bucketNames = bucketResources
+                    .stream()
+                    .map(GoogleBucketResource::getName)
+                    .collect(Collectors.toList());
+                logger.warn("more than one bucket found for project {}: [{}], using the first one",
+                    projectResource.getGoogleProjectId(),
+                    String.join(", ", bucketNames));
+            }
+            return bucketResources.get(0);
+        } catch (GoogleResourceNotFoundException e) {
+            logger.info("no bucket resource metadata found for project: {}", projectResource.getGoogleProjectId());
+        }
+
+        // the bucket might already exist
+        // TODO: ensure that the ownership, read/write perms are correct!
+        Bucket bucket = getBucket(bucketRequest.getBucketName());
+        if (bucket != null) {
+            GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
+            UUID id = resourceDao.createBucket(googleBucketResource);
+            return googleBucketResource.repositoryId(id);
         }
     }
 
@@ -79,10 +105,11 @@ public class GoogleResourceService {
             return resourceDao.retrieveProjectByProfileId(profileId);
 
         } catch (GoogleResourceNotFoundException e) {
-            logger.info("no metadata found for profile: {}", profileId);
+            logger.info("no project resource metadata found for profile: {}", profileId);
         }
 
         // it's possible that the project exists already but it is not stored in the metadata table
+        // TODO: ensure that the ownership, read/write perms are correct!
         String googleProjectId = projectRequest.getProjectId();
         Project existingProject = getProject(googleProjectId);
         if (existingProject != null) {
@@ -114,6 +141,15 @@ public class GoogleResourceService {
             return null;
         } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not check on project state", e);
+        }
+    }
+
+    private Bucket getBucket(String bucketName) {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        try {
+            return storage.get(bucketName);
+        } catch (StorageException e) {
+            throw new GoogleResourceException("Could not check bucket existence", e);
         }
     }
 

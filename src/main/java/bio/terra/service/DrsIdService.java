@@ -20,20 +20,20 @@ public class DrsIdService {
         this.datarepoDnsName = datarepoDnsName;
     }
 
-    public String toDrsUri(String studyId, String datasetId, String fsObjectId) {
-        return fromParts(studyId, datasetId, fsObjectId).toDrsUri();
+    public String toDrsUri(String datasetId, String snapshotId, String fsObjectId) {
+        return fromParts(datasetId, snapshotId, fsObjectId).toDrsUri();
     }
 
-    public String toDrsObjectId(String studyId, String datasetId, String fsObjectId) {
-        return fromParts(studyId, datasetId, fsObjectId).toDrsObjectId();
+    public String toDrsObjectId(String datasetId, String snapshotId, String fsObjectId) {
+        return fromParts(datasetId, snapshotId, fsObjectId).toDrsObjectId();
     }
 
-    private DrsId fromParts(String studyId, String datasetId, String fsObjectId) {
+    private DrsId fromParts(String datasetId, String snapshotId, String fsObjectId) {
         return DrsId.builder()
             .dnsname(datarepoDnsName)
             .version("v1")
-            .studyId(studyId)
             .datasetId(datasetId)
+            .snapshotId(snapshotId)
             .fsObjectId(fsObjectId)
             .build();
     }
@@ -56,7 +56,7 @@ public class DrsIdService {
     }
 
     private DrsId.Builder parseObjectId(String objectId) {
-        // The format is v1_<studyid>_<datasetid>_<fsobjectid>
+        // The format is v1_<datasetid>_<snapshotid>_<fsobjectid>
         String[] idParts = StringUtils.split(objectId, '_');
         if (idParts.length != 4 || !StringUtils.equals(idParts[0], "v1")) {
             throw new InvalidDrsIdException("Invalid DRS object id '" + objectId + "'");
@@ -65,8 +65,8 @@ public class DrsIdService {
         return DrsId.builder()
             .dnsname(datarepoDnsName)
             .version(idParts[0])
-            .studyId(idParts[1])
-            .datasetId(idParts[2])
+            .datasetId(idParts[1])
+            .snapshotId(idParts[2])
             .fsObjectId(idParts[3]);
     }
 }

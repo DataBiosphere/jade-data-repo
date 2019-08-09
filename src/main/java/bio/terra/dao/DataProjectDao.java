@@ -2,8 +2,8 @@ package bio.terra.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.metadata.SnapshotDataProjectSummary;
 import bio.terra.metadata.DatasetDataProjectSummary;
-import bio.terra.metadata.StudyDataProjectSummary;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -22,55 +22,6 @@ public class DataProjectDao {
     @Autowired
     public DataProjectDao(DataRepoJdbcConfiguration jdbcConfiguration) {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-    }
-
-    public UUID createStudyDataProject(StudyDataProjectSummary studyDataProjectSummary) {
-        String sql = "INSERT INTO study_data_project (study_id, project_resource_id) VALUES " +
-            "(:study_id, :project_resource_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("study_id", studyDataProjectSummary.getStudyId())
-            .addValue("project_resource_id", studyDataProjectSummary.getProjectResourceId());
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        return keyHolder.getId();
-    }
-
-    private StudyDataProjectSummary retrieveStudyDataProject(String sql, MapSqlParameterSource params) {
-        try {
-            return jdbcTemplate.queryForObject(sql, params, new StudyDataProjectSummaryMapper());
-        } catch (EmptyResultDataAccessException ex) {
-            throw new DataProjectNotFoundException("Study data project not found for: " + sql);
-        }
-    }
-
-    public StudyDataProjectSummary retrieveStudyDataProjectById(UUID id) {
-        String sql = "SELECT id, study_id, project_resource_id FROM study_data_project WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("id", id);
-        return retrieveStudyDataProject(sql, params);
-    }
-
-    public StudyDataProjectSummary retrieveStudyDataProjectByStudyId(UUID studyId) {
-        String sql = "SELECT id, study_id, project_resource_id FROM study_data_project WHERE study_id = :study_id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("study_id", studyId);
-        return retrieveStudyDataProject(sql, params);
-    }
-
-    public boolean deleteStudyDataProject(UUID id) {
-        String sql = "DELETE FROM study_data_project WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-        int rowsAffected = jdbcTemplate.update(sql, params);
-        return rowsAffected > 0;
-    }
-
-    private static class StudyDataProjectSummaryMapper implements RowMapper<StudyDataProjectSummary> {
-        public StudyDataProjectSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new StudyDataProjectSummary()
-                .id(rs.getObject("id", UUID.class))
-                .studyId(rs.getObject("study_id", UUID.class))
-                .projectResourceId(rs.getObject("project_resource_id", UUID.class));
-        }
     }
 
     public UUID createDatasetDataProject(DatasetDataProjectSummary datasetDataProjectSummary) {
@@ -101,7 +52,7 @@ public class DataProjectDao {
 
     public DatasetDataProjectSummary retrieveDatasetDataProjectByDatasetId(UUID datasetId) {
         String sql = "SELECT id, dataset_id, project_resource_id FROM dataset_data_project " +
-            "WHERE dataset_id = :dataset_id";
+            " WHERE dataset_id = :dataset_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("dataset_id", datasetId);
         return retrieveDatasetDataProject(sql, params);
@@ -119,6 +70,56 @@ public class DataProjectDao {
             return new DatasetDataProjectSummary()
                 .id(rs.getObject("id", UUID.class))
                 .datasetId(rs.getObject("dataset_id", UUID.class))
+                .projectResourceId(rs.getObject("project_resource_id", UUID.class));
+        }
+    }
+
+    public UUID createSnapshotDataProject(SnapshotDataProjectSummary snapshotDataProjectSummary) {
+        String sql = "INSERT INTO snapshot_data_project (snapshot_id, project_resource_id) VALUES " +
+            "(:snapshot_id, :project_resource_id)";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("snapshot_id", snapshotDataProjectSummary.getSnapshotId())
+            .addValue("project_resource_id", snapshotDataProjectSummary.getProjectResourceId());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        jdbcTemplate.update(sql, params, keyHolder);
+        return keyHolder.getId();
+    }
+
+    private SnapshotDataProjectSummary retrieveSnapshotDataProject(String sql, MapSqlParameterSource params) {
+        try {
+            return jdbcTemplate.queryForObject(sql, params, new SnapshotDataProjectSummaryMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new DataProjectNotFoundException("Snapshot data project not found for: " + sql);
+        }
+    }
+
+    public SnapshotDataProjectSummary retrieveSnapshotDataProjectById(UUID id) {
+        String sql = "SELECT id, snapshot_id, project_resource_id FROM snapshot_data_project WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("id", id);
+        return retrieveSnapshotDataProject(sql, params);
+    }
+
+    public SnapshotDataProjectSummary retrieveSnapshotDataProjectBySnapshotId(UUID snapshotId) {
+        String sql = "SELECT id, snapshot_id, project_resource_id FROM snapshot_data_project " +
+            "WHERE snapshot_id = :snapshot_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("snapshot_id", snapshotId);
+        return retrieveSnapshotDataProject(sql, params);
+    }
+
+    public boolean deleteSnapshotDataProject(UUID id) {
+        String sql = "DELETE FROM snapshot_data_project WHERE id = :id";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+        int rowsAffected = jdbcTemplate.update(sql, params);
+        return rowsAffected > 0;
+    }
+
+    private static class SnapshotDataProjectSummaryMapper implements RowMapper<SnapshotDataProjectSummary> {
+        public SnapshotDataProjectSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return new SnapshotDataProjectSummary()
+                .id(rs.getObject("id", UUID.class))
+                .snapshotId(rs.getObject("snapshot_id", UUID.class))
                 .projectResourceId(rs.getObject("project_resource_id", UUID.class));
         }
     }

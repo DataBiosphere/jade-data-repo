@@ -7,21 +7,21 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSObject;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
-import bio.terra.model.StudyModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -78,11 +78,11 @@ public class DataRepoFixtures {
         return postResponse.getResponseObject().get();
     }
 
-    // studies
+    // datasets
 
-    public DataRepoResponse<StudySummaryModel> createStudyRaw(TestConfiguration.User user, String filename)
+    public DataRepoResponse<DatasetSummaryModel> createDatasetRaw(TestConfiguration.User user, String filename)
         throws Exception {
-        StudyRequestModel requestModel = jsonLoader.loadObject(filename, StudyRequestModel.class);
+        DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setDefaultProfileId(billingProfileModel.getId());
         requestModel.setName(Names.randomizeName(requestModel.getName()));
@@ -90,133 +90,27 @@ public class DataRepoFixtures {
 
         return dataRepoClient.post(
             user,
-            "/api/repository/v1/studies",
+            "/api/repository/v1/datasets",
             json,
-            StudySummaryModel.class);
+            DatasetSummaryModel.class);
     }
 
-    public StudySummaryModel createStudy(TestConfiguration.User user, String filename) throws Exception {
-        DataRepoResponse<StudySummaryModel> postResponse = createStudyRaw(user, filename);
-        assertThat("study is successfully created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("study create response is present", postResponse.getResponseObject().isPresent());
+    public DatasetSummaryModel createDataset(TestConfiguration.User user, String filename) throws Exception {
+        DataRepoResponse<DatasetSummaryModel> postResponse = createDatasetRaw(user, filename);
+        assertThat("dataset is successfully created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("dataset create response is present", postResponse.getResponseObject().isPresent());
         return postResponse.getResponseObject().get();
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteStudyRaw(TestConfiguration.User user, String studyId)
+    public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)
         throws Exception {
         return dataRepoClient.delete(
-            user, "/api/repository/v1/studies/" + studyId, DeleteResponseModel.class);
+            user, "/api/repository/v1/datasets/" + datasetId, DeleteResponseModel.class);
     }
 
-    public void deleteStudy(TestConfiguration.User user, String studyId) throws Exception {
-        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteStudyRaw(user, studyId);
+    public void deleteDataset(TestConfiguration.User user, String datasetId) throws Exception {
+        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetRaw(user, datasetId);
         assertGoodDeleteResponse(deleteResponse);
-    }
-
-    public DataRepoResponse<EnumerateStudyModel> enumerateStudiesRaw(TestConfiguration.User user) throws Exception {
-        return dataRepoClient.get(user,
-            "/api/repository/v1/studies?sort=created_date&direction=desc",
-            EnumerateStudyModel.class);
-    }
-
-    public EnumerateStudyModel enumerateStudies(TestConfiguration.User user) throws Exception {
-        DataRepoResponse<EnumerateStudyModel> response = enumerateStudiesRaw(user);
-        assertThat("study enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", response.getResponseObject().isPresent());
-        return response.getResponseObject().get();
-    }
-
-    public DataRepoResponse<StudyModel> getStudyRaw(TestConfiguration.User user, String studyId) throws Exception {
-        return dataRepoClient.get(user, "/api/repository/v1/studies/" + studyId, StudyModel.class);
-    }
-
-    public StudyModel getStudy(TestConfiguration.User user, String studyId) throws Exception {
-        DataRepoResponse<StudyModel> response = getStudyRaw(user, studyId);
-        assertThat("study is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", response.getResponseObject().isPresent());
-        return response.getResponseObject().get();
-    }
-
-    public DataRepoResponse<Object> addPolicyMemberRaw(TestConfiguration.User user,
-                                                       String resourceId,
-                                                       SamClientService.DataRepoRole role,
-                                                       String userEmail,
-                                                       SamClientService.ResourceType resourceType) throws Exception {
-        PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.toPluralString() + "/" +
-                resourceId + "/policies/" + role.toString() + "/members",
-            objectMapper.writeValueAsString(req), null);
-    }
-
-    public void addPolicyMember(TestConfiguration.User user,
-                                String resourceId,
-                                SamClientService.DataRepoRole role,
-                                String newMemberEmail,
-                                SamClientService.ResourceType resourceType) throws Exception {
-        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, resourceType);
-        assertThat(resourceType + " policy member is successfully added",
-            response.getStatusCode(), equalTo(HttpStatus.OK));
-    }
-
-
-    // adding study policy
-    public void addStudyPolicyMember(TestConfiguration.User user,
-                                     String studyId,
-                                     SamClientService.DataRepoRole role,
-                                     String newMemberEmail) throws Exception {
-        addPolicyMember(user, studyId, role, newMemberEmail, SamClientService.ResourceType.STUDY);
-    }
-
-    // datasets
-
-    // adding dataset policy
-    public void addDatasetPolicyMember(TestConfiguration.User user,
-                                       String datasetId,
-                                       SamClientService.DataRepoRole role,
-                                       String newMemberEmail) throws Exception {
-        addPolicyMember(user, datasetId, role, newMemberEmail, SamClientService.ResourceType.DATASET);
-    }
-
-    public DataRepoResponse<JobModel> createDatasetLaunch(
-        TestConfiguration.User user, StudySummaryModel studySummaryModel, String filename) throws Exception {
-        DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
-        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
-        requestModel.setName(Names.randomizeName(requestModel.getName()));
-        requestModel.getContents().get(0).getSource().setStudyName(studySummaryModel.getName());
-        requestModel.setProfileId(billingProfileModel.getId());
-        String json = objectMapper.writeValueAsString(requestModel);
-
-        return dataRepoClient.post(
-            user,
-            "/api/repository/v1/datasets",
-            json,
-            JobModel.class);
-    }
-
-    public DatasetSummaryModel createDataset(
-        TestConfiguration.User user, StudySummaryModel studySummaryModel, String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createDatasetLaunch(
-            user, studySummaryModel, filename);
-        assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
-
-        DataRepoResponse<DatasetSummaryModel> datasetResponse = dataRepoClient.waitForResponse(
-            user, jobResponse, DatasetSummaryModel.class);
-        assertThat("dataset create is successful", datasetResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("dataset create response is present", datasetResponse.getResponseObject().isPresent());
-        return datasetResponse.getResponseObject().get();
-    }
-
-    public DataRepoResponse<DatasetModel> getDatasetRaw(TestConfiguration.User user, String datasetId)
-        throws Exception {
-        return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
-    }
-
-    public DatasetModel getDataset(TestConfiguration.User user, String datasetId) throws Exception {
-        DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId);
-        assertThat("study is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
-        assertTrue("study get response is present", response.getResponseObject().isPresent());
-        return response.getResponseObject().get();
     }
 
     public DataRepoResponse<EnumerateDatasetModel> enumerateDatasetsRaw(TestConfiguration.User user) throws Exception {
@@ -232,19 +126,128 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public void deleteDataset(TestConfiguration.User user, String datasetId) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = deleteDatasetLaunch(user, datasetId);
-        assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
-        assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
+    public DataRepoResponse<DatasetModel> getDatasetRaw(
+        TestConfiguration.User user,
+        String datasetId) throws Exception {
+        return dataRepoClient.get(user, "/api/repository/v1/datasets/" + datasetId, DatasetModel.class);
+    }
+
+    public DatasetModel getDataset(TestConfiguration.User user, String datasetId) throws Exception {
+        DataRepoResponse<DatasetModel> response = getDatasetRaw(user, datasetId);
+        assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("dataset get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<Object> addPolicyMemberRaw(TestConfiguration.User user,
+                                                       String resourceId,
+                                                       SamClientService.DataRepoRole role,
+                                                       String userEmail,
+                                                       SamClientService.ResourceType resourceType) throws Exception {
+        PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
+        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.toApiString() + "/" +
+                resourceId + "/policies/" + role.toString() + "/members",
+            objectMapper.writeValueAsString(req), null);
+    }
+
+    public void addPolicyMember(TestConfiguration.User user,
+                                String resourceId,
+                                SamClientService.DataRepoRole role,
+                                String newMemberEmail,
+                                SamClientService.ResourceType resourceType) throws Exception {
+        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, resourceType);
+        assertThat(resourceType + " policy member is successfully added",
+            response.getStatusCode(), equalTo(HttpStatus.OK));
+    }
+
+
+    // adding dataset policy
+    public void addDatasetPolicyMember(TestConfiguration.User user,
+                                     String datasetId,
+                                     SamClientService.DataRepoRole role,
+                                     String newMemberEmail) throws Exception {
+        addPolicyMember(user, datasetId, role, newMemberEmail, SamClientService.ResourceType.DATASET);
+    }
+
+    // snapshots
+
+    // adding snapshot policy
+    public void addSnapshotPolicyMember(TestConfiguration.User user,
+                                       String snapshotId,
+                                       SamClientService.DataRepoRole role,
+                                       String newMemberEmail) throws Exception {
+        addPolicyMember(user, snapshotId, role, newMemberEmail, SamClientService.ResourceType.DATASNAPSHOT);
+    }
+
+    public DataRepoResponse<JobModel> createSnapshotLaunch(
+        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
+        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
+        requestModel.setName(Names.randomizeName(requestModel.getName()));
+        requestModel.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
+        requestModel.setProfileId(billingProfileModel.getId());
+        String json = objectMapper.writeValueAsString(requestModel);
+
+        return dataRepoClient.post(
+            user,
+            "/api/repository/v1/snapshots",
+            json,
+            JobModel.class);
+    }
+
+    public SnapshotSummaryModel createSnapshot(
+        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
+            user, datasetSummaryModel, filename);
+        assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<SnapshotSummaryModel> snapshotResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, SnapshotSummaryModel.class);
+        assertThat("snapshot create is successful", snapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("snapshot create response is present", snapshotResponse.getResponseObject().isPresent());
+        return snapshotResponse.getResponseObject().get();
+    }
+
+    public DataRepoResponse<SnapshotModel> getSnapshotRaw(TestConfiguration.User user, String snapshotId)
+        throws Exception {
+        return dataRepoClient.get(user, "/api/repository/v1/snapshots/" + snapshotId, SnapshotModel.class);
+    }
+
+    public SnapshotModel getSnapshot(TestConfiguration.User user, String snapshotId) throws Exception {
+        DataRepoResponse<SnapshotModel> response = getSnapshotRaw(user, snapshotId);
+        assertThat("dataset is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("dataset get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<EnumerateSnapshotModel> enumerateSnapshotsRaw(
+        TestConfiguration.User user) throws Exception {
+        return dataRepoClient.get(user,
+            "/api/repository/v1/snapshots?sort=created_date&direction=desc",
+            EnumerateSnapshotModel.class);
+    }
+
+    public EnumerateSnapshotModel enumerateSnapshots(TestConfiguration.User user) throws Exception {
+        DataRepoResponse<EnumerateSnapshotModel> response = enumerateSnapshotsRaw(user);
+        assertThat("snapshot enumeration is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("snapshot get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public void deleteSnapshot(TestConfiguration.User user, String snapshotId) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = deleteSnapshotLaunch(user, snapshotId);
+        assertTrue("snapshot delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("snapshot delete launch response is present", jobResponse.getResponseObject().isPresent());
 
         DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
             user, jobResponse, DeleteResponseModel.class);
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<JobModel> deleteDatasetLaunch(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<JobModel> deleteSnapshotLaunch(TestConfiguration.User user, String snapshotId)
         throws Exception {
-        return dataRepoClient.delete(user, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
+        return dataRepoClient.delete(user, "/api/repository/v1/snapshots/" + snapshotId, JobModel.class);
     }
 
 
@@ -261,25 +264,25 @@ public class DataRepoFixtures {
     /**
      * Ingests JSON data taking the defaults for the ingest specification
      *
-     * @param studyId   - id of study to load
+     * @param datasetId   - id of dataset to load
      * @param tableName - name of table to load data into
      * @param filePath  - file path within the bucket from property integrationtest.ingestbucket
      * @return ingest response
      * @throws Exception
      */
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
-        TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
+        TestConfiguration.User user, String datasetId, String tableName, String filePath) throws Exception {
         String ingestBody = buildSimpleIngest(tableName, filePath);
         return dataRepoClient.post(
             user,
-            "/api/repository/v1/studies/" + studyId + "/ingest",
+            "/api/repository/v1/datasets/" + datasetId + "/ingest",
             ingestBody,
             JobModel.class);
     }
 
     public IngestResponseModel ingestJsonData(
-        TestConfiguration.User user, String studyId, String tableName, String filePath) throws Exception {
-        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, studyId, tableName, filePath);
+        TestConfiguration.User user, String datasetId, String tableName, String filePath) throws Exception {
+        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, tableName, filePath);
         assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
         DataRepoResponse<IngestResponseModel> response = dataRepoClient.waitForResponse(
@@ -293,8 +296,8 @@ public class DataRepoFixtures {
         return ingestResponse;
     }
 
-    public DataRepoResponse<FSObjectModel> ingestFileRaw(
-        TestConfiguration.User user, String studyId, String sourceGsPath, String targetPath) throws Exception {
+    public DataRepoResponse<JobModel> ingestFileLaunch(
+        TestConfiguration.User user, String datasetId, String sourceGsPath, String targetPath) throws Exception {
 
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(sourceGsPath)
@@ -304,33 +307,69 @@ public class DataRepoFixtures {
 
         String json = objectMapper.writeValueAsString(fileLoadModel);
 
-        DataRepoResponse<JobModel> postResponse = dataRepoClient.post(
+        return dataRepoClient.post(
             user,
-            "/api/repository/v1/studies/" + studyId + "/files",
+            "/api/repository/v1/datasets/" + datasetId + "/files",
             json,
             JobModel.class);
-        return dataRepoClient.waitForResponse(user, postResponse, FSObjectModel.class);
     }
 
     public FSObjectModel ingestFile(
-        TestConfiguration.User user, String studyId, String sourceGsPath, String targetPath) throws Exception {
-        DataRepoResponse<FSObjectModel> response = ingestFileRaw(user, studyId, sourceGsPath, targetPath);
+        TestConfiguration.User user, String datasetId, String sourceGsPath, String targetPath) throws Exception {
+        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, datasetId, sourceGsPath, targetPath);
+        assertTrue("ingest launch succeeded", resp.getStatusCode().is2xxSuccessful());
+        assertTrue("ingest launch response is present", resp.getResponseObject().isPresent());
 
+        DataRepoResponse<FSObjectModel> response = dataRepoClient.waitForResponse(user, resp, FSObjectModel.class);
         assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
-
-        FSObjectModel ingestResponse = response.getResponseObject().get();
-        return ingestResponse;
+        return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteFileRaw(
-        TestConfiguration.User user, String studyId, String fileId) throws Exception {
+    public DataRepoResponse<FSObjectModel> getFileByIdRaw(
+        TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        return dataRepoClient.get(
+            user, "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId, FSObjectModel.class);
+    }
 
-        DataRepoResponse<JobModel> deleteResponse = dataRepoClient.delete(
+    public FSObjectModel getFileById(TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        DataRepoResponse<FSObjectModel> response = getFileByIdRaw(user, datasetId, fileId);
+        assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("file get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<FSObjectModel> getFileByNameRaw(
+        TestConfiguration.User user, String datasetId, String path) throws Exception {
+        return dataRepoClient.get(
             user,
-            "/api/repository/v1/studies/" + studyId + "/files/" + fileId,
+            "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects?path=" + path,
+            FSObjectModel.class);
+    }
+
+    public FSObjectModel getFileByName(TestConfiguration.User user, String datasetId, String path) throws Exception {
+        DataRepoResponse<FSObjectModel> response = getFileByNameRaw(user, datasetId, path);
+        assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("file get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<JobModel> deleteFileLaunch(
+        TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        return dataRepoClient.delete(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId,
             JobModel.class);
-        return dataRepoClient.waitForResponse(user, deleteResponse, DeleteResponseModel.class);
+    }
+
+    public void deleteFile(
+        TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        DataRepoResponse<JobModel> launchResp = deleteFileLaunch(user, datasetId, fileId);
+        assertTrue("delete launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
+        assertTrue("delete launch response is present", launchResp.getResponseObject().isPresent());
+        DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
+            user, launchResp, DeleteResponseModel.class);
+        assertGoodDeleteResponse(deleteResponse);
     }
 
     private String buildSimpleIngest(String table, String filename) throws Exception {

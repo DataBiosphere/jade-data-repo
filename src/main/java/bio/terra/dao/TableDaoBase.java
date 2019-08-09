@@ -14,10 +14,10 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-// Base class for study and dataset daos.
+// Base class for dataset and snapshot daos.
 // Assumes the Table table is:
 //  id uuid         - unique id of the table
-//  parent_id uuid  - id of the parent (study or dataset)
+//  parent_id uuid  - id of the parent (dataset or snapshot)
 //  name varchar    - name of the table
 // And the Column table is:
 //  id uuid         - unique id of the column

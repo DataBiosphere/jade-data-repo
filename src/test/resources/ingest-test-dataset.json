@@ -1,9 +1,79 @@
 {
-  "name":"demo",
-  "description":"desc",
-  "contents":[
-    { "source": {"studyName":"IngestTest", "assetName":"sample_centric"},
-      "rootValues":["sample1","sample2"]
-    }
-  ]
+  "name":        "IngestTest",
+  "description": "Dataset for testing ingest",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "participant",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "age", "datatype": "integer"},
+          {"name": "children", "datatype": "string", "array_of": true},
+          {"name": "donated", "datatype": "string", "array_of": true}
+        ]
+      },
+      {
+        "name":    "sample",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "participant_ids", "datatype": "string", "array_of": true},
+          {"name": "date_collected", "datatype": "date"},
+          {"name": "derived_from", "datatype": "string"}
+        ]
+      },
+      {
+        "name": "file",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "derived_from", "datatype": "string", "array_of": true}
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "sample_derived_from",
+        "from": {"table": "sample", "column": "derived_from", "cardinality": "one"},
+        "to":   {"table": "sample", "column": "id", "cardinality": "one"}
+      },
+      {
+        "name": "participant_samples",
+        "from": {"table": "participant", "column": "donated", "cardinality": "many"},
+        "to":   {"table": "sample", "column": "id", "cardinality": "many"}
+      },
+      {
+        "name": "sample_participants",
+        "from": {"table": "sample", "column": "participant_ids", "cardinality": "many"},
+        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+      },
+      {
+        "name": "participant_children",
+        "from": {"table": "participant", "column": "children", "cardinality": "many"},
+        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+      },
+      {
+        "name": "participant_files",
+        "from": {"table": "participant", "column": "donated", "cardinality": "many"},
+        "to":   {"table": "file", "column": "derived_from", "cardinality": "many"}
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "sample_centric",
+        "rootTable": "sample",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "sample", "columns": []},
+          {"name": "participant", "columns": []},
+          {"name": "file", "columns": []}
+        ],
+        "follow": [
+          "sample_derived_from",
+          "participant_samples",
+          "sample_participants",
+          "participant_children",
+          "participant_files"
+        ]
+      }
+    ]
+  }
 }

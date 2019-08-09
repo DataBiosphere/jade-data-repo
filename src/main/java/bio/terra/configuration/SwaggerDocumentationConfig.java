@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 
 import org.springframework.context.annotation.Import;
 import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
 import springfox.documentation.builders.RequestHandlerSelectors;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.AuthorizationScope;
@@ -26,6 +25,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static com.google.common.base.Predicates.or;
+import static springfox.documentation.builders.PathSelectors.regex;
 
 @Configuration
 @Import({OauthConfiguration.class})
@@ -88,7 +90,12 @@ public class SwaggerDocumentationConfig {
     public Docket customImplementation() {
         return new Docket(DocumentationType.SWAGGER_2)
                 .select()
-                    .apis(RequestHandlerSelectors.basePackage("bio.terra.controller"))
+                    .apis(RequestHandlerSelectors.basePackage("bio.terra"))
+                    .paths(or(
+                        regex("/api.*"),
+                        regex("/ga4gh.*"),
+                        regex("/status"),
+                        regex("/configuration")))
                     .build()
                 .directModelSubstitute(java.time.LocalDate.class, java.sql.Date.class)
                 .directModelSubstitute(java.time.OffsetDateTime.class, java.util.Date.class)
@@ -100,7 +107,7 @@ public class SwaggerDocumentationConfig {
     private SecurityContext securityContext() {
         return SecurityContext.builder()
                 .securityReferences(defaultAuth())
-                .forPaths(PathSelectors.regex("/api.*"))
+                .forPaths(regex("/api.*"))
                 .build();
     }
 

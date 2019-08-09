@@ -11,7 +11,7 @@ import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -86,12 +86,12 @@ public class FireStoreFileDao {
         this.dependencyDao = dependencyDao;
     }
 
-    public UUID createFileStart(Study study, FSFile fileToCreate) {
+    public UUID createFileStart(Dataset dataset, FSFile fileToCreate) {
         if (fileToCreate.getObjectType() != INGESTING_FILE) {
             throw new InvalidFileSystemObjectTypeException("Invalid file system object type");
         }
         FireStoreObject createObject = makeFireStoreObjectFromFSObject(fileToCreate);
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<UUID> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             List<FireStoreObject> createList = new ArrayList<>();
 
@@ -104,13 +104,13 @@ public class FireStoreFileDao {
                  testPath = getDirectoryPath(testPath)) {
 
                 // !!! In this case we are using a lookup path
-                DocumentSnapshot docSnap = lookupByObjectPath(study, testPath, xn);
+                DocumentSnapshot docSnap = lookupByObjectPath(dataset, testPath, xn);
                 if (docSnap.exists()) {
                     break;
                 }
 
                 FireStoreObject dirToCreate = makeDirectoryObject(
-                    study,
+                    dataset,
                     testPath,
                     createObject.getFlightId());
 
@@ -121,12 +121,12 @@ public class FireStoreFileDao {
 
             for (FireStoreObject dirToCreate : createList) {
                 dirToCreate.objectId(UUID.randomUUID().toString());
-                xn.set(getDocRef(study, dirToCreate), dirToCreate);
+                xn.set(getDocRef(dataset, dirToCreate), dirToCreate);
             }
 
             UUID objectId = UUID.randomUUID();
             createObject.objectId(objectId.toString());
-            xn.set(getDocRef(study, createObject), createObject);
+            xn.set(getDocRef(dataset, createObject), createObject);
 
             return objectId;
         });
@@ -134,11 +134,11 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("create start", transaction);
     }
 
-    public void createFileStartUndo(Study study, String fullPath, String flightId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public void createFileStartUndo(Dataset dataset, String fullPath, String flightId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
             String lookupPath = makeLookupPath(fullPath);
-            DocumentSnapshot docSnap = lookupByObjectPath(study, lookupPath, xn);
+            DocumentSnapshot docSnap = lookupByObjectPath(dataset, lookupPath, xn);
             if (docSnap.exists()) {
                 FireStoreObject currentObject = docSnap.toObject(FireStoreObject.class);
                 // If another flight created this object, then we leave it be.
@@ -150,7 +150,7 @@ public class FireStoreFileDao {
                     }
 
                     // transition point from reading to writing is inside of deleteFileWorker
-                    deleteFileWorker(study, docSnap.getReference(), currentObject.getPath(), xn);
+                    deleteFileWorker(dataset, docSnap.getReference(), currentObject.getPath(), xn);
                 }
             }
             return null;
@@ -159,10 +159,10 @@ public class FireStoreFileDao {
         fireStoreUtils.transactionGet("create start undo", transaction);
     }
 
-    public FSObjectBase createFileComplete(Study study, FSFileInfo fsFileInfo) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public FSObjectBase createFileComplete(Dataset dataset, FSFileInfo fsFileInfo) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<FSObjectBase> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(study, fsFileInfo.getObjectId(), xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(dataset, fsFileInfo.getObjectId(), xn);
             if (docSnap == null) {
                 throw new FileSystemCorruptException("File should exist");
             }
@@ -185,10 +185,10 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("create complete", transaction);
     }
 
-    public void createFileCompleteUndo(Study study, String objectId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public void createFileCompleteUndo(Dataset dataset, String objectId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(dataset, objectId, xn);
             if (docSnap == null) {
                 throw new FileSystemCorruptException("File should exist");
             }
@@ -205,10 +205,10 @@ public class FireStoreFileDao {
         fireStoreUtils.transactionGet("create complete undo", transaction);
     }
 
-    public boolean deleteFileStart(Study study, String objectId, String flightId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public boolean deleteFileStart(Dataset dataset, String objectId, String flightId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<Boolean> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(dataset, objectId, xn);
             if (docSnap == null) {
                 return false;
             }
@@ -232,9 +232,9 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.objectHasDatasetReference(study, objectId)) {
+            if (dependencyDao.objectHasSnapshotReference(dataset, objectId)) {
                 throw new FileSystemObjectDependencyException(
-                    "File is used by at least one dataset and cannot be deleted");
+                    "File is used by at least one snapshot and cannot be deleted");
             }
 
             currentObject
@@ -250,10 +250,10 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("delete file start", transaction);
     }
 
-    public boolean deleteFileComplete(Study study, String objectId, String flightId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public boolean deleteFileComplete(Dataset dataset, String objectId, String flightId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<Boolean> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(dataset, objectId, xn);
             if (docSnap == null) {
                 return false;
             }
@@ -276,22 +276,22 @@ public class FireStoreFileDao {
                     throw new FileSystemCorruptException("Unknown file system object type");
             }
 
-            if (dependencyDao.objectHasDatasetReference(study, objectId)) {
+            if (dependencyDao.objectHasSnapshotReference(dataset, objectId)) {
                 throw new FileSystemCorruptException("File should not have any references at this point");
             }
 
             // transition point from reading to writing is inside of deleteFileWorker
-            deleteFileWorker(study, docSnap.getReference(), currentObject.getPath(), xn);
+            deleteFileWorker(dataset, docSnap.getReference(), currentObject.getPath(), xn);
             return true;
         });
 
         return fireStoreUtils.transactionGet("delete file start", transaction);
     }
 
-    public void deleteFileStartUndo(Study study, String objectId, String flightId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public void deleteFileStartUndo(Dataset dataset, String objectId, String flightId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId, xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(dataset, objectId, xn);
             if (docSnap == null) {
                 return null;
             }
@@ -338,18 +338,18 @@ public class FireStoreFileDao {
      * Our objects are small, so I think we can use the maximum batch size without
      * concern for using too much memory.
      *
-     * @param studyId
+     * @param datasetId
      */
     private static final int DELETE_BATCH_SIZE = 500;
-    public void deleteFilesFromStudy(Study study) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
-        CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
+    public void deleteFilesFromDataset(Dataset dataset) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
+        CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
         try {
             int batchCount = 0;
             int deleted;
             do {
                 deleted = 0;
-                ApiFuture<QuerySnapshot> future = studyCollection.limit(DELETE_BATCH_SIZE).get();
+                ApiFuture<QuerySnapshot> future = datasetCollection.limit(DELETE_BATCH_SIZE).get();
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
                 batchCount++;
                 logger.info("Deleting batch " + batchCount + " of ~" + DELETE_BATCH_SIZE + " documents");
@@ -361,29 +361,29 @@ public class FireStoreFileDao {
 
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("delete study - execution interrupted", ex);
+            throw new FileSystemExecutionException("delete dataset - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("delete study - execution exception", ex);
+            throw new FileSystemExecutionException("delete dataset - execution exception", ex);
         }
     }
 
-    public FSObjectBase retrieveWithContents(Study study, UUID objectId) {
-        FSObjectBase fsObject = retrieve(study, objectId);
-        return enumerateDirectory(study, fsObject);
+    public FSObjectBase retrieveWithContents(Dataset dataset, UUID objectId) {
+        FSObjectBase fsObject = retrieve(dataset, objectId);
+        return enumerateDirectory(dataset, fsObject);
     }
 
-    public FSObjectBase retrieve(Study study, UUID objectId) {
-        FSObjectBase fsObject = retrieveByIdNoThrow(study, objectId);
+    public FSObjectBase retrieve(Dataset dataset, UUID objectId) {
+        FSObjectBase fsObject = retrieveByIdNoThrow(dataset, objectId);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("Object not found. Requested id is: " + objectId);
         }
         return fsObject;
     }
 
-    public FSObjectBase retrieveByIdNoThrow(Study study, UUID objectId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public FSObjectBase retrieveByIdNoThrow(Dataset dataset, UUID objectId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<FSObjectBase> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            QueryDocumentSnapshot docSnap = lookupByObjectId(study, objectId.toString(), xn);
+            QueryDocumentSnapshot docSnap = lookupByObjectId(dataset, objectId.toString(), xn);
             if (docSnap == null) {
                 return null;
             }
@@ -394,24 +394,24 @@ public class FireStoreFileDao {
         return fireStoreUtils.transactionGet("retrieve by id", transaction);
     }
 
-    public FSObjectBase retrieveWithContentsByPath(Study study, String fullPath) {
-        FSObjectBase fsObject = retrieveByPath(study, fullPath);
-        return enumerateDirectory(study, fsObject);
+    public FSObjectBase retrieveWithContentsByPath(Dataset dataset, String fullPath) {
+        FSObjectBase fsObject = retrieveByPath(dataset, fullPath);
+        return enumerateDirectory(dataset, fsObject);
     }
 
-    public FSObjectBase retrieveByPath(Study study, String fullPath) {
-        FSObjectBase fsObject = retrieveByPathNoThrow(study, fullPath);
+    public FSObjectBase retrieveByPath(Dataset dataset, String fullPath) {
+        FSObjectBase fsObject = retrieveByPathNoThrow(dataset, fullPath);
         if (fsObject == null) {
             throw new FileSystemObjectNotFoundException("Object not found - path: '" + fullPath + "'");
         }
         return fsObject;
     }
 
-    public FSObjectBase retrieveByPathNoThrow(Study study, String fullPath) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    public FSObjectBase retrieveByPathNoThrow(Dataset dataset, String fullPath) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         String lookupPath = makeLookupPath(fullPath);
         DocumentReference docRef = fireStoreProject.getFirestore()
-            .collection(study.getId().toString())
+            .collection(dataset.getId().toString())
             .document(encodePathAsFirestoreDocumentName(lookupPath));
 
         ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
@@ -431,10 +431,10 @@ public class FireStoreFileDao {
         }
     }
 
-    public List<String> validateRefIds(Study study, List<String> refIdArray, FSObjectType objectType) {
+    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray, FSObjectType objectType) {
         List<String> missingIds = new ArrayList<>();
         for (String objectId : refIdArray) {
-            if (!lookupByIdAndType(study, objectId, objectType)) {
+            if (!lookupByIdAndType(dataset, objectId, objectType)) {
                 missingIds.add(objectId);
             }
         }
@@ -443,14 +443,14 @@ public class FireStoreFileDao {
 
     // -- private methods --
 
-    private void deleteFileWorker(Study study, DocumentReference fileDocRef, String dirPath, Transaction xn) {
+    private void deleteFileWorker(Dataset dataset, DocumentReference fileDocRef, String dirPath, Transaction xn) {
         // We must do all reads before any writes, so we collect the document references that we need to delete
         // first and then perform the deletes afterward. This must be the last part of a transaction that performs
         // a read.
         List<DocumentReference> docRefList = new ArrayList<>();
         docRefList.add(fileDocRef);
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
-        CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
+        CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
 
         String lookupPath = makeLookupPath(dirPath);
         try {
@@ -458,14 +458,14 @@ public class FireStoreFileDao {
                 // Count the number of objects with this path as their directory path
                 // A value of 1 means that the directory will be empty after its child is
                 // deleted, so we should delete it also.
-                Query query = studyCollection.whereEqualTo("path", makePathFromLookupPath(lookupPath));
+                Query query = datasetCollection.whereEqualTo("path", makePathFromLookupPath(lookupPath));
                 ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
 
                 List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
                 if (documents.size() > 1) {
                     break;
                 }
-                DocumentReference docRef = studyCollection.document(encodePathAsFirestoreDocumentName(lookupPath));
+                DocumentReference docRef = datasetCollection.document(encodePathAsFirestoreDocumentName(lookupPath));
                 docRefList.add(docRef);
                 lookupPath = getDirectoryPath(lookupPath);
             }
@@ -482,13 +482,13 @@ public class FireStoreFileDao {
         }
     }
 
-    private FSObjectBase enumerateDirectory(Study study, FSObjectBase fsObject) {
+    private FSObjectBase enumerateDirectory(Dataset dataset, FSObjectBase fsObject) {
         if (fsObject.getObjectType() == FSObjectType.FILE) {
             return fsObject;
         }
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         ApiFuture<List<FSObjectBase>> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            Query query = fireStoreProject.getFirestore().collection(fsObject.getStudyId().toString())
+            Query query = fireStoreProject.getFirestore().collection(fsObject.getDatasetId().toString())
                 .whereEqualTo("path", fsObject.getPath());
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
@@ -518,7 +518,7 @@ public class FireStoreFileDao {
         return new FSDir()
             .contents(contents)
             .objectId(fsObject.getObjectId())
-            .studyId(fsObject.getStudyId())
+            .datasetId(fsObject.getDatasetId())
             .objectType(fsObject.getObjectType())
             .createdDate(fsObject.getCreatedDate())
             .path(fsObject.getPath())
@@ -533,11 +533,11 @@ public class FireStoreFileDao {
         return StringUtils.replaceChars(path, '/', DOCNAME_SEPARATOR);
     }
 
-    private DocumentReference getDocRef(Study study, FireStoreObject fireStoreObject) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    private DocumentReference getDocRef(Dataset dataset, FireStoreObject fireStoreObject) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         String lookupPath = makeLookupPath(getFullPath(fireStoreObject));
         return fireStoreProject.getFirestore()
-            .collection(fireStoreObject.getStudyId())
+            .collection(fireStoreObject.getDatasetId())
             .document(encodePathAsFirestoreDocumentName(lookupPath));
     }
 
@@ -574,11 +574,11 @@ public class FireStoreFileDao {
         return path + '/' + fireStoreObject.getName();
     }
 
-    private DocumentSnapshot lookupByObjectPath(Study study, String lookupPath, Transaction xn) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
+    private DocumentSnapshot lookupByObjectPath(Dataset dataset, String lookupPath, Transaction xn) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         try {
             DocumentReference docRef =
-                fireStoreProject.getFirestore().collection(study.getId().toString())
+                fireStoreProject.getFirestore().collection(dataset.getId().toString())
                     .document(encodePathAsFirestoreDocumentName(lookupPath));
             ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
             return docSnapFuture.get();
@@ -591,11 +591,12 @@ public class FireStoreFileDao {
     }
 
     // Returns null if not found
-    private QueryDocumentSnapshot lookupByObjectId(Study study, String objectId, Transaction xn) {
+    private QueryDocumentSnapshot lookupByObjectId(Dataset dataset, String objectId, Transaction xn) {
         try {
-            FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
-            CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
-            Query query = studyCollection.whereEqualTo("objectId", objectId);
+            FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
+            CollectionReference datasetCollection =
+                fireStoreProject.getFirestore().collection(dataset.getId().toString());
+            Query query = datasetCollection.whereEqualTo("objectId", objectId);
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
 
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
@@ -617,11 +618,12 @@ public class FireStoreFileDao {
     }
 
     // Returns true if the object of the requested type exists
-    private boolean lookupByIdAndType(Study study, String objectId, FSObjectType objectType) {
+    private boolean lookupByIdAndType(Dataset dataset, String objectId, FSObjectType objectType) {
         try {
-            FireStoreProject fireStoreProject = FireStoreProject.get(study.getDataProjectId());
-            CollectionReference studyCollection = fireStoreProject.getFirestore().collection(study.getId().toString());
-            Query query = studyCollection
+            FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
+            CollectionReference datasetCollection =
+                fireStoreProject.getFirestore().collection(dataset.getId().toString());
+            Query query = datasetCollection
                 .whereEqualTo("objectId", objectId)
                 .whereEqualTo("objectTypeLetter", objectType.toLetter());
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
@@ -643,7 +645,7 @@ public class FireStoreFileDao {
         }
     }
 
-    private FireStoreObject makeDirectoryObject(Study study, String lookupDirPath, String flightId) {
+    private FireStoreObject makeDirectoryObject(Dataset dataset, String lookupDirPath, String flightId) {
         // We have some special cases to deal with at the top of the directory tree.
         String fullPath = makePathFromLookupPath(lookupDirPath);
         String dirPath = getDirectoryPath(fullPath);
@@ -658,7 +660,7 @@ public class FireStoreFileDao {
         }
 
         return new FireStoreObject()
-            .studyId(study.getId().toString())
+            .datasetId(dataset.getId().toString())
             .objectTypeLetter(FSObjectType.DIRECTORY.toLetter())
             .path(dirPath)
             .name(objName)
@@ -673,7 +675,7 @@ public class FireStoreFileDao {
 
         FireStoreObject fireStoreObject = new FireStoreObject()
             .objectId(objectId)
-            .studyId(fsObject.getStudyId().toString())
+            .datasetId(fsObject.getDatasetId().toString())
             .objectTypeLetter(fsObject.getObjectType().toLetter())
             .fileCreatedDate(fileCreatedDate)
             .path(getDirectoryPath(fsObject.getPath()))
@@ -720,7 +722,7 @@ public class FireStoreFileDao {
                     .flightId(fireStoreObject.getFlightId())
                     // -- base setters --
                     .objectId(UUID.fromString(fireStoreObject.getObjectId()))
-                    .studyId(UUID.fromString(fireStoreObject.getStudyId()))
+                    .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
                     .objectType(objectType)
                     .createdDate(createdDate)
                     .path(getFullPath(fireStoreObject))
@@ -730,7 +732,7 @@ public class FireStoreFileDao {
             case DIRECTORY:
                 return new FSDir()
                     .objectId(UUID.fromString(fireStoreObject.getObjectId()))
-                    .studyId(UUID.fromString(fireStoreObject.getStudyId()))
+                    .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
                     .objectType(objectType)
                     .createdDate(createdDate)
                     .path(getFullPath(fireStoreObject))

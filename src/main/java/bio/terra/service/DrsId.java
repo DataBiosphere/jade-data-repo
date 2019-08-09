@@ -9,15 +9,15 @@ import java.net.URISyntaxException;
 public class DrsId {
     private final String dnsname;
     private final String version;
-    private final String studyId;
     private final String datasetId;
+    private final String snapshotId;
     private final String fsObjectId;
 
-    public DrsId(String dnsname, String version, String studyId, String datasetId, String fsObjectId) {
+    public DrsId(String dnsname, String version, String datasetId, String snapshotId, String fsObjectId) {
         this.dnsname = dnsname;
         this.version = version;
-        this.studyId = studyId;
         this.datasetId = datasetId;
+        this.snapshotId = snapshotId;
         this.fsObjectId = fsObjectId;
     }
 
@@ -29,12 +29,12 @@ public class DrsId {
         return version;
     }
 
-    public String getStudyId() {
-        return studyId;
-    }
-
     public String getDatasetId() {
         return datasetId;
+    }
+
+    public String getSnapshotId() {
+        return snapshotId;
     }
 
     public String getFsObjectId() {
@@ -48,7 +48,7 @@ public class DrsId {
 
     public String toDrsObjectId() {
         String vv = version == null ? "v1" : version;
-        return vv + "_" + studyId + "_" + datasetId + "_" + fsObjectId;
+        return vv + "_" + datasetId + "_" + snapshotId + "_" + fsObjectId;
     }
 
     public String toDrsUri() {
@@ -66,8 +66,8 @@ public class DrsId {
         return new ToStringBuilder(this)
             .append("dnsname", dnsname)
             .append("version", version)
-            .append("studyId", studyId)
             .append("datasetId", datasetId)
+            .append("snapshotId", snapshotId)
             .append("fsObjectId", fsObjectId)
             .toString();
     }
@@ -81,8 +81,8 @@ public class DrsId {
 
         if (dnsname != null ? !dnsname.equals(drsId.dnsname) : drsId.dnsname != null) return false;
         if (version != null ? !version.equals(drsId.version) : drsId.version != null) return false;
-        if (studyId != null ? !studyId.equals(drsId.studyId) : drsId.studyId != null) return false;
         if (datasetId != null ? !datasetId.equals(drsId.datasetId) : drsId.datasetId != null) return false;
+        if (snapshotId != null ? !snapshotId.equals(drsId.snapshotId) : drsId.snapshotId != null) return false;
         return fsObjectId != null ? fsObjectId.equals(drsId.fsObjectId) : drsId.fsObjectId == null;
     }
 
@@ -90,8 +90,8 @@ public class DrsId {
     public int hashCode() {
         int result = dnsname != null ? dnsname.hashCode() : 0;
         result = 31 * result + (version != null ? version.hashCode() : 0);
-        result = 31 * result + (studyId != null ? studyId.hashCode() : 0);
         result = 31 * result + (datasetId != null ? datasetId.hashCode() : 0);
+        result = 31 * result + (snapshotId != null ? snapshotId.hashCode() : 0);
         result = 31 * result + (fsObjectId != null ? fsObjectId.hashCode() : 0);
         return result;
     }
@@ -99,8 +99,8 @@ public class DrsId {
     public static class Builder {
         private String dnsname;
         private String version;
-        private String studyId;
         private String datasetId;
+        private String snapshotId;
         private String fsObjectId;
 
         public Builder dnsname(String dnsname) {
@@ -113,13 +113,13 @@ public class DrsId {
             return this;
         }
 
-        public Builder studyId(String studyId) {
-            this.studyId = studyId;
+        public Builder datasetId(String datasetId) {
+            this.datasetId = datasetId;
             return this;
         }
 
-        public Builder datasetId(String datasetId) {
-            this.datasetId = datasetId;
+        public Builder snapshotId(String snapshotId) {
+            this.snapshotId = snapshotId;
             return this;
         }
 
@@ -129,7 +129,7 @@ public class DrsId {
         }
 
         public DrsId build() {
-            return new DrsId(dnsname, version, studyId, datasetId, fsObjectId);
+            return new DrsId(dnsname, version, datasetId, snapshotId, fsObjectId);
         }
     }
 

@@ -2,7 +2,7 @@ package bio.terra.pdao.gcs;
 
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.Study;
+import bio.terra.metadata.Dataset;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.exception.PdaoFileCopyException;
@@ -38,7 +38,7 @@ public class GcsPdao {
     }
 
     // We return the incoming FSObject with the blob information filled in
-    public FSFileInfo copyFile(Study study,
+    public FSFileInfo copyFile(Dataset dataset,
                                FileLoadModel fileLoadModel,
                                FSFile fsObject) {
 
@@ -74,8 +74,8 @@ public class GcsPdao {
                 fileLoadModel.getSourcePath() + "'");
         }
 
-        // Our path is /<study-id>/<object-id>
-        String targetPath = study.getId().toString() + "/" + fsObject.getObjectId();
+        // Our path is /<dataset-id>/<object-id>
+        String targetPath = dataset.getId().toString() + "/" + fsObject.getObjectId();
 
         try {
             // The documentation is vague whether or not it is important to copy by chunk. One set of
@@ -112,7 +112,7 @@ public class GcsPdao {
 
             FSFileInfo fsFileInfo = new FSFileInfo()
                 .objectId(fsObject.getObjectId().toString())
-                .studyId(fsObject.getStudyId().toString())
+                .datasetId(fsObject.getDatasetId().toString())
                 .createdDate(createTime.toString())
                 .gspath(gspath.toString())
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
@@ -130,9 +130,9 @@ public class GcsPdao {
         }
     }
 
-    public boolean deleteFile(Study study, String fileId) {
+    public boolean deleteFile(Dataset dataset, String fileId) {
         String dataBucket = gcsConfiguration.getBucket();
-        String filePath = study.getId().toString() + "/" + fileId;
+        String filePath = dataset.getId().toString() + "/" + fileId;
 
         Blob blob = storage.get(BlobId.of(dataBucket, filePath));
         if (blob == null) {
@@ -141,9 +141,9 @@ public class GcsPdao {
         return blob.delete();
     }
 
-    public void deleteFilesFromStudy(Study study) {
+    public void deleteFilesFromDataset(Dataset dataset) {
         String dataBucket = gcsConfiguration.getBucket();
-        String directory = study.getId().toString() + "/";
+        String directory = dataset.getId().toString() + "/";
         Page<Blob> blobs = storage.list(
             dataBucket,
             Storage.BlobListOption.currentDirectory(),
@@ -158,17 +158,17 @@ public class GcsPdao {
         ACL_OP_DELETE
     };
 
-    public void setAclOnFiles(String studyId, List<String> fileIds, String readersPolicyEmail) {
-        fileAclOp(AclOp.ACL_OP_CREATE, studyId, fileIds, readersPolicyEmail);
+    public void setAclOnFiles(String datasetId, List<String> fileIds, String readersPolicyEmail) {
+        fileAclOp(AclOp.ACL_OP_CREATE, datasetId, fileIds, readersPolicyEmail);
     }
 
-    public void removeAclOnFiles(String studyId, List<String> fileIds, String readersPolicyEmail) {
-        fileAclOp(AclOp.ACL_OP_DELETE, studyId, fileIds, readersPolicyEmail);
+    public void removeAclOnFiles(String datasetId, List<String> fileIds, String readersPolicyEmail) {
+        fileAclOp(AclOp.ACL_OP_DELETE, datasetId, fileIds, readersPolicyEmail);
     }
 
-    private void fileAclOp(AclOp op, String studyId, List<String> fileIds, String readersPolicyEmail) {
+    private void fileAclOp(AclOp op, String datasetId, List<String> fileIds, String readersPolicyEmail) {
         String dataBucket = gcsConfiguration.getBucket();
-        String directory = studyId + "/";
+        String directory = datasetId + "/";
         Acl.Group readerGroup = new Acl.Group(readersPolicyEmail);
         Acl acl = Acl.newBuilder(readerGroup, Acl.Role.READER).build();
         for (String fileId : fileIds) {

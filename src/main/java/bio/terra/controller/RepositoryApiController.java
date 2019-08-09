@@ -4,32 +4,32 @@ import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.UnauthorizedException;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSource;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.metadata.Snapshot;
+import bio.terra.metadata.SnapshotSource;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.EnumerateStudyModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
-import bio.terra.model.StudyModel;
-import bio.terra.model.StudyRequestModel;
-import bio.terra.model.StudySummaryModel;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.UserStatusInfo;
-import bio.terra.service.DatasetService;
+import bio.terra.service.SnapshotService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobService;
 import bio.terra.service.SamClientService;
-import bio.terra.service.StudyService;
-import bio.terra.validation.DatasetRequestValidator;
+import bio.terra.service.DatasetService;
+import bio.terra.validation.SnapshotRequestValidator;
 import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.PolicyMemberValidator;
-import bio.terra.validation.StudyRequestValidator;
+import bio.terra.validation.DatasetRequestValidator;
 import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -62,10 +62,10 @@ public class RepositoryApiController implements RepositoryApi {
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final JobService jobService;
-    private final StudyRequestValidator studyRequestValidator;
-    private final StudyService studyService;
     private final DatasetRequestValidator datasetRequestValidator;
     private final DatasetService datasetService;
+    private final SnapshotRequestValidator snapshotRequestValidator;
+    private final SnapshotService snapshotService;
     private final SamClientService samService;
     private final IngestRequestValidator ingestRequestValidator;
     private final FileService fileService;
@@ -79,10 +79,10 @@ public class RepositoryApiController implements RepositoryApi {
             ObjectMapper objectMapper,
             HttpServletRequest request,
             JobService jobService,
-            StudyRequestValidator studyRequestValidator,
-            StudyService studyService,
             DatasetRequestValidator datasetRequestValidator,
             DatasetService datasetService,
+            SnapshotRequestValidator snapshotRequestValidator,
+            SnapshotService snapshotService,
             SamClientService samService,
             IngestRequestValidator ingestRequestValidator,
             ApplicationConfiguration appConfig,
@@ -92,10 +92,10 @@ public class RepositoryApiController implements RepositoryApi {
         this.objectMapper = objectMapper;
         this.request = request;
         this.jobService = jobService;
-        this.studyRequestValidator = studyRequestValidator;
-        this.studyService = studyService;
         this.datasetRequestValidator = datasetRequestValidator;
         this.datasetService = datasetService;
+        this.snapshotRequestValidator = snapshotRequestValidator;
+        this.snapshotService = snapshotService;
         this.samService = samService;
         this.ingestRequestValidator = ingestRequestValidator;
         this.appConfig = appConfig;
@@ -105,8 +105,8 @@ public class RepositoryApiController implements RepositoryApi {
 
     @InitBinder
     protected void initBinder(final WebDataBinder binder) {
-        binder.addValidators(studyRequestValidator);
         binder.addValidators(datasetRequestValidator);
+        binder.addValidators(snapshotRequestValidator);
         binder.addValidators(ingestRequestValidator);
         binder.addValidators(policyMemberValidator);
     }
@@ -125,206 +125,16 @@ public class RepositoryApiController implements RepositoryApi {
         return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
     }
 
-    // -- study --
+    // -- dataset --
     @Override
-    public ResponseEntity<StudySummaryModel> createStudy(@Valid @RequestBody StudyRequestModel studyRequest) {
+    public ResponseEntity<DatasetSummaryModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.DATAREPO,
             appConfig.datarepoId(),
-            SamClientService.DataRepoAction.CREATE_STUDY);
-        return new ResponseEntity<>(studyService.createStudy(studyRequest, getAuthenticatedInfo()), HttpStatus.CREATED);
-    }
-
-    @Override
-    public ResponseEntity<StudyModel> retrieveStudy(@PathVariable("id") String id) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.STUDY,
-            id,
-            SamClientService.DataRepoAction.READ_STUDY);
-        return new ResponseEntity<>(studyService.retrieveModel(UUID.fromString(id)), HttpStatus.OK);
-    }
-
-    @Override
-    public ResponseEntity<DeleteResponseModel> deleteStudy(@PathVariable("id") String id) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.STUDY,
-            id,
-            SamClientService.DataRepoAction.DELETE);
-        return new ResponseEntity<>(studyService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
-    }
-
-    @Override
-    public ResponseEntity<EnumerateStudyModel> enumerateStudies(
-            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
-            @Valid @RequestParam(value = "filter", required = false) String filter) {
-        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        try {
-            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
-                getAuthenticatedInfo(), SamClientService.ResourceType.STUDY);
-            EnumerateStudyModel esm = studyService.enumerate(offset, limit, sort, direction, filter, resources);
-            return new ResponseEntity<>(esm, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
-    }
-
-    @Override
-    public ResponseEntity<JobModel> ingestStudy(@PathVariable("id") String id,
-                                                @Valid @RequestBody IngestRequestModel ingest) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.STUDY,
-            id,
-            SamClientService.DataRepoAction.INGEST_DATA);
-        String jobId = studyService.ingestStudy(id, ingest);
-        return jobService.retrieveJob(jobId);
-    }
-
-    // -- study-file --
-    @Override
-    public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
-                                               @PathVariable("fileid") String fileid) {
-        String jobId = fileService.deleteFile(id, fileid);
-        return jobService.retrieveJob(jobId);
-    }
-
-    @Override
-    public ResponseEntity<JobModel> ingestFile(@PathVariable("id") String id,
-                                               @Valid @RequestBody FileLoadModel ingestFile) {
-        String jobId = fileService.ingestFile(id, ingestFile);
-        return jobService.retrieveJob(jobId);
-    }
-
-    @Override
-    public ResponseEntity<FSObjectModel> lookupFileObjectById(@PathVariable("id") String id,
-                                                @PathVariable("fileid") String fileid) {
-        FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid);
-        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
-    }
-
-    @Override
-    public ResponseEntity<FSObjectModel> lookupFileObjectByPath(@PathVariable("id") String id,
-                                                @RequestParam(value = "path", required = true) String path) {
-        if (!ValidationUtils.isValidPath(path)) {
-            throw new ValidationException("InvalidPath");
-        }
-        FSObjectModel fsObjectModel = fileService.lookupPath(id, path);
-        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
-    }
-
-    // --study policies --
-    @Override
-    public ResponseEntity<PolicyResponse> addStudyPolicyMember(
-        @PathVariable("id") String id,
-        @PathVariable("policyName") String policyName,
-        @Valid @RequestBody PolicyMemberRequest policyMember) {
-        try {
-            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
-                samService.addPolicyMember(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.STUDY,
-                    UUID.fromString(id),
-                    policyName,
-                    policyMember.getEmail())));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
-    }
-
-    @Override
-    public ResponseEntity<PolicyResponse> retrieveStudyPolicies(@PathVariable("id") String id) {
-        try {
-            PolicyResponse response = new PolicyResponse().policies(
-                samService.retrievePolicies(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.STUDY,
-                    UUID.fromString(id)));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
-    }
-
-    @Override
-    public ResponseEntity<PolicyResponse> deleteStudyPolicyMember(
-        @PathVariable("id") String id,
-        @PathVariable("policyName") String policyName,
-        @PathVariable("memberEmail") String memberEmail) {
-        // member email can't be null since it is part of the URL
-        if (!ValidationUtils.isValidEmail(memberEmail))
-            throw new ValidationException("InvalidMemberEmail");
-        try {
-            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
-                samService.deletePolicyMember(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.STUDY,
-                    UUID.fromString(id),
-                    policyName,
-                    memberEmail)));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            logger.error("got error from sam", ex);
-            throw new InternalServerErrorException(ex);
-        }
-    }
-    // -- dataset --
-    @Override
-    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequestModel) {
-        Dataset dataset = datasetService.makeDatasetFromDatasetRequest(datasetRequestModel);
-        List<DatasetSource> sources = dataset.getDatasetSources();
-        List<DatasetSource> unauthorized = new ArrayList();
-        sources.forEach(source -> {
-                if (!samService.isAuthorized(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.STUDY,
-                    source.getStudy().getId().toString(),
-                    SamClientService.DataRepoAction.CREATE_DATASET)) {
-                    unauthorized.add(source);
-                }
-            }
-        );
-        if (unauthorized.isEmpty()) {
-            String jobId = datasetService.createDataset(datasetRequestModel, getAuthenticatedInfo());
-            return jobService.retrieveJob(jobId);
-        }
-        throw new UnauthorizedException("User is not authorized to create datasets for these studies " + unauthorized);
-    }
-
-    @Override
-    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
-        samService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATASET,
-            id,
-            SamClientService.DataRepoAction.DELETE);
-        String jobId = datasetService.deleteDataset(UUID.fromString(id), getAuthenticatedInfo());
-        return jobService.retrieveJob(jobId);
-    }
-
-    @Override
-    public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
-        @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-        @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
-        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
-        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
-        @Valid @RequestParam(value = "filter", required = false) String filter) {
-        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        try {
-            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
-                getAuthenticatedInfo(), SamClientService.ResourceType.DATASET);
-            EnumerateDatasetModel edm = datasetService.enumerateDatasets(offset, limit, sort,
-                direction, filter, resources);
-            return new ResponseEntity<>(edm, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+            SamClientService.DataRepoAction.CREATE_DATASET);
+        return new ResponseEntity<>(datasetService.createDataset(datasetRequest, getAuthenticatedInfo()),
+            HttpStatus.CREATED);
     }
 
     @Override
@@ -333,9 +143,100 @@ public class RepositoryApiController implements RepositoryApi {
             getAuthenticatedInfo(),
             SamClientService.ResourceType.DATASET,
             id,
+            SamClientService.DataRepoAction.READ_DATASET);
+        return new ResponseEntity<>(datasetService.retrieveModel(UUID.fromString(id)), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<DeleteResponseModel> deleteDataset(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.DELETE);
+        return new ResponseEntity<>(datasetService.delete(UUID.fromString(id), getAuthenticatedInfo()), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<EnumerateDatasetModel> enumerateDatasets(
+            @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+            @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+            @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+            @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+            @Valid @RequestParam(value = "filter", required = false) String filter) {
+        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
+        try {
+            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
+                getAuthenticatedInfo(), SamClientService.ResourceType.DATASET);
+            EnumerateDatasetModel esm = datasetService.enumerate(offset, limit, sort, direction, filter, resources);
+            return new ResponseEntity<>(esm, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<JobModel> ingestDataset(@PathVariable("id") String id,
+                                                @Valid @RequestBody IngestRequestModel ingest) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.INGEST_DATA);
+        String jobId = datasetService.ingestDataset(id, ingest);
+        return jobService.retrieveJob(jobId);
+    }
+
+    // -- dataset-file --
+    @Override
+    public ResponseEntity<JobModel> deleteFile(@PathVariable("id") String id,
+                                               @PathVariable("fileid") String fileid) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.UPDATE_DATA);
+        String jobId = fileService.deleteFile(id, fileid);
+        return jobService.retrieveJob(jobId);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> ingestFile(@PathVariable("id") String id,
+                                               @Valid @RequestBody FileLoadModel ingestFile) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.INGEST_DATA);
+        String jobId = fileService.ingestFile(id, ingestFile);
+        return jobService.retrieveJob(jobId);
+    }
+
+    @Override
+    public ResponseEntity<FSObjectModel> lookupFileObjectById(@PathVariable("id") String id,
+                                                @PathVariable("fileid") String fileid) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
             SamClientService.DataRepoAction.READ_DATA);
-        DatasetModel datasetModel = datasetService.retrieveDataset(UUID.fromString(id));
-        return new ResponseEntity<>(datasetModel, HttpStatus.OK);
+        FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid);
+        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<FSObjectModel> lookupFileObjectByPath(@PathVariable("id") String id,
+                                                @RequestParam(value = "path", required = true) String path) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
+        if (!ValidationUtils.isValidPath(path)) {
+            throw new ValidationException("InvalidPath");
+        }
+        FSObjectModel fsObjectModel = fileService.lookupPath(id, path);
+        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
 
     // --dataset policies --
@@ -385,6 +286,127 @@ public class RepositoryApiController implements RepositoryApi {
                 samService.deletePolicyMember(
                     getAuthenticatedInfo(),
                     SamClientService.ResourceType.DATASET,
+                    UUID.fromString(id),
+                    policyName,
+                    memberEmail)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            logger.error("got error from sam", ex);
+            throw new InternalServerErrorException(ex);
+        }
+    }
+    // -- snapshot --
+    @Override
+    public ResponseEntity<JobModel> createSnapshot(@Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
+        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
+        List<SnapshotSource> sources = snapshot.getSnapshotSources();
+        List<SnapshotSource> unauthorized = new ArrayList();
+        sources.forEach(source -> {
+                if (!samService.isAuthorized(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.DATASET,
+                    source.getDataset().getId().toString(),
+                    SamClientService.DataRepoAction.CREATE_DATASNAPSHOT)) {
+                    unauthorized.add(source);
+                }
+            }
+        );
+        if (unauthorized.isEmpty()) {
+            String jobId = snapshotService.createSnapshot(snapshotRequestModel, getAuthenticatedInfo());
+            return jobService.retrieveJob(jobId);
+        }
+        throw new UnauthorizedException(
+            "User is not authorized to create snapshots for these datasets " + unauthorized);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> deleteSnapshot(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            id,
+            SamClientService.DataRepoAction.DELETE);
+        String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), getAuthenticatedInfo());
+        return jobService.retrieveJob(jobId);
+    }
+
+    @Override
+    public ResponseEntity<EnumerateSnapshotModel> enumerateSnapshots(
+        @Valid @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+        @Valid @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit,
+        @Valid @RequestParam(value = "sort", required = false, defaultValue = "created_date") String sort,
+        @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
+        @Valid @RequestParam(value = "filter", required = false) String filter) {
+        ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
+        try {
+            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
+                getAuthenticatedInfo(), SamClientService.ResourceType.DATASNAPSHOT);
+            EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
+                direction, filter, resources);
+            return new ResponseEntity<>(edm, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<SnapshotModel> retrieveSnapshot(@PathVariable("id") String id) {
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
+        SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(UUID.fromString(id));
+        return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
+    }
+
+    // --snapshot policies --
+    @Override
+    public ResponseEntity<PolicyResponse> addSnapshotPolicyMember(
+        @PathVariable("id") String id,
+        @PathVariable("policyName") String policyName,
+        @Valid @RequestBody PolicyMemberRequest policyMember) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.addPolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.DATASNAPSHOT,
+                    UUID.fromString(id),
+                    policyName,
+                    policyMember.getEmail())));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") String id) {
+        try {
+            PolicyResponse response = new PolicyResponse().policies(
+                samService.retrievePolicies(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.DATASNAPSHOT,
+                    UUID.fromString(id)));
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (ApiException ex) {
+            throw new InternalServerErrorException(ex);
+        }
+    }
+
+    @Override
+    public ResponseEntity<PolicyResponse> deleteSnapshotPolicyMember(
+        @PathVariable("id") String id,
+        @PathVariable("policyName") String policyName,
+        @PathVariable("memberEmail") String memberEmail) {
+        // member email can't be null since it is part of the URL
+        if (!ValidationUtils.isValidEmail(memberEmail))
+            throw new ValidationException("InvalidMemberEmail");
+        try {
+            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
+                samService.deletePolicyMember(
+                    getAuthenticatedInfo(),
+                    SamClientService.ResourceType.DATASNAPSHOT,
                     UUID.fromString(id),
                     policyName,
                     memberEmail)));

@@ -26,8 +26,12 @@ spec:
           name: "grafana-config-stackdriverdatasource"
         - mountPath: /etc/grafana/provisioning/dashboards
           name: "grafana-config-dashboards"
-        - mountPath: /var/lib/grafana/dashboards
-          name: "grafana-config-sqldashboard"
+        - mountPath: /var/lib/grafana/dashboards/k8sdashboard
+          name: "grafana-config-k8sdashboard"
+        - mountPath: /var/lib/grafana/dashboards/loadbalancerdashboard
+          name: "grafana-config-loadbalancerdashboard"
+        - mountPath: /var/lib/grafana/dashboards/cloud-sql-dashboard
+          name: "grafana-config-cloud-sql-dashboard"
         env:
         - name: GF_SERVER_HTTP_PORT
           value: "3000"
@@ -50,9 +54,21 @@ spec:
           items:
             - key: dashboards
               path: dashboards.yaml
-      - name: "grafana-config-sqldashboard"
+      - name: "grafana-config-k8sdashboard"
         configMap:
           name: "grafana-config"
           items:
-            - key: sqldashboard
-              path: sqldashboard.json
+            - key: k8sdashboard
+              path: k8sdashboard.json
+      - name: "grafana-config-loadbalancerdashboard"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: loadbalancerdashboard
+              path: loadbalancerdashboard.json
+      - name: "grafana-config-cloud-sql-dashboard"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: cloud-sql-dashboard
+              path: cloud-sql-dashboard.json

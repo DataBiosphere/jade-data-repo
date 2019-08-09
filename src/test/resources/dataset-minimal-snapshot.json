@@ -1,0 +1,9 @@
+{
+  "name":"demo",
+  "description":"desc",
+  "contents":[
+    { "source": {"datasetName":"Minimal", "assetName":"sample"},
+      "rootValues":["sample1","sample2"]
+    }
+  ]
+}

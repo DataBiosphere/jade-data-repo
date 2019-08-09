@@ -1,7 +1,6 @@
 package bio.terra.pdao.bigquery;
 
 import bio.terra.pdao.exception.PdaoException;
-import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -16,17 +15,23 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class BigQueryProject {
+public final class BigQueryProject {
+    private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
+    private static ConcurrentHashMap<String, BigQueryProject> bigQueryProjectCache = new ConcurrentHashMap<>();
     private final String projectId;
     private final BigQuery bigQuery;
 
-    public BigQueryProject(String projectId) {
+    private BigQueryProject(String projectId) {
+        logger.info("Retrieving Bigquery project for project id: {}", projectId);
         this.projectId = projectId;
         bigQuery = BigQueryOptions.newBuilder()
             .setProjectId(projectId)
@@ -34,13 +39,12 @@ public class BigQueryProject {
             .getService();
     }
 
-    public BigQueryProject(String projectId, GoogleCredentials googleCredentials) {
-        this.projectId = projectId;
-        bigQuery = BigQueryOptions.newBuilder()
-            .setProjectId(projectId)
-            .setCredentials(googleCredentials)
-            .build()
-            .getService();
+    public static BigQueryProject get(String projectId) {
+        if (!bigQueryProjectCache.containsKey(projectId)) {
+            BigQueryProject bigQueryProject = new BigQueryProject(projectId);
+            bigQueryProjectCache.putIfAbsent(projectId, bigQueryProject);
+        }
+        return bigQueryProjectCache.get(projectId);
     }
 
     public String getProjectId() {
@@ -50,6 +54,14 @@ public class BigQueryProject {
     public BigQuery getBigQuery() {
         return bigQuery;
     }
+
+    // TODO: REVIEWERS PLEASE CHECK: Should these methods be in here? On the one hand, it is convenient. But it
+    // mixes the duties of this class: it is supplying both the cache and the BQ methods. Unfortunately, it
+    // doesn't supply all of the BQ methods, so sometimes getBigQuery is needed. Seems like it could be
+    // improved.
+    //
+    // In general, BigQueryPdao is too big and needs refactoring. Perhaps when that is done, we can also
+    // re-think this code structure.
 
     public boolean datasetExists(String datasetName) {
         try {

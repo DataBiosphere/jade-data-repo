@@ -1,15 +1,16 @@
 package bio.terra.flight.dataset.delete;
 
+import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.DatasetDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
+import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.SamClientService;
-import bio.terra.service.StudyService;
+import bio.terra.service.DatasetService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
-
-import java.util.UUID;
 
 public class DatasetDeleteFlight extends Flight {
 
@@ -19,19 +20,17 @@ public class DatasetDeleteFlight extends Flight {
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         DatasetDao datasetDao = (DatasetDao)appContext.getBean("datasetDao");
-        FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
+        SnapshotDao snapshotDao = (SnapshotDao)appContext.getBean("snapshotDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
+        GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
+        FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
+        FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
-        StudyService studyService = (StudyService)appContext.getBean("studyService");
-        UUID datasetId = inputParameters.get("id", UUID.class);
+        DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
-        // Delete access control first so Readers and Discoverers can no longer see dataset
-        // Google auto-magically removes the ACLs from files and BQ objects when SAM
-        // deletes the dataset group, so no ACL cleanup is needed beyond that.
-        addStep(new DeleteDatasetAuthzResource(samClient, datasetId));
-        // Must delete primary data before metadata; it relies on being able to retrieve the
-        // dataset object from the metadata to know what to delete.
-        addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dependencyDao, datasetId, studyService));
-        addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
+        addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService));
+        addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, datasetService));
+        addStep(new DeleteDatasetMetadataStep(datasetDao));
+        addStep(new DeleteDatasetAuthzResource(samClient));
     }
 }

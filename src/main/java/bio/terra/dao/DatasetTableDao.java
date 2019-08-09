@@ -10,10 +10,7 @@ public class DatasetTableDao extends TableDaoBase {
 
     @Autowired
     public DatasetTableDao(DataRepoJdbcConfiguration dataRepoJdbcConfiguration) {
-        super(dataRepoJdbcConfiguration,
-            "dataset_table",
-            "dataset_column",
-            "parent_id");
+        super(dataRepoJdbcConfiguration, "dataset_table", "dataset_column", "dataset_id");
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
     }
 }

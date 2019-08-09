@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.service.exception.InvalidDrsIdException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +14,11 @@ import java.net.URI;
 @Component
 public class DrsIdService {
 
-    private String datarepoDnsName;
+    private final String datarepoDnsName;
 
     @Autowired
-    public DrsIdService(String datarepoDnsName) {
-        this.datarepoDnsName = datarepoDnsName;
+    public DrsIdService(ApplicationConfiguration applicationConfiguration) {
+        this.datarepoDnsName = applicationConfiguration.getDnsName();
     }
 
     public String toDrsUri(String datasetId, String snapshotId, String fsObjectId) {

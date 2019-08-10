@@ -3,16 +3,15 @@ package bio.terra.dao;
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Table;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.dbcp2.PoolableConnection;
+import org.apache.commons.dbcp2.PoolingDataSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import java.sql.Connection;
+import javax.sql.DataSource;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 // Base class for dataset and snapshot daos.
 // Assumes the Table table is:
@@ -25,70 +24,42 @@ import java.util.stream.Collectors;
 //  name varchar    - name of the column
 //  type varchar    - datatype of the column
 
-public class TableDaoBase {
-    private static final Logger logger = LoggerFactory.getLogger(TableDaoBase.class);
+public abstract class TableDaoBase implements AutoCloseable {
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final String sqlInsertTable;
+    protected final PoolingDataSource<PoolableConnection> jdbcDataSource;
     private final String sqlInsertColumn;
     private final String sqlSelectTable;
     private final String sqlSelectColumn;
-    private final Connection connection;
 
     public TableDaoBase(DataRepoJdbcConfiguration jdbcConfiguration,
                         String tableTableName,
                         String columnTableName,
                         String parentIdColumnName) {
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-        try {
-            this.connection = jdbcConfiguration.getDataSource().getConnection();
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            throw new IllegalArgumentException(e.getMessage(), e);
-        }
+        this.jdbcDataSource = jdbcConfiguration.getDataSource();
         this.sqlInsertColumn = "INSERT INTO " + columnTableName +
             " (table_id, name, type, array_of) VALUES (:table_id, :name, :type, :arrayOf)";
-        this.sqlInsertTable = "INSERT INTO " + tableTableName + " (name, " +
-            parentIdColumnName + ", primary_key) VALUES (:name, :parent_id, :primary_key)";
-        this.sqlSelectTable = "SELECT id, name, primary_key FROM " + tableTableName + " WHERE " +
-            parentIdColumnName + " = :parentId";
+        this.sqlSelectTable = "SELECT * FROM " + tableTableName + " WHERE " + parentIdColumnName + " = :parentId";
         this.sqlSelectColumn = "SELECT id, name, type, array_of FROM " + columnTableName + " WHERE table_id = :tableId";
+    }
+
+    @Override
+    public void close() throws Exception {
+        jdbcDataSource.close();
     }
 
     // Assumes transaction propagation from parent's create
     public void createTables(UUID parentId, List<Table> tableList) {
-        MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("parent_id", parentId);
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
         for (Table table : tableList) {
-            params.addValue("name", table.getName());
-            List<Column> primaryKey = table.getPrimaryKey();
-
-            try {
-                if (primaryKey != null) {
-                    List<String> naturalKeyStringList = primaryKey.stream()
-                        .map(Column::getName)
-                        .collect(Collectors.toList());
-                    params.addValue("primary_key", DaoUtils.createSqlStringArray(connection,
-                        naturalKeyStringList));
-                } else {
-                    params.addValue("primary_key", DaoUtils.createSqlStringArray(connection,
-                        Collections.emptyList()));
-                }
-            } catch (SQLException e) {
-                logger.error(e.getMessage());
-                throw new IllegalArgumentException(e.getMessage(), e);
-            }
-
-            jdbcTemplate.update(sqlInsertTable, params, keyHolder);
-            UUID tableId = keyHolder.getId();
+            UUID tableId = createTable(parentId, table);
             table.id(tableId);
-
             createColumns(tableId, table.getColumns());
         }
     }
 
+    protected abstract UUID createTable(UUID parentId, Table table);
+
     protected void createColumns(UUID tableId, Collection<Column> columns) {
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbcDataSource);
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("table_id", tableId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
@@ -102,35 +73,17 @@ public class TableDaoBase {
         }
     }
 
+    protected abstract Table retrieveTable(ResultSet rs) throws SQLException;
+
     // also retrieves columns
     public List<Table> retrieveTables(UUID parentId) {
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbcDataSource);
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("parentId", parentId);
-
-        List<Table> tables = jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> {
-            Table table = new Table()
-                .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"));
-            List<String> primaryKey = DaoUtils.getStringList(rs, "primary_key");
-            List<Column> columns = retrieveColumns(table);
-            Map<String, Column> columnMap = columns
-                .stream()
-                .collect(Collectors.toMap(Column::getName, Function.identity()));
-            if (primaryKey != null) {
-                List<Column> naturalKeyColumns = primaryKey
-                    .stream()
-                    .map(columnMap::get)
-                    .collect(Collectors.toList());
-                table.primaryKey(naturalKeyColumns);
-            }
-
-            return table.columns(columns);
-        });
-
-
-        return tables;
+        return jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> retrieveTable(rs));
     }
 
-    private List<Column> retrieveColumns(Table table) {
+    protected List<Column> retrieveColumns(Table table) {
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbcDataSource);
         List<Column> columns = jdbcTemplate.query(
             sqlSelectColumn,
             new MapSqlParameterSource().addValue("tableId", table.getId()), (rs, rowNum) ->

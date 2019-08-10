@@ -8,4 +8,6 @@ databaseChangeLog:
             columns:
               - column:
                   name: primary_key
-                  type: text []
+                  # NOTE: Without quotes here, liquibase seems to lose track of the
+                  # trailing '[]' and creates a scalar column instead.
+                  type: "${identifier_type} []"

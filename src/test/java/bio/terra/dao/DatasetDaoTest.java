@@ -131,7 +131,7 @@ public class DatasetDaoTest {
     private Table getParticipantTable(Dataset dataset) {
         return dataset.getTables()
             .stream()
-            .filter(table -> table.getName().equals("particpant"))
+            .filter(table -> table.getName().equals("participant"))
             .findFirst()
             .orElse(null);
     }
@@ -149,8 +149,12 @@ public class DatasetDaoTest {
         fromDB.getTables().forEach(this::assertDatasetTable);
 
         assertThat("the participant table has a primary key",
-            getParticipantTable(fromDB).getPrimaryKey(),
-            equalTo(getParticipantTable(dataset).getPrimaryKey()));
+            getParticipantTable(fromDB).getPrimaryKey().size(),
+            equalTo(1));
+
+        assertThat("the participant table's primary key is the correct column",
+            getParticipantTable(fromDB).getPrimaryKey().get(0).getName(),
+            equalTo("id"));
 
         assertThat("correct number of relationships are created for dataset",
                 fromDB.getRelationships().size(),

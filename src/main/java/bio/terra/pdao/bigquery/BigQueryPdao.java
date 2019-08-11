@@ -1,5 +1,6 @@
 package bio.terra.pdao.bigquery;
 
+import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.flight.exception.IngestFailureException;
 import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
@@ -65,9 +66,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Autowired
     public BigQueryPdao(
-            String datarepoDnsName,
+            ApplicationConfiguration applicationConfiguration,
             DataProjectService dataProjectService) {
-        this.datarepoDnsName = datarepoDnsName;
+        this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.dataProjectService = dataProjectService;
     }
 

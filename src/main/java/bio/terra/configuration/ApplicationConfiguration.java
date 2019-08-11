@@ -8,7 +8,8 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import org.springframework.beans.factory.SmartInitializingSingleton;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -18,7 +19,37 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 @Configuration
+@EnableConfigurationProperties
+@ConfigurationProperties(prefix = "datarepo")
 public class ApplicationConfiguration {
+
+    private String userEmail;
+    private String dnsName;
+    private String resourceId;
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public String getDnsName() {
+        return dnsName;
+    }
+
+    public void setDnsName(String dnsName) {
+        this.dnsName = dnsName;
+    }
+
+    public String getResourceId() {
+        return resourceId;
+    }
+
+    public void setResourceId(String resourceId) {
+        this.resourceId = resourceId;
+    }
 
     @Bean("stairway")
     public Stairway getStairway(Migrate migrate, ApplicationContext applicationContext) {
@@ -37,33 +68,6 @@ public class ApplicationConfiguration {
             .registerModule(new ParameterNamesModule())
             .registerModule(new Jdk8Module())
             .registerModule(new JavaTimeModule());
-    }
-
-    @Value("${userEmail}")
-    private String userEmail;
-
-    public String getUserEmail() {
-        return userEmail;
-    }
-
-    public void setUserEmail(String userEmail) {
-        this.userEmail = userEmail;
-    }
-
-    @Value("${datarepo.dnsname}")
-    private String datarepoDnsName;
-
-    @Bean("datarepoDnsName")
-    public String datarepoDnsName() {
-        return datarepoDnsName;
-    }
-
-    @Value("${datarepo.resourceId}")
-    private String datarepoId;
-
-    @Bean("datarepoResourceId")
-    public String datarepoId() {
-        return datarepoId;
     }
 
     // This is a "magic bean": It supplies a method that Spring calls after the application is setup,

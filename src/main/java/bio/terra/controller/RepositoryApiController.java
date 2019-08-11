@@ -131,7 +131,7 @@ public class RepositoryApiController implements RepositoryApi {
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.DATAREPO,
-            appConfig.datarepoId(),
+            appConfig.getResourceId(),
             SamClientService.DataRepoAction.CREATE_DATASET);
         return new ResponseEntity<>(datasetService.createDataset(datasetRequest, getAuthenticatedInfo()),
             HttpStatus.CREATED);

@@ -8,6 +8,7 @@ import org.apache.commons.dbcp2.PoolingDataSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -25,7 +26,7 @@ import java.util.*;
 
 public abstract class TableDaoBase {
 
-    protected final PoolingDataSource<PoolableConnection> jdbcDataSource;
+    private final PoolingDataSource<PoolableConnection> jdbcDataSource;
     private final String sqlInsertColumn;
     private final String sqlSelectTable;
     private final String sqlSelectColumn;
@@ -44,13 +45,13 @@ public abstract class TableDaoBase {
     // Assumes transaction propagation from parent's create
     public void createTables(UUID parentId, List<Table> tableList) {
         for (Table table : tableList) {
-            UUID tableId = createTable(parentId, table);
+            UUID tableId = createTable(jdbcDataSource, parentId, table);
             table.id(tableId);
             createColumns(tableId, table.getColumns());
         }
     }
 
-    protected abstract UUID createTable(UUID parentId, Table table);
+    protected abstract UUID createTable(DataSource jdbcDataSource, UUID parentId, Table table);
 
     protected void createColumns(UUID tableId, Collection<Column> columns) {
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbcDataSource);

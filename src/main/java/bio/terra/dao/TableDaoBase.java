@@ -8,7 +8,6 @@ import org.apache.commons.dbcp2.PoolingDataSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -24,7 +23,7 @@ import java.util.*;
 //  name varchar    - name of the column
 //  type varchar    - datatype of the column
 
-public abstract class TableDaoBase implements AutoCloseable {
+public abstract class TableDaoBase {
 
     protected final PoolingDataSource<PoolableConnection> jdbcDataSource;
     private final String sqlInsertColumn;
@@ -40,11 +39,6 @@ public abstract class TableDaoBase implements AutoCloseable {
             " (table_id, name, type, array_of) VALUES (:table_id, :name, :type, :arrayOf)";
         this.sqlSelectTable = "SELECT * FROM " + tableTableName + " WHERE " + parentIdColumnName + " = :parentId";
         this.sqlSelectColumn = "SELECT id, name, type, array_of FROM " + columnTableName + " WHERE table_id = :tableId";
-    }
-
-    @Override
-    public void close() throws Exception {
-        jdbcDataSource.close();
     }
 
     // Assumes transaction propagation from parent's create

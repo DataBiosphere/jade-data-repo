@@ -273,6 +273,18 @@ public class ConnectedOperations {
         return ingestResponse;
     }
 
+    public ErrorModel ingestTableFailure(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
+        String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+        return handleAsyncFailureCase(response);
+    }
+
     public FSObjectModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";

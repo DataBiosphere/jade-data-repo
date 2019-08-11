@@ -132,6 +132,9 @@ public class BigQueryPdaoTest {
         BlobInfo fileBlob = BlobInfo
             .newBuilder(bucket, targetPath + "ingest-test-file.json")
             .build();
+        BlobInfo badSampleBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json")
+            .build();
 
         try {
             storage.create(participantBlob, readFile("ingest-test-participant.json"));
@@ -150,6 +153,10 @@ public class BigQueryPdaoTest {
             connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("file").path(gsPath(fileBlob)));
 
+            // Check primary key non-nullability is enforced.
+            connectedOperations.ingestTableFailure(datasetId,
+                ingestRequest.table("sample").path(gsPath(badSampleBlob)));
+
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
@@ -163,7 +170,8 @@ public class BigQueryPdaoTest {
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
         } finally {
-            storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
+            storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
+                fileBlob.getBlobId(), badSampleBlob.getBlobId());
         }
     }
 

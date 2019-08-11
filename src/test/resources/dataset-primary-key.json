@@ -1,0 +1,64 @@
+{
+  "name":        "PrimaryKey",
+  "description": "Dataset used to test primary keys on tables",
+  "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "variant",
+        "columns": [
+          {"name": "id", "datatype": "string"},
+          {"name": "chromosome", "datatype": "string"},
+          {"name": "position", "datatype": "integer"},
+          {"name":  "ref", "datatype": "string"},
+          {"name":  "alt", "datatype": "string"}
+        ],
+        "primaryKey": ["id"]
+      },
+      {
+        "name":    "frequency_analysis",
+        "columns": [
+          {"name": "variant_id", "datatype": "string"},
+          {"name": "phenotype", "datatype": "string"},
+          {"name": "ancestry", "datatype": "string"},
+          {"name": "maf", "datatype": "float"}
+        ],
+        "primaryKey": ["variant_id", "ancestry", "phenotype"]
+      },
+      {
+        "name": "meta_analysis",
+        "columns": [
+          {"name": "variant_id", "datatype": "string"},
+          {"name": "phenotype", "datatype": "string"},
+          {"name": "p_value", "datatype": "float"}
+        ],
+        "primaryKey": ["variant_id", "phenotype"]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "variant_frequency",
+        "from": {"table": "frequency_analysis", "column": "variant_id", "cardinality": "many"},
+        "to":   {"table": "variant", "column": "id", "cardinality": "one"}
+      },
+      {
+        "name": "variant_meta",
+        "from": {"table": "meta_analysis", "column": "variant_id", "cardinality": "many"},
+        "to": {"table": "variant", "column": "id", "cardinality": "one"}
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "Variant",
+        "rootTable": "variant",
+        "rootColumn": "id",
+        "tables": [
+          {"name": "variant", "columns": []},
+          {"name": "frequency_analysis", "columns": []},
+          {"name": "meta_analysis", "columns": []}
+        ],
+        "follow": ["variant_frequency", "variant_meta"]
+      }
+    ]
+  }
+}

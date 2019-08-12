@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
-@Profile("terra")
+@Profile({"terra", "dev", "integration"})
 @Component
 public class ProxiedAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
 

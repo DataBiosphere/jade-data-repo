@@ -11,3 +11,5 @@ databaseChangeLog:
                   # NOTE: Without quotes here, liquibase seems to lose track of the
                   # trailing '[]' and creates a scalar column instead.
                   type: "${identifier_type} []"
+                  constraints:
+                    nullable: false

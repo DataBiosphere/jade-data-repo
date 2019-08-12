@@ -34,8 +34,11 @@ public class Table {
         return this;
     }
 
-    public List<Column> getPrimaryKey() {
-        return primaryKey;
+    public Optional<List<Column>> getPrimaryKey() {
+        // NOTE: This should only return `Optional.EMPTY`
+        // when modeling a snapshot table. Dataset tables
+        // will always have a primary key.
+        return Optional.ofNullable(primaryKey);
     }
 
     public Table primaryKey(List<Column> primaryKey) {

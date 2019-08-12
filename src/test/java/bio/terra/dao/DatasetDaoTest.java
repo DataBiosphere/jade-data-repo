@@ -159,15 +159,18 @@ public class DatasetDaoTest {
         Table metaAnalysis = fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
 
         assertThat("single-column primary keys are set correctly",
-            variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+            variants.getPrimaryKey().orElseThrow(IllegalStateException::new)
+                .stream().map(Column::getName).collect(Collectors.toList()),
             equalTo(Collections.singletonList("id")));
 
         assertThat("dual-column primary keys are set correctly",
-            metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+            metaAnalysis.getPrimaryKey().orElseThrow(IllegalStateException::new)
+                .stream().map(Column::getName).collect(Collectors.toList()),
             equalTo(Arrays.asList("variant_id", "phenotype")));
 
         assertThat("many-column primary keys are set correctly",
-            freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+            freqAnalysis.getPrimaryKey().orElseThrow(IllegalStateException::new)
+                .stream().map(Column::getName).collect(Collectors.toList()),
             equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
 
         datasetDao.delete(datasetId);

@@ -103,13 +103,12 @@ public final class DatasetJsonConversion {
             columns.add(column);
         }
 
-        Optional.ofNullable(tableModel.getPrimaryKey()).ifPresent(primaryKey -> {
-            List<Column> primaryKeyColumns = primaryKey
-                .stream()
-                .map(columnMap::get)
-                .collect(Collectors.toList());
-            datasetTable.primaryKey(primaryKeyColumns);
-        });
+        List<Column> primaryKeyColumns = Optional.ofNullable(tableModel.getPrimaryKey())
+            .orElse(Collections.emptyList())
+            .stream()
+            .map(columnMap::get)
+            .collect(Collectors.toList());
+        datasetTable.primaryKey(primaryKeyColumns);
 
         return datasetTable.columns(columns);
     }
@@ -117,7 +116,7 @@ public final class DatasetJsonConversion {
     public static TableModel tableModelFromTable(Table datasetTable) {
         return new TableModel()
             .name(datasetTable.getName())
-            .primaryKey(Optional.ofNullable(datasetTable.getPrimaryKey())
+            .primaryKey(datasetTable.getPrimaryKey()
                 .orElse(Collections.emptyList())
                 .stream()
                 .map(Column::getName)

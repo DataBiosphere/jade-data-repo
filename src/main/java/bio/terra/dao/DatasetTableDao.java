@@ -14,10 +14,8 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,8 +48,8 @@ public class DatasetTableDao extends TableDaoBase {
         params.addValue("name", table.getName());
         params.addValue("dataset_id", parentId);
 
-        List<String> naturalKeyStringList = Optional.ofNullable(table.getPrimaryKey())
-            .orElse(Collections.emptyList())
+        List<String> naturalKeyStringList = table.getPrimaryKey()
+            .orElseThrow(() -> new IllegalStateException("Dataset table " + table.getName() + " has no primary key"))
             .stream()
             .map(Column::getName)
             .collect(Collectors.toList());

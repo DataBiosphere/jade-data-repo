@@ -179,7 +179,7 @@ public class BigQueryPdaoTest {
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
-                fileBlob.getBlobId(), missingPkBlob.getBlobId());
+                fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
         }
     }
 

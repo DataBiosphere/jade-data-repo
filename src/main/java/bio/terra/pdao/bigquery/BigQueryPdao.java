@@ -564,14 +564,21 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private Schema buildSchema(Table table, boolean addRowIdColumn) {
         List<Field> fieldList = new ArrayList<>();
+        List<String> primaryKeys = table.getPrimaryKey().orElse(Collections.emptyList())
+            .stream()
+            .map(Column::getName)
+            .collect(Collectors.toList());
 
         if (addRowIdColumn) {
             fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         }
 
         for (Column column : table.getColumns()) {
+            boolean isPk = primaryKeys.contains(column.getName());
+            Field.Mode mode = isPk ? Field.Mode.REQUIRED :
+                column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE;
             Field fieldSpec = Field.newBuilder(column.getName(), translateType(column.getType()))
-                .setMode(column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE)
+                .setMode(mode)
                 .build();
 
             fieldList.add(fieldSpec);

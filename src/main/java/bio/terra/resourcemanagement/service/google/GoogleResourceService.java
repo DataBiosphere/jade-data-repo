@@ -30,6 +30,7 @@ import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import org.slf4j.Logger;
@@ -110,10 +111,11 @@ public class GoogleResourceService {
         String googleProjectId = projectResource.getGoogleProjectId();
         GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
         BucketInfo bucketInfo = BucketInfo.newBuilder(bucketName)
-            // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
-            //.setStorageClass(StorageClass.COLDLINE)
             //.setRequesterPays()
-            .setLocation(bucketRequest.getRegion())
+            // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
+            .setStorageClass(StorageClass.REGIONAL)
+            //.setLocation(bucketRequest.getRegion())
+            .setLocation("us-central1")
             .build();
         // the project will have been created before this point, so no need to fetch it
         logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);

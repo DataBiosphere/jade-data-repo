@@ -1,5 +1,6 @@
 package bio.terra.validation;
 
+import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.stereotype.Component;
@@ -34,6 +35,11 @@ public class IngestRequestValidator implements Validator {
         if (target instanceof IngestRequestModel) {
             IngestRequestModel ingestRequest = (IngestRequestModel) target;
             validateTableName(ingestRequest.getTable(), errors);
+        } else if (target instanceof FileLoadModel) {
+            FileLoadModel fileLoadModel = (FileLoadModel) target;
+            if (fileLoadModel.getProfileId() == null) {
+                errors.rejectValue("profileId", "ProfileIdMissing", "File ingest requires a profile id.");
+            }
         }
     }
 }

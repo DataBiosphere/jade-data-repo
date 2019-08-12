@@ -21,6 +21,8 @@ import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -34,6 +36,8 @@ import java.util.UUID;
 @Component
 @Profile("google")
 public class GcsPdao {
+    private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
+
     private final GcsProjectFactory gcsProjectFactory;
     private final DataProjectService dataProjectService;
     private final FireStoreFileDao fileDao;

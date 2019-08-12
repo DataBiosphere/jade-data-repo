@@ -118,7 +118,7 @@ public class GoogleResourceDao {
         );
         String query = "SELECT %s " +
             " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
-            " WHERE %s = :%s";
+            " WHERE b.%s = :%s";
         String sql = String.format(query, String.join(", ", selects), column, column);
         MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
         List<GoogleBucketResource> bucketResources = jdbcTemplate.query(sql, params, new DataBucketMapper());

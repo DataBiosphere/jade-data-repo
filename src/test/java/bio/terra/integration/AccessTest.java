@@ -14,7 +14,6 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;

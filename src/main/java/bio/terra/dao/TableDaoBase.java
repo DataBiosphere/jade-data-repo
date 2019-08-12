@@ -1,6 +1,5 @@
 package bio.terra.dao;
 
-import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Table;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -30,11 +29,11 @@ public abstract class TableDaoBase {
     private final String sqlSelectTable;
     private final String sqlSelectColumn;
 
-    public TableDaoBase(DataRepoJdbcConfiguration jdbcConfiguration,
+    public TableDaoBase(NamedParameterJdbcTemplate jdbcTemplate,
                         String tableTableName,
                         String columnTableName,
                         String parentIdColumnName) {
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+        this.jdbcTemplate = jdbcTemplate;
         this.sqlInsertColumn = "INSERT INTO " + columnTableName +
             " (table_id, name, type, array_of) VALUES (:table_id, :name, :type, :arrayOf)";
         this.sqlSelectTable = "SELECT * FROM " + tableTableName + " WHERE " + parentIdColumnName + " = :parentId";

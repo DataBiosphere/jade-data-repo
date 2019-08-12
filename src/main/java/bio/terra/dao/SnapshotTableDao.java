@@ -1,6 +1,5 @@
 package bio.terra.dao;
 
-import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Table;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +21,9 @@ public class SnapshotTableDao extends TableDaoBase {
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public SnapshotTableDao(DataRepoJdbcConfiguration dataRepoJdbcConfiguration) {
-        super(dataRepoJdbcConfiguration, "snapshot_table", "snapshot_column", "parent_id");
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(dataRepoJdbcConfiguration.getDataSource());
+    public SnapshotTableDao(NamedParameterJdbcTemplate jdbcTemplate) {
+        super(jdbcTemplate, "snapshot_table", "snapshot_column", "parent_id");
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override

@@ -35,10 +35,10 @@ public class DatasetTableDao extends TableDaoBase {
 
 
     @Autowired
-    public DatasetTableDao(DataRepoJdbcConfiguration dataRepoJdbcConfiguration) {
-        super(dataRepoJdbcConfiguration, "dataset_table", "dataset_column", "dataset_id");
-        this.jdbcDataSource = dataRepoJdbcConfiguration.getDataSource();
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(this.jdbcDataSource);
+    public DatasetTableDao(DataRepoJdbcConfiguration jdbcConfiguration, NamedParameterJdbcTemplate jdbcTemplate) {
+        super(jdbcTemplate, "dataset_table", "dataset_column", "dataset_id");
+        this.jdbcDataSource = jdbcConfiguration.getDataSource();
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -46,7 +46,6 @@ public class DatasetTableDao extends TableDaoBase {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
 
-        logger.info(parentId.toString());
         params.addValue("name", table.getName());
         params.addValue("dataset_id", parentId);
 

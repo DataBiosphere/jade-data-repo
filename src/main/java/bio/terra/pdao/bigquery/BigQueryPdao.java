@@ -574,9 +574,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         for (Column column : table.getColumns()) {
-            boolean isPk = primaryKeys.contains(column.getName());
-            Field.Mode mode = isPk ? Field.Mode.REQUIRED :
-                column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE;
+            Field.Mode mode;
+            if (primaryKeys.contains(column.getName())) {
+                mode = Field.Mode.REQUIRED;
+            } else if (column.isArrayOf()) {
+                mode = Field.Mode.REPEATED;
+            } else {
+                mode = Field.Mode.NULLABLE;
+            }
             Field fieldSpec = Field.newBuilder(column.getName(), translateType(column.getType()))
                 .setMode(mode)
                 .build();

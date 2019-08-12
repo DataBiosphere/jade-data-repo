@@ -15,9 +15,7 @@ import java.util.Optional;
 @Profile("!terra")
 @Component
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
-
     private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);
-
     private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
@@ -35,5 +33,4 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
 
         return new AuthenticatedUserRequest(email, token);
     }
-
 }

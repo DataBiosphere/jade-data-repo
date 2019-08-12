@@ -1,7 +1,6 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ApiException;
-
 import java.util.Optional;
 import java.util.UUID;
 

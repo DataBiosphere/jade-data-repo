@@ -15,7 +15,10 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -27,14 +30,19 @@ public class DatasetTableDao extends TableDaoBase {
     private static final String sqlInsertTable = "INSERT INTO dataset_table " +
         "(name, dataset_id, primary_key) VALUES (:name, :dataset_id, :primary_key)";
 
+    private final DataSource jdbcDataSource;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
+
     @Autowired
     public DatasetTableDao(DataRepoJdbcConfiguration dataRepoJdbcConfiguration) {
         super(dataRepoJdbcConfiguration, "dataset_table", "dataset_column", "dataset_id");
+        this.jdbcDataSource = dataRepoJdbcConfiguration.getDataSource();
+        this.jdbcTemplate = new NamedParameterJdbcTemplate(this.jdbcDataSource);
     }
 
     @Override
-    protected UUID createTable(DataSource jdbcDataSource, UUID parentId, Table table) {
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbcDataSource);
+    protected UUID createTable(UUID parentId, Table table) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
 

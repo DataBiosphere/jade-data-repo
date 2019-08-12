@@ -8,7 +8,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
@@ -20,14 +19,16 @@ public class SnapshotTableDao extends TableDaoBase {
     private static final String sqlInsertTable = "INSERT INTO snapshot_table " +
         "(name, parent_id) VALUES (:name, :parent_id)";
 
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+
     @Autowired
     public SnapshotTableDao(DataRepoJdbcConfiguration dataRepoJdbcConfiguration) {
         super(dataRepoJdbcConfiguration, "snapshot_table", "snapshot_column", "parent_id");
+        this.jdbcTemplate = new NamedParameterJdbcTemplate(dataRepoJdbcConfiguration.getDataSource());
     }
 
     @Override
-    protected UUID createTable(DataSource jdbcDataSource, UUID parentId, Table table) {
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbcDataSource);
+    protected UUID createTable(UUID parentId, Table table) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
 

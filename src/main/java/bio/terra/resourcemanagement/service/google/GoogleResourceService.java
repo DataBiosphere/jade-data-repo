@@ -1,5 +1,7 @@
 package bio.terra.resourcemanagement.service.google;
 
+import bio.terra.pdao.gcs.GcsProject;
+import bio.terra.pdao.gcs.GcsProjectFactory;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceDao;
 import bio.terra.flight.exception.InaccessibleBillingAccountException;
@@ -24,11 +26,12 @@ import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
 import com.google.api.services.serviceusage.v1beta1.model.Service;
+import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Bucket;
+import com.google.cloud.storage.BucketInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.base.Strings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +41,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -50,17 +54,20 @@ public class GoogleResourceService {
     private final ProfileService profileService;
     private final GoogleResourceConfiguration resourceConfiguration;
     private final GoogleBillingService billingService;
+    private final GcsProjectFactory gcsProjectFactory;
 
     @Autowired
     public GoogleResourceService(
-            GoogleResourceDao resourceDao,
-            ProfileService profileService,
-            GoogleResourceConfiguration resourceConfiguration,
-            GoogleBillingService billingService) {
+        GoogleResourceDao resourceDao,
+        ProfileService profileService,
+        GoogleResourceConfiguration resourceConfiguration,
+        GoogleBillingService billingService,
+        GcsProjectFactory gcsProjectFactory) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
+        this.gcsProjectFactory = gcsProjectFactory;
     }
 
     public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
@@ -88,13 +95,29 @@ public class GoogleResourceService {
         }
 
         // the bucket might already exist
-        // TODO: ensure that the ownership, read/write perms are correct!
-        Bucket bucket = getBucket(bucketRequest.getBucketName());
-        if (bucket != null) {
-            GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
-            UUID id = resourceDao.createBucket(googleBucketResource);
-            return googleBucketResource.repositoryId(id);
-        }
+        Bucket bucket = getBucket(bucketRequest.getBucketName()).orElseGet(() -> newBucket(bucketRequest));
+        Acl.Entity owner = bucket.getOwner();
+        logger.info("bucket is owned by '{}'", owner.toString());
+        // TODO: ensure that the repository is the owner unless strictOwnership is false
+        GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
+        UUID id = resourceDao.createBucket(googleBucketResource);
+        return googleBucketResource.repositoryId(id);
+    }
+
+    private Bucket newBucket(GoogleBucketRequest bucketRequest) {
+        String bucketName = bucketRequest.getBucketName();
+        GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
+        String googleProjectId = projectResource.getGoogleProjectId();
+        GcsProject gcsProject = gcsProjectFactory.get(googleProjectId);
+        BucketInfo bucketInfo = BucketInfo.newBuilder(bucketName)
+            // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
+            //.setStorageClass(StorageClass.COLDLINE)
+            //.setRequesterPays()
+            .setLocation(bucketRequest.getRegion())
+            .build();
+        // the project will have been created before this point, so no need to fetch it
+        logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
+        return gcsProject.getStorage().create(bucketInfo);
     }
 
     public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
@@ -144,10 +167,10 @@ public class GoogleResourceService {
         }
     }
 
-    private Bucket getBucket(String bucketName) {
+    private Optional<Bucket> getBucket(String bucketName) {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         try {
-            return storage.get(bucketName);
+            return Optional.ofNullable(storage.get(bucketName));
         } catch (StorageException e) {
             throw new GoogleResourceException("Could not check bucket existence", e);
         }

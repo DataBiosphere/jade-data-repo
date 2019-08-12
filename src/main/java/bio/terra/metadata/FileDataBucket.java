@@ -1,7 +1,9 @@
 package bio.terra.metadata;
 
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
+import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class FileDataBucket {
@@ -31,6 +33,19 @@ public class FileDataBucket {
     public FileDataBucket googleBucketResource(GoogleBucketResource projectResource) {
         this.googleBucketResource = projectResource;
         return this;
+    }
+
+    public String getName() {
+        return googleBucketResource.getName();
+    }
+
+    public FileDataBucket name(String name) {
+        googleBucketResource.name(name);
+        return this;
+    }
+
+    public Optional<GoogleProjectResource> getProjectResource() {
+        return Optional.ofNullable(googleBucketResource.getProjectResource());
     }
 
     public UUID getProfileId() {

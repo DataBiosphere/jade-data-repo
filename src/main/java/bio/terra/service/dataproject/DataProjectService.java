@@ -118,8 +118,6 @@ public class DataProjectService {
             .googleBucketResource(googleBucketResource);
     }
 
-
-
     public SnapshotDataProject getProjectForSnapshot(Snapshot snapshot) {
         SnapshotDataProjectSummary snapshotDataProjectSummary = null;
         GoogleProjectResource googleProjectResource;

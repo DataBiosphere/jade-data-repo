@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import static bio.terra.metadata.FSObjectType.DELETING_FILE;
 import static bio.terra.metadata.FSObjectType.FILE;
@@ -341,30 +342,41 @@ public class FireStoreFileDao {
      *
      * @param datasetId
      */
-    private static final int DELETE_BATCH_SIZE = 500;
+    private static final int BATCH_SIZE = 500;
     public void deleteFilesFromDataset(Dataset dataset) {
+        visitEachDocumentInDataset(dataset, document -> document.getReference().delete());
+    }
+
+    public void forEachFsObjectInDataset(Dataset dataset, Consumer<FSObjectBase> func) {
+        visitEachDocumentInDataset(dataset, document -> {
+            FireStoreObject currentObject = document.toObject(FireStoreObject.class);
+            FSObjectBase fsObject = makeFSObjectFromFireStoreObject(currentObject);
+            func.accept(fsObject);
+        });
+    }
+
+    private void visitEachDocumentInDataset(Dataset dataset, Consumer<QueryDocumentSnapshot> func) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
         try {
             int batchCount = 0;
-            int deleted;
+            int visited;
             do {
-                deleted = 0;
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(DELETE_BATCH_SIZE).get();
+                visited = 0;
+                ApiFuture<QuerySnapshot> future = datasetCollection.limit(BATCH_SIZE).get();
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
                 batchCount++;
-                logger.info("Deleting batch " + batchCount + " of ~" + DELETE_BATCH_SIZE + " documents");
+                logger.info("Visiting batch " + batchCount + " of ~" + BATCH_SIZE + " documents");
                 for (QueryDocumentSnapshot document : documents) {
-                    document.getReference().delete();
-                    deleted++;
+                    func.accept(document);
+                    visited++;
                 }
-            } while (deleted >= DELETE_BATCH_SIZE);
-
+            } while (visited >= BATCH_SIZE);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("delete dataset - execution interrupted", ex);
+            throw new FileSystemExecutionException("scanning dataset - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("delete dataset - execution exception", ex);
+            throw new FileSystemExecutionException("scanning dataset - execution exception", ex);
         }
     }
 

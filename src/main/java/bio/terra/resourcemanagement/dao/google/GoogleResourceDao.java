@@ -13,12 +13,12 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -37,17 +37,16 @@ public class GoogleResourceDao {
             String sql = "INSERT INTO project_resource " +
                 "(google_project_id, google_project_number, profile_id, service_ids) VALUES " +
                 "(:google_project_id, :google_project_number, :profile_id, :service_ids)";
-            Array serviceIds = connection.createArrayOf("text", project.getServiceIds().toArray());
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("google_project_id", project.getGoogleProjectId())
                 .addValue("google_project_number", project.getGoogleProjectNumber())
                 .addValue("profile_id", project.getProfileId())
-                .addValue("service_ids", serviceIds);
+                .addValue("service_ids", DaoUtils.createSqlStringArray(connection, project.getServiceIds()));
             DaoKeyHolder keyHolder = new DaoKeyHolder();
             jdbcTemplate.update(sql, params, keyHolder);
             return keyHolder.getId();
         } catch (SQLException e) {
-            throw new GoogleResourceException("Can't save project resource: " + project.getGoogleProjectId());
+            throw new GoogleResourceException("Can't save project resource: " + project.getGoogleProjectId(), e);
         }
     }
 
@@ -91,6 +90,19 @@ public class GoogleResourceDao {
         }
     }
 
+    public UUID createBucket(GoogleBucketResource bucketResource) {
+        GoogleProjectResource projectResource = Optional.ofNullable(bucketResource.getProjectResource())
+            .orElseThrow(IllegalArgumentException::new);
+        String sql = "INSERT INTO bucket_resource (project_resource_id, name) VALUES " +
+            "(:project_resource_id, :name)";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("project_resource_id", projectResource.getRepositoryId())
+            .addValue("name", bucketResource.getName());
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        jdbcTemplate.update(sql, params, keyHolder);
+        return keyHolder.getId();
+    }
+
     private List<GoogleBucketResource> retrieveBucketsBy(String column, UUID value) {
         List<String> selects = Arrays.asList(
             // project_resource
@@ -132,20 +144,16 @@ public class GoogleResourceDao {
 
     private static class DataBucketMapper implements RowMapper<GoogleBucketResource> {
         public GoogleBucketResource mapRow(ResultSet rs, int rowNum) throws SQLException {
-            /* TODO next: create project resource, use that to construct bucket resource
-            "p.id AS project_resource_id",
-            "google_project_id",
-            "google_project_number",
-            "service_ids",
-            "profile_id",
-
-            // bucket_resource
-            "b.id AS bucket_resource_id",
-            "name"
-             */
+            // create project resource, use that to construct bucket resource
+            GoogleProjectResource projectResource = new GoogleProjectResource()
+                .repositoryId(rs.getObject("project_resource_id", UUID.class))
+                .googleProjectId(rs.getString("google_project_id"))
+                .googleProjectNumber(rs.getString("google_project_number"))
+                .serviceIds(DaoUtils.getStringList(rs, "service_ids"))
+                .profileId(rs.getObject("profile_id", UUID.class));
             return new GoogleBucketResource()
-                .projectResourceId(rs.getObject("project_resource_id", UUID.class))
-                .repositoryId(rs.getObject("id", UUID.class))
+                .projectResource(projectResource)
+                .repositoryId(rs.getObject("bucket_resource_id", UUID.class))
                 .name(rs.getString("name"));
         }
     }

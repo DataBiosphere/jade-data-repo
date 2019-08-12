@@ -3,15 +3,14 @@ package bio.terra.dao;
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Table;
-import org.apache.commons.dbcp2.PoolableConnection;
-import org.apache.commons.dbcp2.PoolingDataSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 // Base class for dataset and snapshot daos.
 // Assumes the Table table is:

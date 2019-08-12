@@ -1,9 +1,5 @@
 package bio.terra.controller;
 
-import bio.terra.exception.BadRequestException;
-
-import javax.servlet.http.HttpServletRequest;
-import java.util.Optional;
 import java.util.UUID;
 
 public class AuthenticatedUserRequest {

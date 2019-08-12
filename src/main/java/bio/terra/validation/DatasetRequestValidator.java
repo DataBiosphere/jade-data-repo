@@ -16,6 +16,7 @@ import javax.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.stream.Collectors.toList;
 
@@ -86,8 +87,16 @@ public class DatasetRequestValidator implements Validator {
             if (ValidationUtils.hasDuplicates(columnNames)) {
                 errors.rejectValue("schema", "DuplicateColumnNames");
             }
-            if (primaryKeyList != null && !columnNames.containsAll(primaryKeyList)) {
-                errors.rejectValue("schema", "MissingPrimaryKeyColumn");
+            if (primaryKeyList != null) {
+                if (!columnNames.containsAll(primaryKeyList)) {
+                    errors.rejectValue("schema", "MissingPrimaryKeyColumn");
+                }
+
+                for (ColumnModel column : columns) {
+                    if (primaryKeyList.contains(column.getName()) && column.isArrayOf()) {
+                        errors.rejectValue("schema", "PrimaryKeyArrayColumn");
+                    }
+                }
             }
             context.addTable(tableName, columnNames);
         }

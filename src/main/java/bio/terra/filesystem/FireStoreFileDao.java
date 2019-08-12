@@ -734,6 +734,7 @@ public class FireStoreFileDao {
                     .checksumMd5(fireStoreObject.getChecksumMd5())
                     .mimeType(fireStoreObject.getMimeType())
                     .flightId(fireStoreObject.getFlightId())
+                    .profileId(fireStoreObject.getProfileId())
                     // -- base setters --
                     .objectId(UUID.fromString(fireStoreObject.getObjectId()))
                     .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))

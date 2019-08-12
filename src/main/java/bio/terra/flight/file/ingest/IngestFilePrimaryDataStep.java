@@ -52,7 +52,11 @@ public class IngestFilePrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
-        gcsPdao.deleteFile(dataset, objectId);
+        FSObjectBase fsObject = fileDao.retrieve(dataset, UUID.fromString(objectId));
+        if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+            throw new FileSystemCorruptException("This should be a file!");
+        }
+        gcsPdao.deleteFile((FSFile)fsObject);
         return StepResult.getStepResultSuccess();
     }
 

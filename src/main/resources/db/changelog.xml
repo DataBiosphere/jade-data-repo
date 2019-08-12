@@ -15,4 +15,5 @@
     <include file="changesets/20190214_snapshots.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20190606_billingprofiles.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20190609_datasetresource.yaml" relativeToChangelogFile="true"/>
+    <include file="changesets/20190812_file_data_project.yaml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

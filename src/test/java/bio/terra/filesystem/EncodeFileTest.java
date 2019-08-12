@@ -28,6 +28,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -73,7 +74,6 @@ public class EncodeFileTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private Storage storage;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private DataProjectService dataProjectService;
     @Autowired private SnapshotDao snapshotDao;
@@ -86,6 +86,7 @@ public class EncodeFileTest {
     private SamClientService samService;
 
     private BillingProfileModel profileModel;
+    private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Before
     public void setup() throws Exception {
@@ -327,6 +328,7 @@ public class EncodeFileTest {
         URI uri = URI.create(gspath);
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(gspath)
+            .profileId(profileModel.getId())
             .description(null)
             .mimeType("application/octet-string")
             .targetPath(uri.getPath());

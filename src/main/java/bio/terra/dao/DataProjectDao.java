@@ -30,7 +30,7 @@ public class DataProjectDao {
     // TODO: DRY up
 
     public UUID createFileDataBucket(FileDataBucketSummary fileDataBucketSummary) {
-        String sql = "INSERT INTO file_data_project (file_object_id, bucket_resource_id) VALUES " +
+        String sql = "INSERT INTO file_data_bucket (file_object_id, bucket_resource_id) VALUES " +
             "(:file_object_id, :bucket_resource_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("file_object_id", fileDataBucketSummary.getFileObjectId())
@@ -42,7 +42,7 @@ public class DataProjectDao {
 
     public FileDataBucketSummary retrieveFileDataBucket(UUID fileObjectId) {
         try {
-            String sql = "SELECT id, file_object_id, bucket_resource_id FROM file_data_project " +
+            String sql = "SELECT id, file_object_id, bucket_resource_id FROM file_data_bucket " +
                 " WHERE file_object_id = :file_object_id";
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("file_object_id", fileObjectId);
@@ -53,7 +53,7 @@ public class DataProjectDao {
     }
 
     public boolean deleteFileDataBucket(UUID id) {
-        String sql = "DELETE FROM file_data_project WHERE id = :id";
+        String sql = "DELETE FROM file_data_bucket WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
         int rowsAffected = jdbcTemplate.update(sql, params);
         return rowsAffected > 0;

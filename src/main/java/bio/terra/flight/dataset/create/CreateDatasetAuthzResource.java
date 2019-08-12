@@ -65,9 +65,9 @@ public class CreateDatasetAuthzResource implements Step {
         } catch (ApiException ex) {
             if (ex.getCode() == HttpStatusCodes.STATUS_CODE_UNAUTHORIZED) {
                 // suppress exception
-                logger.error("NEEDS CLEANUP: delete sam resource for dataset " + datasetId.toString());
-                logger.warn(ex.getMessage());
-            } else {
+                logger.error("NEEDS CLEANUP: delete sam resource for dataset " + datasetId.toString(), ex);
+            } else if (ex.getCode() != HttpStatusCodes.STATUS_CODE_NOT_FOUND) {
+                // if the SAM resource is not found, then it was likely not created -- continue undoing
                 throw new InternalServerErrorException(ex);
             }
         }

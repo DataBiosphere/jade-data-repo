@@ -17,7 +17,7 @@ import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.FieldValue;
@@ -75,7 +75,7 @@ public class EncodeFileTest {
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private ConnectedTestConfiguration testConfig;
-    @Autowired private DataProjectService dataProjectService;
+    @Autowired private DataLocationService dataLocationService;
     @Autowired private SnapshotDao snapshotDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
@@ -298,7 +298,7 @@ public class EncodeFileTest {
 
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        SnapshotDataProject dataProject = dataProjectService.getProjectForSnapshot(snapshot);
+        SnapshotDataProject dataProject = dataLocationService.getProjectForSnapshot(snapshot);
         BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
 
         StringBuilder builder = new StringBuilder()

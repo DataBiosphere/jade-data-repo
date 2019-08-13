@@ -1,10 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.dao.exception.DataBucketNotFoundException;
 import bio.terra.dao.exception.DataProjectNotFoundException;
-import bio.terra.metadata.FileDataBucketSummary;
-import bio.terra.metadata.FileDataProjectSummary;
 import bio.terra.metadata.SnapshotDataProjectSummary;
 import bio.terra.metadata.DatasetDataProjectSummary;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,86 +22,6 @@ public class DataProjectDao {
     @Autowired
     public DataProjectDao(DataRepoJdbcConfiguration jdbcConfiguration) {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
-    }
-
-    // TODO: DRY up
-
-    public UUID createFileDataBucket(FileDataBucketSummary fileDataBucketSummary) {
-        String sql = "INSERT INTO file_data_bucket (file_object_id, bucket_resource_id) VALUES " +
-            "(:file_object_id, :bucket_resource_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("file_object_id", fileDataBucketSummary.getFileObjectId())
-            .addValue("bucket_resource_id", fileDataBucketSummary.getBucketResourceId());
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        return keyHolder.getId();
-    }
-
-    public FileDataBucketSummary retrieveFileDataBucket(UUID fileObjectId) {
-        try {
-            String sql = "SELECT id, file_object_id, bucket_resource_id FROM file_data_bucket " +
-                " WHERE file_object_id = :file_object_id";
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("file_object_id", fileObjectId);
-            return jdbcTemplate.queryForObject(sql, params, new FileDataBucketSummaryMapper());
-        } catch (EmptyResultDataAccessException ex) {
-            throw new DataBucketNotFoundException("File data project not found for: " + fileObjectId);
-        }
-    }
-
-    public boolean deleteFileDataBucket(UUID id) {
-        String sql = "DELETE FROM file_data_bucket WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-        int rowsAffected = jdbcTemplate.update(sql, params);
-        return rowsAffected > 0;
-    }
-
-    private static class FileDataBucketSummaryMapper implements RowMapper<FileDataBucketSummary> {
-        public FileDataBucketSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new FileDataBucketSummary()
-                .id(rs.getObject("id", UUID.class))
-                .fileObjectId(rs.getObject("file_object_id", UUID.class))
-                .bucketResourceId(rs.getObject("bucket_resource_id", UUID.class));
-        }
-    }
-
-    public UUID createFileDataProject(FileDataProjectSummary fileDataProjectSummary) {
-        String sql = "INSERT INTO file_data_project (file_object_id, project_resource_id) VALUES " +
-            "(:file_object_id, :project_resource_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("file_object_id", fileDataProjectSummary.getFileObjectId())
-            .addValue("project_resource_id", fileDataProjectSummary.getProjectResourceId());
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        return keyHolder.getId();
-    }
-
-    public FileDataProjectSummary retrieveFileDataProject(UUID fileObjectId) {
-        try {
-            String sql = "SELECT id, file_object_id, project_resource_id FROM file_data_project " +
-                " WHERE file_object_id = :file_object_id";
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("file_object_id", fileObjectId);
-            return jdbcTemplate.queryForObject(sql, params, new FileDataProjectSummaryMapper());
-        } catch (EmptyResultDataAccessException ex) {
-            throw new DataProjectNotFoundException("File data project not found for: " + fileObjectId);
-        }
-    }
-
-    public boolean deleteFileDataProject(UUID id) {
-        String sql = "DELETE FROM file_data_project WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
-        int rowsAffected = jdbcTemplate.update(sql, params);
-        return rowsAffected > 0;
-    }
-
-    private static class FileDataProjectSummaryMapper implements RowMapper<FileDataProjectSummary> {
-        public FileDataProjectSummary mapRow(ResultSet rs, int rowNum) throws SQLException {
-            return new FileDataProjectSummary()
-                .id(rs.getObject("id", UUID.class))
-                .fileObjectId(rs.getObject("file_object_id", UUID.class))
-                .projectResourceId(rs.getObject("project_resource_id", UUID.class));
-        }
     }
 
     public UUID createDatasetDataProject(DatasetDataProjectSummary datasetDataProjectSummary) {

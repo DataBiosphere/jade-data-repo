@@ -31,6 +31,7 @@ public class FireStoreObject {
     private String flightId;
     private String profileId;
     private String region;
+    private String bucketResourceId;
 
     public FireStoreObject() {
     }
@@ -167,6 +168,15 @@ public class FireStoreObject {
 
     public FireStoreObject region(String region) {
         this.region = region;
+        return this;
+    }
+
+    public String getBucketResourceId() {
+        return bucketResourceId;
+    }
+
+    public FireStoreObject bucketResourceId(String bucketResourceId) {
+        this.bucketResourceId = bucketResourceId;
         return this;
     }
 }

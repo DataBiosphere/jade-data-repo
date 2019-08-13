@@ -3,7 +3,7 @@ package bio.terra.resourcemanagement.metadata.google;
 import java.util.UUID;
 
 public class GoogleBucketResource {
-    private UUID repositoryId;
+    private UUID resourceId;
     private GoogleBucketRequest googleBucketRequest;
 
     public GoogleBucketResource() {
@@ -32,12 +32,12 @@ public class GoogleBucketResource {
         return this;
     }
 
-    public UUID getRepositoryId() {
-        return repositoryId;
+    public UUID getResourceId() {
+        return resourceId;
     }
 
-    public GoogleBucketResource repositoryId(UUID repositoryId) {
-        this.repositoryId = repositoryId;
+    public GoogleBucketResource resourceId(UUID resourceId) {
+        this.resourceId = resourceId;
         return this;
     }
 
@@ -47,6 +47,15 @@ public class GoogleBucketResource {
 
     public GoogleBucketResource name(String bucketName) {
         googleBucketRequest.bucketName(bucketName);
+        return this;
+    }
+
+    public String getRegion() {
+        return googleBucketRequest.getRegion();
+    }
+
+    public GoogleBucketResource region(String region) {
+        googleBucketRequest.region(region);
         return this;
     }
 }

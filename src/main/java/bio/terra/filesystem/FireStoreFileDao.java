@@ -176,7 +176,8 @@ public class FireStoreFileDao {
                 .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
                 .size(fsFileInfo.getSize())
                 .fileCreatedDate(fsFileInfo.getCreatedDate())
-                .region(fsFileInfo.getRegion());
+                .region(fsFileInfo.getRegion())
+                .bucketResourceId(fsFileInfo.getBucketResourceId());
 
             // transition point from reading to writing in the transaction
 
@@ -706,7 +707,9 @@ public class FireStoreFileDao {
                     .checksumMd5(fsFile.getChecksumMd5())
                     .mimeType(fsFile.getMimeType())
                     .flightId(fsFile.getFlightId())
-                    .profileId(fsFile.getProfileId());
+                    .profileId(fsFile.getProfileId())
+                    .region(fsFile.getRegion())
+                    .bucketResourceId(fsFile.getBucketResourceId());
                 break;
 
             case DIRECTORY:
@@ -735,6 +738,8 @@ public class FireStoreFileDao {
                     .mimeType(fireStoreObject.getMimeType())
                     .flightId(fireStoreObject.getFlightId())
                     .profileId(fireStoreObject.getProfileId())
+                    .region(fireStoreObject.getRegion())
+                    .bucketResourceId(fireStoreObject.getBucketResourceId())
                     // -- base setters --
                     .objectId(UUID.fromString(fireStoreObject.getObjectId()))
                     .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))

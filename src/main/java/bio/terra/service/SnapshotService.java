@@ -28,7 +28,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.TableModel;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.service.exception.AssetNotFoundException;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -52,17 +52,17 @@ public class SnapshotService {
     private final Stairway stairway;
     private final DatasetDao datasetDao;
     private final SnapshotDao snapshotDao;
-    private final DataProjectService dataProjectService;
+    private final DataLocationService dataLocationService;
 
     @Autowired
     public SnapshotService(Stairway stairway,
-                          DatasetDao datasetDao,
-                          SnapshotDao snapshotDao,
-                          DataProjectService dataProjectService) {
+                           DatasetDao datasetDao,
+                           SnapshotDao snapshotDao,
+                           DataLocationService dataLocationService) {
         this.stairway = stairway;
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
-        this.dataProjectService = dataProjectService;
+        this.dataLocationService = dataLocationService;
     }
 
     /**
@@ -146,7 +146,7 @@ public class SnapshotService {
      */
     public SnapshotModel retrieveSnapshotModel(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        snapshot.dataProject(dataProjectService.getProjectForSnapshot(snapshot));
+        snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
         return makeSnapshotModelFromSnapshot(snapshot);
     }
 
@@ -157,7 +157,7 @@ public class SnapshotService {
      */
     public Snapshot retrieveSnapshot(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        return snapshot.dataProject(dataProjectService.getProjectForSnapshot(snapshot));
+        return snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
     }
 
     /**

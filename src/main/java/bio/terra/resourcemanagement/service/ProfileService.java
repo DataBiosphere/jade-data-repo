@@ -1,5 +1,6 @@
 package bio.terra.resourcemanagement.service;
 
+import bio.terra.pdao.gcs.GcsConfiguration;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
@@ -20,11 +21,13 @@ public class ProfileService {
 
     private final ProfileDao profileDao;
     private final BillingService billingService;
+    private final GcsConfiguration gcsConfiguration;
 
     @Autowired
-    public ProfileService(ProfileDao profileDao, BillingService billingService) {
+    public ProfileService(ProfileDao profileDao, BillingService billingService, GcsConfiguration gcsConfiguration) {
         this.profileDao = profileDao;
         this.billingService = billingService;
+        this.gcsConfiguration = gcsConfiguration;
     }
 
     public static BillingProfileModel makeModelFromBillingProfile(BillingProfile billingProfile) {
@@ -62,6 +65,8 @@ public class ProfileService {
     public BillingProfile getProfileById(UUID id) {
         BillingProfile profile = profileDao.getBillingProfileById(id);
         updateAccessibility(profile);
+        // TODO: temporary, make this something that can be specified in the request and store it in the metadata db
+        profile.gcsRegion(gcsConfiguration.getRegion());
         return profile;
     }
 

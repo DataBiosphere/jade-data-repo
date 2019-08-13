@@ -16,7 +16,7 @@ import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
@@ -40,17 +40,17 @@ public class DatasetService {
     private final DatasetDao datasetDao;
     private final Stairway stairway;
     private final JobService jobService; // for handling flight response
-    private final DataProjectService dataProjectService;
+    private final DataLocationService dataLocationService;
 
     @Autowired
     public DatasetService(DatasetDao datasetDao,
-                        Stairway stairway,
-                        JobService jobService,
-                        DataProjectService dataProjectService) {
+                          Stairway stairway,
+                          JobService jobService,
+                          DataLocationService dataLocationService) {
         this.datasetDao = datasetDao;
         this.stairway = stairway;
         this.jobService = jobService;
-        this.dataProjectService = dataProjectService;
+        this.dataLocationService = dataLocationService;
     }
 
     public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userInfo) {
@@ -64,7 +64,7 @@ public class DatasetService {
 
     public Dataset retrieve(UUID id) {
         Dataset dataset = datasetDao.retrieve(id);
-        return dataset.dataProject(dataProjectService.getProjectForDataset(dataset));
+        return dataset.dataProject(dataLocationService.getProjectForDataset(dataset));
     }
 
     public DatasetModel retrieveModel(UUID id) {

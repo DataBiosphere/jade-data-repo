@@ -16,6 +16,7 @@ import java.util.Optional;
 @Component
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
     private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);
+
     private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired

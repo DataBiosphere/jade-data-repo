@@ -1010,6 +1010,9 @@ paths:
       summary: Get information about this implementation.
       description: >-
         May return service version and other information.
+        [dd]NOTE: technically, this has been removed from DRS V1.0. It will be added back when there is a common
+        service_info across ga4gh. I don't expect it to be too different, so just leaving this info call
+        in place.
       operationId: GetServiceInfo
       responses:
         '200':
@@ -1963,7 +1966,7 @@ definitions:
 
   DRSObject:
     type: object
-    required: ['id', 'size', 'created', 'checksums']
+    required: ['id', 'self_uri', 'size', 'created', 'checksums']
     properties:
       id:
         type: string
@@ -1975,17 +1978,24 @@ definitions:
           A string that can be used to name an `Object`.
           This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_].
           See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
+      self_uri:
+        type: string
+        description: |-
+          A drs:// URI, as defined in the DRS documentation, that tells clients how to access this object.
+          The intent of this field is to make DRS objects self-contained, and therefore easier for clients to store and pass around.
+        example:
+          drs://drs.example.org/314159
       size:
         type: integer
         format: int64
         description: |-
           For blobs, the blob size in bytes.
           For bundles, the cumulative size, in bytes, of items in the `contents` field.
-      created:
+      created_time:
         type: string
         description: |-
           Timestamp of object creation in RFC3339.
-      updated:
+      updated_time:
         type: string
         description: >-
           Timestamp of `Object` update in RFC3339, identical to create timestamp in systems

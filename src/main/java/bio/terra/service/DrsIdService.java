@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.configuration.ApplicationConfiguration;
+import bio.terra.metadata.FSObjectBase;
 import bio.terra.service.exception.InvalidDrsIdException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,13 @@ public class DrsIdService {
 
     public String toDrsObjectId(String datasetId, String snapshotId, String fsObjectId) {
         return fromParts(datasetId, snapshotId, fsObjectId).toDrsObjectId();
+    }
+
+    public DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
+        return fromParts(
+            fsObject.getDatasetId().toString(),
+            snapshotId,
+            fsObject.getObjectId().toString());
     }
 
     private DrsId fromParts(String datasetId, String snapshotId, String fsObjectId) {

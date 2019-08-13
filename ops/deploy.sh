@@ -131,6 +131,17 @@ kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
 kubectl --namespace=data-repo apply -f "${SCRATCH}/cloudsql-proxy.yaml"
 kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-ingress.yaml"
 
+export SIDECAR_IMAGE_TAG=${SIDECAR_IMAGE_TAG:-'0.4.3'}
+export KUBE_NAMESPACE=${KUBE_NAMESPACE:-'default'}
+
+consul-template -template "${WD}/k8s/deployments/prometheus.yaml.ctmpl:${SCRATCH}/prometheus.yaml" -once
+consul-template -template "${WD}/k8s/deployments/kube-state-metrics.yaml.ctmpl:${SCRATCH}/kube-state-metrics.yaml" -once
+consul-template -template "${WD}/k8s/deployments/node-exporter.yaml.ctmpl:${SCRATCH}/node-exporter.yaml" -once
+
+kubectl --namespace=data-repo apply -f "${SCRATCH}/prometheus.yaml" --as=admin --as-group=system:masters
+kubectl --namespace=data-repo apply -f "${SCRATCH}/node-exporter.yaml" --as=admin --as-group=system:masters
+kubectl --namespace=data-repo apply -f "${SCRATCH}/kube-state-metrics.yaml"
+
 
 # create deployments
 kubectl --namespace data-repo apply -f "${WD}/k8s/deployments/"

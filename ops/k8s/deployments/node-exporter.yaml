@@ -4,7 +4,6 @@ metadata:
     labels:
         app: node-exporter
     name: node-exporter
-    namespace: data-repo
 spec:
     selector:
         matchLabels:
@@ -61,7 +60,6 @@ metadata:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9101'
     name: node-exporter
-    namespace: data-repo
 spec:
     clusterIP: None
     ports:

@@ -153,7 +153,7 @@ public class GoogleResourceDao {
                 .profileId(rs.getObject("profile_id", UUID.class));
             return new GoogleBucketResource()
                 .projectResource(projectResource)
-                .repositoryId(rs.getObject("bucket_resource_id", UUID.class))
+                .resourceId(rs.getObject("bucket_resource_id", UUID.class))
                 .name(rs.getString("name"));
         }
     }

@@ -102,7 +102,7 @@ public class GoogleResourceService {
         // TODO: ensure that the repository is the owner unless strictOwnership is false
         GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
         UUID id = resourceDao.createBucket(googleBucketResource);
-        return googleBucketResource.repositoryId(id);
+        return googleBucketResource.resourceId(id);
     }
 
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {
@@ -114,8 +114,7 @@ public class GoogleResourceService {
             //.setRequesterPays()
             // See here for possible values: http://g.co/cloud/storage/docs/storage-classes
             .setStorageClass(StorageClass.REGIONAL)
-            //.setLocation(bucketRequest.getRegion())
-            .setLocation("us-central1")
+            .setLocation(bucketRequest.getRegion())
             .build();
         // the project will have been created before this point, so no need to fetch it
         logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);

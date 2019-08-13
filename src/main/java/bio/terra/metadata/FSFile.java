@@ -16,6 +16,7 @@ public class FSFile extends FSObjectBase {
     private String flightId;
     private String profileId;
     private String region;
+    private String bucketResourceId;
 
     public String getGspath() {
         return gspath;
@@ -115,6 +116,15 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
+    public String getBucketResourceId() {
+        return bucketResourceId;
+    }
+
+    public FSFile bucketResourceId(String bucketResourceId) {
+        this.bucketResourceId = bucketResourceId;
+        return this;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -153,6 +163,8 @@ public class FSFile extends FSObjectBase {
             .append("checksumMd5", checksumMd5)
             .append("mimeType", mimeType)
             .append("flightId", flightId)
+            .append("region", region)
+            .append("bucketResourceId", bucketResourceId)
             .toString();
     }
 }

@@ -14,6 +14,7 @@ public class FSFileInfo {
     private Long size;
     private String flightId;
     private String region;
+    private String bucketResourceId;
 
     public String getObjectId() {
         return objectId;
@@ -96,6 +97,15 @@ public class FSFileInfo {
         return this;
     }
 
+    public String getBucketResourceId() {
+        return bucketResourceId;
+    }
+
+    public FSFileInfo bucketResourceId(String bucketResourceId) {
+        this.bucketResourceId = bucketResourceId;
+        return this;
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
@@ -107,6 +117,7 @@ public class FSFileInfo {
             .append("size", size)
             .append("flightId", flightId)
             .append("region", region)
+            .append("bucketResourceId", bucketResourceId)
             .toString();
     }
 }

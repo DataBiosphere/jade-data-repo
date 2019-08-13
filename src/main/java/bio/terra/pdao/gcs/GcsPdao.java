@@ -6,14 +6,14 @@ import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.FileDataBucket;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.exception.PdaoFileCopyException;
 import bio.terra.pdao.exception.PdaoInvalidUriException;
 import bio.terra.pdao.exception.PdaoSourceFileNotFoundException;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -39,22 +39,21 @@ public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
 
     private final GcsProjectFactory gcsProjectFactory;
-    private final DataProjectService dataProjectService;
+    private final DataLocationService dataLocationService;
     private final FireStoreFileDao fileDao;
 
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
-        DataProjectService dataProjectService,
+        DataLocationService dataLocationService,
         FireStoreFileDao fileDao) {
         this.gcsProjectFactory = gcsProjectFactory;
-        this.dataProjectService = dataProjectService;
+        this.dataLocationService = dataLocationService;
         this.fileDao = fileDao;
     }
 
-    private Storage storageForBucket(FileDataBucket fileDataBucket) {
-        GoogleProjectResource projectResource = fileDataBucket.getProjectResource()
-            .orElseThrow(IllegalStateException::new);
+    private Storage storageForBucket(GoogleBucketResource bucketResource) {
+        GoogleProjectResource projectResource = bucketResource.getProjectResource();
         GcsProject gcsProject = gcsProjectFactory.get(projectResource.getGoogleProjectId());
         return gcsProject.getStorage();
     }
@@ -91,7 +90,7 @@ public class GcsPdao {
         // Figure out where the destination bucket is. Similar to how there is a ProjectIdSelector there will be need
         // to be a BucketSelector that picks a (Project, Bucket) pair for the file. The Resource Manager will then need
         // to potentially create the project and/or the bucket inside of that project depending on what already exists.
-        FileDataBucket bucketForFile = dataProjectService.getBucketForFile(fsObject);
+        GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsObject);
         Storage storage = storageForBucket(bucketForFile);
 
         Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));
@@ -143,7 +142,9 @@ public class GcsPdao {
                 .gspath(gspath.toString())
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
                 .checksumMd5(checksumMd5)
-                .size(targetBlob.getSize());
+                .size(targetBlob.getSize())
+                .region(bucketForFile.getRegion())
+                .bucketResourceId(bucketForFile.getResourceId().toString());
 
             return fsFileInfo;
         } catch (StorageException ex) {
@@ -157,7 +158,7 @@ public class GcsPdao {
     }
 
     public boolean deleteFile(FSFile fsFile) {
-        FileDataBucket bucketForFile = dataProjectService.getBucketForFile(fsFile);
+        GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsFile);
         Storage storage = storageForBucket(bucketForFile);
         URI uri = URI.create(fsFile.getGspath());
         String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
@@ -172,7 +173,7 @@ public class GcsPdao {
         // these files could be in multiple buckets..need to enumerate them from firestore and then iterate + delete
         fileDao.forEachFsObjectInDataset(dataset, fsObjectBase -> {
             if (fsObjectBase.getObjectType() != FSObjectType.DIRECTORY) {
-                deleteFile((FSFile)fsObjectBase);
+                deleteFile((FSFile) fsObjectBase);
             }
         });
     }
@@ -198,11 +199,11 @@ public class GcsPdao {
             FSObjectBase fsObjectBase = fileDao.retrieve(dataset, UUID.fromString(fileId));
             if (fsObjectBase.getObjectType() == FSObjectType.FILE) {
                 FSFile fsFile = (FSFile)fsObjectBase;
-                FileDataBucket fileDataBucket = dataProjectService.getBucketForFile(fsFile);
-                Storage storage = storageForBucket(fileDataBucket);
+                GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsFile);
+                Storage storage = storageForBucket(bucketForFile);
                 URI gsUri = URI.create(fsFile.getGspath());
                 String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");
-                BlobId blobId = BlobId.of(fileDataBucket.getName(), bucketPath);
+                BlobId blobId = BlobId.of(bucketForFile.getName(), bucketPath);
                 switch (op) {
                     case ACL_OP_CREATE:
                         storage.createAcl(blobId, acl);

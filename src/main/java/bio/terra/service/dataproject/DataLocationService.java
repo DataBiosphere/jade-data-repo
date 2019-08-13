@@ -1,12 +1,7 @@
 package bio.terra.service.dataproject;
 
-import bio.terra.dao.exception.DataBucketNotFoundException;
 import bio.terra.dao.exception.DataProjectNotFoundException;
 import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FileDataBucket;
-import bio.terra.metadata.FileDataBucketSummary;
-import bio.terra.metadata.FileDataProject;
-import bio.terra.metadata.FileDataProjectSummary;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.dao.DataProjectDao;
 import bio.terra.metadata.Snapshot;
@@ -30,9 +25,9 @@ import java.util.List;
 import java.util.UUID;
 
 @Component
-public class DataProjectService {
+public class DataLocationService {
 
-    private static final Logger logger = LoggerFactory.getLogger(DataProjectService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DataLocationService.class);
     private static final List<String> DATA_PROJECT_SERVICE_IDS =  Arrays.asList(
         "bigquery-json.googleapis.com",
         "firestore.googleapis.com",
@@ -47,7 +42,7 @@ public class DataProjectService {
     private final GoogleResourceService resourceService;
 
     @Autowired
-    public DataProjectService(
+    public DataLocationService(
             DataProjectDao dataProjectDao,
             DataLocationSelector dataLocationSelector,
             GoogleResourceService resourceService) {
@@ -56,66 +51,23 @@ public class DataProjectService {
         this.resourceService = resourceService;
     }
 
-    public FileDataProject getProjectForFile(FSFile fsFile) {
-        FileDataProjectSummary fileDataProjectSummary = null;
-        GoogleProjectResource googleProjectResource;
+    public GoogleProjectResource getProjectForFile(FSFile fsFile) {
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataLocationSelector.projectIdForFile(fsFile))
             .profileId(UUID.fromString(fsFile.getProfileId()))
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
-        // First see if there is a saved link between a data project resource and this file's object id.
-        try {
-            fileDataProjectSummary = dataProjectDao.retrieveFileDataProject(fsFile.getObjectId());
-            googleProjectResource = resourceService.getProjectResourceById(
-                fileDataProjectSummary.getProjectResourceId());
-        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
-            // either the project doesn't exist or we haven't seen it, so create it or get it and save it
-            googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
-            if (fileDataProjectSummary != null) {
-                logger.warn("metadata has a project resource id it can't resolve for file: " + fsFile.getObjectId());
-                dataProjectDao.deleteFileDataProject(fileDataProjectSummary.getId());
-            }
-            // save a link to the google project resource for this file
-            fileDataProjectSummary = new FileDataProjectSummary()
-                .projectResourceId(googleProjectResource.getRepositoryId())
-                .fileObjectId(fsFile.getObjectId());
-            UUID fileDataProjectId = dataProjectDao.createFileDataProject(fileDataProjectSummary);
-            fileDataProjectSummary.id(fileDataProjectId);
-        }
-        return new FileDataProject(fileDataProjectSummary)
-            .googleProjectResource(googleProjectResource);
+        return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    // TODO: get a project/bucket for file, how to store
-    public FileDataBucket getBucketForFile(FSFile fsFile) {
-        FileDataBucketSummary fileDataBucketSummary = null;
-        GoogleBucketResource googleBucketResource;
+    public GoogleBucketResource getBucketForFile(FSFile fsFile) {
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
-        FileDataProject fileDataProject = getProjectForFile(fsFile);
+        GoogleProjectResource projectResource = getProjectForFile(fsFile);
         GoogleBucketRequest googleBucketRequest = new GoogleBucketRequest()
-            .googleProjectResource(fileDataProject.getGoogleProjectResource())
+            .googleProjectResource(projectResource)
             .bucketName(dataLocationSelector.bucketForFile(fsFile))
-            .profileId(UUID.fromString(fsFile.getProfileId()));
-        // Next see if there is a saved link between a data bucket resource and this file's object id.
-        try {
-            fileDataBucketSummary = dataProjectDao.retrieveFileDataBucket(fsFile.getObjectId());
-            googleBucketResource = resourceService.getBucketResourceById(fileDataBucketSummary.getBucketResourceId());
-        } catch (DataBucketNotFoundException | GoogleResourceNotFoundException e) {
-            // either the bucket doesn't exist or we haven't seen it, so (create it or get it) and save it
-            googleBucketResource = resourceService.getOrCreateBucket(googleBucketRequest);
-            if (fileDataBucketSummary != null) {
-                logger.warn("metadata has a bucket resource id it can't resolve for file: " + fsFile.getObjectId());
-                dataProjectDao.deleteFileDataBucket(fileDataBucketSummary.getFileObjectId());
-            }
-            // save a link to the google bucket resource for this file
-            fileDataBucketSummary = new FileDataBucketSummary()
-                .bucketResourceId(googleBucketResource.getRepositoryId())
-                .fileObjectId(fsFile.getObjectId());
-            UUID fileDataBucketId = dataProjectDao.createFileDataBucket(fileDataBucketSummary);
-            fileDataBucketSummary.id(fileDataBucketId);
-        }
-        return new FileDataBucket(fileDataBucketSummary)
-            .googleBucketResource(googleBucketResource);
+            .profileId(UUID.fromString(fsFile.getProfileId()))
+            .region(fsFile.getRegion());
+        return resourceService.getOrCreateBucket(googleBucketRequest);
     }
 
     public SnapshotDataProject getProjectForSnapshot(Snapshot snapshot) {

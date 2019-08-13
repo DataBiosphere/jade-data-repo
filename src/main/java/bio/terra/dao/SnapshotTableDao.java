@@ -1,6 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.metadata.Column;
+import bio.terra.metadata.SnapshotTable;
 import bio.terra.metadata.Table;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -30,12 +31,12 @@ public class SnapshotTableDao {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    public void createTables(UUID parentId, List<Table> tableList) {
+    public void createTables(UUID parentId, List<SnapshotTable> tableList) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         params.addValue("parent_id", parentId);
 
-        for (Table table: tableList) {
+        for (SnapshotTable table: tableList) {
             params.addValue("name", table.getName());
             jdbcTemplate.update(sqlInsertTable, params, keyHolder);
             UUID tableId = keyHolder.getId();
@@ -58,10 +59,10 @@ public class SnapshotTableDao {
         }
     }
 
-    public List<Table> retrieveTables(UUID parentId) {
+    public List<SnapshotTable> retrieveTables(UUID parentId) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("parent_id", parentId);
         return jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> {
-            Table table = new Table()
+            SnapshotTable table = new SnapshotTable()
                 .id(rs.getObject("id", UUID.class))
                 .name(rs.getString("name"));
             List<Column> columns = retrieveColumns(table);

@@ -7,6 +7,7 @@ import bio.terra.metadata.AssetTable;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetRelationship;
 import bio.terra.metadata.DatasetSummary;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.Table;
 import bio.terra.metadata.Column;
 import bio.terra.model.RelationshipTermModel.CardinalityEnum;
@@ -26,7 +27,7 @@ public final class DatasetJsonConversion {
     private DatasetJsonConversion() {}
 
     public static Dataset datasetRequestToDataset(DatasetRequestModel datasetRequest) {
-        Map<String, Table> tablesMap = new HashMap<>();
+        Map<String, DatasetTable> tablesMap = new HashMap<>();
         Map<String, DatasetRelationship> relationshipsMap = new HashMap<>();
         List<AssetSpecification> assetSpecifications = new ArrayList<>();
         UUID defaultProfileId = UUID.fromString(datasetRequest.getDefaultProfileId());
@@ -92,10 +93,10 @@ public final class DatasetJsonConversion {
                         .collect(Collectors.toList()));
     }
 
-    public static Table tableModelToTable(TableModel tableModel) {
+    public static DatasetTable tableModelToTable(TableModel tableModel) {
         Map<String, Column> columnMap = new HashMap<>();
         List<Column> columns = new ArrayList<>();
-        Table datasetTable = new Table().name(tableModel.getName());
+        DatasetTable datasetTable = new DatasetTable().name(tableModel.getName());
 
         for (ColumnModel columnModel : tableModel.getColumns()) {
             Column column = columnModelToDatasetColumn(columnModel).table(datasetTable);
@@ -113,11 +114,10 @@ public final class DatasetJsonConversion {
         return datasetTable.columns(columns);
     }
 
-    public static TableModel tableModelFromTable(Table datasetTable) {
+    public static TableModel tableModelFromTable(DatasetTable datasetTable) {
         return new TableModel()
             .name(datasetTable.getName())
             .primaryKey(datasetTable.getPrimaryKey()
-                .orElse(Collections.emptyList())
                 .stream()
                 .map(Column::getName)
                 .collect(Collectors.toList()))
@@ -142,7 +142,7 @@ public final class DatasetJsonConversion {
 
     public static DatasetRelationship relationshipModelToDatasetRelationship(
             RelationshipModel relationshipModel,
-            Map<String, Table> tables) {
+            Map<String, DatasetTable> tables) {
         Table fromTable = tables.get(relationshipModel.getFrom().getTable());
         Table toTable = tables.get(relationshipModel.getTo().getTable());
         return new DatasetRelationship()
@@ -176,7 +176,7 @@ public final class DatasetJsonConversion {
 
     public static AssetSpecification assetModelToAssetSpecification(
             AssetModel assetModel,
-            Map<String, Table> tables,
+            Map<String, DatasetTable> tables,
             Map<String, DatasetRelationship> relationships) {
         AssetSpecification spec = new AssetSpecification()
                 .name(assetModel.getName());
@@ -188,7 +188,7 @@ public final class DatasetJsonConversion {
     private static List<AssetTable> processAssetTables(
             AssetSpecification spec,
             AssetModel assetModel,
-            Map<String, Table> tables) {
+            Map<String, DatasetTable> tables) {
         List<AssetTable> newAssetTables = new ArrayList<>();
         assetModel.getTables().forEach(tblMod -> {
             boolean processingRootTable = false;

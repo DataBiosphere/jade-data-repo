@@ -7,6 +7,7 @@ import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSummary;
@@ -154,23 +155,20 @@ public class DatasetDaoTest {
     public void primaryKeyTest() throws IOException {
         UUID datasetId = createDataset("dataset-primary-key.json");
         Dataset fromDB = datasetDao.retrieve(datasetId);
-        Table variants = fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
-        Table freqAnalysis = fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
-        Table metaAnalysis = fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
+        DatasetTable variants = fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
+        DatasetTable freqAnalysis = fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
+        DatasetTable metaAnalysis = fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
 
         assertThat("single-column primary keys are set correctly",
-            variants.getPrimaryKey().orElseThrow(IllegalStateException::new)
-                .stream().map(Column::getName).collect(Collectors.toList()),
+            variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
             equalTo(Collections.singletonList("id")));
 
         assertThat("dual-column primary keys are set correctly",
-            metaAnalysis.getPrimaryKey().orElseThrow(IllegalStateException::new)
-                .stream().map(Column::getName).collect(Collectors.toList()),
+            metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
             equalTo(Arrays.asList("variant_id", "phenotype")));
 
         assertThat("many-column primary keys are set correctly",
-            freqAnalysis.getPrimaryKey().orElseThrow(IllegalStateException::new)
-                .stream().map(Column::getName).collect(Collectors.toList()),
+            freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
             equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
 
         datasetDao.delete(datasetId);

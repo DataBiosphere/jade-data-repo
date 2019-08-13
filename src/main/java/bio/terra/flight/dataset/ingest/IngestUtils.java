@@ -3,7 +3,7 @@ package bio.terra.flight.dataset.ingest;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.flight.exception.TableNotFoundException;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Table;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.service.JobMapKeys;
@@ -55,9 +55,9 @@ public final class IngestUtils {
         return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), IngestRequestModel.class);
     }
 
-    public static Table getDatasetTable(FlightContext context, Dataset dataset) {
+    public static DatasetTable getDatasetTable(FlightContext context, Dataset dataset) {
         IngestRequestModel ingestRequest = getIngestRequestModel(context);
-        Optional<Table> optTable = dataset.getTableByName(ingestRequest.getTable());
+        Optional<DatasetTable> optTable = dataset.getTableByName(ingestRequest.getTable());
         if (!optTable.isPresent()) {
             throw new TableNotFoundException("Table not found: " + ingestRequest.getTable());
         }

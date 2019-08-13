@@ -4,6 +4,7 @@ import bio.terra.flight.exception.IngestFailureException;
 import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
@@ -96,7 +97,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
-            for (Table table : dataset.getTables()) {
+            for (DatasetTable table : dataset.getTables()) {
                 Schema schema = buildSchema(table, true);
                 bigQueryProject.createTable(datasetName, table.getName(), schema);
             }
@@ -293,7 +294,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     // Load data
     public PdaoLoadStatistics loadToStagingTable(Dataset dataset,
-                                                 Table targetTable,
+                                                 DatasetTable targetTable,
                                                  String stagingTableName,
                                                  IngestRequestModel ingestRequest) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
@@ -562,9 +563,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private Schema buildSchema(Table table, boolean addRowIdColumn) {
+    private Schema buildSchema(DatasetTable table, boolean addRowIdColumn) {
         List<Field> fieldList = new ArrayList<>();
-        List<String> primaryKeys = table.getPrimaryKey().orElse(Collections.emptyList())
+        List<String> primaryKeys = table.getPrimaryKey()
             .stream()
             .map(Column::getName)
             .collect(Collectors.toList());

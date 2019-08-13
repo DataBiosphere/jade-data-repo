@@ -10,52 +10,12 @@ import java.util.UUID;
 /**
  * Generic class for tables. It can be used for both dataset and snapshot tables.
  */
-public class Table {
-    private UUID id;
-    private String name;
-    private List<Column> primaryKey;
-    private List<Column> columns = Collections.emptyList();
+public interface Table {
+    UUID getId();
+    String getName();
+    List<Column> getColumns();
 
-    public UUID getId() {
-        return id;
-    }
-
-    public Table id(UUID id) {
-        this.id = id;
-        return this;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public Table name(String name) {
-        this.name = name;
-        return this;
-    }
-
-    public Optional<List<Column>> getPrimaryKey() {
-        // NOTE: This should only return `Optional.EMPTY`
-        // when modeling a snapshot table. Dataset tables
-        // will always have a primary key.
-        return Optional.ofNullable(primaryKey);
-    }
-
-    public Table primaryKey(List<Column> primaryKey) {
-        this.primaryKey = primaryKey;
-        return this;
-    }
-
-    public List<Column> getColumns() {
-        return columns;
-    }
-
-    public Table columns(List<Column> columns) {
-        this.columns = columns;
-        return this;
-    }
-
-    public Optional<Column> getColumnById(UUID id) {
+    default Optional<Column> getColumnById(UUID id) {
         for (Column tryColumn : getColumns()) {
             if (tryColumn.getId().equals(id)) {
                 return Optional.of(tryColumn);
@@ -65,9 +25,9 @@ public class Table {
     }
 
     // Build a name to column map
-    public Map<String, Column> getColumnsMap() {
+    default Map<String, Column> getColumnsMap() {
         Map<String, Column> columnMap = new HashMap<>();
-        columns.forEach(column -> columnMap.put(column.getName(), column));
+        getColumns().forEach(column -> columnMap.put(column.getName(), column));
         return Collections.unmodifiableMap(columnMap);
     }
 }

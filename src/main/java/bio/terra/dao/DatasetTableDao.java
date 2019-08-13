@@ -2,6 +2,7 @@ package bio.terra.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,10 +15,8 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -46,16 +45,15 @@ public class DatasetTableDao {
     }
 
     // Assumes transaction propagation from parent's create
-    public void createTables(UUID parentId, List<Table> tableList) {
+    public void createTables(UUID parentId, List<DatasetTable> tableList) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         params.addValue("dataset_id", parentId);
 
-        for (Table table : tableList) {
+        for (DatasetTable table : tableList) {
             params.addValue("name", table.getName());
 
             List<String> naturalKeyStringList = table.getPrimaryKey()
-                .orElse(Collections.emptyList())
                 .stream()
                 .map(Column::getName)
                 .collect(Collectors.toList());
@@ -88,10 +86,10 @@ public class DatasetTableDao {
         }
     }
 
-    public List<Table> retrieveTables(UUID parentId) {
+    public List<DatasetTable> retrieveTables(UUID parentId) {
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("dataset_id", parentId);
         return jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> {
-            Table table = new Table()
+            DatasetTable table = new DatasetTable()
                 .id(rs.getObject("id", UUID.class))
                 .name(rs.getString("name"));
 
@@ -101,9 +99,7 @@ public class DatasetTableDao {
                 .stream()
                 .collect(Collectors.toMap(Column::getName, Function.identity()));
 
-            List<Column> naturalKeyColumns = Optional.ofNullable(primaryKey)
-                .orElse(Collections.emptyList())
-                .stream()
+            List<Column> naturalKeyColumns = primaryKey.stream()
                 .map(columnMap::get)
                 .collect(Collectors.toList());
             table.primaryKey(naturalKeyColumns);

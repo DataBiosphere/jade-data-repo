@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import bio.terra.model.ErrorModel;
+import bio.terra.model.DRSError;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
@@ -8,10 +8,10 @@ import java.util.Optional;
 /**
  * Specialization of ObjectOrErrorResponse for ErrorModel
  */
-public class DataRepoResponse<T> {
-    private ObjectOrErrorResponse<ErrorModel, T>  response;
+public class DrsResponse<T> {
+    private ObjectOrErrorResponse<DRSError, T>  response;
 
-    public DataRepoResponse(ObjectOrErrorResponse<ErrorModel, T> response) {
+    public DrsResponse(ObjectOrErrorResponse<DRSError, T> response) {
         this.response = response;
     }
 
@@ -19,15 +19,11 @@ public class DataRepoResponse<T> {
         return response.getStatusCode();
     }
 
-    public Optional<ErrorModel> getErrorObject() {
+    public Optional<DRSError> getErrorObject() {
         return response.getErrorObject();
     }
 
     public Optional<T> getResponseObject() {
         return response.getResponseObject();
-    }
-
-    public Optional<String> getLocationHeader() {
-        return response.getLocationHeader();
     }
 }

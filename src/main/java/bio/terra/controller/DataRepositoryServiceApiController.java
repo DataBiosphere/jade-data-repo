@@ -4,8 +4,8 @@ import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.exception.BadRequestException;
 import bio.terra.exception.NotFoundException;
+import bio.terra.exception.NotImplementedException;
 import bio.terra.model.DRSAccessURL;
-import bio.terra.model.DRSBundle;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
@@ -75,6 +76,12 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     @ExceptionHandler
+    public ResponseEntity<DRSError> notImplementedExceptionHandler(NotImplementedException ex) {
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.NOT_IMPLEMENTED.value());
+        return new ResponseEntity<>(error, HttpStatus.NOT_IMPLEMENTED);
+    }
+
+    @ExceptionHandler
     public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -88,14 +95,11 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     @Override
-    public ResponseEntity<DRSBundle> getBundle(@PathVariable("bundle_id") String bundleId) {
-        return new ResponseEntity<>(drsService.lookupBundleByDrsId(bundleId), HttpStatus.OK);
-    }
-
-    @Override
-    public ResponseEntity<DRSObject> getObject(@PathVariable("object_id") String objectId) {
+    public ResponseEntity<DRSObject> getObject(
+        @PathVariable("object_id") String objectId,
+        @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
         // The incoming object id is a DRS object id, not a file id.
-        return new ResponseEntity<>(drsService.lookupObjectByDrsId(objectId), HttpStatus.OK);
+        return new ResponseEntity<>(drsService.lookupObjectByDrsId(objectId, expand), HttpStatus.OK);
     }
 
     @Override

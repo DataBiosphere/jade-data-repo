@@ -25,6 +25,10 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -50,14 +54,6 @@ public class DataRepoFixtures {
     @Autowired
     private ObjectMapper objectMapper;
 
-
-    public DataRepoResponse<DRSObject> resolveDrsId(TestConfiguration.User user, String objectId) throws Exception {
-        return dataRepoClient.get(
-            user,
-            "/ga4gh/drs/v1/objects/" + objectId,
-            DRSObject.class
-        );
-    }
     @Autowired
     private GoogleResourceConfiguration googleResourceConfiguration;
 
@@ -145,7 +141,7 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        SamClientService.ResourceType resourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.toApiString() + "/" +
+        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.getHttpPathString() + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
@@ -260,16 +256,6 @@ public class DataRepoFixtures {
                 deleteModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
-
-    /**
-     * Ingests JSON data taking the defaults for the ingest specification
-     *
-     * @param datasetId   - id of dataset to load
-     * @param tableName - name of table to load data into
-     * @param filePath  - file path within the bucket from property integrationtest.ingestbucket
-     * @return ingest response
-     * @throws Exception
-     */
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
         TestConfiguration.User user, String datasetId, String tableName, String filePath) throws Exception {
         String ingestBody = buildSimpleIngest(tableName, filePath);
@@ -370,6 +356,28 @@ public class DataRepoFixtures {
         DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
             user, launchResp, DeleteResponseModel.class);
         assertGoodDeleteResponse(deleteResponse);
+    }
+
+    public DrsResponse<DRSObject> drsGetObjectRaw(TestConfiguration.User user, String drsObjectId) throws Exception {
+        return dataRepoClient.drsGet(
+            user,
+            "/ga4gh/drs/v1/objects/" + drsObjectId,
+            DRSObject.class);
+    }
+
+    public DRSObject drsGetObject(TestConfiguration.User user, String drsObjectId) throws Exception {
+        DrsResponse<DRSObject> response = drsGetObjectRaw(user, drsObjectId);
+        assertThat("object is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("object get response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public Storage getStorage(String token) {
+        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
+        StorageOptions storageOptions = StorageOptions.newBuilder()
+            .setCredentials(googleCredentials)
+            .build();
+        return storageOptions.getService();
     }
 
     private String buildSimpleIngest(String table, String filename) throws Exception {

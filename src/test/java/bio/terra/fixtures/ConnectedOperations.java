@@ -4,24 +4,25 @@ import bio.terra.configuration.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.model.FileLoadModel;
 import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -51,6 +52,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Common code for creating and deleting datasets and snapshots via MockMvc
 // and tracking what is created so it can be deleted.
 @Component
+@Profile("connectedtest")
 public class ConnectedOperations {
     private MockMvc mvc;
     private ObjectMapper objectMapper;

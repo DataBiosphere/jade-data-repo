@@ -42,9 +42,14 @@ public class SamClientService {
     }
 
     public enum ResourceType {
-        DATAREPO,
-        DATASET,
-        DATASNAPSHOT;
+        DATAREPO(null),
+        DATASET("datasets"),
+        DATASNAPSHOT("snapshots");
+
+        private String httpPathString;
+        ResourceType(String httpPathString) {
+            this.httpPathString = httpPathString;
+        }
 
         @Override
         @JsonValue
@@ -52,12 +57,8 @@ public class SamClientService {
             return StringUtils.lowerCase(name());
         }
 
-        // this is how this resource type is represented in the url
-        public String toApiString() {
-            if (this.toString().equals("datasnapshot")) {
-                return "snapshots";
-            }
-            return this.toString() + "s";
+        public String getHttpPathString() {
+            return httpPathString;
         }
 
         @JsonCreator

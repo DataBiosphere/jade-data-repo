@@ -14,6 +14,8 @@ public final class ValidationUtils {
         Pattern.CASE_INSENSITIVE);
 
     // path needs to start with a leading forward slash
+    // TODO: This validation check is NOT required by the underlying code. The filesystem dao is
+    // more forgiving. Should we enforce this or fix it up, as is done in filesystem.
     private static final String VALID_PATH = "/.*";
 
     private ValidationUtils() {

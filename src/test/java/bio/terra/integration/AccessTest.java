@@ -36,6 +36,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -138,7 +139,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest().email(reader().getEmail()).token(readerToken);
+            new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,
@@ -202,7 +203,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest().email(reader().getEmail()).token(readerToken);
+            new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,

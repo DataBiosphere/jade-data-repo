@@ -196,7 +196,7 @@ public class SamClientService {
 
     public List<ResourceAndAccessPolicy> listAuthorizedResources(
         AuthenticatedUserRequest userReq, ResourceType resourceType) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         return samResourceApi.listResourcesAndPolicies(resourceType.toString());
     }
 
@@ -206,17 +206,17 @@ public class SamClientService {
         String samResource,
         String action)
             throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         return samResourceApi.resourceAction(samResourceType, samResource, action);
     }
 
     public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         samResourceApi.deleteResource(ResourceType.DATASET.toString(), datasetId.toString());
     }
 
     public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         samResourceApi.deleteResource(ResourceType.DATASNAPSHOT.toString(), datsetId.toString());
     }
 
@@ -234,7 +234,7 @@ public class SamClientService {
             DataRepoRole.INGESTER.toString(),
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.INGESTER.toString())));
 
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASET.toString(), req);
 
@@ -242,7 +242,7 @@ public class SamClientService {
         // for the policies that get created by SAM
         ArrayList<String> rolePolicies = new ArrayList<>();
         for (DataRepoRole role : Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
-            Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
+            Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
                 ResourceType.DATASET.toString(),
                 datasetId.toString(),
                 role.toString());
@@ -275,13 +275,13 @@ public class SamClientService {
             new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.DISCOVERER.toString())));
 
         // create the resource in sam
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
         createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASNAPSHOT.toString(), req);
 
         // sync the readers policy
         // Map[WorkbenchEmail, Seq[SyncReportItem]]
-        Map<String, List<Object>> results = samGoogleApi(userReq.getToken()).syncPolicy(
+        Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
             ResourceType.DATASNAPSHOT.toString(),
             snapshotId.toString(),
             DataRepoRole.READER.toString());
@@ -292,7 +292,7 @@ public class SamClientService {
         AuthenticatedUserRequest userReq,
         ResourceType resourceType,
         UUID resourceId) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         List<AccessPolicyResponseEntry> results =
             samResourceApi.listResourcePolicies(resourceType.toString(), resourceId.toString());
         return results.stream().map(entry -> new PolicyModel()
@@ -308,7 +308,7 @@ public class SamClientService {
         UUID resourceId,
         String policyName,
         String userEmail) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         samResourceApi.addUserToPolicy(resourceType.toString(), resourceId.toString(), policyName, userEmail);
 
         AccessPolicyMembership result =
@@ -325,7 +325,7 @@ public class SamClientService {
         UUID resourceId,
         String policyName,
         String userEmail) throws ApiException {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getToken());
+        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         samResourceApi.removeUserFromPolicy(resourceType.toString(), resourceId.toString(), policyName, userEmail);
 
         AccessPolicyMembership result =
@@ -337,7 +337,7 @@ public class SamClientService {
     }
 
     public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) throws ApiException {
-        UsersApi samUsersApi = samUsersApi(userReq.getToken());
+        UsersApi samUsersApi = samUsersApi(userReq.getRequiredToken());
         org.broadinstitute.dsde.workbench.client.sam.model.UserStatusInfo samInfo = samUsersApi.getUserStatusInfo();
         return new UserStatusInfo().userSubjectId(samInfo.getUserSubjectId())
             .userEmail(samInfo.getUserEmail())

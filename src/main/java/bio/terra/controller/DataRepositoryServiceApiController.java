@@ -32,6 +32,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final DrsService drsService;
+    private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -41,12 +42,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
             ObjectMapper objectMapper,
             HttpServletRequest request,
             DrsService drsService,
-            ApplicationConfiguration appConfig
+            ApplicationConfiguration appConfig,
+            AuthenticatedUserRequestFactory authenticatedUserRequestFactory
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.appConfig = appConfig;
         this.drsService = drsService;
+        this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     }
 
     @Override
@@ -60,7 +63,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     private AuthenticatedUserRequest getAuthenticatedInfo() {
-        return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
+        return authenticatedUserRequestFactory.from(request);
     }
 
     @ExceptionHandler

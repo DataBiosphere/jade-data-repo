@@ -1,7 +1,8 @@
 package bio.terra.controller;
 
 import bio.terra.configuration.ApplicationConfiguration;
-import bio.terra.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
@@ -14,6 +15,9 @@ import java.util.Optional;
 @Profile("!terra")
 @Component
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
+
+    private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);
+
     private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
@@ -23,15 +27,13 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
 
     // Static method to build an AuthenticatedUserRequest from data available to the controller
     public AuthenticatedUserRequest from(HttpServletRequest servletRequest) {
-
         HttpServletRequest req = servletRequest;
         String email = applicationConfiguration.getUserEmail();
-        String header = Optional.of(req.getHeader("Authorization"))
-            .orElseThrow(() -> new BadRequestException("No Authorization Header found."));
-        String token = header.substring("Bearer ".length());
+
+        Optional<String> token = Optional.ofNullable(req.getHeader("Authorization"))
+            .map(header -> header.substring("Bearer ".length()));
 
         return new AuthenticatedUserRequest(email, token);
     }
-
 
 }

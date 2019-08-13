@@ -1,12 +1,15 @@
 package bio.terra.controller;
 
+import bio.terra.controller.exception.ApiException;
+
+import java.util.Optional;
 import java.util.UUID;
 
 public class AuthenticatedUserRequest {
 
     private String email;
     private String subjectId;
-    private String token;
+    private Optional<String> token;
     private UUID reqId;
     private boolean canListJobs;
     private boolean canDeleteJobs;
@@ -15,7 +18,7 @@ public class AuthenticatedUserRequest {
         this.reqId = UUID.randomUUID();
     }
 
-    public AuthenticatedUserRequest(String email, String subjectId, String token) {
+    public AuthenticatedUserRequest(String email, String subjectId, Optional<String> token) {
         this.email = email;
         this.subjectId = subjectId;
         this.token = token;
@@ -39,13 +42,21 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
-    public String getToken() {
+    public Optional<String> getToken() {
         return token;
     }
 
-    public AuthenticatedUserRequest token(String token) {
+    public AuthenticatedUserRequest token(Optional<String> token) {
         this.token = token;
         return this;
+    }
+
+
+    public String getRequiredToken() {
+        if (!token.isPresent()) {
+            throw new ApiException("Token required");
+        }
+        return token.get();
     }
 
     public UUID getReqId() {

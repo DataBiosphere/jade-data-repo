@@ -19,7 +19,7 @@ public class ProxiedAuthenticatedUserRequestFactory implements AuthenticatedUser
         String token = Optional.of(req.getHeader("oidc_access_token"))
             .orElseThrow(() -> new BadRequestException("No valid token found in oidc_access_token header."));
 
-        return new AuthenticatedUserRequest(email, token);
+        return new AuthenticatedUserRequest(email, Optional.of(token));
     }
 
 }

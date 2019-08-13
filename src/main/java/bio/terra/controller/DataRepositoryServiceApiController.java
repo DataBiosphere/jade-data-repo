@@ -77,7 +77,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
 
     @ExceptionHandler
     public ResponseEntity<DRSError> notImplementedExceptionHandler(NotImplementedException ex) {
-        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.NOT_FOUND.value());
+        DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.NOT_IMPLEMENTED.value());
         return new ResponseEntity<>(error, HttpStatus.NOT_IMPLEMENTED);
     }
 

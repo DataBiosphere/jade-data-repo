@@ -1079,7 +1079,7 @@ paths:
             contains only those objects directly contained in the bundle. That is, if the
             bundle contains other bundles, those other bundles are not recursively
             included in the result.
-            
+
             If true and the object_id refers to a bundle, then the entire set of objects
             in the bundle is expanded. That is, if the bundle contains another bundles,
             then those other bundles are recursively expanded and included in the result.
@@ -1157,7 +1157,7 @@ paths:
 parameters:
   Id:
     name: id
-    description: A dataset or snapshot id
+    description: A UUID to used to identify an object in the repository
     required: true
     type: string
     in: path
@@ -2165,7 +2165,7 @@ definitions:
           A name declared by the bundle author that must be
           used when materialising this object,
           overriding any name directly associated with the object itself.
-          The name must be unique with the containing bundle. 
+          The name must be unique with the containing bundle.
           This string is made up of uppercase and lowercase letters, decimal digits, hypen, period, and underscore [A-Za-z0-9.-_].
           See http://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282[portable filenames].
       id:

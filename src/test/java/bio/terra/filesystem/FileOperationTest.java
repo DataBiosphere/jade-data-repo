@@ -81,7 +81,7 @@ public class FileOperationTest {
         BillingProfileModel profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
         DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
             "snapshot-test-dataset.json");
-        FileLoadModel fileLoadModel = makeFileLoad();
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         FSObjectModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
@@ -128,6 +128,7 @@ public class FileOperationTest {
         String badPath = "/dd/files/" + Names.randomizeName("dir") + badfile;
 
         fileLoadModel = new FileLoadModel()
+            .profileId(profileModel.getId())
             .sourcePath(uribadfile.toString())
             .description(testDescription)
             .mimeType(testMimeType)
@@ -139,6 +140,7 @@ public class FileOperationTest {
 
         // Error: Invalid gs path - case 1: not gs
         fileLoadModel = new FileLoadModel()
+            .profileId(profileModel.getId())
             .sourcePath("http://jade_notabucket/foo/bar.txt")
             .description(testDescription)
             .mimeType(testMimeType)
@@ -150,6 +152,7 @@ public class FileOperationTest {
 
         // Error: Invalid gs path - case 2: invalid bucket name
         fileLoadModel = new FileLoadModel()
+            .profileId(profileModel.getId())
             .sourcePath("gs://jade_notabucket:1234/foo/bar.txt")
             .description(testDescription)
             .mimeType(testMimeType)
@@ -161,6 +164,7 @@ public class FileOperationTest {
 
         // Error: Invalid gs path - case 3: no bucket or path
         fileLoadModel = new FileLoadModel()
+            .profileId(profileModel.getId())
             .sourcePath("gs:///")
             .description(testDescription)
             .mimeType(testMimeType)
@@ -176,7 +180,7 @@ public class FileOperationTest {
         return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
-    private FileLoadModel makeFileLoad() throws Exception {
+    private FileLoadModel makeFileLoad(String profileId) throws Exception {
         String targetDir = Names.randomizeName("dir");
         URI uri = new URI("gs",
             testConfig.getIngestbucket(),
@@ -189,7 +193,8 @@ public class FileOperationTest {
             .sourcePath(uri.toString())
             .description(testDescription)
             .mimeType(testMimeType)
-            .targetPath(targetPath);
+            .targetPath(targetPath)
+            .profileId(profileId);
 
         return fileLoadModel;
     }

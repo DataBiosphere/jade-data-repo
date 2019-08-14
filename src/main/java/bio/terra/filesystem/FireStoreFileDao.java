@@ -343,20 +343,20 @@ public class FireStoreFileDao {
      *
      * @param datasetId
      */
-    private static final int BATCH_SIZE = 500;
+    private static final int DELETE_BATCH_SIZE = 500;
     public void deleteFilesFromDataset(Dataset dataset) {
-        visitEachDocumentInDataset(dataset, document -> document.getReference().delete());
+        visitEachDocumentInDataset(dataset, DELETE_BATCH_SIZE, document -> document.getReference().delete());
     }
 
-    public void forEachFsObjectInDataset(Dataset dataset, Consumer<FSObjectBase> func) {
-        visitEachDocumentInDataset(dataset, document -> {
+    public void forEachFsObjectInDataset(Dataset dataset, int batchSize, Consumer<FSObjectBase> func) {
+        visitEachDocumentInDataset(dataset, batchSize, document -> {
             FireStoreObject currentObject = document.toObject(FireStoreObject.class);
             FSObjectBase fsObject = makeFSObjectFromFireStoreObject(currentObject);
             func.accept(fsObject);
         });
     }
 
-    private void visitEachDocumentInDataset(Dataset dataset, Consumer<QueryDocumentSnapshot> func) {
+    private void visitEachDocumentInDataset(Dataset dataset, int batchSize, Consumer<QueryDocumentSnapshot> func) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
         try {
@@ -364,15 +364,15 @@ public class FireStoreFileDao {
             int visited;
             do {
                 visited = 0;
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(BATCH_SIZE).get();
+                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
                 batchCount++;
-                logger.info("Visiting batch " + batchCount + " of ~" + BATCH_SIZE + " documents");
+                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
                 for (QueryDocumentSnapshot document : documents) {
                     func.accept(document);
                     visited++;
                 }
-            } while (visited >= BATCH_SIZE);
+            } while (visited >= batchSize);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("scanning dataset - execution interrupted", ex);

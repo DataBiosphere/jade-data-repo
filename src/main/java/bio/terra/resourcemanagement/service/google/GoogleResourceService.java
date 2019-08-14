@@ -124,17 +124,15 @@ public class GoogleResourceService {
     public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
-        UUID profileId = projectRequest.getProfileId();
+        String googleProjectId = projectRequest.getProjectId();
         try {
-            return resourceDao.retrieveProjectByProfileId(profileId);
-
+            return resourceDao.retrieveProjectByGoogleProjectId(googleProjectId);
         } catch (GoogleResourceNotFoundException e) {
-            logger.info("no project resource metadata found for profile: {}", profileId);
+            logger.info("no project resource found for projectId: {}", googleProjectId);
         }
 
         // it's possible that the project exists already but it is not stored in the metadata table
         // TODO: ensure that the ownership, read/write perms are correct!
-        String googleProjectId = projectRequest.getProjectId();
         Project existingProject = getProject(googleProjectId);
         if (existingProject != null) {
             GoogleProjectResource googleProjectResource = new GoogleProjectResource(projectRequest)

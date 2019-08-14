@@ -6,12 +6,12 @@ import bio.terra.filesystem.exception.FileSystemExecutionException;
 import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
 import bio.terra.metadata.FSObjectType;
-import bio.terra.metadata.Dataset;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -124,6 +124,12 @@ public class FireStoreFileDao {
                 dirToCreate.objectId(UUID.randomUUID().toString());
                 xn.set(getDocRef(dataset, dirToCreate), dirToCreate);
             }
+
+            /*
+            UUID objectId = UUID.randomUUID();
+            createObject.objectId(objectId.toString());
+            xn.set(getFileDocRef(dataset, createObject), createObject);
+             */
 
             UUID objectId = UUID.randomUUID();
             createObject.objectId(objectId.toString());
@@ -775,4 +781,18 @@ public class FireStoreFileDao {
     private String makePathFromLookupPath(String lookupPath) {
         return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
     }
+
+    // -- file collection methods --
+    private DocumentReference getFileDocRef(Dataset dataset, String objectId) {
+        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
+        return fireStoreProject.getFirestore()
+            .collection(makeFileCollectionName(dataset.getId().toString()))
+            .document(objectId);
+    }
+
+    private String makeFileCollectionName(String id) {
+        return id + "-files";
+    }
+
+
 }

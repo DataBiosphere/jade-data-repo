@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 
@@ -17,10 +17,10 @@ public class FlightContext {
     private boolean doing; // true - executing do's; false - executing undo's
     private StepResult result; // current step status
     private FlightStatus flightStatus; // Status: RUNNING while the flight is running; SUCCESS/FAILED when it completes
-    private AuthenticatedUser user;
+    private UserInfo user;
 
     // Construct the context with defaults
-    public FlightContext(FlightMap inputParameters, String flightClassName, AuthenticatedUser user) {
+    public FlightContext(FlightMap inputParameters, String flightClassName, UserInfo user) {
         this.inputParameters = inputParameters;
         this.inputParameters.makeImmutable();
         this.flightClassName = flightClassName;
@@ -55,11 +55,11 @@ public class FlightContext {
         return workingMap;
     }
 
-    public AuthenticatedUser getUser() {
+    public UserInfo getUser() {
         return user;
     }
 
-    public void setUser(AuthenticatedUser user) {
+    public void setUser(UserInfo user) {
         this.user = user;
     }
 

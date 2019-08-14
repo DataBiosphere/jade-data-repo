@@ -2,6 +2,7 @@ package bio.terra.flight.dataset.create;
 
 import bio.terra.category.Connected;
 import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.fixtures.ConnectedOperations;
@@ -66,7 +67,7 @@ public class DatasetCreateFlightTest {
     private DatasetRequestModel datasetRequest;
     private Dataset dataset;
     private BillingProfileModel billingProfileModel;
-    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     private DatasetRequestModel makeDatasetRequest(String datasetName, String profileId) throws IOException {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-minimal.json",

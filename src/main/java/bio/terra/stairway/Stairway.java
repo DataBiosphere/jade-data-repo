@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import bio.terra.exception.UnauthorizedException;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightException;
@@ -113,7 +114,7 @@ public class Stairway {
         String flightId,
         Class<? extends Flight> flightClass,
         FlightMap inputParameters,
-        AuthenticatedUser userInfo) {
+        UserInfo userInfo) {
         if (flightClass == null || inputParameters == null) {
             throw new MakeFlightException("Must supply non-null flightClass and inputParameters to submit");
         }
@@ -126,7 +127,7 @@ public class Stairway {
         launchFlight(flight);
     }
 
-    public void verifyFlightAccess(String flightId, AuthenticatedUser userInfo) {
+    public void verifyFlightAccess(String flightId, UserInfo userInfo) {
         if (userInfo != null) {
             boolean hasAccess = false;
             try {
@@ -201,7 +202,7 @@ public class Stairway {
         return flightDao.getFlights(offset, limit);
     }
 
-    public List<FlightState> getFlightsForUser(int offset, int limit, AuthenticatedUser userReq) {
+    public List<FlightState> getFlightsForUser(int offset, int limit, UserInfo userReq) {
         return flightDao.getFlightsForUser(offset, limit, userReq.getSubjectId());
     }
 
@@ -283,7 +284,7 @@ public class Stairway {
      * @return flight object suitable for submitting for execution
      */
     private Flight makeFlight(
-        Class<? extends Flight> flightClass, FlightMap inputParameters, AuthenticatedUser userInfo) {
+        Class<? extends Flight> flightClass, FlightMap inputParameters, UserInfo userInfo) {
         try {
             // Find the flightClass constructor that takes the input parameter map and
             // use it to make the flight.
@@ -305,7 +306,7 @@ public class Stairway {
      *
      * We use the class name to store and retrieve from the flightDao when we recover.
      */
-    private Flight makeFlightFromName(String className, FlightMap inputMap, AuthenticatedUser user) {
+    private Flight makeFlightFromName(String className, FlightMap inputMap, UserInfo user) {
         try {
             Class<?> someClass = Class.forName(className);
             if (Flight.class.isAssignableFrom(someClass)) {

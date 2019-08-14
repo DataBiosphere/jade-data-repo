@@ -3,6 +3,7 @@ package bio.terra.service;
 import bio.terra.category.Unit;
 import bio.terra.controller.AuthenticatedUser;
 import bio.terra.controller.RepositoryApiController;
+import bio.terra.controller.UserInfo;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -29,7 +30,7 @@ import static org.hamcrest.CoreMatchers.is;
 @SpringBootTest
 @Category(Unit.class)
 public class JobServiceTest {
-    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     @Autowired
     private Stairway stairway;

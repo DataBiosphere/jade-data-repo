@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.create;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import bio.terra.dao.DatasetDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.SamClientService;
@@ -11,7 +11,7 @@ import org.springframework.context.ApplicationContext;
 
 public class DatasetCreateFlight extends Flight {
 
-    public DatasetCreateFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+    public DatasetCreateFlight(FlightMap inputParameters, Object applicationContext, UserInfo userInfo) {
         super(inputParameters, applicationContext, userInfo);
 
         // get the required daos and services to pass into the steps

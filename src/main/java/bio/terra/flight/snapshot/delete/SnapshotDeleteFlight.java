@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.delete;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
@@ -15,7 +15,7 @@ import java.util.UUID;
 
 public class SnapshotDeleteFlight extends Flight {
 
-    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext, UserInfo userInfo) {
         super(inputParameters, applicationContext, userInfo);
 
         // get the required daos to pass into the steps

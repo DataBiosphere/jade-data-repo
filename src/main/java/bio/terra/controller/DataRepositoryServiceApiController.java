@@ -59,7 +59,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         return Optional.ofNullable(request);
     }
 
-    private AuthenticatedUser getAuthenticatedInfo() {
+    private UserInfo getAuthenticatedInfo() {
         return AuthenticatedUser.from(getRequest(), appConfig.getUserEmail());
     }
 

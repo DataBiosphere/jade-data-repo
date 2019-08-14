@@ -3,6 +3,7 @@ package bio.terra.stairway;
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
 import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +62,7 @@ import static org.hamcrest.Matchers.equalTo;
 public class RecoveryTest {
 //    private PoolingDataSource<PoolableConnection> dataSource;
     private ExecutorService executorService;
-    private AuthenticatedUser testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

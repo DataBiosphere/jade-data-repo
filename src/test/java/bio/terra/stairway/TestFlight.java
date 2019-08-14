@@ -1,10 +1,10 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 
 public class TestFlight extends Flight {
 
-    public TestFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser testUser) {
+    public TestFlight(FlightMap inputParameters, Object applicationContext, UserInfo testUser) {
         super(inputParameters, applicationContext, testUser);
 
         // Pull out our parameters and feed them in to the step classes.

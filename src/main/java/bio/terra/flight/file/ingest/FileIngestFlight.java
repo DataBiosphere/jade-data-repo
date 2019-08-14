@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
@@ -16,7 +16,7 @@ import java.util.UUID;
 
 public class FileIngestFlight extends Flight {
 
-    public FileIngestFlight(FlightMap inputParameters, Object applicationContext, AuthenticatedUser userInfo) {
+    public FileIngestFlight(FlightMap inputParameters, Object applicationContext, UserInfo userInfo) {
         super(inputParameters, applicationContext, userInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;

@@ -6,7 +6,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 import java.util.UUID;
 
-public class AuthenticatedUser {
+public class AuthenticatedUser implements UserInfo {
 
     private String email;
     private String subjectId;
@@ -23,19 +23,23 @@ public class AuthenticatedUser {
         this.token = token;
     }
 
+    @Override
     public String getSubjectId() {
         return subjectId;
     }
 
+    @Override
     public AuthenticatedUser subjectId(String subjectId) {
         this.subjectId = subjectId;
         return this;
     }
 
+    @Override
     public String getEmail() {
         return email;
     }
 
+    @Override
     public AuthenticatedUser email(String email) {
         this.email = email;
         return this;

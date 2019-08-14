@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -14,7 +14,7 @@ public class FlightState {
     private FlightStatus flightStatus;
     private FlightMap inputParameters;
     private Instant submitted;
-    private AuthenticatedUser user;
+    private UserInfo user;
     private Optional<Instant> completed;
     private Optional<FlightMap> resultMap;  // filled in when flightStatus is SUCCESS
     private Optional<Exception> exception;  // filled in when flightStatus is ERROR or FATAL
@@ -56,11 +56,11 @@ public class FlightState {
         this.submitted = submitted;
     }
 
-    public AuthenticatedUser getUser() {
+    public UserInfo getUser() {
         return user;
     }
 
-    public void setUser(AuthenticatedUser user) {
+    public void setUser(UserInfo user) {
         this.user = user;
     }
 

@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.UserInfo;
 import bio.terra.dao.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
@@ -48,7 +48,7 @@ public class DatasetService {
         this.dataLocationService = dataLocationService;
     }
 
-    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUser userInfo) {
+    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, UserInfo userInfo) {
         return jobService.submitAndWait(
             "Create dataset " + datasetRequest.getName(),
             DatasetCreateFlight.class,
@@ -84,7 +84,7 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(UUID id, AuthenticatedUser userInfo) {
+    public DeleteResponseModel delete(UUID id, UserInfo userInfo) {
         return jobService.submitAndWait(
             "Delete dataset " + id,
             DatasetDeleteFlight.class,
@@ -93,7 +93,7 @@ public class DatasetService {
             DeleteResponseModel.class);
     }
 
-    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUser userInfo) {
+    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, UserInfo userInfo) {
         // Fill in a default load id if the caller did not provide one in the ingest request.
         if (StringUtils.isEmpty(ingestRequestModel.getLoadTag())) {
             String loadTag = "load-at-" + Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);

@@ -1,7 +1,7 @@
 package bio.terra.service;
 
-import bio.terra.controller.AuthenticatedUser;
 import bio.terra.controller.RepositoryApiController;
+import bio.terra.controller.UserInfo;
 import bio.terra.model.JobModel;
 import bio.terra.service.exception.InvalidResultStateException;
 import bio.terra.service.exception.JobNotCompleteException;
@@ -37,7 +37,7 @@ public class JobService {
     }
 
     public String submit(
-        String description, Class<? extends Flight> flightClass, Object request, AuthenticatedUser userInfo) {
+        String description, Class<? extends Flight> flightClass, Object request, UserInfo userInfo) {
         String jobId = createJobId();
         submitToStairway(jobId, flightClass, new FlightMap(description, request), userInfo);
         return jobId;
@@ -47,7 +47,7 @@ public class JobService {
         String description,
         Class<? extends Flight> flightClass,
         Object request,
-        AuthenticatedUser userInfo,
+        UserInfo userInfo,
         Class<T> resultClass) {
         String jobId = createJobId();
         submitToStairway(jobId, flightClass, new FlightMap(description, request), userInfo);
@@ -56,7 +56,7 @@ public class JobService {
     }
 
     private void submitToStairway(
-        String jobId, Class<? extends Flight> flightClass, FlightMap inputParams, AuthenticatedUser userInfo) {
+        String jobId, Class<? extends Flight> flightClass, FlightMap inputParams, UserInfo userInfo) {
         stairway.submit(jobId, flightClass, inputParams, userInfo);
     }
 
@@ -64,7 +64,7 @@ public class JobService {
         stairway.deleteFlight(jobId);
     }
 
-    public void releaseJob(String jobId, AuthenticatedUser userInfo) {
+    public void releaseJob(String jobId, UserInfo userInfo) {
         stairway.verifyFlightAccess(jobId, userInfo);
         retrieveJobAsAdmin(jobId);
     }
@@ -128,7 +128,7 @@ public class JobService {
     }
 
     public List<JobModel> enumerateJobs(
-        int offset, int limit, AuthenticatedUser userReq) {
+        int offset, int limit, UserInfo userReq) {
         List<FlightState> flightStateList = stairway.getFlightsForUser(offset, limit, userReq);
         List<JobModel> jobModelList = new ArrayList<>();
         for (FlightState flightState : flightStateList) {
@@ -143,7 +143,7 @@ public class JobService {
         return mapFlightStateToJobModel(flightState);
     }
 
-    public JobModel retrieveJob(String jobId, AuthenticatedUser userReq) {
+    public JobModel retrieveJob(String jobId, UserInfo userReq) {
         stairway.verifyFlightAccess(jobId, userReq);
         FlightState flightState = stairway.getFlightState(jobId);
         return mapFlightStateToJobModel(flightState);
@@ -179,7 +179,7 @@ public class JobService {
         String jobId,
         Class<T> resultClass,
         RepositoryApiController.HttpStatusContainer statContainer,
-        AuthenticatedUser userReq) {
+        UserInfo userReq) {
         stairway.verifyFlightAccess(jobId, userReq);
         return retrieveJobResultWorker(jobId, resultClass, statContainer);
     }

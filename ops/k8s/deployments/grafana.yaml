@@ -22,8 +22,12 @@ spec:
         volumeMounts:
         - mountPath: /var/lib/grafana
           name: grafana-storage
-        - mountPath: /etc/grafana/provisioning/datasources
+        - mountPath: /etc/grafana/provisioning/datasources/stackdriver.yaml
           name: "grafana-config-stackdriverdatasource"
+          subPath: stackdriver.yaml
+        - mountPath: /etc/grafana/provisioning/datasources/prometheus.yaml
+          name: "grafana-config-prometheusdatasource"
+          subPath: prometheus.yaml
         - mountPath: /etc/grafana/provisioning/dashboards
           name: "grafana-config-dashboards"
         - mountPath: /var/lib/grafana/dashboards/k8sdashboard
@@ -48,6 +52,12 @@ spec:
           items:
             - key: stackdriverdatasource
               path: stackdriver.yaml
+      - name: "grafana-config-prometheusdatasource"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: prometheusdatasource
+              path: prometheus.yaml
       - name: "grafana-config-dashboards"
         configMap:
           name: "grafana-config"

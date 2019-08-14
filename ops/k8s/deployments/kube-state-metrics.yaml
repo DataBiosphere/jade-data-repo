@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+    name: kube-state-metrics
+---
+apiVersion: v1
+kind: Service
+metadata:
+    labels:
+        k8s-app: kube-state-metrics
+    annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '8081'
+        prometheus.io/port2: '8082'
+    name: kube-state-metrics
+spec:
+    clusterIP: None
+    ports:
+        - name: metrics
+          port: 8081
+        - name: metrics-self
+          port: 8082
+    selector:
+        app: kube-state-metrics
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+    labels:
+        app: kube-state-metrics
+    name: kube-state-metrics
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: kube-state-metrics
+    template:
+        metadata:
+            labels:
+                app: kube-state-metrics
+        spec:
+            containers:
+                - args:
+                      - --host=0.0.0.0
+                      - --port=8081
+                      - --telemetry-host=0.0.0.0
+                      - --telemetry-port=8082
+                  image: quay.io/coreos/kube-state-metrics:v1.3.1
+                  name: kube-state-metrics
+                  ports:
+                      - name: metrics
+                        containerPort: 8081
+                      - name: metrics-self
+                        containerPort: 8082
+                  resources:
+                      limits:
+                          cpu: 100m
+                          memory: 150Mi
+                      requests:
+                          cpu: 100m
+                          memory: 150Mi
+            securityContext:
+                runAsNonRoot: true
+                runAsUser: 65534
+            serviceAccountName: kube-state-metrics
+

@@ -50,7 +50,7 @@ public class GoogleResourceDao {
         }
     }
 
-    private GoogleProjectResource retrieveProjectBy(String column, UUID value) {
+    private GoogleProjectResource retrieveProjectBy(String column, Object value) {
         try {
             String sql = String.format("SELECT * FROM project_resource WHERE %s = :%s LIMIT 1", column, column);
             MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
@@ -64,7 +64,7 @@ public class GoogleResourceDao {
         return retrieveProjectBy("id", id);
     }
 
-    public GoogleProjectResource retrieveProjectByGoogleProjectId(UUID googleProjectId) {
+    public GoogleProjectResource retrieveProjectByGoogleProjectId(String googleProjectId) {
         return retrieveProjectBy("google_project_id", googleProjectId);
     }
 

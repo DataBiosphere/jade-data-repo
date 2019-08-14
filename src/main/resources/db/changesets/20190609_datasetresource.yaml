@@ -16,12 +16,20 @@ databaseChangeLog:
               - column:
                   name: google_project_id
                   type: varchar(222)
+                  constraints:
+                    unique: true
+                    nullable: false
               - column:
                   name: google_project_number
                   type: varchar(16)
+                  constraints:
+                    unique: true
+                    nullable: false
               - column:
                   name: service_ids
                   type: text[]
+                  constraints:
+                    nullable: false
               - column:
                   name: profile_id
                   type: ${uuid_type}

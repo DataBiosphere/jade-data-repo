@@ -21,6 +21,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -54,6 +56,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Component
 @Profile("connectedtest")
 public class ConnectedOperations {
+    private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
+
     private MockMvc mvc;
     private ObjectMapper objectMapper;
     private JsonLoader jsonLoader;
@@ -242,6 +246,7 @@ public class ConnectedOperations {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
                 .andReturn();
+        logger.info("deleting datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         checkDeleteResponse(response);
@@ -297,6 +302,7 @@ public class ConnectedOperations {
                     StringUtils.equals(checksum.getType(), "md5")));
         }
 
+        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getObjectId());
         addFile(datasetId, fileModel.getObjectId());
 
         return fileModel;

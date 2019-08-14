@@ -2,6 +2,7 @@ package bio.terra.flight.file.delete;
 
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
+import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
@@ -10,11 +11,15 @@ import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
 
 public class DeleteFilePrimaryDataStep implements Step {
+    private static final Logger logger = LoggerFactory.getLogger(DeleteFilePrimaryDataStep.class);
+
     private final Dataset dataset;
     private final String fileId;
     private final GcsPdao gcsPdao;
@@ -29,11 +34,15 @@ public class DeleteFilePrimaryDataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FSObjectBase fsObject = fileDao.retrieve(dataset, UUID.fromString(fileId));
-        if (fsObject.getObjectType() != FSObjectType.DELETING_FILE) {
-            throw new FileSystemCorruptException("This should be a file we're deleting!");
+        try {
+            FSObjectBase fsObject = fileDao.retrieve(dataset, UUID.fromString(fileId));
+            if (fsObject.getObjectType() != FSObjectType.DELETING_FILE) {
+                throw new FileSystemCorruptException("This should be a file we're deleting!");
+            }
+            gcsPdao.deleteFile((FSFile) fsObject);
+        } catch (FileSystemObjectNotFoundException e) {
+            logger.info("no file found in dataset {} for objectId {}, skipping file delete", dataset.getId(), fileId);
         }
-        gcsPdao.deleteFile((FSFile)fsObject);
         return StepResult.getStepResultSuccess();
     }
 

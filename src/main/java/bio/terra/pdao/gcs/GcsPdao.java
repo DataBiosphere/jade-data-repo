@@ -31,12 +31,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
 @Profile("google")
 public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
+    private static final int DATASET_DELETE_BATCH_SIZE = 1000;
 
     private final GcsProjectFactory gcsProjectFactory;
     private final DataLocationService dataLocationService;
@@ -160,18 +162,22 @@ public class GcsPdao {
     public boolean deleteFile(FSFile fsFile) {
         GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsFile);
         Storage storage = storageForBucket(bucketForFile);
-        URI uri = URI.create(fsFile.getGspath());
-        String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
-        Blob blob = storage.get(BlobId.of(bucketForFile.getName(), bucketPath));
-        if (blob == null) {
-            return false;
+        // It's possible that the file didn't get written to a bucket, meaning gspath will be null.
+        Optional<String> gspath = Optional.ofNullable(fsFile.getGspath());
+        if (gspath.isPresent()) {
+            URI uri = URI.create(gspath.get());
+            String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
+            Optional<Blob> blob = Optional.ofNullable(storage.get(BlobId.of(bucketForFile.getName(), bucketPath)));
+            if (blob.isPresent()) {
+                return blob.get().delete();
+            }
         }
-        return blob.delete();
+        return false;
     }
 
     public void deleteFilesFromDataset(Dataset dataset) {
         // these files could be in multiple buckets..need to enumerate them from firestore and then iterate + delete
-        fileDao.forEachFsObjectInDataset(dataset, fsObjectBase -> {
+        fileDao.forEachFsObjectInDataset(dataset, DATASET_DELETE_BATCH_SIZE, fsObjectBase -> {
             if (fsObjectBase.getObjectType() != FSObjectType.DIRECTORY) {
                 deleteFile((FSFile) fsObjectBase);
             }

@@ -36,6 +36,12 @@ spec:
           name: "grafana-config-loadbalancerdashboard"
         - mountPath: /var/lib/grafana/dashboards/cloud-sql-dashboard
           name: "grafana-config-cloud-sql-dashboard"
+        - mountPath: /var/lib/grafana/dashboards/k8sprometheus
+          name: "grafana-config-k8sprometheus"
+        - mountPath: /var/lib/grafana/dashboards/cloudstorage-dashboard
+          name: "grafana-config-cloudstorage-dashboard"
+        - mountPath: /var/lib/grafana/dashboards/bigquery-logs
+          name: "grafana-config-bigquery-logs"
         env:
         - name: GF_SERVER_HTTP_PORT
           value: "3000"
@@ -82,3 +88,22 @@ spec:
           items:
             - key: cloud-sql-dashboard
               path: cloud-sql-dashboard.json
+      - name: "grafana-config-k8sprometheus"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: k8sprometheus
+              path: k8sprometheus.json
+      - name: "grafana-config-cloudstorage-dashboard"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: cloudstorage-dashboard
+              path: cloudstorage-dashboard.json
+      - name: "grafana-config-bigquery-logs"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: bigquery-logs
+              path: bigquery-logs.json
+

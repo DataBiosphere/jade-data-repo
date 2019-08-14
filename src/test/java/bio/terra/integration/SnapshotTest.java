@@ -44,12 +44,12 @@ public class SnapshotTest extends UsersBase {
     private static Logger logger = LoggerFactory.getLogger(SnapshotTest.class);
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
-    private List<String> createdDatasetIds = new ArrayList<>();
+    private List<String> createdSnapshotIds = new ArrayList<>();
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-datset.json");
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
@@ -61,11 +61,11 @@ public class SnapshotTest extends UsersBase {
 
     @After
     public void tearDown() throws Exception {
-        createdDatasetIds.forEach(snapshot -> {
+        createdSnapshotIds.forEach(snapshot -> {
             try {
-                dataRepoFixtures.deleteDataset(steward(), snapshot);
+                dataRepoFixtures.deleteSnapshot(steward(), snapshot);
             } catch (Exception ex) {
-                logger.warn("cleanup failed when deleteing snapshot " + snapshot);
+                logger.warn("cleanup failed when deleting snapshot " + snapshot);
                 ex.printStackTrace();
             }
         });
@@ -74,7 +74,7 @@ public class SnapshotTest extends UsersBase {
 
 
     @Test
-    public void dataSnapshotUnauthorizedPermissionsTest() throws Exception {
+    public void snapshotUnauthorizedPermissionsTest() throws Exception {
         DataRepoResponse<JobModel> createSnapLaunchResp =
             dataRepoFixtures.createSnapshotLaunch(reader(), datasetSummaryModel, "ingest-test-dataset.json");
         assertThat("Reader is not authorized to create a dataSnapshot",
@@ -83,7 +83,7 @@ public class SnapshotTest extends UsersBase {
 
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-dataset.json");
-        createdDatasetIds.add(snapshotSummary.getId());
+        createdSnapshotIds.add(snapshotSummary.getId());
 
         DataRepoResponse<JobModel> deleteSnapResp =
             dataRepoFixtures.deleteSnapshotLaunch(reader(), snapshotSummary.getId());

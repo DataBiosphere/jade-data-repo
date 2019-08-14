@@ -17,6 +17,7 @@ import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -51,7 +52,6 @@ public class BigQueryPdaoTest {
 
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ConnectedTestConfiguration testConfig;
-    @Autowired private Storage storage;
     @Autowired private BigQueryPdao bigQueryPdao;
     @Autowired private DatasetDao datasetDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
@@ -62,6 +62,7 @@ public class BigQueryPdaoTest {
 
     private Dataset dataset;
     private BillingProfileModel profileModel;
+    private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Before
     public void setup() throws Exception {

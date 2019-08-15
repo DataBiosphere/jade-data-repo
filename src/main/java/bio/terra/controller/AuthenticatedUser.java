@@ -75,6 +75,9 @@ public class AuthenticatedUser implements UserInfo {
         String token = req.getHeader("oidc_access_token");
         String userId = req.getHeader("oidc_claim_user_id");
 
+        // in testing scenarios and when running the server without the proxy not all the
+        // header information will be available. default values will be used in these cases.
+
         if (token == null) {
             String authHeader = req.getHeader("Authorization");
             if (authHeader != null)

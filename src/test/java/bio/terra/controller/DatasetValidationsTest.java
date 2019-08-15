@@ -306,6 +306,44 @@ public class DatasetValidationsTest {
             Collections.singletonList("direction must be one of: (asc, desc)."));
     }
 
+    @Test
+    public void testMissingPrimaryKeyColumn() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .primaryKey(Collections.singletonList("not_a_column"));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel("primaryKeyColumnMissing", errorModel,
+            new String[]{"MissingPrimaryKeyColumn", "NoAssets"});
+    }
+
+    @Test
+    public void testArrayPrimaryKeyColumn() throws Exception {
+        ColumnModel column = new ColumnModel()
+            .name("array_column")
+            .datatype("string")
+            .arrayOf(true);
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.singletonList(column))
+            .primaryKey(Collections.singletonList(column.getName()));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel("primaryKeyColumnMissing", errorModel,
+            new String[]{"PrimaryKeyArrayColumn", "NoAssets"});
+    }
+
     private void checkValidationErrorModel(String context,
                                            ErrorModel errorModel,
                                            String[] messageCodes) {

@@ -133,10 +133,19 @@ public class BigQueryPdaoTest {
             .newBuilder(bucket, targetPath + "ingest-test-file.json")
             .build();
 
+        BlobInfo missingPkBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-sample-no-id.json")
+            .build();
+        BlobInfo nullPkBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json")
+            .build();
+
         try {
             storage.create(participantBlob, readFile("ingest-test-participant.json"));
             storage.create(sampleBlob, readFile("ingest-test-sample.json"));
             storage.create(fileBlob, readFile("ingest-test-file.json"));
+            storage.create(missingPkBlob, readFile("ingest-test-sample-no-id.json"));
+            storage.create(nullPkBlob, readFile("ingest-test-sample-null-id.json"));
 
             // Ingest staged data into the new dataset.
             IngestRequestModel ingestRequest = new IngestRequestModel()
@@ -149,6 +158,12 @@ public class BigQueryPdaoTest {
                 ingestRequest.table("sample").path(gsPath(sampleBlob)));
             connectedOperations.ingestTableSuccess(datasetId,
                 ingestRequest.table("file").path(gsPath(fileBlob)));
+
+            // Check primary key non-nullability is enforced.
+            connectedOperations.ingestTableFailure(datasetId,
+                ingestRequest.table("sample").path(gsPath(missingPkBlob)));
+            connectedOperations.ingestTableFailure(datasetId,
+                ingestRequest.table("sample").path(gsPath(nullPkBlob)));
 
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
@@ -163,7 +178,8 @@ public class BigQueryPdaoTest {
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
         } finally {
-            storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
+            storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
+                fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
         }
     }
 

@@ -17,6 +17,7 @@ import bio.terra.metadata.SnapshotSource;
 import bio.terra.metadata.SnapshotSummary;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.SnapshotTable;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.SnapshotModel;
@@ -224,12 +225,12 @@ public class SnapshotService {
                                                Snapshot snapshot,
                                                SnapshotSource snapshotSource) {
 
-        List<Table> tableList = new ArrayList<>();
+        List<SnapshotTable> tableList = new ArrayList<>();
         List<SnapshotMapTable> mapTableList = new ArrayList<>();
 
         for (AssetTable assetTable : asset.getAssetTables()) {
             // Create early so we can hook up back pointers.
-            Table table = new Table();
+            SnapshotTable table = new SnapshotTable();
 
             // Build the column lists in parallel, so we can easily connect the
             // map column to the snapshot column.

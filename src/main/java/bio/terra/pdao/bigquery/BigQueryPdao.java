@@ -5,6 +5,7 @@ import bio.terra.flight.exception.IngestFailureException;
 import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
@@ -97,7 +98,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
-            for (Table table : dataset.getTables()) {
+            for (DatasetTable table : dataset.getTables()) {
                 Schema schema = buildSchema(table, true);
                 bigQueryProject.createTable(datasetName, table.getName(), schema);
             }
@@ -294,7 +295,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     // Load data
     public PdaoLoadStatistics loadToStagingTable(Dataset dataset,
-                                                 Table targetTable,
+                                                 DatasetTable targetTable,
                                                  String stagingTableName,
                                                  IngestRequestModel ingestRequest) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
@@ -563,16 +564,28 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private Schema buildSchema(Table table, boolean addRowIdColumn) {
+    private Schema buildSchema(DatasetTable table, boolean addRowIdColumn) {
         List<Field> fieldList = new ArrayList<>();
+        List<String> primaryKeys = table.getPrimaryKey()
+            .stream()
+            .map(Column::getName)
+            .collect(Collectors.toList());
 
         if (addRowIdColumn) {
             fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         }
 
         for (Column column : table.getColumns()) {
+            Field.Mode mode;
+            if (primaryKeys.contains(column.getName())) {
+                mode = Field.Mode.REQUIRED;
+            } else if (column.isArrayOf()) {
+                mode = Field.Mode.REPEATED;
+            } else {
+                mode = Field.Mode.NULLABLE;
+            }
             Field fieldSpec = Field.newBuilder(column.getName(), translateType(column.getType()))
-                .setMode(column.isArrayOf() ? Field.Mode.REPEATED : Field.Mode.NULLABLE)
+                .setMode(mode)
                 .build();
 
             fieldList.add(fieldSpec);

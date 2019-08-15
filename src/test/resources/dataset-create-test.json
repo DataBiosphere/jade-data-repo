@@ -5,6 +5,7 @@
     "tables":        [
       {
         "name":    "participant",
+        "primaryKey": ["id"],
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "age", "datatype": "integer"},

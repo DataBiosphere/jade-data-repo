@@ -11,7 +11,7 @@ public class Snapshot {
     private String name;
     private String description;
     private Instant createdDate;
-    private List<Table> tables = Collections.emptyList();
+    private List<SnapshotTable> tables = Collections.emptyList();
     private List<SnapshotSource> snapshotSources = Collections.emptyList();
     private UUID profileId;
     private SnapshotDataProject dataProject = new SnapshotDataProject();
@@ -52,11 +52,11 @@ public class Snapshot {
         return this;
     }
 
-    public List<Table> getTables() {
+    public List<SnapshotTable> getTables() {
         return tables;
     }
 
-    public Snapshot snapshotTables(List<Table> tables) {
+    public Snapshot snapshotTables(List<SnapshotTable> tables) {
         this.tables = tables;
         return this;
     }

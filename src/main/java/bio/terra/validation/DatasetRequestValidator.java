@@ -79,11 +79,23 @@ public class DatasetRequestValidator implements Validator {
     private void validateTable(TableModel table, Errors errors, SchemaValidationContext context) {
         String tableName = table.getName();
         List<ColumnModel> columns = table.getColumns();
+        List<String> primaryKeyList = table.getPrimaryKey();
 
         if (tableName != null && columns != null) {
             List<String> columnNames = columns.stream().map(ColumnModel::getName).collect(toList());
             if (ValidationUtils.hasDuplicates(columnNames)) {
                 errors.rejectValue("schema", "DuplicateColumnNames");
+            }
+            if (primaryKeyList != null) {
+                if (!columnNames.containsAll(primaryKeyList)) {
+                    errors.rejectValue("schema", "MissingPrimaryKeyColumn");
+                }
+
+                for (ColumnModel column : columns) {
+                    if (primaryKeyList.contains(column.getName()) && column.isArrayOf()) {
+                        errors.rejectValue("schema", "PrimaryKeyArrayColumn");
+                    }
+                }
             }
             context.addTable(tableName, columnNames);
         }

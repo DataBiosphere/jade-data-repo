@@ -84,8 +84,8 @@ public class DrsService {
         }
     }
 
-    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
-        DRSObject fileObject = makeCommonDrsObject(fsFile, datasetId);
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId) {
+        DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
         DRSAccessURL accessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
@@ -104,29 +104,30 @@ public class DrsService {
         return fileObject;
     }
 
-    private DRSObject drsObjectFromFSDir(FSDir fsDir, String datasetId) {
-        DRSObject dirObject = makeCommonDrsObject(fsDir, datasetId);
+    private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {
+        DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
         // TODO: Directory size and checksum not yet implemented
         DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
         dirObject
             .size(0L)
             .addChecksumsItem(drsChecksum)
-            .contents(makeContentsList(fsDir, datasetId));
+            .contents(makeContentsList(fsDir, snapshotId));
 
         return dirObject;
     }
 
-    private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String datasetId) {
+    private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String snapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsObject.getCreatedDate().toString();
-        DrsId drsId = makeDrsId(fsObject, datasetId);
+        DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
 
         return new DRSObject()
             .id(drsId.toDrsObjectId())
             .name(getLastNameFromPath(fsObject.getPath()))
-            .created(theTime)
-            .updated(theTime)
+            .selfUri(drsId.toDrsUri())
+            .createdTime(theTime)
+            .updatedTime(theTime)
             .version(DRS_OBJECT_VERSION)
             .description(fsObject.getDescription())
             .aliases(Collections.singletonList(fsObject.getPath()));
@@ -142,8 +143,8 @@ public class DrsService {
         return contentsList;
     }
 
-    private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String datasetId) {
-        DrsId drsId = makeDrsId(fsObject, datasetId);
+    private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String snapshotId) {
+        DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
 
         List<String> drsUris = new ArrayList<>();
         drsUris.add(drsId.toDrsUri());
@@ -157,19 +158,11 @@ public class DrsService {
         if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
             FSDir fsDir = (FSDir) fsObject;
             if (fsDir.isEnumerated()) {
-                contentsObject.contents(makeContentsList(fsDir, datasetId));
+                contentsObject.contents(makeContentsList(fsDir, snapshotId));
             }
         }
 
         return contentsObject;
-    }
-
-    private DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
-        return DrsId.builder()
-            .datasetId(fsObject.getDatasetId().toString())
-            .snapshotId(snapshotId)
-            .fsObjectId(fsObject.getObjectId().toString())
-            .build();
     }
 
     private String getLastNameFromPath(String path) {

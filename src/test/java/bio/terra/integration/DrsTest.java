@@ -97,7 +97,7 @@ public class DrsTest extends UsersBase {
 
     private void validateDrsObject(DRSObject drsObject, String drsObjectId) {
         assertThat("DRS id matches", drsObject.getId(), equalTo(drsObjectId));
-        assertThat("Create and update dates match", drsObject.getCreated(), equalTo(drsObject.getUpdated()));
+        assertThat("Create and update dates match", drsObject.getCreatedTime(), equalTo(drsObject.getUpdatedTime()));
         assertThat("DRS version is right", drsObject.getVersion(), equalTo("0"));
 
         for (DRSChecksum checksum : drsObject.getChecksums()) {

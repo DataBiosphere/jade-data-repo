@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.flight.exception.InvalidFileRefException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.FSObjectType;
@@ -21,11 +21,11 @@ public class IngestValidateRefsStep implements Step {
 
     private DatasetService datasetService;
     private BigQueryPdao bigQueryPdao;
-    private FireStoreFileDao fileDao;
+    private FireStoreDirectoryDao fileDao;
 
     public IngestValidateRefsStep(DatasetService datasetService,
                                   BigQueryPdao bigQueryPdao,
-                                  FireStoreFileDao fileDao) {
+                                  FireStoreDirectoryDao fileDao) {
         this.datasetService = datasetService;
         this.bigQueryPdao = bigQueryPdao;
         this.fileDao = fileDao;

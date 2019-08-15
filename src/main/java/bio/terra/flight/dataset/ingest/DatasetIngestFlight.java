@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.Flight;
@@ -16,7 +16,7 @@ public class DatasetIngestFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        FireStoreFileDao fileDao  = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDirectoryDao fileDao  = (FireStoreDirectoryDao)appContext.getBean("fireStoreFileDao");
 
         addStep(new IngestSetupStep(datasetService));
         addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));

@@ -1,6 +1,6 @@
 package bio.terra.pdao.gcs;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.Dataset;
@@ -42,13 +42,13 @@ public class GcsPdao {
 
     private final GcsProjectFactory gcsProjectFactory;
     private final DataLocationService dataLocationService;
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
 
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
         DataLocationService dataLocationService,
-        FireStoreFileDao fileDao) {
+        FireStoreDirectoryDao fileDao) {
         this.gcsProjectFactory = gcsProjectFactory;
         this.dataLocationService = dataLocationService;
         this.fileDao = fileDao;

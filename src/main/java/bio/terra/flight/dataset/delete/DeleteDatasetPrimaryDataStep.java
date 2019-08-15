@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
@@ -17,12 +17,12 @@ import java.util.UUID;
 public class DeleteDatasetPrimaryDataStep implements Step {
     private BigQueryPdao bigQueryPdao;
     private GcsPdao gcsPdao;
-    private FireStoreFileDao fileDao;
+    private FireStoreDirectoryDao fileDao;
     private DatasetService datasetService;
 
     public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                       GcsPdao gcsPdao,
-                                      FireStoreFileDao fileDao,
+                                      FireStoreDirectoryDao fileDao,
                                       DatasetService datasetService) {
         this.bigQueryPdao = bigQueryPdao;
         this.gcsPdao = gcsPdao;

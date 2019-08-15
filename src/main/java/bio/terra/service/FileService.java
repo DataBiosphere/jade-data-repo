@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
@@ -29,11 +29,11 @@ public class FileService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
 
     private final Stairway stairway;
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private  final DatasetService datasetService;
 
     @Autowired
-    public FileService(Stairway stairway, FireStoreFileDao fileDao, DatasetService datasetService) {
+    public FileService(Stairway stairway, FireStoreDirectoryDao fileDao, DatasetService datasetService) {
         this.stairway = stairway;
         this.fileDao = fileDao;
         this.datasetService = datasetService;

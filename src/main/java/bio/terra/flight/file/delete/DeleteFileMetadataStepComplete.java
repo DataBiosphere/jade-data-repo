@@ -1,6 +1,6 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.DeleteResponseModel;
@@ -11,11 +11,11 @@ import org.springframework.http.HttpStatus;
 
 
 public class DeleteFileMetadataStepComplete implements Step {
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final String fileId;
     private final Dataset dataset;
 
-    public DeleteFileMetadataStepComplete(FireStoreFileDao fileDao,
+    public DeleteFileMetadataStepComplete(FireStoreDirectoryDao fileDao,
                                           String fileId,
                                           Dataset dataset) {
         this.fileDao = fileDao;

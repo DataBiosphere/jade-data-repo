@@ -75,7 +75,7 @@ public class FileDaoTest {
     private Dataset dataset;
 
     @Autowired
-    private FireStoreFileDao fileDao;
+    private FireStoreDirectoryDao fileDao;
 
     @Autowired
     private FireStoreDependencyDao dependencyDao;

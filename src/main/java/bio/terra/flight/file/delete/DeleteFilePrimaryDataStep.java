@@ -1,6 +1,6 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.metadata.Dataset;
@@ -23,9 +23,9 @@ public class DeleteFilePrimaryDataStep implements Step {
     private final Dataset dataset;
     private final String fileId;
     private final GcsPdao gcsPdao;
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
 
-    public DeleteFilePrimaryDataStep(Dataset dataset, String fileId, GcsPdao gcsPdao, FireStoreFileDao fileDao) {
+    public DeleteFilePrimaryDataStep(Dataset dataset, String fileId, GcsPdao gcsPdao, FireStoreDirectoryDao fileDao) {
         this.dataset = dataset;
         this.fileId = fileId;
         this.gcsPdao = gcsPdao;

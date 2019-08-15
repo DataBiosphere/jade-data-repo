@@ -5,7 +5,7 @@ import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.NotImplementedException;
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
@@ -37,7 +37,7 @@ public class DrsService {
 
     private final DatasetDao datasetDao;
     private final SnapshotDao snapshotDao;
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
@@ -46,7 +46,7 @@ public class DrsService {
     @Autowired
     public DrsService(DatasetDao datasetDao,
                       SnapshotDao snapshotDao,
-                      FireStoreFileDao fileDao,
+                      FireStoreDirectoryDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,

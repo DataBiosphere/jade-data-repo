@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
@@ -21,11 +21,11 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.UUID;
 
 public class IngestFileMetadataStepStart implements Step {
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final Dataset dataset;
     private final ProfileService profileService;
 
-    public IngestFileMetadataStepStart(FireStoreFileDao fileDao, Dataset dataset, ProfileService profileService) {
+    public IngestFileMetadataStepStart(FireStoreDirectoryDao fileDao, Dataset dataset, ProfileService profileService) {
         this.fileDao = fileDao;
         this.dataset = dataset;
         this.profileService = profileService;

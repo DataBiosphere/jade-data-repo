@@ -3,8 +3,10 @@ package bio.terra.filesystem;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
- * POJO for file objects to FireStore. This object is only used for files and
- * stored in the "<dataset-id>-files" collection.
+ * POJO for file objects to FireStore. This object is used to describe physical files
+ * of a dataset. There is one collection named: "<dataset-id>-files"
+ * and the file objects are named with their object ids.
+ * All path naming is done in the directory collection.
  *
  * Requirements from the documentation are:
  *   "Each custom class must have a public constructor that takes no arguments.
@@ -13,15 +15,13 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class FireStoreFile {
     private String objectId;
-    private String objectStateLetter;
     private String fileCreatedDate;
     private String gspath;
     private String checksumCrc32c;
     private String checksumMd5;
-    private Long size;              // 0 for directory
+    private Long size;
     private String mimeType;
     private String description;
-    private String flightId;
     private String profileId;
     private String region;
     private String bucketResourceId;
@@ -35,15 +35,6 @@ public class FireStoreFile {
 
     public FireStoreFile objectId(String objectId) {
         this.objectId = objectId;
-        return this;
-    }
-
-    public String getObjectStateLetter() {
-        return objectStateLetter;
-    }
-
-    public FireStoreFile objectStateLetter(String objectStateLetter) {
-        this.objectStateLetter = objectStateLetter;
         return this;
     }
 
@@ -110,15 +101,6 @@ public class FireStoreFile {
         return this;
     }
 
-    public String getFlightId() {
-        return flightId;
-    }
-
-    public FireStoreFile flightId(String flightId) {
-        this.flightId = flightId;
-        return this;
-    }
-
     public String getProfileId() {
         return profileId;
     }
@@ -150,7 +132,6 @@ public class FireStoreFile {
     public String toString() {
         return new ToStringBuilder(this)
             .append("objectId", objectId)
-            .append("objectStateLetter", objectStateLetter)
             .append("fileCreatedDate", fileCreatedDate)
             .append("gspath", gspath)
             .append("checksumCrc32c", checksumCrc32c)
@@ -158,7 +139,6 @@ public class FireStoreFile {
             .append("size", size)
             .append("mimeType", mimeType)
             .append("description", description)
-            .append("flightId", flightId)
             .append("profileId", profileId)
             .append("region", region)
             .append("bucketResourceId", bucketResourceId)

@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
@@ -14,11 +14,11 @@ import bio.terra.stairway.StepResult;
 
 
 public class IngestFileMetadataStepComplete implements Step {
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final FileService fileService;
     private final  Dataset dataset;
 
-    public IngestFileMetadataStepComplete(FireStoreFileDao fileDao,
+    public IngestFileMetadataStepComplete(FireStoreDirectoryDao fileDao,
                                           FileService fileService,
                                           Dataset dataset) {
         this.fileDao = fileDao;

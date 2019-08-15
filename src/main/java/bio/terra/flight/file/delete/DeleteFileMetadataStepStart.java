@@ -1,17 +1,17 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class DeleteFileMetadataStepStart implements Step {
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final String fileId;
     private final Dataset dataset;
 
-    public DeleteFileMetadataStepStart(FireStoreFileDao fileDao,
+    public DeleteFileMetadataStepStart(FireStoreDirectoryDao fileDao,
                                        String fileId,
                                        Dataset dataset) {
         this.fileDao = fileDao;

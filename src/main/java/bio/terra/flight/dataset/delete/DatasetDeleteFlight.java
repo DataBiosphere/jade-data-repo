@@ -3,7 +3,7 @@ package bio.terra.flight.dataset.delete;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.DatasetDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.SamClientService;
@@ -24,7 +24,7 @@ public class DatasetDeleteFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
-        FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDirectoryDao fileDao = (FireStoreDirectoryDao)appContext.getBean("fireStoreFileDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 

@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.resourcemanagement.service.ProfileService;
@@ -19,7 +19,7 @@ public class FileIngestFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDirectoryDao fileDao = (FireStoreDirectoryDao)appContext.getBean("fireStoreFileDao");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
@@ -27,6 +27,15 @@ public class FileIngestFlight extends Flight {
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+        // The new flight plan:
+        // 1. Metadata step:
+        //    Compute the target gspath where the file should go and generate the objectId
+        //    Create any missing directories and the fileref in firestore - fileref is marked as "ingesting"
+        // 2. pdao does the file copy and returns file gspath, checksum and size
+        // 3. Create the file object in firestore with fileinfo from pdao
+        // 4. Update the directory fileref marking it as "existing"
+
+
         // The flight plan:
         // 1. Metadata step:
         //    Compute the target gspath where the file should go

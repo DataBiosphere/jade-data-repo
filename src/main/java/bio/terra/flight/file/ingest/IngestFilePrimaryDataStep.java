@@ -1,6 +1,6 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.FSFile;
@@ -19,11 +19,11 @@ import bio.terra.stairway.StepResult;
 import java.util.UUID;
 
 public class IngestFilePrimaryDataStep implements Step {
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final GcsPdao gcsPdao;
     private final Dataset dataset;
 
-    public IngestFilePrimaryDataStep(FireStoreFileDao fileDao,
+    public IngestFilePrimaryDataStep(FireStoreDirectoryDao fileDao,
                                      Dataset dataset,
                                      GcsPdao gcsPdao) {
         this.fileDao = fileDao;

@@ -1,12 +1,12 @@
 package bio.terra.service;
 
-import bio.terra.controller.UserInfo;
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 
 public class JobServiceTestFlight extends Flight {
 
-    public JobServiceTestFlight(FlightMap inputParameters, Object applicationContext, UserInfo testUser) {
+    public JobServiceTestFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo testUser) {
         super(inputParameters, applicationContext, testUser);
 
         // Pull out our parameters and feed them in to the step classes.

@@ -1,6 +1,5 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.UserInfo;
 import bio.terra.stairway.exception.RetryException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -40,8 +39,8 @@ public class Flight implements Callable<FlightState> {
     private FlightContext flightContext;
     private Object applicationContext;
 
-    public Flight(FlightMap inputParameters, Object applicationContext, UserInfo userInfo) {
-        flightContext = new FlightContext(inputParameters, this.getClass().getName(), userInfo);
+    public Flight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        flightContext = new FlightContext(inputParameters, this.getClass().getName(), userRequestInfo);
         this.applicationContext = applicationContext;
         steps = new LinkedList<>();
     }

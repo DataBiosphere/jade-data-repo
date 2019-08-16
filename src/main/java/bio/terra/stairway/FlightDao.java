@@ -1,7 +1,6 @@
 package bio.terra.stairway;
 
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import bio.terra.controller.AuthenticatedUser;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
@@ -89,7 +88,7 @@ public class FlightDao {
             .addValue("inputs", flightContext.getInputParameters().toJson())
             .addValue("status", flightContext.getFlightStatus().name())
             .addValue("subject", flightContext.getUser().getSubjectId())
-            .addValue("email", flightContext.getUser().getEmail());
+            .addValue("email", flightContext.getUser().getName());
 
 
         jdbcTemplate.update(sqlInsertFlight, params);
@@ -178,6 +177,7 @@ public class FlightDao {
      */
     public List<FlightContext> recover() {
 
+        // todo add req_id
         final String sqlActiveFlights = "SELECT flightid, class_name, input_parameters, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             " WHERE status = 'RUNNING'";
@@ -197,9 +197,9 @@ public class FlightDao {
                 FlightContext flightContext = new FlightContext(
                     inputParameters,
                     rs.getString("class_name"),
-                    new AuthenticatedUser()
+                    new UserRequestInfo()
                         .subjectId(rs.getString("owner_id"))
-                        .email(rs.getString("owner_email")));
+                        .name(rs.getString("owner_email")));
                 flightContext.setFlightId(rs.getString("flightid"));
                 return flightContext;
             }
@@ -299,9 +299,9 @@ public class FlightDao {
             flightState.setFlightId(rs.getString("flightid"));
             flightState.setFlightStatus(FlightStatus.valueOf(rs.getString("status")));
             flightState.setSubmitted(rs.getTimestamp("submit_time").toInstant());
-            flightState.setUser(new AuthenticatedUser()
+            flightState.setUser(new UserRequestInfo()
                 .subjectId(rs.getString("owner_id"))
-                .email(rs.getString("owner_email")));
+                .name(rs.getString("owner_email")));
 
             FlightMap inputParameters = new FlightMap();
             inputParameters.fromJson(rs.getString("input_parameters"));

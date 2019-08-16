@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.controller.UserInfo;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
@@ -27,6 +27,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -48,12 +49,13 @@ public class DatasetService {
         this.dataLocationService = dataLocationService;
     }
 
-    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, UserInfo userInfo) {
+    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
         return jobService.submitAndWait(
             "Create dataset " + datasetRequest.getName(),
             DatasetCreateFlight.class,
             datasetRequest,
-            userInfo,
+            Collections.EMPTY_MAP,
+            userReq,
             DatasetSummaryModel.class);
     }
 
@@ -84,16 +86,17 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(UUID id, UserInfo userInfo) {
+    public DeleteResponseModel delete(String id, AuthenticatedUserRequest userReq) {
         return jobService.submitAndWait(
             "Delete dataset " + id,
             DatasetDeleteFlight.class,
-            id,
-            userInfo,
+            null,
+            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
+            userReq,
             DeleteResponseModel.class);
     }
 
-    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, UserInfo userInfo) {
+    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
         // Fill in a default load id if the caller did not provide one in the ingest request.
         if (StringUtils.isEmpty(ingestRequestModel.getLoadTag())) {
             String loadTag = "load-at-" + Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
@@ -103,6 +106,7 @@ public class DatasetService {
             "Ingest from " + ingestRequestModel.getPath() +
                 " to " + ingestRequestModel.getTable() +
                 " in dataset id " + id;
-        return jobService.submit(description, DatasetIngestFlight.class, ingestRequestModel, userInfo);
+        return jobService.submit(
+            description, DatasetIngestFlight.class, ingestRequestModel, Collections.singletonMap("id", id), userReq);
     }
 }

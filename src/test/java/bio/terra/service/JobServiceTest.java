@@ -1,9 +1,9 @@
 package bio.terra.service;
 
 import bio.terra.category.Unit;
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.RepositoryApiController;
-import bio.terra.controller.UserInfo;
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
@@ -30,7 +30,8 @@ import static org.hamcrest.CoreMatchers.is;
 @SpringBootTest
 @Category(Unit.class)
 public class JobServiceTest {
-    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private AuthenticatedUserRequest testUser =
+        new AuthenticatedUserRequest().subjectId("StairwayUnit").email("stairway@unit.com").canManageJobs(true);
 
     @Autowired
     private Stairway stairway;
@@ -130,7 +131,14 @@ public class JobServiceTest {
         inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
 
         String flightId = description;
-        stairway.submit(flightId, JobServiceTestFlight.class, inputs, testUser);
+        stairway.submit(
+            flightId,
+            JobServiceTestFlight.class,
+            inputs,
+            new UserRequestInfo()
+                .subjectId(testUser.getSubjectId())
+                .name(testUser.getEmail())
+                .canManageJobs(testUser.canManageJobs()));
         stairway.waitForFlight(flightId);
         return flightId;
     }

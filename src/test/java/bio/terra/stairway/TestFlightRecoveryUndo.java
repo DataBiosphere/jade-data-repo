@@ -1,10 +1,8 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.UserInfo;
-
 public class TestFlightRecoveryUndo extends Flight {
 
-    public TestFlightRecoveryUndo(FlightMap inputParameters, Object applicationContext, UserInfo testUser) {
+    public TestFlightRecoveryUndo(FlightMap inputParameters, Object applicationContext, UserRequestInfo testUser) {
         super(inputParameters, applicationContext, testUser);
 
         // Step 0 - increment

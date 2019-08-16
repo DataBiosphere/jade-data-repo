@@ -1,6 +1,6 @@
 package bio.terra.service;
 
-import bio.terra.controller.UserInfo;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
@@ -73,9 +73,9 @@ public class SnapshotService {
      * @param snapshotRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createSnapshot(SnapshotRequestModel snapshotRequestModel, UserInfo userInfo) {
+    public String createSnapshot(SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
         return jobService.submit("Create snapshot " + snapshotRequestModel.getName(),
-            SnapshotCreateFlight.class, snapshotRequestModel, userInfo);
+            SnapshotCreateFlight.class, snapshotRequestModel, Collections.EMPTY_MAP, userReq);
     }
 
     /**
@@ -84,8 +84,9 @@ public class SnapshotService {
      * @param id snapshot id to delete
      * @returns jobId (flightId) of the job
      */
-    public String deleteSnapshot(UUID id, UserInfo userInfo) {
-        return jobService.submit("Delete snapshot " + id, SnapshotDeleteFlight.class, id, userInfo);
+    public String deleteSnapshot(UUID id, AuthenticatedUserRequest userReq) {
+        return jobService.submit("Delete snapshot " + id, SnapshotDeleteFlight.class, null,
+            Collections.singletonMap(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString()), userReq);
     }
 
     /**

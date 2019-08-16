@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.controller.UserInfo;
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
@@ -10,8 +10,8 @@ import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
 
-    public DatasetIngestFlight(FlightMap inputParameters, Object applicationContext, UserInfo userInfo) {
-        super(inputParameters, applicationContext, userInfo);
+    public DatasetIngestFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        super(inputParameters, applicationContext, userRequestInfo);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;

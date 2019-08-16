@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.controller.AuthenticatedUser;
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDependencyDao;
@@ -58,8 +58,8 @@ public class AuthorizeSnapshot implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUser userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUser.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         SnapshotRequestModel snapshotReq = getRequestModel(context);
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get("snapshotId", UUID.class);
@@ -89,8 +89,8 @@ public class AuthorizeSnapshot implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUser userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUser.class);
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get("snapshotId", UUID.class);
         try {

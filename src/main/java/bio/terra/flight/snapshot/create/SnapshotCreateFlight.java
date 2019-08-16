@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.controller.UserInfo;
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
@@ -14,8 +14,8 @@ import org.springframework.context.ApplicationContext;
 
 public class SnapshotCreateFlight extends Flight {
 
-    public SnapshotCreateFlight(FlightMap inputParameters, Object applicationContext, UserInfo userInfo) {
-        super(inputParameters, applicationContext, userInfo);
+    public SnapshotCreateFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        super(inputParameters, applicationContext, userRequestInfo);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;

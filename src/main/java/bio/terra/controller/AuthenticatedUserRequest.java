@@ -6,41 +6,38 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 import java.util.UUID;
 
-public class AuthenticatedUser implements UserInfo {
+public class AuthenticatedUserRequest {
 
     private String email;
     private String subjectId;
     private String token;
     private UUID reqId;
+    private boolean canManageJobs;
 
-    public AuthenticatedUser() {
+    public AuthenticatedUserRequest() {
         this.reqId = UUID.randomUUID();
     }
 
-    public AuthenticatedUser(String email, String subjectId, String token) {
+    public AuthenticatedUserRequest(String email, String subjectId, String token) {
         this.email = email;
         this.subjectId = subjectId;
         this.token = token;
     }
 
-    @Override
     public String getSubjectId() {
         return subjectId;
     }
 
-    @Override
-    public AuthenticatedUser subjectId(String subjectId) {
+    public AuthenticatedUserRequest subjectId(String subjectId) {
         this.subjectId = subjectId;
         return this;
     }
 
-    @Override
     public String getEmail() {
         return email;
     }
 
-    @Override
-    public AuthenticatedUser email(String email) {
+    public AuthenticatedUserRequest email(String email) {
         this.email = email;
         return this;
     }
@@ -49,7 +46,7 @@ public class AuthenticatedUser implements UserInfo {
         return token;
     }
 
-    public AuthenticatedUser token(String token) {
+    public AuthenticatedUserRequest token(String token) {
         this.token = token;
         return this;
     }
@@ -58,14 +55,23 @@ public class AuthenticatedUser implements UserInfo {
         return reqId;
     }
 
-    public AuthenticatedUser reqId(UUID reqId) {
+    public AuthenticatedUserRequest reqId(UUID reqId) {
         this.reqId = reqId;
         return this;
     }
 
-    // Static method to build an AuthenticatedUser from data available to the controller
-    public static AuthenticatedUser from(Optional<HttpServletRequest> servletRequest,
-                                         String appConfigUserEmail) {
+    public boolean canManageJobs() {
+        return canManageJobs;
+    }
+
+    public AuthenticatedUserRequest canManageJobs(boolean canManageJobs) {
+        this.canManageJobs = canManageJobs;
+        return this;
+    }
+
+    // Static method to build an AuthenticatedUserRequest from data available to the controller
+    public static AuthenticatedUserRequest from(Optional<HttpServletRequest> servletRequest,
+                                                String appConfigUserEmail) {
 
         if (!servletRequest.isPresent()) {
             throw new BadRequestException("No valid request found.");
@@ -94,7 +100,7 @@ public class AuthenticatedUser implements UserInfo {
         if (userId == null) {
             userId = "999999999999";
         }
-        return new AuthenticatedUser().email(email).subjectId(userId).token(token);
+        return new AuthenticatedUserRequest().email(email).subjectId(userId).token(token);
     }
 
 }

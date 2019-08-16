@@ -1,12 +1,10 @@
 package bio.terra.stairway;
 
-import bio.terra.controller.AuthenticatedUser;
-import bio.terra.controller.UserInfo;
-import bio.terra.exception.UnauthorizedException;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
+import bio.terra.stairway.exception.StairwayUnauthorizedException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
@@ -114,11 +112,11 @@ public class Stairway {
         String flightId,
         Class<? extends Flight> flightClass,
         FlightMap inputParameters,
-        UserInfo userInfo) {
+        UserRequestInfo userRequestInfo) {
         if (flightClass == null || inputParameters == null) {
             throw new MakeFlightException("Must supply non-null flightClass and inputParameters to submit");
         }
-        Flight flight = makeFlight(flightClass, inputParameters, userInfo);
+        Flight flight = makeFlight(flightClass, inputParameters, userRequestInfo);
 
         // Generate the sequence id as a UUID. We have no dependency on flightDao id generation and no
         // confusion with small integers that might be accidentally valid.
@@ -127,18 +125,19 @@ public class Stairway {
         launchFlight(flight);
     }
 
-    public void verifyFlightAccess(String flightId, UserInfo userInfo) {
-        if (userInfo != null) {
+    public void verifyFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
+        if (userRequestInfo != null && !userRequestInfo.canManageJobs()) {
             boolean hasAccess = false;
             try {
-                hasAccess = flightDao.ownsFlight(flightId, userInfo.getSubjectId());
+                hasAccess = flightDao.ownsFlight(flightId, userRequestInfo.getSubjectId());
             } catch (EmptyResultDataAccessException emptyEx) {
                 throw new FlightNotFoundException(emptyEx);
             } catch (IncorrectResultSizeDataAccessException multiEx) {
                 throw new DatabaseOperationException("Multiple flights with the same id?! " + flightId, multiEx);
             }
             if (!hasAccess) {
-                throw new UnauthorizedException("user " + userInfo.getEmail() + " does not own flight " + flightId);
+                throw new StairwayUnauthorizedException(
+                    "user " + userRequestInfo.getName() + " does not own flight " + flightId);
             }
         }
     }
@@ -202,7 +201,7 @@ public class Stairway {
         return flightDao.getFlights(offset, limit);
     }
 
-    public List<FlightState> getFlightsForUser(int offset, int limit, UserInfo userReq) {
+    public List<FlightState> getFlightsForUser(int offset, int limit, UserRequestInfo userReq) {
         return flightDao.getFlightsForUser(offset, limit, userReq.getSubjectId());
     }
 
@@ -284,13 +283,13 @@ public class Stairway {
      * @return flight object suitable for submitting for execution
      */
     private Flight makeFlight(
-        Class<? extends Flight> flightClass, FlightMap inputParameters, UserInfo userInfo) {
+        Class<? extends Flight> flightClass, FlightMap inputParameters, UserRequestInfo userRequestInfo) {
         try {
             // Find the flightClass constructor that takes the input parameter map and
             // use it to make the flight.
             Constructor constructor = flightClass.getConstructor(
-                FlightMap.class, Object.class, AuthenticatedUser.class);
-            Flight flight = (Flight)constructor.newInstance(inputParameters, applicationContext, userInfo);
+                FlightMap.class, Object.class, UserRequestInfo.class);
+            Flight flight = (Flight)constructor.newInstance(inputParameters, applicationContext, userRequestInfo);
             return flight;
         } catch (InvocationTargetException |
                 NoSuchMethodException |
@@ -306,7 +305,7 @@ public class Stairway {
      *
      * We use the class name to store and retrieve from the flightDao when we recover.
      */
-    private Flight makeFlightFromName(String className, FlightMap inputMap, UserInfo user) {
+    private Flight makeFlightFromName(String className, FlightMap inputMap, UserRequestInfo user) {
         try {
             Class<?> someClass = Class.forName(className);
             if (Flight.class.isAssignableFrom(someClass)) {

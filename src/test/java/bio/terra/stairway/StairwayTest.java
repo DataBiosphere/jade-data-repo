@@ -2,8 +2,6 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import bio.terra.controller.AuthenticatedUser;
-import bio.terra.controller.UserInfo;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import org.junit.Before;
@@ -22,7 +20,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(StairwayUnit.class)
 public class StairwayTest {
     private Stairway stairway;
-    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private UserRequestInfo testUser =
+        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

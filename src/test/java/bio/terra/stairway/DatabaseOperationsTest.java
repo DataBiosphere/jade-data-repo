@@ -2,8 +2,6 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import bio.terra.controller.AuthenticatedUser;
-import bio.terra.controller.UserInfo;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -35,7 +33,8 @@ import static org.hamcrest.CoreMatchers.is;
 @AutoConfigureMockMvc
 @Category(StairwayUnit.class)
 public class DatabaseOperationsTest {
-    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private UserRequestInfo testUser =
+        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

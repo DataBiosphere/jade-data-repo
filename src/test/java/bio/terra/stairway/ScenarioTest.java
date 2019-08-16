@@ -3,8 +3,6 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.configuration.StairwayJdbcConfiguration;
-import bio.terra.controller.AuthenticatedUser;
-import bio.terra.controller.UserInfo;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,7 +30,8 @@ import static org.hamcrest.CoreMatchers.is;
 public class ScenarioTest {
     private Stairway stairway;
     private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
-    private UserInfo testUser = new AuthenticatedUser().subjectId("StairwayUnit").email("stairway@unit.com");
+    private UserRequestInfo testUser =
+        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

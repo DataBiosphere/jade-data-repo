@@ -5,6 +5,7 @@ import bio.terra.filesystem.EncodeFileOut;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.SnapshotModel;
@@ -45,6 +46,7 @@ public class EncodeFixture {
 
     // Create study, load files and tables. Create and return dataset.
     // Steward owns study; custodian is custodian on study; reader has access to the dataset.
+    // TODO: add tearDownEncode
     public SnapshotSummaryModel setupEncode(
         TestConfiguration.User steward,
         TestConfiguration.User custodian,
@@ -63,7 +65,8 @@ public class EncodeFixture {
         // Parse the input data and load the files; generate revised data file
         String stewardToken = authService.getDirectAccessAuthToken(steward.getEmail());
         Storage stewardStorage = dataRepoFixtures.getStorage(stewardToken);
-        String targetPath = loadFiles(datasetSummary.getId(), steward, stewardStorage);
+        BillingProfileModel billingProfile = dataRepoFixtures.createBillingProfile(steward);
+        String targetPath = loadFiles(datasetSummary.getId(), billingProfile.getId(), steward, stewardStorage);
 
         // Load the tables
         dataRepoFixtures.ingestJsonData(steward, datasetId, "file", targetPath);
@@ -98,7 +101,11 @@ public class EncodeFixture {
         return snapshotSummary;
     }
 
-    private String loadFiles(String datasetId, TestConfiguration.User user, Storage storage) throws Exception {
+    private String loadFiles(
+        String datasetId,
+        String profileId,
+        TestConfiguration.User user,
+        Storage storage) throws Exception {
         // Open the source data from the bucket
         // Open target data in bucket
         // Read one line at a time - unpack into pojo
@@ -126,11 +133,11 @@ public class EncodeFixture {
                 String bamiFileId = null;
 
                 if (encodeFileIn.getFile_gs_path() != null) {
-                    bamFileId = loadOneFile(user, datasetId, encodeFileIn.getFile_gs_path());
+                    bamFileId = loadOneFile(user, datasetId, profileId, encodeFileIn.getFile_gs_path());
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
-                    bamiFileId = loadOneFile(user, datasetId, encodeFileIn.getFile_index_gs_path());
+                    bamiFileId = loadOneFile(user, datasetId, profileId, encodeFileIn.getFile_index_gs_path());
                 }
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
@@ -142,9 +149,13 @@ public class EncodeFixture {
         return targetPath;
     }
 
-    private String loadOneFile(TestConfiguration.User user, String datasetId, String gsPath) throws Exception {
+    private String loadOneFile(
+        TestConfiguration.User user,
+        String datasetId,
+        String profileId,
+        String gsPath) throws Exception {
         String filePath = URI.create(gsPath).getPath();
-        FSObjectModel fsObject = dataRepoFixtures.ingestFile(user, datasetId, gsPath, filePath);
+        FSObjectModel fsObject = dataRepoFixtures.ingestFile(user, datasetId, profileId, gsPath, filePath);
         return fsObject.getObjectId();
     }
 

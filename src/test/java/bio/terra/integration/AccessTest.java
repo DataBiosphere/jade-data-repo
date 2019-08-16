@@ -64,6 +64,7 @@ public class AccessTest extends UsersBase {
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
+    private String profileId;
 
     @Before
     public void setup() throws Exception {
@@ -73,6 +74,7 @@ public class AccessTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     }
 
     private Storage getStorage(String token) {
@@ -159,11 +161,12 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
 
-        // Step 1. Ingest a file into the study
+        // Step 1. Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
             steward(),
             datasetSummaryModel.getId(),
+            profileId,
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
 

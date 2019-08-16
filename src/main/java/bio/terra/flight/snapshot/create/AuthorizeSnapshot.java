@@ -78,7 +78,7 @@ public class AuthorizeSnapshot implements Step {
                 String datasetId = snapshotSource.getDataset().getId().toString();
                 Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
                 List<String> fileIds = fireStoreDao.getDatasetSnapshotFileIds(dataset, snapshotId.toString());
-                gcsPdao.setAclOnFiles(datasetId, fileIds, readersPolicyEmail);
+                gcsPdao.setAclOnFiles(dataset, fileIds, readersPolicyEmail);
             }
         } catch (ApiException ex) {
             throw new InternalServerErrorException("Couldn't add readers", ex);

@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import static bio.terra.metadata.FSObjectType.DELETING_FILE;
 import static bio.terra.metadata.FSObjectType.FILE;
@@ -174,7 +175,9 @@ public class FireStoreFileDao {
                 .checksumMd5(fsFileInfo.getChecksumMd5())
                 .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
                 .size(fsFileInfo.getSize())
-                .fileCreatedDate(fsFileInfo.getCreatedDate());
+                .fileCreatedDate(fsFileInfo.getCreatedDate())
+                .region(fsFileInfo.getRegion())
+                .bucketResourceId(fsFileInfo.getBucketResourceId());
 
             // transition point from reading to writing in the transaction
 
@@ -342,28 +345,39 @@ public class FireStoreFileDao {
      */
     private static final int DELETE_BATCH_SIZE = 500;
     public void deleteFilesFromDataset(Dataset dataset) {
+        visitEachDocumentInDataset(dataset, DELETE_BATCH_SIZE, document -> document.getReference().delete());
+    }
+
+    public void forEachFsObjectInDataset(Dataset dataset, int batchSize, Consumer<FSObjectBase> func) {
+        visitEachDocumentInDataset(dataset, batchSize, document -> {
+            FireStoreObject currentObject = document.toObject(FireStoreObject.class);
+            FSObjectBase fsObject = makeFSObjectFromFireStoreObject(currentObject);
+            func.accept(fsObject);
+        });
+    }
+
+    private void visitEachDocumentInDataset(Dataset dataset, int batchSize, Consumer<QueryDocumentSnapshot> func) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
         try {
             int batchCount = 0;
-            int deleted;
+            int visited;
             do {
-                deleted = 0;
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(DELETE_BATCH_SIZE).get();
+                visited = 0;
+                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
                 List<QueryDocumentSnapshot> documents = future.get().getDocuments();
                 batchCount++;
-                logger.info("Deleting batch " + batchCount + " of ~" + DELETE_BATCH_SIZE + " documents");
+                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
                 for (QueryDocumentSnapshot document : documents) {
-                    document.getReference().delete();
-                    deleted++;
+                    func.accept(document);
+                    visited++;
                 }
-            } while (deleted >= DELETE_BATCH_SIZE);
-
+            } while (visited >= batchSize);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("delete dataset - execution interrupted", ex);
+            throw new FileSystemExecutionException("scanning dataset - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("delete dataset - execution exception", ex);
+            throw new FileSystemExecutionException("scanning dataset - execution exception", ex);
         }
     }
 
@@ -692,7 +706,10 @@ public class FireStoreFileDao {
                     .checksumCrc32c(fsFile.getChecksumCrc32c())
                     .checksumMd5(fsFile.getChecksumMd5())
                     .mimeType(fsFile.getMimeType())
-                    .flightId(fsFile.getFlightId());
+                    .flightId(fsFile.getFlightId())
+                    .profileId(fsFile.getProfileId())
+                    .region(fsFile.getRegion())
+                    .bucketResourceId(fsFile.getBucketResourceId());
                 break;
 
             case DIRECTORY:
@@ -720,6 +737,9 @@ public class FireStoreFileDao {
                     .checksumMd5(fireStoreObject.getChecksumMd5())
                     .mimeType(fireStoreObject.getMimeType())
                     .flightId(fireStoreObject.getFlightId())
+                    .profileId(fireStoreObject.getProfileId())
+                    .region(fireStoreObject.getRegion())
+                    .bucketResourceId(fireStoreObject.getBucketResourceId())
                     // -- base setters --
                     .objectId(UUID.fromString(fireStoreObject.getObjectId()))
                     .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))

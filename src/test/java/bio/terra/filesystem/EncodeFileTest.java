@@ -17,7 +17,7 @@ import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.FieldValue;
@@ -28,6 +28,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -73,9 +74,8 @@ public class EncodeFileTest {
 
     @Autowired private MockMvc mvc;
     @Autowired private ObjectMapper objectMapper;
-    @Autowired private Storage storage;
     @Autowired private ConnectedTestConfiguration testConfig;
-    @Autowired private DataProjectService dataProjectService;
+    @Autowired private DataLocationService dataLocationService;
     @Autowired private SnapshotDao snapshotDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
@@ -86,6 +86,7 @@ public class EncodeFileTest {
     private SamClientService samService;
 
     private BillingProfileModel profileModel;
+    private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Before
     public void setup() throws Exception {
@@ -297,7 +298,7 @@ public class EncodeFileTest {
 
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        SnapshotDataProject dataProject = dataProjectService.getProjectForSnapshot(snapshot);
+        SnapshotDataProject dataProject = dataLocationService.getProjectForSnapshot(snapshot);
         BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
 
         StringBuilder builder = new StringBuilder()
@@ -327,6 +328,7 @@ public class EncodeFileTest {
         URI uri = URI.create(gspath);
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(gspath)
+            .profileId(profileModel.getId())
             .description(null)
             .mimeType("application/octet-string")
             .targetPath(uri.getPath());

@@ -1613,6 +1613,7 @@ definitions:
     required:
       - source_path
       - target_path
+      - profileid
     properties:
       source_path:
         type: string
@@ -1627,6 +1628,9 @@ definitions:
         description: |-
           A string providing the mime-type of the Data Object.
           For example, "application/json".
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id to use for this file
       description:
         type: string
         description: |-

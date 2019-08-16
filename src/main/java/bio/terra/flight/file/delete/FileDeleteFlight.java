@@ -36,7 +36,7 @@ public class FileDeleteFlight extends Flight {
         // performing this delete-by-id and it will clean up the bucket or the file system even if they
         // are inconsistent.
         addStep(new DeleteFileMetadataStepStart(fileDao, fileId, dataset));
-        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao));
+        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao));
         addStep(new DeleteFileMetadataStepComplete(fileDao, fileId, dataset));
     }
 

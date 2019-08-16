@@ -11,6 +11,7 @@ import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,15 +48,15 @@ public class FileTest extends UsersBase {
     @Autowired
     private TestConfiguration testConfiguration;
 
-    @Autowired
-    private Storage storage;
-
+    private Storage storage = StorageOptions.getDefaultInstance().getService();
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
+    private String profileId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         logger.info("created dataset " + datasetId);
@@ -68,22 +69,24 @@ public class FileTest extends UsersBase {
         if (datasetId != null) {
             dataRepoFixtures.deleteDataset(steward(), datasetId);
         }
+        if (profileId != null) {
+            dataRepoFixtures.deleteProfile(steward(), profileId);
+        }
     }
 
     @Test
     public void fileUnauthorizedPermissionsTest() throws Exception {
-
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         String filePath = "/foo/bar";
 
         DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-            custodian(), datasetId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
+            custodian(), datasetId, profileId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
         assertThat("Custodian is not authorized to ingest a file",
             launchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
-            steward(), datasetId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
+            steward(), datasetId, profileId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
         String fileId = fsObjectModel.getObjectId();
 
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);

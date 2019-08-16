@@ -23,7 +23,7 @@ import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -106,7 +106,7 @@ public class SnapshotOperationTest {
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DatasetDao datasetDao;
     @Autowired private ProfileDao profileDao;
-    @Autowired private DataProjectService dataProjectService;
+    @Autowired private DataLocationService dataLocationService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
 
@@ -314,7 +314,7 @@ public class SnapshotOperationTest {
 
     private BigQueryProject bigQueryProjectForDatasetName(String datasetName) {
         Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataProjectService.getProjectForDataset(dataset);
+        DatasetDataProject dataProject = dataLocationService.getProjectForDataset(dataset);
         return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
 

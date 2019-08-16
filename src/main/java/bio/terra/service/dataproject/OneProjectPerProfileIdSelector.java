@@ -2,6 +2,7 @@ package bio.terra.service.dataproject;
 
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.FSFile;
 import bio.terra.metadata.Snapshot;
 import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
@@ -13,7 +14,7 @@ import java.util.UUID;
 
 @Component
 @Profile({"terra", "google"})
-public class OneProjectPerProfileIdSelector implements DataProjectIdSelector {
+public class OneProjectPerProfileIdSelector implements DataLocationSelector {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final ProfileService profileService;
 
@@ -32,6 +33,16 @@ public class OneProjectPerProfileIdSelector implements DataProjectIdSelector {
     @Override
     public String projectIdForSnapshot(Snapshot snapshot) {
         return getSuffixForProfileId(snapshot.getProfileId());
+    }
+
+    @Override
+    public String projectIdForFile(FSFile fsFile) {
+        return getSuffixForProfileId(UUID.fromString(fsFile.getProfileId()));
+    }
+
+    @Override
+    public String bucketForFile(FSFile fsFile) {
+        return projectIdForFile(fsFile) + "-bucket";
     }
 
     private String getSuffixForProfileId(UUID profileId) {

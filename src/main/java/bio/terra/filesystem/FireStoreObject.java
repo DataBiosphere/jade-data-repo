@@ -29,6 +29,9 @@ public class FireStoreObject {
     private String mimeType;
     private String description;
     private String flightId;
+    private String profileId;
+    private String region;
+    private String bucketResourceId;
 
     public FireStoreObject() {
     }
@@ -147,6 +150,33 @@ public class FireStoreObject {
 
     public FireStoreObject flightId(String flightId) {
         this.flightId = flightId;
+        return this;
+    }
+
+    public String getProfileId() {
+        return profileId;
+    }
+
+    public FireStoreObject profileId(String profileId) {
+        this.profileId = profileId;
+        return this;
+    }
+
+    public String getRegion() {
+        return region;
+    }
+
+    public FireStoreObject region(String region) {
+        this.region = region;
+        return this;
+    }
+
+    public String getBucketResourceId() {
+        return bucketResourceId;
+    }
+
+    public FireStoreObject bucketResourceId(String bucketResourceId) {
+        this.bucketResourceId = bucketResourceId;
         return this;
     }
 }

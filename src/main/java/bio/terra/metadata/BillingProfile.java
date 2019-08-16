@@ -8,6 +8,7 @@ public class BillingProfile {
     private String biller;
     private String billingAccountId;
     private boolean accessible;
+    private String gcsRegion;
 
     public BillingProfile() {
     }
@@ -54,6 +55,15 @@ public class BillingProfile {
 
     public BillingProfile accessible(boolean accessible) {
         this.accessible = accessible;
+        return this;
+    }
+
+    public String getGcsRegion() {
+        return gcsRegion;
+    }
+
+    public BillingProfile gcsRegion(String gcsRegion) {
+        this.gcsRegion = gcsRegion;
         return this;
     }
 }

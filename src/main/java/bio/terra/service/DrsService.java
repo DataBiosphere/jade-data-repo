@@ -93,7 +93,7 @@ public class DrsService {
         DRSAccessMethod accessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(accessURL)
-            .region(gcsConfiguration.getRegion());
+            .region(fsFile.getRegion());
 
         fileObject
             .size(fsFile.getSize())

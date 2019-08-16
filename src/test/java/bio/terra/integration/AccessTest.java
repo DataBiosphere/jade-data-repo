@@ -14,7 +14,6 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.service.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -65,6 +64,7 @@ public class AccessTest extends UsersBase {
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
+    private String profileId;
 
     @Before
     public void setup() throws Exception {
@@ -74,19 +74,12 @@ public class AccessTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     }
 
     private Storage getStorage(String token) {
         GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        StorageOptions storageOptions = StorageOptions.newBuilder()
-            .setCredentials(googleCredentials)
-            .build();
-        return storageOptions.getService();
-    }
-
-    private GcsProject getGcsProject(String projectId, String token) {
-        GoogleCredentials googleCredentials = GoogleCredentials.create(new AccessToken(token, null));
-        return new GcsProject(projectId, googleCredentials);
+        return GcsFixtures.getStorage(googleCredentials);
     }
 
     @Test
@@ -168,11 +161,12 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
 
-        // Step 1. Ingest a file into the study
+        // Step 1. Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
             steward(),
             datasetSummaryModel.getId(),
+            profileId,
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
 
@@ -236,7 +230,7 @@ public class AccessTest extends UsersBase {
         List<DRSAccessMethod> accessMethods = drsObject.getAccessMethods();
         assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
 
-        // Step 7. Pull our the gs path try to read the file as reader and discoverer
+        // Step 7. Pull out the gs path try to read the file as reader and discoverer
         DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
 
         String[] strings = accessUrl.getUrl().split("/", 4);

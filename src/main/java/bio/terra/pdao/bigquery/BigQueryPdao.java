@@ -19,7 +19,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.pdao.exception.PdaoException;
-import bio.terra.service.dataproject.DataProjectService;
+import bio.terra.service.dataproject.DataLocationService;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -63,23 +63,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryPdao.class);
 
     private final String datarepoDnsName;
-    private final DataProjectService dataProjectService;
+    private final DataLocationService dataLocationService;
 
     @Autowired
     public BigQueryPdao(
-            ApplicationConfiguration applicationConfiguration,
-            DataProjectService dataProjectService) {
+        ApplicationConfiguration applicationConfiguration,
+        DataLocationService dataLocationService) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
-        this.dataProjectService = dataProjectService;
+        this.dataLocationService = dataLocationService;
     }
 
     private BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
-        DatasetDataProject projectForDataset = dataProjectService.getProjectForDataset(dataset);
+        DatasetDataProject projectForDataset = dataLocationService.getProjectForDataset(dataset);
         return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
 
     private BigQueryProject bigQueryProjectForSnapshot(bio.terra.metadata.Snapshot snapshot) {
-        SnapshotDataProject projectForSnapshot = dataProjectService.getProjectForSnapshot(snapshot);
+        SnapshotDataProject projectForSnapshot = dataLocationService.getProjectForSnapshot(snapshot);
         return BigQueryProject.get(projectForSnapshot.getGoogleProjectId());
     }
 

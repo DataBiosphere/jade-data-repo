@@ -29,7 +29,7 @@ buildscript {
 }
 
 plugins {
-  id "com.google.cloud.tools.jib" version "1.4.0"
+  id "com.google.cloud.tools.jib" version "1.5.0"
   id 'org.liquibase.gradle' version '2.0.1'
 }
 

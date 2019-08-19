@@ -230,21 +230,23 @@ public final class DatasetJsonConversion {
 
     public static AssetModel assetModelFromAssetSpecification(AssetSpecification spec) {
         return new AssetModel()
-                .name(spec.getName())
-                .tables(spec.getAssetTables()
-                        .stream()
-                        .map(table ->
-                                new AssetTableModel()
-                                        .name(table.getTable().getName())
-                                        .columns(table.getColumns()
-                                                .stream()
-                                                .map(column -> column.getDatasetColumn().getName())
-                                                .collect(Collectors.toList())))
-                        .collect(Collectors.toList()))
-                .follow(spec.getAssetRelationships()
-                        .stream()
-                        .map(assetRelationship -> assetRelationship.getDatasetRelationship().getName())
-                        .collect(Collectors.toList()));
+            .name(spec.getName())
+            .rootTable(spec.getRootTable().getTable().getName())
+            .rootColumn(spec.getRootColumn().getDatasetColumn().getName())
+            .tables(spec.getAssetTables()
+                    .stream()
+                    .map(table ->
+                            new AssetTableModel()
+                                    .name(table.getTable().getName())
+                                    .columns(table.getColumns()
+                                            .stream()
+                                            .map(column -> column.getDatasetColumn().getName())
+                                            .collect(Collectors.toList())))
+                    .collect(Collectors.toList()))
+            .follow(spec.getAssetRelationships()
+                    .stream()
+                    .map(assetRelationship -> assetRelationship.getDatasetRelationship().getName())
+                    .collect(Collectors.toList()));
     }
 
     private static List<String> uuidsToStrings(List<UUID> uuids) {

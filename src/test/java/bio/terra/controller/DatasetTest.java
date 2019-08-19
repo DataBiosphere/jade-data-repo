@@ -6,6 +6,7 @@ import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.DatasetFixtures;
 import bio.terra.metadata.Dataset;
+import bio.terra.model.AssetModel;
 import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -25,9 +26,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -130,11 +134,20 @@ public class DatasetTest {
                         .andReturn().getResponse().getStatus(),
                 equalTo(HttpStatus.OK.value()));
 
-        mvc.perform(get("/api/repository/v1/datasets/{id}", id.toString())).andDo((result) ->
-                        assertThat("Dataset retrieve returns a Dataset Model with schema",
-                                objectMapper.readValue(result.getResponse().getContentAsString(), DatasetModel.class)
-                                        .getName(),
-                                equalTo(req.getName())));
+        mvc.perform(get("/api/repository/v1/datasets/{id}", id.toString()))
+            .andDo((result) -> {
+                DatasetModel datasetModel =
+                    objectMapper.readValue(result.getResponse().getContentAsString(), DatasetModel.class);
+                assertThat("Dataset retrieve returns a Dataset Model with schema",
+                    datasetModel.getName(),
+                    equalTo(req.getName()));
+                List<AssetModel> assets = datasetModel.getSchema().getAssets();
+                assertThat("There are assets", assets.size(), greaterThan(0));
+                AssetModel assetModel = assets.get(0);
+                assertThat("Asset is not null", assetModel, notNullValue());
+                assertThat("Asset root table is set", assetModel.getRootTable(), notNullValue());
+                assertThat("Asset root column is set", assetModel.getRootColumn(), notNullValue());
+            });
 
         assertThat("Dataset retrieve returns a Dataset Model with schema",
                 objectMapper.readValue(

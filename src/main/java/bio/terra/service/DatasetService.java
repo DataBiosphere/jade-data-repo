@@ -16,7 +16,6 @@ import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
@@ -107,6 +106,10 @@ public class DatasetService {
                 " to " + ingestRequestModel.getTable() +
                 " in dataset id " + id;
         return jobService.submit(
-            description, DatasetIngestFlight.class, ingestRequestModel, Collections.singletonMap("id", id), userReq);
+            description,
+            DatasetIngestFlight.class,
+            ingestRequestModel,
+            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
+            userReq);
     }
 }

@@ -17,8 +17,6 @@ import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
 import bio.terra.metadata.SnapshotSource;
 import bio.terra.metadata.SnapshotSummary;
-import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Dataset;
 import bio.terra.metadata.SnapshotTable;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;

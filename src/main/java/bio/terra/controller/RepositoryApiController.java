@@ -455,7 +455,7 @@ public class RepositoryApiController implements RepositoryApi {
         userReq.canManageJobs(samService.isAuthorized(
             userReq,
             SamClientService.ResourceType.DATAREPO,
-            appConfig.datarepoId(),
+            appConfig.getResourceId(),
             SamClientService.DataRepoAction.MANAGE_JOBS));
     }
 

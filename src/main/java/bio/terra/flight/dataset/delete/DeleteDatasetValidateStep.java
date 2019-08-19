@@ -4,12 +4,10 @@ import bio.terra.controller.exception.ValidationException;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
-import bio.terra.metadata.SnapshotSummary;
 import bio.terra.metadata.Dataset;
-import bio.terra.service.JobMapKeys;
+import bio.terra.metadata.SnapshotSummary;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
@@ -20,18 +18,19 @@ public class DeleteDatasetValidateStep implements Step {
     private SnapshotDao snapshotDao;
     private FireStoreDependencyDao dependencyDao;
     private DatasetService datasetService;
+    private UUID datasetId;
     public DeleteDatasetValidateStep(SnapshotDao snapshotDao,
-                                   FireStoreDependencyDao dependencyDao,
-                                   DatasetService datasetService) {
+                                     FireStoreDependencyDao dependencyDao,
+                                     DatasetService datasetService,
+                                     UUID datasetId) {
         this.snapshotDao = snapshotDao;
         this.dependencyDao = dependencyDao;
         this.datasetService = datasetService;
+        this.datasetId = datasetId;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         List<SnapshotSummary> snapshots = snapshotDao.retrieveSnapshotsForDataset(datasetId);
         Dataset dataset = datasetService.retrieve(datasetId);
 

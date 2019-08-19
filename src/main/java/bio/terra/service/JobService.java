@@ -69,16 +69,18 @@ public class JobService {
         stairway.submit(
             jobId,
             flightClass,
-            buildFlightMap(description, request, params),
+            buildFlightMap(description, request, params, userReq),
             buildUserRequestInfo(userReq));
         return jobId;
     }
 
-    private FlightMap buildFlightMap(String description, Object request, Map<String, String> params) {
+    private FlightMap buildFlightMap(
+        String description, Object request, Map<String, String> params, AuthenticatedUserRequest userReq) {
         FlightMap inputs = new FlightMap();
         inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
         inputs.put(JobMapKeys.REQUEST.getKeyName(), request);
         inputs.put(JobMapKeys.PATH_PARAMETERS.getKeyName(), params);
+        inputs.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
         return inputs;
     }
 

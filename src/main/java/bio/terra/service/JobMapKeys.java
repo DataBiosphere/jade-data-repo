@@ -7,7 +7,7 @@ public enum JobMapKeys {
     PATH_PARAMETERS("path_parameters"),
     RESPONSE("response"),
     STATUS_CODE("status_code"),
-    USER_INFO("user_info"),
+    AUTH_USER_INFO("auth_user_info"),
     DATASET_ID("datasetId"),
     SNAPSHOT_ID("snapshotId"),
     FILE_ID("fileId");

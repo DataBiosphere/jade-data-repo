@@ -76,13 +76,13 @@ public class SnapshotTest extends UsersBase {
     @Test
     public void snapshotUnauthorizedPermissionsTest() throws Exception {
         DataRepoResponse<JobModel> createSnapLaunchResp =
-            dataRepoFixtures.createSnapshotLaunch(reader(), datasetSummaryModel, "ingest-test-dataset.json");
+            dataRepoFixtures.createSnapshotLaunch(reader(), datasetSummaryModel, "ingest-test-snapshot.json");
         assertThat("Reader is not authorized to create a dataSnapshot",
             createSnapLaunchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         SnapshotSummaryModel snapshotSummary =
-            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-dataset.json");
+            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
         createdSnapshotIds.add(snapshotSummary.getId());
 
         DataRepoResponse<JobModel> deleteSnapResp =

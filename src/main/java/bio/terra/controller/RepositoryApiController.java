@@ -439,18 +439,6 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     // -- jobs --
-    public static class HttpStatusContainer {
-        private HttpStatus statusCode;
-
-        public HttpStatus getStatusCode() {
-            return statusCode;
-        }
-
-        public void setStatusCode(HttpStatus statusCode) {
-            this.statusCode = statusCode;
-        }
-    }
-
     private void setManageJobs(AuthenticatedUserRequest userReq) {
         userReq.canManageJobs(samService.isAuthorized(
             userReq,
@@ -497,9 +485,8 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         setManageJobs(userReq);
-        HttpStatusContainer stat = new HttpStatusContainer();
-        Object result = jobService.retrieveJobResult(id, Object.class, stat, userReq);
-        return ResponseEntity.status(stat.getStatusCode()).body(result);
+        JobService.JobResultWithStatus<Object> resultHolder = jobService.retrieveJobResult(id, Object.class, userReq);
+        return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
     }
 
     @Override

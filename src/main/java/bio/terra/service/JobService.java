@@ -1,7 +1,6 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.controller.RepositoryApiController;
 import bio.terra.model.JobModel;
 import bio.terra.service.exception.InvalidResultStateException;
 import bio.terra.service.exception.JobNotCompleteException;
@@ -33,6 +32,29 @@ public class JobService {
         this.stairway = stairway;
     }
 
+    public static class JobResultWithStatus<T> {
+        private T result;
+        private HttpStatus statusCode;
+
+        public T getResult() {
+            return result;
+        }
+
+        public JobResultWithStatus<T> result(T result) {
+            this.result = result;
+            return this;
+        }
+
+        public HttpStatus getStatusCode() {
+            return statusCode;
+        }
+
+        public JobResultWithStatus<T> statusCode(HttpStatus httpStatus) {
+            this.statusCode = httpStatus;
+            return this;
+        }
+    }
+
     private String createJobId() {
         // in the future, if we have multiple stairways, we may need to maintain a connection from job id to flight id
         return stairway.createFlightId().toString();
@@ -56,7 +78,7 @@ public class JobService {
         Class<T> resultClass) {
         String jobId = submitToStairway(description, flightClass, request, params, userReq);
         stairway.waitForFlight(jobId);
-        return retrieveJobResult(jobId, resultClass, null, userReq);
+        return retrieveJobResult(jobId, resultClass, userReq).getResult();
     }
 
     private String submitToStairway(
@@ -180,19 +202,17 @@ public class JobService {
      * @param jobId to process
      * @return object of the result class pulled from the result map
      */
-    public <T> T retrieveJobResult(
+    public <T> JobResultWithStatus<T> retrieveJobResult(
         String jobId,
         Class<T> resultClass,
-        RepositoryApiController.HttpStatusContainer statContainer,
         AuthenticatedUserRequest userReq) {
         stairway.verifyFlightAccess(jobId, buildUserRequestInfo(userReq));
-        return retrieveJobResultWorker(jobId, resultClass, statContainer);
+        return retrieveJobResultWorker(jobId, resultClass);
     }
 
-    private <T> T retrieveJobResultWorker(
+    private <T> JobResultWithStatus<T> retrieveJobResultWorker(
         String jobId,
-        Class<T> resultClass,
-        RepositoryApiController.HttpStatusContainer statusContainer) {
+        Class<T> resultClass) {
         FlightState flightState = stairway.getFlightState(jobId);
         FlightMap resultMap = flightState.getResultMap().orElse(null);
         if (resultMap == null) {
@@ -213,15 +233,13 @@ public class JobService {
                 throw new InvalidResultStateException("Failed operation with no exception reported");
 
             case SUCCESS:
-                if (statusContainer != null) {
-                    HttpStatus statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
-                    if (statusCode == null) {
-                        statusCode = HttpStatus.OK;
-                    }
-                    statusContainer.setStatusCode(statusCode);
+                HttpStatus statusCode = resultMap.get(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.class);
+                if (statusCode == null) {
+                    statusCode = HttpStatus.OK;
                 }
-                return resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass);
-
+                return  new JobResultWithStatus<T>()
+                    .statusCode(statusCode)
+                    .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
             case RUNNING:
                 throw new JobNotCompleteException("Attempt to retrieve job result before job is complete; job id: "
                     + flightState.getFlightId());

@@ -2,11 +2,10 @@ package bio.terra.service;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.controller.RepositoryApiController;
-import bio.terra.stairway.UserRequestInfo;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
@@ -83,11 +82,10 @@ public class JobServiceTest {
     }
 
     private void testResultRetrieval(List<String> fids) {
-        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
-        String resultDesc =
-            jobService.retrieveJobResult(fids.get(2), String.class, statContainer, testUser);
-        Assert.assertThat(statContainer.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
-        Assert.assertThat(resultDesc, is(equalTo(makeDescription(2))));
+        JobService.JobResultWithStatus<String> resultHolder =
+            jobService.retrieveJobResult(fids.get(2), String.class, testUser);
+        Assert.assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
+        Assert.assertThat(resultHolder.getResult(), is(equalTo(makeDescription(2))));
     }
 
     // Get some range and compare it with the fids
@@ -115,7 +113,7 @@ public class JobServiceTest {
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        jobService.retrieveJobResult("abcdef", Object.class, null, testUser);
+        jobService.retrieveJobResult("abcdef", Object.class, testUser);
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {

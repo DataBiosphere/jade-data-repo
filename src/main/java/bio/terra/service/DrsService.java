@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
@@ -42,6 +43,7 @@ public class DrsService {
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
     private final DatasetService datasetService;
+    private final SamClientService samService;
 
     @Autowired
     public DrsService(DatasetDao datasetDao,
@@ -50,7 +52,8 @@ public class DrsService {
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
-                      DatasetService datasetService) {
+                      DatasetService datasetService,
+                      SamClientService samService) {
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
@@ -58,16 +61,22 @@ public class DrsService {
         this.drsIdService = drsIdService;
         this.gcsConfiguration = gcsConfiguration;
         this.datasetService = datasetService;
+        this.samService = samService;
     }
 
-    public DRSObject lookupObjectByDrsId(String drsObjectId, Boolean expand) {
+    public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
+        DrsId drsId = parseAndValidateDrsId(drsObjectId);
+        // Make sure requester is a READER on the snapshot
+        samService.verifyAuthorization(
+            authUser,
+            SamClientService.ResourceType.DATASNAPSHOT,
+            drsId.getSnapshotId(),
+            SamClientService.DataRepoAction.READ_DATA);
+
         // TODO: Implement recursive directory expansion
         if (expand) {
             throw new NotImplementedException("Expand is not yet implemented");
         }
-
-        DrsId drsId = parseAndValidateDrsId(drsObjectId);
-
         FSObjectBase fsObject = fileService.lookupFSObject(
             drsId.getDatasetId(),
             drsId.getFsObjectId());

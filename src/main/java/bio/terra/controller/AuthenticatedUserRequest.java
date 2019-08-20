@@ -1,6 +1,8 @@
 package bio.terra.controller;
 
 import bio.terra.controller.exception.ApiException;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -50,7 +52,7 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
-
+    @JsonIgnore
     public String getRequiredToken() {
         if (!token.isPresent()) {
             throw new ApiException("Token required");

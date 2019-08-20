@@ -27,10 +27,12 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
     // Static method to build an AuthenticatedUserRequest from data available to the controller
     public AuthenticatedUserRequest from(HttpServletRequest servletRequest) {
         HttpServletRequest req = servletRequest;
-        String email = applicationConfiguration.getUserEmail();
 
         Optional<String> token = Optional.ofNullable(req.getHeader("Authorization"))
             .map(header -> header.substring("Bearer ".length()));
+
+        String email = Optional.ofNullable(req.getHeader("From"))
+            .orElse(applicationConfiguration.getUserEmail());
 
         return new AuthenticatedUserRequest(email, token);
     }

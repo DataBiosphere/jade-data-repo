@@ -2,6 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.model.DRSAccessMethod;
 import org.apache.commons.lang3.StringUtils;
+import bio.terra.service.SamClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,4 +60,21 @@ public final class TestUtils {
         assertTrue("got both access methods", gotGs && gotHttps);
         return gsuri;
     }
+
+    public static String getHttpPathString(SamClientService.ResourceType resourceType) {
+        String httpPathString = null;
+        switch (resourceType) {
+            case DATASET:
+                httpPathString = "datasets";
+                break;
+            case DATASNAPSHOT:
+                httpPathString = "snapshots";
+                break;
+            default:
+                httpPathString = null;
+        }
+
+        return httpPathString;
+    }
 }
+

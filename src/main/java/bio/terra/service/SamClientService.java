@@ -42,23 +42,14 @@ public class SamClientService {
     }
 
     public enum ResourceType {
-        DATAREPO(null),
-        DATASET("datasets"),
-        DATASNAPSHOT("snapshots");
-
-        private String httpPathString;
-        ResourceType(String httpPathString) {
-            this.httpPathString = httpPathString;
-        }
+        DATAREPO,
+        DATASET,
+        DATASNAPSHOT;
 
         @Override
         @JsonValue
         public String toString() {
             return StringUtils.lowerCase(name());
-        }
-
-        public String getHttpPathString() {
-            return httpPathString;
         }
 
         @JsonCreator

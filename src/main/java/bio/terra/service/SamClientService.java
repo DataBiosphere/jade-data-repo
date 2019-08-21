@@ -43,8 +43,8 @@ public class SamClientService {
 
     public enum ResourceType {
         DATAREPO(null),
-        DATASET("study"),
-        DATASNAPSHOT("dataset"),
+        DATASET("datasets"),
+        DATASNAPSHOT("snapshots"),
         DATATREPO_JOB(null);
 
         private String httpPathString;

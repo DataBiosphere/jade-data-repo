@@ -1047,9 +1047,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return null;
     }
 
-    private void softDeleteRows(List<String> softDeleteRowIds, String tableName, Dataset datarepoDataset) {
+    private void softDeleteRows(List<String> softDeleteRowIds, String tableName, Dataset datarepoDataset, BigQuery bigQuery) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(datarepoDataset);
         String projectId = bigQueryProject.getProjectId();
+        String softDeletesTableName = projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName);
 
         // TODO: Validate rowIDs exist in given table
         String rowIdValues = softDeleteRowIds
@@ -1061,7 +1062,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "INSERT INTO `{softDeletesTableName}` ({pdaoRowIdColumn}) " +
              "VALUES ({rowIdValues})";
 
-        Map<String, String>
+        Map<String, String> sqlParamsMap = new HashMap<>();
+        sqlParamsMap.put("softDeletesTableName", projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName);
+        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
+        sqlParamsMap.put("rowIdValues", rowIdValues);
+
+        String sql = StringSubstitutor.replace(sqlTemplate.toString(), sqlParamsMap, "{", "}");
+        try {
+            QueryJobConfiguration queryConfig =
+                QueryJobConfiguration.newBuilder(sql)
+                    .setDestinationTable(TableId.of(datarepoDataset.getName(), createSoftDeletesTableName(tableName)))
+                    .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                    .build();
+
+            bigQuery.query(queryConfig);
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Append query unexpectedly interrupted", ie);
+        }
     }
 
     // TODO: Make an enum for the datatypes in swagger

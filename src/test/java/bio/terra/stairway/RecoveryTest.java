@@ -60,8 +60,11 @@ import static org.hamcrest.Matchers.equalTo;
 public class RecoveryTest {
 //    private PoolingDataSource<PoolableConnection> dataSource;
     private ExecutorService executorService;
-    private UserRequestInfo testUser =
-        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
+    private UserRequestInfo testUser = new UserRequestInfo()
+        .subjectId("StairwayUnit")
+        .name("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

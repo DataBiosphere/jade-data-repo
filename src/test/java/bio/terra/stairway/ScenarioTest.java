@@ -30,8 +30,11 @@ import static org.hamcrest.CoreMatchers.is;
 public class ScenarioTest {
     private Stairway stairway;
     private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
-    private UserRequestInfo testUser =
-        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
+    private UserRequestInfo testUser = new UserRequestInfo()
+        .subjectId("StairwayUnit")
+        .name("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

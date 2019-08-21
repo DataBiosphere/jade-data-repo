@@ -36,8 +36,8 @@ public class SamClientServiceTest {
     @Autowired
     private SamClientService sam;
 
-    private AuthenticatedUserRequest testUser =
-        new AuthenticatedUserRequest().email("blah").subjectId("myId").token("blah").canManageJobs(true);
+    private AuthenticatedUserRequest testUser = new AuthenticatedUserRequest()
+            .email("blah").subjectId("myId").token("blah").canListJobs(true).canDeleteJobs(true);
 
     @Test(expected = ApiException.class)
     public void testCreateDatasetResourceException() throws Exception {

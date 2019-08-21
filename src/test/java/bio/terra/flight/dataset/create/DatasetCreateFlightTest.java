@@ -67,7 +67,7 @@ public class DatasetCreateFlightTest {
     private Dataset dataset;
     private BillingProfileModel billingProfileModel;
     private UserRequestInfo testUser =
-        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
+        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canListJobs(true).canDeleteJobs(true);
 
     private DatasetRequestModel makeDatasetRequest(String datasetName, String profileId) throws IOException {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-minimal.json",

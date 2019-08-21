@@ -110,7 +110,8 @@ public class SamClientService {
         ALTER_POLICIES,
         // datarepo
         CREATE_DATASET,
-        MANAGE_JOBS,
+        LIST_JOBS,
+        DELETE_JOBS,
         // dataset
         EDIT_DATASET,
         READ_DATASET,

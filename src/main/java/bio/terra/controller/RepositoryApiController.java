@@ -185,7 +185,7 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = datasetService.ingestDataset(id, ingest, userReq);
-        return jobToResponse(jobService.retrieveJob(jobId, userReq.canManageJobs(true)));
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     // -- dataset-file --
@@ -200,7 +200,7 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.DataRepoAction.UPDATE_DATA);
         String jobId = fileService.deleteFile(id, fileid, userReq);
         // we can retrieve the job we just created
-        return jobToResponse(jobService.retrieveJob(jobId, userReq.canManageJobs(true)));
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -215,7 +215,7 @@ public class RepositoryApiController implements RepositoryApi {
         String jobId = fileService.ingestFile(id, ingestFile, userReq);
         // we can retrieve the job we just created
 
-        return jobToResponse(jobService.retrieveJob(jobId, userReq.canManageJobs(true)));
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -321,7 +321,7 @@ public class RepositoryApiController implements RepositoryApi {
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
             // we can retrieve the job we just created
-            return jobToResponse(jobService.retrieveJob(jobId, userReq.canManageJobs(true)));
+            return jobToResponse(jobService.retrieveJob(jobId, userReq));
         }
         throw new UnauthorizedException(
             "User is not authorized to create snapshots for these datasets " + unauthorized);
@@ -337,7 +337,7 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.DataRepoAction.DELETE);
         String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), userReq);
         // we can retrieve the job we just created
-        return jobToResponse(jobService.retrieveJob(jobId, userReq.canManageJobs(true)));
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -439,12 +439,17 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     // -- jobs --
-    private void setManageJobs(AuthenticatedUserRequest userReq) {
-        userReq.canManageJobs(samService.isAuthorized(
+    private void setManageJobFlags(AuthenticatedUserRequest userReq) {
+        userReq.canListJobs(samService.isAuthorized(
             userReq,
             SamClientService.ResourceType.DATAREPO,
             appConfig.getResourceId(),
-            SamClientService.DataRepoAction.MANAGE_JOBS));
+            SamClientService.DataRepoAction.LIST_JOBS));
+        userReq.canDeleteJobs(samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            SamClientService.DataRepoAction.DELETE_JOBS));
     }
 
     private ResponseEntity<JobModel> jobToResponse(JobModel job) {
@@ -468,7 +473,7 @@ public class RepositoryApiController implements RepositoryApi {
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         validiateOffsetAndLimit(offset, limit);
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobs(userReq);
+        setManageJobFlags(userReq);
         List<JobModel> results = jobService.enumerateJobs(offset, limit, userReq);
         return new ResponseEntity<>(results, HttpStatus.OK);
     }
@@ -476,7 +481,7 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobs(userReq);
+        setManageJobFlags(userReq);
         JobModel job = jobService.retrieveJob(id, userReq);
         return jobToResponse(job);
     }
@@ -484,7 +489,7 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobs(userReq);
+        setManageJobFlags(userReq);
         JobService.JobResultWithStatus<Object> resultHolder = jobService.retrieveJobResult(id, Object.class, userReq);
         return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
     }
@@ -492,7 +497,7 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Void> deleteJob(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobs(userReq);
+        setManageJobFlags(userReq);
         jobService.releaseJob(id, userReq);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

@@ -111,11 +111,12 @@ public class JobService {
             .name(userReq.getEmail())
             .subjectId(userReq.getSubjectId())
             .requsetId(userReq.getReqId())
-            .canManageJobs(userReq.canManageJobs());
+            .canListJobs(userReq.canListJobs())
+            .canDeleteJobs(userReq.canDeleteJobs());
     }
 
     public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-        stairway.verifyFlightAccess(jobId, buildUserRequestInfo(userReq));
+        stairway.verifyDeleteFlightAccess(jobId, buildUserRequestInfo(userReq));
         stairway.deleteFlight(jobId);
     }
 
@@ -178,7 +179,7 @@ public class JobService {
     }
 
     public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
-        stairway.verifyFlightAccess(jobId, buildUserRequestInfo(userReq));
+        stairway.verifyListFlightAccess(jobId, buildUserRequestInfo(userReq));
         FlightState flightState = stairway.getFlightState(jobId);
         return mapFlightStateToJobModel(flightState);
     }
@@ -206,7 +207,7 @@ public class JobService {
         String jobId,
         Class<T> resultClass,
         AuthenticatedUserRequest userReq) {
-        stairway.verifyFlightAccess(jobId, buildUserRequestInfo(userReq));
+        stairway.verifyListFlightAccess(jobId, buildUserRequestInfo(userReq));
         return retrieveJobResultWorker(jobId, resultClass);
     }
 

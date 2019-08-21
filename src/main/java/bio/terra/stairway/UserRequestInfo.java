@@ -7,7 +7,8 @@ public class UserRequestInfo {
     private String name;
     private String subjectId;
     private UUID requestId;
-    private boolean canManageJobs;
+    private boolean canListJobs;
+    private boolean canDeleteJobs;
 
     public String getName() {
         return name;
@@ -36,12 +37,22 @@ public class UserRequestInfo {
         return this;
     }
 
-    public boolean canManageJobs() {
-        return canManageJobs;
+    public boolean canListJobs() {
+        return canListJobs;
     }
 
-    public UserRequestInfo canManageJobs(boolean canManageJobs) {
-        this.canManageJobs = canManageJobs;
+    public UserRequestInfo canListJobs(boolean canListJobs) {
+        this.canListJobs = canListJobs;
         return this;
     }
+
+    public boolean canDeleteJobs() {
+        return canDeleteJobs;
+    }
+
+    public UserRequestInfo canDeleteJobs(boolean canDeleteJobs) {
+        this.canDeleteJobs = canDeleteJobs;
+        return this;
+    }
+
 }

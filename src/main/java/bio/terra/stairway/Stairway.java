@@ -125,23 +125,32 @@ public class Stairway {
         launchFlight(flight);
     }
 
-    public void verifyFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
-        if (userRequestInfo != null && !userRequestInfo.canManageJobs()) {
-            boolean hasAccess = false;
-            try {
-                hasAccess = flightDao.ownsFlight(flightId, userRequestInfo.getSubjectId());
-            } catch (EmptyResultDataAccessException emptyEx) {
-                throw new FlightNotFoundException(emptyEx);
-            } catch (IncorrectResultSizeDataAccessException multiEx) {
-                throw new DatabaseOperationException("Multiple flights with the same id?! " + flightId, multiEx);
-            }
-            if (!hasAccess) {
-                throw new StairwayUnauthorizedException(
-                    "user " + userRequestInfo.getName() + " does not own flight " + flightId);
-            }
+    public void verifyListFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
+        if (userRequestInfo != null && !userRequestInfo.canListJobs()) {
+            verifyUserAccess(flightId, userRequestInfo);
         }
     }
 
+    public void verifyDeleteFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
+        if (userRequestInfo != null && !userRequestInfo.canDeleteJobs()) {
+            verifyUserAccess(flightId, userRequestInfo);
+        }
+    }
+
+    private void verifyUserAccess(String flightId, UserRequestInfo userRequestInfo) {
+        boolean hasAccess;
+        try {
+            hasAccess = flightDao.ownsFlight(flightId, userRequestInfo.getSubjectId());
+        } catch (EmptyResultDataAccessException emptyEx) {
+            throw new FlightNotFoundException(emptyEx);
+        } catch (IncorrectResultSizeDataAccessException multiEx) {
+            throw new DatabaseOperationException("Multiple flights with the same id?! " + flightId, multiEx);
+        }
+        if (!hasAccess) {
+            throw new StairwayUnauthorizedException(
+                "user " + userRequestInfo.getName() + " does not own flight " + flightId);
+        }
+    }
 
 
     public void deleteFlight(String flightId) {

@@ -20,8 +20,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(StairwayUnit.class)
 public class StairwayTest {
     private Stairway stairway;
-    private UserRequestInfo testUser =
-        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
+    private UserRequestInfo testUser = new UserRequestInfo()
+        .subjectId("StairwayUnit")
+        .name("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

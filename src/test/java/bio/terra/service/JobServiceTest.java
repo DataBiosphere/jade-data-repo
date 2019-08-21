@@ -29,8 +29,11 @@ import static org.hamcrest.CoreMatchers.is;
 @SpringBootTest
 @Category(Unit.class)
 public class JobServiceTest {
-    private AuthenticatedUserRequest testUser =
-        new AuthenticatedUserRequest().subjectId("StairwayUnit").email("stairway@unit.com").canManageJobs(true);
+    private AuthenticatedUserRequest testUser = new AuthenticatedUserRequest()
+        .subjectId("StairwayUnit")
+        .email("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private Stairway stairway;
@@ -136,7 +139,8 @@ public class JobServiceTest {
             new UserRequestInfo()
                 .subjectId(testUser.getSubjectId())
                 .name(testUser.getEmail())
-                .canManageJobs(testUser.canManageJobs()));
+                .canListJobs(testUser.canListJobs())
+                .canDeleteJobs(testUser.canDeleteJobs()));
         stairway.waitForFlight(flightId);
         return flightId;
     }

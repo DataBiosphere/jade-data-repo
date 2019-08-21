@@ -33,8 +33,11 @@ import static org.hamcrest.CoreMatchers.is;
 @AutoConfigureMockMvc
 @Category(StairwayUnit.class)
 public class DatabaseOperationsTest {
-    private UserRequestInfo testUser =
-        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canManageJobs(true);
+    private UserRequestInfo testUser = new UserRequestInfo()
+        .subjectId("StairwayUnit")
+        .name("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

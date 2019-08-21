@@ -119,6 +119,7 @@ dependencies {
     compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
     compile 'org.apache.commons:commons-lang3:3.9'
+    compile 'org.apache.commons:commons-text:1.7'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.liquibase:liquibase-core:3.7.0'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.6'           // Postgres jdbc driver

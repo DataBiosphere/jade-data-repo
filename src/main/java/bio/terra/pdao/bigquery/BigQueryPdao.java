@@ -47,7 +47,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -663,7 +665,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(" FROM `")
             .append(projectId).append(".").append(bqDatasetName).append(".").append(softDeletesTableName)
             .append("`)) AS T");
-
         return builder.toString();
     }
 
@@ -1068,10 +1069,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String softDeletesTableName = projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName);
 
         // TODO: Validate rowIDs exist in given table
-        String rowIdValues = softDeleteRowIds
-            .stream()
-            .map(rowId ->  String.format("'%s'", rowId))
-            .collect(Collectors.joining(","));
+        String rowIdValues = String.join(",", softDeleteRowIds);
 
         StringBuilder builder = new StringBuilder();
         builder.append("INSERT INTO `")
@@ -1079,7 +1077,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(".")
             .append(datarepoDataset)
             .append(".")
-            .append(createSoftDeletesTableName(tableName))
+            .append(softDeletesTableName)
             .append("` (")
             .append(PDAO_ROW_ID_COLUMN)
             .append(") VALUES (")

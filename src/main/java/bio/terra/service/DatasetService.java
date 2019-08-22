@@ -4,21 +4,18 @@ import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
-import bio.terra.flight.dataset.ingest.IngestMapKeys;
 import bio.terra.flight.dataset.ingest.DatasetIngestFlight;
-import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSummary;
-import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.IngestRequestModel;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.dataproject.DataLocationService;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
+import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.IngestRequestModel;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
@@ -29,6 +26,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,28 +36,26 @@ public class DatasetService {
     private static Logger logger = LoggerFactory.getLogger(DatasetService.class);
 
     private final DatasetDao datasetDao;
-    private final Stairway stairway;
     private final JobService jobService; // for handling flight response
     private final DataLocationService dataLocationService;
 
     @Autowired
     public DatasetService(DatasetDao datasetDao,
-                          Stairway stairway,
                           JobService jobService,
                           DataLocationService dataLocationService) {
         this.datasetDao = datasetDao;
-        this.stairway = stairway;
         this.jobService = jobService;
         this.dataLocationService = dataLocationService;
     }
 
-    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userInfo) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Creating a dataset");
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
-        String flightId = stairway.submit(DatasetCreateFlight.class, flightMap);
-        return getResponse(flightId, DatasetSummaryModel.class);
+    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
+        return jobService.submitAndWait(
+            "Create dataset " + datasetRequest.getName(),
+            DatasetCreateFlight.class,
+            datasetRequest,
+            Collections.EMPTY_MAP,
+            userReq,
+            DatasetSummaryModel.class);
     }
 
     public Dataset retrieve(UUID id) {
@@ -89,34 +85,31 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(UUID id, AuthenticatedUserRequest userInfo) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Deleting the dataset with ID " + id);
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
-        String flightId = stairway.submit(DatasetDeleteFlight.class, flightMap);
-        return getResponse(flightId, DeleteResponseModel.class);
+    public DeleteResponseModel delete(String id, AuthenticatedUserRequest userReq) {
+        return jobService.submitAndWait(
+            "Delete dataset " + id,
+            DatasetDeleteFlight.class,
+            null,
+            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
+            userReq,
+            DeleteResponseModel.class);
     }
 
-    public String ingestDataset(String id, IngestRequestModel ingestRequestModel) {
+    public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
         // Fill in a default load id if the caller did not provide one in the ingest request.
         if (StringUtils.isEmpty(ingestRequestModel.getLoadTag())) {
             String loadTag = "load-at-" + Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
             ingestRequestModel.setLoadTag(loadTag);
         }
-
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(),
+        String description =
             "Ingest from " + ingestRequestModel.getPath() +
                 " to " + ingestRequestModel.getTable() +
-                " in dataset id " + id);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), ingestRequestModel);
-        flightMap.put(IngestMapKeys.DATASET_ID, id);
-        return stairway.submit(DatasetIngestFlight.class, flightMap);
-    }
-
-    private <T> T getResponse(String flightId, Class<T> resultClass) {
-        stairway.waitForFlight(flightId);
-        return jobService.retrieveJobResult(flightId, resultClass);
+                " in dataset id " + id;
+        return jobService.submit(
+            description,
+            DatasetIngestFlight.class,
+            ingestRequestModel,
+            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
+            userReq);
     }
 }

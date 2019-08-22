@@ -1,5 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
+import bio.terra.flight.dataset.DatasetWorkingMapKeys;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.flight.exception.TableNotFoundException;
 import bio.terra.metadata.Dataset;
@@ -12,6 +13,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -45,8 +47,9 @@ public final class IngestUtils {
 
     public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
         FlightMap inputParameters = context.getInputParameters();
-        String id = inputParameters.get(IngestMapKeys.DATASET_ID, String.class);
-        UUID datasetId = UUID.fromString(id);
+        Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
+            JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
+        UUID datasetId = UUID.fromString(pathParams.get(JobMapKeys.DATASET_ID.getKeyName()));
         return datasetService.retrieve(datasetId);
     }
 
@@ -94,12 +97,12 @@ public final class IngestUtils {
 
     public static void putDatasetName(FlightContext context, String name) {
         FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(IngestMapKeys.DATASET_NAME, name);
+        workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, name);
     }
 
     public static String getDatasetName(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        return workingMap.get(IngestMapKeys.DATASET_NAME, String.class);
+        return workingMap.get(DatasetWorkingMapKeys.DATASET_NAME, String.class);
     }
 
     public static void putIngestStatistics(FlightContext context, PdaoLoadStatistics statistics) {

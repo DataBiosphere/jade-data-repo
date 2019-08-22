@@ -1,58 +1,71 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
-import bio.terra.metadata.*;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.FSDir;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSObjectType;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FSObjectModelType;
 import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 public class FileService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
 
-    private final Stairway stairway;
+    private final JobService jobService;
     private final FireStoreFileDao fileDao;
     private  final DatasetService datasetService;
 
     @Autowired
-    public FileService(Stairway stairway, FireStoreFileDao fileDao, DatasetService datasetService) {
-        this.stairway = stairway;
+    public FileService(JobService jobService, FireStoreFileDao fileDao, DatasetService datasetService) {
+        this.jobService = jobService;
         this.fileDao = fileDao;
         this.datasetService = datasetService;
     }
 
-    public String deleteFile(String datasetId, String fileId) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete file from dataset " + datasetId + " file " + fileId);
-        flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileId);
-        return stairway.submit(FileDeleteFlight.class, flightMap);
+    public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
+        return jobService.submit(
+            "Delete file from dataset " + datasetId + " file " + fileId,
+            FileDeleteFlight.class,
+            null,
+            Stream.of(
+                new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
+                new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.FILE_ID.getKeyName(), fileId))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
+            userReq);
     }
 
-    public String ingestFile(String datasetId, FileLoadModel fileLoad) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Ingest file " + fileLoad.getTargetPath());
-        flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileLoad);
-        return stairway.submit(FileIngestFlight.class, flightMap);
+    public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
+        return jobService.submit(
+            "Ingest file " + fileLoad.getTargetPath(),
+            FileIngestFlight.class,
+            fileLoad,
+            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
+            userReq);
     }
 
     public FSObjectModel lookupFile(String datasetId, String fileId) {
@@ -64,14 +77,14 @@ public class FileService {
         return fileModelFromFSObject(fsObject);
     }
 
-    FSObjectBase lookupFSObject(String datasetId, String fileId) {
+    public FSObjectBase lookupFSObject(String datasetId, String fileId) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
         FSObjectBase fsObject = fileDao.retrieveWithContents(dataset, UUID.fromString(fileId));
         checkFSObject(fsObject, datasetId, fileId);
         return fsObject;
     }
 
-    FSObjectBase lookupFSObjectByPath(String datasetId, String path) {
+    private FSObjectBase lookupFSObjectByPath(String datasetId, String path) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
         FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(dataset, path);
         checkFSObject(fsObject, datasetId, path);

@@ -2,11 +2,11 @@ package bio.terra.flight.dataset.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
+import bio.terra.flight.dataset.DatasetWorkingMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.JobMapKeys;
-import bio.terra.service.SamClientService;
 import bio.terra.service.DatasetService;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -25,23 +25,23 @@ public class CreateDatasetAuthzResource implements Step {
     private SamClientService sam;
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
+    private AuthenticatedUserRequest userReq;
 
     public CreateDatasetAuthzResource(
         SamClientService sam,
         BigQueryPdao bigQueryPdao,
-        DatasetService datasetService) {
+        DatasetService datasetService,
+        AuthenticatedUserRequest userReq) {
         this.sam = sam;
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
+        this.userReq = userReq;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
-        UUID datasetId = workingMap.get("datasetId", UUID.class);
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         Dataset dataset = datasetService.retrieve(datasetId);
         try {
             List<String> policyEmails = sam.createDatasetResource(userReq, datasetId);
@@ -55,11 +55,8 @@ public class CreateDatasetAuthzResource implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
-        UUID datasetId = workingMap.get("datasetId", UUID.class);
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         try {
             sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {

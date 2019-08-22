@@ -1,6 +1,7 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.category.Connected;
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.fixtures.ConnectedOperations;
@@ -65,6 +66,8 @@ public class DatasetCreateFlightTest {
     private DatasetRequestModel datasetRequest;
     private Dataset dataset;
     private BillingProfileModel billingProfileModel;
+    private UserRequestInfo testUser =
+        new UserRequestInfo().subjectId("StairwayUnit").name("stairway@unit.com").canListJobs(true).canDeleteJobs(true);
 
     private DatasetRequestModel makeDatasetRequest(String datasetName, String profileId) throws IOException {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-minimal.json",
@@ -108,7 +111,8 @@ public class DatasetCreateFlightTest {
     public void testHappyPath() {
         FlightMap map = new FlightMap();
         map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
-        String flightId = stairway.submit(DatasetCreateFlight.class, map);
+        String flightId = "successTest";
+        stairway.submit(flightId, DatasetCreateFlight.class, map, testUser);
         stairway.waitForFlight(flightId);
 
         FlightState result = stairway.getFlightState(flightId);
@@ -128,7 +132,8 @@ public class DatasetCreateFlightTest {
     public void testUndoAfterPrimaryDataStep() {
         FlightMap map = new FlightMap();
         map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
-        String flightId = stairway.submit(UndoDatasetCreateFlight.class, map);
+        String flightId = "undoTest";
+        stairway.submit(flightId, UndoDatasetCreateFlight.class, map, testUser);
         stairway.waitForFlight(flightId);
 
         FlightState result = stairway.getFlightState(flightId);

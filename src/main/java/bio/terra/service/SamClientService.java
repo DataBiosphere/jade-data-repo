@@ -74,6 +74,7 @@ public class SamClientService {
     }
 
     public enum DataRepoRole {
+        ADMIN,
         STEWARD,
         CUSTODIAN,
         INGESTER,
@@ -109,6 +110,8 @@ public class SamClientService {
         ALTER_POLICIES,
         // datarepo
         CREATE_DATASET,
+        LIST_JOBS,
+        DELETE_JOBS,
         // dataset
         EDIT_DATASET,
         READ_DATASET,

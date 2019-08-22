@@ -24,6 +24,7 @@ public class TestConfiguration {
         private String role;
         private String name;
         private String email;
+        private String subjectId;
 
         public String getRole() {
             return role;
@@ -47,6 +48,14 @@ public class TestConfiguration {
 
         public void setEmail(String email) {
             this.email = email;
+        }
+
+        public String getSubjectId() {
+            return subjectId;
+        }
+
+        public void setSubjectId(String subjectId) {
+            this.subjectId = subjectId;
         }
     }
 

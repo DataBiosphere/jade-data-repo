@@ -3,19 +3,17 @@ package bio.terra.flight.snapshot.create;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.RowIdMatch;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
 import bio.terra.metadata.SnapshotSource;
-import bio.terra.metadata.RowIdMatch;
-import bio.terra.metadata.Dataset;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -30,20 +28,18 @@ public class CreateSnapshotPrimaryDataStep implements Step {
     private SnapshotDao snapshotDao;
     private FireStoreDependencyDao dependencyDao;
     private DatasetService datasetService;
+    private SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        SnapshotDao snapshotDao,
-                                        FireStoreDependencyDao dependencyDao,
-                                        DatasetService datasetService) {
+                                         SnapshotDao snapshotDao,
+                                         FireStoreDependencyDao dependencyDao,
+                                         DatasetService datasetService,
+                                         SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
         this.dependencyDao = dependencyDao;
         this.datasetService = datasetService;
-    }
-
-    SnapshotRequestModel getRequestModel(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
+        this.snapshotReq = snapshotReq;
     }
 
     @Override
@@ -52,10 +48,9 @@ public class CreateSnapshotPrimaryDataStep implements Step {
          * map field ids into row ids and validate
          * then pass the row id array into create snapshot
          */
-        SnapshotRequestModel requestModel = getRequestModel(context);
-        SnapshotRequestContentsModel contentsModel = requestModel.getContents().get(0);
+        SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
 
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(requestModel.getName());
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         SnapshotSource source = snapshot.getSnapshotSources().get(0);
         RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(snapshot, source, contentsModel.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
@@ -107,8 +102,7 @@ public class CreateSnapshotPrimaryDataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // Remove any file dependencies created
-        SnapshotRequestModel requestModel = getRequestModel(context);
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(requestModel.getName());
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
             dependencyDao.deleteSnapshotFileDependencies(

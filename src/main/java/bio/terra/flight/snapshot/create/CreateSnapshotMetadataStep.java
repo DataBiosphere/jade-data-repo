@@ -3,14 +3,13 @@ package bio.terra.flight.snapshot.create;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.exception.NotFoundException;
 import bio.terra.flight.FlightUtils;
+import bio.terra.flight.snapshot.SnapshotWorkingMapKeys;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSummary;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SnapshotService;
-import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -21,21 +20,21 @@ import java.util.UUID;
 public class CreateSnapshotMetadataStep implements Step {
     private SnapshotDao snapshotDao;
     private SnapshotService snapshotService;
+    private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotMetadataStep(SnapshotDao snapshotDao, SnapshotService snapshotService) {
+    public CreateSnapshotMetadataStep(
+        SnapshotDao snapshotDao, SnapshotService snapshotService, SnapshotRequestModel snapshotReq) {
         this.snapshotDao = snapshotDao;
         this.snapshotService = snapshotService;
+        this.snapshotReq = snapshotReq;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        SnapshotRequestModel snapshotRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
-                SnapshotRequestModel.class);
         try {
-            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
             UUID snapshotId = snapshotDao.create(snapshot);
-            context.getWorkingMap().put("snapshotId", snapshotId);
+            context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
             SnapshotSummary snapshotSummary = snapshotDao.retrieveSnapshotSummary(snapshot.getId());
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
@@ -48,10 +47,7 @@ public class CreateSnapshotMetadataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        SnapshotRequestModel snapshotRequest = inputParameters.get(JobMapKeys.REQUEST.getKeyName(),
-                SnapshotRequestModel.class);
-        String snapshotName = snapshotRequest.getName();
+        String snapshotName = snapshotReq.getName();
         snapshotDao.deleteByName(snapshotName);
         return StepResult.getStepResultSuccess();
     }

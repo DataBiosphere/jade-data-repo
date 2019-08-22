@@ -12,6 +12,7 @@ public class FlightState {
     private FlightStatus flightStatus;
     private FlightMap inputParameters;
     private Instant submitted;
+    private UserRequestInfo user;
     private Optional<Instant> completed;
     private Optional<FlightMap> resultMap;  // filled in when flightStatus is SUCCESS
     private Optional<Exception> exception;  // filled in when flightStatus is ERROR or FATAL
@@ -51,6 +52,14 @@ public class FlightState {
     public void setSubmitted(Instant submitted) {
         // Make our own copy of the incoming object
         this.submitted = submitted;
+    }
+
+    public UserRequestInfo getUser() {
+        return user;
+    }
+
+    public void setUser(UserRequestInfo user) {
+        this.user = user;
     }
 
     public Optional<Instant> getCompleted() {

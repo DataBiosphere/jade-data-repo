@@ -4,8 +4,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public class TestFlightRetry extends Flight {
 
-    public TestFlightRetry(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public TestFlightRetry(FlightMap inputParameters, Object applicationContext, UserRequestInfo testUser) {
+        super(inputParameters, applicationContext, testUser);
 
         RetryRule retryRule;
 

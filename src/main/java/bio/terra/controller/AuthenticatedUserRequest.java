@@ -9,15 +9,29 @@ import java.util.UUID;
 public class AuthenticatedUserRequest {
 
     private String email;
+    private String subjectId;
     private String token;
     private UUID reqId;
+    private boolean canListJobs;
+    private boolean canDeleteJobs;
 
-    public AuthenticatedUserRequest() {}
-
-    public AuthenticatedUserRequest(String email, String token) {
-        this.email = email;
-        this.token = token;
+    public AuthenticatedUserRequest() {
         this.reqId = UUID.randomUUID();
+    }
+
+    public AuthenticatedUserRequest(String email, String subjectId, String token) {
+        this.email = email;
+        this.subjectId = subjectId;
+        this.token = token;
+    }
+
+    public String getSubjectId() {
+        return subjectId;
+    }
+
+    public AuthenticatedUserRequest subjectId(String subjectId) {
+        this.subjectId = subjectId;
+        return this;
     }
 
     public String getEmail() {
@@ -47,6 +61,24 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
+    public boolean canListJobs() {
+        return canListJobs;
+    }
+
+    public AuthenticatedUserRequest canListJobs(boolean canListJobs) {
+        this.canListJobs = canListJobs;
+        return this;
+    }
+
+    public boolean canDeleteJobs() {
+        return canDeleteJobs;
+    }
+
+    public AuthenticatedUserRequest canDeleteJobs(boolean canDeleteJobs) {
+        this.canDeleteJobs = canDeleteJobs;
+        return this;
+    }
+
     // Static method to build an AuthenticatedUserRequest from data available to the controller
     public static AuthenticatedUserRequest from(Optional<HttpServletRequest> servletRequest,
                                                 String appConfigUserEmail) {
@@ -57,6 +89,10 @@ public class AuthenticatedUserRequest {
         HttpServletRequest req = servletRequest.get();
         String email = req.getHeader("oidc_claim_email");
         String token = req.getHeader("oidc_access_token");
+        String userId = req.getHeader("oidc_claim_user_id");
+
+        // in testing scenarios and when running the server without the proxy not all the
+        // header information will be available. default values will be used in these cases.
 
         if (token == null) {
             String authHeader = req.getHeader("Authorization");
@@ -71,7 +107,10 @@ public class AuthenticatedUserRequest {
                 email = appConfigUserEmail;
             }
         }
-        return new AuthenticatedUserRequest(email, token);
+        if (userId == null) {
+            userId = "999999999999";
+        }
+        return new AuthenticatedUserRequest().email(email).subjectId(userId).token(token);
     }
 
 }

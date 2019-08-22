@@ -5,15 +5,15 @@ import bio.terra.dao.SnapshotDao;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
+import bio.terra.flight.snapshot.SnapshotWorkingMapKeys;
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSource;
-import bio.terra.metadata.Dataset;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.service.JobMapKeys;
-import bio.terra.service.SamClientService;
 import bio.terra.service.DatasetService;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -34,35 +34,32 @@ public class AuthorizeSnapshot implements Step {
     private SnapshotDao snapshotDao;
     private GcsPdao gcsPdao;
     private DatasetService datasetService;
+    private AuthenticatedUserRequest userReq;
+    private SnapshotRequestModel snapshotReq;
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
     public AuthorizeSnapshot(BigQueryPdao bigQueryPdao,
-                            SamClientService sam,
-                            FireStoreDependencyDao fireStoreDao,
-                            SnapshotDao snapshotDao,
-                            GcsPdao gcsPdao,
-                            DatasetService datasetService) {
+                             SamClientService sam,
+                             FireStoreDependencyDao fireStoreDao,
+                             SnapshotDao snapshotDao,
+                             GcsPdao gcsPdao,
+                             DatasetService datasetService,
+                             SnapshotRequestModel snapshotReq,
+                             AuthenticatedUserRequest userReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
         this.fireStoreDao = fireStoreDao;
         this.snapshotDao = snapshotDao;
         this.gcsPdao = gcsPdao;
         this.datasetService = datasetService;
-    }
-
-    SnapshotRequestModel getRequestModel(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        return inputParameters.get(JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
+        this.snapshotReq = snapshotReq;
+        this.userReq = userReq;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        SnapshotRequestModel snapshotReq = getRequestModel(context);
         FlightMap workingMap = context.getWorkingMap();
-        UUID snapshotId = workingMap.get("snapshotId", UUID.class);
+        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         Snapshot snapshot = snapshotDao.retrieveSnapshot(snapshotId);
         Optional<List<String>> readersList = Optional.ofNullable(snapshotReq.getReaders());
         try {
@@ -88,11 +85,8 @@ public class AuthorizeSnapshot implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         FlightMap workingMap = context.getWorkingMap();
-        UUID snapshotId = workingMap.get("snapshotId", UUID.class);
+        UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         try {
             sam.deleteSnapshotResource(userReq, snapshotId);
             // We do not need to remove the ACL from the files or BigQuery. It disappears

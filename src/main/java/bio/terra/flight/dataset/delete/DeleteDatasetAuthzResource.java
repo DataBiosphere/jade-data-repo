@@ -3,10 +3,8 @@ package bio.terra.flight.dataset.delete;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -17,18 +15,19 @@ import java.util.UUID;
 
 public class DeleteDatasetAuthzResource implements Step {
     private SamClientService sam;
-    public DeleteDatasetAuthzResource(SamClientService sam) {
+    private UUID datasetId;
+    private AuthenticatedUserRequest userReq;
+
+    public DeleteDatasetAuthzResource(SamClientService sam, UUID datasetId, AuthenticatedUserRequest userReq) {
         this.sam = sam;
+        this.datasetId = datasetId;
+        this.userReq = userReq;
     }
 
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         try {
             sam.deleteDatasetResource(userReq, datasetId);
         } catch (ApiException ex) {
@@ -40,8 +39,6 @@ public class DeleteDatasetAuthzResource implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // can't undo delete
-        FlightMap inputParameters = context.getInputParameters();
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
         logger.warn("Trying to undo delete resource for dataset " + datasetId.toString());
         return StepResult.getStepResultSuccess();
     }

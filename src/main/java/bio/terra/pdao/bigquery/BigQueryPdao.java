@@ -802,7 +802,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
               )
 
                SELECT *
-               FROM 'mergedTable'
+               FROM 'merged_table'
                WHERE PDAO_ROW_ID_COLUMN NOT IN (
                     SELECT PDAO_ROW_ID_COLUMN FROM <table>_soft_deleted
                )
@@ -856,7 +856,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } else {
             builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
         }
-        builder.append(") SELECT * FROM 'mergedTable' WHERE ")
+        builder.append(") SELECT * FROM 'merged_table' WHERE ")
             .append(PDAO_ROW_ID_COLUMN)
             .append("NOT IN (SELECT ")
             .append(PDAO_ROW_ID_COLUMN)

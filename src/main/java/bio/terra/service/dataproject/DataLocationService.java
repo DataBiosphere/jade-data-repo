@@ -22,6 +22,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -60,6 +61,13 @@ public class DataLocationService {
     }
 
     public GoogleBucketResource getBucketForFile(FSFile fsFile) {
+        // If this isn't the first time we've seen this file, it should have a bucket resource id we can look up
+        Optional<GoogleBucketResource> bucketForFile = Optional.ofNullable(fsFile.getBucketResourceId())
+            .map(bucketResourceId -> resourceService.getBucketResourceById(UUID.fromString(bucketResourceId)));
+        if (bucketForFile.isPresent()) {
+            return bucketForFile.get();
+        }
+
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(fsFile);
         GoogleBucketRequest googleBucketRequest = new GoogleBucketRequest()

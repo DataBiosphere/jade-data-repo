@@ -7,6 +7,7 @@ import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -24,6 +25,7 @@ public class FileIngestFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         ProfileService profileService = (ProfileService)appContext.getBean("profileService");
+        DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
@@ -31,9 +33,11 @@ public class FileIngestFlight extends Flight {
         // 1. Metadata step:
         //    Compute the target gspath where the file should go
         //    Create the file object in the database; marked as not present
-        // 2. pdao does the file copy and returns file gspath, checksum and size
-        // 3. Update the file object with the gspath, checksum and size and mark as present
+        // 2. locate the bucket where this file should go and store it in the working map
+        // 3. pdao does the file copy and returns file gspath, checksum and size
+        // 4. Update the file object with the gspath, checksum and size and mark as present
         addStep(new IngestFileMetadataStepStart(fileDao, dataset, profileService));
+        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService));
         addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));
         addStep(new IngestFileMetadataStepComplete(fileDao, fileService, dataset));
     }

@@ -198,7 +198,7 @@ public class DrsService {
             String gsBucket = gsuri.getAuthority();
             String gsPath = StringUtils.removeStart(gsuri.getPath(), "/");
             String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString());
-            return String.format("https://%s/%s?alt=media", gsBucket, encodedPath);
+            return String.format("https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
         } catch (UnsupportedEncodingException ex) {
             throw new InternalServerErrorException("Failed to urlencode file path", ex);
         }

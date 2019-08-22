@@ -3,8 +3,8 @@ package bio.terra.service;
 import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
-import bio.terra.flight.file.delete.FileDeleteFlight;
-import bio.terra.flight.file.ingest.FileIngestFlight;
+import bio.terra.filesystem.flight.delete.FileDeleteFlight;
+import bio.terra.filesystem.flight.ingest.FileIngestFlight;
 import bio.terra.metadata.*;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
@@ -107,7 +107,7 @@ public class FileService {
             .created(fsObject.getCreatedDate().toString())
             .description(fsObject.getDescription());
 
-        if (fsObject.getObjectType() == FSObjectType.FILE) {
+        if (fsObject.getObjectType() == FireStoreObjectState.FILE) {
             if (!(fsObject instanceof FSFile)) {
                 throw new FileSystemCorruptException("Mismatched object type");
             }
@@ -118,7 +118,7 @@ public class FileService {
                 .checksums(makeChecksums(fsFile))
                 .accessUrl(fsFile.getGspath())
                 .mimeType(fsFile.getMimeType()));
-        } else if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+        } else if (fsObject.getObjectType() == FireStoreObjectState.DIRECTORY) {
             if (!(fsObject instanceof FSDir)) {
                 throw new FileSystemCorruptException("Mismatched object type");
             }

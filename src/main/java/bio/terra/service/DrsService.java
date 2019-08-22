@@ -9,7 +9,6 @@ import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
@@ -154,7 +153,7 @@ public class DrsService {
             .drsUri(drsUris);
 
         // If the object is an enumerated directory, we fill in the contents array.
-        if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+        if (fsObject.getObjectType() == FireStoreObjectState.DIRECTORY) {
             FSDir fsDir = (FSDir) fsObject;
             if (fsDir.isEnumerated()) {
                 contentsObject.contents(makeContentsList(fsDir, datasetId));

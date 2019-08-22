@@ -2,7 +2,6 @@ package bio.terra.service.dataproject;
 
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSFile;
 import bio.terra.metadata.Snapshot;
 import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
@@ -36,13 +35,13 @@ public class OneProjectPerProfileIdSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForFile(FSFile fsFile) {
-        return getSuffixForProfileId(UUID.fromString(fsFile.getProfileId()));
+    public String projectIdForFile(String loadProfileId) {
+        return getSuffixForProfileId(UUID.fromString(loadProfileId));
     }
 
     @Override
-    public String bucketForFile(FSFile fsFile) {
-        return projectIdForFile(fsFile) + "-bucket";
+    public String bucketForFile(String loadProfileId) {
+        return projectIdForFile(loadProfileId) + "-bucket";
     }
 
     private String getSuffixForProfileId(UUID profileId) {

@@ -1,8 +1,7 @@
 package bio.terra.service.dataproject;
 
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.Snapshot;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
@@ -36,12 +35,12 @@ public class OneDataLocationSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForFile(FSFile fsFile) {
+    public String projectIdForFile(String fileProfileId) {
         return oneProject();
     }
 
     @Override
-    public String bucketForFile(FSFile fsFile) {
+    public String bucketForFile(String fileProfileId) {
         return oneProject() + "-bucket";
     }
 }

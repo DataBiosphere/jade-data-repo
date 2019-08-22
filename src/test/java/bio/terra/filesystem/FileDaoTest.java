@@ -11,7 +11,6 @@ import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -125,7 +124,7 @@ public class FileDaoTest {
             .mimeType(mimeType)
             .flightId(flightId)
             .datasetId(datasetId)
-            .objectType(FSObjectType.INGESTING_FILE)
+            .objectType(FireStoreObjectState.INGESTING_FILE)
             .path(fileAPath)
             .description(description);
 
@@ -145,13 +144,13 @@ public class FileDaoTest {
 
         FSObjectBase typeObject = fileDao.createFileComplete(dataset, fsFileInfo);
         assertThat("Id matches", typeObject.getObjectId(), equalTo(fileAId));
-        assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FSObjectType.FILE));
+        assertThat("Type is FILE", typeObject.getObjectType(), equalTo(FireStoreObjectState.FILE));
 
         fileDao.createFileCompleteUndo(dataset, fileAId.toString());
 
         typeObject = fileDao.retrieveByIdNoThrow(dataset, typeObject.getObjectId());
         assertThat("Type is INGESTING_FILE", typeObject.getObjectType(),
-            equalTo(FSObjectType.INGESTING_FILE));
+            equalTo(FireStoreObjectState.INGESTING_FILE));
 
         fileDao.createFileComplete(dataset, fsFileInfo);
 
@@ -165,7 +164,7 @@ public class FileDaoTest {
     public void deleteOnEmptyTest() throws Exception {
         FSFile fsObject = new FSFile()
             .datasetId(datasetId)
-            .objectType(FSObjectType.INGESTING_FILE)
+            .objectType(FireStoreObjectState.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
@@ -174,10 +173,10 @@ public class FileDaoTest {
         UUID fileAId = fileDao.createFileStart(dataset, fsObject);
         assertNotNull("File id not null", fileAId);
 
-        FSObjectBase topObject = getCheckPath(topPath, datasetId, FSObjectType.DIRECTORY);
-        FSObjectBase secondObject = getCheckPath(secondPath, datasetId, FSObjectType.DIRECTORY);
-        FSObjectBase thirdObject = getCheckPath(thirdPath, datasetId, FSObjectType.DIRECTORY);
-        FSObjectBase fileAObject = getCheckPath(fileAPath, datasetId, FSObjectType.INGESTING_FILE);
+        FSObjectBase topObject = getCheckPath(topPath, datasetId, FireStoreObjectState.DIRECTORY);
+        FSObjectBase secondObject = getCheckPath(secondPath, datasetId, FireStoreObjectState.DIRECTORY);
+        FSObjectBase thirdObject = getCheckPath(thirdPath, datasetId, FireStoreObjectState.DIRECTORY);
+        FSObjectBase fileAObject = getCheckPath(fileAPath, datasetId, FireStoreObjectState.INGESTING_FILE);
 
         // Try to delete a directory with the deleteFile method; should fail
         try {
@@ -222,7 +221,7 @@ public class FileDaoTest {
     public void dontDeleteOnNotEmptyTest() throws Exception {
         FSFile fsObject = new FSFile()
             .datasetId(datasetId)
-            .objectType(FSObjectType.INGESTING_FILE)
+            .objectType(FireStoreObjectState.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
@@ -231,16 +230,16 @@ public class FileDaoTest {
         UUID fileAId = fileDao.createFileStart(dataset, fsObject);
         assertNotNull("File id not null", fileAId);
 
-        FSObjectBase topObject = getCheckPath(topPath, datasetId, FSObjectType.DIRECTORY);
-        FSObjectBase secondObject = getCheckPath(secondPath, datasetId, FSObjectType.DIRECTORY);
-        FSObjectBase thirdObject = getCheckPath(thirdPath, datasetId, FSObjectType.DIRECTORY);
-        FSObjectBase fileAObject = getCheckPath(fileAPath, datasetId, FSObjectType.INGESTING_FILE);
+        FSObjectBase topObject = getCheckPath(topPath, datasetId, FireStoreObjectState.DIRECTORY);
+        FSObjectBase secondObject = getCheckPath(secondPath, datasetId, FireStoreObjectState.DIRECTORY);
+        FSObjectBase thirdObject = getCheckPath(thirdPath, datasetId, FireStoreObjectState.DIRECTORY);
+        FSObjectBase fileAObject = getCheckPath(fileAPath, datasetId, FireStoreObjectState.INGESTING_FILE);
 
         fsObject.path(fileBPath);
         UUID fileBId = fileDao.createFileStart(dataset, fsObject);
         assertNotNull("File id not null", fileBId);
 
-        FSObjectBase fileBObject = getCheckPath(fileBPath, datasetId, FSObjectType.INGESTING_FILE);
+        FSObjectBase fileBObject = getCheckPath(fileBPath, datasetId, FireStoreObjectState.INGESTING_FILE);
 
         FSFileInfo fsFileInfo = makeFsFileInfo(fileAId.toString());
         fileDao.createFileComplete(dataset, fsFileInfo);
@@ -318,7 +317,7 @@ public class FileDaoTest {
         // Make 1001 files and then delete the dataset
         FSFile fsObject = new FSFile()
             .datasetId(datasetId)
-            .objectType(FSObjectType.INGESTING_FILE)
+            .objectType(FireStoreObjectState.INGESTING_FILE)
             .mimeType(mimeType)
             .description(description)
             .flightId(flightId);
@@ -365,7 +364,7 @@ public class FileDaoTest {
     public void pathLookupTest() throws Exception {
         FSFile fsObject = new FSFile()
             .datasetId(datasetId)
-            .objectType(FSObjectType.INGESTING_FILE)
+            .objectType(FireStoreObjectState.INGESTING_FILE)
             .path(fileAPath)
             .mimeType(mimeType)
             .description(description)
@@ -388,35 +387,35 @@ public class FileDaoTest {
         }
 
         FSObjectBase dirObject = fileDao.retrieveWithContentsByPath(dataset, "/");
-        assertThat("Root is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Root is directory", dirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
         FSDir enumDir = (FSDir)dirObject;
         assertThat("Root has contents", enumDir.getContents().size(), equalTo(1));
         FSObjectBase nextDirObject = enumDir.getContents().get(0);
-        assertThat("Top is directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Top is directory", nextDirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
 
         String path = nextDirObject.getPath(); // /top
         dirObject = fileDao.retrieveWithContentsByPath(dataset, path);
-        assertThat("Top is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Top is directory", dirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
         enumDir = (FSDir)dirObject;
         assertThat("Top has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
-        assertThat("Second is directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Second is directory", nextDirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
 
         path = nextDirObject.getPath(); // /top/second
         dirObject = fileDao.retrieveWithContentsByPath(dataset, path);
-        assertThat("Second is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Second is directory", dirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
         enumDir = (FSDir)dirObject;
         assertThat("Second has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
-        assertThat("Third is a directory", nextDirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Third is a directory", nextDirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
 
         path = nextDirObject.getPath(); // /top/second/third
         dirObject = fileDao.retrieveWithContentsByPath(dataset, path);
-        assertThat("Third is directory", dirObject.getObjectType(), equalTo(FSObjectType.DIRECTORY));
+        assertThat("Third is directory", dirObject.getObjectType(), equalTo(FireStoreObjectState.DIRECTORY));
         enumDir = (FSDir)dirObject;
         assertThat("Third has contents", enumDir.getContents().size(), equalTo(1));
         nextDirObject = enumDir.getContents().get(0);
-        assertThat("Fourth is a file", nextDirObject.getObjectType(), equalTo(FSObjectType.FILE));
+        assertThat("Fourth is a file", nextDirObject.getObjectType(), equalTo(FireStoreObjectState.FILE));
 
         boolean existed = fileDao.deleteFileStart(dataset, fileAId.toString(), flightId);
         assertTrue("File existed", existed);
@@ -448,13 +447,13 @@ public class FileDaoTest {
         assertNull("Object is gone by id", goneObject);
     }
 
-    private FSObjectBase getCheckPath(String path, UUID datasetId, FSObjectType objectType) {
+    private FSObjectBase getCheckPath(String path, UUID datasetId, FireStoreObjectState objectType) {
         FSObjectBase fsObject = fileDao.retrieveByPathNoThrow(dataset, path);
         assertNotNull("Object not null", fsObject);
         assertThat("Object has correct path", fsObject.getPath(), equalTo(path));
         assertThat("Correct dataset", fsObject.getDatasetId(), equalTo(datasetId));
         assertThat("Correct object type", fsObject.getObjectType(), equalTo(objectType));
-        if (objectType != FSObjectType.DIRECTORY) { // Only filled in for files
+        if (objectType != FireStoreObjectState.DIRECTORY) { // Only filled in for files
             FSFile fsFile = (FSFile)fsObject;
             assertThat("Correct mime type", mimeType, equalTo(fsFile.getMimeType()));
             assertThat("Correct description", description, equalTo(fsFile.getDescription()));

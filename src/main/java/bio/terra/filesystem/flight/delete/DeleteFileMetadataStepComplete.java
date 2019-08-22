@@ -1,4 +1,4 @@
-package bio.terra.flight.file.delete;
+package bio.terra.filesystem.flight.delete;
 
 import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.flight.FlightUtils;

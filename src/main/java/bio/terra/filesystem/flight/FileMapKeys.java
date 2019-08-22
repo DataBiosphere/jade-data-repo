@@ -1,4 +1,4 @@
-package bio.terra.flight.file;
+package bio.terra.filesystem.flight;
 
 public final class FileMapKeys {
     private FileMapKeys() {

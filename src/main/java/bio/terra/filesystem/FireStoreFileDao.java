@@ -6,6 +6,7 @@ import bio.terra.metadata.FSFile;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
+import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +26,7 @@ import java.util.concurrent.ExecutionException;
  *
  * Each write operation is performed in a FireStore transaction.
  */
-public class FireStoreFileDao {
+class FireStoreFileDao {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreFileDao");
 
     private FireStoreUtils fireStoreUtils;
@@ -35,21 +36,20 @@ public class FireStoreFileDao {
         this.fireStoreUtils = fireStoreUtils;
     }
 
-    public void createFileMetadata(Dataset dataset, FSFile fsFile) {
-        FireStoreFile newFile = makeFireStoreFileFromFSFile(fsFile);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            xn.set(getFileDocRef(dataset, newFile.getObjectId()), newFile);
+    void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) {
+        String collectionId = makeCollectionId(datasetId);
+        ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
+            xn.set(getFileDocRef(firestore, collectionId, newFile.getObjectId()), newFile);
             return null;
         });
 
         fireStoreUtils.transactionGet("createFileMetadata", transaction);
     }
 
-    public boolean deleteFileMetadata(Dataset dataset, String fileObjectId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        ApiFuture<Boolean> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(dataset, fileObjectId, xn);
+    public boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
+        String collectionId = makeCollectionId(datasetId);
+        ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
+            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileObjectId, xn);
             if (docSnap == null || !docSnap.exists()) {
                 return false;
             }
@@ -62,24 +62,25 @@ public class FireStoreFileDao {
     }
 
     // Returns null on not found
-    public FSFile retrieveFileMetadata(Dataset dataset, String fileObjectId) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        ApiFuture<FSFile> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(dataset, fileObjectId, xn);
+    public FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
+        String collectionId = makeCollectionId(datasetId);
+        ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
+            DocumentSnapshot docSnap = lookupByFileId(firestore, datasetId, fileObjectId, xn);
             if (docSnap == null || !docSnap.exists()) {
                 return null;
             }
-            FireStoreFile fireStoreFile = docSnap.toObject(FireStoreFile.class);
-            return makeFSFileFromFireStoreFile(dataset, fireStoreFile);
+            return docSnap.toObject(FireStoreFile.class);
         });
 
         return fireStoreUtils.transactionGet("retrieveFileMetadata", transaction);
     }
 
-    private DocumentSnapshot lookupByFileId(Dataset dataset, String fileObjectId, Transaction xn) {
-        DocumentReference docRef = getFileDocRef(dataset, fileObjectId);
+    private DocumentSnapshot lookupByFileId(Firestore firestore,
+                                            String collectionId,
+                                            String fileObjectId,
+                                            Transaction xn) {
+        DocumentReference docRef = getFileDocRef(firestore, collectionId, fileObjectId);
         ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
-
         try {
             return docSnapFuture.get();
         } catch (InterruptedException ex) {
@@ -89,6 +90,11 @@ public class FireStoreFileDao {
             throw new FileSystemExecutionException("lookupByFileId - execution exception", ex);
         }
     }
+
+
+
+
+
 
     // This does not make a complete FSFile. Some parts, such as the path, object type and flight id
     // need to be populated from the FireStoreFileRef that refers to this file.
@@ -140,12 +146,12 @@ public class FireStoreFileDao {
             .bucketResourceId(fsFile.getBucketResourceId());
     }
 
-    private DocumentReference getFileDocRef(Dataset dataset, String objectId) {
-        String collectionName = dataset.getId().toString() + "-files";
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        return fireStoreProject.getFirestore()
-            .collection(collectionName)
-            .document(objectId);
+    private String makeCollectionId(String datasetId) {
+        return datasetId + "-files";
+    }
+
+    private DocumentReference getFileDocRef(Firestore firestore, String collectionId, String objectId) {
+        return firestore.collection(collectionId).document(objectId);
     }
 
 }

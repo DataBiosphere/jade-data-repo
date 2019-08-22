@@ -1,25 +1,30 @@
-package bio.terra.flight.file.ingest;
+package bio.terra.filesystem.flight.ingest;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filesystem.FireStoreUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.resourcemanagement.service.ProfileService;
+import bio.terra.service.DatasetService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
-import bio.terra.service.DatasetService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
+// The FileIngestFlight is specific to firestore. Another cloud or file system implementation
+// might be quite different and would need a different flight.
+// TODO: Refactor flights when we do the cloud refactor work.
 public class FileIngestFlight extends Flight {
 
     public FileIngestFlight(FlightMap inputParameters, Object applicationContext) {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        FireStoreDirectoryDao fileDao = (FireStoreDirectoryDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
+        FireStoreUtils fireStoreUtils = (FireStoreUtils)appContext.getBean("fireStorUtils");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
@@ -27,24 +32,12 @@ public class FileIngestFlight extends Flight {
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        // The new flight plan:
-        // 1. Metadata step:
-        //    Compute the target gspath where the file should go and generate the objectId
-        //    Create any missing directories and the fileref in firestore - fileref is marked as "ingesting"
-        // 2. pdao does the file copy and returns file gspath, checksum and size
-        // 3. Create the file object in firestore with fileinfo from pdao
-        // 4. Update the directory fileref marking it as "existing"
-
 
         // The flight plan:
-        // 1. Metadata step:
-        //    Compute the target gspath where the file should go
-        //    Create the file object in the database; marked as not present
-        // 2. pdao does the file copy and returns file gspath, checksum and size
-        // 3. Update the file object with the gspath, checksum and size and mark as present
-        addStep(new IngestFileMetadataStepStart(fileDao, dataset, profileService));
+        addStep(new IngestFileObjectIdStep());
+        addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset));
         addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));
-        addStep(new IngestFileMetadataStepComplete(fileDao, fileService, dataset));
+        addStep(new IngestFileFileStep(fileDao, fileService, dataset));
     }
 
 }

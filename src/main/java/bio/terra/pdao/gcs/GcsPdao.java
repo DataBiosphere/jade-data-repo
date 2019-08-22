@@ -5,7 +5,6 @@ import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.exception.PdaoFileCopyException;
@@ -63,7 +62,7 @@ public class GcsPdao {
     // We return the incoming FSObject with the blob information filled in
     public FSFileInfo copyFile(Dataset dataset,
                                FileLoadModel fileLoadModel,
-                               FSFile fsObject) {
+                               String objectId) {
         String sourceBucket;
         String sourcePath;
 
@@ -92,7 +91,7 @@ public class GcsPdao {
         // Figure out where the destination bucket is. Similar to how there is a ProjectIdSelector there will be need
         // to be a BucketSelector that picks a (Project, Bucket) pair for the file. The Resource Manager will then need
         // to potentially create the project and/or the bucket inside of that project depending on what already exists.
-        GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsObject);
+        GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fileLoadModel.getProfileId().toString());
         Storage storage = storageForBucket(bucketForFile);
 
         Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));
@@ -102,7 +101,7 @@ public class GcsPdao {
         }
 
         // Our path is /<dataset-id>/<object-id>
-        String targetPath = dataset.getId().toString() + "/" + fsObject.getObjectId();
+        String targetPath = dataset.getId().toString() + "/" + objectId;
 
         try {
             // The documentation is vague whether or not it is important to copy by chunk. One set of
@@ -138,8 +137,7 @@ public class GcsPdao {
                 null);
 
             FSFileInfo fsFileInfo = new FSFileInfo()
-                .objectId(fsObject.getObjectId().toString())
-                .datasetId(fsObject.getDatasetId().toString())
+                .objectId(objectId)
                 .createdDate(createTime.toString())
                 .gspath(gspath.toString())
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
@@ -159,11 +157,20 @@ public class GcsPdao {
         }
     }
 
-    public boolean deleteFile(FSFile fsFile) {
-        GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsFile);
+    // TODO: Jeremy is going to fix delete
+
+/*
+
+    public boolean deleteFile(String profileId, FSFileInfo fsFileInfo) {
+        // We have the bucket resource id
+        GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(profileId);
+
+        GcsProject gcsProject = gcsProjectFactory.get(profileId);
+        Storage storage = gcsProject.getStorage();
+
         Storage storage = storageForBucket(bucketForFile);
         // It's possible that the file didn't get written to a bucket, meaning gspath will be null.
-        Optional<String> gspath = Optional.ofNullable(fsFile.getGspath());
+        Optional<String> gspath = Optional.ofNullable(fsFileInfo.getGspath());
         if (gspath.isPresent()) {
             URI uri = URI.create(gspath.get());
             String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
@@ -172,13 +179,13 @@ public class GcsPdao {
                 return blob.get().delete();
             }
         }
-        return false;
     }
+  */
 
     public void deleteFilesFromDataset(Dataset dataset) {
         // these files could be in multiple buckets..need to enumerate them from firestore and then iterate + delete
         fileDao.forEachFsObjectInDataset(dataset, DATASET_DELETE_BATCH_SIZE, fsObjectBase -> {
-            if (fsObjectBase.getObjectType() != FSObjectType.DIRECTORY) {
+            if (fsObjectBase.getObjectType() != FireStoreObjectState.DIRECTORY) {
                 deleteFile((FSFile) fsObjectBase);
             }
         });
@@ -203,7 +210,7 @@ public class GcsPdao {
 
         for (String fileId : fileIds) {
             FSObjectBase fsObjectBase = fileDao.retrieve(dataset, UUID.fromString(fileId));
-            if (fsObjectBase.getObjectType() == FSObjectType.FILE) {
+            if (fsObjectBase.getObjectType() == FireStoreObjectState.FILE) {
                 FSFile fsFile = (FSFile)fsObjectBase;
                 GoogleBucketResource bucketForFile = dataLocationService.getBucketForFile(fsFile);
                 Storage storage = storageForBucket(bucketForFile);

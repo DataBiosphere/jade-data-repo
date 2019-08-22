@@ -15,16 +15,17 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class FireStoreFile {
     private String objectId;
-    private String fileCreatedDate;
-    private String gspath;
-    private String checksumCrc32c;
-    private String checksumMd5;
-    private Long size;
     private String mimeType;
     private String description;
     private String profileId;
     private String region;
     private String bucketResourceId;
+    // fields filled in from FSFileInfo after the file ingest
+    private String fileCreatedDate;
+    private String gspath;
+    private String checksumCrc32c;
+    private String checksumMd5;
+    private Long size;
 
     public FireStoreFile() {
     }
@@ -37,7 +38,6 @@ public class FireStoreFile {
         this.objectId = objectId;
         return this;
     }
-
     public String getFileCreatedDate() {
         return fileCreatedDate;
     }

@@ -160,7 +160,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             prefix = ",";
         }
 
-        String sqlTemplate =
+        String  sqlTemplate =
             "SELECT T.{pdaoRowIdColumn}, V.inputValue " +
             "FROM (" +
                 "SELECT inputValue " +
@@ -568,9 +568,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private Schema buildSoftDeletesSchema() {
-        List<Field> fieldList = new ArrayList<>();
-        fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
-        return Schema.of(fieldList);
+        return Schema.of(Collections.singletonList(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)));
     }
 
     private Schema buildSchema(DatasetTable table, boolean addRowIdColumn) {
@@ -1047,7 +1045,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return null;
     }
 
-    private void softDeleteRows(List<String> softDeleteRowIds, String tableName, Dataset datarepoDataset, BigQuery bigQuery) {
+    private void softDeleteRows(List<String> softDeleteRowIds,
+                                String tableName,
+                                Dataset datarepoDataset,
+                                BigQuery bigQuery) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(datarepoDataset);
         String projectId = bigQueryProject.getProjectId();
         String softDeletesTableName = projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName);
@@ -1063,11 +1064,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
              "VALUES ({rowIdValues})";
 
         Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("softDeletesTableName", projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName);
+        sqlParamsMap.put("softDeletesTableName",
+            projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName));
         sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
         sqlParamsMap.put("rowIdValues", rowIdValues);
 
-        String sql = StringSubstitutor.replace(sqlTemplate.toString(), sqlParamsMap, "{", "}");
+        String sql = StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
         try {
             QueryJobConfiguration queryConfig =
                 QueryJobConfiguration.newBuilder(sql)

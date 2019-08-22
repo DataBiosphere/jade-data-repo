@@ -40,7 +40,6 @@ import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.ViewDefinition;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,33 +151,31 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetTableName = column.getTable().getName();
         String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT T.")
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(", V.inputValue FROM (SELECT inputValue FROM UNNEST([");
+
         // Put all of the values into an array that is unnested into a table
-        StringBuilder values = new StringBuilder();
         String prefix = "";
         for (String inval : inputValues) {
-            values.append(prefix).append("'").append(inval).append("'");
+            builder.append(prefix).append("'").append(inval).append("'");
             prefix = ",";
         }
 
-        String  sqlTemplate =
-            "SELECT T.{pdaoRowIdColumn}, V.inputValue " +
-            "FROM (" +
-                "SELECT inputValue " +
-                "FROM UNNEST([{inputValues}]) AS inputValue" +
-            ") AS V LEFT JOIN `{datasetTableName}` AS T " +
-            "ON V.inputValue = T.{datasetColumnName}";
-
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
-        sqlParamsMap.put("inputValues", values.toString());
-        sqlParamsMap.put("datasetTableName", projectId + '.' + datasetBqDatasetName + '.' + datasetTableName);
-        sqlParamsMap.put("datasetColumnName", datasetColumnName);
-
-        String sql = StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
+        builder.append("]) AS inputValue) AS V LEFT JOIN `")
+                .append(projectId)
+                .append('.')
+                .append(datasetBqDatasetName)
+                .append('.')
+                .append(datasetTableName)
+                .append("` AS T ON V.inputValue = T.")
+                .append(datasetColumnName);
 
         // Execute the query building the row id match structure that tracks the matching
         // ids and the mismatched ids
         RowIdMatch rowIdMatch = new RowIdMatch();
+        String sql = builder.toString();
         logger.debug("mapValuesToRows sql: " + sql);
         TableResult result = bigQueryProject.query(sql);
         for (FieldValueList row : result.iterateAll()) {
@@ -313,24 +310,24 @@ public class BigQueryPdao implements PrimaryDataAccess {
         TableId tableId = TableId.of(prefixName(dataset.getName()), stagingTableName);
         Schema schema = buildSchema(targetTable, true); // Source does not have row_id
         LoadJobConfiguration.Builder loadBuilder = LoadJobConfiguration.builder(tableId, ingestRequest.getPath())
-            .setFormatOptions(buildFormatOptions(ingestRequest))
-            .setMaxBadRecords(
-                (ingestRequest.getMaxBadRecords() == null) ? Integer.valueOf(0)
-                    : ingestRequest.getMaxBadRecords())
-            .setIgnoreUnknownValues(
-                (ingestRequest.isIgnoreUnknownValues() == null) ? Boolean.TRUE
-                    : ingestRequest.isIgnoreUnknownValues())
-            .setSchema(schema) // docs say this is for target, but CLI provides one for the source
-            .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
-            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE);
+                .setFormatOptions(buildFormatOptions(ingestRequest))
+                .setMaxBadRecords(
+                    (ingestRequest.getMaxBadRecords() == null) ? Integer.valueOf(0)
+                        : ingestRequest.getMaxBadRecords())
+                .setIgnoreUnknownValues(
+                    (ingestRequest.isIgnoreUnknownValues() == null) ? Boolean.TRUE
+                        : ingestRequest.isIgnoreUnknownValues())
+                .setSchema(schema) // docs say this is for target, but CLI provides one for the source
+                .setCreateDisposition(JobInfo.CreateDisposition.CREATE_IF_NEEDED)
+                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_TRUNCATE);
 
         // This seems like a bug in the BigQuery Java interface.
         // The null marker is CSV-only, but it cannot be set in the format,
         // so we have to special-case here. Grumble...
         if (ingestRequest.getFormat() == IngestRequestModel.FormatEnum.CSV) {
             loadBuilder.setNullMarker(
-                (ingestRequest.getCsvNullMarker() == null) ? ""
-                    : ingestRequest.getCsvNullMarker());
+                    (ingestRequest.getCsvNullMarker() == null) ? ""
+                        : ingestRequest.getCsvNullMarker());
         }
         LoadJobConfiguration configuration = loadBuilder.build();
 
@@ -375,26 +372,27 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * SET datarepo_row_id = GENERATE_UUID()
          * WHERE datarepo_row_id IS NULL
          */
-
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        StringBuilder sql = new StringBuilder();
+        sql.append("UPDATE ")
+            .append("`")
+            .append(bigQueryProject.getProjectId())
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append("` SET ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" = GENERATE_UUID() WHERE ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" IS NULL");
 
-        String sqlTemplate =
-            "UPDATE `{stagingTableName}` " +
-            "SET {pdaoRowIdColumn} = {pdaoRowIdColumn} " +
-            "IS NULL";
-
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("stagingTableName",
-            bigQueryProject.getProjectId() + '.' + prefixName(dataset.getName()) + '.' + stagingTableName);
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
-
-        String sql = StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
-        bigQueryProject.query(sql);
+        bigQueryProject.query(sql.toString());
     }
 
     public void insertIntoDatasetTable(Dataset dataset,
-                                       Table targetTable,
-                                       String stagingTableName) {
+                                     Table targetTable,
+                                     String stagingTableName) {
         /*
          * INSERT INTO `project.dataset.datasettable`
          * (<column names...>)
@@ -403,22 +401,27 @@ public class BigQueryPdao implements PrimaryDataAccess {
          */
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
-        StringBuilder sqlTemplate = new StringBuilder();
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(targetTable.getName())
+            .append("` (");
+        buildColumnList(sql, targetTable, true);
+        sql.append(") SELECT ");
+        buildColumnList(sql, targetTable, true);
+        sql.append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append("`");
 
-        sqlTemplate.append("INSERT `{targetTableName}` (");
-        buildColumnList(sqlTemplate, targetTable, true);
-        sqlTemplate.append(") SELECT ");
-        buildColumnList(sqlTemplate, targetTable, true);
-        sqlTemplate.append("From `{stagingTableName}`");
-
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("targetTableName",
-            projectId + '.' + prefixName(dataset.getName()) + '.' + targetTable.getName());
-        sqlParamsMap.put("targetTableName",
-            projectId + '.' + prefixName(dataset.getName()) + '.' + stagingTableName);
-
-        String sql = StringSubstitutor.replace(sqlTemplate.toString(), sqlParamsMap, "{", "}");
-        bigQueryProject.query(sql);
+        bigQueryProject.query(sql.toString());
     }
 
     private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
@@ -472,25 +475,22 @@ public class BigQueryPdao implements PrimaryDataAccess {
         List<String> refIdArray = new ArrayList<>();
 
         String datasetBqDatasetName = prefixName(dataset.getName());
-
-        StringBuilder sqlTemplate = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
 
         if (refColumn.isArrayOf()) {
-            sqlTemplate.append(
-                "SELECT x " +
-                "FROM `{tableName}` CROSS JOIN UNNEST({refColumnName}) AS x");
+            builder.append("SELECT x FROM `")
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
+                .append("` CROSS JOIN UNNEST(")
+                .append(refColumn.getName())
+                .append(") AS x");
         } else {
-            sqlTemplate.append(
-                "SELECT {refColumnName} " +
-                "FROM `{tableName}`");
+            builder.append("SELECT ")
+                .append(refColumn.getName())
+                .append(" FROM `")
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
+                .append("`");
         }
-
-
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("tableName", projectId + '.' + datasetBqDatasetName + '.' + tableName);
-        sqlParamsMap.put("refColumnName", refColumn.getName());
-
-        String sql = StringSubstitutor.replace(sqlTemplate.toString(), sqlParamsMap, "{", "}");
+        String sql = builder.toString();
         TableResult result = bigQueryProject.query(sql);
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
@@ -503,10 +503,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public List<String> getSnapshotRefIds(Dataset dataset,
-                                          String snapshotName,
-                                          String tableName,
-                                          String tableId,
-                                          Column refColumn) {
+                                         String snapshotName,
+                                         String tableName,
+                                         String tableId,
+                                         Column refColumn) {
         /*
           For scalar columns we do this:
             SELECT refColumnName
@@ -528,26 +528,34 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId = bigQueryProject.getProjectId();
         String datasetBqDatasetName = prefixName(dataset.getName());
         String refColumnName = refColumn.getName();
-        StringBuilder sqlTemplate = new StringBuilder();
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(refColumnName)
+            .append(" FROM `")
+            .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
+            .append("` S, `")
+            .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
+            .append("` R");
 
-        sqlTemplate.append(
-            "SELECT {refColumnName} " +
-            "FROM `{tableName}` S, `{pdaoRowIdTable}` R ");
         if (refColumn.isArrayOf()) {
-            sqlTemplate.append("CROSS JOIN UNNEST(S.{refColumnName}) {refColumnName} ");
+            builder.append(" CROSS JOIN UNNEST(S.")
+                .append(refColumnName)
+                .append(") ")
+                .append(refColumnName);
         }
-        // where row_id matches and table_id matches
-        sqlTemplate.append("WHERE S.{pdaoRowIdColumn} = R.{pdaoRowIdColumn} AND  R.{pdaoTableIdColumn} = '{tableId}'");
 
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("refColumnName", refColumnName);
-        sqlParamsMap.put("tableName", projectId + '.' + datasetBqDatasetName + '.' + tableName);
-        sqlParamsMap.put("pdaoRowIdTable", projectId + '.' + snapshotName + '.' + PDAO_ROW_ID_TABLE);
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
-        sqlParamsMap.put("pdaoTableIdColumn", PDAO_TABLE_ID_COLUMN);
-        sqlParamsMap.put("tableId", tableId);
+        builder.append(" WHERE S.")
+            // where row_id matches and table_id matches
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" = R.")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" AND R.")
+            .append(PDAO_TABLE_ID_COLUMN)
+            .append(" = '")
+            .append(tableId)
+            .append("'");
 
-        String sql = StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
+        String sql = builder.toString();
         TableResult result = bigQueryProject.query(sql);
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
@@ -636,34 +644,32 @@ public class BigQueryPdao implements PrimaryDataAccess {
         */
 
         StringBuilder builder = new StringBuilder();
+        builder.append("INSERT INTO `")
+            .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
+            .append("` (").append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
+            .append(") SELECT ").append("'").append(tableId).append("' AS ").append(PDAO_TABLE_ID_COLUMN)
+            .append(", T.rowid AS ").append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM (SELECT rowid FROM UNNEST([");
+
+        // Put all of the rowids into an array that is unnested into a table
         String prefix = "";
         for (String rowId : rowIds) {
             builder.append(prefix).append("'").append(rowId).append("'");
             prefix = ",";
         }
 
-        String sqlTemplate =
-            "INSERT INTO `{insertTableName}` ({pdaoTableIdColumn}, {pdaoRowIdColumn}) " +
-                "SELECT  '{toTableId}' AS {pdaoTableIdColumn}, T.rowid AS {pdaoRowIdColumn} " +
-                "FROM (SELECT rowid FROM UNNEST([{rowIds}]) AS rowid " +
-                "EXCEPT DISTINCT ( " +
-                    "SELECT {pdaoRowIdColumn} FROM `{softDeletesTableName}` " +
-                ")) AS T";
+        builder.append("]) AS rowid EXCEPT DISTINCT ( SELECT ")
+            .append(projectId).append(".").append(snapshotName).append(".").append(PDAO_ROW_ID_TABLE)
+            .append(" FROM `")
+            .append(projectId).append(".").append(bqDatasetName).append(".").append(softDeletesTableName)
+            .append("`)) AS T");
 
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("insertTableName", projectId + "." + snapshotName +  "." + PDAO_ROW_ID_TABLE);
-        sqlParamsMap.put("pdaoTableIdColumn", PDAO_TABLE_ID_COLUMN);
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_TABLE);
-        sqlParamsMap.put("toTableId", tableId);
-        sqlParamsMap.put("rowIds", builder.toString());
-        sqlParamsMap.put("softDeletesTableName", projectId + "." + bqDatasetName +  "." + softDeletesTableName);
-
-        return StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
+        return builder.toString();
     }
 
     /**
      * Check that the incoming row ids actually exist in the root table.
-     * <p>
+     *
      * Even though these are currently generated within the create snapshot flight, they may
      * be exposed externally in the future, so validating seemed like a good idea.
      * At this point, the only thing we have stored into the row id table are the incoming row ids.
@@ -677,37 +683,34 @@ public class BigQueryPdao implements PrimaryDataAccess {
      * @param projectId
      */
     private String validateRowIdsForRootSql(String datasetBqDatasetName,
-                                            String snapshotName,
-                                            String rootTableName,
-                                            String projectId) {
-        String sqlTemplate =
-            "SELECT COUNT(*) " +
-            "FROM `{rootTableName}` ` AS T, `{pdaoRowIdTable}` AS R " +
-            "WHERE R.{pdaoRowIdColumn} = T.{pdaoRowIdColumn}";
-
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("rootTableName", projectId + '.' + datasetBqDatasetName + '.' + rootTableName);
-        sqlParamsMap.put("pdaoRowIdTable", projectId + '.' + snapshotName + '.' + PDAO_ROW_ID_TABLE);
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
-
-        return StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
+                                          String snapshotName,
+                                          String rootTableName,
+                                          String projectId) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT COUNT(*) FROM `")
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(rootTableName)
+                .append("` AS T, `")
+                .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
+                .append("` AS R WHERE R.")
+                .append(PDAO_ROW_ID_COLUMN).append(" = T.").append(PDAO_ROW_ID_COLUMN);
+        return builder.toString();
     }
 
     /**
      * Recursive walk of the relationships. Note that we only follow what is connected.
      * If there are relationships in the asset that are not connected to the root, they will
      * simply be ignored. See the related comment in dataset validator.
-     * <p>
+     *
      * We operate on a pdao-specific list of the asset relationships so that we can
      * bookkeep which ones we have visited. Since we need to walk relationships in both
      * the from->to and to->from direction, we have to avoid re-walking a traversed relationship
      * or we infinite loop. Trust me, I know... :)
-     * <p>
+     *
      * TODO: REVIEWERS: should this code detect circular references?
      *
      * @param datasetBqDatasetName
      * @param snapshotName
-     * @param walkRelationships    - list of relationships to consider walking
+     * @param walkRelationships - list of relationships to consider walking
      * @param startTableId
      */
     private void walkRelationships(String datasetBqDatasetName,
@@ -733,7 +736,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             relationship.setVisited();
-            storeRowIdsForRelatedTable(datasetBqDatasetName, snapshotName, relationship, projectId, bigQuery);
+            storeRowIdsForRelatedTable(datasetBqDatasetName,
+                snapshotName,
+                relationship,
+                projectId,
+                bigQuery,
+                createSoftDeletesTableName(relationship.getToTableName()));
             walkRelationships(
                 datasetBqDatasetName,
                 snapshotName,
@@ -750,17 +758,18 @@ public class BigQueryPdao implements PrimaryDataAccess {
      * or walking the relationship from the to table to the from table.
      *
      * @param datasetBqDatasetName - name of the dataset BigQuery dataset
-     * @param snapshotName         - name of the new snapshot's BigQuery dataset
-     * @param relationship         - relationship we are walking with its direction set. The class returns
-     *                             the appropriate from and to based on that direction.
-     * @param projectId            - the project id that this bigquery dataset exists in
-     * @param bigQuery             - a BigQuery instance
+     * @param snapshotName - name of the new snapshot's BigQuery dataset
+     * @param relationship - relationship we are walking with its direction set. The class returns
+     *                       the appropriate from and to based on that direction.
+     * @param projectId - the project id that this bigquery dataset exists in
+     * @param bigQuery - a BigQuery instance
      */
     private void storeRowIdsForRelatedTable(String datasetBqDatasetName,
                                             String snapshotName,
                                             WalkRelationship relationship,
                                             String projectId,
-                                            BigQuery bigQuery) {
+                                            BigQuery bigQuery,
+                                            String softDeletesTableName) {
         // NOTE: this will have to be re-written when we support relationships that include
         // more than one column.
         /*
@@ -798,65 +807,70 @@ public class BigQueryPdao implements PrimaryDataAccess {
                     SELECT PDAO_ROW_ID_COLUMN FROM <table>_soft_deleted
                )
          */
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("With merged_table as (SELECT DISTINCT '")
+                .append(relationship.getToTableId())
+                .append("' AS ")
+                .append(PDAO_TABLE_ID_COLUMN)
+                .append(", T.")
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(" FROM `")
+                .append(projectId).append('.')
+                .append(datasetBqDatasetName).append('.')
+                .append(relationship.getToTableName())
+                .append("` AS T, `")
+                .append(projectId).append('.')
+                .append(datasetBqDatasetName).append('.')
+                .append(relationship.getFromTableName())
+                .append("` AS F, `")
+                .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
+                .append("` AS R WHERE R.")
+                .append(PDAO_TABLE_ID_COLUMN).append(" = '").append(relationship.getFromTableId())
+                .append("' AND R.")
+                .append(PDAO_ROW_ID_COLUMN).append(" = F.").append(PDAO_ROW_ID_COLUMN);
+
         String fromColumn = relationship.getFromColumnName();
         String toColumn = relationship.getToColumnName();
         Boolean fromArray = relationship.getFromColumnIsArray();
         Boolean toArray = relationship.getToColumnIsArray();
 
-        StringBuilder sqlTemplate = new StringBuilder();
-        sqlTemplate.append(
-            " With merged_table as ( " +
-            "SELECT DISTINCT '{toTableId}' AS {pdaoTableIdColumn}, T.{pdaoRowIdColumn} " +
-            "FROM `{toTableName}` AS T, `{fromTableName}` AS F, `{pdaoRowIdTable}` AS R " +
-            "WHERE R.{pdaoTableIdColumn} = {fromTableId} AND R.{pdaoRowIdColumn} = F.{pdaoRowIdColumn} "
-        );
         if (fromArray && toArray) {
-            sqlTemplate.append(
-                "AND EXISTS (" +
-                    "SELECT 1 " +
-                    "FROM UNNEST(F.{fromColumn}) AS flat_from " +
-                        "JOIN UNNEST(T.{toColumn}) AS flat_to ON flat_from = flat_to" +
-                ")");
+            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(F.")
+                    .append(fromColumn)
+                    .append(") AS flat_from JOIN UNNEST(T.")
+                    .append(toColumn)
+                    .append(") AS flat_to ON flat_from = flat_to)");
         } else if (fromArray) {
-            sqlTemplate.append(
-                "AND EXISTS (" +
-                    "SELECT 1 " +
-                    "FROM UNNEST(F.{fromColumn}) AS flat_from " +
-                    "WHERE flat_from = T.{toColumn} " +
-                ")");
+            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(F.")
+                    .append(fromColumn)
+                    .append(") AS flat_from WHERE flat_from = T.")
+                    .append(toColumn)
+                    .append(")");
+        } else if (toArray) {
+            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(T.")
+                    .append(toColumn)
+                    .append(") AS flat_to WHERE flat_to = F.")
+                    .append(fromColumn)
+                    .append(")");
         } else {
-            sqlTemplate.append(" AND T.{toColumn}  = F.{fromColumn}");
+            builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
         }
-        sqlTemplate.append(")");
+        builder.append(") SELECT * FROM 'mergedTable' WHERE ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append("NOT IN (SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append("FROM `")
+            .append(projectId).append(".").append(datasetBqDatasetName).append(".").append(softDeletesTableName)
+            .append("`)");
 
-        // filter soft deletes
-        sqlTemplate.append(
-            " SELECT * " +
-            "FROM 'mergedTable' " +
-            "WHERE {pdaoRowIdColumn} NOT IN (" +
-                "SELECT {pdaoRowIdColumn} FROM `{softDeletesTableName}`" +
-            ")");
-
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("toTableId", relationship.getToTableId());
-        sqlParamsMap.put("pdaoTableIdColumn", PDAO_TABLE_ID_COLUMN);
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
-        sqlParamsMap.put("toTableName",
-            projectId + '.' +  datasetBqDatasetName + '.' + relationship.getToTableName());
-        sqlParamsMap.put("fromTableName",
-            projectId + '.' +  datasetBqDatasetName + '.' + relationship.getFromTableName());
-        sqlParamsMap.put("pdaoRowIdTable",
-            projectId + '.' +  snapshotName + '.' + PDAO_ROW_ID_TABLE);
-        sqlParamsMap.put("fromColumn", fromColumn);
-        sqlParamsMap.put("toColumn", toColumn);
-
-        String sql = StringSubstitutor.replace(sqlTemplate.toString(), sqlParamsMap, "{", "}");
+        String sql = builder.toString();
         try {
             QueryJobConfiguration queryConfig =
-                QueryJobConfiguration.newBuilder(sql)
-                    .setDestinationTable(TableId.of(snapshotName, PDAO_ROW_ID_TABLE))
-                    .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
-                    .build();
+                    QueryJobConfiguration.newBuilder(sql)
+                            .setDestinationTable(TableId.of(snapshotName, PDAO_ROW_ID_TABLE))
+                            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                            .build();
 
             bigQuery.query(queryConfig);
         } catch (InterruptedException ie) {
@@ -938,30 +952,30 @@ public class BigQueryPdao implements PrimaryDataAccess {
         buildSourceSelectList(builder, table, mapTable, snapshot, source);
 
         builder.append(" FROM `")
-            // base dataset table
-            .append(projectId)
-            .append('.')
-            .append(datasetBqDatasetName)
-            .append('.')
-            .append(mapTable.getFromTable().getName())
-            .append('`')
-            // joined with the row id table
-            .append(" S, `")
-            .append(projectId)
-            .append('.')
-            .append(snapshotName)
-            .append('.')
-            .append(PDAO_ROW_ID_TABLE)
-            .append("` R WHERE S.")
-            // where row_id matches and table_id matches
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" = R.")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" AND R.")
-            .append(PDAO_TABLE_ID_COLUMN)
-            .append(" = '")
-            .append(mapTable.getFromTable().getId().toString())
-            .append("')");
+                // base dataset table
+                .append(projectId)
+                .append('.')
+                .append(datasetBqDatasetName)
+                .append('.')
+                .append(mapTable.getFromTable().getName())
+                .append('`')
+                // joined with the row id table
+                .append(" S, `")
+                .append(projectId)
+                .append('.')
+                .append(snapshotName)
+                .append('.')
+                .append(PDAO_ROW_ID_TABLE)
+                .append("` R WHERE S.")
+                // where row_id matches and table_id matches
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(" = R.")
+                .append(PDAO_ROW_ID_COLUMN)
+                .append(" AND R.")
+                .append(PDAO_TABLE_ID_COLUMN)
+                .append(" = '")
+                .append(mapTable.getFromTable().getId().toString())
+                .append("')");
     }
 
     private void buildSourceSelectList(StringBuilder builder,
@@ -1021,8 +1035,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 builder.append(targetColumnName);
             } else {
                 builder.append(mapColumn.getFromColumn().getName())
-                    .append(" AS ")
-                    .append(targetColumnName);
+                        .append(" AS ")
+                        .append(targetColumnName);
             }
         }
     }
@@ -1059,17 +1073,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .map(rowId ->  String.format("'%s'", rowId))
             .collect(Collectors.joining(","));
 
-        String sqlTemplate =
-            "INSERT INTO `{softDeletesTableName}` ({pdaoRowIdColumn}) " +
-             "VALUES ({rowIdValues})";
+        StringBuilder builder = new StringBuilder();
+        builder.append("INSERT INTO `")
+            .append(projectId)
+            .append(".")
+            .append(datarepoDataset)
+            .append(".")
+            .append(createSoftDeletesTableName(tableName))
+            .append("` (")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(") VALUES (")
+            .append(rowIdValues)
+            .append(")");
 
-        Map<String, String> sqlParamsMap = new HashMap<>();
-        sqlParamsMap.put("softDeletesTableName",
-            projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName));
-        sqlParamsMap.put("pdaoRowIdColumn", PDAO_ROW_ID_COLUMN);
-        sqlParamsMap.put("rowIdValues", rowIdValues);
-
-        String sql = StringSubstitutor.replace(sqlTemplate, sqlParamsMap, "{", "}");
+        String sql = builder.toString();
         try {
             QueryJobConfiguration queryConfig =
                 QueryJobConfiguration.newBuilder(sql)
@@ -1087,39 +1104,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private LegacySQLTypeName translateType(String datatype) {
         String uptype = StringUtils.upperCase(datatype);
         switch (uptype) {
-            case "BOOLEAN":
-                return LegacySQLTypeName.BOOLEAN;
-            case "BYTES":
-                return LegacySQLTypeName.BYTES;
-            case "DATE":
-                return LegacySQLTypeName.DATE;
-            case "DATETIME":
-                return LegacySQLTypeName.DATETIME;
-            case "DIRREF":
-                return LegacySQLTypeName.STRING;
-            case "FILEREF":
-                return LegacySQLTypeName.STRING;
-            case "FLOAT":
-                return LegacySQLTypeName.FLOAT;
-            case "FLOAT64":
-                return LegacySQLTypeName.FLOAT;  // match the SQL type
-            case "INTEGER":
-                return LegacySQLTypeName.INTEGER;
-            case "INT64":
-                return LegacySQLTypeName.INTEGER;  // match the SQL type
-            case "NUMERIC":
-                return LegacySQLTypeName.NUMERIC;
+            case "BOOLEAN":   return LegacySQLTypeName.BOOLEAN;
+            case "BYTES":     return LegacySQLTypeName.BYTES;
+            case "DATE":      return LegacySQLTypeName.DATE;
+            case "DATETIME":  return LegacySQLTypeName.DATETIME;
+            case "DIRREF":    return LegacySQLTypeName.STRING;
+            case "FILEREF":   return LegacySQLTypeName.STRING;
+            case "FLOAT":     return LegacySQLTypeName.FLOAT;
+            case "FLOAT64":   return LegacySQLTypeName.FLOAT;  // match the SQL type
+            case "INTEGER":   return LegacySQLTypeName.INTEGER;
+            case "INT64":     return LegacySQLTypeName.INTEGER;  // match the SQL type
+            case "NUMERIC":   return LegacySQLTypeName.NUMERIC;
             //case "RECORD":    return LegacySQLTypeName.RECORD;
-            case "STRING":
-                return LegacySQLTypeName.STRING;
-            case "TEXT":
-                return LegacySQLTypeName.STRING;   // match the Postgres type
-            case "TIME":
-                return LegacySQLTypeName.TIME;
-            case "TIMESTAMP":
-                return LegacySQLTypeName.TIMESTAMP;
-            default:
-                throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+            case "STRING":    return LegacySQLTypeName.STRING;
+            case "TEXT":      return LegacySQLTypeName.STRING;   // match the Postgres type
+            case "TIME":      return LegacySQLTypeName.TIME;
+            case "TIMESTAMP": return LegacySQLTypeName.TIMESTAMP;
+            default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
     }
 

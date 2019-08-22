@@ -5,6 +5,7 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
+import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.NotImplementedException;
 import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.metadata.FSDir;
@@ -25,6 +26,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -83,7 +88,7 @@ public class DrsService {
 
         switch (fsObject.getObjectType()) {
             case FILE:
-                return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId());
+                return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId(), authUser);
 
             case DIRECTORY:
                 return drsObjectFromFSDir((FSDir)fsObject, drsId.getSnapshotId());
@@ -93,22 +98,35 @@ public class DrsService {
         }
     }
 
-    private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId) {
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
-        DRSAccessURL accessURL = new DRSAccessURL()
+        DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
 
-        DRSAccessMethod accessMethod = new DRSAccessMethod()
+        DRSAccessMethod gsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
-            .accessUrl(accessURL)
+            .accessUrl(gsAccessURL)
             .region(fsFile.getRegion());
+
+        DRSAccessURL httpsAccessURL = new DRSAccessURL()
+            .url(makeHttpsFromGs(fsFile.getGspath()))
+            .headers(makeAuthHeader(authUser));
+
+        DRSAccessMethod httpsAccessMethod = new DRSAccessMethod()
+            .type(DRSAccessMethod.TypeEnum.HTTPS)
+            .accessUrl(httpsAccessURL)
+            .region(fsFile.getRegion());
+
+        List<DRSAccessMethod> accessMethods = new ArrayList<>();
+        accessMethods.add(gsAccessMethod);
+        accessMethods.add(httpsAccessMethod);
 
         fileObject
             .size(fsFile.getSize())
             .mimeType(fsFile.getMimeType())
             .checksums(fileService.makeChecksums(fsFile))
-            .accessMethods(Collections.singletonList(accessMethod));
+            .accessMethods(accessMethods);
 
         return fileObject;
     }
@@ -172,6 +190,23 @@ public class DrsService {
         }
 
         return contentsObject;
+    }
+
+    private String makeHttpsFromGs(String gspath) {
+        try {
+            URI gsuri = URI.create(gspath);
+            String gsBucket = gsuri.getAuthority();
+            String gsPath = StringUtils.removeStart(gsuri.getPath(), "/");
+            String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString());
+            return String.format("https://%s/%s?alt=media", gsBucket, encodedPath);
+        } catch (UnsupportedEncodingException ex) {
+            throw new InternalServerErrorException("Failed to urlencode file path", ex);
+        }
+    }
+
+    private List<String> makeAuthHeader(AuthenticatedUserRequest authUser) {
+        String hdr = String.format("Authorization: Bearer %s", authUser.getToken());
+        return Collections.singletonList(hdr);
     }
 
     private String getLastNameFromPath(String path) {

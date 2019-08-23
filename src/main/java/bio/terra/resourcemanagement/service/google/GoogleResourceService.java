@@ -80,17 +80,13 @@ public class GoogleResourceService {
         // project we will look up the bucket by project resource id, otherwise we will look up the bucket
         GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
         try {
-            List<GoogleBucketResource> bucketResources = resourceDao.retrieveBucketsByProjectResource(projectResource);
-            if (bucketResources.size() > 1) {
-                List<String> bucketNames = bucketResources
-                    .stream()
-                    .map(GoogleBucketResource::getName)
-                    .collect(Collectors.toList());
-                logger.warn("more than one bucket found for project {}: [{}], using the first one",
-                    projectResource.getGoogleProjectId(),
-                    String.join(", ", bucketNames));
+            Optional<GoogleBucketResource> possibleMatch = resourceDao.retrieveBucketsByProjectResource(projectResource)
+                .stream()
+                .filter(bucketResource -> bucketResource.getName().equals(bucketRequest.getBucketName()))
+                .findFirst();
+            if (possibleMatch.isPresent()) {
+                return possibleMatch.get();
             }
-            return bucketResources.get(0);
         } catch (GoogleResourceNotFoundException e) {
             logger.info("no bucket resource metadata found for project: {}", projectResource.getGoogleProjectId());
         }

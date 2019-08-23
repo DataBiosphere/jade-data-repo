@@ -13,6 +13,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
+import bio.terra.service.dataproject.DataLocationSelector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
@@ -23,6 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -32,11 +34,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
+import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
@@ -56,6 +61,9 @@ public class FileOperationTest {
 
     @MockBean
     private SamClientService samService;
+
+    @SpyBean
+    private DataLocationSelector dataLocationSelector;
 
     private int validFileCounter;
 
@@ -117,6 +125,17 @@ public class FileOperationTest {
         connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
+
+        // Change the data location selector, verify that we can still delete the file
+        String newBucketName = "bucket-" + UUID.randomUUID().toString();
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
+        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
+        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+        assertThat("file path reflects new bucket location",
+            fileModel.getFileDetail().getAccessUrl(),
+            containsString(newBucketName));
+        // Track the bucket so connected ops can remove it on teardown
+        connectedOperations.addBucket(newBucketName);
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";

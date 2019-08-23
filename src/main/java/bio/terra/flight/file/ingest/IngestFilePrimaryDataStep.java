@@ -10,6 +10,7 @@ import bio.terra.metadata.FSObjectType;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -43,7 +44,13 @@ public class IngestFilePrimaryDataStep implements Step {
             throw new FileSystemCorruptException("This should be a file!");
         }
 
-        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, (FSFile)fsObject);
+        // In the previous step a bucket was selected for this file to go into and stored in the working map. Here, we
+        // store the bucket resource id on the fsFile metadata to let the gcsPdao know where to copy the file.
+        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        FSFile fsFile = (FSFile) fsObject;
+        fsFile.bucketResourceId(bucketResource.getResourceId().toString());
+
+        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fsFile);
         workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
         return StepResult.getStepResultSuccess();
     }
@@ -56,7 +63,12 @@ public class IngestFilePrimaryDataStep implements Step {
         if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
             throw new FileSystemCorruptException("This should be a file!");
         }
-        gcsPdao.deleteFile((FSFile)fsObject);
+
+        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+        FSFile fsFile = (FSFile) fsObject;
+        fsFile.bucketResourceId(bucketResource.getResourceId().toString());
+
+        gcsPdao.deleteFile(fsFile);
         return StepResult.getStepResultSuccess();
     }
 

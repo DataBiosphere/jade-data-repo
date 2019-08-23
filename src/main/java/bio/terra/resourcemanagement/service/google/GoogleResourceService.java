@@ -77,8 +77,7 @@ public class GoogleResourceService {
     }
 
     public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest) {
-        // Naive: this implements a 1-bucket-per-project approach. If there is already a Google bucket for this
-        // project we will look up the bucket by project resource id, otherwise we will look up the bucket
+        // see if there is a bucket resource that matches the project and bucket name from the request
         GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
         try {
             Optional<GoogleBucketResource> possibleMatch = resourceDao.retrieveBucketsByProjectResource(projectResource)
@@ -92,7 +91,7 @@ public class GoogleResourceService {
             logger.info("no bucket resource metadata found for project: {}", projectResource.getGoogleProjectId());
         }
 
-        // the bucket might already exist
+        // the bucket might already exist even though we don't have metadata for it
         Bucket bucket = getBucket(bucketRequest.getBucketName()).orElseGet(() -> newBucket(bucketRequest));
         Acl.Entity owner = bucket.getOwner();
         logger.info("bucket is owned by '{}'", owner.toString());
@@ -147,7 +146,7 @@ public class GoogleResourceService {
         return resourceDao.retrieveProjectById(id);
     }
 
-    private Project getProject(String googleProjectId) {
+    public Project getProject(String googleProjectId) {
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
             CloudResourceManager.Projects.Get request = resourceManager.projects().get(googleProjectId);
@@ -214,6 +213,24 @@ public class GoogleResourceService {
         }
     }
 
+    private void deleteGoogleProject(String projectId) {
+        try {
+            CloudResourceManager resourceManager = cloudResourceManager();
+            CloudResourceManager.Projects.Delete request = resourceManager.projects().delete(projectId);
+            // the response will be empty if the request is successful in the delete
+            request.execute();
+        } catch (IOException | GeneralSecurityException e) {
+            throw new GoogleResourceException("Could not delete project", e);
+        }
+    }
+
+    // TODO: check dependencies before delete
+    public void deleteProjectResource(UUID resourceId) {
+        GoogleProjectResource projectResource = resourceDao.retrieveProjectById(resourceId);
+        deleteGoogleProject(projectResource.getGoogleProjectId());
+        resourceDao.deleteProject(resourceId);
+    }
+
     private void enableServices(GoogleProjectResource projectResource) {
         BatchEnableServicesRequest batchRequest = new BatchEnableServicesRequest()
             .setServiceIds(projectResource.getServiceIds());
@@ -274,12 +291,20 @@ public class GoogleResourceService {
             .build();
     }
 
+    /**
+     * Poll the resource manager api until an operation completes. It is possible to hit quota issues here, so the
+     * timeout is set to 10 seconds.
+     * @param resourceManager service instance
+     * @param operation has an id for us to use in the check
+     * @param timeoutSeconds how many seconds before we give up
+     * @return a completed operation
+     */
     private static Operation blockUntilResourceOperationComplete(
             CloudResourceManager resourceManager,
             Operation operation,
             long timeoutSeconds) throws IOException, InterruptedException {
         long start = System.currentTimeMillis();
-        final long pollInterval = 5 * 1000; // 5 seconds
+        final long pollInterval = 10 * 1000; // 10 seconds
         String opId = operation.getName();
 
         while (operation != null && (operation.getDone() == null || !operation.getDone())) {
@@ -292,6 +317,7 @@ public class GoogleResourceService {
             if (elapsed >= timeoutSeconds * 1000) {
                 throw new GoogleResourceException("Timed out waiting for operation to complete");
             }
+            logger.info("checking operation: {}", opId);
             CloudResourceManager.Operations.Get request = resourceManager.operations().get(opId);
             operation = request.execute();
         }

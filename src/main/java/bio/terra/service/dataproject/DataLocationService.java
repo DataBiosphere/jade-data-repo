@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,14 +30,15 @@ import java.util.UUID;
 public class DataLocationService {
 
     private static final Logger logger = LoggerFactory.getLogger(DataLocationService.class);
-    private static final List<String> DATA_PROJECT_SERVICE_IDS =  Arrays.asList(
+    // TODO: this feels like it should live in a different place, maybe GoogleResourceConfiguration?
+    public static final List<String> DATA_PROJECT_SERVICE_IDS = Collections.unmodifiableList(Arrays.asList(
         "bigquery-json.googleapis.com",
         "firestore.googleapis.com",
         "firebaserules.googleapis.com",
         "storage-component.googleapis.com",
         "storage-api.googleapis.com",
         "cloudbilling.googleapis.com"
-    );
+    ));
 
     private final DataProjectDao dataProjectDao;
     private final DataLocationSelector dataLocationSelector;

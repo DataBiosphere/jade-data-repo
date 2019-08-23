@@ -129,7 +129,7 @@ public class ConnectedOperations {
         return datasetSummaryModel;
     }
 
-    public BillingProfileModel getOrCreateProfileForAccount(String billingAccountId) throws Exception {
+    public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
         BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(billingAccountId);
         return createProfile(profileRequestModel);

@@ -93,7 +93,7 @@ public class EncodeFileTest {
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
-        profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccountId);
+        profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
     }
 
     @After

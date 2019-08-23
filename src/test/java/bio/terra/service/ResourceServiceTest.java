@@ -12,6 +12,7 @@ import bio.terra.service.dataproject.DataLocationService;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -51,6 +52,8 @@ public class ResourceServiceTest {
     }
 
     @Test
+    // this test should be unignored whenever there are changes to the project creation or deletion code
+    @Ignore
     public void createAndDeleteProjectTest() {
         // the project id can't be more than 30 characters
         String projectId = ("test-" + UUID.randomUUID().toString()).substring(0, 30);

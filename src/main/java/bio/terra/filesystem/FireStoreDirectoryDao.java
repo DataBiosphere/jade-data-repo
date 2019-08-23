@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Paths and document names
@@ -241,7 +242,8 @@ public class FireStoreDirectoryDao {
 
     }
 
-    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray, FireStoreObjectState objectType) {
+/*
+    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) {
         List<String> missingIds = new ArrayList<>();
         for (String objectId : refIdArray) {
             if (!lookupByIdAndType(dataset, objectId, objectType)) {
@@ -250,7 +252,7 @@ public class FireStoreDirectoryDao {
         }
         return missingIds;
     }
-
+*/
     // -- private methods --
 
     private void deleteFileWorker(Dataset dataset, DocumentReference fileDocRef, String dirPath, Transaction xn) {
@@ -292,48 +294,20 @@ public class FireStoreDirectoryDao {
         }
     }
 
-    private FSObjectBase enumerateDirectory(Dataset dataset, FSObjectBase fsObject) {
-        if (fsObject.getObjectType() == FireStoreObjectState.FILE) {
-            return fsObject;
-        }
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        ApiFuture<List<FSObjectBase>> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            Query query = fireStoreProject.getFirestore().collection(fsObject.getDatasetId().toString())
-                .whereEqualTo("path", fsObject.getPath());
+    List<FireStoreObject> enumerateDirectory(Firestore firestore, String collectionId, String dirPath) {
+        ApiFuture<List<FireStoreObject>> transaction = firestore.runTransaction(xn -> {
+            Query query = firestore.collection(collectionId).whereEqualTo("path", dirPath);
             ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-
-            List<FSObjectBase> fsObjectList = new ArrayList<>();
-            for (QueryDocumentSnapshot document : documents) {
-                FireStoreObject fireStoreObject = document.toObject(FireStoreObject.class);
-                switch (FireStoreObjectState.fromLetter(fireStoreObject.getObjectTypeLetter())) {
-                    case FILE:
-                    case DIRECTORY:
-                        FSObjectBase fsItem = makeFSObjectFromFireStoreObject(fireStoreObject);
-                        fsObjectList.add(fsItem);
-                        break;
-
-                    // Don't show files being added or deleted
-                    case INGESTING_FILE:
-                    case DELETING_FILE:
-                    default:
-                        break;
-                }
-            }
-            return fsObjectList;
+            List<FireStoreObject> objectList =
+                documents
+                    .stream()
+                    .map(document -> document.toObject(FireStoreObject.class))
+                    .collect(Collectors.toList());
+            return objectList;
         });
 
-        List<FSObjectBase> contents = fireStoreUtils.transactionGet("enumerate directory", transaction);
-
-        return new FSDir()
-            .contents(contents)
-            .objectId(fsObject.getObjectId())
-            .datasetId(fsObject.getDatasetId())
-            .objectType(fsObject.getObjectType())
-            .createdDate(fsObject.getCreatedDate())
-            .path(fsObject.getPath())
-            .size(fsObject.getSize())
-            .description(fsObject.getDescription());
+        return fireStoreUtils.transactionGet("enumerateDirectory", transaction);
     }
 
     // As mentioned at the top of the module, we can't use forward slash in a FireStore document
@@ -354,7 +328,8 @@ public class FireStoreDirectoryDao {
                                                 String lookupPath,
                                                 Transaction xn) {
         try {
-            DocumentReference docRef = firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
+            DocumentReference docRef =
+                firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
             ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
             return docSnapFuture.get();
         } catch (InterruptedException ex) {
@@ -393,34 +368,6 @@ public class FireStoreDirectoryDao {
         }
     }
 
-    // Returns true if the object of the requested type exists
-    private boolean lookupByIdAndType(Dataset dataset, String objectId, FireStoreObjectState objectType) {
-        try {
-            FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-            CollectionReference datasetCollection =
-                fireStoreProject.getFirestore().collection(dataset.getId().toString());
-            Query query = datasetCollection
-                .whereEqualTo("objectId", objectId)
-                .whereEqualTo("objectTypeLetter", objectType.toLetter());
-            ApiFuture<QuerySnapshot> querySnapshot = query.get();
-            List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-            if (documents.size() == 0) {
-                return false;
-            }
-            if (documents.size() != 1) {
-                throw new FileSystemCorruptException("lookup by object id found too many objects");
-            }
-
-            return true;
-
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException(" id and type - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException(" id and type - execution exception", ex);
-        }
-    }
-
     private FireStoreObject makeDirectoryObject(String dataset, String lookupDirPath) {
         // We have some special cases to deal with at the top of the directory tree.
         String fullPath = makePathFromLookupPath(lookupDirPath);
@@ -441,70 +388,6 @@ public class FireStoreDirectoryDao {
             .path(dirPath)
             .name(objName)
             .fileCreatedDate(Instant.now().toString());
-    }
-
-    private FireStoreObject makeFireStoreObjectFromFSObject(FSObjectBase fsObject) {
-        String objectId = (fsObject.getObjectId() == null) ? null : fsObject.getObjectId().toString();
-
-        FireStoreObject fireStoreObject = new FireStoreObject()
-            .objectId(objectId)
-            .objectTypeLetter(fsObject.getObjectType().toLetter())
-            .path(getDirectoryPath(fsObject.getPath()))
-            .name(getObjectName(fsObject.getPath()));
-
-        switch (fsObject.getObjectType()) {
-            case FILE:
-            case DELETING_FILE:
-            case INGESTING_FILE:
-                FSFile fsFile = (FSFile) fsObject;
-                fireStoreObject.flightId(fsFile.getFlightId());
-                break;
-
-            case DIRECTORY:
-                String fileCreatedDate =
-                    (fsObject.getCreatedDate() == null) ? null : fsObject.getCreatedDate().toString();
-                fireStoreObject.fileCreatedDate(fileCreatedDate);
-                break;
-
-            default:
-                throw new FileSystemCorruptException("Invalid object type found");
-        }
-
-        return fireStoreObject;
-    }
-
-    private FSObjectBase makeFSObjectFromFireStoreObject(FireStoreObject fireStoreObject) {
-        Instant createdDate = (fireStoreObject.getFileCreatedDate() == null) ? null :
-            Instant.parse(fireStoreObject.getFileCreatedDate());
-
-        FireStoreObjectState objectType = FireStoreObjectState.fromLetter(fireStoreObject.getObjectTypeLetter());
-        switch (objectType) {
-            case FILE:
-            case DELETING_FILE:
-            case INGESTING_FILE:
-                return new FSFile()
-                    .flightId(fireStoreObject.getFlightId())
-                    // -- base setters --
-                    .objectId(UUID.fromString(fireStoreObject.getObjectId()))
-                    .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
-                    .objectType(objectType)
-                    .path(getFullPath(fireStoreObject));
-
-            case DIRECTORY:
-                return new FSDir()
-                    .objectId(UUID.fromString(fireStoreObject.getObjectId()))
-                    .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
-                    .objectType(objectType)
-                    .createdDate(createdDate)
-                    .path(getFullPath(fireStoreObject))
-                    .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
-                    .checksumMd5(fireStoreObject.getChecksumMd5())
-                    .size(fireStoreObject.getSize());
-
-
-            default:
-                throw new FileSystemCorruptException("Invalid object type found");
-        }
     }
 
     // Do some tidying of the full path: slash on front - no slash trailing

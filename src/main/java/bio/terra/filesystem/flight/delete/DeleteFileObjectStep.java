@@ -6,14 +6,14 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class DeleteFileMetadataStepStart implements Step {
+public class DeleteFileObjectStep implements Step {
     private final FireStoreDirectoryDao fileDao;
     private final String fileId;
     private final Dataset dataset;
 
-    public DeleteFileMetadataStepStart(FireStoreDirectoryDao fileDao,
-                                       String fileId,
-                                       Dataset dataset) {
+    public DeleteFileObjectStep(FireStoreDirectoryDao fileDao,
+                                String fileId,
+                                Dataset dataset) {
         this.fileDao = fileDao;
         this.fileId = fileId;
         this.dataset = dataset;

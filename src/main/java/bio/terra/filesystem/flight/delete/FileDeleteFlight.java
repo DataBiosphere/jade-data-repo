@@ -1,10 +1,10 @@
 package bio.terra.filesystem.flight.delete;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -17,25 +17,22 @@ public class FileDeleteFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        FireStoreDirectoryDao fileDao = (FireStoreDirectoryDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String fileId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), String.class);
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        // The flight plan:
-        // 1. Metadata start step:
-        //    Make sure the file is deletable - not in a snapshot
-        //    Mark the file as deleting so it is not added to a snapshot in the meantime.
-        // 2. pdao does the file delete
-        // 3. Metadata complete step: delete the file metadata
 
-        // NOTE: The start step may find that the file does not exist. In that case, we still execute the rest
-        // of the steps. If the file system data and the bucket storage are out of sync, we can fix it by
-        // performing this delete-by-id and it will clean up the bucket or the file system even if they
-        // are inconsistent.
-        addStep(new DeleteFileMetadataStepStart(fileDao, fileId, dataset));
+        // The flight plan:
+        // 1. Lookup file object and store the data in the flight map
+        // 2. Delete the file object - after this point, no one will be able to retrieve the file
+        // 3. pdao GCS delete the file
+        // 4. Delete the directory entry
+// <<< YOU ARE HERE >>>
+        addStep(new DeleteFileLookupStep(fileDao, fileId, dataset));
+        addStep(new DeleteFileObjectStep(fileDao, fileId, dataset));
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao));
         addStep(new DeleteFileMetadataStepComplete(fileDao, fileId, dataset));
     }

@@ -91,11 +91,6 @@ class FireStoreFileDao {
         }
     }
 
-
-
-
-
-
     // This does not make a complete FSFile. Some parts, such as the path, object type and flight id
     // need to be populated from the FireStoreFileRef that refers to this file.
     private FSFile makeFSFileFromFireStoreFile(Dataset dataset, FireStoreFile fireStoreFile) {

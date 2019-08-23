@@ -52,7 +52,7 @@ public class IngestFileFileStep implements Step {
         fileDao.createFileObject(dataset, newFile);
 
         // Retrieve to build the whole return object
-        FSObjectBase fsObject = fileDao.retrieveById(dataset, objectId, true);
+        FSObjectBase fsObject = fileDao.retrieveById(dataset, objectId, 1, true);
 
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
         return StepResult.getStepResultSuccess();

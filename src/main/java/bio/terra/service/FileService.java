@@ -1,11 +1,13 @@
 package bio.terra.service;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
-import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.filesystem.flight.delete.FileDeleteFlight;
 import bio.terra.filesystem.flight.ingest.FileIngestFlight;
-import bio.terra.metadata.*;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.FSDir;
+import bio.terra.metadata.FSFile;
+import bio.terra.metadata.FSObjectBase;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
 import bio.terra.model.FSObjectModel;
@@ -14,7 +16,6 @@ import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,11 +30,11 @@ public class FileService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
 
     private final Stairway stairway;
-    private final FireStoreDirectoryDao fileDao;
+    private final FireStoreDao fileDao;
     private  final DatasetService datasetService;
 
     @Autowired
-    public FileService(Stairway stairway, FireStoreDirectoryDao fileDao, DatasetService datasetService) {
+    public FileService(Stairway stairway, FireStoreDao fileDao, DatasetService datasetService) {
         this.stairway = stairway;
         this.fileDao = fileDao;
         this.datasetService = datasetService;
@@ -66,36 +67,12 @@ public class FileService {
 
     FSObjectBase lookupFSObject(String datasetId, String fileId) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        FSObjectBase fsObject = fileDao.retrieveWithContents(dataset, UUID.fromString(fileId));
-        checkFSObject(fsObject, datasetId, fileId);
-        return fsObject;
+        return fileDao.retrieveById(dataset, fileId, 1, true);
     }
 
     FSObjectBase lookupFSObjectByPath(String datasetId, String path) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        FSObjectBase fsObject = fileDao.retrieveWithContentsByPath(dataset, path);
-        checkFSObject(fsObject, datasetId, path);
-        return fsObject;
-    }
-
-    private void checkFSObject(FSObjectBase fsObject, String datasetId, String objectRef) {
-        if (fsObject == null) {
-            throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in dataset with id '"
-                + datasetId + "'");
-        }
-
-        switch (fsObject.getObjectType()) {
-            case FILE:
-            case DIRECTORY:
-                break;
-
-                // Don't reveal files that are coming or going
-            case INGESTING_FILE:
-            case DELETING_FILE:
-            default:
-                throw new FileSystemObjectNotFoundException("File '" + objectRef + "' not found in dataset with id '"
-                    + datasetId + "'");
-        }
+        return fileDao.retrieveById(dataset, path, 1, true);
     }
 
     public FSObjectModel fileModelFromFSObject(FSObjectBase fsObject) {
@@ -107,10 +84,7 @@ public class FileService {
             .created(fsObject.getCreatedDate().toString())
             .description(fsObject.getDescription());
 
-        if (fsObject.getObjectType() == FireStoreObjectState.FILE) {
-            if (!(fsObject instanceof FSFile)) {
-                throw new FileSystemCorruptException("Mismatched object type");
-            }
+        if (fsObject instanceof FSFile) {
             fsObjectModel.objectType(FSObjectModelType.FILE);
 
             FSFile fsFile = (FSFile)fsObject;
@@ -118,11 +92,7 @@ public class FileService {
                 .checksums(makeChecksums(fsFile))
                 .accessUrl(fsFile.getGspath())
                 .mimeType(fsFile.getMimeType()));
-        } else if (fsObject.getObjectType() == FireStoreObjectState.DIRECTORY) {
-            if (!(fsObject instanceof FSDir)) {
-                throw new FileSystemCorruptException("Mismatched object type");
-            }
-
+        } else if (fsObject instanceof FSDir) {
             fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
             FSDir fsDir = (FSDir)fsObject;
             if (fsDir.isEnumerated()) {
@@ -140,8 +110,8 @@ public class FileService {
         return fsObjectModel;
     }
 
-    // Even though this uses the DRSChecksum model, it is used in the
-    // FileModel to return the set of checksums for a file.
+    // We use the DRSChecksum model to represent the checksums in the repository
+    // API's FileModel to return the set of checksums for a file.
     List<DRSChecksum> makeChecksums(FSFile fsFile) {
         List<DRSChecksum> checksums = new ArrayList<>();
         DRSChecksum checksumCrc32 = new DRSChecksum()
@@ -158,10 +128,4 @@ public class FileService {
 
         return checksums;
     }
-
-    private String getObjectName(String path) {
-        String[] pathParts = StringUtils.split(path, '/');
-        return pathParts[pathParts.length - 1];
-    }
-
 }

@@ -99,7 +99,10 @@ public class BigQueryPdaoTest {
         boolean tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
             bigQueryPdao.tableExists(dataset, "sample") &&
             bigQueryPdao.tableExists(dataset, "file");
-        Assert.assertThat(datasetExists && tablesExists, is(equalTo(false)));
+        boolean softDeletesTableExists = bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
+        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(false)));
 
         bigQueryPdao.createDataset(dataset);
 
@@ -107,7 +110,10 @@ public class BigQueryPdaoTest {
         tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
             bigQueryPdao.tableExists(dataset, "sample") &&
             bigQueryPdao.tableExists(dataset, "file");
-        Assert.assertThat(datasetExists && tablesExists, is(equalTo(true)));
+        softDeletesTableExists = bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
+        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(true)));
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createDataset(dataset);
@@ -115,7 +121,10 @@ public class BigQueryPdaoTest {
         tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
             bigQueryPdao.tableExists(dataset, "sample") &&
             bigQueryPdao.tableExists(dataset, "file");
-        Assert.assertThat(datasetExists && tablesExists, is(equalTo(true)));
+        softDeletesTableExists = bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
+        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(true)));
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteDataset(dataset);
@@ -123,7 +132,10 @@ public class BigQueryPdaoTest {
         tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
             bigQueryPdao.tableExists(dataset, "sample") &&
             bigQueryPdao.tableExists(dataset, "file");
-        Assert.assertThat(datasetExists && tablesExists, is(equalTo(false)));
+        softDeletesTableExists = bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
+            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
+        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(false)));
     }
 
     // TODO:

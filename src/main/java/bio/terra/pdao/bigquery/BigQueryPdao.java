@@ -581,7 +581,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private String prefixSoftDeletesTableName(String tableName) {
+    public String prefixSoftDeletesTableName(String tableName) {
         return PDAO_PREFIX + "_sd_" + tableName;
     }
 

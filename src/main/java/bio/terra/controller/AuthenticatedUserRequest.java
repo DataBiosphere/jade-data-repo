@@ -87,38 +87,4 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
-    // Static method to build an AuthenticatedUserRequest from data available to the controller
-    public static AuthenticatedUserRequest from(Optional<HttpServletRequest> servletRequest,
-                                                String appConfigUserEmail) {
-
-        if (!servletRequest.isPresent()) {
-            throw new BadRequestException("No valid request found.");
-        }
-        HttpServletRequest req = servletRequest.get();
-        String email = req.getHeader("oidc_claim_email");
-        String token = req.getHeader("oidc_access_token");
-        String userId = req.getHeader("oidc_claim_user_id");
-
-        // in testing scenarios and when running the server without the proxy not all the
-        // header information will be available. default values will be used in these cases.
-
-        if (token == null) {
-            String authHeader = req.getHeader("Authorization");
-            if (authHeader != null)
-                token = authHeader.substring("Bearer ".length());
-        }
-        if (email == null) {
-            String fromHeader = req.getHeader("From");
-            if (fromHeader != null) {
-                email = fromHeader;
-            } else {
-                email = appConfigUserEmail;
-            }
-        }
-        if (userId == null) {
-            userId = "999999999999";
-        }
-        return new AuthenticatedUserRequest().email(email).subjectId(userId).token(token);
-    }
-
 }

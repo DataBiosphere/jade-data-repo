@@ -17,6 +17,9 @@ import java.util.Optional;
 public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {
     private Logger logger = LoggerFactory.getLogger(LocalAuthenticatedUserRequestFactory.class);
 
+    // in testing scenarios and when running the server without the proxy not all the
+    // header information will be available. default values will be used in these cases.
+
     private final ApplicationConfiguration applicationConfiguration;
 
     @Autowired
@@ -34,6 +37,11 @@ public class LocalAuthenticatedUserRequestFactory implements AuthenticatedUserRe
         String email = Optional.ofNullable(req.getHeader("From"))
             .orElse(applicationConfiguration.getUserEmail());
 
-        return new AuthenticatedUserRequest(email, token);
+        String userId = applicationConfiguration.getUserId();
+
+        return new AuthenticatedUserRequest()
+            .email(email)
+            .subjectId(userId)
+            .token(token);
     }
 }

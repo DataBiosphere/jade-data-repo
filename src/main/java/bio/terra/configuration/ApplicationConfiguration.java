@@ -25,6 +25,7 @@ public class ApplicationConfiguration {
     private String userEmail;
     private String dnsName;
     private String resourceId;
+    private String userId;
 
     public String getUserEmail() {
         return userEmail;
@@ -48,6 +49,15 @@ public class ApplicationConfiguration {
 
     public void setResourceId(String resourceId) {
         this.resourceId = resourceId;
+    }
+
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     @Bean("stairway")

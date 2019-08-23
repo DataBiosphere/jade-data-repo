@@ -1,17 +1,17 @@
-package bio.terra.filesystem.flight.delete;
+package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class DeleteFileObjectStep implements Step {
-    private final FireStoreDirectoryDao fileDao;
+    private final FireStoreDao fileDao;
     private final String fileId;
     private final Dataset dataset;
 
-    public DeleteFileObjectStep(FireStoreDirectoryDao fileDao,
+    public DeleteFileObjectStep(FireStoreDao fileDao,
                                 String fileId,
                                 Dataset dataset) {
         this.fileDao = fileDao;
@@ -21,13 +21,13 @@ public class DeleteFileObjectStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        fileDao.deleteFileStart(dataset, fileId, context.getFlightId());
+        fileDao.deleteFileObject(dataset, fileId);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        fileDao.deleteFileStartUndo(dataset, fileId, context.getFlightId());
+        // No possible undo
         return StepResult.getStepResultSuccess();
     }
 

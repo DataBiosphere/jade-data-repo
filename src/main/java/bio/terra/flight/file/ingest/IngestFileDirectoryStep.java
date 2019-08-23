@@ -1,10 +1,10 @@
-package bio.terra.filesystem.flight.ingest;
+package bio.terra.flight.file.ingest;
 
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreObject;
 import bio.terra.filesystem.FireStoreUtils;
 import bio.terra.filesystem.exception.FileSystemObjectAlreadyExistsException;
-import bio.terra.filesystem.flight.FileMapKeys;
+import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.JobMapKeys;

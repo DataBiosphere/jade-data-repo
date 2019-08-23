@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -63,7 +64,13 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public GoogleBucketResource getBucketForFile(String profileId) {
+    public GoogleBucketResource getBucketForFile(String profileId, String resourceId) {
+        // If this isn't the first time we've seen this file, it should have a bucket resource id we can look up
+        Optional<String> bucketResourceId = Optional.ofNullable(resourceId);
+        if (bucketResourceId.isPresent()) {
+            return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId.get()));
+        }
+
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
         BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));

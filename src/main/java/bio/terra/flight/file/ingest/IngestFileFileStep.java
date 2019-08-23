@@ -1,8 +1,8 @@
-package bio.terra.filesystem.flight.ingest;
+package bio.terra.flight.file.ingest;
 
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreFile;
-import bio.terra.filesystem.flight.FileMapKeys;
+import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSObjectBase;

@@ -75,7 +75,6 @@ public class FireStoreDao {
         return fileDao.deleteFileMetadata(firestore, datasetId, objectId);
     }
 
-
     public void deleteFilesFromDataset(Dataset dataset) {
         // scan file collection deleting objects
         // scan directory collection deleting objects
@@ -87,6 +86,13 @@ public class FireStoreDao {
         // build FSObject
         // apply func
     }
+
+    public FireStoreObject lookupDirectoryEntry(Dataset dataset, String objectId) {
+        Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
+        String datasetId = dataset.getId().toString();
+        return directoryDao.retrieveById(firestore, datasetId, objectId);
+    }
+
 
     public FireStoreFile lookupFile(Dataset dataset, String objectId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();

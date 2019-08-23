@@ -1,6 +1,6 @@
-package bio.terra.filesystem.flight.delete;
+package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.DeleteResponseModel;
@@ -10,14 +10,14 @@ import bio.terra.stairway.StepResult;
 import org.springframework.http.HttpStatus;
 
 
-public class DeleteFileMetadataStepComplete implements Step {
-    private final FireStoreDirectoryDao fileDao;
+public class DeleteFileDirectoryStep implements Step {
+    private final FireStoreDao fileDao;
     private final String fileId;
     private final Dataset dataset;
 
-    public DeleteFileMetadataStepComplete(FireStoreDirectoryDao fileDao,
-                                          String fileId,
-                                          Dataset dataset) {
+    public DeleteFileDirectoryStep(FireStoreDao fileDao,
+                                   String fileId,
+                                   Dataset dataset) {
         this.fileDao = fileDao;
         this.fileId = fileId;
         this.dataset = dataset;
@@ -25,7 +25,7 @@ public class DeleteFileMetadataStepComplete implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        boolean found = fileDao.deleteFileComplete(dataset, fileId, context.getFlightId());
+        boolean found = fileDao.deleteDirectoryEntry(dataset, fileId);
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
         DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);

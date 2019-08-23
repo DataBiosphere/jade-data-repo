@@ -1,6 +1,6 @@
-package bio.terra.filesystem.flight.ingest;
+package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.flight.FileMapKeys;
+import bio.terra.flight.file.FileMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

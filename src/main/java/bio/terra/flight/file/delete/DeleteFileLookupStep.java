@@ -1,8 +1,8 @@
-package bio.terra.filesystem.flight.delete;
+package bio.terra.flight.file.delete;
 
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreFile;
-import bio.terra.filesystem.flight.FileMapKeys;
+import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -30,7 +30,9 @@ public class DeleteFileLookupStep implements Step {
         FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
         if (fireStoreFile == null) {
             fireStoreFile = fileDao.lookupFile(dataset, fileId);
-            workingMap.put(FileMapKeys.FIRESTORE_FILE, fireStoreFile);
+            if (fireStoreFile != null) {
+                workingMap.put(FileMapKeys.FIRESTORE_FILE, fireStoreFile);
+            }
         }
         return StepResult.getStepResultSuccess();
     }

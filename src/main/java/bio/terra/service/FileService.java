@@ -2,8 +2,8 @@ package bio.terra.service;
 
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
-import bio.terra.filesystem.flight.delete.FileDeleteFlight;
-import bio.terra.filesystem.flight.ingest.FileIngestFlight;
+import bio.terra.flight.file.delete.FileDeleteFlight;
+import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;

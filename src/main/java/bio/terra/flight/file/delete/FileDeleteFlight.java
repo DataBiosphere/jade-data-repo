@@ -1,10 +1,11 @@
-package bio.terra.filesystem.flight.delete;
+package bio.terra.flight.file.delete;
 
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
@@ -20,6 +21,7 @@ public class FileDeleteFlight extends Flight {
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        DataLocationService locationService = (DataLocationService) appContext.getBean("dataLocationService");
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String fileId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), String.class);
@@ -30,11 +32,10 @@ public class FileDeleteFlight extends Flight {
         // 2. Delete the file object - after this point, no one will be able to retrieve the file
         // 3. pdao GCS delete the file
         // 4. Delete the directory entry
-// <<< YOU ARE HERE >>>
         addStep(new DeleteFileLookupStep(fileDao, fileId, dataset));
         addStep(new DeleteFileObjectStep(fileDao, fileId, dataset));
-        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao));
-        addStep(new DeleteFileMetadataStepComplete(fileDao, fileId, dataset));
+        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
+        addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset));
     }
 
 }

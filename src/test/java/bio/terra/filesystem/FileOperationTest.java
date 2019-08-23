@@ -134,6 +134,8 @@ public class FileOperationTest {
         assertThat("file path reflects new bucket location",
             fileModel.getFileDetail().getAccessUrl(),
             containsString(newBucketName));
+        // Track the bucket so connected ops can remove it on teardown
+        connectedOperations.addBucket(newBucketName);
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";

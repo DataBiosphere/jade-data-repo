@@ -1,12 +1,21 @@
 package bio.terra.integration;
 
+import bio.terra.model.DRSAccessMethod;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public final class TestUtils {
     private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
@@ -27,5 +36,27 @@ public final class TestUtils {
             tries++;
         }
         return false;
+    }
+
+    public static String validateDrsAccessMethods(List<DRSAccessMethod> accessMethods) {
+        assertThat("Two access methods", accessMethods.size(), equalTo(2));
+
+        String gsuri = StringUtils.EMPTY;
+        boolean gotGs = false;
+        boolean gotHttps = false;
+        for (DRSAccessMethod accessMethod : accessMethods) {
+            if (accessMethod.getType() == DRSAccessMethod.TypeEnum.GS) {
+                assertFalse("have not seen GS yet", gotGs);
+                gotGs = true;
+                gsuri = accessMethod.getAccessUrl().getUrl();
+            } else if (accessMethod.getType() == DRSAccessMethod.TypeEnum.HTTPS) {
+                assertFalse("have not seen HTTPS yet", gotHttps);
+                gotHttps = true;
+            } else {
+                fail("Invalid access method");
+            }
+        }
+        assertTrue("got both access methods", gotGs && gotHttps);
+        return gsuri;
     }
 }

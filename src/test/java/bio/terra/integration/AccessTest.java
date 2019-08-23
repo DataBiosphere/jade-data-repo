@@ -4,8 +4,6 @@ import bio.terra.category.Integration;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DRSAccessMethod;
-import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -38,7 +36,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -227,13 +224,10 @@ public class AccessTest extends UsersBase {
 
         // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
         DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
-        List<DRSAccessMethod> accessMethods = drsObject.getAccessMethods();
-        assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
+        String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods());
 
-        // Step 7. Pull out the gs path try to read the file as reader and discoverer
-        DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
-
-        String[] strings = accessUrl.getUrl().split("/", 4);
+        // Step 7. Try to read the file of the gs path as reader and discoverer
+        String[] strings = gsuri.split("/", 4);
 
         String bucketName = strings[2];
         String blobName = strings[3];

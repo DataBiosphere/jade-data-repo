@@ -3,7 +3,6 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FSObjectModel;
@@ -67,9 +66,7 @@ public class DrsTest extends UsersBase {
         DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
         validateDrsObject(drsObject, drsObjectId);
         assertNull("Contents of file is null", drsObject.getContents());
-        assertThat("One access method", drsObject.getAccessMethods().size(), equalTo(1));
-        DRSAccessMethod accessMethod = drsObject.getAccessMethods().get(0);
-        assertThat("Access method is gs", accessMethod.getType(), equalTo(DRSAccessMethod.TypeEnum.GS));
+        TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods());
 
         // We don't have a DRS URI for a directory, so we back into it by computing the parent path
         // and using the non-DRS interface to get that file. Then we use that to build the

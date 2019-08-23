@@ -95,25 +95,42 @@ public class BigQueryPdaoTest {
 
     @Test
     public void basicTest() throws Exception {
-        boolean exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(false)));
+        boolean datasetExists = bigQueryPdao.datasetExists(dataset);
+        boolean tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
+            bigQueryPdao.tableExists(dataset, "sample") &&
+            bigQueryPdao.tableExists(dataset, "file");
+        Assert.assertThat(datasetExists && tablesExists, is(equalTo(false)));
 
         bigQueryPdao.createDataset(dataset);
 
-        exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(true)));
+        datasetExists = bigQueryPdao.datasetExists(dataset);
+        tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
+            bigQueryPdao.tableExists(dataset, "sample") &&
+            bigQueryPdao.tableExists(dataset, "file");
+        Assert.assertThat(datasetExists && tablesExists, is(equalTo(true)));
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createDataset(dataset);
-        exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(true)));
-
+        datasetExists = bigQueryPdao.datasetExists(dataset);
+        tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
+            bigQueryPdao.tableExists(dataset, "sample") &&
+            bigQueryPdao.tableExists(dataset, "file");
+        Assert.assertThat(datasetExists && tablesExists, is(equalTo(true)));
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteDataset(dataset);
-        exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(false)));
+        datasetExists = bigQueryPdao.datasetExists(dataset);
+        tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
+            bigQueryPdao.tableExists(dataset, "sample") &&
+            bigQueryPdao.tableExists(dataset, "file");
+        Assert.assertThat(datasetExists && tablesExists, is(equalTo(false)));
     }
+
+    // TODO:
+    /*  @Test
+    public void softDeletesTest() throws Exception {
+        // add rows to soft deletes table
+    }*/
 
     @Test
     public void datasetTest() throws Exception {

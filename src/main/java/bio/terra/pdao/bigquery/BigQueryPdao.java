@@ -103,7 +103,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 bigQueryProject.createTable(datasetName, table.getName(), schema);
                 bigQueryProject.createTable(
                     datasetName,
-                    createSoftDeletesTableName(table.getName()),
+                    prefixSoftDeletesTableName(table.getName()),
                     buildSoftDeletesSchema());
             }
         } catch (Exception ex) {
@@ -224,7 +224,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 rootTableId,
                 rowIds,
                 projectId,
-                createSoftDeletesTableName(rootTable.getName()),
+                prefixSoftDeletesTableName(rootTable.getName()),
                 datasetBqDatasetName);
             if (sql != null) {
                 bigQueryProject.query(sql);
@@ -281,6 +281,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetName = prefixName(dataset.getName());
         // bigQueryProject.datasetExists checks whether the BigQuery dataset by the provided name exists
         return bigQueryProject.datasetExists(datasetName);
+    }
+
+    @Override
+    public boolean tableExists(Dataset dataset, String tableName) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String datasetName = prefixName(dataset.getName());
+        return bigQueryProject.tableExists(datasetName, tableName);
     }
 
     @Override
@@ -460,7 +467,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public boolean deleteDatasetTable(Dataset dataset, String tableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName);
+        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName) &&
+            bigQueryProject.deleteTable(prefixName(dataset.getName()), prefixSoftDeletesTableName(tableName));
     }
 
     public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) {
@@ -573,7 +581,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private String createSoftDeletesTableName(String tableName) {
+    private String prefixSoftDeletesTableName(String tableName) {
         return PDAO_PREFIX + "_sd_" + tableName;
     }
 
@@ -742,7 +750,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 relationship,
                 projectId,
                 bigQuery,
-                createSoftDeletesTableName(relationship.getToTableName()));
+                prefixSoftDeletesTableName(relationship.getToTableName()));
             walkRelationships(
                 datasetBqDatasetName,
                 snapshotName,
@@ -1060,13 +1068,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return null;
     }
 
-    private void softDeleteRows(List<String> softDeleteRowIds,
+    public void softDeleteRows(List<String> softDeleteRowIds,
                                 String tableName,
                                 Dataset datarepoDataset,
                                 BigQuery bigQuery) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(datarepoDataset);
         String projectId = bigQueryProject.getProjectId();
-        String softDeletesTableName = projectId + "." + datarepoDataset +  "." + createSoftDeletesTableName(tableName);
+        String softDeletesTableName = projectId + "." + datarepoDataset +  "." + prefixSoftDeletesTableName(tableName);
 
         // TODO: Validate rowIDs exist in given table
         String rowIdValues = String.join(",", softDeleteRowIds);
@@ -1088,7 +1096,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         try {
             QueryJobConfiguration queryConfig =
                 QueryJobConfiguration.newBuilder(sql)
-                    .setDestinationTable(TableId.of(datarepoDataset.getName(), createSoftDeletesTableName(tableName)))
+                    .setDestinationTable(TableId.of(datarepoDataset.getName(), prefixSoftDeletesTableName(tableName)))
                     .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
                     .build();
 

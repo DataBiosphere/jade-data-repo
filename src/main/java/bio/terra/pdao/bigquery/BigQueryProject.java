@@ -1,20 +1,7 @@
 package bio.terra.pdao.bigquery;
 
 import bio.terra.pdao.exception.PdaoException;
-import com.google.cloud.bigquery.Acl;
-import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.bigquery.BigQueryOptions;
-import com.google.cloud.bigquery.Dataset;
-import com.google.cloud.bigquery.DatasetId;
-import com.google.cloud.bigquery.DatasetInfo;
-import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.StandardTableDefinition;
-import com.google.cloud.bigquery.TableDefinition;
-import com.google.cloud.bigquery.TableId;
-import com.google.cloud.bigquery.TableInfo;
-import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +57,16 @@ public final class BigQueryProject {
             return (dataset != null);
         } catch (Exception ex) {
             throw new PdaoException("existence check failed for " + datasetName, ex);
+        }
+    }
+
+    public boolean tableExists(String datasetName, String tableName) {
+        try {
+            TableId tableId = TableId.of(projectId, datasetName, tableName);
+            Table table = bigQuery.getTable(tableId);
+            return (table != null);
+        } catch (Exception ex) {
+            throw new PdaoException("existence check failed for " + datasetName + "." + tableName, ex);
         }
     }
 

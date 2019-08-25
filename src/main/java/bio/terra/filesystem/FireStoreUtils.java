@@ -2,12 +2,18 @@ package bio.terra.filesystem;
 
 import bio.terra.filesystem.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.cloud.firestore.CollectionReference;
+import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
+import com.google.cloud.firestore.QuerySnapshot;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 @Component
 public class FireStoreUtils {
@@ -62,5 +68,55 @@ public class FireStoreUtils {
         }
         return path + '/' + name;
     }
+
+    /**
+     * This code is pretty ugly, but here is why...
+     * (from https://cloud.google.com/firestore/docs/solutions/delete-collections)
+     * <ul>
+     * <li>There is no operation that atomically deletes a collection.</li>
+     * <li>Deleting a document does not delete the documents in its subcollections.</li>
+     * <li>If your documents have dynamic subcollections, (we don't do this!)
+     *     it can be hard to know what data to delete for a given path.</li>
+     * <li>Deleting a collection of more than 500 documents requires multiple batched
+     *     write operations or hundreds of single deletes.</li>
+     * </ul>
+     *
+     * Our objects are small, so I think we can use the maximum batch size without
+     * concern for using too much memory.
+     */
+    void scanCollectionObjects(Firestore firestore,
+                               String collectionId,
+                               int batchSize,
+                               Consumer<QueryDocumentSnapshot> func) {
+        CollectionReference datasetCollection = firestore.collection(collectionId);
+        try {
+            int batchCount = 0;
+            int visited;
+            do {
+                visited = 0;
+                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
+                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+                batchCount++;
+                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
+                for (QueryDocumentSnapshot document : documents) {
+                    func.accept(document);
+                    visited++;
+                }
+            } while (visited >= batchSize);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("scanning collection - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("scanning collection - execution exception", ex);
+        }
+    }
+
+
+
+
+
+
+
+
 
 }

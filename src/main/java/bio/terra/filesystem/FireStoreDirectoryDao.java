@@ -1,16 +1,8 @@
 package bio.terra.filesystem;
 
-import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemExecutionException;
-import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
-import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
-import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObjectBase;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -31,7 +23,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -160,59 +151,14 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.transactionGet("deleteFileRef", transaction);
     }
 
-    /**
-     * This code is pretty ugly, but here is why...
-     * (from https://cloud.google.com/firestore/docs/solutions/delete-collections)
-     * <ul>
-     * <li>There is no operation that atomically deletes a collection.</li>
-     * <li>Deleting a document does not delete the documents in its subcollections.</li>
-     * <li>If your documents have dynamic subcollections, (we don't do this!)
-     *     it can be hard to know what data to delete for a given path.</li>
-     * <li>Deleting a collection of more than 500 documents requires multiple batched
-     *     write operations or hundreds of single deletes.</li>
-     * </ul>
-     *
-     * Our objects are small, so I think we can use the maximum batch size without
-     * concern for using too much memory.
-     *
-     * @param datasetId
-     */
+
     private static final int DELETE_BATCH_SIZE = 500;
-    public void deleteFilesFromDataset(Dataset dataset) {
-        visitEachDocumentInDataset(dataset, DELETE_BATCH_SIZE, document -> document.getReference().delete());
-    }
-
-    public void forEachFsObjectInDataset(Dataset dataset, int batchSize, Consumer<FSObjectBase> func) {
-        visitEachDocumentInDataset(dataset, batchSize, document -> {
-            FireStoreObject currentObject = document.toObject(FireStoreObject.class);
-            FSObjectBase fsObject = makeFSObjectFromFireStoreObject(currentObject);
-            func.accept(fsObject);
-        });
-    }
-
-    private void visitEachDocumentInDataset(Dataset dataset, int batchSize, Consumer<QueryDocumentSnapshot> func) {
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
-        try {
-            int batchCount = 0;
-            int visited;
-            do {
-                visited = 0;
-                ApiFuture<QuerySnapshot> future = datasetCollection.limit(batchSize).get();
-                List<QueryDocumentSnapshot> documents = future.get().getDocuments();
-                batchCount++;
-                logger.info("Visiting batch " + batchCount + " of ~" + batchSize + " documents");
-                for (QueryDocumentSnapshot document : documents) {
-                    func.accept(document);
-                    visited++;
-                }
-            } while (visited >= batchSize);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("scanning dataset - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("scanning dataset - execution exception", ex);
-        }
+    public void deleteDirectoryEntriesFromDataset(Firestore firestore, String collectionId) {
+        fireStoreUtils.scanCollectionObjects(
+            firestore,
+            collectionId,
+            DELETE_BATCH_SIZE,
+            document -> document.getReference().delete());
     }
 
     // Returns null if not found - upper layers do any throwing
@@ -239,20 +185,18 @@ public class FireStoreDirectoryDao {
         });
 
         return fireStoreUtils.transactionGet("retrieveByPath", transaction);
-
     }
 
-/*
-    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) {
+    public List<String> validateRefIds(Firestore firestore, String collectionId, List<String> refIdArray) {
         List<String> missingIds = new ArrayList<>();
         for (String objectId : refIdArray) {
-            if (!lookupByIdAndType(dataset, objectId, objectType)) {
+            if (retrieveById(firestore, collectionId, objectId) == null) {
                 missingIds.add(objectId);
             }
         }
         return missingIds;
     }
-*/
+
     // -- private methods --
 
     private void deleteFileWorker(Dataset dataset, DocumentReference fileDocRef, String dirPath, Transaction xn) {

@@ -56,23 +56,26 @@ public class FileService {
         return stairway.submit(FileIngestFlight.class, flightMap);
     }
 
-    public FSObjectModel lookupFile(String datasetId, String fileId) {
-        return fileModelFromFSObject(lookupFSObject(datasetId, fileId));
+    // depth == -1 means expand the entire sub-tree from this node
+    // depth == 0 means no expansion - just this node
+    // depth >= 1 means expand N levels
+    public FSObjectModel lookupFile(String datasetId, String fileId, int depth) {
+        return fileModelFromFSObject(lookupFSObject(datasetId, fileId, depth));
     }
 
-    public FSObjectModel lookupPath(String datasetId, String path) {
-        FSObjectBase fsObject = lookupFSObjectByPath(datasetId, path);
+    public FSObjectModel lookupPath(String datasetId, String path, int depth) {
+        FSObjectBase fsObject = lookupFSObjectByPath(datasetId, path, depth);
         return fileModelFromFSObject(fsObject);
     }
 
-    FSObjectBase lookupFSObject(String datasetId, String fileId) {
+    FSObjectBase lookupFSObject(String datasetId, String fileId, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        return fileDao.retrieveById(dataset, fileId, 1, true);
+        return fileDao.retrieveById(dataset, fileId, depth, true);
     }
 
-    FSObjectBase lookupFSObjectByPath(String datasetId, String path) {
+    FSObjectBase lookupFSObjectByPath(String datasetId, String path, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        return fileDao.retrieveById(dataset, path, 1, true);
+        return fileDao.retrieveById(dataset, path, depth, true);
     }
 
     public FSObjectModel fileModelFromFSObject(FSObjectBase fsObject) {

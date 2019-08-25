@@ -1,6 +1,7 @@
 package bio.terra.pdao.gcs;
 
 import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filesystem.FireStoreFile;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
@@ -169,17 +170,14 @@ public class GcsPdao {
         return false;
     }
 
-// TODO: fix dataset delete
-/*
-    public void deleteFilesFromDataset(Dataset dataset) {
-        // these files could be in multiple buckets..need to enumerate them from firestore and then iterate + delete
-        fileDao.forEachFsObjectInDataset(dataset, DATASET_DELETE_BATCH_SIZE, fsObjectBase -> {
-            if (fsObjectBase.getObjectType() != FireStoreObjectState.DIRECTORY) {
-                deleteFile((FSFile) fsObjectBase);
-            }
-        });
+    // Consumer method for deleting GCS files driven from a scan over the firestore files
+    public void deleteFile(FireStoreFile fireStoreFile) {
+        if (fireStoreFile != null) {
+            GoogleBucketResource bucketResource =
+                dataLocationService.getBucketForFile(fireStoreFile.getProfileId(), fireStoreFile.getBucketResourceId());
+            deleteFile(fireStoreFile.getGspath(), bucketResource);
+        }
     }
-*/
 
     private enum AclOp {
         ACL_OP_CREATE,

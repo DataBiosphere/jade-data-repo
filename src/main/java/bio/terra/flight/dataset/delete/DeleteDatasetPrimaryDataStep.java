@@ -1,11 +1,11 @@
 package bio.terra.flight.dataset.delete;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -17,12 +17,12 @@ import java.util.UUID;
 public class DeleteDatasetPrimaryDataStep implements Step {
     private BigQueryPdao bigQueryPdao;
     private GcsPdao gcsPdao;
-    private FireStoreDirectoryDao fileDao;
+    private FireStoreDao fileDao;
     private DatasetService datasetService;
 
     public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                       GcsPdao gcsPdao,
-                                      FireStoreDirectoryDao fileDao,
+                                      FireStoreDao fileDao,
                                       DatasetService datasetService) {
         this.bigQueryPdao = bigQueryPdao;
         this.gcsPdao = gcsPdao;
@@ -40,9 +40,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
     public StepResult doStep(FlightContext context) {
         Dataset dataset = getDataset(context);
         bigQueryPdao.deleteDataset(dataset);
-        gcsPdao.deleteFilesFromDataset(dataset);
-        fileDao.deleteFilesFromDataset(dataset);
-
+        fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
         return StepResult.getStepResultSuccess();

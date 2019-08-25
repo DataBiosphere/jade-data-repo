@@ -4,7 +4,6 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
-import bio.terra.exception.NotImplementedException;
 import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
@@ -60,27 +59,21 @@ public class DrsService {
     }
 
     public DRSObject lookupObjectByDrsId(String drsObjectId, Boolean expand) {
-        // TODO: Implement recursive directory expansion
-        if (expand) {
-            throw new NotImplementedException("Expand is not yet implemented");
-        }
-
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
+        int depth = (expand ? -1 : 1);
 
         FSObjectBase fsObject = fileService.lookupFSObject(
             drsId.getDatasetId(),
-            drsId.getFsObjectId());
+            drsId.getFsObjectId(),
+            depth);
 
-        switch (fsObject.getObjectType()) {
-            case FILE:
-                return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId());
-
-            case DIRECTORY:
-                return drsObjectFromFSDir((FSDir)fsObject, drsId.getSnapshotId());
-
-            default:
-                throw new IllegalArgumentException("Invalid object type");
+        if (fsObject instanceof FSFile) {
+            return drsObjectFromFSFile((FSFile)fsObject, fsObject.getDatasetId().toString());
+        } else if (fsObject instanceof FSDir) {
+            return drsObjectFromFSDir((FSDir)fsObject, fsObject.getDatasetId().toString());
         }
+
+        throw new IllegalArgumentException("Invalid object type");
     }
 
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
@@ -152,8 +145,7 @@ public class DrsService {
             .id(drsId.toDrsObjectId())
             .drsUri(drsUris);
 
-        // If the object is an enumerated directory, we fill in the contents array.
-        if (fsObject.getObjectType() == FireStoreObjectState.DIRECTORY) {
+        if (fsObject instanceof FSDir) {
             FSDir fsDir = (FSDir) fsObject;
             if (fsDir.isEnumerated()) {
                 contentsObject.contents(makeContentsList(fsDir, datasetId));

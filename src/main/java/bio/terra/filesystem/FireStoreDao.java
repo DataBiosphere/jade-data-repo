@@ -75,24 +75,17 @@ public class FireStoreDao {
         return fileDao.deleteFileMetadata(firestore, datasetId, objectId);
     }
 
-    public void deleteFilesFromDataset(Dataset dataset) {
-        // scan file collection deleting objects
-        // scan directory collection deleting objects
+    public void deleteFilesFromDataset(Dataset dataset, Consumer<FireStoreFile> func) {
+        Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
+        String datasetId = dataset.getId().toString();
+        fileDao.deleteFilesFromDataset(firestore, datasetId, func);
+        directoryDao.deleteDirectoryEntriesFromDataset(firestore, datasetId);
     }
-
-    public void forEachFsObjectInDataset(Dataset dataset, int batchSize, Consumer<FSObjectBase> func) {
-        // scan file collection - for each file
-        // lookup by id in directory
-        // build FSObject
-        // apply func
-    }
-
     public FireStoreObject lookupDirectoryEntry(Dataset dataset, String objectId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return directoryDao.retrieveById(firestore, datasetId, objectId);
     }
-
 
     public FireStoreFile lookupFile(Dataset dataset, String objectId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
@@ -139,6 +132,14 @@ public class FireStoreDao {
         FireStoreObject fireStoreObject = directoryDao.retrieveById(firestore, datasetId, objectId);
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, objectId);
     }
+
+    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) {
+        Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
+        String datasetId = dataset.getId().toString();
+        return directoryDao.validateRefIds(firestore, datasetId, refIdArray);
+    }
+
+    // -- private methods --
 
     private FSObjectBase retrieveWorker(Firestore firestore,
                                         String datasetId,
@@ -241,14 +242,5 @@ public class FireStoreDao {
 
         return fsFile;
     }
-
-
-// Let usage drive the retrieve methods we put in here. There are many right now...
-/*
-    public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) {
-        // lookup id in directory
-        // temporary: count non-files as missing until we implement DIRREF
-    }
-*/
 
 }

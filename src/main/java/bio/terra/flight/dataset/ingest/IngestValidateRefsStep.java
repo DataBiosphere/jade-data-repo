@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.filesystem.FireStoreDirectoryDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.flight.exception.InvalidFileRefException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
@@ -20,11 +20,11 @@ public class IngestValidateRefsStep implements Step {
 
     private DatasetService datasetService;
     private BigQueryPdao bigQueryPdao;
-    private FireStoreDirectoryDao fileDao;
+    private FireStoreDao fileDao;
 
     public IngestValidateRefsStep(DatasetService datasetService,
                                   BigQueryPdao bigQueryPdao,
-                                  FireStoreDirectoryDao fileDao) {
+                                  FireStoreDao fileDao) {
         this.datasetService = datasetService;
         this.bigQueryPdao = bigQueryPdao;
         this.fileDao = fileDao;
@@ -37,15 +37,14 @@ public class IngestValidateRefsStep implements Step {
         String stagingTableName = IngestUtils.getStagingTableName(context);
 
         // For each fileref column, scan the staging table and build an array of file ids
-        // Then probe the file system tables to validate that the file exists and is part
+        // Then probe the file system to validate that the file exists and is part
         // of this dataset. We check all ids and return one complete error.
 
         List<String> invalidRefIds = new ArrayList<>();
         for (Column column : table.getColumns()) {
             if (StringUtils.equalsIgnoreCase(column.getType(), "FILEREF")) {
                 List<String> refIdArray = bigQueryPdao.getRefIds(dataset, stagingTableName, column);
-                List<String> badRefIds =
-                    fileDao.validateRefIds(dataset, refIdArray, FireStoreObjectState.FILE);
+                List<String> badRefIds = fileDao.validateRefIds(dataset, refIdArray);
                 if (badRefIds != null) {
                     invalidRefIds.addAll(badRefIds);
                 }

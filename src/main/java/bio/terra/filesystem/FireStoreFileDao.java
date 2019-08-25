@@ -1,8 +1,6 @@
 package bio.terra.filesystem;
 
 import bio.terra.filesystem.exception.FileSystemExecutionException;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSFile;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -12,9 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.time.Instant;
-import java.util.UUID;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 /**
  * FireStoreFileDao provides CRUD operations on the file collection in Firestore.
@@ -32,7 +29,7 @@ class FireStoreFileDao {
     private FireStoreUtils fireStoreUtils;
 
     @Autowired
-    public FireStoreFileDao(FireStoreUtils fireStoreUtils) {
+    FireStoreFileDao(FireStoreUtils fireStoreUtils) {
         this.fireStoreUtils = fireStoreUtils;
     }
 
@@ -46,7 +43,7 @@ class FireStoreFileDao {
         fireStoreUtils.transactionGet("createFileMetadata", transaction);
     }
 
-    public boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
+    boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
             DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileObjectId, xn);
@@ -62,7 +59,7 @@ class FireStoreFileDao {
     }
 
     // Returns null on not found
-    public FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
+    FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
             DocumentSnapshot docSnap = lookupByFileId(firestore, datasetId, fileObjectId, xn);
@@ -91,54 +88,19 @@ class FireStoreFileDao {
         }
     }
 
-    // This does not make a complete FSFile. Some parts, such as the path, object type and flight id
-    // need to be populated from the FireStoreFileRef that refers to this file.
-    private FSFile makeFSFileFromFireStoreFile(Dataset dataset, FireStoreFile fireStoreFile) {
-        Instant createdDate = (fireStoreFile.getFileCreatedDate() == null) ? null :
-            Instant.parse(fireStoreFile.getFileCreatedDate());
-
-        return new FSFile()
-            .gspath(fireStoreFile.getGspath())
-            .checksumCrc32c(fireStoreFile.getChecksumCrc32c())
-            .checksumMd5(fireStoreFile.getChecksumMd5())
-            .mimeType(fireStoreFile.getMimeType())
-            .profileId(fireStoreFile.getProfileId())
-            .region(fireStoreFile.getRegion())
-            .bucketResourceId(fireStoreFile.getBucketResourceId())
-            // -- base setters have to come after derived setters --
-            .objectId(UUID.fromString(fireStoreFile.getObjectId()))
-            .datasetId(dataset.getId())
-            .createdDate(createdDate)
-            .size(fireStoreFile.getSize())
-            .description(fireStoreFile.getDescription());
-    }
-
-    private FireStoreFile makeFireStoreFileFromFSFile(FSFile fsFile) {
-        if ((fsFile.getObjectId() == null) ||
-            (fsFile.getDatasetId() == null) ||
-            (fsFile.getCreatedDate() == null) ||
-            (fsFile.getSize() == null) ||
-            (fsFile.getGspath() == null) ||
-            (fsFile.getChecksumCrc32c() == null) ||
-            (fsFile.getMimeType() == null) ||
-            (fsFile.getProfileId() == null) ||
-            (fsFile.getRegion() == null) ||
-            (fsFile.getBucketResourceId() == null)) {
-            throw new FileSystemExecutionException("Invalid FSFile object");
-        }
-
-        return new FireStoreFile()
-            .objectId(fsFile.getObjectId().toString())
-            .fileCreatedDate(fsFile.getCreatedDate().toString())
-            .gspath(fsFile.getGspath())
-            .checksumCrc32c(fsFile.getChecksumCrc32c())
-            .checksumMd5(fsFile.getChecksumMd5())
-            .size(fsFile.getSize())
-            .mimeType(fsFile.getMimeType())
-            .description(fsFile.getDescription())
-            .profileId(fsFile.getProfileId())
-            .region(fsFile.getRegion())
-            .bucketResourceId(fsFile.getBucketResourceId());
+    // See comment in FireStoreUtils.java for an explanation of the batch size setting.
+    private static final int DELETE_BATCH_SIZE = 500;
+    void deleteFilesFromDataset(Firestore firestore, String datasetId, Consumer<FireStoreFile> func) {
+        String collectionId = makeCollectionId(datasetId);
+        fireStoreUtils.scanCollectionObjects(
+            firestore,
+            collectionId,
+            DELETE_BATCH_SIZE,
+            document -> {
+                FireStoreFile fireStoreFile = document.toObject(FireStoreFile.class);
+                func.accept(fireStoreFile);
+                document.getReference().delete();
+            });
     }
 
     private String makeCollectionId(String datasetId) {

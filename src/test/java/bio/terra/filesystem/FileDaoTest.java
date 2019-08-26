@@ -97,7 +97,7 @@ public class FileDaoTest {
 
     @Before
     public void setup() throws Exception {
-        billingProfileModel = connectedOperations.getOrCreateProfileForAccount(
+        billingProfileModel = connectedOperations.createProfileForAccount(
             googleResourceConfiguration.getCoreBillingAccount());
 
         datasetSummaryModel = connectedOperations.createDatasetWithFlight(

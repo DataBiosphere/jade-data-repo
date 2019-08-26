@@ -70,7 +70,7 @@ public class BigQueryPdaoTest {
         connectedOperations.stubOutSamCalls(samService);
 
         String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
-        profileModel = connectedOperations.getOrCreateProfileForAccount(coreBillingAccount);
+        profileModel = connectedOperations.createProfileForAccount(coreBillingAccount);
         // TODO: this next bit should be in connected operations, need to make it a component and autowire a datasetdao
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("ingest-test-dataset.json",
             DatasetRequestModel.class);

@@ -80,7 +80,7 @@ public class DatasetCreateFlightTest {
     @Before
     public void setup() throws Exception {
         datasetName = "scftest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
-        billingProfileModel = connectedOperations.getOrCreateProfileForAccount(
+        billingProfileModel = connectedOperations.createProfileForAccount(
             googleResourceConfiguration.getCoreBillingAccount());
         datasetRequest = makeDatasetRequest(datasetName, billingProfileModel.getId());
         dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);

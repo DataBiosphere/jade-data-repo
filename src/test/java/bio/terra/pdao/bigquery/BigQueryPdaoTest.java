@@ -142,12 +142,6 @@ public class BigQueryPdaoTest {
         Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(false)));
     }
 
-    // TODO:
-    /*  @Test
-    public void softDeletesTest() throws Exception {
-        // add rows to soft deletes table
-    }*/
-
     @Test
     public void datasetTest() throws Exception {
         bigQueryPdao.createDataset(dataset);
@@ -211,6 +205,11 @@ public class BigQueryPdaoTest {
             // TODO: Assert that the snapshot contains the rows we expect.
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
+
+            //TODO: get a row id and add it to the soft deletes table
+
+            //TODO: assert that the row id added to the soft deletes table does not appear in
+
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());

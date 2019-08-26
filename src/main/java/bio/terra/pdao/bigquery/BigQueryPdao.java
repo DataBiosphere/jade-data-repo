@@ -582,7 +582,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public String prefixSoftDeletesTableName(String tableName) {
-        return PDAO_PREFIX + "_sd_" + tableName;
+        return PDAO_PREFIX + "sd_" + tableName;
     }
 
     private Schema buildSoftDeletesSchema() {
@@ -669,7 +669,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         builder.append("]) AS rowid EXCEPT DISTINCT ( SELECT ")
-            .append(projectId).append(".").append(snapshotName).append(".").append(PDAO_ROW_ID_TABLE)
+            .append(PDAO_ROW_ID_COLUMN)
             .append(" FROM `")
             .append(projectId).append(".").append(bqDatasetName).append(".").append(softDeletesTableName)
             .append("`)) AS T");
@@ -865,11 +865,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } else {
             builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
         }
-        builder.append(") SELECT * FROM 'merged_table' WHERE ")
+        builder.append(") SELECT * FROM merged_table WHERE ")
             .append(PDAO_ROW_ID_COLUMN)
-            .append("NOT IN (SELECT ")
+            .append(" NOT IN (SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
-            .append("FROM `")
+            .append(" FROM `")
             .append(projectId).append(".").append(datasetBqDatasetName).append(".").append(softDeletesTableName)
             .append("`)");
 

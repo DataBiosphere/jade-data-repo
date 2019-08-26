@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
  * This class holds a Spring RestTemplate
  */
 @Component
-@Profile("integrationtest")
 public class DataRepoClient {
     @Autowired
     private TestConfiguration testConfig;

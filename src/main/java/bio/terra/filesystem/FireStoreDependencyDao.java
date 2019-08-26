@@ -142,7 +142,6 @@ public class FireStoreDependencyDao {
                     // no dependency object yet. Let's make one
                     FireStoreDependency fireStoreDependency = new FireStoreDependency()
                         .snapshotId(snapshotId)
-                        .datasetId(dataset.getId().toString()) // TODO: does this still need to be here?
                         .objectId(objectId)
                         .refCount(1L);
 

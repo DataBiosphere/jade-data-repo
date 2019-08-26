@@ -5,7 +5,6 @@ package bio.terra.filesystem;
 // It has a reference count to track the number of times the file has been used in the snapshot.
 public class FireStoreDependency {
     private String snapshotId;
-    private String datasetId;
     private String objectId;
     private Long refCount;
 
@@ -18,15 +17,6 @@ public class FireStoreDependency {
 
     public FireStoreDependency snapshotId(String snapshotId) {
         this.snapshotId = snapshotId;
-        return this;
-    }
-
-    public String getDatasetId() {
-        return datasetId;
-    }
-
-    public FireStoreDependency datasetId(String datasetId) {
-        this.datasetId = datasetId;
         return this;
     }
 

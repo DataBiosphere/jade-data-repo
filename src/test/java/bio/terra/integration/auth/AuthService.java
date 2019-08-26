@@ -9,7 +9,6 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
@@ -20,7 +19,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Component
-@Profile("integrationtest")
 public class AuthService {
     private static Logger logger = LoggerFactory.getLogger(AuthService.class);
     // the list of scopes we request from end users when they log in.
@@ -35,11 +33,13 @@ public class AuthService {
     private String saEmail;
     private Map<String, String> userTokens = new HashMap<>();
     private Map<String, String> directAccessTokens = new HashMap<>();
+    private TestConfiguration testConfig;
 
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
-        String pemfilename = testConfig.getJadePemFileName();
-        pemfile = new File(pemfilename);
+        this.testConfig = testConfig;
+        Optional<String> pemfilename = Optional.ofNullable(testConfig.getJadePemFileName());
+        pemfilename.ifPresent(s -> pemfile = new File(s));
         saEmail = testConfig.getJadeEmail();
         httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
@@ -60,6 +60,9 @@ public class AuthService {
 
     private GoogleCredential buildCredential(String email, List<String> scopes)
             throws IOException, GeneralSecurityException {
+        if (!Optional.ofNullable(pemfile).isPresent()) {
+            throw new IllegalStateException(String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
+        }
         return new GoogleCredential.Builder()
             .setTransport(httpTransport)
             .setJsonFactory(jsonFactory)

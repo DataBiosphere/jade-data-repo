@@ -2,7 +2,6 @@ package bio.terra.integration.auth;
 
 import bio.terra.integration.configuration.TestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -12,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 @Component
-@Profile("integrationtest")
 public class Users {
 
 

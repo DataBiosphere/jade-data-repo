@@ -26,7 +26,6 @@ import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -56,7 +55,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Common code for creating and deleting datasets and snapshots via MockMvc
 // and tracking what is created so it can be deleted.
 @Component
-@Profile("connectedtest")
 public class ConnectedOperations {
     private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
 

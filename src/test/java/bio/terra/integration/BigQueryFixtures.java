@@ -23,7 +23,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public final class BigQueryFixtures {
-    private static final int SAM_TIMEOUT_SECONDS = 300;
+    private static final int SAM_TIMEOUT_SECONDS = 400;
 
     private BigQueryFixtures() {
     }

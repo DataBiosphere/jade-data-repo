@@ -33,18 +33,21 @@ public class LoggerInterceptor extends HandlerInterceptorAdapter {
         Exception ex
     ) throws Exception {
         AuthenticatedUserRequest userReq = authenticatedUserRequestFactory.from(request);
-        final String userId = userReq.getSubjectId();
-        final String userEmail = userReq.getEmail();
-        final String institute = userEmail.substring(userEmail.indexOf("@") + 1);
-        final String url = request.getRequestURL().toString();
-        final String method = request.getMethod();
-        final Map<String, String[]> paramMap = request.getParameterMap();
-        final Gson gson = new Gson();
-        final String paramString = gson.toJson(paramMap);
-        final String responseStatus = Integer.toString(response.getStatus());
+        String userId = userReq.getSubjectId();
+        String userEmail = userReq.getEmail();
+        String institute = userEmail != null ? userEmail.substring(userEmail.indexOf("@") + 1) : null;
+        String url = request.getRequestURL().toString();
+        String method = request.getMethod();
+        Map<String, String[]> paramMap = request.getParameterMap();
+        Gson gson = new Gson();
+        String paramString = gson.toJson(paramMap);
+        String responseStatus = Integer.toString(response.getStatus());
 
-        logger.info("userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}",
-            userId, userEmail, institute, url, method, paramString, responseStatus);
+        // skip logging the status endpoint
+        if (!url.endsWith("/status")) {
+            logger.info("userId: {}, email: {}, institute: {}, url: {}, method: {}, params: {}, status: {}",
+                userId, userEmail, institute, url, method, paramString, responseStatus);
+        }
 
         if (ex != null) {
             logger.error("An error occurred processing this request: ", ex);

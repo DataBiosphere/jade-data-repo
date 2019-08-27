@@ -46,10 +46,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.math.BigInteger;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -73,7 +72,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         this.dataLocationService = dataLocationService;
     }
 
-    private BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
+    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
         DatasetDataProject projectForDataset = dataLocationService.getProjectForDataset(dataset);
         return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
@@ -577,6 +576,39 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
+    public  Set<String> getRowIds(Dataset dataset, String tableName, String projectId, BigQueryProject bigQueryProject) {
+        String softDeleteTableName = prefixSoftDeletesTableName(tableName);
+        String table = projectId + "." + prefixName(dataset.getName()) + "." + tableName;
+        String soft_deletes_table = projectId + "." + prefixName(dataset.getName()) + "." + softDeleteTableName;
+        StringBuilder builder = new StringBuilder();
+        builder.append("With not_soft_deleted as ((SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(table)
+            .append("`) EXCEPT DISTINCT ( SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(soft_deletes_table)
+            .append("` )) SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM not_soft_deleted LEFT JOIN `")
+            .append(table)
+            .append("` USING (")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(")");
+
+        String sql = builder.toString();
+        TableResult result = bigQueryProject.query(sql);
+
+        Set<String> rowIds = new HashSet<>();
+        for (FieldValueList row : result.iterateAll()) {
+            String rowId = row.get(0).getStringValue();
+            rowIds.add(rowId);
+        }
+
+        return rowIds;
+    }
+
     private String prefixName(String name) {
         return PDAO_PREFIX + name;
     }
@@ -1068,42 +1100,34 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return null;
     }
 
-    public void softDeleteRows(List<String> softDeleteRowIds,
-                                String tableName,
-                                Dataset datarepoDataset,
-                                BigQuery bigQuery) {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(datarepoDataset);
-        String projectId = bigQueryProject.getProjectId();
-        String softDeletesTableName = projectId + "." + datarepoDataset +  "." + prefixSoftDeletesTableName(tableName);
+    public void softDeleteRows(Dataset dataset,
+                               String tableName,
+                                String projectId,
+                                Set<String> softDeleteRowIds) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String softDeletesTableName = prefixSoftDeletesTableName(tableName);
 
         // TODO: Validate rowIDs exist in given table
-        String rowIdValues = String.join(",", softDeleteRowIds);
+        StringBuilder rowIdValues = new StringBuilder();
+        String prefix = "";
+        for(String rowId : softDeleteRowIds) {
+            rowIdValues.append(prefix).append("('").append(rowId).append("')");
+            prefix = ",";
+        }
 
         StringBuilder builder = new StringBuilder();
         builder.append("INSERT INTO `")
-            .append(projectId)
-            .append(".")
-            .append(datarepoDataset)
+            .append(projectId).append(".")
+            .append(prefixName(dataset.getName()))
             .append(".")
             .append(softDeletesTableName)
             .append("` (")
             .append(PDAO_ROW_ID_COLUMN)
-            .append(") VALUES (")
-            .append(rowIdValues)
-            .append(")");
+            .append(") VALUES ")
+            .append(rowIdValues.toString());
 
         String sql = builder.toString();
-        try {
-            QueryJobConfiguration queryConfig =
-                QueryJobConfiguration.newBuilder(sql)
-                    .setDestinationTable(TableId.of(datarepoDataset.getName(), prefixSoftDeletesTableName(tableName)))
-                    .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
-                    .build();
-
-            bigQuery.query(queryConfig);
-        } catch (InterruptedException ie) {
-            throw new PdaoException("Append query unexpectedly interrupted", ie);
-        }
+        bigQueryProject.query(sql);
     }
 
     // TODO: Make an enum for the datatypes in swagger
@@ -1129,5 +1153,4 @@ public class BigQueryPdao implements PrimaryDataAccess {
             default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
     }
-
 }

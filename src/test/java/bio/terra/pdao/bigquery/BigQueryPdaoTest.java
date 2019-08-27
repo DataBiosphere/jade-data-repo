@@ -14,10 +14,14 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
+import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
+import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -37,6 +41,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -56,6 +61,7 @@ public class BigQueryPdaoTest {
     @Autowired private DatasetDao datasetDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private DatasetService datasetService;
 
     @MockBean
     private SamClientService samService;
@@ -79,7 +85,7 @@ public class BigQueryPdaoTest {
             .name(datasetName());
         dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
         UUID datasetId = datasetDao.create(dataset);
-        dataset.id(datasetId);
+        dataset = datasetService.retrieve(datasetId);
         logger.info("Created dataset in setup: {}", datasetId);
     }
 
@@ -193,11 +199,24 @@ public class BigQueryPdaoTest {
             connectedOperations.ingestTableFailure(datasetId,
                 ingestRequest.table("sample").path(gsPath(nullPkBlob)));
 
+            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+            BigQuery bigQuery = bigQueryProject.getBigQuery();
+            String tableName = "participant";
+            Set<String> rowIds = bigQueryPdao.getRowIds(dataset,
+                tableName,
+                dataset.getDataProjectId(),
+                bigQueryProject);
+            int numOfRowsWithSoftDeletes = rowIds.size();
+            int numOfRowsSoftDeleted = 2;
+            Set<String> rowsToSoftDelete = ImmutableSet.copyOf(Iterables.limit(rowIds, numOfRowsSoftDeleted));
+            bigQueryPdao.softDeleteRows(dataset, tableName, dataset.getDataProjectId(), rowsToSoftDelete);
+
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
             MockHttpServletResponse snapshotResponse =
-                connectedOperations.launchCreateSnapshot(datasetSummaryModel, "ingest-test-snapshot.json", "");
+                connectedOperations.launchCreateSnapshot(datasetSummaryModel,
+                    "ingest-test-snapshot.json", "");
             SnapshotSummaryModel snapshotSummary =
                 connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
@@ -206,10 +225,12 @@ public class BigQueryPdaoTest {
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
 
-            //TODO: get a row id and add it to the soft deletes table
-
-            //TODO: assert that the row id added to the soft deletes table does not appear in
-
+            // Assert that the given rows are soft deleted
+            rowIds = bigQueryPdao.getRowIds(dataset,
+                tableName,
+                dataset.getDataProjectId(),
+                bigQueryProject);
+            Assert.assertThat(numOfRowsWithSoftDeletes - numOfRowsSoftDeleted, is(equalTo(rowIds.size())));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());

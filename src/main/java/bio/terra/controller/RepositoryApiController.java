@@ -70,6 +70,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final IngestRequestValidator ingestRequestValidator;
     private final FileService fileService;
     private final PolicyMemberValidator policyMemberValidator;
+    private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -87,7 +88,8 @@ public class RepositoryApiController implements RepositoryApi {
             IngestRequestValidator ingestRequestValidator,
             ApplicationConfiguration appConfig,
             FileService fileService,
-            PolicyMemberValidator policyMemberValidator
+            PolicyMemberValidator policyMemberValidator,
+            AuthenticatedUserRequestFactory authenticatedUserRequestFactory
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -101,6 +103,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.appConfig = appConfig;
         this.fileService = fileService;
         this.policyMemberValidator = policyMemberValidator;
+        this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     }
 
     @InitBinder
@@ -122,7 +125,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     private AuthenticatedUserRequest getAuthenticatedInfo() {
-        return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
+        return authenticatedUserRequestFactory.from(request);
     }
 
     // -- dataset --

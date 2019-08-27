@@ -29,7 +29,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -38,7 +37,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @Component
-@Profile("integrationtest")
 public class DataRepoFixtures {
 
     @Autowired
@@ -137,7 +135,7 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        SamClientService.ResourceType resourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.getHttpPathString() + "/" +
+        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(resourceType) + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }

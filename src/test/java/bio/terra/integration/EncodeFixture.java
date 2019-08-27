@@ -21,7 +21,6 @@ import com.google.cloud.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -31,7 +30,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.util.UUID;
 
-@Profile("integrationtest")
 @ActiveProfiles({"google", "integrationtest"})
 @Component
 public class EncodeFixture {

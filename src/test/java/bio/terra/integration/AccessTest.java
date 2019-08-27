@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
@@ -36,6 +37,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -46,6 +48,7 @@ import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class AccessTest extends UsersBase {
@@ -138,7 +141,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest().email(reader().getEmail()).token(readerToken);
+            new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,
@@ -202,7 +205,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest().email(reader().getEmail()).token(readerToken);
+            new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,

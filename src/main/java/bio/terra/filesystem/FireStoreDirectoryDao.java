@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -75,6 +76,8 @@ public class FireStoreDirectoryDao {
         this.dependencyDao = dependencyDao;
     }
 
+    // Note that this does not test for duplicates. If invoked on an existing path it will overwrite
+    // the object. Existence checking is handled at upper layers.
     public void createFileRef(Firestore firestore, String collectionId, FireStoreObject createObject) {
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
             List<FireStoreObject> createList = new ArrayList<>();
@@ -176,8 +179,9 @@ public class FireStoreDirectoryDao {
 
     // Returns null if not found - upper layers do any throwing
     public FireStoreObject retrieveByPath(Firestore firestore, String collectionId, String fullPath) {
+        String lookupPath = makeLookupPath(fullPath);
         ApiFuture<FireStoreObject> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByObjectPath(firestore, collectionId, fullPath, xn);
+            DocumentSnapshot docSnap = lookupByObjectPath(firestore, collectionId, lookupPath, xn);
             if (docSnap == null) {
                 return null;
             }
@@ -187,7 +191,7 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.transactionGet("retrieveByPath", transaction);
     }
 
-    public List<String> validateRefIds(Firestore firestore, String collectionId, List<String> refIdArray) {
+    public List<String> validateRefIds(Firestore firestore, String collectionId, Collection<String> refIdArray) {
         List<String> missingIds = new ArrayList<>();
         for (String objectId : refIdArray) {
             if (retrieveById(firestore, collectionId, objectId) == null) {

@@ -9,6 +9,7 @@ import com.google.cloud.firestore.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -23,6 +24,7 @@ import java.util.function.Consumer;
  *
  * Each write operation is performed in a FireStore transaction.
  */
+@Component
 class FireStoreFileDao {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreFileDao");
 

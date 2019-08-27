@@ -1,47 +1,12 @@
 package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
-import bio.terra.filesystem.exception.FileSystemCorruptException;
-import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
-import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
-import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
-import bio.terra.fixtures.ConnectedOperations;
-import bio.terra.fixtures.Names;
-import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.Dataset;
-import bio.terra.model.BillingProfileModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
-import bio.terra.service.SamClientService;
-import bio.terra.service.DatasetService;
-import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import java.time.Instant;
-import java.util.UUID;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -49,6 +14,7 @@ import static org.junit.Assert.fail;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FileDaoTest {
+/*
     private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FileDaoTest");
 
     private static final String mimeType = "application/octet-string";
@@ -106,6 +72,7 @@ public class FileDaoTest {
         dataset = datasetService.retrieve(datasetId);
         connectedOperations.stubOutSamCalls(samService);
     }
+
     @Test
     public void pathMiscTest() throws Exception {
         String result = fileDao.getDirectoryPath("/foo/bar/fribble");
@@ -472,5 +439,7 @@ public class FileDaoTest {
             .size(42L)
             .flightId(flightId);
     }
+
+ */
 
 }

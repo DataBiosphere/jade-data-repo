@@ -19,13 +19,12 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class FireStoreObject {
     // common fields for dirs and filerefs
     private String objectId;
-    private boolean isFileRef; // false means it is a directory
+    private boolean fileRef; // true means it is a file reference; false means it is a directory
     private String path; // path to the object
     private String name; // name of the object
 
     // fileref-only fields
     private String datasetId;
-    private String flightId;
 
     // directory-only fields
     private String fileCreatedDate;
@@ -47,12 +46,12 @@ public class FireStoreObject {
         return this;
     }
 
-    public boolean isFileRef() {
-        return isFileRef;
+    public boolean getFileRef() {
+        return fileRef;
     }
 
     public FireStoreObject fileRef(boolean fileRef) {
-        isFileRef = fileRef;
+        this.fileRef = fileRef;
         return this;
     }
 
@@ -80,15 +79,6 @@ public class FireStoreObject {
 
     public FireStoreObject datasetId(String datasetId) {
         this.datasetId = datasetId;
-        return this;
-    }
-
-    public String getFlightId() {
-        return flightId;
-    }
-
-    public FireStoreObject flightId(String flightId) {
-        this.flightId = flightId;
         return this;
     }
 
@@ -135,7 +125,6 @@ public class FireStoreObject {
             .append("path", path)
             .append("name", name)
             .append("datasetId", datasetId)
-            .append("flightId", flightId)
             .append("fileCreatedDate", fileCreatedDate)
             .append("checksumCrc32c", checksumCrc32c)
             .append("checksumMd5", checksumMd5)

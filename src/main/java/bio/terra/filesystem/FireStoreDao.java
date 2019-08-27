@@ -151,7 +151,7 @@ public class FireStoreDao {
             return handleNotFound(throwOnNotFound, context);
         }
 
-        if (fireStoreObject.isFileRef()) {
+        if (fireStoreObject.getFileRef()) {
             FSObjectBase fsFile = makeFSFile(firestore, datasetId, fireStoreObject);
             if (fsFile == null) {
                 // We found a file in the directory that is not done being created. We treat this
@@ -174,7 +174,7 @@ public class FireStoreDao {
                                    String datasetId,
                                    int level,
                                    FireStoreObject fireStoreObject) {
-        if (fireStoreObject.isFileRef()) {
+        if (fireStoreObject.getFileRef()) {
             throw new IllegalStateException("Expected directory; got file!");
         }
 
@@ -197,7 +197,7 @@ public class FireStoreDao {
             List<FireStoreObject> dirContents =
                 directoryDao.enumerateDirectory(firestore, datasetId, fireStoreObject.getPath());
             for (FireStoreObject fso : dirContents) {
-                if (fso.isFileRef()) {
+                if (fso.getFileRef()) {
                     fsContents.add(makeFSFile(firestore, datasetId, fso));
                 } else {
                     fsContents.add(makeFSDir(firestore, datasetId, level - 1, fso));
@@ -215,7 +215,7 @@ public class FireStoreDao {
     private FSObjectBase makeFSFile(Firestore firestore,
                                     String datasetId,
                                     FireStoreObject fireStoreObject) {
-        if (!fireStoreObject.isFileRef()) {
+        if (!fireStoreObject.getFileRef()) {
             throw new IllegalStateException("Expected file; got directory!");
         }
 

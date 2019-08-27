@@ -8,7 +8,6 @@ spec:
   podSelector:
     matchLabels:
       service: oidc
-      environment: integration
       project: datarepo
   egress:
   - {}

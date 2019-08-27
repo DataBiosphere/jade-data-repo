@@ -30,6 +30,8 @@ WD=$( dirname "${BASH_SOURCE[0]}" )
 NOW=$(date +%Y-%m-%d_%H-%M-%S)
 DATA_REPO_TAG="${GOOGLE_CLOUD_PROJECT}_${NOW}"
 SCRATCH=/tmp/deploy-scratch
+FROM=yaml.ctmpl
+TO=yaml
 
 # Install jq
 command -v jq >/dev/null 2>&1 || {
@@ -77,29 +79,22 @@ mkdir -p $SCRATCH
 
 #"yaml" is alway assume vs "yml"
 #render configs to apply dir
-find ${WD}/ops -name "*.ctmpl" -type f -exec sh -c 'consul-template -once -log-level=err -template="$4":$3/"${4%.$1}.$2"' sh "$FROM" "$TO" "$SCRATCH" {} ';'
+find ${WD} -name "*.ctmpl" -type f -exec sh -c 'consul-template -once -log-level=err -template="$4":$3/"${4%.$1}.$2"' sh "$FROM" "$TO" "$SCRATCH" {} ';'
+find ${WD} -name "*.yaml" -type f -exec sh -c 'consul-template -once -log-level=err -template="$2":$1/"$2"' sh "$SCRATCH" {} ';'
 
-#copy yamls to apply dir
-find ${WD}/ops -type f -name "*.yaml" -exec sh -c 'cp "$3" "$2/$(dirname "$3")"' sh "$FROM" "$SCRATCH" {} ';'
+kubectl get namespace "${KUBE_NAMESPACE}" 2>/dev/null && kubectl delete namespace "${KUBE_NAMESPACE}"
 
-kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-repo
+# create a namespace to put everything in
+kubectl create namespace "${KUBE_NAMESPACE}"
 
-# create a data-repo namespace to put everything in
-kubectl apply -f "${WD}/k8s/namespace.yaml"
-
-# put site.conf in the configMap
-kubectl create -f "${WD}/k8s/secrets/odic-config.yaml" --namespace data-repo
-
-#render and put stackdriver.yaml in configMap
-consul-template -template "${WD}/k8s/secrets/grafana-config.yaml.ctmpl:${SCRATCH}/grafana-config.yaml" -once
-kubectl create -f ${SCRATCH}/grafana-config.yaml --namespace data-repo
+# put in the configMap
+kubectl create -f "${SCRATCH}/ops/k8s/configs/apply" --namespace="${KUBE_NAMESPACE}"
 
 # create service account and pod security policy
-kubectl apply --namespace="${KUBE_NAMESPACE}" -f "${WD}/k8s/psp"
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/psp"
 
 # render secrets, create or update on kubernetes
-consul-template -template "${WD}/k8s/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
-kubectl apply -f "${SCRATCH}/api-secrets.yaml"
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/configs"
 
 # TODO: use kubectl waits instead of sleeps
 echo 'waiting 5 sec for secrets to be ready'
@@ -107,15 +102,14 @@ sleep 5
 
 # update the service account key
 vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
-kubectl --namespace data-repo create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
+kubectl --namespace="${KUBE_NAMESPACE}" create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
 
 # update the sql proxy service account key
-vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa-${SUFFIX}.json " -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
-kubectl --namespace data-repo create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
+vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa-${SUFFIX}.json" -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
+kubectl --namespace="${KUBE_NAMESPACE}" create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
 
 
 # set the tls certificate
-#vault read -field=value secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt > "${SCRATCH}/tls.crt"
 server_crt=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt | jq -r .data.value | tr -d '\r')
 # TODO: For each env, move intermediate crt from secret/dsp/certs/wildcard.dsde-<env>.broadinstitute.org/<expiration>/server.intermediate.crt secret/dsde/firecloud/${ENVIRONMENT}/common/server.intermediate.crt so that you  don't have to guess the date (20200608) to get it for any environment
 server_intermediate=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.intermediate.crt | jq -r .data.value | tr -d '\r')
@@ -130,31 +124,18 @@ kubectl --namespace="${KUBE_NAMESPACE}" create secret generic wildcard.datarepo.
 
 rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
 
-# create pods + services
-kubectl apply -f "${WD}/k8s/services"
+# create services
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/services"
 
-# render environment-specific oidc deployment and ingress configs then create them
-consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
-consul-template -template "${WD}/k8s/deployments/cloudsql-proxy.yaml.ctmpl:${SCRATCH}/cloudsql-proxy.yaml" -once
-consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/cloudsql-proxy.yaml"
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/oidc-ingress.yaml"
-
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/prometheus.yaml" --as=admin --as-group=system:masters
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/node-exporter.yaml" --as=admin --as-group=system:masters
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/kube-state-metrics.yaml"
-
-
-# create deployments
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/"
+# create Deployments
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/deployments"
 
 # build a docker container and push it to gcr
 pushd ${WD}/..
 GCR_TAG=$DATA_REPO_TAG ./gradlew jib
 popd
 
-kubectl --namespace data-repo set image deployments/api-deployment \
+kubectl --namespace="${KUBE_NAMESPACE}" set image deployments/api-deployment \
     "data-repo-api-container=gcr.io/broad-jade-dev/jade-data-repo:${DATA_REPO_TAG}"
 
 # try to deploy the ui, assuming that the jade-data-repo-ui directory is a sibling of this jade-data-repo directory

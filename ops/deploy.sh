@@ -75,6 +75,13 @@ fi
 # make a temporary directory for rendering, we'll delete it later
 mkdir -p $SCRATCH
 
+#"yaml" is alway assume vs "yml"
+#render configs to apply dir
+find ${WD}/ops -name "*.ctmpl" -type f -exec sh -c 'consul-template -once -log-level=err -template="$4":$3/"${4%.$1}.$2"' sh "$FROM" "$TO" "$SCRATCH" {} ';'
+
+#copy yamls to apply dir
+find ${WD}/ops -type f -name "*.yaml" -exec sh -c 'cp "$3" "$2/$(dirname "$3")"' sh "$FROM" "$SCRATCH" {} ';'
+
 kubectl get namespace data-repo 2>/dev/null && kubectl delete namespace data-repo
 
 # create a data-repo namespace to put everything in

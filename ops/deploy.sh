@@ -14,9 +14,6 @@ set -e
 : ${ENVIRONMENT:?}
 : ${SUFFIX:?}
 
-export SIDECAR_IMAGE_TAG=${SIDECAR_IMAGE_TAG:-'0.4.3'}
-export KUBE_NAMESPACE=${KUBE_NAMESPACE:-'data-repo'}
-
 if [ -z "$VAULT_TOKEN" ]; then
     if [ ! -f ~/.vault-token ]; then
         echo "VAULT_TOKEN needs to be set or ~/.vault-token needs to exist"
@@ -26,6 +23,8 @@ if [ -z "$VAULT_TOKEN" ]; then
 fi
 
 # the paths we'll use will be relative to this script
+SIDECAR_IMAGE_TAG=${SIDECAR_IMAGE_TAG:-'0.4.3'}
+KUBE_NAMESPACE=${KUBE_NAMESPACE:-'data-repo'}
 WD=$( dirname "${BASH_SOURCE[0]}" )
 NOW=$(date +%Y-%m-%d_%H-%M-%S)
 DATA_REPO_TAG="${GOOGLE_CLOUD_PROJECT}_${NOW}"

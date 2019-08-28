@@ -80,14 +80,11 @@ kubectl get namespace "${KUBE_NAMESPACE}" 2>/dev/null && kubectl delete namespac
 # create a namespace to put everything in
 kubectl create namespace "${KUBE_NAMESPACE}"
 
-# put in the configMap
-kubectl create -f "${SCRATCH}/ops/k8s/configs/apply" --namespace="${KUBE_NAMESPACE}"
+# render secrets, create or update on kubernetes
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/configs"
 
 # create service account and pod security policy
 kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/psp"
-
-# render secrets, create or update on kubernetes
-kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/configs"
 
 # TODO: use kubectl waits instead of sleeps
 echo 'waiting 5 sec for secrets to be ready'

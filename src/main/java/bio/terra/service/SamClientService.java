@@ -166,6 +166,7 @@ public class SamClientService {
                 action.toString());
             logger.info("authorized is " + authorized);
         } catch (ApiException ex) {
+            logger.warn("userReq token: {}", userReq.getToken());
             throw new InternalServerErrorException(ex);
         }
         return authorized;
@@ -176,9 +177,8 @@ public class SamClientService {
         SamClientService.ResourceType resourceType,
         String resourceId,
         SamClientService.DataRepoAction action) {
-        final String userEmail = userReq.getEmail();
-        final String institute = userEmail.substring(userEmail.indexOf("@") + 1);
-        logger.info("email: {}, action: {}, institute: {}", userEmail, action, institute);
+        String userEmail = userReq.getEmail();
+        logger.info("email: {}, action: {}", userEmail, action);
         if (!isAuthorized(userReq, resourceType, resourceId, action)) {
             throw new UnauthorizedException("User does not have required action: " + action);
         }

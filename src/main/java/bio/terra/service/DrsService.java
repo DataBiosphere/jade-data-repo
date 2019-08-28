@@ -205,7 +205,7 @@ public class DrsService {
     }
 
     private List<String> makeAuthHeader(AuthenticatedUserRequest authUser) {
-        String hdr = String.format("Authorization: Bearer %s", authUser.getToken());
+        String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());
         return Collections.singletonList(hdr);
     }
 

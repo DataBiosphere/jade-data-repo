@@ -87,6 +87,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     @ExceptionHandler
     public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        logger.error("Uncaught exception", ex);
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

@@ -7,7 +7,6 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: cloudsql-proxy
-  namespace: data-repo
 spec:
   replicas: 1
   template:

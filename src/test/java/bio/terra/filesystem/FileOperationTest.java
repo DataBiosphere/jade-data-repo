@@ -189,14 +189,12 @@ public class FileOperationTest {
             null);
         String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
 
-        FileLoadModel fileLoadModel = new FileLoadModel()
+        return new FileLoadModel()
             .sourcePath(uri.toString())
             .description(testDescription)
             .mimeType(testMimeType)
             .targetPath(targetPath)
             .profileId(profileId);
-
-        return fileLoadModel;
     }
 
 }

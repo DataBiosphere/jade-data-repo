@@ -40,7 +40,7 @@ public class IngestFileDirectoryStep implements Step {
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FireStoreObject existingObject = fileDao.retrieveDirectoryEntryByPath(dataset, targetPath);
+        FireStoreObject existingObject = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
         if (existingObject == null) {
             // Not there - create it
             FireStoreObject newObject = new FireStoreObject()
@@ -52,7 +52,7 @@ public class IngestFileDirectoryStep implements Step {
             fileDao.createDirectoryEntry(dataset, newObject);
         } else {
             if (!StringUtils.equals(existingObject.getObjectId(), objectId)) {
-                // Exists, but is not what we are trying to create
+                // Exists, but is not our object!
                 throw new FileSystemObjectAlreadyExistsException("Path already exists: " + targetPath);
             }
         }

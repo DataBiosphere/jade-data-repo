@@ -153,19 +153,23 @@ public class GcsPdao {
         }
     }
 
-    public boolean deleteFile(String inGspath, GoogleBucketResource bucketResource) {
-        GcsProject gcsProject = gcsProjectFactory.get(bucketResource.getProjectResource().getGoogleProjectId());
-        Storage storage = gcsProject.getStorage();
+    // Three flavors of deleteFile
+    // 1. for undo file ingest - it gets the bucket path from the dataset and object id
+    // 2. for delete file flight - it gets bucket path from the gspath
+    // 3. for delete file consumer for deleting all files - it gets bucket path
+    //    from gspath within the fireStoreFile object
+    public boolean deleteFileById(Dataset dataset,
+                                  String objectId,
+                                  GoogleBucketResource bucketResource) {
+        String bucketPath = dataset.getId().toString() + "/" + objectId;
+        return deleteWorker(bucketResource, bucketPath);
+    }
 
-        // It's possible that the file didn't get written to a bucket, meaning gspath will be null.
-        Optional<String> gspath = Optional.ofNullable(inGspath);
-        if (gspath.isPresent()) {
-            URI uri = URI.create(gspath.get());
+    public boolean deleteFileByGspath(String inGspath, GoogleBucketResource bucketResource) {
+        if (inGspath != null) {
+            URI uri = URI.create(inGspath);
             String bucketPath = StringUtils.removeStart(uri.getPath(), "/");
-            Optional<Blob> blob = Optional.ofNullable(storage.get(BlobId.of(bucketResource.getName(), bucketPath)));
-            if (blob.isPresent()) {
-                return blob.get().delete();
-            }
+            return deleteWorker(bucketResource, bucketPath);
         }
         return false;
     }
@@ -175,8 +179,18 @@ public class GcsPdao {
         if (fireStoreFile != null) {
             GoogleBucketResource bucketResource =
                 dataLocationService.getBucketForFile(fireStoreFile.getProfileId(), fireStoreFile.getBucketResourceId());
-            deleteFile(fireStoreFile.getGspath(), bucketResource);
+            deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
+    }
+
+    private boolean deleteWorker(GoogleBucketResource bucketResource, String bucketPath) {
+        GcsProject gcsProject = gcsProjectFactory.get(bucketResource.getProjectResource().getGoogleProjectId());
+        Storage storage = gcsProject.getStorage();
+        Optional<Blob> blob = Optional.ofNullable(storage.get(BlobId.of(bucketResource.getName(), bucketPath)));
+        if (blob.isPresent()) {
+            return blob.get().delete();
+        }
+        return false;
     }
 
     private enum AclOp {

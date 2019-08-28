@@ -25,7 +25,7 @@ public class FileIngestFlight extends Flight {
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
-        FireStoreUtils fireStoreUtils = (FireStoreUtils)appContext.getBean("fireStorUtils");
+        FireStoreUtils fireStoreUtils = (FireStoreUtils)appContext.getBean("fireStoreUtils");
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");

@@ -59,10 +59,6 @@ public class FireStoreDao {
         return directoryDao.deleteFileRef(firestore, datasetId, objectId);
     }
 
-    public FireStoreObject retrieveDirectoryEntryByPath(Dataset dataset, String path) {
-        return null;
-    }
-
     public void createFileObject(Dataset dataset, FireStoreFile newFile) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
@@ -87,11 +83,18 @@ public class FireStoreDao {
         return directoryDao.retrieveById(firestore, datasetId, objectId);
     }
 
+    public FireStoreObject lookupDirectoryEntryByPath(Dataset dataset, String path) {
+        Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
+        String datasetId = dataset.getId().toString();
+        return directoryDao.retrieveByPath(firestore, datasetId, path);
+    }
+
     public FireStoreFile lookupFile(Dataset dataset, String objectId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
     }
+
 
     /**
      * Retrieve an FS Object by path
@@ -158,6 +161,7 @@ public class FireStoreDao {
                 // as not found.
                 return handleNotFound(throwOnNotFound, context);
             }
+            return fsFile;
         }
         return makeFSDir(firestore, datasetId, enumerateDepth, fireStoreObject);
     }

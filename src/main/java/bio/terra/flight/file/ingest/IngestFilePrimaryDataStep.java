@@ -46,10 +46,11 @@ public class IngestFilePrimaryDataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
+        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
         GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
-        gcsPdao.deleteFile(fsFileInfo.getGspath(), bucketResource);
+        gcsPdao.deleteFileById(dataset, objectId, bucketResource);
+
         return StepResult.getStepResultSuccess();
     }
 

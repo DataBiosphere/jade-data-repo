@@ -75,7 +75,7 @@ public class FileService {
 
     FSObjectBase lookupFSObjectByPath(String datasetId, String path, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        return fileDao.retrieveById(dataset, path, depth, true);
+        return fileDao.retrieveByPath(dataset, path, depth, true);
     }
 
     public FSObjectModel fileModelFromFSObject(FSObjectBase fsObject) {

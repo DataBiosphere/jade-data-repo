@@ -2,6 +2,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: kube-state-metrics
+  namespace: "{{env "KUBE_NAMESPACE"}}"
 rules:
   - apiGroups:
       - ""
@@ -69,6 +70,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: kube-state-metrics
+  namespace: "{{env "KUBE_NAMESPACE"}}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -76,11 +78,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kube-state-metrics
+    namespace: "{{env "KUBE_NAMESPACE"}}"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: kube-state-metrics
+  namespace: "{{env "KUBE_NAMESPACE"}}"
 rules:
   - apiGroups: ['policy']
     resources: ['podsecuritypolicies']
@@ -107,6 +111,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: kube-state-metrics
+  namespace: "{{env "KUBE_NAMESPACE"}}"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
@@ -114,11 +119,13 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: kube-state-metrics
+    namespace: "{{env "KUBE_NAMESPACE"}}"
 ---
 apiVersion: policy/v1beta1
 kind: PodSecurityPolicy
 metadata:
   name: pod-running-policy
+  namespace: "{{env "KUBE_NAMESPACE"}}"
   labels:
     name: dev
 spec:

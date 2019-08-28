@@ -40,4 +40,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: prometheus
+    namespace: "{{env "KUBE_NAMESPACE"}}"
 ---

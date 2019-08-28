@@ -111,6 +111,10 @@ public class DirectoryDaoTest {
         fileObjects.add(makeFileObject("/adir/bdir/B2"));
         fileObjects.add(makeFileObject("/adir/A2"));
 
+        for (FireStoreObject fireStoreObject : fileObjects) {
+            directoryDao.createFileRef(firestore, collectionId, fireStoreObject);
+        }
+
         // Test all valid file references
         List<String> fileRefs = fileObjects
             .stream()
@@ -138,7 +142,7 @@ public class DirectoryDaoTest {
         List<String> expectedNames = Arrays.asList("A1", "A2", "bdir");
         List<String> enumNames = enumList
             .stream()
-            .map(fireStoreObject -> fireStoreObject.getObjectId())
+            .map(fireStoreObject -> fireStoreObject.getName())
             .collect(Collectors.toList());
 
         StringListCompare enumCompare = new StringListCompare(expectedNames, enumNames);
@@ -148,7 +152,7 @@ public class DirectoryDaoTest {
         // list to make sure that "delete everything" really deletes everything.
         fileRefs.add(retrieveDirectoryObjectId("/adir"));
         fileRefs.add(retrieveDirectoryObjectId("/adir/bdir"));
-        fileRefs.add(retrieveDirectoryObjectId("/adir/cdir"));
+        fileRefs.add(retrieveDirectoryObjectId("/adir/bdir/cdir"));
 
         directoryDao.deleteDirectoryEntriesFromDataset(firestore, collectionId);
 

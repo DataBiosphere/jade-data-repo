@@ -64,7 +64,7 @@ class FireStoreFileDao {
     FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(firestore, datasetId, fileObjectId, xn);
+            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileObjectId, xn);
             if (docSnap == null || !docSnap.exists()) {
                 return null;
             }

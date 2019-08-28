@@ -35,8 +35,8 @@ import static org.junit.Assert.assertTrue;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-public class DirectoryDaoTest {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.DirectoryDaoTest");
+public class FireStoreDirectoryDaoTest {
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreDirectoryDaoTest");
 
     @Autowired
     private FireStoreDirectoryDao directoryDao;

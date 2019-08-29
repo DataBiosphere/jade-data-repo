@@ -11,6 +11,7 @@ import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,9 +47,6 @@ public class FileTest extends UsersBase {
 
     @Autowired
     private TestConfiguration testConfiguration;
-
-    @Autowired
-    private Storage storage;
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
@@ -93,6 +91,7 @@ public class FileTest extends UsersBase {
             .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
             .build();
 
+        Storage storage = StorageOptions.getDefaultInstance().getService();
         try (WriteChannel writer = storage.writer(targetBlobInfo)) {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }

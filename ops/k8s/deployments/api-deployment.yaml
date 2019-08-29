@@ -1,4 +1,4 @@
-apiVersion: apps/v1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
   name: api-deployment
@@ -30,9 +30,12 @@ spec:
                 key: datarepo-password
         command: ["/bin/sh" , "-c", "psql -h cloudsql-proxy-service.data-repo -U drmanager -d datarepo -c \"CREATE EXTENSION IF NOT EXISTS pgcrypto;\""]
       volumes:
-      - name: google-cloud-key
-        secret:
-          secretName: sa-key
+        - name: google-cloud-key
+          secret:
+            secretName: sa-key
+            items:
+              - key: credential-file-json
+                path: sa-key.json
       containers:
       - name: data-repo-api-container
         image: gcr.io/broad-jade-dev/jade-data-repo:latest
@@ -40,7 +43,7 @@ spec:
           httpGet:
             path: /status
             port: 8080
-          initialDelaySeconds: 10
+          initialDelaySeconds: 15
           periodSeconds: 10
           timeoutSeconds: 3
           failureThreshold: 2
@@ -54,7 +57,7 @@ spec:
           failureThreshold: 2
         volumeMounts:
         - name: google-cloud-key
-          mountPath: /var/secrets/google
+          mountPath: /var/secrets/google/
         ports:
         - containerPort: 8080
         - containerPort: 5005

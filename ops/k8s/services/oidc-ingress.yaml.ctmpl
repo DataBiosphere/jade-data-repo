@@ -1,0 +1,31 @@
+{{with $secretPrefix := printf "secret/dsde/datarepo/%s/common" (env "ENVIRONMENT")}}
+{{with $serverKey := secret (printf "%s/server.key" $secretPrefix)}}
+{{with $serverCrt := secret (printf "%s/server.crt" $secretPrefix)}}
+{{with $intermediateCrt := secret (printf "%s/server.intermediate.crt" $secretPrefix)}}
+kind: Secret
+apiVersion: v1
+metadata:
+    name: wildcard.datarepo.broadinstitute.org
+type: Opaque
+data:
+    tls.key: {{$serverKey.Data.value | base64Encode}}
+    tls.crt: {{(printf "%s\n%s" $serverCrt.Data.value $intermediateCrt.Data.value) | base64Encode}}
+{{end}}{{end}}{{end}}{{end}}
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: oidc-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  tls:
+  - secretName: wildcard.datarepo.broadinstitute.org
+  rules:
+  - http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: oidc-proxy-service
+          servicePort: http

@@ -90,29 +90,6 @@ kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/psp"
 echo 'waiting 5 sec for secrets to be ready'
 sleep 5
 
-# update the service account key
-vault read "secret/dsde/datarepo/${ENVIRONMENT}/sa-key.json" -format=json | jq .data > "${SCRATCH}/sa-key.json"
-kubectl --namespace="${KUBE_NAMESPACE}" create secret generic sa-key --from-file="sa-key.json=${SCRATCH}/sa-key.json"
-
-# update the sql proxy service account key
-vault read "secret/dsde/datarepo/${ENVIRONMENT}/proxy-sa-${SUFFIX}.json" -format=json | jq .data > "${SCRATCH}/proxy-sa.json"
-kubectl --namespace="${KUBE_NAMESPACE}" create secret generic sql-proxy-sa --from-file="proxy-sa.json=${SCRATCH}/proxy-sa.json"
-
-# set the tls certificate
-server_crt=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.crt | jq -r .data.value | tr -d '\r')
-# TODO: For each env, move intermediate crt from secret/dsp/certs/wildcard.dsde-<env>.broadinstitute.org/<expiration>/server.intermediate.crt secret/dsde/firecloud/${ENVIRONMENT}/common/server.intermediate.crt so that you  don't have to guess the date (20200608) to get it for any environment
-server_intermediate=$(docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.intermediate.crt | jq -r .data.value | tr -d '\r')
-ca_bundle="$(cat <<EOF
-${server_crt}
-${server_intermediate}
-EOF
-)"
-echo "${ca_bundle}" > ${SCRATCH}/tls.crt
-docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.key | jq -r .data.value | tr -d '\r' > ${SCRATCH}/tls.key
-kubectl --namespace="${KUBE_NAMESPACE}" create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
-
-rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
-
 # create services
 kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/services"
 

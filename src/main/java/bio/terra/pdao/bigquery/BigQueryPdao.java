@@ -1117,7 +1117,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         // TODO: Validate rowIDs exist in given table
         StringBuilder rowIdValues = new StringBuilder();
         String prefix = "";
-        for(String rowId : softDeleteRowIds) {
+        for (String rowId : softDeleteRowIds) {
             rowIdValues.append(prefix).append("('").append(rowId).append("')");
             prefix = ",";
         }

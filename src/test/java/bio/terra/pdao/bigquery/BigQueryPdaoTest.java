@@ -16,7 +16,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -212,7 +211,6 @@ public class BigQueryPdaoTest {
                 ingestRequest.table("sample").path(gsPath(nullPkBlob)));
 
             BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-            BigQuery bigQuery = bigQueryProject.getBigQuery();
             String tableName = "participant";
             Set<String> rowIds = bigQueryPdao.getRowIds(dataset,
                 tableName,

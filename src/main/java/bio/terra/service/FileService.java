@@ -15,7 +15,6 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.FSObjectModelType;
 import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.stairway.Stairway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,13 +34,11 @@ public class FileService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
 
     private final JobService jobService;
-    private final Stairway stairway;
     private final FireStoreDao fileDao;
     private  final DatasetService datasetService;
 
     @Autowired
-    public FileService(JobService jobService, Stairway stairway, FireStoreDao fileDao, DatasetService datasetService) {
-        this.stairway = stairway;
+    public FileService(JobService jobService, FireStoreDao fileDao, DatasetService datasetService) {
         this.fileDao = fileDao;
         this.datasetService = datasetService;
         this.jobService = jobService;

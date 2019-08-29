@@ -13,6 +13,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
+import java.util.Map;
 import java.util.UUID;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation
@@ -31,8 +32,18 @@ public class FileIngestFlight extends Flight {
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
 
-        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+        // TODO: fix this
+        // There are two problems here.
+        // First, the PATH_PARAMETERS debacle.
+        // Second, error handling within this constructor results in an obscure throw from
+        // Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
+        // We should NOT put code like that in the flight constructor.
+
+        // get data from inputs that steps need
+        Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
+            JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
+        UUID datasetId = UUID.fromString(pathParams.get(JobMapKeys.DATASET_ID.getKeyName()));
+        Dataset dataset = datasetService.retrieve(datasetId);
 
         // The flight plan:
         // 1. Generate the new file object id and store it in the working map

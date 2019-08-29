@@ -12,6 +12,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
+import java.util.Map;
 import java.util.UUID;
 
 public class FileDeleteFlight extends Flight {
@@ -26,8 +27,16 @@ public class FileDeleteFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         DataLocationService locationService = (DataLocationService) appContext.getBean("dataLocationService");
 
-        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
-        String fileId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), String.class);
+        // TODO: fix this
+        // There are two problems here.
+        // First, the PATH_PARAMETERS debacle.
+        // Second, error handling within this constructor results in an obscure throw from
+        // Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
+        // We should NOT put code like that in the flight constructor.
+        Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
+            JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
+        String datasetId = pathParams.get(JobMapKeys.DATASET_ID.getKeyName());
+        String fileId = pathParams.get(JobMapKeys.FILE_ID.getKeyName());
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
         // The flight plan:

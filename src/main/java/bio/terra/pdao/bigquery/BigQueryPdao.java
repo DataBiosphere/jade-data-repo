@@ -820,7 +820,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             The constructed SQL varies depending on if the from/to column is an array.
 
             Common SQL is:
-              With merged_table as (
+              WITH merged_table AS (
                     SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
                     FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
                     WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
@@ -845,7 +845,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                   ON flat_from = flat_to)
               )
 
-               SELECT *
+               SELECT PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN
                FROM 'merged_table'
                WHERE PDAO_ROW_ID_COLUMN NOT IN (
                     SELECT PDAO_ROW_ID_COLUMN FROM <table>_soft_deleted
@@ -1109,8 +1109,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void softDeleteRows(Dataset dataset,
                                String tableName,
-                                String projectId,
-                                Set<String> softDeleteRowIds) {
+                               String projectId,
+                               Set<String> softDeleteRowIds) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String softDeletesTableName = prefixSoftDeleteTableName(tableName);
 

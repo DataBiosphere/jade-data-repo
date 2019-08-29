@@ -46,9 +46,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.math.BigInteger;
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -102,7 +105,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 bigQueryProject.createTable(datasetName, table.getName(), schema);
                 bigQueryProject.createTable(
                     datasetName,
-                    prefixSoftDeletesTableName(table.getName()),
+                    prefixSoftDeleteTableName(table.getName()),
                     buildSoftDeletesSchema());
             }
         } catch (Exception ex) {
@@ -223,7 +226,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 rootTableId,
                 rowIds,
                 projectId,
-                prefixSoftDeletesTableName(rootTable.getName()),
+                prefixSoftDeleteTableName(rootTable.getName()),
                 datasetBqDatasetName);
             if (sql != null) {
                 bigQueryProject.query(sql);
@@ -467,7 +470,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public boolean deleteDatasetTable(Dataset dataset, String tableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName) &&
-            bigQueryProject.deleteTable(prefixName(dataset.getName()), prefixSoftDeletesTableName(tableName));
+            bigQueryProject.deleteTable(prefixName(dataset.getName()), prefixSoftDeleteTableName(tableName));
     }
 
     public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) {
@@ -576,19 +579,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
-    public  Set<String> getRowIds(Dataset dataset, String tableName, String projectId, BigQueryProject bigQueryProject) {
-        String softDeleteTableName = prefixSoftDeletesTableName(tableName);
+    public Set<String> getRowIds(Dataset dataset, String tableName, String projectId, BigQueryProject bigQueryProject) {
+        String softDeleteTableName = prefixSoftDeleteTableName(tableName);
         String table = projectId + "." + prefixName(dataset.getName()) + "." + tableName;
-        String soft_deletes_table = projectId + "." + prefixName(dataset.getName()) + "." + softDeleteTableName;
+        String softDeleteTable = projectId + "." + prefixName(dataset.getName()) + "." + softDeleteTableName;
         StringBuilder builder = new StringBuilder();
-        builder.append("With not_soft_deleted as ((SELECT ")
+        builder.append("WITH not_soft_deleted AS ((SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" FROM `")
             .append(table)
             .append("`) EXCEPT DISTINCT ( SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" FROM `")
-            .append(soft_deletes_table)
+            .append(softDeleteTable)
             .append("` )) SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" FROM not_soft_deleted LEFT JOIN `")
@@ -613,7 +616,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    public String prefixSoftDeletesTableName(String tableName) {
+    public String prefixSoftDeleteTableName(String tableName) {
         return PDAO_PREFIX + "sd_" + tableName;
     }
 
@@ -782,7 +785,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 relationship,
                 projectId,
                 bigQuery,
-                prefixSoftDeletesTableName(relationship.getToTableName()));
+                prefixSoftDeleteTableName(relationship.getToTableName()));
             walkRelationships(
                 datasetBqDatasetName,
                 snapshotName,
@@ -850,7 +853,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          */
 
         StringBuilder builder = new StringBuilder();
-        builder.append("With merged_table as (SELECT DISTINCT '")
+        builder.append("WITH merged_table AS (SELECT DISTINCT '")
                 .append(relationship.getToTableId())
                 .append("' AS ")
                 .append(PDAO_TABLE_ID_COLUMN)
@@ -897,7 +900,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } else {
             builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
         }
-        builder.append(") SELECT * FROM merged_table WHERE ")
+        builder.append(") SELECT ")
+            .append(PDAO_TABLE_ID_COLUMN)
+            .append(", ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM merged_table WHERE ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" NOT IN (SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
@@ -1105,7 +1112,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                 String projectId,
                                 Set<String> softDeleteRowIds) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String softDeletesTableName = prefixSoftDeletesTableName(tableName);
+        String softDeletesTableName = prefixSoftDeleteTableName(tableName);
 
         // TODO: Validate rowIDs exist in given table
         StringBuilder rowIdValues = new StringBuilder();

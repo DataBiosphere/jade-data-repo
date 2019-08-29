@@ -39,6 +39,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Set;
@@ -99,53 +100,64 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
+    private void AssertThatDatasetAndTablesShouldExist(Boolean shouldExist) {
+        boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
+        assertThat(
+            String.format("Dataset: %s, exists", dataset.getName()),
+            datasetExists,
+            equalTo(shouldExist));
+
+        boolean participantTableExists = bigQueryPdao.tableExists(dataset, "participant");
+        assertThat(
+            String.format("Table: %s.participant, exists", dataset.getName()),
+            participantTableExists,
+            equalTo(shouldExist));
+        String participantSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("participant");
+        boolean participantSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, participantSoftDeleteTableName);
+        assertThat(
+            String.format("Table: %s.%s, exists", dataset.getName(), participantSoftDeleteTableName),
+            participantSoftDeleteTableExists,
+            equalTo(shouldExist));
+
+        boolean sampleTableExists =  bigQueryPdao.tableExists(dataset, "sample");
+        assertThat(
+            String.format("Table: %s.sample, exists", dataset.getName()),
+            sampleTableExists,
+            equalTo(shouldExist));
+        String sampleSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("sample");
+        boolean sampleSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, sampleSoftDeleteTableName);
+        assertThat(
+            String.format("Table: %s.%s, exists", dataset.getName(), sampleSoftDeleteTableName),
+            sampleSoftDeleteTableExists,
+            equalTo(shouldExist));
+
+        boolean fileTableExists =  bigQueryPdao.tableExists(dataset, "file");
+        assertThat(
+            String.format("Table: %s.file, exists", dataset.getName()),
+            fileTableExists,
+            equalTo(shouldExist));
+        String fileSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("file");
+        boolean fileSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, fileSoftDeleteTableName);
+        assertThat(
+            String.format("Table: %s.%s, exists", dataset.getName(), fileSoftDeleteTableName),
+            fileSoftDeleteTableExists,
+            equalTo(shouldExist));
+    }
+
     @Test
     public void basicTest() throws Exception {
-        boolean datasetExists = bigQueryPdao.datasetExists(dataset);
-        boolean tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
-            bigQueryPdao.tableExists(dataset, "sample") &&
-            bigQueryPdao.tableExists(dataset, "file");
-        boolean softDeletesTableExists =
-            bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
-        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(false)));
+        AssertThatDatasetAndTablesShouldExist(false);
 
         bigQueryPdao.createDataset(dataset);
-
-        datasetExists = bigQueryPdao.datasetExists(dataset);
-        tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
-            bigQueryPdao.tableExists(dataset, "sample") &&
-            bigQueryPdao.tableExists(dataset, "file");
-        softDeletesTableExists =
-            bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
-        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(true)));
+        AssertThatDatasetAndTablesShouldExist(true);
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createDataset(dataset);
-        datasetExists = bigQueryPdao.datasetExists(dataset);
-        tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
-            bigQueryPdao.tableExists(dataset, "sample") &&
-            bigQueryPdao.tableExists(dataset, "file");
-        softDeletesTableExists =
-            bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
-        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(true)));
+        AssertThatDatasetAndTablesShouldExist(true);
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteDataset(dataset);
-        datasetExists = bigQueryPdao.datasetExists(dataset);
-        tablesExists = bigQueryPdao.tableExists(dataset, "participant") &&
-            bigQueryPdao.tableExists(dataset, "sample") &&
-            bigQueryPdao.tableExists(dataset, "file");
-        softDeletesTableExists =
-            bigQueryPdao.tableExists(dataset, bigQueryPdao.prefixSoftDeletesTableName("participant")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("sample")) &&
-            bigQueryPdao.tableExists(dataset,  bigQueryPdao.prefixSoftDeletesTableName("file"));
-        Assert.assertThat(datasetExists && tablesExists && softDeletesTableExists, is(equalTo(false)));
+        AssertThatDatasetAndTablesShouldExist(false);
     }
 
     @Test

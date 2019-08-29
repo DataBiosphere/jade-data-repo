@@ -18,6 +18,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
@@ -62,12 +64,14 @@ public class ConnectedOperations {
     private ObjectMapper objectMapper;
     private JsonLoader jsonLoader;
     private SamConfiguration samConfiguration;
+    private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     private boolean deleteOnTeardown;
     private List<String> createdSnapshotIds;
     private List<String> createdDatasetIds;
     private List<String> createdProfileIds;
     private List<String[]> createdFileIds; // [0] is datasetid, [1] is fileid
+    private List<String> createdBuckets;
 
     @Autowired
     public ConnectedOperations(MockMvc mvc,
@@ -84,6 +88,7 @@ public class ConnectedOperations {
         createdFileIds = new ArrayList<>();
         createdProfileIds = new ArrayList<>();
         deleteOnTeardown = true;
+        createdBuckets = new ArrayList<>();
     }
 
     public void stubOutSamCalls(SamClientService samService) throws ApiException {
@@ -252,6 +257,10 @@ public class ConnectedOperations {
         checkDeleteResponse(response);
     }
 
+    public void deleteTestBucket(String bucketName) {
+        storage.delete(bucketName);
+    }
+
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
             objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
@@ -377,6 +386,10 @@ public class ConnectedOperations {
         createdFileIds.add(createdFile);
     }
 
+    public void addBucket(String bucketName) {
+        createdBuckets.add(bucketName);
+    }
+
     public void setDeleteOnTeardown(boolean deleteOnTeardown) {
         this.deleteOnTeardown = deleteOnTeardown;
     }
@@ -399,6 +412,10 @@ public class ConnectedOperations {
 
             for (String profileId : createdProfileIds) {
                 deleteTestProfile(profileId);
+            }
+
+            for (String bucketName : createdBuckets) {
+                deleteTestBucket(bucketName);
             }
         }
 

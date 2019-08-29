@@ -1,5 +1,3 @@
-{{ with $environment := env "ENVIRONMENT" }}
-
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -7,7 +5,6 @@ metadata:
   annotations:
     kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
     kubernetes.io/ingress.allow-http: "false"
-  namespace: data-repo
 spec:
   tls:
   - secretName: wildcard.datarepo.broadinstitute.org
@@ -18,5 +15,3 @@ spec:
         backend:
           serviceName: oidc-proxy-service
           servicePort: http
-
-{{ end }}

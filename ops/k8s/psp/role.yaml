@@ -7,4 +7,4 @@ rules:
   resources: ['podsecuritypolicies']
   verbs: ["use"]
   resourceNames:
-    - pod-running-policy 
+    - pod-running-policy

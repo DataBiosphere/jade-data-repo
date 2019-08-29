@@ -22,7 +22,6 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
@@ -30,7 +29,6 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -39,7 +37,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @Component
-@Profile("integrationtest")
 public class DataRepoFixtures {
 
     @Autowired
@@ -53,9 +50,6 @@ public class DataRepoFixtures {
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Autowired
-    private GoogleResourceConfiguration googleResourceConfiguration;
 
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
@@ -141,7 +135,7 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        SamClientService.ResourceType resourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + resourceType.getHttpPathString() + "/" +
+        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(resourceType) + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
@@ -283,10 +277,15 @@ public class DataRepoFixtures {
     }
 
     public DataRepoResponse<JobModel> ingestFileLaunch(
-        TestConfiguration.User user, String datasetId, String sourceGsPath, String targetPath) throws Exception {
+        TestConfiguration.User user,
+        String datasetId,
+        String profileId,
+        String sourceGsPath,
+        String targetPath) throws Exception {
 
         FileLoadModel fileLoadModel = new FileLoadModel()
             .sourcePath(sourceGsPath)
+            .profileId(profileId)
             .description(null)
             .mimeType("application/octet-string")
             .targetPath(targetPath);
@@ -301,8 +300,12 @@ public class DataRepoFixtures {
     }
 
     public FSObjectModel ingestFile(
-        TestConfiguration.User user, String datasetId, String sourceGsPath, String targetPath) throws Exception {
-        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, datasetId, sourceGsPath, targetPath);
+        TestConfiguration.User user,
+        String datasetId,
+        String profileId,
+        String sourceGsPath,
+        String targetPath) throws Exception {
+        DataRepoResponse<JobModel> resp = ingestFileLaunch(user, datasetId, profileId, sourceGsPath, targetPath);
         assertTrue("ingest launch succeeded", resp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", resp.getResponseObject().isPresent());
 
@@ -389,4 +392,10 @@ public class DataRepoFixtures {
         return objectMapper.writeValueAsString(ingestRequest);
     }
 
+    public DataRepoResponse<DeleteResponseModel> deleteProfile(
+        TestConfiguration.User user,
+        String profileId) throws Exception {
+        return dataRepoClient.delete(
+            user, "/api/resources/v1/profiles/" + profileId, DeleteResponseModel.class);
+    }
 }

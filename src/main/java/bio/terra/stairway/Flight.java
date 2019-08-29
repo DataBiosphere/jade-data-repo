@@ -35,12 +35,12 @@ public class Flight implements Callable<FlightState> {
     private static Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
 
     private List<StepRetry> steps;
-    private Database database;
+    private FlightDao flightDao;
     private FlightContext flightContext;
     private Object applicationContext;
 
-    public Flight(FlightMap inputParameters, Object applicationContext) {
-        flightContext = new FlightContext(inputParameters, this.getClass().getName());
+    public Flight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        flightContext = new FlightContext(inputParameters, this.getClass().getName(), userRequestInfo);
         this.applicationContext = applicationContext;
         steps = new LinkedList<>();
     }
@@ -53,8 +53,8 @@ public class Flight implements Callable<FlightState> {
         return applicationContext;
     }
 
-    public void setDatabase(Database database) {
-        this.database = database;
+    public void setFlightDao(FlightDao flightDao) {
+        this.flightDao = flightDao;
     }
 
     public void setFlightContext(FlightContext flightContext) {
@@ -79,8 +79,8 @@ public class Flight implements Callable<FlightState> {
         logger.debug("Executing flight class: " + context().getFlightClassName() + " id: " + context().getFlightId());
         FlightStatus flightStatus = fly();
         context().setFlightStatus(flightStatus);
-        database.complete(context());
-        return database.getFlightState(context().getFlightId());
+        flightDao.complete(context());
+        return flightDao.getFlightState(context().getFlightId());
     }
 
     /**
@@ -102,7 +102,7 @@ public class Flight implements Callable<FlightState> {
                 context().setDoing(false);
 
                 // Record the step failure and direction change in the database
-                database.step(context());
+                flightDao.step(context());
             }
 
             // Part 2 - running backwards. We either succeed and return the original failure
@@ -115,7 +115,7 @@ public class Flight implements Callable<FlightState> {
 
             // Part 3 - dismal failure
             // Record the undo failure
-            database.step(context());
+            flightDao.step(context());
 
             // Dismal failure - undo failed!
             context().setResult(undoResult);
@@ -153,7 +153,7 @@ public class Flight implements Callable<FlightState> {
                 return result;
             }
 
-            database.step(context());
+            flightDao.step(context());
 
             context().nextStepIndex();
         }

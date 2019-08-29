@@ -19,26 +19,23 @@ public class DeleteDatasetPrimaryDataStep implements Step {
     private GcsPdao gcsPdao;
     private FireStoreDao fileDao;
     private DatasetService datasetService;
+    private UUID datasetId;
 
     public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                      GcsPdao gcsPdao,
-                                      FireStoreDao fileDao,
-                                      DatasetService datasetService) {
+                                        GcsPdao gcsPdao,
+                                        FireStoreDao fileDao,
+                                        DatasetService datasetService,
+                                        UUID datasetId) {
         this.bigQueryPdao = bigQueryPdao;
         this.gcsPdao = gcsPdao;
         this.fileDao = fileDao;
         this.datasetService = datasetService;
-    }
-
-    Dataset getDataset(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        UUID datasetId = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), UUID.class);
-        return datasetService.retrieve(datasetId);
+        this.datasetId = datasetId;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Dataset dataset = getDataset(context);
+        Dataset dataset = datasetService.retrieve(datasetId);
         bigQueryPdao.deleteDataset(dataset);
         fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
         FlightMap map = context.getWorkingMap();

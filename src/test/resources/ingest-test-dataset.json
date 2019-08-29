@@ -10,7 +10,8 @@
           {"name": "age", "datatype": "integer"},
           {"name": "children", "datatype": "string", "array_of": true},
           {"name": "donated", "datatype": "string", "array_of": true}
-        ]
+        ],
+        "primaryKey": ["id"]
       },
       {
         "name":    "sample",
@@ -19,14 +20,16 @@
           {"name": "participant_ids", "datatype": "string", "array_of": true},
           {"name": "date_collected", "datatype": "date"},
           {"name": "derived_from", "datatype": "string"}
-        ]
+        ],
+        "primaryKey": ["id"]
       },
       {
         "name": "file",
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "derived_from", "datatype": "string", "array_of": true}
-        ]
+        ],
+        "primaryKey": ["id"]
       }
     ],
     "relationships": [

@@ -22,12 +22,7 @@ public class StringListCompare {
     public boolean compare() {
         // Handle nulls - if both are null, we call that equal
         if (list1 == null) {
-            if (list2 == null) {
-
-                return true;
-            } else {
-                return false;
-            }
+            return (list2 == null);
         }
         if (list2 == null) {
             return false;

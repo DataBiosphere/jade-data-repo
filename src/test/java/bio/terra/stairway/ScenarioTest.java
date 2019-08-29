@@ -30,6 +30,11 @@ import static org.hamcrest.CoreMatchers.is;
 public class ScenarioTest {
     private Stairway stairway;
     private Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
+    private UserRequestInfo testUser = new UserRequestInfo()
+        .subjectId("StairwayUnit")
+        .name("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
@@ -50,11 +55,12 @@ public class ScenarioTest {
         inputParameters.put("filename", filename);
         inputParameters.put("text", "testing 1 2 3");
 
-        String flightId = stairway.submit(TestFlight.class, inputParameters);
+        String flightId = "simpleTest";
+        stairway.submit(flightId, TestFlight.class, inputParameters, testUser);
         logger.debug("Submitted flight id: " + flightId);
 
         // Test for done
-        boolean done = stairway.isDone(flightId);
+        boolean done = TestUtil.isDone(stairway, flightId);
         logger.debug("Flight done: " + done);
 
         // Wait for done
@@ -81,10 +87,12 @@ public class ScenarioTest {
         inputParameters.put("filename", filename);
         inputParameters.put("text", "testing 1 2 3");
 
-        String flightId = stairway.submit(TestFlight.class, inputParameters);
+        String flightId = "fileTest";
+        stairway.submit(
+            flightId, TestFlight.class, inputParameters, testUser);
 
         // Poll waiting for done
-        while (!stairway.isDone(flightId)) {
+        while (!TestUtil.isDone(stairway, flightId)) {
             Thread.sleep(1000);
         }
 
@@ -119,7 +127,9 @@ public class ScenarioTest {
         inputParameters.put("existingFilename", existingFilename);
         inputParameters.put("text", "testing 1 2 3");
 
-        String flightId = stairway.submit(TestFlightUndo.class, inputParameters);
+        String flightId = "undoTest";
+        stairway.submit(
+            flightId, TestFlightUndo.class, inputParameters, testUser);
 
         // Wait for done
         stairway.waitForFlight(flightId);

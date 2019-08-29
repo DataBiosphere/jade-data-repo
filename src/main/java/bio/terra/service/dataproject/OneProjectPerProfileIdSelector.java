@@ -35,13 +35,13 @@ public class OneProjectPerProfileIdSelector implements DataLocationSelector {
     }
 
     @Override
-    public String projectIdForFile(String loadProfileId) {
-        return getSuffixForProfileId(UUID.fromString(loadProfileId));
+    public String projectIdForFile(String fileProfileId) {
+        return getSuffixForProfileId(UUID.fromString(fileProfileId));
     }
 
     @Override
-    public String bucketForFile(String loadProfileId) {
-        return projectIdForFile(loadProfileId) + "-bucket";
+    public String bucketForFile(String fileProfileId) {
+        return projectIdForFile(fileProfileId) + "-bucket";
     }
 
     private String getSuffixForProfileId(UUID profileId) {

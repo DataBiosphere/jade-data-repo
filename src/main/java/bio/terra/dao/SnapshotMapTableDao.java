@@ -2,6 +2,7 @@ package bio.terra.dao;
 
 import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
@@ -70,7 +71,7 @@ public class SnapshotMapTableDao {
             (rs, rowNum) -> {
                 List<SnapshotMapTable> mapTables = new ArrayList<>();
                 UUID fromTableId = rs.getObject("from_table_id", UUID.class);
-                Optional<Table> datasetTable = source.getDataset().getTableById(fromTableId);
+                Optional<DatasetTable> datasetTable = source.getDataset().getTableById(fromTableId);
                 if (!datasetTable.isPresent()) {
                     throw new CorruptMetadataException(
                             "Dataset table referenced by snapshot source map table was not found!");

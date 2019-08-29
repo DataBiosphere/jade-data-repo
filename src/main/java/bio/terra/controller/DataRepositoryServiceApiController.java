@@ -32,6 +32,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     private final ObjectMapper objectMapper;
     private final HttpServletRequest request;
     private final DrsService drsService;
+    private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -41,12 +42,14 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
             ObjectMapper objectMapper,
             HttpServletRequest request,
             DrsService drsService,
-            ApplicationConfiguration appConfig
+            ApplicationConfiguration appConfig,
+            AuthenticatedUserRequestFactory authenticatedUserRequestFactory
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.appConfig = appConfig;
         this.drsService = drsService;
+        this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
     }
 
     @Override
@@ -60,7 +63,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     }
 
     private AuthenticatedUserRequest getAuthenticatedInfo() {
-        return AuthenticatedUserRequest.from(getRequest(), appConfig.getUserEmail());
+        return authenticatedUserRequestFactory.from(request);
     }
 
     @ExceptionHandler
@@ -84,6 +87,7 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
     @ExceptionHandler
     public ResponseEntity<DRSError> exceptionHandler(Exception ex) {
         DRSError error = new DRSError().msg(ex.getMessage()).statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        logger.error("Uncaught exception", ex);
         return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
@@ -99,7 +103,8 @@ public class DataRepositoryServiceApiController implements DataRepositoryService
         @PathVariable("object_id") String objectId,
         @RequestParam(value = "expand", required = false, defaultValue = "false") Boolean expand) {
         // The incoming object id is a DRS object id, not a file id.
-        return new ResponseEntity<>(drsService.lookupObjectByDrsId(objectId, expand), HttpStatus.OK);
+        AuthenticatedUserRequest authUser = getAuthenticatedInfo();
+        return new ResponseEntity<>(drsService.lookupObjectByDrsId(authUser, objectId, expand), HttpStatus.OK);
     }
 
     @Override

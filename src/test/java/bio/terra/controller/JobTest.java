@@ -2,8 +2,9 @@ package bio.terra.controller;
 
 import bio.terra.category.Unit;
 import bio.terra.fixtures.FlightStates;
-import bio.terra.model.JobModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.JobModel;
+import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,10 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.Arrays;
-
 import static bio.terra.fixtures.DatasetFixtures.buildMinimalDatasetSummary;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -41,6 +39,9 @@ public class JobTest {
     @MockBean
     private Stairway stairway;
 
+    @MockBean
+    private SamClientService sam;
+
     @Autowired
     private MockMvc mvc;
 
@@ -55,28 +56,8 @@ public class JobTest {
 
 
     @Before
-   public void setup() {
+    public void setup() {
         jobModel = new JobModel().id(testFlightId).description("This is not a job");
-    }
-
-
-    @Test
-    public void enumerateJobsTest() throws Exception {
-        FlightState flightState = FlightStates.makeFlightCompletedState();
-
-        Integer offset = 0;
-        Integer limit = 1;
-
-        when(stairway.getFlights(eq(offset), eq(limit))).thenReturn(Arrays.asList(flightState));
-
-        mvc.perform(get("/api/repository/v1/jobs?offset=0&limit=1")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(Arrays.asList(jobModel))))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[:1].id").value(testFlightId))
-                .andExpect(jsonPath("$[:1].description").value(buildMinimalDatasetSummary().getDescription()))
-                .andExpect(jsonPath("$[:1].job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
-                .andExpect(jsonPath("$[:1].completed").value(completedTimeFormatted));
     }
 
     @Test
@@ -91,7 +72,7 @@ public class JobTest {
                 .andExpect(status().isAccepted())
                 .andExpect(jsonPath("$.id").value(testFlightId))
                 .andExpect(jsonPath("$.description").value(buildMinimalDatasetSummary().getDescription()))
-                .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.SUCCEEDED.toString()))
+                .andExpect(jsonPath("$.job_status").value(JobModel.JobStatusEnum.RUNNING.toString()))
                 .andExpect(jsonPath("$.submitted").value(submittedTimeFormatted))
                 .andExpect(jsonPath("$.completed").isEmpty());
     }
@@ -121,11 +102,12 @@ public class JobTest {
         DatasetSummaryModel req = buildMinimalDatasetSummary();
 
         mvc.perform(get(String.format("/api/repository/v1/jobs/%s/result", testFlightId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isIAmATeapot())
-                .andExpect(jsonPath("$.id").value(req.getId()))
-                .andExpect(jsonPath("$.name").value(req.getName()))
-                .andExpect(jsonPath("$.description").value(req.getDescription()));
+            .header("Authorization", "Bearer: faketoken")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isIAmATeapot())
+            .andExpect(jsonPath("$.id").value(req.getId()))
+            .andExpect(jsonPath("$.name").value(req.getName()))
+            .andExpect(jsonPath("$.description").value(req.getDescription()));
     }
 }

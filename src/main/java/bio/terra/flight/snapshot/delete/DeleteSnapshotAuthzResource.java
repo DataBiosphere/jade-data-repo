@@ -2,11 +2,8 @@ package bio.terra.flight.snapshot.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -18,18 +15,17 @@ import java.util.UUID;
 public class DeleteSnapshotAuthzResource implements Step {
     private SamClientService sam;
     private UUID snapshotId;
-    private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
+    private AuthenticatedUserRequest userReq;
+    private static Logger logger = LoggerFactory.getLogger(DeleteSnapshotAuthzResource.class);
 
-    public DeleteSnapshotAuthzResource(SamClientService sam, UUID snapshotId) {
+    public DeleteSnapshotAuthzResource(SamClientService sam, UUID snapshotId, AuthenticatedUserRequest userReq) {
         this.sam = sam;
         this.snapshotId = snapshotId;
+        this.userReq = userReq;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap inputParameters = context.getInputParameters();
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         try {
             sam.deleteSnapshotResource(userReq, snapshotId);
         } catch (ApiException ex) {

@@ -2,7 +2,6 @@ package bio.terra.configuration;
 
 import bio.terra.StartupInitializer;
 import bio.terra.stairway.Stairway;
-import bio.terra.upgrade.Migrate;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -26,6 +25,7 @@ public class ApplicationConfiguration {
     private String userEmail;
     private String dnsName;
     private String resourceId;
+    private String userId;
 
     public String getUserEmail() {
         return userEmail;
@@ -51,8 +51,17 @@ public class ApplicationConfiguration {
         this.resourceId = resourceId;
     }
 
+
+    public String getUserId() {
+        return userId;
+    }
+
+    public void setUserId(String userId) {
+        this.userId = userId;
+    }
+
     @Bean("stairway")
-    public Stairway getStairway(Migrate migrate, ApplicationContext applicationContext) {
+    public Stairway getStairway(ApplicationContext applicationContext) {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         return new Stairway(executorService, applicationContext);
     }

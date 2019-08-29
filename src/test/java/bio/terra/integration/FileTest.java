@@ -50,10 +50,12 @@ public class FileTest extends UsersBase {
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
+    private String profileId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         logger.info("created dataset " + datasetId);
@@ -75,13 +77,13 @@ public class FileTest extends UsersBase {
         String filePath = "/foo/bar";
 
         DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
-            custodian(), datasetId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
+            custodian(), datasetId, profileId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
         assertThat("Custodian is not authorized to ingest a file",
             launchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
-            steward(), datasetId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
+            steward(), datasetId, profileId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
         String fileId = fsObjectModel.getObjectId();
 
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);

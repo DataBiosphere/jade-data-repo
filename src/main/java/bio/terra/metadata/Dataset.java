@@ -13,7 +13,7 @@ import java.util.UUID;
 public class Dataset {
 
     private final DatasetSummary datasetSummary;
-    private List<Table> tables = Collections.emptyList();
+    private List<DatasetTable> tables = Collections.emptyList();
     private List<DatasetRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
     private DatasetDataProject dataProject = new DatasetDataProject();
@@ -26,11 +26,11 @@ public class Dataset {
         datasetSummary = summary;
     }
 
-    public List<Table> getTables() {
+    public List<DatasetTable> getTables() {
         return Collections.unmodifiableList(tables);
     }
 
-    public Dataset tables(List<Table> tables) {
+    public Dataset tables(List<DatasetTable> tables) {
         this.tables = Collections.unmodifiableList(tables);
         return this;
     }
@@ -89,11 +89,11 @@ public class Dataset {
         return relationships;
     }
 
-    public Optional<Table> getTableById(UUID id) {
+    public Optional<DatasetTable> getTableById(UUID id) {
         return getTables().stream().filter(table -> table.getId().equals(id)).findFirst();
     }
 
-    public Optional<Table> getTableByName(String name) {
+    public Optional<DatasetTable> getTableByName(String name) {
         return getTables().stream().filter(table -> table.getName().equals(name)).findFirst();
     }
 

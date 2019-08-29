@@ -6,6 +6,8 @@ import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.BillingProfile;
+import bio.terra.metadata.Column;
+import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSummary;
@@ -28,8 +30,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -52,60 +57,44 @@ public class DatasetDaoTest {
     @Autowired
     private NamedParameterJdbcTemplate jdbcTemplate;
 
-    private Dataset dataset;
-    private UUID datasetId;
-    private Dataset fromDB;
     private BillingProfile billingProfile;
-    private boolean deleted;
 
-    @Before
-    public void setup() throws Exception {
-        billingProfile = ProfileFixtures.randomBillingProfile();
-        UUID profileId = profileDao.createBillingProfile(billingProfile);
-        billingProfile.id(profileId);
-
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-create-test.json",
-            DatasetRequestModel.class);
-        datasetRequest
-            .name(datasetRequest.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(profileId.toString());
-        dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
-        datasetId = datasetDao.create(dataset);
-        fromDB = datasetDao.retrieve(datasetId);
-    }
-
-    @After
-    public void teardown() throws Exception {
-        if (!deleted) {
-            datasetDao.delete(datasetId);
-        }
-        datasetId = null;
-        fromDB = null;
-        profileDao.deleteBillingProfileById(billingProfile.getId());
-    }
-
-    private UUID createMinimalDataset() throws IOException {
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject("dataset-minimal.json",
-            DatasetRequestModel.class);
-        datasetRequest
-            .name(datasetRequest.getName() + UUID.randomUUID().toString())
-            .defaultProfileId(billingProfile.getId().toString());
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
+        datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         return datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
     }
 
+    private UUID createDataset(String datasetFile) throws IOException {
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
+        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
+    }
+
+    @Before
+    public void setup() {
+        billingProfile = ProfileFixtures.randomBillingProfile();
+        UUID profileId = profileDao.createBillingProfile(billingProfile);
+        billingProfile.id(profileId);
+    }
+
+    @After
+    public void teardown() {
+        profileDao.deleteBillingProfileById(billingProfile.getId());
+    }
+
     @Test(expected = DatasetNotFoundException.class)
-    public void datasetDeleteTest() {
-        boolean success = datasetDao.delete(datasetId);
-        deleted = success;
+    public void datasetDeleteTest() throws IOException {
+        UUID datasetId = createDataset("dataset-minimal.json");
+        assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
         datasetDao.retrieve(datasetId);
     }
 
     @Test
     public void enumerateTest() throws Exception {
-        UUID dataset1 = createMinimalDataset();
+        UUID dataset1 = createDataset("dataset-minimal.json");
+        UUID dataset2 = createDataset("dataset-create-test.json");
         List<UUID> datasetIds = new ArrayList<>();
         datasetIds.add(dataset1);
-        datasetIds.add(datasetId);
+        datasetIds.add(dataset2);
 
         MetadataEnumeration<DatasetSummary> summaryEnum = datasetDao.enumerate(0, 2, "created_date",
             "asc", null, datasetIds);
@@ -126,13 +115,20 @@ public class DatasetDaoTest {
             equalTo(datasets.get(1).getId()));
 
         datasetDao.delete(dataset1);
+        datasetDao.delete(dataset2);
     }
 
     @Test
-    public void datasetTest() throws Exception {
+    public void datasetTest() throws IOException {
+        DatasetRequestModel request = jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class);
+        String expectedName = request.getName() + UUID.randomUUID().toString();
+
+        UUID datasetId = createDataset(request, expectedName);
+        Dataset fromDB = datasetDao.retrieve(datasetId);
+
         assertThat("dataset name is set correctly",
                 fromDB.getName(),
-                equalTo(dataset.getName()));
+                equalTo(expectedName));
 
         // verify tables
         assertThat("correct number of tables created for dataset",
@@ -151,6 +147,31 @@ public class DatasetDaoTest {
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
         fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+
+        datasetDao.delete(datasetId);
+    }
+
+    @Test
+    public void primaryKeyTest() throws IOException {
+        UUID datasetId = createDataset("dataset-primary-key.json");
+        Dataset fromDB = datasetDao.retrieve(datasetId);
+        DatasetTable variants = fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
+        DatasetTable freqAnalysis = fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
+        DatasetTable metaAnalysis = fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
+
+        assertThat("single-column primary keys are set correctly",
+            variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+            equalTo(Collections.singletonList("id")));
+
+        assertThat("dual-column primary keys are set correctly",
+            metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+            equalTo(Arrays.asList("variant_id", "phenotype")));
+
+        assertThat("many-column primary keys are set correctly",
+            freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+            equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
+
+        datasetDao.delete(datasetId);
     }
 
     protected void assertTablesInRelationship(Dataset dataset) {

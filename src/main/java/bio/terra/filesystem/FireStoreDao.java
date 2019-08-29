@@ -33,17 +33,14 @@ import java.util.function.Consumer;
 public class FireStoreDao {
     private FireStoreDirectoryDao directoryDao;
     private FireStoreFileDao fileDao;
-    private FireStoreDependencyDao dependencyDao;
     private FireStoreUtils fireStoreUtils;
 
     @Autowired
     public FireStoreDao(FireStoreDirectoryDao directoryDao,
                         FireStoreFileDao fileDao,
-                        FireStoreDependencyDao dependencyDao,
                         FireStoreUtils fireStoreUtils) {
         this.directoryDao = directoryDao;
         this.fileDao = fileDao;
-        this.dependencyDao = dependencyDao;
         this.fireStoreUtils = fireStoreUtils;
     }
 
@@ -202,7 +199,11 @@ public class FireStoreDao {
                 directoryDao.enumerateDirectory(firestore, datasetId, fireStoreObject.getPath());
             for (FireStoreObject fso : dirContents) {
                 if (fso.getFileRef()) {
-                    fsContents.add(makeFSFile(firestore, datasetId, fso));
+                    // Skip files that are not fully created
+                    FSObjectBase fsFile = makeFSFile(firestore, datasetId, fso);
+                    if (fsFile != null) {
+                        fsContents.add(fsFile);
+                    }
                 } else {
                     fsContents.add(makeFSDir(firestore, datasetId, level - 1, fso));
                 }
@@ -227,6 +228,9 @@ public class FireStoreDao {
         String objectId = fireStoreObject.getObjectId();
 
         FireStoreFile fireStoreFile = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+        if (fireStoreFile == null) {
+            return null;
+        }
 
         FSFile fsFile = new FSFile();
         fsFile

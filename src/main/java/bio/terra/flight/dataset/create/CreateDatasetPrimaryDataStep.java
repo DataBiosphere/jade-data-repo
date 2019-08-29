@@ -1,5 +1,6 @@
 package bio.terra.flight.dataset.create;
 
+import bio.terra.flight.dataset.DatasetWorkingMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.service.JobMapKeys;
@@ -23,7 +24,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     Dataset getDataset(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        UUID datasetId = workingMap.get("datasetId", UUID.class);
+        UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         return datasetService.retrieve(datasetId);
     }
 

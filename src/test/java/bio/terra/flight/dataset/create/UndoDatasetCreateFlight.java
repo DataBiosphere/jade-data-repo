@@ -1,11 +1,13 @@
 package bio.terra.flight.dataset.create;
 
+import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.FlightMap;
 
 public class UndoDatasetCreateFlight extends DatasetCreateFlight {
 
-    public UndoDatasetCreateFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public UndoDatasetCreateFlight(
+        FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        super(inputParameters, applicationContext, userRequestInfo);
         addStep(new TriggerUndoStep());
     }
 }

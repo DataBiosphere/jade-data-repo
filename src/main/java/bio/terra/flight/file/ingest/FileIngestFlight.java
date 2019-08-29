@@ -4,13 +4,13 @@ import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.service.DatasetService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
@@ -20,8 +20,8 @@ import java.util.UUID;
 // TODO: Refactor flights when we do the cloud refactor work.
 public class FileIngestFlight extends Flight {
 
-    public FileIngestFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public FileIngestFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        super(inputParameters, applicationContext, userRequestInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
@@ -29,7 +29,6 @@ public class FileIngestFlight extends Flight {
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
-        ProfileService profileService = (ProfileService)appContext.getBean("profileService");
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);

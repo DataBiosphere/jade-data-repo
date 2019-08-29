@@ -68,12 +68,10 @@ public class FireStoreDirectoryDao {
     private static final String ROOT_DIR_NAME = "/_dr_";
 
     private FireStoreUtils fireStoreUtils;
-    private FireStoreDependencyDao dependencyDao;
 
     @Autowired
-    public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils, FireStoreDependencyDao dependencyDao) {
+    public FireStoreDirectoryDao(FireStoreUtils fireStoreUtils) {
         this.fireStoreUtils = fireStoreUtils;
-        this.dependencyDao = dependencyDao;
     }
 
     // Note that this does not test for duplicates. If invoked on an existing path it will overwrite

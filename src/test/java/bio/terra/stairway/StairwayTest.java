@@ -20,6 +20,11 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(StairwayUnit.class)
 public class StairwayTest {
     private Stairway stairway;
+    private UserRequestInfo testUser = new UserRequestInfo()
+        .subjectId("StairwayUnit")
+        .name("stairway@unit.com")
+        .canListJobs(true)
+        .canDeleteJobs(true);
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;
@@ -32,17 +37,17 @@ public class StairwayTest {
     @Test(expected = MakeFlightException.class)
     public void testNullFlightClass() {
         FlightMap flightMap = new FlightMap();
-        stairway.submit(null, flightMap);
+        stairway.submit("nullflightclass", null, flightMap, testUser);
     }
 
     @Test(expected = MakeFlightException.class)
     public void testNullInputParams() {
-        stairway.submit(TestFlight.class, null);
+        stairway.submit("nullinput", TestFlight.class, null, null);
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadFlightDone() {
-        stairway.isDone("abcdefg");
+        TestUtil.isDone(stairway, "abcdefg");
     }
 
     @Test(expected = FlightNotFoundException.class)

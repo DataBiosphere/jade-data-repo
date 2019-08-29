@@ -2,36 +2,35 @@ package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.DatasetDao;
+import bio.terra.dao.SnapshotDao;
 import bio.terra.flight.snapshot.create.SnapshotCreateFlight;
 import bio.terra.flight.snapshot.delete.SnapshotDeleteFlight;
 import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.AssetTable;
 import bio.terra.metadata.Column;
+import bio.terra.metadata.Dataset;
+import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
 import bio.terra.metadata.SnapshotSource;
 import bio.terra.metadata.SnapshotSummary;
-import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Dataset;
+import bio.terra.metadata.SnapshotTable;
 import bio.terra.metadata.Table;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestSourceModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.model.EnumerateSnapshotModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.service.exception.AssetNotFoundException;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,17 +48,17 @@ import java.util.stream.Collectors;
 public class SnapshotService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.SnapshotService");
 
-    private final Stairway stairway;
+    private final JobService jobService;
     private final DatasetDao datasetDao;
     private final SnapshotDao snapshotDao;
     private final DataLocationService dataLocationService;
 
     @Autowired
-    public SnapshotService(Stairway stairway,
+    public SnapshotService(JobService jobService,
                            DatasetDao datasetDao,
                            SnapshotDao snapshotDao,
                            DataLocationService dataLocationService) {
-        this.stairway = stairway;
+        this.jobService = jobService;
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
         this.dataLocationService = dataLocationService;
@@ -72,12 +71,9 @@ public class SnapshotService {
      * @param snapshotRequestModel
      * @returns jobId (flightId) of the job
      */
-    public String createSnapshot(SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userInfo) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Create snapshot " + snapshotRequestModel.getName());
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), snapshotRequestModel);
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
-        return stairway.submit(SnapshotCreateFlight.class, flightMap);
+    public String createSnapshot(SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
+        return jobService.submit("Create snapshot " + snapshotRequestModel.getName(),
+            SnapshotCreateFlight.class, snapshotRequestModel, Collections.EMPTY_MAP, userReq);
     }
 
     /**
@@ -86,15 +82,9 @@ public class SnapshotService {
      * @param id snapshot id to delete
      * @returns jobId (flightId) of the job
      */
-    public String deleteSnapshot(UUID id, AuthenticatedUserRequest userInfo) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete snapshot " + id);
-        // TODO talk about conventions for naming data in the input map
-        // and in the step whether to pass data from input map to steps or let each step retrieve what they need
-//        flightMap.put(JobMapKeys.REQUEST.getKeyName(), id);
-        flightMap.put("id", id);
-        flightMap.put(JobMapKeys.USER_INFO.getKeyName(), userInfo);
-        return stairway.submit(SnapshotDeleteFlight.class, flightMap);
+    public String deleteSnapshot(UUID id, AuthenticatedUserRequest userReq) {
+        return jobService.submit("Delete snapshot " + id, SnapshotDeleteFlight.class, null,
+            Collections.singletonMap(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString()), userReq);
     }
 
     /**
@@ -224,12 +214,12 @@ public class SnapshotService {
                                                Snapshot snapshot,
                                                SnapshotSource snapshotSource) {
 
-        List<Table> tableList = new ArrayList<>();
+        List<SnapshotTable> tableList = new ArrayList<>();
         List<SnapshotMapTable> mapTableList = new ArrayList<>();
 
         for (AssetTable assetTable : asset.getAssetTables()) {
             // Create early so we can hook up back pointers.
-            Table table = new Table();
+            SnapshotTable table = new SnapshotTable();
 
             // Build the column lists in parallel, so we can easily connect the
             // map column to the snapshot column.

@@ -22,22 +22,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Component
 public class DataLocationService {
 
     private static final Logger logger = LoggerFactory.getLogger(DataLocationService.class);
-    private static final List<String> DATA_PROJECT_SERVICE_IDS =  Arrays.asList(
+    // TODO: this feels like it should live in a different place, maybe GoogleResourceConfiguration?
+    public static final List<String> DATA_PROJECT_SERVICE_IDS = Collections.unmodifiableList(Arrays.asList(
         "bigquery-json.googleapis.com",
         "firestore.googleapis.com",
         "firebaserules.googleapis.com",
         "storage-component.googleapis.com",
         "storage-api.googleapis.com",
         "cloudbilling.googleapis.com"
-    );
+    ));
 
     private final DataProjectDao dataProjectDao;
     private final DataLocationSelector dataLocationSelector;
@@ -64,11 +65,10 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public GoogleBucketResource getBucketForFile(String profileId, String resourceId) {
+    public GoogleBucketResource getBucketForFile(String profileId, String bucketResourceId) {
         // If this isn't the first time we've seen this file, it should have a bucket resource id we can look up
-        Optional<String> bucketResourceId = Optional.ofNullable(resourceId);
-        if (bucketResourceId.isPresent()) {
-            return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId.get()));
+        if (bucketResourceId != null) {
+            return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
         }
 
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)

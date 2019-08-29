@@ -9,14 +9,15 @@ import bio.terra.service.JobMapKeys;
 import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
 public class FileDeleteFlight extends Flight {
 
-    public FileDeleteFlight(FlightMap inputParameters, Object applicationContext) {
-        super(inputParameters, applicationContext);
+    public FileDeleteFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
+        super(inputParameters, applicationContext, userRequestInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");

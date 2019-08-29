@@ -4,8 +4,6 @@ import bio.terra.category.Integration;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.DRSAccessMethod;
-import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -31,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,7 +37,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -49,6 +48,7 @@ import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
 public class AccessTest extends UsersBase {
@@ -64,6 +64,7 @@ public class AccessTest extends UsersBase {
     private String custodianToken;
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
+    private String profileId;
 
     @Before
     public void setup() throws Exception {
@@ -73,6 +74,7 @@ public class AccessTest extends UsersBase {
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
     }
 
     private Storage getStorage(String token) {
@@ -139,7 +141,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
+            new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,
@@ -159,11 +161,12 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
 
-        // Step 1. Ingest a file into the study
+        // Step 1. Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
             steward(),
             datasetSummaryModel.getId(),
+            profileId,
             gsPath + "/files/File%20Design%20Notes.pdf",
             "/foo/bar");
 
@@ -202,7 +205,7 @@ public class AccessTest extends UsersBase {
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
-            new AuthenticatedUserRequest(reader().getEmail(), readerToken);
+            new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
         assertThat("correctly added reader", samClientService.isAuthorized(
             authenticatedReaderRequest,
             SamClientService.ResourceType.DATASNAPSHOT,
@@ -224,13 +227,10 @@ public class AccessTest extends UsersBase {
 
         // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
         DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
-        List<DRSAccessMethod> accessMethods = drsObject.getAccessMethods();
-        assertThat("access method is not null and length 1", accessMethods.size(), equalTo(1));
+        String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods());
 
-        // Step 7. Pull out the gs path try to read the file as reader and discoverer
-        DRSAccessURL accessUrl = accessMethods.get(0).getAccessUrl();
-
-        String[] strings = accessUrl.getUrl().split("/", 4);
+        // Step 7. Try to read the file of the gs path as reader and discoverer
+        String[] strings = gsuri.split("/", 4);
 
         String bucketName = strings[2];
         String blobName = strings[3];

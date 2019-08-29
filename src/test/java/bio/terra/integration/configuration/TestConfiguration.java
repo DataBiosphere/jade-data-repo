@@ -2,7 +2,6 @@ package bio.terra.integration.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -10,7 +9,6 @@ import java.util.List;
 
 @Component
 @EnableConfigurationProperties
-@Profile("integrationtest")
 @ConfigurationProperties(prefix = "it")
 public class TestConfiguration {
     private String jadeApiUrl;
@@ -24,6 +22,7 @@ public class TestConfiguration {
         private String role;
         private String name;
         private String email;
+        private String subjectId;
 
         public String getRole() {
             return role;
@@ -47,6 +46,14 @@ public class TestConfiguration {
 
         public void setEmail(String email) {
             this.email = email;
+        }
+
+        public String getSubjectId() {
+            return subjectId;
+        }
+
+        public void setSubjectId(String subjectId) {
+            this.subjectId = subjectId;
         }
     }
 

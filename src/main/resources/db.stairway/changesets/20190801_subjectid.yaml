@@ -1,0 +1,18 @@
+databaseChangeLog:
+  - changeSet:
+      id: add_subject
+      author: ah
+      changes:
+        - addColumn:
+            tableName: flight
+            columns:
+              - column:
+                  name: owner_id
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: owner_email
+                  type: text
+                  constraints:
+                    nullable: false

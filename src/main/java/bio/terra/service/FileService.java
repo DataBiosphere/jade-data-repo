@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
@@ -14,46 +15,57 @@ import bio.terra.model.FSObjectModel;
 import bio.terra.model.FSObjectModelType;
 import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Component
 public class FileService {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
 
+    private final JobService jobService;
     private final Stairway stairway;
     private final FireStoreDao fileDao;
     private  final DatasetService datasetService;
 
     @Autowired
-    public FileService(Stairway stairway, FireStoreDao fileDao, DatasetService datasetService) {
+    public FileService(JobService jobService, Stairway stairway, FireStoreDao fileDao, DatasetService datasetService) {
         this.stairway = stairway;
         this.fileDao = fileDao;
         this.datasetService = datasetService;
+        this.jobService = jobService;
     }
 
-    public String deleteFile(String datasetId, String fileId) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Delete file from dataset " + datasetId + " file " + fileId);
-        flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileId);
-        return stairway.submit(FileDeleteFlight.class, flightMap);
+    public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
+        return jobService.submit(
+            "Delete file from dataset " + datasetId + " file " + fileId,
+            FileDeleteFlight.class,
+            null,
+            Stream.of(
+                new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
+                new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.FILE_ID.getKeyName(), fileId))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
+            userReq);
     }
 
-    public String ingestFile(String datasetId, FileLoadModel fileLoad) {
-        FlightMap flightMap = new FlightMap();
-        flightMap.put(JobMapKeys.DESCRIPTION.getKeyName(), "Ingest file " + fileLoad.getTargetPath());
-        flightMap.put(JobMapKeys.DATASET_ID.getKeyName(), datasetId);
-        flightMap.put(JobMapKeys.REQUEST.getKeyName(), fileLoad);
-        return stairway.submit(FileIngestFlight.class, flightMap);
+    public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
+        return jobService.submit(
+            "Ingest file " + fileLoad.getTargetPath(),
+            FileIngestFlight.class,
+            fileLoad,
+            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
+            userReq);
     }
 
     // depth == -1 means expand the entire sub-tree from this node
@@ -68,12 +80,12 @@ public class FileService {
         return fileModelFromFSObject(fsObject);
     }
 
-    FSObjectBase lookupFSObject(String datasetId, String fileId, int depth) {
+    public FSObjectBase lookupFSObject(String datasetId, String fileId, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
         return fileDao.retrieveById(dataset, fileId, depth, true);
     }
 
-    FSObjectBase lookupFSObjectByPath(String datasetId, String path, int depth) {
+    public FSObjectBase lookupFSObjectByPath(String datasetId, String path, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
         return fileDao.retrieveByPath(dataset, path, depth, true);
     }

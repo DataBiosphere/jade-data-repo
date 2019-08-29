@@ -26,7 +26,6 @@ import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -56,7 +55,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // Common code for creating and deleting datasets and snapshots via MockMvc
 // and tracking what is created so it can be deleted.
 @Component
-@Profile("connectedtest")
 public class ConnectedOperations {
     private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
 
@@ -129,7 +127,7 @@ public class ConnectedOperations {
         return datasetSummaryModel;
     }
 
-    public BillingProfileModel getOrCreateProfileForAccount(String billingAccountId) throws Exception {
+    public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
         BillingProfileRequestModel profileRequestModel = ProfileFixtures.randomBillingProfileRequest()
             .billingAccountId(billingAccountId);
         return createProfile(profileRequestModel);
@@ -289,6 +287,18 @@ public class ConnectedOperations {
         return ingestResponse;
     }
 
+    public ErrorModel ingestTableFailure(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
+        String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+        return handleAsyncFailureCase(response);
+    }
+
     public FSObjectModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
@@ -423,5 +433,6 @@ public class ConnectedOperations {
         createdFileIds = new ArrayList<>();
         createdDatasetIds = new ArrayList<>();
         createdProfileIds = new ArrayList<>();
+        createdBuckets = new ArrayList<>();
     }
 }

@@ -16,9 +16,10 @@ public class FlightContext {
     private boolean doing; // true - executing do's; false - executing undo's
     private StepResult result; // current step status
     private FlightStatus flightStatus; // Status: RUNNING while the flight is running; SUCCESS/FAILED when it completes
+    private UserRequestInfo user;
 
     // Construct the context with defaults
-    public FlightContext(FlightMap inputParameters, String flightClassName) {
+    public FlightContext(FlightMap inputParameters, String flightClassName, UserRequestInfo user) {
         this.inputParameters = inputParameters;
         this.inputParameters.makeImmutable();
         this.flightClassName = flightClassName;
@@ -27,6 +28,7 @@ public class FlightContext {
         this.doing = true;
         this.result = StepResult.getStepResultSuccess();
         this.flightStatus = FlightStatus.RUNNING;
+        this.user = user;
     }
 
     public String getFlightId() {
@@ -50,6 +52,14 @@ public class FlightContext {
     // to encapsulate it in this class.
     public FlightMap getWorkingMap() {
         return workingMap;
+    }
+
+    public UserRequestInfo getUser() {
+        return user;
+    }
+
+    public void setUser(UserRequestInfo user) {
+        this.user = user;
     }
 
     public int getStepIndex() {

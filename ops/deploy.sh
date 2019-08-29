@@ -14,6 +14,9 @@ set -e
 : ${ENVIRONMENT:?}
 : ${SUFFIX:?}
 
+export SIDECAR_IMAGE_TAG=${SIDECAR_IMAGE_TAG:-'0.4.3'}
+export KUBE_NAMESPACE=${KUBE_NAMESPACE:-'data-repo'}
+
 if [ -z "$VAULT_TOKEN" ]; then
     if [ ! -f ~/.vault-token ]; then
         echo "VAULT_TOKEN needs to be set or ~/.vault-token needs to exist"
@@ -85,7 +88,7 @@ consul-template -template "${WD}/k8s/secrets/grafana-config.yaml.ctmpl:${SCRATCH
 kubectl create -f ${SCRATCH}/grafana-config.yaml --namespace data-repo
 
 # create service account and pod security policy
-kubectl apply --namespace data-repo -f "${WD}/k8s/psp"
+kubectl apply --namespace="${KUBE_NAMESPACE}" -f "${WD}/k8s/psp"
 
 # render secrets, create or update on kubernetes
 consul-template -template "${WD}/k8s/secrets/api-secrets.yaml.ctmpl:${SCRATCH}/api-secrets.yaml" -once
@@ -116,7 +119,7 @@ EOF
 )"
 echo "${ca_bundle}" > ${SCRATCH}/tls.crt
 docker run --rm -it -v "$PWD":/working -v ${HOME}/.vault-token:/root/.vault-token broadinstitute/dsde-toolbox vault read --format=json secret/dsde/datarepo/${ENVIRONMENT}/common/server.key | jq -r .data.value | tr -d '\r' > ${SCRATCH}/tls.key
-kubectl --namespace=data-repo create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
+kubectl --namespace="${KUBE_NAMESPACE}" create secret generic wildcard.datarepo.broadinstitute.org --from-file=${SCRATCH}/tls.key --from-file=${SCRATCH}/tls.crt
 
 rm ${SCRATCH}/tls.crt ${SCRATCH}/tls.key
 
@@ -127,13 +130,17 @@ kubectl apply -f "${WD}/k8s/services"
 consul-template -template "${WD}/k8s/deployments/oidc-proxy-deployment.yaml.ctmpl:${SCRATCH}/oidc-proxy-deployment.yaml" -once
 consul-template -template "${WD}/k8s/deployments/cloudsql-proxy.yaml.ctmpl:${SCRATCH}/cloudsql-proxy.yaml" -once
 consul-template -template "${WD}/k8s/services/oidc-ingress.yaml.ctmpl:${SCRATCH}/oidc-ingress.yaml" -once
-kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
-kubectl --namespace=data-repo apply -f "${SCRATCH}/cloudsql-proxy.yaml"
-kubectl --namespace=data-repo apply -f "${SCRATCH}/oidc-ingress.yaml"
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/oidc-proxy-deployment.yaml"
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/cloudsql-proxy.yaml"
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/oidc-ingress.yaml"
+
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/prometheus.yaml" --as=admin --as-group=system:masters
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/node-exporter.yaml" --as=admin --as-group=system:masters
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/kube-state-metrics.yaml"
 
 
 # create deployments
-kubectl --namespace data-repo apply -f "${WD}/k8s/deployments/"
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${WD}/k8s/deployments/"
 
 # build a docker container and push it to gcr
 pushd ${WD}/..

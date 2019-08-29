@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
@@ -40,6 +41,7 @@ public class DrsService {
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
     private final DatasetService datasetService;
+    private final SamClientService samService;
 
     @Autowired
     public DrsService(DatasetDao datasetDao,
@@ -48,7 +50,8 @@ public class DrsService {
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
-                      DatasetService datasetService) {
+                      DatasetService datasetService,
+                      SamClientService samService) {
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
@@ -56,10 +59,19 @@ public class DrsService {
         this.drsIdService = drsIdService;
         this.gcsConfiguration = gcsConfiguration;
         this.datasetService = datasetService;
+        this.samService = samService;
     }
 
-    public DRSObject lookupObjectByDrsId(String drsObjectId, Boolean expand) {
+    public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
+
+        // Make sure requester is a READER on the snapshot
+        samService.verifyAuthorization(
+            authUser,
+            SamClientService.ResourceType.DATASNAPSHOT,
+            drsId.getSnapshotId(),
+            SamClientService.DataRepoAction.READ_DATA);
+
         int depth = (expand ? -1 : 1);
 
         FSObjectBase fsObject = fileService.lookupFSObject(
@@ -117,8 +129,8 @@ public class DrsService {
         return new DRSObject()
             .id(drsId.toDrsObjectId())
             .name(getLastNameFromPath(fsObject.getPath()))
-            .created(theTime)
-            .updated(theTime)
+            .createdTime(theTime)
+            .updatedTime(theTime)
             .version(DRS_OBJECT_VERSION)
             .description(fsObject.getDescription())
             .aliases(Collections.singletonList(fsObject.getPath()));

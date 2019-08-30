@@ -1,12 +1,14 @@
 package bio.terra.resourcemanagement.metadata.google;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class GoogleProjectRequest {
     private UUID profileId;
     private String projectId;
     private List<String> serviceIds;
+    private Map<String, String> userPermissions;
 
     public UUID getProfileId() {
         return profileId;
@@ -32,6 +34,15 @@ public class GoogleProjectRequest {
 
     public GoogleProjectRequest serviceIds(List<String> serviceIds) {
         this.serviceIds = serviceIds;
+        return this;
+    }
+
+    public Map<String, String> getUserPermissions() {
+        return userPermissions;
+    }
+
+    public GoogleProjectRequest userPermissions(Map<String, String> userPermissions) {
+        this.userPermissions = userPermissions;
         return this;
     }
 }

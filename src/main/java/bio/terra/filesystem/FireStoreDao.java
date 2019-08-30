@@ -5,6 +5,7 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.Snapshot;
 import com.google.cloud.firestore.Firestore;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,8 +73,9 @@ public class FireStoreDao {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         fileDao.deleteFilesFromDataset(firestore, datasetId, func);
-        directoryDao.deleteDirectoryEntriesFromDataset(firestore, datasetId);
+        directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
     }
+
     public FireStoreObject lookupDirectoryEntry(Dataset dataset, String objectId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
@@ -92,6 +94,36 @@ public class FireStoreDao {
         return fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
     }
 
+    public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds) {
+        Firestore datasetFirestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
+        Firestore snapshotFirestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
+        String datasetId = dataset.getId().toString();
+        // TODO: Do we need to clean up the database name?
+        String datasetName = dataset.getName();
+        String snapshotId = snapshot.getId().toString();
+
+        for (String objectId : refIds) {
+            directoryDao.addObjectToSnapshot(
+                datasetFirestore,
+                datasetId,
+                datasetName,
+                snapshotFirestore,
+                snapshotId,
+                objectId);
+        }
+    }
+
+    public void deleteFilesFromSnapshot(Snapshot snapshot) {
+        Firestore firestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
+        String snapshotId = snapshot.getId().toString();
+        directoryDao.deleteDirectoryEntriesFromCollection(firestore, snapshotId);
+    }
+
+    public void snapshotCompute(Snapshot snapshot) {
+        Firestore firestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
+        String snapshotId = snapshot.getId().toString();
+        directoryDao.snapshotCompute(firestore, snapshotId);
+    }
 
     /**
      * Retrieve an FS Object by path

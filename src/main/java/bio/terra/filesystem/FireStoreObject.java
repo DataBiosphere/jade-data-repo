@@ -118,6 +118,20 @@ public class FireStoreObject {
         return this;
     }
 
+    public FireStoreObject copyObjectUnderNewPath(String newPath) {
+        String path = "/" + newPath + getPath();
+        return new FireStoreObject()
+            .objectId(getObjectId())
+            .fileRef(getFileRef())
+            .path(newPath)
+            .name(getName())
+            .datasetId(getDatasetId())
+            .fileCreatedDate(getFileCreatedDate())
+            .checksumCrc32c(getChecksumCrc32c())
+            .checksumMd5(getChecksumMd5())
+            .size(getSize());
+    }
+
     @Override
     public String toString() {
         return new ToStringBuilder(this)

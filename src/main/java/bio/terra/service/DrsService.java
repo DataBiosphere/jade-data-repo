@@ -5,6 +5,7 @@ import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
+import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
@@ -23,6 +24,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -64,12 +69,13 @@ public class DrsService {
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
+        String snapshotId = drsId.getSnapshotId();
 
         // Make sure requester is a READER on the snapshot
         samService.verifyAuthorization(
             authUser,
             SamClientService.ResourceType.DATASNAPSHOT,
-            drsId.getSnapshotId(),
+            snapshotId,
             SamClientService.DataRepoAction.READ_DATA);
 
         int depth = (expand ? -1 : 1);
@@ -80,51 +86,65 @@ public class DrsService {
             depth);
 
         if (fsObject instanceof FSFile) {
-            return drsObjectFromFSFile((FSFile)fsObject, fsObject.getDatasetId().toString());
+            return drsObjectFromFSFile((FSFile)fsObject, snapshotId, authUser);
         } else if (fsObject instanceof FSDir) {
-            return drsObjectFromFSDir((FSDir)fsObject, fsObject.getDatasetId().toString());
+            return drsObjectFromFSDir((FSDir)fsObject, snapshotId.toString());
         }
 
         throw new IllegalArgumentException("Invalid object type");
     }
 
-    private DRSObject drsObjectFromFSFile(FSFile fsFile, String datasetId) {
-        DRSObject fileObject = makeCommonDrsObject(fsFile, datasetId);
+    private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
+        DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
-        DRSAccessURL accessURL = new DRSAccessURL()
+        DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
 
-        DRSAccessMethod accessMethod = new DRSAccessMethod()
+        DRSAccessMethod gsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
-            .accessUrl(accessURL)
+            .accessUrl(gsAccessURL)
             .region(fsFile.getRegion());
+
+        DRSAccessURL httpsAccessURL = new DRSAccessURL()
+            .url(makeHttpsFromGs(fsFile.getGspath()))
+            .headers(makeAuthHeader(authUser));
+
+        DRSAccessMethod httpsAccessMethod = new DRSAccessMethod()
+            .type(DRSAccessMethod.TypeEnum.HTTPS)
+            .accessUrl(httpsAccessURL)
+            .region(fsFile.getRegion());
+
+        List<DRSAccessMethod> accessMethods = new ArrayList<>();
+        accessMethods.add(gsAccessMethod);
+        accessMethods.add(httpsAccessMethod);
+
 
         fileObject
             .size(fsFile.getSize())
             .mimeType(fsFile.getMimeType())
             .checksums(fileService.makeChecksums(fsFile))
-            .accessMethods(Collections.singletonList(accessMethod));
+            .accessMethods(accessMethods);
 
         return fileObject;
     }
 
-    private DRSObject drsObjectFromFSDir(FSDir fsDir, String datasetId) {
-        DRSObject dirObject = makeCommonDrsObject(fsDir, datasetId);
+    private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {
+        DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
         // TODO: Directory size and checksum not yet implemented
         DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
         dirObject
             .size(0L)
             .addChecksumsItem(drsChecksum)
-            .contents(makeContentsList(fsDir, datasetId));
+            .contents(makeContentsList(fsDir, snapshotId));
 
         return dirObject;
     }
 
-    private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String datasetId) {
+    private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String snapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsObject.getCreatedDate().toString();
-        DrsId drsId = makeDrsId(fsObject, datasetId);
+        DrsId drsId = makeDrsId(fsObject, snapshotId);
 
         return new DRSObject()
             .id(drsId.toDrsObjectId())
@@ -136,18 +156,18 @@ public class DrsService {
             .aliases(Collections.singletonList(fsObject.getPath()));
     }
 
-    private List<DRSContentsObject> makeContentsList(FSDir fsDir, String datasetId) {
+    private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
         List<DRSContentsObject> contentsList = new ArrayList<>();
 
         for (FSObjectBase fsObject : fsDir.getContents()) {
-            contentsList.add(makeDrsContentsObject(fsObject, datasetId));
+            contentsList.add(makeDrsContentsObject(fsObject, snapshotId));
         }
 
         return contentsList;
     }
 
-    private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String datasetId) {
-        DrsId drsId = makeDrsId(fsObject, datasetId);
+    private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String snapshotId) {
+        DrsId drsId = makeDrsId(fsObject, snapshotId);
 
         List<String> drsUris = new ArrayList<>();
         drsUris.add(drsId.toDrsUri());
@@ -160,7 +180,7 @@ public class DrsService {
         if (fsObject instanceof FSDir) {
             FSDir fsDir = (FSDir) fsObject;
             if (fsDir.isEnumerated()) {
-                contentsObject.contents(makeContentsList(fsDir, datasetId));
+                contentsObject.contents(makeContentsList(fsDir, snapshotId));
             }
         }
 
@@ -173,6 +193,23 @@ public class DrsService {
             .snapshotId(snapshotId)
             .fsObjectId(fsObject.getObjectId().toString())
             .build();
+    }
+
+    private String makeHttpsFromGs(String gspath) {
+        try {
+            URI gsuri = URI.create(gspath);
+            String gsBucket = gsuri.getAuthority();
+            String gsPath = StringUtils.removeStart(gsuri.getPath(), "/");
+            String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString());
+            return String.format("https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
+        } catch (UnsupportedEncodingException ex) {
+            throw new InternalServerErrorException("Failed to urlencode file path", ex);
+        }
+    }
+
+    private List<String> makeAuthHeader(AuthenticatedUserRequest authUser) {
+        String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());
+        return Collections.singletonList(hdr);
     }
 
     private String getLastNameFromPath(String path) {

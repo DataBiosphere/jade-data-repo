@@ -6,6 +6,8 @@ import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.codec.digest.PureJavaCrc32C;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -111,7 +113,16 @@ public class FireStoreUtils {
         }
     }
 
+    String computeMd5(String input) {
+        return StringUtils.lowerCase(DigestUtils.md5Hex(input));
+    }
 
+    String computeCrc32c(String input) {
+        byte[] inputBytes = input.getBytes();
+        PureJavaCrc32C crc = new PureJavaCrc32C();
+        crc.update(inputBytes, 0, inputBytes.length);
+        return Long.toHexString(crc.getValue());
+    }
 
 
 

@@ -13,16 +13,12 @@ import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.Transaction;
 import com.google.cloud.firestore.WriteResult;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -428,18 +424,14 @@ public class FireStoreDirectoryDao {
 
     public void snapshotCompute(Firestore firestore, String snapshotId) {
         FireStoreObject topDir = retrieveByPath(firestore, snapshotId, "/");
-
-
-
-
+        computeDirectory(firestore, snapshotId, topDir);
     }
 
     private FireStoreObject computeDirectory(Firestore firestore, String snapshotId, FireStoreObject dirObject) {
 
         List<FireStoreObject> enumDir = enumerateDirectory(firestore, snapshotId, "/");
 
-        // One pass to compute results from underlying directories
-        // Second pass to compute our results
+        // Recurse to compute results from underlying directories
         List<FireStoreObject> enumComputed = new ArrayList<>();
         for (FireStoreObject dirItem : enumDir) {
             if (dirItem.getFileRef()) {
@@ -449,34 +441,43 @@ public class FireStoreDirectoryDao {
             }
         }
 
+        // Collect the ingredients for computing this directory's checksums and size
         List<String> md5Collection = new ArrayList<>();
         List<String> crc32cCollection = new ArrayList<>();
         Long totalSize = 0L;
 
         for (FireStoreObject dirItem : enumComputed) {
             totalSize = totalSize + dirItem.getSize();
-            crc32cCollection.add(dirItem.getChecksumCrc32c());
+            crc32cCollection.add(StringUtils.lowerCase(dirItem.getChecksumCrc32c()));
             if (dirItem.getChecksumMd5() != null) {
-                md5Collection.add(dirItem.getChecksumMd5());
+                md5Collection.add(StringUtils.lowerCase(dirItem.getChecksumMd5()));
             }
         }
 
         // Compute checksums
+        // The spec is not 100% clear on the algorithm. I made specific choices on
+        // how to implement it:
+        // - set hex strings to lowercase before processing so we get consistent sort
+        //   and digest results.
+        // - do not make leading zeros converting crc32 long to hex and it is returned
+        //   in lowercase. (The semantics of toHexString).
         Collections.sort(md5Collection);
         String md5Concat = StringUtils.join(md5Collection);
-        String md5Checksum = DigestUtils.md5Hex(md5Concat);
+        String md5Checksum = fireStoreUtils.computeMd5(md5Concat);
 
         Collections.sort(crc32cCollection);
-        String crc32cConcat = StringUtils.join(crc32cCollection);
-        // <<< YOU ARAE HERE >>>
-        // Find CRC32C algorithm again...
 
+        String crc32cConcat = StringUtils.join(crc32cCollection);
+        String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
         dirObject
+            .checksumCrc32c(crc32cChecksum)
             .checksumMd5(md5Checksum)
             .size(totalSize);
 
+        // Update the directory in place
+        updateFileStoreObject(firestore, snapshotId, dirObject);
+
+        return dirObject;
     }
-
-
 
 }

@@ -22,7 +22,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
@@ -339,12 +338,12 @@ public class FireStoreDirectoryDao {
             // objects as we go. More efficient, but an entirely separate code path...
         }
 
+        // Create the top directory structure (/_dr_/<datasetDirName>)
+        storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
+
         // Store the base object under the datasetDir
         FireStoreObject snapObject = datasetObject.copyObjectUnderNewPath(datasetDirName);
         storeFileStoreObject(snapshotFirestore, snapshotId, snapObject);
-
-        // Store the top level directory
-        storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
 
         // Now we walk up the *dataset* directory path, retrieving existing directories.
         // For each directory, we make a new object under the datasetDir path and store it.
@@ -362,17 +361,24 @@ public class FireStoreDirectoryDao {
     }
 
     private void storeTopDirectory(Firestore firestore, String collectionId, String dirName) {
-        // We rely on the lookup of the object being by path, so different object ids
-        // won't conflict.
-        String dirPath = fireStoreUtils.getDirectoryPath("/");
-        String objName = fireStoreUtils.getObjectName(dirName);
+        // We have to create the top directory structure for the dataset and the root folder.
+        // Those components cannot be copied from the dataset, but have to be created new
+        // in the snapshot directory. We probe to see if the dirName directory exists. If not,
+        // we use the createFileRef path to construct it and the parent, if necessary.
+        String dirPath = "/" + dirName;
+        DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, collectionId, dirPath);
+        if (dirSnap.exists()) {
+            return;
+        }
+
         FireStoreObject topDir = new FireStoreObject()
             .objectId(UUID.randomUUID().toString())
             .fileRef(false)
-            .path(dirPath)
-            .name(objName)
+            .path("/")
+            .name(dirName)
             .fileCreatedDate(Instant.now().toString());
-        storeFileStoreObject(firestore, collectionId, topDir);
+
+        createFileRef(firestore, collectionId, topDir);
     }
 
     // Non-transactional store of a directory object
@@ -394,7 +400,7 @@ public class FireStoreDirectoryDao {
     }
 
     // Non-transactional update of a directory object
-    private void updateFileStoreObject(Firestore firestore, String collectionId, FireStoreObject fireStoreObject) {
+    void updateFileStoreObject(Firestore firestore, String collectionId, FireStoreObject fireStoreObject) {
         try {
             DocumentReference newRef = getDocRef(firestore, collectionId, fireStoreObject);
             ApiFuture<WriteResult> writeFuture = newRef.set(fireStoreObject);
@@ -420,64 +426,6 @@ public class FireStoreDirectoryDao {
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("lookupByPathNoXn - execution exception", ex);
         }
-    }
-
-    public void snapshotCompute(Firestore firestore, String snapshotId) {
-        FireStoreObject topDir = retrieveByPath(firestore, snapshotId, "/");
-        computeDirectory(firestore, snapshotId, topDir);
-    }
-
-    private FireStoreObject computeDirectory(Firestore firestore, String snapshotId, FireStoreObject dirObject) {
-
-        List<FireStoreObject> enumDir = enumerateDirectory(firestore, snapshotId, "/");
-
-        // Recurse to compute results from underlying directories
-        List<FireStoreObject> enumComputed = new ArrayList<>();
-        for (FireStoreObject dirItem : enumDir) {
-            if (dirItem.getFileRef()) {
-                enumComputed.add(dirItem);
-            } else {
-                enumComputed.add(computeDirectory(firestore, snapshotId, dirItem));
-            }
-        }
-
-        // Collect the ingredients for computing this directory's checksums and size
-        List<String> md5Collection = new ArrayList<>();
-        List<String> crc32cCollection = new ArrayList<>();
-        Long totalSize = 0L;
-
-        for (FireStoreObject dirItem : enumComputed) {
-            totalSize = totalSize + dirItem.getSize();
-            crc32cCollection.add(StringUtils.lowerCase(dirItem.getChecksumCrc32c()));
-            if (dirItem.getChecksumMd5() != null) {
-                md5Collection.add(StringUtils.lowerCase(dirItem.getChecksumMd5()));
-            }
-        }
-
-        // Compute checksums
-        // The spec is not 100% clear on the algorithm. I made specific choices on
-        // how to implement it:
-        // - set hex strings to lowercase before processing so we get consistent sort
-        //   and digest results.
-        // - do not make leading zeros converting crc32 long to hex and it is returned
-        //   in lowercase. (The semantics of toHexString).
-        Collections.sort(md5Collection);
-        String md5Concat = StringUtils.join(md5Collection);
-        String md5Checksum = fireStoreUtils.computeMd5(md5Concat);
-
-        Collections.sort(crc32cCollection);
-
-        String crc32cConcat = StringUtils.join(crc32cCollection);
-        String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
-        dirObject
-            .checksumCrc32c(crc32cChecksum)
-            .checksumMd5(md5Checksum)
-            .size(totalSize);
-
-        // Update the directory in place
-        updateFileStoreObject(firestore, snapshotId, dirObject);
-
-        return dirObject;
     }
 
 }

@@ -13,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -118,7 +119,7 @@ public class FireStoreUtils {
     }
 
     String computeCrc32c(String input) {
-        byte[] inputBytes = input.getBytes();
+        byte[] inputBytes = input.getBytes(StandardCharsets.UTF_8);
         PureJavaCrc32C crc = new PureJavaCrc32C();
         crc.update(inputBytes, 0, inputBytes.length);
         return Long.toHexString(crc.getValue());

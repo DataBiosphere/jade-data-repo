@@ -162,87 +162,18 @@ public class FireStoreDirectoryDaoTest {
         }
     }
 
-    // Test for snapshot file system
-    // collectionId is the datasetId
-    // snapshotId is obvious
-    // - create dataset file system
-    // - create subset snapshot file system
-    // - do the compute and validate
-    // Use binary for the sizes so each size combo will be unique
-    @Test
-    public void snapshotTest() throws Exception {
-        // Make "dataset" objects
-        List<FireStoreObject> snapObjects = new ArrayList<>();
-        snapObjects.add(makeFileObject("/adir/A1", 1));
-        snapObjects.add(makeFileObject("/adir/bdir/B1", 2));
-        snapObjects.add(makeFileObject("/adir/bdir/cdir/C1", 4));
-        snapObjects.add(makeFileObject("/adir/bdir/cdir/C2", 8));
-
-        List<FireStoreObject> dsetObjects = new ArrayList<>();
-        dsetObjects.add(makeFileObject("/adir/bdir/B2", 16));
-        dsetObjects.add(makeFileObject("/adir/A2", 32));
-
-        List<FireStoreObject> fileObjects = new ArrayList<>(snapObjects);
-        fileObjects.addAll(dsetObjects);
-
-        for (FireStoreObject fireStoreObject : fileObjects) {
-            directoryDao.createFileRef(firestore, collectionId, fireStoreObject);
-        }
-
-        // Make the snapshot file system
-        String snapshotId = "directorySnapTest_" + pretendDatasetId;
-        for (FireStoreObject fireStoreObject : snapObjects) {
-            directoryDao.addObjectToSnapshot(
-                firestore,
-                collectionId,
-                "dataset",
-                firestore,
-                snapshotId,
-                fireStoreObject.getObjectId());
-        }
-
-        // Validate we can lookup files in the snapshot
-        for (FireStoreObject dsetObject : snapObjects) {
-            FireStoreObject snapObject = directoryDao.retrieveById(firestore, snapshotId, dsetObject.getObjectId());
-            assertNotNull("object found in snapshot", snapObject);
-            assertThat("objectId matches", snapObject.getObjectId(), equalTo(dsetObject.getObjectId()));
-            assertThat("path does not match", snapObject.getPath(), equalTo(dsetObject.getPath()));
-        }
-
-        // Validate we cannot lookup dataset files in the snapshot
-        for (FireStoreObject dsetObject : dsetObjects) {
-            FireStoreObject snapObject = directoryDao.retrieveById(firestore, snapshotId, dsetObject.getObjectId());
-            assertNull("object not found in snapshot", snapObject);
-        }
-
-        // Compute the size and checksums
-        directoryDao.snapshotCompute(firestore, snapshotId);
-
-        // Check the accumulated size on the root dir
-        FireStoreObject snapObject = directoryDao.retrieveByPath(firestore, snapshotId, "/");
-        assertNotNull("root exists", snapObject);
-        assertThat("Total size is correct", snapObject.getSize(), equalTo(15L));
-    }
-
     private String retrieveDirectoryObjectId(String fullPath) {
         FireStoreObject fireStoreObject = directoryDao.retrieveByPath(firestore, collectionId, fullPath);
         return fireStoreObject.getObjectId();
     }
 
     private FireStoreObject makeFileObject(String fullPath) {
-        return makeFileObject(fullPath, 0L);
-    }
-
-    private FireStoreObject makeFileObject(String fullPath, long size) {
         return new FireStoreObject()
             .objectId(UUID.randomUUID().toString())
             .fileRef(true)
             .path(fireStoreUtils.getDirectoryPath(fullPath))
             .name(fireStoreUtils.getObjectName(fullPath))
-            .datasetId(pretendDatasetId)
-            .size(size)
-            .checksumCrc32c(fireStoreUtils.computeCrc32c(fullPath))
-            .checksumMd5(fireStoreUtils.computeMd5(fullPath));
+            .datasetId(pretendDatasetId);
     }
 
 }

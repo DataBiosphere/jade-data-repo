@@ -1,6 +1,5 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.metadata.Dataset;
@@ -11,6 +10,7 @@ import bio.terra.metadata.SnapshotSource;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
+import bio.terra.service.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -21,20 +21,20 @@ import java.util.List;
 public class CreateSnapshotFireStoreDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
-    private SnapshotDao snapshotDao;
+    private SnapshotService snapshotService;
     private FireStoreDependencyDao dependencyDao;
     private DatasetService datasetService;
     private SnapshotRequestModel snapshotReq;
     private FireStoreDao fileDao;
 
     public CreateSnapshotFireStoreDataStep(BigQueryPdao bigQueryPdao,
-                                           SnapshotDao snapshotDao,
+                                           SnapshotService snapshotService,
                                            FireStoreDependencyDao dependencyDao,
                                            DatasetService datasetService,
                                            SnapshotRequestModel snapshotReq,
                                            FireStoreDao fileDao) {
         this.bigQueryPdao = bigQueryPdao;
-        this.snapshotDao = snapshotDao;
+        this.snapshotService = snapshotService;
         this.dependencyDao = dependencyDao;
         this.datasetService = datasetService;
         this.snapshotReq = snapshotReq;
@@ -43,7 +43,8 @@ public class CreateSnapshotFireStoreDataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
+        // We need a complete snapshot; use the snapshotService to get one.
+        Snapshot snapshot = snapshotService.retrieveSnapshotByName(snapshotReq.getName());
 
         // Build the snapshot file system and record the file dependencies
         // The algorithm is:
@@ -83,7 +84,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // Remove the snapshot file system and any file dependencies created
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
+        Snapshot snapshot = snapshotService.retrieveSnapshotByName(snapshotReq.getName());
         fileDao.deleteFilesFromSnapshot(snapshot);
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());

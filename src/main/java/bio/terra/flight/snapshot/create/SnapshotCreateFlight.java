@@ -46,9 +46,9 @@ public class SnapshotCreateFlight extends Flight {
         addStep(new CreateSnapshotPrimaryDataStep(
             bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq));
         addStep(new CreateSnapshotFireStoreDataStep(
-            bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq, fileDao));
-        addStep(new CreateSnapshotFireStoreComputeStep(snapshotDao, snapshotReq, fileDao));
+            bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
+        addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
         addStep(new AuthorizeSnapshot(
-            bigQueryPdao, samClient, dependencyDao, snapshotDao, gcsPdao, datasetService, snapshotReq, userReq));
+            bigQueryPdao, samClient, dependencyDao, snapshotService, gcsPdao, datasetService, snapshotReq, userReq));
     }
 }

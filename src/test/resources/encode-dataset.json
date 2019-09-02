@@ -1,7 +1,7 @@
 {
-    "name": "ENCODE",
-    "description": "V1 for Broad-hosted ENCODE data",
-    "schema": {
+  "name": "ENCODE",
+  "description": "V1 for Broad-hosted ENCODE data",
+  "schema": {
         "tables": [
             {
                 "name": "assay",

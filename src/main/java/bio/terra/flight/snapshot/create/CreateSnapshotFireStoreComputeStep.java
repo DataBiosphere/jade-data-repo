@@ -1,30 +1,31 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.dao.SnapshotDao;
+
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Snapshot;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
 public class CreateSnapshotFireStoreComputeStep implements Step {
 
-    private SnapshotDao snapshotDao;
+    private SnapshotService snapshotService;
     private SnapshotRequestModel snapshotReq;
     private FireStoreDao fileDao;
 
-    public CreateSnapshotFireStoreComputeStep(SnapshotDao snapshotDao,
+    public CreateSnapshotFireStoreComputeStep(SnapshotService snapshotService,
                                               SnapshotRequestModel snapshotReq,
                                               FireStoreDao fileDao) {
-        this.snapshotDao = snapshotDao;
+        this.snapshotService = snapshotService;
         this.snapshotReq = snapshotReq;
         this.fileDao = fileDao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
+        Snapshot snapshot = snapshotService.retrieveSnapshotByName(snapshotReq.getName());
         fileDao.snapshotCompute(snapshot);
         return StepResult.getStepResultSuccess();
     }

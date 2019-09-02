@@ -1,7 +1,6 @@
 package bio.terra.flight.snapshot.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.SnapshotDao;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
@@ -14,6 +13,7 @@ import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
+import bio.terra.service.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -31,7 +31,7 @@ public class AuthorizeSnapshot implements Step {
     private SamClientService sam;
     private BigQueryPdao bigQueryPdao;
     private FireStoreDependencyDao fireStoreDao;
-    private SnapshotDao snapshotDao;
+    private SnapshotService snapshotService;
     private GcsPdao gcsPdao;
     private DatasetService datasetService;
     private AuthenticatedUserRequest userReq;
@@ -41,7 +41,7 @@ public class AuthorizeSnapshot implements Step {
     public AuthorizeSnapshot(BigQueryPdao bigQueryPdao,
                              SamClientService sam,
                              FireStoreDependencyDao fireStoreDao,
-                             SnapshotDao snapshotDao,
+                             SnapshotService snapshotService,
                              GcsPdao gcsPdao,
                              DatasetService datasetService,
                              SnapshotRequestModel snapshotReq,
@@ -49,7 +49,7 @@ public class AuthorizeSnapshot implements Step {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
         this.fireStoreDao = fireStoreDao;
-        this.snapshotDao = snapshotDao;
+        this.snapshotService = snapshotService;
         this.gcsPdao = gcsPdao;
         this.datasetService = datasetService;
         this.snapshotReq = snapshotReq;
@@ -60,7 +60,7 @@ public class AuthorizeSnapshot implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-        Snapshot snapshot = snapshotDao.retrieveSnapshot(snapshotId);
+        Snapshot snapshot = snapshotService.retrieveSnapshot(snapshotId);
         Optional<List<String>> readersList = Optional.ofNullable(snapshotReq.getReaders());
         try {
             // This returns the policy email created by Google to correspond to the readers list in SAM

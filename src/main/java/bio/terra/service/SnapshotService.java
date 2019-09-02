@@ -151,6 +151,16 @@ public class SnapshotService {
     }
 
     /**
+     * Return the snapshot
+     * @param name
+     * @return snapshot
+     */
+    public Snapshot retrieveSnapshotByName(String name) {
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(name);
+        return snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
+    }
+
+    /**
      * Make a Snapshot structure with all of its parts from an incoming snapshot request.
      * Note that the structure does not have UUIDs or created dates filled in. Those are
      * updated by the DAO when it stores the snapshot in the repository metadata.

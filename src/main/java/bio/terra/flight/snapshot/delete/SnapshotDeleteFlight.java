@@ -2,11 +2,13 @@ package bio.terra.flight.snapshot.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.SnapshotDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
+import bio.terra.service.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
@@ -23,7 +25,9 @@ public class SnapshotDeleteFlight extends Flight {
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         SnapshotDao snapshotDao = (SnapshotDao)appContext.getBean("snapshotDao");
+        SnapshotService snapshotService = (SnapshotService) appContext.getBean("snapshotService");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
+        FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
@@ -40,8 +44,13 @@ public class SnapshotDeleteFlight extends Flight {
         addStep(new DeleteSnapshotAuthzResource(samClient, snapshotId, userReq));
         // Must delete primary data before metadata; it relies on being able to retrieve the
         // snapshot object from the metadata to know what to delete.
-        addStep(
-            new DeleteSnapshotPrimaryDataStep(bigQueryPdao, snapshotDao, dependencyDao, snapshotId, datasetService));
+        addStep(new DeleteSnapshotPrimaryDataStep(
+            bigQueryPdao,
+            snapshotService,
+            dependencyDao,
+            fileDao,
+            snapshotId,
+            datasetService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
     }
 }

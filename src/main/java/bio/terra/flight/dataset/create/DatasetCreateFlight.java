@@ -30,7 +30,7 @@ public class DatasetCreateFlight extends Flight {
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
 
-        addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
+        addStep(new CreateDatasetMetadataStep(datasetDao, datasetService, datasetRequest));
         // TODO: create dataset data project step
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService));
         addStep(new CreateDatasetAuthzResource(samClient, bigQueryPdao, datasetService, userReq));

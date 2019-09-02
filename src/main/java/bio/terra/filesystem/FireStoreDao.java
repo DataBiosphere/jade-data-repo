@@ -124,7 +124,11 @@ public class FireStoreDao {
         Firestore firestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
         String snapshotId = snapshot.getId().toString();
         FireStoreObject topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
-        computeDirectory(firestore, snapshotId, topDir);
+        // If topDir is null, it means no files were added to the snapshot file system in the previous
+        // step. So there is nothing to compute
+        if (topDir != null) {
+            computeDirectory(firestore, snapshotId, topDir);
+        }
     }
 
     /**

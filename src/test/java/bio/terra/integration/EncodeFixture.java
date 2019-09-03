@@ -42,8 +42,8 @@ public class EncodeFixture {
     @Autowired private AuthService authService;
     @Autowired private TestConfiguration testConfiguration;
 
-    // Create study, load files and tables. Create and return dataset.
-    // Steward owns study; custodian is custodian on study; reader has access to the dataset.
+    // Create dataset, load files and tables. Create and return snapshot.
+    // Steward owns dataset; custodian is custodian on dataset; reader has access to the snapshot.
     // TODO: add tearDownEncode
     public SnapshotSummaryModel setupEncode(
         TestConfiguration.User steward,

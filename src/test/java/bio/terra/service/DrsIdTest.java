@@ -16,18 +16,16 @@ public class DrsIdTest {
         DrsId drsId = DrsId.builder()
             .dnsname("dns")
             .version("vv")
-            .datasetId("dataset")
             .snapshotId("snapshot")
             .fsObjectId("file")
             .build();
 
         assertThat("drsid constructor succeeds - dnsname",  drsId.getDnsname(), equalTo("dns"));
         assertThat("drsid constructor succeeds - version",  drsId.getVersion(), equalTo("vv"));
-        assertThat("drsid constructor succeeds - datasetId",  drsId.getDatasetId(), equalTo("dataset"));
         assertThat("drsid constructor succeeds - snapshotId",  drsId.getSnapshotId(), equalTo("snapshot"));
         assertThat("drsid constructor succeeds - fileId",  drsId.getFsObjectId(), equalTo("file"));
-        assertThat("drsid toDrsUri works", drsId.toDrsUri(), equalTo("drs://dns/vv_dataset_snapshot_file"));
-        assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("vv_dataset_snapshot_file"));
+        assertThat("drsid toDrsUri works", drsId.toDrsUri(), equalTo("drs://dns/vv_snapshot_file"));
+        assertThat("drsid toObjectId works", drsId.toDrsObjectId(), equalTo("vv_snapshot_file"));
     }
 
     @Test(expected = InvalidDrsIdException.class)
@@ -35,7 +33,6 @@ public class DrsIdTest {
         DrsId drsId = DrsId.builder()
             .dnsname("{[]}")
             .version("vv")
-            .datasetId("dataset")
             .snapshotId("{[]}")
             .fsObjectId("file")
             .build();

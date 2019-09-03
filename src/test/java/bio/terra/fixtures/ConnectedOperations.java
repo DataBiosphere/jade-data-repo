@@ -315,7 +315,7 @@ public class ConnectedOperations {
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
             CoreMatchers.equalTo(fileLoadModel.getMimeType()));
 
-        for (DRSChecksum checksum : fileModel.getFileDetail().getChecksums()) {
+        for (DRSChecksum checksum : fileModel.getChecksums()) {
             assertTrue("valid checksum type",
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));

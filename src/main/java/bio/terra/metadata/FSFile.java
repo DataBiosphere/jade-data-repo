@@ -75,6 +75,11 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
+    public FSFile collectionId(UUID collectionId) {
+        super.collectionId(collectionId);
+        return this;
+    }
+
     public FSFile createdDate(Instant createdDate) {
         super.createdDate(createdDate);
         return this;

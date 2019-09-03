@@ -278,6 +278,7 @@ public class FireStoreDao {
         FSFile fsFile = new FSFile();
         fsFile
             .objectId(UUID.fromString(objectId))
+            .collectionId(UUID.fromString(collectionId))
             .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
             .createdDate(Instant.parse(fireStoreFile.getFileCreatedDate()))
             .path(fullPath)

@@ -131,10 +131,13 @@ public class EncodeFileTest {
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
         // At this point, we have files and tabular data. Let's make a snapshot!
-
         MockHttpServletResponse response = connectedOperations.launchCreateSnapshot(
             datasetSummary, "encodefiletest-snapshot.json", "");
         SnapshotSummaryModel snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(response);
+
+// test snapshot lookup by id, by path, enumeration of different levels
+
+
 
         String snapshotFileId = getFileRefIdFromSnapshot(snapshotSummary);
 

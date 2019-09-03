@@ -17,7 +17,7 @@ import java.util.UUID;
  */
 public class FSObjectBase {
     private UUID objectId;
-    private UUID datasetId;
+    private UUID collectionId;
     private Instant createdDate;
     private String path;
     private String checksumCrc32c;
@@ -37,12 +37,12 @@ public class FSObjectBase {
         return this;
     }
 
-    public UUID getDatasetId() {
-        return datasetId;
+    public UUID getCollectionId() {
+        return collectionId;
     }
 
-    public FSObjectBase datasetId(UUID datasetId) {
-        this.datasetId = datasetId;
+    public FSObjectBase collectionId(UUID datasetId) {
+        this.collectionId = datasetId;
         return this;
     }
 
@@ -110,7 +110,7 @@ public class FSObjectBase {
 
         return new EqualsBuilder()
             .append(objectId, that.objectId)
-            .append(datasetId, that.datasetId)
+            .append(collectionId, that.collectionId)
             .append(createdDate, that.createdDate)
             .append(path, that.path)
             .append(checksumCrc32c, that.checksumCrc32c)
@@ -124,7 +124,7 @@ public class FSObjectBase {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
             .append(objectId)
-            .append(datasetId)
+            .append(collectionId)
             .append(createdDate)
             .append(path)
             .append(checksumCrc32c)
@@ -138,7 +138,7 @@ public class FSObjectBase {
     public String toString() {
         return new ToStringBuilder(this)
             .append("objectId", objectId)
-            .append("datasetId", datasetId)
+            .append("collectionId", collectionId)
             .append("createdDate", createdDate)
             .append("path", path)
             .append("checksumCrc32c", checksumCrc32c)

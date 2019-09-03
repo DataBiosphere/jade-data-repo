@@ -22,31 +22,28 @@ public class DrsIdService {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
     }
 
-    public String toDrsUri(String datasetId, String snapshotId, String fsObjectId) {
-        return fromParts(datasetId, snapshotId, fsObjectId).toDrsUri();
+    public String toDrsUri(String snapshotId, String fsObjectId) {
+        return fromParts(snapshotId, fsObjectId).toDrsUri();
     }
 
-    public String toDrsObjectId(String datasetId, String snapshotId, String fsObjectId) {
-        return fromParts(datasetId, snapshotId, fsObjectId).toDrsObjectId();
+    public String toDrsObjectId(String snapshotId, String fsObjectId) {
+        return fromParts(snapshotId, fsObjectId).toDrsObjectId();
     }
 
     public DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
         return fromParts(
-            fsObject.getDatasetId().toString(),
             snapshotId,
             fsObject.getObjectId().toString());
     }
 
-    private DrsId fromParts(String datasetId, String snapshotId, String fsObjectId) {
+    private DrsId fromParts(String snapshotId, String fsObjectId) {
         return DrsId.builder()
             .dnsname(datarepoDnsName)
             .version("v1")
-            .datasetId(datasetId)
             .snapshotId(snapshotId)
             .fsObjectId(fsObjectId)
             .build();
     }
-
 
     public DrsId fromUri(String drsuri) {
         URI uri = URI.create(drsuri);
@@ -65,17 +62,16 @@ public class DrsIdService {
     }
 
     private DrsId.Builder parseObjectId(String objectId) {
-        // The format is v1_<datasetid>_<snapshotid>_<fsobjectid>
+        // The format is v1_<snapshotid>_<fsobjectid>
         String[] idParts = StringUtils.split(objectId, '_');
-        if (idParts.length != 4 || !StringUtils.equals(idParts[0], "v1")) {
+        if (idParts.length != 3 || !StringUtils.equals(idParts[0], "v1")) {
             throw new InvalidDrsIdException("Invalid DRS object id '" + objectId + "'");
         }
 
         return DrsId.builder()
             .dnsname(datarepoDnsName)
             .version(idParts[0])
-            .datasetId(idParts[1])
-            .snapshotId(idParts[2])
-            .fsObjectId(idParts[3]);
+            .snapshotId(idParts[1])
+            .fsObjectId(idParts[2]);
     }
 }

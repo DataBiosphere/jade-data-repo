@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class Snapshot {
+public class Snapshot implements FSContainerInterface {
     private UUID id;
     private String name;
     private String description;

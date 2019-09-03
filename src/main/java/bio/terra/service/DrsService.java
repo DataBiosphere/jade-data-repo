@@ -3,7 +3,6 @@ package bio.terra.service;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
-import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDirectoryDao;
@@ -80,8 +79,8 @@ public class DrsService {
 
         int depth = (expand ? -1 : 1);
 
-        FSObjectBase fsObject = fileService.lookupFSObject(
-            drsId.getDatasetId(),
+        FSObjectBase fsObject = fileService.lookupSnapshotFSObject(
+            drsId.getSnapshotId(),
             drsId.getFsObjectId(),
             depth);
 
@@ -120,7 +119,6 @@ public class DrsService {
 
 
         fileObject
-            .size(fsFile.getSize())
             .mimeType(fsFile.getMimeType())
             .checksums(fileService.makeChecksums(fsFile))
             .accessMethods(accessMethods);
@@ -131,7 +129,8 @@ public class DrsService {
     private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {
         DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
-        // TODO: Directory size and checksum not yet implemented
+
+
         DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
         dirObject
             .size(0L)
@@ -153,7 +152,9 @@ public class DrsService {
             .updatedTime(theTime)
             .version(DRS_OBJECT_VERSION)
             .description(fsObject.getDescription())
-            .aliases(Collections.singletonList(fsObject.getPath()));
+            .aliases(Collections.singletonList(fsObject.getPath()))
+            .size(fsObject.getSize())
+            .checksums(fileService.makeChecksums(fsObject));
     }
 
     private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
@@ -189,7 +190,6 @@ public class DrsService {
 
     private DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
         return DrsId.builder()
-            .datasetId(fsObject.getDatasetId().toString())
             .snapshotId(snapshotId)
             .fsObjectId(fsObject.getObjectId().toString())
             .build();
@@ -220,17 +220,11 @@ public class DrsService {
     private DrsId parseAndValidateDrsId(String drsObjectId) {
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         try {
-            UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            datasetDao.retrieveSummaryById(datasetId);
-
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
             snapshotDao.retrieveSnapshotSummary(snapshotId);
-
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (DatasetNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
         } catch (SnapshotNotFoundException ex) {
             throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
         }

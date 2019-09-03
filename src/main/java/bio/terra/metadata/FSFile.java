@@ -8,11 +8,21 @@ import java.time.Instant;
 import java.util.UUID;
 
 public class FSFile extends FSObjectBase {
+    private UUID datasetId;
     private String gspath;
     private String mimeType;
     private String profileId;
     private String region;
     private String bucketResourceId;
+
+    public UUID getDatasetId() {
+        return datasetId;
+    }
+
+    public FSFile datasetId(UUID datasetId) {
+        this.datasetId = datasetId;
+        return this;
+    }
 
     public String getGspath() {
         return gspath;
@@ -62,11 +72,6 @@ public class FSFile extends FSObjectBase {
     // setters for super object, so fluent style works without ordering dependency
     public FSFile objectId(UUID objectId) {
         super.objectId(objectId);
-        return this;
-    }
-
-    public FSFile datasetId(UUID datasetId) {
-        super.datasetId(datasetId);
         return this;
     }
 

@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class Dataset {
+public class Dataset implements FSContainerInterface {
 
     private final DatasetSummary datasetSummary;
     private List<DatasetTable> tables = Collections.emptyList();

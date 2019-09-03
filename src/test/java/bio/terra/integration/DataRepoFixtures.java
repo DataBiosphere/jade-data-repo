@@ -32,6 +32,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.net.URLEncoder;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -330,9 +332,10 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<FSObjectModel> getFileByNameRaw(
         TestConfiguration.User user, String datasetId, String path) throws Exception {
+        String encodedPath = URLEncoder.encode(path, "UTF-8");
         return dataRepoClient.get(
             user,
-            "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects?path=" + path,
+            "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects?path=" + encodedPath,
             FSObjectModel.class);
     }
 

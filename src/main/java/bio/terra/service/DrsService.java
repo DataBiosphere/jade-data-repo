@@ -129,8 +129,6 @@ public class DrsService {
     private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {
         DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
-
-
         DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
         dirObject
             .size(0L)
@@ -208,6 +206,12 @@ public class DrsService {
     }
 
     private List<String> makeAuthHeader(AuthenticatedUserRequest authUser) {
+        // TODO: I added this so that connected tests would work. Seems like we should have a better solution.
+        // I don't like putting test-path-only stuff into the production code.
+        if (authUser == null || !authUser.getToken().isPresent()) {
+            return Collections.EMPTY_LIST;
+        }
+
         String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());
         return Collections.singletonList(hdr);
     }

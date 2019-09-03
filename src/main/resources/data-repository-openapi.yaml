@@ -1267,10 +1267,9 @@ parameters:
     in: path
   Path:
     name: path
-    description: Full path to a file or directory
+    description: URL-encoded full path to a file or directory
     required: true
     type: string
-    allowReserved: true
     in: query
   Depth:
     name: depth

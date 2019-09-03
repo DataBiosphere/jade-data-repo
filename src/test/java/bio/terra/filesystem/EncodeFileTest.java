@@ -7,15 +7,18 @@ import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotDataProject;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FSObjectModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
+import bio.terra.service.DrsId;
+import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
 import bio.terra.service.dataproject.DataLocationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +32,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -79,6 +81,7 @@ public class EncodeFileTest {
     @Autowired private SnapshotDao snapshotDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private DrsIdService drsIdService;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
@@ -135,15 +138,24 @@ public class EncodeFileTest {
             datasetSummary, "encodefiletest-snapshot.json", "");
         SnapshotSummaryModel snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(response);
 
-// test snapshot lookup by id, by path, enumeration of different levels
+        String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
+        DrsId drsId = drsIdService.fromUri(fileUri);
 
+        DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
+        String filePath = drsObject.getAliases().get(0);
 
+        FSObjectModel fsObjById =
+            connectedOperations.lookupSnapshotFile(snapshotSummary.getId(), drsId.getFsObjectId());
+        FSObjectModel fsObjByPath =
+            connectedOperations.lookupSnapshotFileByPath(snapshotSummary.getId(), filePath, 0);
 
-        String snapshotFileId = getFileRefIdFromSnapshot(snapshotSummary);
+        assertThat("Retrieve snapshot file objects match", fsObjById, equalTo(fsObjByPath));
+
+        // Need to get a path with predictable depth and probe it with drs expand and file depth params
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
-            delete("/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + snapshotFileId))
+            delete("/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + drsId.getFsObjectId()))
             .andReturn();
         response = connectedOperations.validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
@@ -319,9 +331,7 @@ public class EncodeFileTest {
             FieldValueList row = result.iterateAll().iterator().next();
             FieldValue idValue = row.get(0);
             String drsUri = idValue.getStringValue();
-            // Simple-minded way to grab the file id.
-            String[] drsParts = StringUtils.split(drsUri, '_');
-            return drsParts[drsParts.length - 1];
+            return drsUri;
         } catch (InterruptedException ie) {
             throw new PdaoException("get file ref id from snapshot unexpectedly interrupted", ie);
         }

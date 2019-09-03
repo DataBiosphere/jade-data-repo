@@ -270,7 +270,10 @@ public class FireStoreDao {
         String fullPath = fireStoreUtils.getFullPath(fireStoreObject.getPath(), fireStoreObject.getName());
         String objectId = fireStoreObject.getObjectId();
 
-        FireStoreFile fireStoreFile = fileDao.retrieveFileMetadata(firestore, collectionId, objectId);
+        // Lookup the file in its owning dataset, not in the collection. The collection may be a snapshot directory
+        // pointing to the files in one or more datasets.
+        FireStoreFile fireStoreFile =
+            fileDao.retrieveFileMetadata(firestore, fireStoreObject.getDatasetId(), objectId);
         if (fireStoreFile == null) {
             return null;
         }

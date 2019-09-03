@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -122,8 +123,9 @@ public class FileOperationTest {
             containsString("already exists"));
 
         // Lookup the file by path
+        String encodedPath = URLEncoder.encode(fileModel.getPath(), "UTF-8");
         url = "/api/repository/v1/datasets/" + datasetSummary.getId() +
-            "/filesystem/objects?path=" + fileModel.getPath();
+            "/filesystem/objects?path=" + encodedPath;
         result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();

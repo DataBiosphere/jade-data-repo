@@ -579,40 +579,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
-    public Set<String> getRowIds(Dataset dataset, String tableName, String projectId, BigQueryProject bigQueryProject) {
-        String softDeleteTableName = prefixSoftDeleteTableName(tableName);
-        String table = projectId + "." + prefixName(dataset.getName()) + "." + tableName;
-        String softDeleteTable = projectId + "." + prefixName(dataset.getName()) + "." + softDeleteTableName;
-        StringBuilder builder = new StringBuilder();
-        builder.append("WITH not_soft_deleted AS ((SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(table)
-            .append("`) EXCEPT DISTINCT ( SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(softDeleteTable)
-            .append("` )) SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM not_soft_deleted LEFT JOIN `")
-            .append(table)
-            .append("` USING (")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(")");
-
-        String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
-
-        Set<String> rowIds = new HashSet<>();
-        for (FieldValueList row : result.iterateAll()) {
-            String rowId = row.get(0).getStringValue();
-            rowIds.add(rowId);
-        }
-
-        return rowIds;
-    }
-
-    private String prefixName(String name) {
+    public String prefixName(String name) {
         return PDAO_PREFIX + name;
     }
 

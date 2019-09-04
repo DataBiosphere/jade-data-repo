@@ -16,6 +16,8 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -38,9 +40,13 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -143,6 +149,33 @@ public class BigQueryPdaoTest {
             equalTo(shouldExist));
     }
 
+    private List<String> getRowIds(Dataset dataset, String tableName, String projectId, BigQueryProject bigQueryProject) {
+        String softDeleteTableName = bigQueryPdao.prefixSoftDeleteTableName(tableName);
+        String table = projectId + "." + bigQueryPdao.prefixName(dataset.getName()) + "." + tableName;
+        String softDeleteTable = projectId + "." + bigQueryPdao.prefixName(dataset.getName()) + "." + softDeleteTableName;
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(table)
+            .append("` EXCEPT DISTINCT (SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(softDeleteTable)
+            .append("`)");
+
+        String sql = builder.toString();
+        TableResult result = bigQueryProject.query(sql);
+
+        List<String> rowIds = new ArrayList<>();
+        for (FieldValueList row : result.iterateAll()) {
+            String rowId = row.get(0).getStringValue();
+            rowIds.add(rowId);
+        }
+
+        return rowIds;
+    }
+
     @Test
     public void basicTest() throws Exception {
         AssertThatDatasetAndTablesShouldExist(false);
@@ -212,7 +245,7 @@ public class BigQueryPdaoTest {
 
             BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
             String tableName = "participant";
-            Set<String> rowIds = bigQueryPdao.getRowIds(dataset,
+            List<String> rowIds = getRowIds(dataset,
                 tableName,
                 dataset.getDataProjectId(),
                 bigQueryProject);
@@ -236,7 +269,7 @@ public class BigQueryPdaoTest {
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
 
             // Assert that the given rows are soft deleted
-            rowIds = bigQueryPdao.getRowIds(dataset,
+            rowIds = getRowIds(dataset,
                 tableName,
                 dataset.getDataProjectId(),
                 bigQueryProject);

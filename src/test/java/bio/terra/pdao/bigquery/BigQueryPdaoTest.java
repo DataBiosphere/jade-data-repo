@@ -149,10 +149,17 @@ public class BigQueryPdaoTest {
             equalTo(shouldExist));
     }
 
-    private List<String> getRowIds(Dataset dataset, String tableName, String projectId, BigQueryProject bigQueryProject) {
+    private List<String> getRowIds(Dataset dataset,
+                                   String tableName,
+                                   String projectId,
+                                   BigQueryProject bigQueryProject) {
         String softDeleteTableName = bigQueryPdao.prefixSoftDeleteTableName(tableName);
         String table = projectId + "." + bigQueryPdao.prefixName(dataset.getName()) + "." + tableName;
-        String softDeleteTable = projectId + "." + bigQueryPdao.prefixName(dataset.getName()) + "." + softDeleteTableName;
+        String softDeleteTable = projectId +
+            "." +
+            bigQueryPdao.prefixName(dataset.getName()) +
+            "." +
+            softDeleteTableName;
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT ")
             .append(PDAO_ROW_ID_COLUMN)

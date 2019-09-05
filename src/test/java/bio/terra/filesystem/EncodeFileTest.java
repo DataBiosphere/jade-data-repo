@@ -4,6 +4,7 @@ import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
 import bio.terra.dao.SnapshotDao;
 import bio.terra.fixtures.ConnectedOperations;
+import bio.terra.fixtures.StringListCompare;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotDataProject;
 import bio.terra.model.BillingProfileModel;
@@ -11,6 +12,7 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FSObjectModel;
+import bio.terra.model.FSObjectModelType;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -32,6 +34,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,8 +58,12 @@ import java.io.BufferedReader;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.endsWith;
@@ -82,6 +89,7 @@ public class EncodeFileTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private DrsIdService drsIdService;
+    @Autowired private FireStoreUtils fireStoreUtils;
 
     private static final String ID_GARBAGE = "GARBAGE";
 
@@ -148,10 +156,16 @@ public class EncodeFileTest {
             connectedOperations.lookupSnapshotFile(snapshotSummary.getId(), drsId.getFsObjectId());
         FSObjectModel fsObjByPath =
             connectedOperations.lookupSnapshotFileByPath(snapshotSummary.getId(), filePath, 0);
-
         assertThat("Retrieve snapshot file objects match", fsObjById, equalTo(fsObjByPath));
 
-        // Need to get a path with predictable depth and probe it with drs expand and file depth params
+        // Build the reference directory name map
+        String datasetPath = "/" + datasetSummary.getName();
+        Map<String, List<String>> dirmap = makeDirectoryMap(datasetPath);
+
+        testSnapEnum(dirmap, snapshotSummary.getId(), datasetPath, -1);
+        testSnapEnum(dirmap, snapshotSummary.getId(), datasetPath, 0);
+        testSnapEnum(dirmap, snapshotSummary.getId(), datasetPath, 6);
+        testSnapEnum(dirmap, snapshotSummary.getId(), datasetPath, 3);
 
         // Try to delete a file with a dependency
         MvcResult result = mvc.perform(
@@ -163,6 +177,107 @@ public class EncodeFileTest {
         ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
         assertThat("correct dependency error message",
             errorModel.getMessage(), containsString("used by at least one snapshot"));
+    }
+
+    //  /<datasetname>/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.bam
+    //                                                                                 /ENCFF180PCI.bam.bai
+    //                                            /cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.bam
+    //                                                                                 /ENCFF912JKA.bam.bai
+    //                                 /2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.bam
+    //                                                                                 /ENCFF538GKX.bam.bai
+    //                                      /05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam
+    //                                                                                 /ENCFF823AJQ.bam.bai
+
+    private static int MAX_DIRECTORY_DEPTH = 6;
+    private Map<String, List<String>> makeDirectoryMap(String datasetPath) {
+        Map<String, List<String>> dirmap = new HashMap<>();
+        dirmap.put(datasetPath,
+            Arrays.asList("encodetest"));
+        dirmap.put(datasetPath + "/encodetest",
+            Arrays.asList("files"));
+        dirmap.put(datasetPath + "/encodetest/files",
+            Arrays.asList("2017", "2018"));
+        dirmap.put(datasetPath + "/encodetest/files/2017",
+            Arrays.asList("08"));
+        dirmap.put(datasetPath + "/encodetest/files/2017/08",
+            Arrays.asList("24"));
+        dirmap.put(datasetPath + "/encodetest/files/2017/08/24",
+            Arrays.asList("80317b07-7e78-4223-a3a2-84991c3104be", "cd3df621-4696-4fae-a2fc-2c666cafa5e2"));
+        dirmap.put(datasetPath + "/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be",
+            Arrays.asList("ENCFF180PCI.bam", "ENCFF180PCI.bam.bai"));
+        dirmap.put(datasetPath + "/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2",
+            Arrays.asList("ENCFF912JKA.bam", "ENCFF912JKA.bam.bai"));
+        dirmap.put(datasetPath + "/encodetest/files/2018",
+            Arrays.asList("01", "05"));
+        dirmap.put(datasetPath + "/encodetest/files/2018/01",
+            Arrays.asList("18"));
+        dirmap.put(datasetPath + "/encodetest/files/2018/01/18",
+            Arrays.asList("82aab61a-1e9b-43d3-8836-d9c54cf37dd6"));
+        dirmap.put(datasetPath + "/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6",
+            Arrays.asList("ENCFF538GKX.bam", "ENCFF538GKX.bam.bai"));
+        dirmap.put(datasetPath + "/encodetest/files/2018/05",
+            Arrays.asList("04"));
+        dirmap.put(datasetPath + "/encodetest/files/2018/05/04",
+            Arrays.asList("289b5fd2-ea5e-4275-a56d-2185738737e0"));
+        dirmap.put(datasetPath + "/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0",
+            Arrays.asList("ENCFF823AJQ.bam", "ENCFF823AJQ.bam.bai"));
+        return dirmap;
+    }
+
+    private void testSnapEnum(Map<String, List<String>> dirmap,
+                              String snapshotId,
+                              String datasetPath,
+                              int inDepth) throws Exception {
+        logger.info(">> testsnapEnum with depth = " + inDepth);
+        FSObjectModel fsObj = connectedOperations.lookupSnapshotFileByPath(snapshotId, datasetPath, inDepth);
+        int maxDepth = checkSnapEnum(dirmap, 0, fsObj);
+        int depth = (inDepth == -1) ? 7 : inDepth;
+        logger.info(">> testSnapEnum maxDepth = " + maxDepth + "  compareDepth = " + depth);
+//        assertThat("Depth is correct", maxDepth, equalTo(depth));
+    }
+
+    // return is the max depth we have seen; level is the input depth so far
+    private int checkSnapEnum(Map<String, List<String>> dirmap, int level, FSObjectModel fsObj) {
+        logger.info(">>> checkSnapEnum: level = " + level + "  dirPath = " + fsObj.getPath());
+
+        // If there are not contents, then we are at the deepest level
+        List<FSObjectModel> contentsList = fsObj.getDirectoryDetail().getContents();
+        if (contentsList == null || contentsList.size() == 0) {
+            return level;
+        }
+
+        // build string list from the contents objects
+        List<String> contentsNames = contentsList
+            .stream()
+            .map(fs -> fireStoreUtils.getObjectName(fs.getPath()))
+            .collect(Collectors.toList());
+
+        // lookup the dirmap list by path of the fsObj
+        List<String> mapList = dirmap.get(fsObj.getPath());
+
+        logger.info(">>>> contents: " + StringUtils.join(contentsNames, ","));
+        logger.info(">>>> mapList : " + StringUtils.join(mapList, ","));
+        // compare the lists
+        StringListCompare slc = new StringListCompare(contentsNames, mapList);
+//        assertTrue("Directory contents match", slc.compare());
+        if (!slc.compare()) {
+            logger.info("**** Contents mismatch");
+        }
+
+        // loop through contents; if dir, recurse (level + 1)
+        int maxLevel = level;
+        for (FSObjectModel fsObjectModel : contentsList) {
+            if (fsObjectModel.getObjectType() == FSObjectModelType.DIRECTORY) {
+                int aLevel = checkSnapEnum(dirmap, level + 1, fsObjectModel);
+                if (aLevel > maxLevel) {
+                    maxLevel = aLevel;
+                }
+            }
+        }
+
+        // return max level of any dirs
+        logger.info(">>> checkSnapEnum maxLevel = " + maxLevel);
+        return maxLevel;
     }
 
     @Test

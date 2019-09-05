@@ -205,7 +205,9 @@ public class FireStoreDao {
             }
             return fsFile;
         }
-        return makeFSDir(firestore, collectionId, enumerateDepth, fireStoreObject);
+        FSObjectBase fsObjectBase = makeFSDir(firestore, collectionId, enumerateDepth, fireStoreObject);
+
+        return fsObjectBase;
     }
 
     private FSObjectBase handleNotFound(boolean throwOnNotFound, String context) {
@@ -241,7 +243,7 @@ public class FireStoreDao {
         if (level != 0) {
             List<FSObjectBase> fsContents = new ArrayList<>();
             List<FireStoreObject> dirContents =
-                directoryDao.enumerateDirectory(firestore, collectionId, fireStoreObject.getPath());
+                directoryDao.enumerateDirectory(firestore, collectionId, fullPath);
             for (FireStoreObject fso : dirContents) {
                 if (fso.getFileRef()) {
                     // Skip files that are not fully created

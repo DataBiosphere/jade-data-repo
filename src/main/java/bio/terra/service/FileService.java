@@ -135,14 +135,14 @@ public class FileService {
         } else if (fsObject instanceof FSDir) {
             fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
             FSDir fsDir = (FSDir)fsObject;
+            DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
             if (fsDir.isEnumerated()) {
-                DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
                 for (FSObjectBase fsItem : fsDir.getContents()) {
                     FSObjectModel itemModel = fileModelFromFSObject(fsItem);
                     directoryDetail.addContentsItem(itemModel);
                 }
-                fsObjectModel.directoryDetail(directoryDetail);
             }
+            fsObjectModel.directoryDetail(directoryDetail);
         } else {
             throw new FileSystemCorruptException("Object type instance is totally wrong; we shouldn't be here");
         }

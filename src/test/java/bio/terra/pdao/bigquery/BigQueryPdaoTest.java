@@ -105,7 +105,7 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
-    private void AssertThatDatasetAndTablesShouldExist(boolean shouldExist) {
+    private void assertThatDatasetAndTablesShouldExist(boolean shouldExist) {
         boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
         assertThat(
             String.format("Dataset: %s, exists", dataset.getName()),
@@ -185,18 +185,18 @@ public class BigQueryPdaoTest {
 
     @Test
     public void basicTest() throws Exception {
-        AssertThatDatasetAndTablesShouldExist(false);
+        assertThatDatasetAndTablesShouldExist(false);
 
         bigQueryPdao.createDataset(dataset);
-        AssertThatDatasetAndTablesShouldExist(true);
+        assertThatDatasetAndTablesShouldExist(true);
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createDataset(dataset);
-        AssertThatDatasetAndTablesShouldExist(true);
+        assertThatDatasetAndTablesShouldExist(true);
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteDataset(dataset);
-        AssertThatDatasetAndTablesShouldExist(false);
+        assertThatDatasetAndTablesShouldExist(false);
     }
 
     @Test

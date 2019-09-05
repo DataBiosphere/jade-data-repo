@@ -77,14 +77,8 @@ public class DrsTest extends UsersBase {
         String filePath = drsObject.getAliases().get(0);
         String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
-        // Get dataset from snapshot; relies on encodeFixture making a snapshot using one dataset.
-        // Note: for now, we have no directory DRS ID support, so the only way to retrieve a
-        // "bundle" is to first do the object lookup by name and then construct the DRS ID.
-        // TODO: Cloning the filesystem (DR-287) will allow us to do file system ops on the
-        // snapshot, so readers will have access to that and be able to do lookup by name.
-        String datasetId = snapshotModel.getSource().get(0).getDataset().getId();
-        FSObjectModel fsObject = dataRepoFixtures.getFileByName(steward(), datasetId, dirPath);
-        String dirObjectId = "v1_" + datasetId + "_" + snapshotModel.getId() + "_" + fsObject.getObjectId();
+        FSObjectModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
+        String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getObjectId();
 
         drsObject = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
         logger.info("DRS Object Id - dir: {}", dirObjectId);

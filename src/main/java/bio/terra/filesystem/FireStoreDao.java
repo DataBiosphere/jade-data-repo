@@ -19,13 +19,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-// One DAO to rule them all...
-//
-// Operations on a file often need to touch file, directory, and dependency collections;
-// that is, the FireStoreFileDao, the FireStoreDirectoryDao, and the FireStoreDirectoryDao.
+// Operations on a file often need to touch file and directory collections that is,
+// the FireStoreFileDao and the FireStoreDirectoryDao.
 // The data to make an FSDir or FSFile is now spread between the file collection and the
 // directory collection, so a lookup needs to visit two places to generate a complete FSObject.
 // This class coordinates operations between the daos.
+//
+// The dependency collection is independent, so it is not included under this dao.
+// Perhaps it should be.
 //
 // There are several functions performed in this layer.
 //  1. Encapsulating the underlying daos
@@ -186,6 +187,7 @@ public class FireStoreDao {
 
     // -- private methods --
 
+    // The context string provides either the object id or the file path, for use in error messages.
     private FSObjectBase retrieveWorker(Firestore firestore,
                                         String collectionId,
                                         int enumerateDepth,
@@ -246,7 +248,8 @@ public class FireStoreDao {
                 directoryDao.enumerateDirectory(firestore, collectionId, fullPath);
             for (FireStoreObject fso : dirContents) {
                 if (fso.getFileRef()) {
-                    // Skip files that are not fully created
+                    // Files that are in the middle of being ingested can have a directory entry, but not yet have
+                    // a file entry. We do not return files that do not yet have a file entry.
                     FSObjectBase fsFile = makeFSFile(firestore, collectionId, fso);
                     if (fsFile != null) {
                         fsContents.add(fsFile);

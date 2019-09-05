@@ -46,12 +46,13 @@ import java.util.stream.Collectors;
  *
  * We don't store the root directory in the paths stored in file and directory objects. It is
  * only used for the Firestore lookup. When we refer to paths in the code we talk about:
- * - lookup path - the path used for the Firestore lookup prepended with "_dr_"
+ * - lookup path - the path used for the Firestore lookup. When building this path (and only this path)
+ *   we prepended it with "_dr_" as the name for the root directory.
  * - directory path - the directory path to the directory containing object - not including the object name
  * - full path - the full path to the object including the object name.
  *
  * Within the document we store the directory path to the object and the object name. That
- * lets us use the indexes to find the objects in a directory using the index.
+ * lets us use the indexes to find the objects in a directory.
  *
  * We use FireStore transactions. The required transaction pattern is always read-modify-write.
  * The transactions are expressed as functions that are retried if another transaction touches

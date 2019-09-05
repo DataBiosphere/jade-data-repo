@@ -87,7 +87,7 @@ public class DrsService {
         if (fsObject instanceof FSFile) {
             return drsObjectFromFSFile((FSFile)fsObject, snapshotId, authUser);
         } else if (fsObject instanceof FSDir) {
-            return drsObjectFromFSDir((FSDir)fsObject, snapshotId.toString());
+            return drsObjectFromFSDir((FSDir)fsObject, snapshotId);
         }
 
         throw new IllegalArgumentException("Invalid object type");

@@ -25,12 +25,14 @@ public class FireStoreObject {
     private String name; // name of the object
 
     // fileref-only fields
-    private String datasetId;
+    // FireStoreFile object in the files collection
+    private String datasetId; // The pari (datasetId, objectId) are used to lookup the FireStoreFile in file collection.
 
     // directory-only fields
-    private String fileCreatedDate;
+    private String fileCreatedDate; // For files, we get the created date from the FireStoreFile object
 
-    // snapshot directory-only fields - computed as part of snapshot creation
+    // snapshot directory-only fields - computed as part of snapshot filesystem creation;
+    // unused in the dataset directory collection
     private String checksumCrc32c;
     private String checksumMd5;
     private Long size;

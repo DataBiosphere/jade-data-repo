@@ -387,7 +387,7 @@ public class RepositoryApiController implements RepositoryApi {
 
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATASET,
+            SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.READ_DATA);
         FSObjectModel fsObjectModel = fileService.lookupSnapshotFile(id, fileid, depth);
@@ -402,7 +402,7 @@ public class RepositoryApiController implements RepositoryApi {
 
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
-            SamClientService.ResourceType.DATASET,
+            SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.READ_DATA);
         if (!ValidationUtils.isValidPath(path)) {

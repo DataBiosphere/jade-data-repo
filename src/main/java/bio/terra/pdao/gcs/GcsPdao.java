@@ -139,7 +139,6 @@ public class GcsPdao {
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
                 .checksumMd5(checksumMd5)
                 .size(targetBlob.getSize())
-                .region(bucketResource.getRegion())
                 .bucketResourceId(bucketResource.getResourceId().toString());
 
             return fsFileInfo;
@@ -177,8 +176,7 @@ public class GcsPdao {
     // Consumer method for deleting GCS files driven from a scan over the firestore files
     public void deleteFile(FireStoreFile fireStoreFile) {
         if (fireStoreFile != null) {
-            GoogleBucketResource bucketResource =
-                dataLocationService.getBucketForFile(fireStoreFile.getProfileId(), fireStoreFile.getBucketResourceId());
+            GoogleBucketResource bucketResource = dataLocationService.lookupBucket(fireStoreFile.getBucketResourceId());
             deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
     }
@@ -214,8 +212,7 @@ public class GcsPdao {
             FSObjectBase fsObjectBase = fileDao.retrieveById(dataset, fileId, 0, true);
             if (fsObjectBase instanceof FSFile) {
                 FSFile fsFile = (FSFile)fsObjectBase;
-                GoogleBucketResource bucketForFile =
-                    dataLocationService.getBucketForFile(fsFile.getProfileId(), fsFile.getBucketResourceId());
+                GoogleBucketResource bucketForFile = dataLocationService.lookupBucket(fsFile.getBucketResourceId());
                 Storage storage = storageForBucket(bucketForFile);
                 URI gsUri = URI.create(fsFile.getGspath());
                 String bucketPath = StringUtils.removeStart(gsUri.getPath(), "/");

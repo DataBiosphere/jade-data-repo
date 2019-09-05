@@ -41,8 +41,6 @@ public class IngestFileFileStep implements Step {
             .objectId(objectId)
             .mimeType(fileLoadModel.getMimeType())
             .description(fileLoadModel.getDescription())
-            .profileId(fileLoadModel.getProfileId())
-            .region(fsFileInfo.getRegion())
             .bucketResourceId(fsFileInfo.getBucketResourceId())
             .fileCreatedDate(fsFileInfo.getCreatedDate())
             .gspath(fsFileInfo.getGspath())

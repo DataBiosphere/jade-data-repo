@@ -11,7 +11,6 @@ public class FSFileInfo {
     private String checksumCrc32c;
     private String checksumMd5;
     private Long size;
-    private String region;
     private String bucketResourceId;
 
     public String getObjectId() {
@@ -68,15 +67,6 @@ public class FSFileInfo {
         return this;
     }
 
-    public String getRegion() {
-        return region;
-    }
-
-    public FSFileInfo region(String region) {
-        this.region = region;
-        return this;
-    }
-
     public String getBucketResourceId() {
         return bucketResourceId;
     }
@@ -94,7 +84,6 @@ public class FSFileInfo {
             .append("checksumCrc32c", checksumCrc32c)
             .append("checksumMd5", checksumMd5)
             .append("size", size)
-            .append("region", region)
             .append("bucketResourceId", bucketResourceId)
             .toString();
     }

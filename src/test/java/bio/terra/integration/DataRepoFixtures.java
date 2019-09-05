@@ -343,28 +343,34 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<FSObjectModel> getSnapshotFileByIdRaw(
-        TestConfiguration.User user, String snapshotId, String fileId) throws Exception {
+    public DataRepoResponse<FSObjectModel> getSnapshotFileByIdRaw(TestConfiguration.User user,
+                                                                  String snapshotId,
+                                                                  String fileId) throws Exception {
         return dataRepoClient.get(
             user, "/api/repository/v1/snapshots/" + snapshotId + "/files/" + fileId, FSObjectModel.class);
     }
 
-    public FSObjectModel getSnapshotFileById(TestConfiguration.User user, String snapshotId, String fileId) throws Exception {
+    public FSObjectModel getSnapshotFileById(TestConfiguration.User user,
+                                             String snapshotId,
+                                             String fileId) throws Exception {
         DataRepoResponse<FSObjectModel> response = getSnapshotFileByIdRaw(user, snapshotId, fileId);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<FSObjectModel> getSnapshotFileByNameRaw(
-        TestConfiguration.User user, String snapshotId, String path) throws Exception {
+    public DataRepoResponse<FSObjectModel> getSnapshotFileByNameRaw(TestConfiguration.User user,
+                                                                    String snapshotId,
+                                                                    String path) throws Exception {
         return dataRepoClient.get(
             user,
             "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects?path=" + path,
             FSObjectModel.class);
     }
 
-    public FSObjectModel getSnapshotFileByName(TestConfiguration.User user, String snapshotId, String path) throws Exception {
+    public FSObjectModel getSnapshotFileByName(TestConfiguration.User user,
+                                               String snapshotId,
+                                               String path) throws Exception {
         DataRepoResponse<FSObjectModel> response = getSnapshotFileByNameRaw(user, snapshotId, path);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());

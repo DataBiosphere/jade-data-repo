@@ -17,8 +17,6 @@ public class FireStoreFile {
     private String objectId;
     private String mimeType;
     private String description;
-    private String profileId;
-    private String region;
     private String bucketResourceId;
     // fields filled in from FSFileInfo after the file ingest
     private String fileCreatedDate;
@@ -101,24 +99,6 @@ public class FireStoreFile {
         return this;
     }
 
-    public String getProfileId() {
-        return profileId;
-    }
-
-    public FireStoreFile profileId(String profileId) {
-        this.profileId = profileId;
-        return this;
-    }
-
-    public String getRegion() {
-        return region;
-    }
-
-    public FireStoreFile region(String region) {
-        this.region = region;
-        return this;
-    }
-
     public String getBucketResourceId() {
         return bucketResourceId;
     }
@@ -139,8 +119,6 @@ public class FireStoreFile {
             .append("size", size)
             .append("mimeType", mimeType)
             .append("description", description)
-            .append("profileId", profileId)
-            .append("region", region)
             .append("bucketResourceId", bucketResourceId)
             .toString();
     }

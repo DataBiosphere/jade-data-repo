@@ -141,8 +141,6 @@ public class FireStoreDaoTest {
             .objectId(objectId)
             .mimeType("application/test")
             .description("test")
-            .profileId("test")
-            .region("test")
             .bucketResourceId("test")
             .fileCreatedDate(Instant.now().toString())
             .gspath("gs://" + datasetId + "/" + objectId)

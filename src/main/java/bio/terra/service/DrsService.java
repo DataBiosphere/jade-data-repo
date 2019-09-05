@@ -15,6 +15,8 @@ import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.pdao.gcs.GcsConfiguration;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.service.exception.DrsObjectNotFoundException;
 import bio.terra.service.exception.InvalidDrsIdException;
 import org.apache.commons.lang3.StringUtils;
@@ -46,6 +48,7 @@ public class DrsService {
     private final GcsConfiguration gcsConfiguration;
     private final DatasetService datasetService;
     private final SamClientService samService;
+    private final DataLocationService locationService;
 
     @Autowired
     public DrsService(DatasetDao datasetDao,
@@ -55,7 +58,8 @@ public class DrsService {
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
                       DatasetService datasetService,
-                      SamClientService samService) {
+                      SamClientService samService,
+                      DataLocationService locationService) {
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
@@ -64,6 +68,7 @@ public class DrsService {
         this.gcsConfiguration = gcsConfiguration;
         this.datasetService = datasetService;
         this.samService = samService;
+        this.locationService = locationService;
     }
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
@@ -96,13 +101,15 @@ public class DrsService {
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
+        GoogleBucketResource bucketResource = locationService.lookupBucket(fsFile.getBucketResourceId());
+
         DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
 
         DRSAccessMethod gsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
-            .region(fsFile.getRegion());
+            .region(bucketResource.getRegion());
 
         DRSAccessURL httpsAccessURL = new DRSAccessURL()
             .url(makeHttpsFromGs(fsFile.getGspath()))
@@ -111,7 +118,7 @@ public class DrsService {
         DRSAccessMethod httpsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .region(fsFile.getRegion());
+            .region(bucketResource.getRegion());
 
         List<DRSAccessMethod> accessMethods = new ArrayList<>();
         accessMethods.add(gsAccessMethod);

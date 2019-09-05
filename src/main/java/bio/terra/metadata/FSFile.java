@@ -11,8 +11,6 @@ public class FSFile extends FSObjectBase {
     private UUID datasetId;
     private String gspath;
     private String mimeType;
-    private String profileId;
-    private String region;
     private String bucketResourceId;
 
     public UUID getDatasetId() {
@@ -39,24 +37,6 @@ public class FSFile extends FSObjectBase {
 
     public FSFile mimeType(String mimeType) {
         this.mimeType = mimeType;
-        return this;
-    }
-
-    public String getProfileId() {
-        return profileId;
-    }
-
-    public FSFile profileId(String profileId) {
-        this.profileId = profileId;
-        return this;
-    }
-
-    public String getRegion() {
-        return region;
-    }
-
-    public FSFile region(String region) {
-        this.region = region;
         return this;
     }
 
@@ -122,8 +102,6 @@ public class FSFile extends FSObjectBase {
             .appendSuper(super.equals(o))
             .append(gspath, fsFile.gspath)
             .append(mimeType, fsFile.mimeType)
-            .append(profileId, fsFile.profileId)
-            .append(region, fsFile.region)
             .append(bucketResourceId, fsFile.bucketResourceId)
             .isEquals();
     }
@@ -134,8 +112,6 @@ public class FSFile extends FSObjectBase {
             .appendSuper(super.hashCode())
             .append(gspath)
             .append(mimeType)
-            .append(profileId)
-            .append(region)
             .append(bucketResourceId)
             .toHashCode();
     }
@@ -145,8 +121,6 @@ public class FSFile extends FSObjectBase {
         return new ToStringBuilder(this)
             .append("gspath", gspath)
             .append("mimeType", mimeType)
-            .append("profileId", profileId)
-            .append("region", region)
             .append("bucketResourceId", bucketResourceId)
             .toString();
     }

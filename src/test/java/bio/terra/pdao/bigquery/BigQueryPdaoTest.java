@@ -105,7 +105,7 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
-    private void AssertThatDatasetAndTablesShouldExist(Boolean shouldExist) {
+    private void AssertThatDatasetAndTablesShouldExist(boolean shouldExist) {
         boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
         assertThat(
             String.format("Dataset: %s, exists", dataset.getName()),

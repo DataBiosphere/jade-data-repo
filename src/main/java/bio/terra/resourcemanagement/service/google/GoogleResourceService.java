@@ -190,6 +190,7 @@ public class GoogleResourceService {
         try {
             // kick off a project create request and poll until it is done
             CloudResourceManager resourceManager = cloudResourceManager();
+            // TODO <RORI> start here
             CloudResourceManager.Projects.Create request = resourceManager.projects().create(requestBody);
             Operation operation = request.execute();
             long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();

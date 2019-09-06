@@ -37,6 +37,8 @@ public class GoogleProjectRequest {
         return this;
     }
 
+    // TODO should this be a list not a string? -- I want a map of identities to list of iam permissions
+
     public Map<String, String> getUserPermissions() {
         return userPermissions;
     }

@@ -6,10 +6,10 @@ import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.ErrorModel;
-import bio.terra.model.FileLoadModel;
-import bio.terra.model.FSObjectModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
+import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileLoadModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DrsIdService;
 import bio.terra.service.SamClientService;
@@ -94,6 +94,17 @@ public class FileOperationTest {
         FSObjectModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
+        // Change the data location selector, verify that we can still delete the file
+        String newBucketName = "bucket-" + UUID.randomUUID().toString();
+        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
+        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
+        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+        assertThat("file path reflects new bucket location",
+            fileModel.getFileDetail().getAccessUrl(),
+            containsString(newBucketName));
+        // Track the bucket so connected ops can remove it on teardown
+        connectedOperations.addBucket(newBucketName);
+
         // lookup the file we just created
         String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + fileModel.getObjectId();
         MvcResult result = mvc.perform(get(url))
@@ -125,17 +136,6 @@ public class FileOperationTest {
         connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
-
-        // Change the data location selector, verify that we can still delete the file
-        String newBucketName = "bucket-" + UUID.randomUUID().toString();
-        doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
-        fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
-        assertThat("file path reflects new bucket location",
-            fileModel.getFileDetail().getAccessUrl(),
-            containsString(newBucketName));
-        // Track the bucket so connected ops can remove it on teardown
-        connectedOperations.addBucket(newBucketName);
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";
@@ -208,14 +208,12 @@ public class FileOperationTest {
             null);
         String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
 
-        FileLoadModel fileLoadModel = new FileLoadModel()
+        return new FileLoadModel()
             .sourcePath(uri.toString())
             .description(testDescription)
             .mimeType(testMimeType)
             .targetPath(targetPath)
             .profileId(profileId);
-
-        return fileLoadModel;
     }
 
 }

@@ -3,8 +3,8 @@ package bio.terra.flight.dataset.delete;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
-import bio.terra.filesystem.FireStoreFileDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
@@ -20,6 +20,8 @@ import java.util.UUID;
 
 public class DatasetDeleteFlight extends Flight {
 
+
+
     public DatasetDeleteFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
         super(inputParameters, applicationContext, userRequestInfo);
 
@@ -30,7 +32,7 @@ public class DatasetDeleteFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
-        FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 

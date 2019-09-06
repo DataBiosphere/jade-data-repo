@@ -1,20 +1,18 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
-import bio.terra.filesystem.exception.FileSystemCorruptException;
-import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
+import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filesystem.FireStoreFile;
+import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
 import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
 
 
 public class DeleteFilePrimaryDataStep implements Step {
@@ -23,25 +21,29 @@ public class DeleteFilePrimaryDataStep implements Step {
     private final Dataset dataset;
     private final String fileId;
     private final GcsPdao gcsPdao;
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDao fileDao;
+    private final DataLocationService locationService;
 
-    public DeleteFilePrimaryDataStep(Dataset dataset, String fileId, GcsPdao gcsPdao, FireStoreFileDao fileDao) {
+    public DeleteFilePrimaryDataStep(Dataset dataset,
+                                     String fileId,
+                                     GcsPdao gcsPdao,
+                                     FireStoreDao fileDao,
+                                     DataLocationService locationService) {
         this.dataset = dataset;
         this.fileId = fileId;
         this.gcsPdao = gcsPdao;
         this.fileDao = fileDao;
+        this.locationService = locationService;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        try {
-            FSObjectBase fsObject = fileDao.retrieve(dataset, UUID.fromString(fileId));
-            if (fsObject.getObjectType() != FSObjectType.DELETING_FILE) {
-                throw new FileSystemCorruptException("This should be a file we're deleting!");
-            }
-            gcsPdao.deleteFile((FSFile) fsObject);
-        } catch (FileSystemObjectNotFoundException e) {
-            logger.info("no file found in dataset {} for objectId {}, skipping file delete", dataset.getId(), fileId);
+        FlightMap workingMap = context.getWorkingMap();
+        FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
+        if (fireStoreFile != null) {
+            GoogleBucketResource bucketResource =
+                locationService.getBucketForFile(fireStoreFile.getProfileId(), fireStoreFile.getBucketResourceId());
+            gcsPdao.deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
         return StepResult.getStepResultSuccess();
     }

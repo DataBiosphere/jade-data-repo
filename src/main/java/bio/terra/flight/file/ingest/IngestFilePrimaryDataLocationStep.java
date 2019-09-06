@@ -1,27 +1,23 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filesystem.FireStoreFileDao;
-import bio.terra.filesystem.exception.FileSystemCorruptException;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
+import bio.terra.model.FileLoadModel;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
+import bio.terra.service.JobMapKeys;
 import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.UUID;
-
 public class IngestFilePrimaryDataLocationStep implements Step {
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDao fileDao;
     private final Dataset dataset;
     private final DataLocationService locationService;
 
-    public IngestFilePrimaryDataLocationStep(FireStoreFileDao fileDao,
+    public IngestFilePrimaryDataLocationStep(FireStoreDao fileDao,
                                              Dataset dataset,
                                              DataLocationService locationService) {
         this.fileDao = fileDao;
@@ -31,14 +27,10 @@ public class IngestFilePrimaryDataLocationStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
+        FlightMap inputParameters = context.getInputParameters();
+        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        GoogleBucketResource bucketForFile = locationService.getBucketForFile(fileLoadModel.getProfileId(), null);
         FlightMap workingMap = context.getWorkingMap();
-        UUID objectId = UUID.fromString(workingMap.get(FileMapKeys.OBJECT_ID, String.class));
-        FSObjectBase fsObject = fileDao.retrieve(dataset, objectId);
-        if (fsObject.getObjectType() != FSObjectType.INGESTING_FILE) {
-            throw new FileSystemCorruptException("This should be a file!");
-        }
-
-        GoogleBucketResource bucketForFile = locationService.getBucketForFile((FSFile) fsObject);
         workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
         return StepResult.getStepResultSuccess();
     }
@@ -50,5 +42,4 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         // be used again.
         return StepResult.getStepResultSuccess();
     }
-
 }

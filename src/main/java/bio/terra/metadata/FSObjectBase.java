@@ -18,10 +18,11 @@ import java.util.UUID;
 public class FSObjectBase {
     private UUID objectId;
     private UUID datasetId;
-    private FSObjectType objectType;
     private Instant createdDate;
     private String path;
-    private Long size;              // 0 for directory
+    private String checksumCrc32c;
+    private String checksumMd5;
+    private Long size;
     private String description;
 
     public FSObjectBase() {
@@ -45,15 +46,6 @@ public class FSObjectBase {
         return this;
     }
 
-    public FSObjectType getObjectType() {
-        return objectType;
-    }
-
-    public FSObjectBase objectType(FSObjectType objectType) {
-        this.objectType = objectType;
-        return this;
-    }
-
     public Instant getCreatedDate() {
         return createdDate;
     }
@@ -69,6 +61,24 @@ public class FSObjectBase {
 
     public FSObjectBase path(String path) {
         this.path = path;
+        return this;
+    }
+
+    public String getChecksumCrc32c() {
+        return checksumCrc32c;
+    }
+
+    public FSObjectBase checksumCrc32c(String checksumCrc32c) {
+        this.checksumCrc32c = checksumCrc32c;
+        return this;
+    }
+
+    public String getChecksumMd5() {
+        return checksumMd5;
+    }
+
+    public FSObjectBase checksumMd5(String checksumMd5) {
+        this.checksumMd5 = checksumMd5;
         return this;
     }
 
@@ -101,9 +111,10 @@ public class FSObjectBase {
         return new EqualsBuilder()
             .append(objectId, that.objectId)
             .append(datasetId, that.datasetId)
-            .append(objectType, that.objectType)
             .append(createdDate, that.createdDate)
             .append(path, that.path)
+            .append(checksumCrc32c, that.checksumCrc32c)
+            .append(checksumMd5, that.checksumMd5)
             .append(size, that.size)
             .append(description, that.description)
             .isEquals();
@@ -114,9 +125,10 @@ public class FSObjectBase {
         return new HashCodeBuilder(17, 37)
             .append(objectId)
             .append(datasetId)
-            .append(objectType)
             .append(createdDate)
             .append(path)
+            .append(checksumCrc32c)
+            .append(checksumMd5)
             .append(size)
             .append(description)
             .toHashCode();
@@ -127,9 +139,10 @@ public class FSObjectBase {
         return new ToStringBuilder(this)
             .append("objectId", objectId)
             .append("datasetId", datasetId)
-            .append("objectType", objectType)
             .append("createdDate", createdDate)
             .append("path", path)
+            .append("checksumCrc32c", checksumCrc32c)
+            .append("checksumMd5", checksumMd5)
             .append("size", size)
             .append("description", description)
             .toString();

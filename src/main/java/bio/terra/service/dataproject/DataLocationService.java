@@ -1,19 +1,20 @@
 package bio.terra.service.dataproject;
 
-import bio.terra.dao.exception.DataProjectNotFoundException;
-import bio.terra.metadata.FSFile;
-import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.dao.DataProjectDao;
-import bio.terra.metadata.Snapshot;
+import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.DatasetDataProject;
+import bio.terra.metadata.DatasetDataProjectSummary;
+import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotDataProject;
 import bio.terra.metadata.SnapshotDataProjectSummary;
+import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
-import bio.terra.metadata.DatasetDataProject;
-import bio.terra.metadata.DatasetDataProjectSummary;
+import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.google.GoogleResourceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +24,6 @@ import org.springframework.stereotype.Component;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -43,39 +43,42 @@ public class DataLocationService {
     private final DataProjectDao dataProjectDao;
     private final DataLocationSelector dataLocationSelector;
     private final GoogleResourceService resourceService;
+    private final ProfileService profileService;
 
     @Autowired
     public DataLocationService(
             DataProjectDao dataProjectDao,
             DataLocationSelector dataLocationSelector,
-            GoogleResourceService resourceService) {
+            GoogleResourceService resourceService,
+            ProfileService profileService) {
         this.dataProjectDao = dataProjectDao;
         this.dataLocationSelector = dataLocationSelector;
         this.resourceService = resourceService;
+        this.profileService = profileService;
     }
 
-    public GoogleProjectResource getProjectForFile(FSFile fsFile) {
+    public GoogleProjectResource getProjectForFile(String profileId) {
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
-            .projectId(dataLocationSelector.projectIdForFile(fsFile))
-            .profileId(UUID.fromString(fsFile.getProfileId()))
+            .projectId(dataLocationSelector.projectIdForFile(profileId))
+            .profileId(UUID.fromString(profileId))
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public GoogleBucketResource getBucketForFile(FSFile fsFile) {
+    public GoogleBucketResource getBucketForFile(String profileId, String bucketResourceId) {
         // If this isn't the first time we've seen this file, it should have a bucket resource id we can look up
-        Optional<String> bucketResourceId = Optional.ofNullable(fsFile.getBucketResourceId());
-        if (bucketResourceId.isPresent()) {
-            return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId.get()));
+        if (bucketResourceId != null) {
+            return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
         }
 
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
-        GoogleProjectResource projectResource = getProjectForFile(fsFile);
+        GoogleProjectResource projectResource = getProjectForFile(profileId);
+        BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
         GoogleBucketRequest googleBucketRequest = new GoogleBucketRequest()
             .googleProjectResource(projectResource)
-            .bucketName(dataLocationSelector.bucketForFile(fsFile))
-            .profileId(UUID.fromString(fsFile.getProfileId()))
-            .region(fsFile.getRegion());
+            .bucketName(dataLocationSelector.bucketForFile(profileId))
+            .profileId(UUID.fromString(profileId))
+            .region(profile.getGcsRegion());
         return resourceService.getOrCreateBucket(googleBucketRequest);
     }
 

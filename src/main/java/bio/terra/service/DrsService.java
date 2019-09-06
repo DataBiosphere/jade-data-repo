@@ -6,12 +6,10 @@ import bio.terra.dao.SnapshotDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.exception.NotImplementedException;
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
-import bio.terra.metadata.FSObjectType;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
@@ -43,7 +41,7 @@ public class DrsService {
 
     private final DatasetDao datasetDao;
     private final SnapshotDao snapshotDao;
-    private final FireStoreFileDao fileDao;
+    private final FireStoreDirectoryDao fileDao;
     private final FileService fileService;
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
@@ -53,7 +51,7 @@ public class DrsService {
     @Autowired
     public DrsService(DatasetDao datasetDao,
                       SnapshotDao snapshotDao,
-                      FireStoreFileDao fileDao,
+                      FireStoreDirectoryDao fileDao,
                       FileService fileService,
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
@@ -71,31 +69,29 @@ public class DrsService {
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
         DrsId drsId = parseAndValidateDrsId(drsObjectId);
+        String snapshotId = drsId.getSnapshotId();
+
         // Make sure requester is a READER on the snapshot
         samService.verifyAuthorization(
             authUser,
             SamClientService.ResourceType.DATASNAPSHOT,
-            drsId.getSnapshotId(),
+            snapshotId,
             SamClientService.DataRepoAction.READ_DATA);
 
-        // TODO: Implement recursive directory expansion
-        if (expand) {
-            throw new NotImplementedException("Expand is not yet implemented");
-        }
+        int depth = (expand ? -1 : 1);
+
         FSObjectBase fsObject = fileService.lookupFSObject(
             drsId.getDatasetId(),
-            drsId.getFsObjectId());
+            drsId.getFsObjectId(),
+            depth);
 
-        switch (fsObject.getObjectType()) {
-            case FILE:
-                return drsObjectFromFSFile((FSFile)fsObject, drsId.getSnapshotId(), authUser);
-
-            case DIRECTORY:
-                return drsObjectFromFSDir((FSDir)fsObject, drsId.getSnapshotId());
-
-            default:
-                throw new IllegalArgumentException("Invalid object type");
+        if (fsObject instanceof FSFile) {
+            return drsObjectFromFSFile((FSFile)fsObject, snapshotId, authUser);
+        } else if (fsObject instanceof FSDir) {
+            return drsObjectFromFSDir((FSDir)fsObject, snapshotId.toString());
         }
+
+        throw new IllegalArgumentException("Invalid object type");
     }
 
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
@@ -122,6 +118,7 @@ public class DrsService {
         accessMethods.add(gsAccessMethod);
         accessMethods.add(httpsAccessMethod);
 
+
         fileObject
             .size(fsFile.getSize())
             .mimeType(fsFile.getMimeType())
@@ -147,12 +144,11 @@ public class DrsService {
     private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String snapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsObject.getCreatedDate().toString();
-        DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
+        DrsId drsId = makeDrsId(fsObject, snapshotId);
 
         return new DRSObject()
             .id(drsId.toDrsObjectId())
             .name(getLastNameFromPath(fsObject.getPath()))
-            .selfUri(drsId.toDrsUri())
             .createdTime(theTime)
             .updatedTime(theTime)
             .version(DRS_OBJECT_VERSION)
@@ -160,18 +156,18 @@ public class DrsService {
             .aliases(Collections.singletonList(fsObject.getPath()));
     }
 
-    private List<DRSContentsObject> makeContentsList(FSDir fsDir, String datasetId) {
+    private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
         List<DRSContentsObject> contentsList = new ArrayList<>();
 
         for (FSObjectBase fsObject : fsDir.getContents()) {
-            contentsList.add(makeDrsContentsObject(fsObject, datasetId));
+            contentsList.add(makeDrsContentsObject(fsObject, snapshotId));
         }
 
         return contentsList;
     }
 
     private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String snapshotId) {
-        DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
+        DrsId drsId = makeDrsId(fsObject, snapshotId);
 
         List<String> drsUris = new ArrayList<>();
         drsUris.add(drsId.toDrsUri());
@@ -181,8 +177,7 @@ public class DrsService {
             .id(drsId.toDrsObjectId())
             .drsUri(drsUris);
 
-        // If the object is an enumerated directory, we fill in the contents array.
-        if (fsObject.getObjectType() == FSObjectType.DIRECTORY) {
+        if (fsObject instanceof FSDir) {
             FSDir fsDir = (FSDir) fsObject;
             if (fsDir.isEnumerated()) {
                 contentsObject.contents(makeContentsList(fsDir, snapshotId));
@@ -190,6 +185,14 @@ public class DrsService {
         }
 
         return contentsObject;
+    }
+
+    private DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
+        return DrsId.builder()
+            .datasetId(fsObject.getDatasetId().toString())
+            .snapshotId(snapshotId)
+            .fsObjectId(fsObject.getObjectId().toString())
+            .build();
     }
 
     private String makeHttpsFromGs(String gspath) {

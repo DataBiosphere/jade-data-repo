@@ -22,6 +22,7 @@ public class FSDir extends FSObjectBase {
         return contents;
     }
 
+
     public FSDir contents(List<FSObjectBase> contents) {
         this.enumerated = true;
         this.contents = contents;

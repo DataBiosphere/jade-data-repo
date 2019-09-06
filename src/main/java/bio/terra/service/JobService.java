@@ -96,6 +96,16 @@ public class JobService {
         return jobId;
     }
 
+
+    // TODO: fix this
+    // There are at least two problems here. First, Stairway uses a map of <String, Object>, but the parameter
+    // map only takes strings. Second, instead of putting the param elements into the inputParameters FlightMap
+    // a level of indirection was introduced. That required that code be changed in every flight to unpack
+    // those parameters to get out the actual parameters.
+    //
+    // I think a better approach would be to make a job parameter builder class that could construct with the
+    // required params (class, description, request) and then have the job creator add additional params.
+    // Then that class would be passed into submit along with the auth info.
     private FlightMap buildFlightMap(
         String description, Object request, Map<String, String> params, AuthenticatedUserRequest userReq) {
         FlightMap inputs = new FlightMap();

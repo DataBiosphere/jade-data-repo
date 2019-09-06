@@ -6,13 +6,11 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 // POJO of the collected information of a file returned from the bucket to be stored in the filesystem.
 public class FSFileInfo {
     private String objectId;
-    private String datasetId;
     private String createdDate;
     private String gspath;
     private String checksumCrc32c;
     private String checksumMd5;
     private Long size;
-    private String flightId;
     private String region;
     private String bucketResourceId;
 
@@ -22,15 +20,6 @@ public class FSFileInfo {
 
     public FSFileInfo objectId(String objectId) {
         this.objectId = objectId;
-        return this;
-    }
-
-    public String getDatasetId() {
-        return datasetId;
-    }
-
-    public FSFileInfo datasetId(String datasetId) {
-        this.datasetId = datasetId;
         return this;
     }
 
@@ -79,15 +68,6 @@ public class FSFileInfo {
         return this;
     }
 
-    public String getFlightId() {
-        return flightId;
-    }
-
-    public FSFileInfo flightId(String flightId) {
-        this.flightId = flightId;
-        return this;
-    }
-
     public String getRegion() {
         return region;
     }
@@ -110,12 +90,10 @@ public class FSFileInfo {
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
             .append("objectId", objectId)
-            .append("datasetId", datasetId)
             .append("gspath", gspath)
             .append("checksumCrc32c", checksumCrc32c)
             .append("checksumMd5", checksumMd5)
             .append("size", size)
-            .append("flightId", flightId)
             .append("region", region)
             .append("bucketResourceId", bucketResourceId)
             .toString();

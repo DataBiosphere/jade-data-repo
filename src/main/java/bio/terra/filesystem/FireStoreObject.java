@@ -1,8 +1,11 @@
 package bio.terra.filesystem;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 /**
  * POJO for writing file system object entries to FireStore. This object is used
- * for both directories and files. Fields not used for directories are left as null.
+ * for both directories and file references. Fields not used for one or the other
+ * are left as null.
  *
  * NOTE: an alternative would be to use the map version of object creation and leave
  * out fields. That makes the JAVA code more complex. So I decided to use POJOs to
@@ -14,24 +17,22 @@ package bio.terra.filesystem;
  */
 
 public class FireStoreObject {
-    // common fields
+    // common fields for dirs and filerefs
     private String objectId;
-    private String datasetId;
-    private String objectTypeLetter;
+    private boolean fileRef; // true means it is a file reference; false means it is a directory
     private String path; // path to the object
     private String name; // name of the object
-    // file-only fields
+
+    // fileref-only fields
+    private String datasetId;
+
+    // directory-only fields
     private String fileCreatedDate;
-    private String gspath;
+
+    // snapshot directory-only fields - computed as part of snapshot creation
     private String checksumCrc32c;
     private String checksumMd5;
-    private Long size;              // 0 for directory
-    private String mimeType;
-    private String description;
-    private String flightId;
-    private String profileId;
-    private String region;
-    private String bucketResourceId;
+    private Long size;
 
     public FireStoreObject() {
     }
@@ -45,21 +46,12 @@ public class FireStoreObject {
         return this;
     }
 
-    public String getDatasetId() {
-        return datasetId;
+    public boolean getFileRef() {
+        return fileRef;
     }
 
-    public FireStoreObject datasetId(String datasetId) {
-        this.datasetId = datasetId;
-        return this;
-    }
-
-    public String getObjectTypeLetter() {
-        return objectTypeLetter;
-    }
-
-    public FireStoreObject objectTypeLetter(String objectTypeLetter) {
-        this.objectTypeLetter = objectTypeLetter;
+    public FireStoreObject fileRef(boolean fileRef) {
+        this.fileRef = fileRef;
         return this;
     }
 
@@ -81,21 +73,21 @@ public class FireStoreObject {
         return this;
     }
 
+    public String getDatasetId() {
+        return datasetId;
+    }
+
+    public FireStoreObject datasetId(String datasetId) {
+        this.datasetId = datasetId;
+        return this;
+    }
+
     public String getFileCreatedDate() {
         return fileCreatedDate;
     }
 
     public FireStoreObject fileCreatedDate(String fileCreatedDate) {
         this.fileCreatedDate = fileCreatedDate;
-        return this;
-    }
-
-    public String getGspath() {
-        return gspath;
-    }
-
-    public FireStoreObject gspath(String gspath) {
-        this.gspath = gspath;
         return this;
     }
 
@@ -126,57 +118,17 @@ public class FireStoreObject {
         return this;
     }
 
-    public String getMimeType() {
-        return mimeType;
-    }
-
-    public FireStoreObject mimeType(String mimeType) {
-        this.mimeType = mimeType;
-        return this;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public FireStoreObject description(String description) {
-        this.description = description;
-        return this;
-    }
-
-    public String getFlightId() {
-        return flightId;
-    }
-
-    public FireStoreObject flightId(String flightId) {
-        this.flightId = flightId;
-        return this;
-    }
-
-    public String getProfileId() {
-        return profileId;
-    }
-
-    public FireStoreObject profileId(String profileId) {
-        this.profileId = profileId;
-        return this;
-    }
-
-    public String getRegion() {
-        return region;
-    }
-
-    public FireStoreObject region(String region) {
-        this.region = region;
-        return this;
-    }
-
-    public String getBucketResourceId() {
-        return bucketResourceId;
-    }
-
-    public FireStoreObject bucketResourceId(String bucketResourceId) {
-        this.bucketResourceId = bucketResourceId;
-        return this;
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+            .append("objectId", objectId)
+            .append("path", path)
+            .append("name", name)
+            .append("datasetId", datasetId)
+            .append("fileCreatedDate", fileCreatedDate)
+            .append("checksumCrc32c", checksumCrc32c)
+            .append("checksumMd5", checksumMd5)
+            .append("size", size)
+            .toString();
     }
 }

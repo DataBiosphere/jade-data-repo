@@ -1,11 +1,11 @@
 package bio.terra.flight.dataset.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -17,13 +17,13 @@ import java.util.UUID;
 public class DeleteDatasetPrimaryDataStep implements Step {
     private BigQueryPdao bigQueryPdao;
     private GcsPdao gcsPdao;
-    private FireStoreFileDao fileDao;
+    private FireStoreDao fileDao;
     private DatasetService datasetService;
     private UUID datasetId;
 
     public DeleteDatasetPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                         GcsPdao gcsPdao,
-                                        FireStoreFileDao fileDao,
+                                        FireStoreDao fileDao,
                                         DatasetService datasetService,
                                         UUID datasetId) {
         this.bigQueryPdao = bigQueryPdao;
@@ -33,17 +33,11 @@ public class DeleteDatasetPrimaryDataStep implements Step {
         this.datasetId = datasetId;
     }
 
-    Dataset getDataset(FlightContext context) {
-        return datasetService.retrieve(datasetId);
-    }
-
     @Override
     public StepResult doStep(FlightContext context) {
-        Dataset dataset = getDataset(context);
+        Dataset dataset = datasetService.retrieve(datasetId);
         bigQueryPdao.deleteDataset(dataset);
-        gcsPdao.deleteFilesFromDataset(dataset);
-        fileDao.deleteFilesFromDataset(dataset);
-
+        fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.NO_CONTENT);
         return StepResult.getStepResultSuccess();

@@ -1,11 +1,11 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.stairway.UserRequestInfo;
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
@@ -17,7 +17,7 @@ public class DatasetIngestFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        FireStoreFileDao fileDao  = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDao fileDao  = (FireStoreDao)appContext.getBean("fireStoreDao");
 
         addStep(new IngestSetupStep(datasetService));
         addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));

@@ -48,7 +48,6 @@ public class FileTest extends UsersBase {
     @Autowired
     private TestConfiguration testConfiguration;
 
-    private Storage storage = StorageOptions.getDefaultInstance().getService();
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
@@ -69,13 +68,11 @@ public class FileTest extends UsersBase {
         if (datasetId != null) {
             dataRepoFixtures.deleteDataset(steward(), datasetId);
         }
-        if (profileId != null) {
-            dataRepoFixtures.deleteProfile(steward(), profileId);
-        }
     }
 
     @Test
     public void fileUnauthorizedPermissionsTest() throws Exception {
+
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         String filePath = "/foo/bar";
 
@@ -96,6 +93,7 @@ public class FileTest extends UsersBase {
             .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
             .build();
 
+        Storage storage = StorageOptions.getDefaultInstance().getService();
         try (WriteChannel writer = storage.writer(targetBlobInfo)) {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }

@@ -1,10 +1,12 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreFileDao;
+import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
@@ -19,29 +21,33 @@ public class FileDeleteFlight extends Flight {
         super(inputParameters, applicationContext, userRequestInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        FireStoreFileDao fileDao = (FireStoreFileDao)appContext.getBean("fireStoreFileDao");
+        FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
+        FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        DataLocationService locationService = (DataLocationService) appContext.getBean("dataLocationService");
 
+        // TODO: fix this
+        // There are two problems here.
+        // First, the PATH_PARAMETERS debacle.
+        // Second, error handling within this constructor results in an obscure throw from
+        // Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
+        // We should NOT put code like that in the flight constructor.
         Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
             JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
         String datasetId = pathParams.get(JobMapKeys.DATASET_ID.getKeyName());
         String fileId = pathParams.get(JobMapKeys.FILE_ID.getKeyName());
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
-        // The flight plan:
-        // 1. Metadata start step:
-        //    Make sure the file is deletable - not in a snapshot
-        //    Mark the file as deleting so it is not added to a snapshot in the meantime.
-        // 2. pdao does the file delete
-        // 3. Metadata complete step: delete the file metadata
 
-        // NOTE: The start step may find that the file does not exist. In that case, we still execute the rest
-        // of the steps. If the file system data and the bucket storage are out of sync, we can fix it by
-        // performing this delete-by-id and it will clean up the bucket or the file system even if they
-        // are inconsistent.
-        addStep(new DeleteFileMetadataStepStart(fileDao, fileId, dataset));
-        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao));
-        addStep(new DeleteFileMetadataStepComplete(fileDao, fileId, dataset));
+        // The flight plan:
+        // 1. Lookup file object and store the data in the flight map; check dependencies
+        // 2. Delete the file object - after this point, no one will be able to retrieve the file
+        // 3. pdao GCS delete the file
+        // 4. Delete the directory entry
+        addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao));
+        addStep(new DeleteFileObjectStep(fileDao, fileId, dataset));
+        addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
+        addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset));
     }
 
 }

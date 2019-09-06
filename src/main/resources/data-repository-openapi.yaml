@@ -403,7 +403,7 @@ paths:
   '/api/repository/v1/snapshots/{id}/files/{fileid}':
     get:
       description: Lookup metadata for one file
-      operationId: lookupSnapshotFileObjectById
+      operationId: lookupSnapshotFileById
       tags:
         - repository
       parameters:
@@ -414,7 +414,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/FSObjectModel'
+            $ref: '#/definitions/FileModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -435,7 +435,7 @@ paths:
   '/api/repository/v1/snapshots/{id}/filesystem/objects':
     get:
       description: Lookup metadata for one file
-      operationId: lookupSnapshotFileObjectByPath
+      operationId: lookupSnapshotFileByPath
       tags:
         - repository
       parameters:
@@ -446,7 +446,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/FSObjectModel'
+            $ref: '#/definitions/FileModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -839,7 +839,7 @@ paths:
 
   '/api/repository/v1/datasets/{id}/files':
     post:
-      description: Ingest one file into the dataset file system; async returns a FSObjectModel
+      description: Ingest one file into the dataset file system; async returns a FileModel
       operationId: ingestFile
       tags:
       - repository
@@ -885,7 +885,7 @@ paths:
   '/api/repository/v1/datasets/{id}/files/{fileid}':
     get:
       description: Lookup metadata for one file
-      operationId: lookupFileObjectById
+      operationId: lookupFileById
       tags:
       - repository
       parameters:
@@ -896,7 +896,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/FSObjectModel'
+            $ref: '#/definitions/FileModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -957,7 +957,7 @@ paths:
   '/api/repository/v1/datasets/{id}/filesystem/objects':
     get:
       description: Lookup metadata for one file
-      operationId: lookupFileObjectByPath
+      operationId: lookupFileByPath
       tags:
       - repository
       parameters:
@@ -968,7 +968,7 @@ paths:
         200:
           description: File exists
           schema:
-            $ref: '#/definitions/FSObjectModel'
+            $ref: '#/definitions/FileModel'
         400:
           description: Bad request - not sure this will ever happen
           schema:
@@ -1718,11 +1718,11 @@ definitions:
         description: |-
           A human readable description of the contents of the Data Object.
 
-  FSObjectModel:
+  FileModel:
     description: A file or directory in the data repository
     type: object
     properties:
-      objectId:
+      fileId:
         type: string
         description: Unique id of the filesystem object within the dataset
       collectionId:
@@ -1751,14 +1751,14 @@ definitions:
       description:
         type: string
         description: Human readable description of the file
-      objectType:
-        $ref: '#/definitions/FSObjectModelType'
+      fileType:
+        $ref: '#/definitions/FileModelType'
       fileDetail:
         $ref: '#/definitions/FileDetailModel'
       directoryDetail:
         $ref: '#/definitions/DirectoryDetailModel'
 
-  FSObjectModelType:
+  FileModelType:
     type: string
     enum:
       - file
@@ -1785,7 +1785,7 @@ definitions:
         type: array
         description: Array of directory contents
         items:
-          $ref: '#/definitions/FSObjectModel'
+          $ref: '#/definitions/FileModel'
 
   ## Snapshot Definitions ##
 

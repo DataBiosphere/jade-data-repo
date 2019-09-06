@@ -45,7 +45,7 @@ public class FileDeleteFlight extends Flight {
         // 3. pdao GCS delete the file
         // 4. Delete the directory entry
         addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao));
-        addStep(new DeleteFileObjectStep(fileDao, fileId, dataset));
+        addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset));
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
         addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset));
     }

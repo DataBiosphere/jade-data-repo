@@ -8,14 +8,14 @@ import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSItem;
 import bio.terra.metadata.Snapshot;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
-import bio.terra.model.FSObjectModel;
-import bio.terra.model.FSObjectModelType;
 import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 
 @Component
 public class FileService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.FileService");
+    private final Logger logger = LoggerFactory.getLogger(FileService.class);
 
     private final JobService jobService;
     private final FireStoreDao fileDao;
@@ -75,95 +75,95 @@ public class FileService {
     // depth == -1 means expand the entire sub-tree from this node
     // depth == 0 means no expansion - just this node
     // depth >= 1 means expand N levels
-    public FSObjectModel lookupFile(String datasetId, String fileId, int depth) {
-        return fileModelFromFSObject(lookupFSObject(datasetId, fileId, depth));
+    public FileModel lookupFile(String datasetId, String fileId, int depth) {
+        return fileModelFromFSItem(lookupFSItem(datasetId, fileId, depth));
     }
 
-    public FSObjectModel lookupPath(String datasetId, String path, int depth) {
-        FSObjectBase fsObject = lookupFSObjectByPath(datasetId, path, depth);
-        return fileModelFromFSObject(fsObject);
+    public FileModel lookupPath(String datasetId, String path, int depth) {
+        FSItem fsItem = lookupFSItemByPath(datasetId, path, depth);
+        return fileModelFromFSItem(fsItem);
     }
 
-    FSObjectBase lookupFSObject(String datasetId, String fileId, int depth) {
+    FSItem lookupFSItem(String datasetId, String fileId, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
         return fileDao.retrieveById(dataset, fileId, depth, true);
     }
 
-    FSObjectBase lookupFSObjectByPath(String datasetId, String path, int depth) {
+    FSItem lookupFSItemByPath(String datasetId, String path, int depth) {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
         return fileDao.retrieveByPath(dataset, path, depth, true);
     }
 
     // -- snapshot lookups --
-    public FSObjectModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
-        return fileModelFromFSObject(lookupSnapshotFSObject(snapshotId, fileId, depth));
+    public FileModel lookupSnapshotFile(String snapshotId, String fileId, int depth) {
+        return fileModelFromFSItem(lookupSnapshotFSItem(snapshotId, fileId, depth));
     }
 
-    public FSObjectModel lookupSnapshotPath(String snapshotId, String path, int depth) {
-        FSObjectBase fsObject = lookupSnapshotFSObjectByPath(snapshotId, path, depth);
-        return fileModelFromFSObject(fsObject);
+    public FileModel lookupSnapshotPath(String snapshotId, String path, int depth) {
+        FSItem fsItem = lookupSnapshotFSItemByPath(snapshotId, path, depth);
+        return fileModelFromFSItem(fsItem);
     }
 
-    FSObjectBase lookupSnapshotFSObject(String snapshotId, String fileId, int depth) {
+    FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) {
         Snapshot snapshot = snapshotService.retrieveSnapshot(UUID.fromString(snapshotId));
         return fileDao.retrieveById(snapshot, fileId, depth, true);
     }
 
-    FSObjectBase lookupSnapshotFSObjectByPath(String snapshotId, String path, int depth) {
+    FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) {
         Snapshot snapshot = snapshotService.retrieveSnapshot(UUID.fromString(snapshotId));
         return fileDao.retrieveByPath(snapshot, path, depth, true);
     }
 
-    public FSObjectModel fileModelFromFSObject(FSObjectBase fsObject) {
-        FSObjectModel fsObjectModel = new FSObjectModel()
-            .objectId(fsObject.getObjectId().toString())
-            .collectionId(fsObject.getCollectionId().toString())
-            .path(fsObject.getPath())
-            .size(fsObject.getSize())
-            .created(fsObject.getCreatedDate().toString())
-            .description(fsObject.getDescription())
-            .checksums(makeChecksums(fsObject));
+    public FileModel fileModelFromFSItem(FSItem fsItem) {
+        FileModel fileModel = new FileModel()
+            .fileId(fsItem.getFileId().toString())
+            .collectionId(fsItem.getCollectionId().toString())
+            .path(fsItem.getPath())
+            .size(fsItem.getSize())
+            .created(fsItem.getCreatedDate().toString())
+            .description(fsItem.getDescription())
+            .checksums(makeChecksums(fsItem));
 
-        if (fsObject instanceof FSFile) {
-            fsObjectModel.objectType(FSObjectModelType.FILE);
+        if (fsItem instanceof FSFile) {
+            fileModel.fileType(FileModelType.FILE);
 
-            FSFile fsFile = (FSFile)fsObject;
-            fsObjectModel.fileDetail(new FileDetailModel()
+            FSFile fsFile = (FSFile)fsItem;
+            fileModel.fileDetail(new FileDetailModel()
                 .datasetId(fsFile.getDatasetId().toString())
                 .accessUrl(fsFile.getGspath())
                 .mimeType(fsFile.getMimeType()));
-        } else if (fsObject instanceof FSDir) {
-            fsObjectModel.objectType(FSObjectModelType.DIRECTORY);
-            FSDir fsDir = (FSDir)fsObject;
+        } else if (fsItem instanceof FSDir) {
+            fileModel.fileType(FileModelType.DIRECTORY);
+            FSDir fsDir = (FSDir)fsItem;
             DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
             if (fsDir.isEnumerated()) {
-                for (FSObjectBase fsItem : fsDir.getContents()) {
-                    FSObjectModel itemModel = fileModelFromFSObject(fsItem);
+                for (FSItem fsContentsItem : fsDir.getContents()) {
+                    FileModel itemModel = fileModelFromFSItem(fsContentsItem);
                     directoryDetail.addContentsItem(itemModel);
                 }
             }
-            fsObjectModel.directoryDetail(directoryDetail);
+            fileModel.directoryDetail(directoryDetail);
         } else {
-            throw new FileSystemCorruptException("Object type instance is totally wrong; we shouldn't be here");
+            throw new FileSystemCorruptException("Entry type is totally wrong; we shouldn't be here");
         }
 
-        return fsObjectModel;
+        return fileModel;
     }
 
     // We use the DRSChecksum model to represent the checksums in the repository
     // API's FileModel to return the set of checksums for a file.
-    List<DRSChecksum> makeChecksums(FSObjectBase fsObject) {
+    List<DRSChecksum> makeChecksums(FSItem fsItem) {
         List<DRSChecksum> checksums = new ArrayList<>();
-        if (fsObject.getChecksumCrc32c() != null) {
+        if (fsItem.getChecksumCrc32c() != null) {
             DRSChecksum checksumCrc32 = new DRSChecksum()
-                .checksum(fsObject.getChecksumCrc32c())
+                .checksum(fsItem.getChecksumCrc32c())
                 .type("crc32c");
             checksums.add(checksumCrc32);
         }
 
-        if (fsObject.getChecksumMd5() != null) {
+        if (fsItem.getChecksumMd5() != null) {
             DRSChecksum checksumMd5 = new DRSChecksum()
-                .checksum(fsObject.getChecksumMd5())
+                .checksum(fsItem.getChecksumMd5())
                 .type("md5");
             checksums.add(checksumMd5);
         }

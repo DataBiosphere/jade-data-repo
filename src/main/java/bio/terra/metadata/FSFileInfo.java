@@ -5,7 +5,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 // POJO of the collected information of a file returned from the bucket to be stored in the filesystem.
 public class FSFileInfo {
-    private String objectId;
+    private String fileId;
     private String createdDate;
     private String gspath;
     private String checksumCrc32c;
@@ -13,12 +13,12 @@ public class FSFileInfo {
     private Long size;
     private String bucketResourceId;
 
-    public String getObjectId() {
-        return objectId;
+    public String getFileId() {
+        return fileId;
     }
 
-    public FSFileInfo objectId(String objectId) {
-        this.objectId = objectId;
+    public FSFileInfo fileId(String fileId) {
+        this.fileId = fileId;
         return this;
     }
 
@@ -79,7 +79,7 @@ public class FSFileInfo {
     @Override
     public String toString() {
         return new ToStringBuilder(this, ToStringStyle.JSON_STYLE)
-            .append("objectId", objectId)
+            .append("fileId", fileId)
             .append("gspath", gspath)
             .append("checksumCrc32c", checksumCrc32c)
             .append("checksumMd5", checksumMd5)

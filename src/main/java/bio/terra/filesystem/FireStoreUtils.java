@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 
 @Component
 public class FireStoreUtils {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreUtils");
+    private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
 
     public <T> T transactionGet(String op, ApiFuture<T> transaction) {
         try {
@@ -40,7 +40,7 @@ public class FireStoreUtils {
         }
     }
 
-    public String getObjectName(String path) {
+    public String getName(String path) {
         String[] pathParts = StringUtils.split(path, '/');
         if (pathParts.length == 0) {
             return StringUtils.EMPTY;
@@ -59,7 +59,7 @@ public class FireStoreUtils {
     }
 
     public String getFullPath(String dirPath, String name) {
-        // Originally, this was a method in FireStoreObject, but the Firestore client complained about it,
+        // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained about it,
         // because it was not a set/get for an actual class member. Very picky, that!
         // There are three cases here:
         // - the path and name are empty: that is the root. Full path is "/"
@@ -73,7 +73,7 @@ public class FireStoreUtils {
     }
 
     /**
-     * This code is pretty ugly, but here is why...
+     * This code is a bit ugly, but here is why...
      * (from https://cloud.google.com/firestore/docs/solutions/delete-collections)
      * <ul>
      * <li>There is no operation that atomically deletes a collection.</li>

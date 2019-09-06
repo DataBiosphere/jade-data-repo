@@ -1,11 +1,11 @@
 package bio.terra.filesystem;
 
-import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
+import bio.terra.filesystem.exception.FileNotFoundException;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSContainerInterface;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSItem;
 import bio.terra.metadata.Snapshot;
 import com.google.cloud.firestore.Firestore;
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +22,7 @@ import java.util.function.Consumer;
 // Operations on a file often need to touch file and directory collections that is,
 // the FireStoreFileDao and the FireStoreDirectoryDao.
 // The data to make an FSDir or FSFile is now spread between the file collection and the
-// directory collection, so a lookup needs to visit two places to generate a complete FSObject.
+// directory collection, so a lookup needs to visit two places to generate a complete FSItem.
 // This class coordinates operations between the daos.
 //
 // The dependency collection is independent, so it is not included under this dao.
@@ -48,28 +48,28 @@ public class FireStoreDao {
         this.fireStoreUtils = fireStoreUtils;
     }
 
-    public void createDirectoryEntry(Dataset dataset, FireStoreObject newObject) {
+    public void createDirectoryEntry(Dataset dataset, FireStoreDirectoryEntry newEntry) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
-        String datasetId = newObject.getDatasetId().toString();
-        directoryDao.createFileRef(firestore, datasetId, newObject);
+        String datasetId = newEntry.getDatasetId().toString();
+        directoryDao.createDirectoryEntry(firestore, datasetId, newEntry);
     }
 
-    public boolean deleteDirectoryEntry(Dataset dataset, String objectId) {
+    public boolean deleteDirectoryEntry(Dataset dataset, String fileId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        return directoryDao.deleteFileRef(firestore, datasetId, objectId);
+        return directoryDao.deleteDirectoryEntry(firestore, datasetId, fileId);
     }
 
-    public void createFileObject(Dataset dataset, FireStoreFile newFile) {
+    public void createFileMetadata(Dataset dataset, FireStoreFile newFile) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         fileDao.createFileMetadata(firestore, datasetId, newFile);
     }
 
-    public boolean deleteFileObject(Dataset dataset, String objectId) {
+    public boolean deleteFileMetadata(Dataset dataset, String fileId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        return fileDao.deleteFileMetadata(firestore, datasetId, objectId);
+        return fileDao.deleteFileMetadata(firestore, datasetId, fileId);
     }
 
     public void deleteFilesFromDataset(Dataset dataset, Consumer<FireStoreFile> func) {
@@ -79,22 +79,22 @@ public class FireStoreDao {
         directoryDao.deleteDirectoryEntriesFromCollection(firestore, datasetId);
     }
 
-    public FireStoreObject lookupDirectoryEntry(Dataset dataset, String objectId) {
+    public FireStoreDirectoryEntry lookupDirectoryEntry(Dataset dataset, String fileId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        return directoryDao.retrieveById(firestore, datasetId, objectId);
+        return directoryDao.retrieveById(firestore, datasetId, fileId);
     }
 
-    public FireStoreObject lookupDirectoryEntryByPath(Dataset dataset, String path) {
+    public FireStoreDirectoryEntry lookupDirectoryEntryByPath(Dataset dataset, String path) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
         return directoryDao.retrieveByPath(firestore, datasetId, path);
     }
 
-    public FireStoreFile lookupFile(Dataset dataset, String objectId) {
+    public FireStoreFile lookupFile(Dataset dataset, String fileId) {
         Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        return fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+        return fileDao.retrieveFileMetadata(firestore, datasetId, fileId);
     }
 
     public void addFilesToSnapshot(Dataset dataset, Snapshot snapshot, List<String> refIds) {
@@ -106,14 +106,14 @@ public class FireStoreDao {
         String datasetName = dataset.getName();
         String snapshotId = snapshot.getId().toString();
 
-        for (String objectId : refIds) {
-            directoryDao.addObjectToSnapshot(
+        for (String fileId : refIds) {
+            directoryDao.addEntryToSnapshot(
                 datasetFirestore,
                 datasetId,
                 datasetName,
                 snapshotFirestore,
                 snapshotId,
-                objectId);
+                fileId);
         }
     }
 
@@ -126,7 +126,7 @@ public class FireStoreDao {
     public void snapshotCompute(Snapshot snapshot) {
         Firestore firestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
         String snapshotId = snapshot.getId().toString();
-        FireStoreObject topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
+        FireStoreDirectoryEntry topDir = directoryDao.retrieveByPath(firestore, snapshotId, "/");
         // If topDir is null, it means no files were added to the snapshot file system in the previous
         // step. So there is nothing to compute
         if (topDir != null) {
@@ -135,49 +135,49 @@ public class FireStoreDao {
     }
 
     /**
-     * Retrieve an FS Object by path
+     * Retrieve an FSItem by path
      *
-     * @param container - dataset or snapshot containing the filesystem object
-     * @param fullPath - path of the object in the directory
+     * @param container - dataset or snapshot containing file's directory entry
+     * @param fullPath - path of the file in the directory
      * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
      *                         1 means contents of this directory; 2 means this and its directories, etc.
      *                         -1 means the entire tree.
-     * @param throwOnNotFound - if true, throw an exception if the object id not found; if false,
+     * @param throwOnNotFound - if true, throw an exception if the file id not found; if false,
      *                         null is returned on not found.
-     * @return FSFile or FSDir of retrieved object; can return null on not found
+     * @return FSFile or FSDir of retrieved file; can return null on not found
      */
-    public FSObjectBase retrieveByPath(FSContainerInterface container,
-                                       String fullPath,
-                                       int enumerateDepth,
-                                       boolean throwOnNotFound) {
+    public FSItem retrieveByPath(FSContainerInterface container,
+                                 String fullPath,
+                                 int enumerateDepth,
+                                 boolean throwOnNotFound) {
         Firestore firestore = FireStoreProject.get(container.getDataProjectId()).getFirestore();
         String datasetId = container.getId().toString();
 
-        FireStoreObject fireStoreObject = directoryDao.retrieveByPath(firestore, datasetId, fullPath);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, fullPath);
+        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveByPath(firestore, datasetId, fullPath);
+        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fullPath);
     }
 
     /**
-     * Retrieve an FS Object by id
+     * Retrieve an FSItem by id
      *
-     * @param container - dataset or snapshot containing the filesystem object
-     * @param objectId - id of the objecct
+     * @param container - dataset or snapshot containing file's directory entry
+     * @param fileId - id of the file or directory
      * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
      *                         1 means contents of this directory; 2 means this and its directories, etc.
      *                         -1 means the entire tree.
-     * @param throwOnNotFound - if true, throw an exception if the object id not found; if false,
+     * @param throwOnNotFound - if true, throw an exception if the file id not found; if false,
      *                         null is returned on not found.
-     * @return FSFile or FSDir of retrieved object; can return null on not found
+     * @return FSFile or FSDir of retrieved file; can return null on not found
      */
-    public FSObjectBase retrieveById(FSContainerInterface container,
-                                     String objectId,
-                                     int enumerateDepth,
-                                     boolean throwOnNotFound) {
+    public FSItem retrieveById(FSContainerInterface container,
+                               String fileId,
+                               int enumerateDepth,
+                               boolean throwOnNotFound) {
         Firestore firestore = FireStoreProject.get(container.getDataProjectId()).getFirestore();
         String datasetId = container.getId().toString();
 
-        FireStoreObject fireStoreObject = directoryDao.retrieveById(firestore, datasetId, objectId);
-        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, objectId);
+        FireStoreDirectoryEntry fireStoreDirectoryEntry = directoryDao.retrieveById(firestore, datasetId, fileId);
+        return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreDirectoryEntry, throwOnNotFound, fileId);
     }
 
     public List<String> validateRefIds(Dataset dataset, List<String> refIdArray) {
@@ -188,19 +188,19 @@ public class FireStoreDao {
 
     // -- private methods --
 
-    // The context string provides either the object id or the file path, for use in error messages.
-    private FSObjectBase retrieveWorker(Firestore firestore,
-                                        String collectionId,
-                                        int enumerateDepth,
-                                        FireStoreObject fireStoreObject,
-                                        boolean throwOnNotFound,
-                                        String context) {
-        if (fireStoreObject == null) {
+    // The context string provides either the file id or the file path, for use in error messages.
+    private FSItem retrieveWorker(Firestore firestore,
+                                  String collectionId,
+                                  int enumerateDepth,
+                                  FireStoreDirectoryEntry fireStoreDirectoryEntry,
+                                  boolean throwOnNotFound,
+                                  String context) {
+        if (fireStoreDirectoryEntry == null) {
             return handleNotFound(throwOnNotFound, context);
         }
 
-        if (fireStoreObject.getFileRef()) {
-            FSObjectBase fsFile = makeFSFile(firestore, collectionId, fireStoreObject);
+        if (fireStoreDirectoryEntry.getIsFileRef()) {
+            FSItem fsFile = makeFSFile(firestore, collectionId, fireStoreDirectoryEntry);
             if (fsFile == null) {
                 // We found a file in the directory that is not done being created. We treat this
                 // as not found.
@@ -208,50 +208,51 @@ public class FireStoreDao {
             }
             return fsFile;
         }
-        FSObjectBase fsObjectBase = makeFSDir(firestore, collectionId, enumerateDepth, fireStoreObject);
+        FSItem fsItem = makeFSDir(firestore, collectionId, enumerateDepth, fireStoreDirectoryEntry);
 
-        return fsObjectBase;
+        return fsItem;
     }
 
-    private FSObjectBase handleNotFound(boolean throwOnNotFound, String context) {
+    private FSItem handleNotFound(boolean throwOnNotFound, String context) {
         if (throwOnNotFound) {
-            throw new FileSystemObjectNotFoundException("File system object not found: " + context);
+            throw new FileNotFoundException("File not found: " + context);
         } else {
             return null;
         }
     }
 
-    private FSObjectBase makeFSDir(Firestore firestore,
-                                   String collectionId,
-                                   int level,
-                                   FireStoreObject fireStoreObject) {
-        if (fireStoreObject.getFileRef()) {
+    private FSItem makeFSDir(Firestore firestore,
+                             String collectionId,
+                             int level,
+                             FireStoreDirectoryEntry fireStoreDirectoryEntry) {
+        if (fireStoreDirectoryEntry.getIsFileRef()) {
             throw new IllegalStateException("Expected directory; got file!");
         }
 
-        String fullPath = fireStoreUtils.getFullPath(fireStoreObject.getPath(), fireStoreObject.getName());
+        String fullPath =
+            fireStoreUtils.getFullPath(fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
 
         FSDir fsDir = new FSDir();
         fsDir
-            .objectId(UUID.fromString(fireStoreObject.getObjectId()))
+            .fileId(UUID.fromString(fireStoreDirectoryEntry.getFileId()))
             .collectionId(UUID.fromString(collectionId))
-            .createdDate(Instant.parse(fireStoreObject.getFileCreatedDate()))
+            .createdDate(Instant.parse(fireStoreDirectoryEntry.getFileCreatedDate()))
             .path(fullPath)
-            .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
-            .checksumMd5(fireStoreObject.getChecksumMd5())
-            .size(fireStoreObject.getSize())
+            .checksumCrc32c(fireStoreDirectoryEntry.getChecksumCrc32c())
+            .checksumMd5(fireStoreDirectoryEntry.getChecksumMd5())
+            .size(fireStoreDirectoryEntry.getSize())
             .description(StringUtils.EMPTY);
 
 
         if (level != 0) {
-            List<FSObjectBase> fsContents = new ArrayList<>();
-            List<FireStoreObject> dirContents =
+            List<FSItem> fsContents = new ArrayList<>();
+            List<FireStoreDirectoryEntry> dirContents =
                 directoryDao.enumerateDirectory(firestore, collectionId, fullPath);
-            for (FireStoreObject fso : dirContents) {
-                if (fso.getFileRef()) {
+            for (FireStoreDirectoryEntry fso : dirContents) {
+                if (fso.getIsFileRef()) {
                     // Files that are in the middle of being ingested can have a directory entry, but not yet have
                     // a file entry. We do not return files that do not yet have a file entry.
-                    FSObjectBase fsFile = makeFSFile(firestore, collectionId, fso);
+                    FSItem fsFile = makeFSFile(firestore, collectionId, fso);
                     if (fsFile != null) {
                         fsContents.add(fsFile);
                     }
@@ -265,30 +266,31 @@ public class FireStoreDao {
         return fsDir;
     }
 
-    // Handle files - the fireStoreObject is a reference to a file in a dataset.
-    private FSObjectBase makeFSFile(Firestore firestore,
-                                    String collectionId,
-                                    FireStoreObject fireStoreObject) {
-        if (!fireStoreObject.getFileRef()) {
+    // Handle files - the fireStoreDirectoryEntry is a reference to a file in a dataset.
+    private FSItem makeFSFile(Firestore firestore,
+                              String collectionId,
+                              FireStoreDirectoryEntry fireStoreDirectoryEntry) {
+        if (!fireStoreDirectoryEntry.getIsFileRef()) {
             throw new IllegalStateException("Expected file; got directory!");
         }
 
-        String fullPath = fireStoreUtils.getFullPath(fireStoreObject.getPath(), fireStoreObject.getName());
-        String objectId = fireStoreObject.getObjectId();
+        String fullPath =
+            fireStoreUtils.getFullPath(fireStoreDirectoryEntry.getPath(), fireStoreDirectoryEntry.getName());
+        String fileId = fireStoreDirectoryEntry.getFileId();
 
         // Lookup the file in its owning dataset, not in the collection. The collection may be a snapshot directory
         // pointing to the files in one or more datasets.
         FireStoreFile fireStoreFile =
-            fileDao.retrieveFileMetadata(firestore, fireStoreObject.getDatasetId(), objectId);
+            fileDao.retrieveFileMetadata(firestore, fireStoreDirectoryEntry.getDatasetId(), fileId);
         if (fireStoreFile == null) {
             return null;
         }
 
         FSFile fsFile = new FSFile();
         fsFile
-            .objectId(UUID.fromString(objectId))
+            .fileId(UUID.fromString(fileId))
             .collectionId(UUID.fromString(collectionId))
-            .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
+            .datasetId(UUID.fromString(fireStoreDirectoryEntry.getDatasetId()))
             .createdDate(Instant.parse(fireStoreFile.getFileCreatedDate()))
             .path(fullPath)
             .checksumCrc32c(fireStoreFile.getChecksumCrc32c())
@@ -303,19 +305,19 @@ public class FireStoreDao {
     }
 
     // Recursively compute the size and checksums of a directory
-    FireStoreObject computeDirectory(Firestore firestore, String snapshotId, FireStoreObject dirObject) {
-        String fullPath = fireStoreUtils.getFullPath(dirObject.getPath(), dirObject.getName());
-        List<FireStoreObject> enumDir = directoryDao.enumerateDirectory(firestore, snapshotId, fullPath);
+    FireStoreDirectoryEntry computeDirectory(Firestore firestore, String snapshotId, FireStoreDirectoryEntry dirEntry) {
+        String fullPath = fireStoreUtils.getFullPath(dirEntry.getPath(), dirEntry.getName());
+        List<FireStoreDirectoryEntry> enumDir = directoryDao.enumerateDirectory(firestore, snapshotId, fullPath);
 
         // Recurse to compute results from underlying directories
-        List<FireStoreObject> enumComputed = new ArrayList<>();
-        for (FireStoreObject dirItem : enumDir) {
-            if (dirItem.getFileRef()) {
-                // Read the file object to get the size and checksums
-                // We do a bit of a hack and copy them into the dirItem. That way we have a homogenous object
-                // to deal with in the computation later.
+        List<FireStoreDirectoryEntry> enumComputed = new ArrayList<>();
+        for (FireStoreDirectoryEntry dirItem : enumDir) {
+            if (dirItem.getIsFileRef()) {
+                // Read the file metadata to get the size and checksum. We do a bit of a hack and copy
+                // the size and checksums into the in-memory dirItem. That way we only compute on the directory
+                // objects.
                 FireStoreFile file =
-                    fileDao.retrieveFileMetadata(firestore, dirItem.getDatasetId(), dirItem.getObjectId());
+                    fileDao.retrieveFileMetadata(firestore, dirItem.getDatasetId(), dirItem.getFileId());
 
                 dirItem
                     .size(file.getSize())
@@ -333,7 +335,7 @@ public class FireStoreDao {
         List<String> crc32cCollection = new ArrayList<>();
         Long totalSize = 0L;
 
-        for (FireStoreObject dirItem : enumComputed) {
+        for (FireStoreDirectoryEntry dirItem : enumComputed) {
             totalSize = totalSize + dirItem.getSize();
             crc32cCollection.add(StringUtils.lowerCase(dirItem.getChecksumCrc32c()));
             if (dirItem.getChecksumMd5() != null) {
@@ -357,13 +359,13 @@ public class FireStoreDao {
         String crc32cChecksum = fireStoreUtils.computeCrc32c(crc32cConcat);
 
         // Update the directory in place
-        dirObject
+        dirEntry
             .checksumCrc32c(crc32cChecksum)
             .checksumMd5(md5Checksum)
             .size(totalSize);
-        directoryDao.updateFileStoreObject(firestore, snapshotId, dirObject);
+        directoryDao.updateDirectoryEntry(firestore, snapshotId, dirEntry);
 
-        return dirObject;
+        return dirEntry;
     }
 
 }

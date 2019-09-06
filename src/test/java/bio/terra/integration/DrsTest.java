@@ -5,7 +5,7 @@ import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import com.google.cloud.bigquery.BigQuery;
@@ -77,8 +77,8 @@ public class DrsTest extends UsersBase {
         String filePath = drsObject.getAliases().get(0);
         String dirPath = StringUtils.prependIfMissing(getDirectoryPath(filePath), "/");
 
-        FSObjectModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
-        String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getObjectId();
+        FileModel fsObject = dataRepoFixtures.getSnapshotFileByName(steward(), snapshotModel.getId(), dirPath);
+        String dirObjectId = "v1_" + snapshotModel.getId() + "_" + fsObject.getFileId();
 
         drsObject = dataRepoFixtures.drsGetObject(reader(), dirObjectId);
         logger.info("DRS Object Id - dir: {}", dirObjectId);

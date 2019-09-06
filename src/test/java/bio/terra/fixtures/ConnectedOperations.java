@@ -9,7 +9,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -300,7 +300,7 @@ public class ConnectedOperations {
         return handleAsyncFailureCase(response);
     }
 
-    public FSObjectModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
+    public FileModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
@@ -310,7 +310,7 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
-        FSObjectModel fileModel = handleAsyncSuccessCase(response, FSObjectModel.class);
+        FileModel fileModel = handleAsyncSuccessCase(response, FileModel.class);
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -322,8 +322,8 @@ public class ConnectedOperations {
                     StringUtils.equals(checksum.getType(), "md5")));
         }
 
-        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getObjectId());
-        addFile(datasetId, fileModel.getObjectId());
+        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
+        addFile(datasetId, fileModel.getFileId());
 
         return fileModel;
     }
@@ -341,16 +341,16 @@ public class ConnectedOperations {
         return handleAsyncFailureCase(response);
     }
 
-    public FSObjectModel lookupSnapshotFile(String snapshotId, String objectId) throws Exception {
+    public FileModel lookupSnapshotFile(String snapshotId, String objectId) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/files/" + objectId;
         MvcResult result = mvc.perform(get(url)
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
 
-        return objectMapper.readValue(result.getResponse().getContentAsString(), FSObjectModel.class);
+        return objectMapper.readValue(result.getResponse().getContentAsString(), FileModel.class);
     }
 
-    public FSObjectModel lookupSnapshotFileByPath(String snapshotId, String path, long depth) throws Exception {
+    public FileModel lookupSnapshotFileByPath(String snapshotId, String path, long depth) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects";
         MvcResult result = mvc.perform(get(url)
             .param("path", path)
@@ -358,7 +358,7 @@ public class ConnectedOperations {
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
 
-        return objectMapper.readValue(result.getResponse().getContentAsString(), FSObjectModel.class);
+        return objectMapper.readValue(result.getResponse().getContentAsString(), FileModel.class);
     }
 
     public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {

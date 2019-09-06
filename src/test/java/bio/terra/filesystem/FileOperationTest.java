@@ -8,7 +8,7 @@ import bio.terra.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DrsIdService;
@@ -91,13 +91,13 @@ public class FileOperationTest {
             "snapshot-test-dataset.json");
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
-        FSObjectModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 
         // Change the data location selector, verify that we can still delete the file
         String newBucketName = "bucket-" + UUID.randomUUID().toString();
         doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
+        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path reflects new bucket location",
             fileModel.getFileDetail().getAccessUrl(),
@@ -106,14 +106,14 @@ public class FileOperationTest {
         connectedOperations.addBucket(newBucketName);
 
         // lookup the file we just created
-        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + fileModel.getObjectId();
+        String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + fileModel.getFileId();
         MvcResult result = mvc.perform(get(url))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
-        FSObjectModel lookupModel = objectMapper.readValue(response.getContentAsString(), FSObjectModel.class);
+        FileModel lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
@@ -129,11 +129,11 @@ public class FileOperationTest {
             .andReturn();
         response = result.getResponse();
         assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
-        lookupModel = objectMapper.readValue(response.getContentAsString(), FSObjectModel.class);
+        lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getObjectId());
+        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 

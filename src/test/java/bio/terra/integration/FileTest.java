@@ -2,7 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.integration.configuration.TestConfiguration;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -82,9 +82,9 @@ public class FileTest extends UsersBase {
             launchResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
-        FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
+        FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(), datasetId, profileId, gsPath + "/files/File%20Design%20Notes.pdf", filePath);
-        String fileId = fsObjectModel.getObjectId();
+        String fileId = fileModel.getFileId();
 
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
 
@@ -107,13 +107,13 @@ public class FileTest extends UsersBase {
         dataRepoFixtures.getFileById(steward(), datasetId, fileId);
         dataRepoFixtures.getFileById(custodian(), datasetId, fileId);
 
-        DataRepoResponse<FSObjectModel> readerResp = dataRepoFixtures.getFileByIdRaw(reader(), datasetId, fileId);
+        DataRepoResponse<FileModel> readerResp = dataRepoFixtures.getFileByIdRaw(reader(), datasetId, fileId);
         assertThat("Reader is not authorized to get a file from a dataset",
             readerResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
 
         // get file by id
-        DataRepoResponse<FSObjectModel> discovererResp =
+        DataRepoResponse<FileModel> discovererResp =
             dataRepoFixtures.getFileByIdRaw(discoverer(), datasetId, fileId);
         assertThat("Discoverer is not authorized to get a file from a dataset",
             discovererResp.getStatusCode(),

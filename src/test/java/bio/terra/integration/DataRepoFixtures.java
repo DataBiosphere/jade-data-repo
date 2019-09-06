@@ -13,7 +13,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
@@ -299,7 +299,7 @@ public class DataRepoFixtures {
             JobModel.class);
     }
 
-    public FSObjectModel ingestFile(
+    public FileModel ingestFile(
         TestConfiguration.User user,
         String datasetId,
         String profileId,
@@ -309,69 +309,69 @@ public class DataRepoFixtures {
         assertTrue("ingest launch succeeded", resp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", resp.getResponseObject().isPresent());
 
-        DataRepoResponse<FSObjectModel> response = dataRepoClient.waitForResponse(user, resp, FSObjectModel.class);
+        DataRepoResponse<FileModel> response = dataRepoClient.waitForResponse(user, resp, FileModel.class);
         assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<FSObjectModel> getFileByIdRaw(
+    public DataRepoResponse<FileModel> getFileByIdRaw(
         TestConfiguration.User user, String datasetId, String fileId) throws Exception {
         return dataRepoClient.get(
-            user, "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId, FSObjectModel.class);
+            user, "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId, FileModel.class);
     }
 
-    public FSObjectModel getFileById(TestConfiguration.User user, String datasetId, String fileId) throws Exception {
-        DataRepoResponse<FSObjectModel> response = getFileByIdRaw(user, datasetId, fileId);
+    public FileModel getFileById(TestConfiguration.User user, String datasetId, String fileId) throws Exception {
+        DataRepoResponse<FileModel> response = getFileByIdRaw(user, datasetId, fileId);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<FSObjectModel> getFileByNameRaw(
+    public DataRepoResponse<FileModel> getFileByNameRaw(
         TestConfiguration.User user, String datasetId, String path) throws Exception {
         return dataRepoClient.get(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects?path=" + path,
-            FSObjectModel.class);
+            FileModel.class);
     }
 
-    public FSObjectModel getFileByName(TestConfiguration.User user, String datasetId, String path) throws Exception {
-        DataRepoResponse<FSObjectModel> response = getFileByNameRaw(user, datasetId, path);
+    public FileModel getFileByName(TestConfiguration.User user, String datasetId, String path) throws Exception {
+        DataRepoResponse<FileModel> response = getFileByNameRaw(user, datasetId, path);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<FSObjectModel> getSnapshotFileByIdRaw(TestConfiguration.User user,
+    public DataRepoResponse<FileModel> getSnapshotFileByIdRaw(TestConfiguration.User user,
                                                                   String snapshotId,
                                                                   String fileId) throws Exception {
         return dataRepoClient.get(
-            user, "/api/repository/v1/snapshots/" + snapshotId + "/files/" + fileId, FSObjectModel.class);
+            user, "/api/repository/v1/snapshots/" + snapshotId + "/files/" + fileId, FileModel.class);
     }
 
-    public FSObjectModel getSnapshotFileById(TestConfiguration.User user,
+    public FileModel getSnapshotFileById(TestConfiguration.User user,
                                              String snapshotId,
                                              String fileId) throws Exception {
-        DataRepoResponse<FSObjectModel> response = getSnapshotFileByIdRaw(user, snapshotId, fileId);
+        DataRepoResponse<FileModel> response = getSnapshotFileByIdRaw(user, snapshotId, fileId);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<FSObjectModel> getSnapshotFileByNameRaw(TestConfiguration.User user,
+    public DataRepoResponse<FileModel> getSnapshotFileByNameRaw(TestConfiguration.User user,
                                                                     String snapshotId,
                                                                     String path) throws Exception {
         return dataRepoClient.get(
             user,
             "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects?path=" + path,
-            FSObjectModel.class);
+            FileModel.class);
     }
 
-    public FSObjectModel getSnapshotFileByName(TestConfiguration.User user,
+    public FileModel getSnapshotFileByName(TestConfiguration.User user,
                                                String snapshotId,
                                                String path) throws Exception {
-        DataRepoResponse<FSObjectModel> response = getSnapshotFileByNameRaw(user, snapshotId, path);
+        DataRepoResponse<FileModel> response = getSnapshotFileByNameRaw(user, snapshotId, path);
         assertThat("file is successfully retrieved", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("file get response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();

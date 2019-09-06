@@ -46,14 +46,14 @@ public class FileIngestFlight extends Flight {
         Dataset dataset = datasetService.retrieve(datasetId);
 
         // The flight plan:
-        // 1. Generate the new file object id and store it in the working map
+        // 1. Generate the new file id and store it in the working map
         // 2. Create the directory entry for the file; lack of a file entry means it will be invisible
         //    to outside retrieval. Existence of a directory entry keeps a second file from getting the
         //    same name.
         // 3. Locate the bucket where this file should go and store it in the working map
         // 4. Copy the file into the bucket. Return the gspath, checksum, size, and create time
-        // 5. Create the file object.
-        addStep(new IngestFileObjectIdStep());
+        // 5. Create the file entry in the filesystem.
+        addStep(new IngestFileIdStep());
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset));
         addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService));
         addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));

@@ -7,7 +7,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import java.time.Instant;
 import java.util.UUID;
 
-public class FSFile extends FSObjectBase {
+public class FSFile extends FSItem {
     private UUID datasetId;
     private String gspath;
     private String mimeType;
@@ -50,8 +50,8 @@ public class FSFile extends FSObjectBase {
     }
 
     // setters for super object, so fluent style works without ordering dependency
-    public FSFile objectId(UUID objectId) {
-        super.objectId(objectId);
+    public FSFile fileId(UUID fileId) {
+        super.fileId(fileId);
         return this;
     }
 

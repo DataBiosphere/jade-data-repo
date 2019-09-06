@@ -21,10 +21,10 @@ import java.util.concurrent.ExecutionException;
 
 @Component
 public class FireStoreDependencyDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreDependencyDao");
+    private final Logger logger = LoggerFactory.getLogger(FireStoreDependencyDao.class);
 
     // The collection name has non-hexadecimal characters in it, so it won't collide with any dataset id.
-    private static final String DEPENDENCY_COLLECTION_NAME = "dependencies";
+    private static final String DEPENDENCY_COLLECTION_NAME = "-dependencies";
 
     private FireStoreUtils fireStoreUtils;
 
@@ -33,11 +33,11 @@ public class FireStoreDependencyDao {
         this.fireStoreUtils = fireStoreUtils;
     }
 
-    public boolean objectHasSnapshotReference(Dataset dataset, String objectId) {
+    public boolean fileHasSnapshotReference(Dataset dataset, String fileId) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
-        Query query = depColl.whereEqualTo("objectId", objectId);
+        Query query = depColl.whereEqualTo("fileId", fileId);
         return hasReference(query);
     }
 
@@ -76,7 +76,7 @@ public class FireStoreDependencyDao {
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
             for (DocumentSnapshot docSnap : documents) {
                 FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
-                fileIds.add(fireStoreDependency.getObjectId());
+                fileIds.add(fireStoreDependency.getFileId());
             }
             return fileIds;
         } catch (InterruptedException ex) {
@@ -88,16 +88,16 @@ public class FireStoreDependencyDao {
     }
 
     public void storeSnapshotFileDependencies(Dataset dataset, String snapshotId, List<String> refIds) {
-        // TODO: REVIEWERS: Right now storing and deleting (below) are not done in a single
+        // TODO: Right now storing and deleting (below) are not done in a single
         // transaction. That is possible, but more complicated. The assumption is that at a higher layer
         // we will eventually implement some concurrency control so that incompatible operations - like
         // hard deleting a file in a dataset and deleting a snapshot that uses that file - will not happen
         // at the same time. Even if this is in a transaction, it doesn't keep us from getting in trouble
         // in conflict cases like that. I believe we have them sprinkled all over the code. If I'm wrong
-        // about this, let me know and I can revamp to do something like: make a map of all objects needing
+        // about this, let me know and I can revamp to do something like: make a map of all files needing
         // to be added or incremented. Then perform all adds or updates (or deletes).
-        for (String objectId : refIds) {
-            storeSnapshotFileDependency(dataset, snapshotId, objectId);
+        for (String fileId : refIds) {
+            storeSnapshotFileDependency(dataset, snapshotId, fileId);
         }
     }
 
@@ -123,13 +123,13 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void storeSnapshotFileDependency(Dataset dataset, String snapshotId, String objectId) {
+    public void storeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            Query query = depColl.whereEqualTo("objectId", objectId)
+            Query query = depColl.whereEqualTo("fileId", fileId)
                 .whereEqualTo("snapshotId", snapshotId);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
@@ -139,10 +139,10 @@ public class FireStoreDependencyDao {
 
             switch (documents.size()) {
                 case 0: {
-                    // no dependency object yet. Let's make one
+                    // no dependency yet. Let's make one
                     FireStoreDependency fireStoreDependency = new FireStoreDependency()
                         .snapshotId(snapshotId)
-                        .objectId(objectId)
+                        .fileId(fileId)
                         .refCount(1L);
 
                     DocumentReference docRef = depColl.document();
@@ -151,7 +151,7 @@ public class FireStoreDependencyDao {
                 }
 
                 case 1: {
-                    // existing dependency object; increment the reference count
+                    // existing dependency; increment the reference count
                     QueryDocumentSnapshot docSnap = documents.get(0);
                     FireStoreDependency fireStoreDependency = docSnap.toObject(FireStoreDependency.class);
                     fireStoreDependency.refCount(fireStoreDependency.getRefCount() + 1);
@@ -168,20 +168,20 @@ public class FireStoreDependencyDao {
         fireStoreUtils.transactionGet("store dependency", transaction);
     }
 
-    public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String objectId) {
+    public void removeSnapshotFileDependency(Dataset dataset, String snapshotId, String fileId) {
         FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
         CollectionReference depColl = fireStoreProject.getFirestore().collection(dependencyCollectionName);
 
         ApiFuture<Void> transaction = fireStoreProject.getFirestore().runTransaction(xn -> {
-            Query query = depColl.whereEqualTo("objectId", objectId)
+            Query query = depColl.whereEqualTo("fileId", fileId)
                 .whereEqualTo("snapshotId", snapshotId);
             ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
 
             if (documents.size() == 0) {
-                // No object - nothing to delete
+                // No file - nothing to delete
                 return null;
             }
             if (documents.size() > 1) {

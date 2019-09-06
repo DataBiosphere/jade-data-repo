@@ -3,7 +3,7 @@ package bio.terra.flight.file.delete;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.FireStoreFile;
-import bio.terra.filesystem.exception.FileSystemObjectDependencyException;
+import bio.terra.filesystem.exception.FileDependencyException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.stairway.FlightContext;
@@ -43,8 +43,8 @@ public class DeleteFileLookupStep implements Step {
         // running the rest of the steps, so we use the null stored in the working map to let other
         // steps know there is no file. If there is a file, check dependencies here.
         if (fireStoreFile != null) {
-            if (dependencyDao.objectHasSnapshotReference(dataset, fireStoreFile.getObjectId())) {
-                throw new FileSystemObjectDependencyException(
+            if (dependencyDao.fileHasSnapshotReference(dataset, fireStoreFile.getFileId())) {
+                throw new FileDependencyException(
                     "File is used by at least one snapshot and cannot be deleted");
             }
         }

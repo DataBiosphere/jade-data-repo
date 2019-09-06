@@ -7,8 +7,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.util.List;
 
-public class FSDir extends FSObjectBase {
-    private List<FSObjectBase> contents;
+public class FSDir extends FSItem {
+    private List<FSItem> contents;
     private boolean enumerated;
 
     public FSDir() {
@@ -18,12 +18,12 @@ public class FSDir extends FSObjectBase {
         return enumerated;
     }
 
-    public List<FSObjectBase> getContents() {
+    public List<FSItem> getContents() {
         return contents;
     }
 
 
-    public FSDir contents(List<FSObjectBase> contents) {
+    public FSDir contents(List<FSItem> contents) {
         this.enumerated = true;
         this.contents = contents;
         return this;

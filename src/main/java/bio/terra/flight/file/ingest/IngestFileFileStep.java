@@ -5,7 +5,7 @@ import bio.terra.filesystem.FireStoreFile;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSItem;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
@@ -35,10 +35,10 @@ public class IngestFileFileStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         FSFileInfo fsFileInfo = workingMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
-        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
 
         FireStoreFile newFile = new FireStoreFile()
-            .objectId(objectId)
+            .fileId(fileId)
             .mimeType(fileLoadModel.getMimeType())
             .description(fileLoadModel.getDescription())
             .bucketResourceId(fsFileInfo.getBucketResourceId())
@@ -47,20 +47,20 @@ public class IngestFileFileStep implements Step {
             .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
             .checksumMd5(fsFileInfo.getChecksumMd5())
             .size(fsFileInfo.getSize());
-        fileDao.createFileObject(dataset, newFile);
+        fileDao.createFileMetadata(dataset, newFile);
 
-        // Retrieve to build the whole return object
-        FSObjectBase fsObject = fileDao.retrieveById(dataset, objectId, 1, true);
+        // Retrieve to build the complete FSItem
+        FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
 
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSObject(fsObject));
+        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
-        fileDao.deleteFileObject(dataset, objectId);
+        String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+        fileDao.deleteFileMetadata(dataset, itemId);
         return StepResult.getStepResultSuccess();
     }
 

@@ -32,13 +32,13 @@ public class IngestFilePrimaryDataStep implements Step {
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
         FlightMap workingMap = context.getWorkingMap();
-        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
 
         // In the previous step a bucket was selected for this file to go into and stored in the working map. Here, we
         // store the bucket resource id on the fsFile metadata to let the gcsPdao know where to copy the file.
         GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
-        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, objectId, bucketResource);
+        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
         workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
         return StepResult.getStepResultSuccess();
     }
@@ -46,10 +46,10 @@ public class IngestFilePrimaryDataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
-        gcsPdao.deleteFileById(dataset, objectId, bucketResource);
+        gcsPdao.deleteFileById(dataset, fileId, bucketResource);
 
         return StepResult.getStepResultSuccess();
     }

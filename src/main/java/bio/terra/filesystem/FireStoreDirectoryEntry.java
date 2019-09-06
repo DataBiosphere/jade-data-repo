@@ -4,31 +4,29 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
- * POJO for writing file system object entries to FireStore. This object is used
+ * POJO for writing file system directory entries to FireStore. This object is used
  * for both directories and file references. Fields not used for one or the other
- * are left as null.
+ * are left as null. This is not ideal from an OO point of view, but it works best
+ * with FireStore.
  *
- * NOTE: an alternative would be to use the map version of object creation and leave
- * out fields. That makes the JAVA code more complex. So I decided to use POJOs to
- * model the objects as they are stored and convert them to and from FSObject.
- *
- * Requirements from the documentation are:
+ * Requirements from the FireStore documentation are:
  *   "Each custom class must have a public constructor that takes no arguments.
  *    In addition, the class must include a public getter for each property."
  */
 
-public class FireStoreObject {
+public class FireStoreDirectoryEntry {
     // common fields for dirs and filerefs
-    private String objectId;
-    private boolean fileRef; // true means it is a file reference; false means it is a directory
+    private String fileId;
+    private boolean isFileRef; // true means it is a file reference; false means it is a directory
     private String path; // path to the object
     private String name; // name of the object
 
     // fileref-only fields
     // FireStoreFile object in the files collection
-    private String datasetId; // The pair (datasetId, objectId) are used to lookup the FireStoreFile in file collection.
+    private String datasetId; // The pair (datasetId, fileId) are used to lookup the FireStoreFile in file collection.
 
     // directory-only fields
+
     private String fileCreatedDate; // For files, we get the created date from the FireStoreFile object
 
     // snapshot directory-only fields - computed as part of snapshot filesystem creation;
@@ -37,24 +35,24 @@ public class FireStoreObject {
     private String checksumMd5;
     private Long size;
 
-    public FireStoreObject() {
+    public FireStoreDirectoryEntry() {
     }
 
-    public String getObjectId() {
-        return objectId;
+    public String getFileId() {
+        return fileId;
     }
 
-    public FireStoreObject objectId(String objectId) {
-        this.objectId = objectId;
+    public FireStoreDirectoryEntry fileId(String fileId) {
+        this.fileId = fileId;
         return this;
     }
 
-    public boolean getFileRef() {
-        return fileRef;
+    public boolean getIsFileRef() {
+        return isFileRef;
     }
 
-    public FireStoreObject fileRef(boolean fileRef) {
-        this.fileRef = fileRef;
+    public FireStoreDirectoryEntry isFileRef(boolean fileRef) {
+        isFileRef = fileRef;
         return this;
     }
 
@@ -62,7 +60,7 @@ public class FireStoreObject {
         return path;
     }
 
-    public FireStoreObject path(String path) {
+    public FireStoreDirectoryEntry path(String path) {
         this.path = path;
         return this;
     }
@@ -71,7 +69,7 @@ public class FireStoreObject {
         return name;
     }
 
-    public FireStoreObject name(String name) {
+    public FireStoreDirectoryEntry name(String name) {
         this.name = name;
         return this;
     }
@@ -80,7 +78,7 @@ public class FireStoreObject {
         return datasetId;
     }
 
-    public FireStoreObject datasetId(String datasetId) {
+    public FireStoreDirectoryEntry datasetId(String datasetId) {
         this.datasetId = datasetId;
         return this;
     }
@@ -89,7 +87,7 @@ public class FireStoreObject {
         return fileCreatedDate;
     }
 
-    public FireStoreObject fileCreatedDate(String fileCreatedDate) {
+    public FireStoreDirectoryEntry fileCreatedDate(String fileCreatedDate) {
         this.fileCreatedDate = fileCreatedDate;
         return this;
     }
@@ -98,7 +96,7 @@ public class FireStoreObject {
         return checksumCrc32c;
     }
 
-    public FireStoreObject checksumCrc32c(String checksumCrc32c) {
+    public FireStoreDirectoryEntry checksumCrc32c(String checksumCrc32c) {
         this.checksumCrc32c = checksumCrc32c;
         return this;
     }
@@ -107,7 +105,7 @@ public class FireStoreObject {
         return checksumMd5;
     }
 
-    public FireStoreObject checksumMd5(String checksumMd5) {
+    public FireStoreDirectoryEntry checksumMd5(String checksumMd5) {
         this.checksumMd5 = checksumMd5;
         return this;
     }
@@ -116,16 +114,16 @@ public class FireStoreObject {
         return size;
     }
 
-    public FireStoreObject size(Long size) {
+    public FireStoreDirectoryEntry size(Long size) {
         this.size = size;
         return this;
     }
 
-    public FireStoreObject copyObjectUnderNewPath(String newPath) {
+    public FireStoreDirectoryEntry copyEntryUnderNewPath(String newPath) {
         String fullPath = StringUtils.removeEnd("/" + newPath + getPath(), "/");
-        return new FireStoreObject()
-            .objectId(getObjectId())
-            .fileRef(getFileRef())
+        return new FireStoreDirectoryEntry()
+            .fileId(getFileId())
+            .isFileRef(getIsFileRef())
             .path(fullPath)
             .name(getName())
             .datasetId(getDatasetId())
@@ -138,7 +136,8 @@ public class FireStoreObject {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-            .append("objectId", objectId)
+            .append("fileId", fileId)
+            .append("isFileRef", isFileRef)
             .append("path", path)
             .append("name", name)
             .append("datasetId", datasetId)

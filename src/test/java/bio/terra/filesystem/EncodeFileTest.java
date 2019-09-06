@@ -11,8 +11,8 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.model.FSObjectModel;
-import bio.terra.model.FSObjectModelType;
+import bio.terra.model.FileModel;
+import bio.terra.model.FileModelType;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -152,9 +152,9 @@ public class EncodeFileTest {
         DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
         String filePath = drsObject.getAliases().get(0);
 
-        FSObjectModel fsObjById =
+        FileModel fsObjById =
             connectedOperations.lookupSnapshotFile(snapshotSummary.getId(), drsId.getFsObjectId());
-        FSObjectModel fsObjByPath =
+        FileModel fsObjByPath =
             connectedOperations.lookupSnapshotFileByPath(snapshotSummary.getId(), filePath, 0);
         assertThat("Retrieve snapshot file objects match", fsObjById, equalTo(fsObjByPath));
 
@@ -228,16 +228,16 @@ public class EncodeFileTest {
                               String snapshotId,
                               String datasetPath,
                               int inDepth) throws Exception {
-        FSObjectModel fsObj = connectedOperations.lookupSnapshotFileByPath(snapshotId, datasetPath, inDepth);
+        FileModel fsObj = connectedOperations.lookupSnapshotFileByPath(snapshotId, datasetPath, inDepth);
         int maxDepth = checkSnapEnum(dirmap, 0, fsObj);
-        int depth = (inDepth == -1) ? 7 : inDepth;
+        int depth = (inDepth == -1) ? MAX_DIRECTORY_DEPTH : inDepth;
         assertThat("Depth is correct", maxDepth, equalTo(depth));
     }
 
     // return is the max depth we have seen; level is the input depth so far
-    private int checkSnapEnum(Map<String, List<String>> dirmap, int level, FSObjectModel fsObj) {
+    private int checkSnapEnum(Map<String, List<String>> dirmap, int level, FileModel fsObj) {
         // If there are not contents, then we are at the deepest level
-        List<FSObjectModel> contentsList = fsObj.getDirectoryDetail().getContents();
+        List<FileModel> contentsList = fsObj.getDirectoryDetail().getContents();
         if (contentsList == null || contentsList.size() == 0) {
             return level;
         }
@@ -245,7 +245,7 @@ public class EncodeFileTest {
         // build string list from the contents objects
         List<String> contentsNames = contentsList
             .stream()
-            .map(fs -> fireStoreUtils.getObjectName(fs.getPath()))
+            .map(fs -> fireStoreUtils.getName(fs.getPath()))
             .collect(Collectors.toList());
 
         // lookup the dirmap list by path of the fsObj
@@ -257,9 +257,9 @@ public class EncodeFileTest {
 
         // loop through contents; if dir, recurse (level + 1)
         int maxLevel = level;
-        for (FSObjectModel fsObjectModel : contentsList) {
-            if (fsObjectModel.getObjectType() == FSObjectModelType.DIRECTORY) {
-                int aLevel = checkSnapEnum(dirmap, level + 1, fsObjectModel);
+        for (FileModel fileModel : contentsList) {
+            if (fileModel.getFileType() == FileModelType.DIRECTORY) {
+                int aLevel = checkSnapEnum(dirmap, level + 1, fileModel);
                 if (aLevel > maxLevel) {
                     maxLevel = aLevel;
                 }
@@ -386,20 +386,20 @@ public class EncodeFileTest {
 
                 if (encodeFileIn.getFile_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_gs_path());
-                    FSObjectModel bamFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
+                    FileModel bamFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
                     // Fault insertion on request: we corrupt one id if requested to do so.
                     if (insertBadId && !badIdInserted) {
-                        bamFileId = bamFile.getObjectId() + ID_GARBAGE;
+                        bamFileId = bamFile.getFileId() + ID_GARBAGE;
                         badIdInserted = true;
                     } else {
-                        bamFileId = bamFile.getObjectId();
+                        bamFileId = bamFile.getFileId();
                     }
                 }
 
                 if (encodeFileIn.getFile_index_gs_path() != null) {
                     FileLoadModel fileLoadModel = makeFileLoadModel(encodeFileIn.getFile_index_gs_path());
-                    FSObjectModel bamiFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
-                    bamiFileId = bamiFile.getObjectId();
+                    FileModel bamiFile = connectedOperations.ingestFileSuccess(datasetId, fileLoadModel);
+                    bamiFileId = bamiFile.getFileId();
                 }
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);

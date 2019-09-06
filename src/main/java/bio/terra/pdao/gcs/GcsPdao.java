@@ -5,7 +5,7 @@ import bio.terra.filesystem.FireStoreFile;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;
-import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSItem;
 import bio.terra.model.FileLoadModel;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.pdao.exception.PdaoFileCopyException;
@@ -59,10 +59,9 @@ public class GcsPdao {
         return gcsProject.getStorage();
     }
 
-    // We return the incoming FSObject with the blob information filled in
     public FSFileInfo copyFile(Dataset dataset,
                                FileLoadModel fileLoadModel,
-                               String objectId,
+                               String fileId,
                                GoogleBucketResource bucketResource) {
         String sourceBucket;
         String sourcePath;
@@ -96,8 +95,8 @@ public class GcsPdao {
                 fileLoadModel.getSourcePath() + "'");
         }
 
-        // Our path is /<dataset-id>/<object-id>
-        String targetPath = dataset.getId().toString() + "/" + objectId;
+        // Our path is /<dataset-id>/<file-id>
+        String targetPath = dataset.getId().toString() + "/" + fileId;
 
         try {
             // The documentation is vague whether or not it is important to copy by chunk. One set of
@@ -133,7 +132,7 @@ public class GcsPdao {
                 null);
 
             FSFileInfo fsFileInfo = new FSFileInfo()
-                .objectId(objectId)
+                .fileId(fileId)
                 .createdDate(createTime.toString())
                 .gspath(gspath.toString())
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
@@ -152,15 +151,16 @@ public class GcsPdao {
         }
     }
 
-    // Three flavors of deleteFile
-    // 1. for undo file ingest - it gets the bucket path from the dataset and object id
+    // Three flavors of deleteFileMetadata
+    // 1. for undo file ingest - it gets the bucket path from the dataset and file id
     // 2. for delete file flight - it gets bucket path from the gspath
     // 3. for delete file consumer for deleting all files - it gets bucket path
-    //    from gspath within the fireStoreFile object
+    //    from gspath in the fireStoreFile
+
     public boolean deleteFileById(Dataset dataset,
-                                  String objectId,
+                                  String fileId,
                                   GoogleBucketResource bucketResource) {
-        String bucketPath = dataset.getId().toString() + "/" + objectId;
+        String bucketPath = dataset.getId().toString() + "/" + fileId;
         return deleteWorker(bucketResource, bucketPath);
     }
 
@@ -209,9 +209,9 @@ public class GcsPdao {
         Acl acl = Acl.newBuilder(readerGroup, Acl.Role.READER).build();
 
         for (String fileId : fileIds) {
-            FSObjectBase fsObjectBase = fileDao.retrieveById(dataset, fileId, 0, true);
-            if (fsObjectBase instanceof FSFile) {
-                FSFile fsFile = (FSFile)fsObjectBase;
+            FSItem fsItem = fileDao.retrieveById(dataset, fileId, 0, true);
+            if (fsItem instanceof FSFile) {
+                FSFile fsFile = (FSFile) fsItem;
                 GoogleBucketResource bucketForFile = dataLocationService.lookupBucket(fsFile.getBucketResourceId());
                 Storage storage = storageForBucket(bucketForFile);
                 URI gsUri = URI.create(fsFile.getGspath());

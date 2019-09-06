@@ -34,7 +34,6 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,6 +69,7 @@ import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -228,18 +228,14 @@ public class EncodeFileTest {
                               String snapshotId,
                               String datasetPath,
                               int inDepth) throws Exception {
-        logger.info(">> testsnapEnum with depth = " + inDepth);
         FSObjectModel fsObj = connectedOperations.lookupSnapshotFileByPath(snapshotId, datasetPath, inDepth);
         int maxDepth = checkSnapEnum(dirmap, 0, fsObj);
         int depth = (inDepth == -1) ? 7 : inDepth;
-        logger.info(">> testSnapEnum maxDepth = " + maxDepth + "  compareDepth = " + depth);
-//        assertThat("Depth is correct", maxDepth, equalTo(depth));
+        assertThat("Depth is correct", maxDepth, equalTo(depth));
     }
 
     // return is the max depth we have seen; level is the input depth so far
     private int checkSnapEnum(Map<String, List<String>> dirmap, int level, FSObjectModel fsObj) {
-        logger.info(">>> checkSnapEnum: level = " + level + "  dirPath = " + fsObj.getPath());
-
         // If there are not contents, then we are at the deepest level
         List<FSObjectModel> contentsList = fsObj.getDirectoryDetail().getContents();
         if (contentsList == null || contentsList.size() == 0) {
@@ -255,14 +251,9 @@ public class EncodeFileTest {
         // lookup the dirmap list by path of the fsObj
         List<String> mapList = dirmap.get(fsObj.getPath());
 
-        logger.info(">>>> contents: " + StringUtils.join(contentsNames, ","));
-        logger.info(">>>> mapList : " + StringUtils.join(mapList, ","));
         // compare the lists
         StringListCompare slc = new StringListCompare(contentsNames, mapList);
-//        assertTrue("Directory contents match", slc.compare());
-        if (!slc.compare()) {
-            logger.info("**** Contents mismatch");
-        }
+        assertTrue("Directory contents match", slc.compare());
 
         // loop through contents; if dir, recurse (level + 1)
         int maxLevel = level;
@@ -276,7 +267,6 @@ public class EncodeFileTest {
         }
 
         // return max level of any dirs
-        logger.info(">>> checkSnapEnum maxLevel = " + maxLevel);
         return maxLevel;
     }
 

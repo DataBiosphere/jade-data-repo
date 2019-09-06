@@ -54,9 +54,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
         //
         // NOTE: This is brute force doing a column at a time. Depending on how much memory and
         // swap we want to use, we could extract all row ids in one go. Doing it column-by-column
-        // bounds the intermediate size in a way. I think this all becomes easier if we move
-        // the filesystem stuff into DataStore or similar. Then bigquery can stream this
-        // this without landing in memory and transferring it to postgres.
+        // bounds the intermediate size in a way.
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
                 for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {

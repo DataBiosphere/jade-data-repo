@@ -101,7 +101,8 @@ public class FireStoreDao {
         Firestore datasetFirestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         Firestore snapshotFirestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        // TODO: Do we need to clean up the database name?
+        // TODO: Do we need to make sure the dataset name does not contain characters that are invalid for paths?
+        // Added the work to figure that out to DR-325
         String datasetName = dataset.getName();
         String snapshotId = snapshot.getId().toString();
 

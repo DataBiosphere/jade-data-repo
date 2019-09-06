@@ -317,7 +317,7 @@ public class FireStoreDirectoryDao {
     // -- Snapshot filesystem methods --
 
     /**
-     * Given ane object id from a dataset directory, create a similar object in the snapshot directory.
+     * Given an object id from a dataset directory, create a similar object in the snapshot directory.
      * The snapshot version of the object differs because it has a the dataset name added to its path.
      */
     public void addObjectToSnapshot(Firestore datasetFirestore,

@@ -26,7 +26,7 @@ public class FireStoreObject {
 
     // fileref-only fields
     // FireStoreFile object in the files collection
-    private String datasetId; // The pari (datasetId, objectId) are used to lookup the FireStoreFile in file collection.
+    private String datasetId; // The pair (datasetId, objectId) are used to lookup the FireStoreFile in file collection.
 
     // directory-only fields
     private String fileCreatedDate; // For files, we get the created date from the FireStoreFile object

@@ -230,7 +230,7 @@ public class EncodeFileTest {
                               int inDepth) throws Exception {
         FSObjectModel fsObj = connectedOperations.lookupSnapshotFileByPath(snapshotId, datasetPath, inDepth);
         int maxDepth = checkSnapEnum(dirmap, 0, fsObj);
-        int depth = (inDepth == -1) ? 7 : inDepth;
+        int depth = (inDepth == -1) ? 6 : inDepth;
         assertThat("Depth is correct", maxDepth, equalTo(depth));
     }
 

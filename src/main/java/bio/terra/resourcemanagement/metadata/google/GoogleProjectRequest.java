@@ -8,7 +8,7 @@ public class GoogleProjectRequest {
     private UUID profileId;
     private String projectId;
     private List<String> serviceIds;
-    private Map<String, String> userPermissions;
+    private Map<String, List<String>> userPermissions;
 
     public UUID getProfileId() {
         return profileId;
@@ -37,13 +37,13 @@ public class GoogleProjectRequest {
         return this;
     }
 
-    // TODO should this be a list not a string? -- I want a map of identities to list of iam permissions
+    // map of identities to list of iam permissions (a list of things the id'ed user can do)
 
-    public Map<String, String> getUserPermissions() {
+    public Map<String, List<String>> getUserPermissions() {
         return userPermissions;
     }
 
-    public GoogleProjectRequest userPermissions(Map<String, String> userPermissions) {
+    public GoogleProjectRequest userPermissions(Map<String, List<String>> userPermissions) {
         this.userPermissions = userPermissions;
         return this;
     }

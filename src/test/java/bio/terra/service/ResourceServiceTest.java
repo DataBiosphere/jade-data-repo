@@ -9,6 +9,8 @@ import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.resourcemanagement.service.google.GoogleResourceService;
 import bio.terra.service.dataproject.DataLocationService;
+import com.google.api.client.util.Lists;
+import com.google.api.client.util.Maps;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +24,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
+import java.security.GeneralSecurityException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -54,14 +61,24 @@ public class ResourceServiceTest {
     @Test
     // this test should be unignored whenever there are changes to the project creation or deletion code
     @Ignore
-    public void createAndDeleteProjectTest() {
+    public void createAndDeleteProjectTest() throws IOException, GeneralSecurityException {
         // the project id can't be more than 30 characters
         String projectId = ("test-" + UUID.randomUUID().toString()).substring(0, 30);
+
+        String role = "roles/bigquery.jobUser";
+        String stewardsGroupEmail = "stewardEmail";
+        List<String> stewardsGroupEmailList = Lists.newArrayList();
+        stewardsGroupEmailList.add(stewardsGroupEmail);
+        Map<String, List<String>> roleToStewardMap = new HashMap();
+        roleToStewardMap.put(role, stewardsGroupEmailList);
+
         GoogleProjectRequest projectRequest = new GoogleProjectRequest()
             .projectId(projectId)
             .profileId(UUID.fromString(profile.getId()))
-            .serviceIds(DataLocationService.DATA_PROJECT_SERVICE_IDS);
+            .serviceIds(DataLocationService.DATA_PROJECT_SERVICE_IDS)
+            .userPermissions(roleToStewardMap);
         GoogleProjectResource projectResource = resourceService.getOrCreateProject(projectRequest);
+
         Project project = resourceService.getProject(projectId);
         assertThat("the project is active",
             project.getLifecycleState(),

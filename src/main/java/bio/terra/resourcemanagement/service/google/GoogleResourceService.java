@@ -1,5 +1,6 @@
 package bio.terra.resourcemanagement.service.google;
 
+import bio.terra.configuration.SamConfiguration;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.pdao.gcs.GcsProjectFactory;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
@@ -19,10 +20,15 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
+import com.google.api.services.cloudresourcemanager.model.Binding;
+import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
+import com.google.api.services.cloudresourcemanager.model.Policy;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
+import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Operation;
+import com.google.api.services.iam.v1.Iam;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
@@ -34,6 +40,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +50,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -57,6 +65,7 @@ public class GoogleResourceService {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final GoogleBillingService billingService;
     private final GcsProjectFactory gcsProjectFactory;
+    private final SamConfiguration samConfiguration;
 
     @Autowired
     public GoogleResourceService(
@@ -64,12 +73,14 @@ public class GoogleResourceService {
         ProfileService profileService,
         GoogleResourceConfiguration resourceConfiguration,
         GoogleBillingService billingService,
-        GcsProjectFactory gcsProjectFactory) {
+        GcsProjectFactory gcsProjectFactory,
+        SamConfiguration samConfiguration) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
         this.gcsProjectFactory = gcsProjectFactory;
+        this.samConfiguration = samConfiguration;
     }
 
     public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
@@ -117,7 +128,7 @@ public class GoogleResourceService {
         return gcsProject.getStorage().create(bucketInfo);
     }
 
-    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
+    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) throws IOException, GeneralSecurityException {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
         String googleProjectId = projectRequest.getProjectId();
@@ -135,6 +146,7 @@ public class GoogleResourceService {
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(existingProject.getProjectNumber().toString());
             enableServices(googleProjectResource);
+            enableIamPermissions(googleProjectResource);
             UUID id = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(id);
         }
@@ -190,7 +202,6 @@ public class GoogleResourceService {
         try {
             // kick off a project create request and poll until it is done
             CloudResourceManager resourceManager = cloudResourceManager();
-            // TODO <RORI> start here
             CloudResourceManager.Projects.Create request = resourceManager.projects().create(requestBody);
             Operation operation = request.execute();
             long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
@@ -207,6 +218,7 @@ public class GoogleResourceService {
                 .googleProjectNumber(googleProjectNumber);
             setupBilling(googleProjectResource);
             enableServices(googleProjectResource);
+            enableIamPermissions(googleProjectResource);
             UUID repositoryId = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(repositoryId);
         } catch (IOException | GeneralSecurityException | InterruptedException e) {
@@ -270,6 +282,25 @@ public class GoogleResourceService {
         } catch (IOException | GeneralSecurityException | InterruptedException e) {
             throw new GoogleResourceException("Could not enable services", e);
         }
+    }
+
+    public void enableIamPermissions(GoogleProjectResource projectResource) throws IOException, GeneralSecurityException {
+        Map<String, List<String>> userPermissions = projectResource.getUserPermissions();
+
+        List<Binding> bindingsList = Lists.newArrayList();
+
+        for (String role : userPermissions.keySet()) {
+            Binding binding = new Binding()
+                .setRole(role)
+                .setMembers(userPermissions.get(role));
+            bindingsList.add(binding);
+        }
+
+        Policy policy = new Policy().setBindings(bindingsList);
+        SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+
+        CloudResourceManager resourceManager = cloudResourceManager();
+        resourceManager.projects().setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest);
     }
 
     private void setupBilling(GoogleProjectResource project) {

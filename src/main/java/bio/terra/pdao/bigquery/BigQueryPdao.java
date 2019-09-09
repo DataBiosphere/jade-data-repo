@@ -50,6 +50,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -73,7 +74,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         this.dataLocationService = dataLocationService;
     }
 
-    private BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
+    public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
         DatasetDataProject projectForDataset = dataLocationService.getProjectForDataset(dataset);
         return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
@@ -101,6 +102,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
             for (DatasetTable table : dataset.getTables()) {
                 Schema schema = buildSchema(table, true);
                 bigQueryProject.createTable(datasetName, table.getName(), schema);
+                bigQueryProject.createTable(
+                    datasetName,
+                    prefixSoftDeleteTableName(table.getName()),
+                    buildSoftDeletesSchema());
             }
         } catch (Exception ex) {
             throw new PdaoException("create dataset failed for " + datasetName, ex);
@@ -216,7 +221,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             AssetSpecification asset = source.getAssetSpecification();
             Table rootTable = asset.getRootTable().getTable();
             String rootTableId = rootTable.getId().toString();
-            String sql = loadRootRowIdsSql(snapshotName, rootTableId, rowIds, projectId);
+            String sql = loadRootRowIdsSql(snapshotName,
+                rootTableId,
+                rowIds,
+                projectId,
+                prefixSoftDeleteTableName(rootTable.getName()),
+                datasetBqDatasetName);
             if (sql != null) {
                 bigQueryProject.query(sql);
             }
@@ -272,6 +282,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetName = prefixName(dataset.getName());
         // bigQueryProject.datasetExists checks whether the BigQuery dataset by the provided name exists
         return bigQueryProject.datasetExists(datasetName);
+    }
+
+    @Override
+    public boolean tableExists(Dataset dataset, String tableName) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String datasetName = prefixName(dataset.getName());
+        return bigQueryProject.tableExists(datasetName, tableName);
     }
 
     @Override
@@ -451,7 +468,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public boolean deleteDatasetTable(Dataset dataset, String tableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName);
+        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName) &&
+            bigQueryProject.deleteTable(prefixName(dataset.getName()), prefixSoftDeleteTableName(tableName));
     }
 
     public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) {
@@ -560,8 +578,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
-    private String prefixName(String name) {
+    public String prefixName(String name) {
         return PDAO_PREFIX + name;
+    }
+
+    public String prefixSoftDeleteTableName(String tableName) {
+        return PDAO_PREFIX + "sd_" + tableName;
+    }
+
+    private Schema buildSoftDeletesSchema() {
+        return Schema.of(Collections.singletonList(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)));
     }
 
     private Schema buildSchema(DatasetTable table, boolean addRowIdColumn) {
@@ -606,10 +632,27 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // This is more expensive than streaming the input, but does not introduce visibility
     // issues with the new data. It has the same number of values limitation as the
     // validate row ids.
-    private String loadRootRowIdsSql(String snapshotName, String tableId, List<String> rowIds, String projectId) {
+    private String loadRootRowIdsSql(String snapshotName,
+                                     String tableId,
+                                     List<String> rowIds,
+                                     String projectId,
+                                     String softDeletesTableName,
+                                     String bqDatasetName) {
         if (rowIds.size() == 0) {
             return null;
         }
+
+        /*
+        INSERT INTO `projectId.snapshotName.PDAO_ROW_ID_TABLE` (PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN)
+            SELECT 'tableId' AS table_id, T.PDAO_TABLE_ID_COLUMN AS row_id
+            FROM (
+                SELECT rowid
+                FROM UNNEST ([row_id1,row_id2,..,row_idn]) AS rowid
+                EXCEPT DISTINCT (
+                    SELECT PDAO_ROW_ID_COLUMN FROM softDeletesTableName
+                )
+            ) AS T
+        */
 
         StringBuilder builder = new StringBuilder();
         builder.append("INSERT INTO `")
@@ -626,7 +669,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
             prefix = ",";
         }
 
-        builder.append("]) AS rowid) AS T");
+        builder.append("]) AS rowid EXCEPT DISTINCT ( SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId).append(".").append(bqDatasetName).append(".").append(softDeletesTableName)
+            .append("`)) AS T");
         return builder.toString();
     }
 
@@ -699,7 +746,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             relationship.setVisited();
-            storeRowIdsForRelatedTable(datasetBqDatasetName, snapshotName, relationship, projectId, bigQuery);
+            storeRowIdsForRelatedTable(datasetBqDatasetName,
+                snapshotName,
+                relationship,
+                projectId,
+                bigQuery,
+                prefixSoftDeleteTableName(relationship.getToTableName()));
             walkRelationships(
                 datasetBqDatasetName,
                 snapshotName,
@@ -726,40 +778,48 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                             String snapshotName,
                                             WalkRelationship relationship,
                                             String projectId,
-                                            BigQuery bigQuery) {
+                                            BigQuery bigQuery,
+                                            String softDeletesTableName) {
         // NOTE: this will have to be re-written when we support relationships that include
         // more than one column.
         /*
             The constructed SQL varies depending on if the from/to column is an array.
 
             Common SQL is:
-                SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
-                FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
-                WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
-                  AND R.PDAO_ROW_ID_COLUMN = F.PDAO_ROW_ID_COLUMN
+              WITH merged_table AS (
+                    SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
+                    FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
+                    WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
+                        AND R.PDAO_ROW_ID_COLUMN = F.PDAO_ROW_ID_COLUMN
+                        If neither column is an array, add:
+                            AND T.toColumnName = F.fromColumnName
 
-            If neither column is an array, add:
-                  AND T.toColumnName = F.fromColumnName
+                        If 'from' is an array, add:
+                            AND EXISTS (SELECT 1
+                                FROM UNNEST(F.fromColumnName) AS flat_from
+                                WHERE flat_from = T.toColumnName)
 
-            If 'from' is an array, add:
-                  AND EXISTS (SELECT 1
-                              FROM UNNEST(F.fromColumnName) AS flat_from
-                              WHERE flat_from = T.toColumnName)
+                        If 'to' is an array, add:
+                            AND EXISTS (SELECT 1
+                                FROM UNNEST(T.toColumnName) AS flat_to
+                                 WHERE flat_to = F.fromColumnName)
 
-            If 'to' is an array, add:
-                  AND EXISTS (SELECT 1
-                              FROM UNNEST(T.toColumnName) AS flat_to
-                              WHERE flat_to = F.fromColumnName)
+                        If both are an array, add:
+                              AND EXISTS (SELECT 1
+                                  FROM UNNEST(F.fromColumnName) AS flat_from
+                                  JOIN UNNEST(T.toColumnName) AS flat_to
+                                  ON flat_from = flat_to)
+              )
 
-            If both are an array, add:
-                  AND EXISTS (SELECT 1
-                              FROM UNNEST(F.fromColumnName) AS flat_from
-                              JOIN UNNEST(T.toColumnName) AS flat_to
-                              ON flat_from = flat_to)
+               SELECT PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN
+               FROM 'merged_table'
+               WHERE PDAO_ROW_ID_COLUMN NOT IN (
+                    SELECT PDAO_ROW_ID_COLUMN FROM <table>_soft_deleted
+               )
          */
 
         StringBuilder builder = new StringBuilder();
-        builder.append("SELECT DISTINCT '")
+        builder.append("WITH merged_table AS (SELECT DISTINCT '")
                 .append(relationship.getToTableId())
                 .append("' AS ")
                 .append(PDAO_TABLE_ID_COLUMN)
@@ -806,6 +866,17 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } else {
             builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
         }
+        builder.append(") SELECT ")
+            .append(PDAO_TABLE_ID_COLUMN)
+            .append(", ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM merged_table WHERE ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" NOT IN (SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId).append(".").append(datasetBqDatasetName).append(".").append(softDeletesTableName)
+            .append("`)");
 
         String sql = builder.toString();
         try {
@@ -1002,6 +1073,36 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return null;
     }
 
+    public void softDeleteRows(Dataset dataset,
+                               String tableName,
+                               String projectId,
+                               Set<String> softDeleteRowIds) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String softDeletesTableName = prefixSoftDeleteTableName(tableName);
+
+        // TODO: Validate rowIDs exist in given table
+        StringBuilder rowIdValues = new StringBuilder();
+        String prefix = "";
+        for (String rowId : softDeleteRowIds) {
+            rowIdValues.append(prefix).append("('").append(rowId).append("')");
+            prefix = ",";
+        }
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("INSERT INTO `")
+            .append(projectId).append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(softDeletesTableName)
+            .append("` (")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(") VALUES ")
+            .append(rowIdValues.toString());
+
+        String sql = builder.toString();
+        bigQueryProject.query(sql);
+    }
+
     // TODO: Make an enum for the datatypes in swagger
     private LegacySQLTypeName translateType(String datatype) {
         String uptype = StringUtils.upperCase(datatype);
@@ -1025,5 +1126,4 @@ public class BigQueryPdao implements PrimaryDataAccess {
             default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
     }
-
 }

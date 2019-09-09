@@ -69,7 +69,7 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
-    public boolean canListJobs() {
+    public boolean getCanListJobs() {
         return canListJobs;
     }
 
@@ -78,7 +78,7 @@ public class AuthenticatedUserRequest {
         return this;
     }
 
-    public boolean canDeleteJobs() {
+    public boolean getCanDeleteJobs() {
         return canDeleteJobs;
     }
 

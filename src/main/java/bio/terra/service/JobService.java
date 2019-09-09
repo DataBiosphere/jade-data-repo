@@ -121,8 +121,8 @@ public class JobService {
             .name(userReq.getEmail())
             .subjectId(userReq.getSubjectId())
             .requsetId(userReq.getReqId())
-            .canListJobs(userReq.canListJobs())
-            .canDeleteJobs(userReq.canDeleteJobs());
+            .canListJobs(userReq.getCanListJobs())
+            .canDeleteJobs(userReq.getCanDeleteJobs());
     }
 
     public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {

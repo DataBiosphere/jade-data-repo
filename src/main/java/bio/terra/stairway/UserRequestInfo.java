@@ -32,7 +32,7 @@ public class UserRequestInfo {
         return requestId;
     }
 
-    public UserRequestInfo requsetId(UUID reqId) {
+    public UserRequestInfo requestId(UUID reqId) {
         this.requestId = reqId;
         return this;
     }

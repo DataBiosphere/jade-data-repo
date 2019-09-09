@@ -120,7 +120,7 @@ public class JobService {
         return new UserRequestInfo()
             .name(userReq.getEmail())
             .subjectId(userReq.getSubjectId())
-            .requsetId(userReq.getReqId())
+            .requestId(userReq.getReqId())
             .canListJobs(userReq.getCanListJobs())
             .canDeleteJobs(userReq.getCanDeleteJobs());
     }

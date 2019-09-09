@@ -2,7 +2,7 @@ package bio.terra.filesystem;
 
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.filesystem.exception.FileSystemExecutionException;
-import bio.terra.metadata.Dataset;
+import bio.terra.filesystem.exception.InvalidFileSystemObjectTypeException;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -12,6 +12,7 @@ import com.google.cloud.firestore.Query;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import com.google.cloud.firestore.Transaction;
+import com.google.cloud.firestore.WriteResult;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -94,7 +95,7 @@ public class FireStoreDirectoryDao {
                     break;
                 }
 
-                FireStoreObject dirToCreate = makeDirectoryObject(collectionId, testPath);
+                FireStoreObject dirToCreate = makeDirectoryObject(testPath);
                 createList.add(dirToCreate);
             }
 
@@ -152,9 +153,8 @@ public class FireStoreDirectoryDao {
         return fireStoreUtils.transactionGet("deleteFileRef", transaction);
     }
 
-
     private static final int DELETE_BATCH_SIZE = 500;
-    public void deleteDirectoryEntriesFromDataset(Firestore firestore, String collectionId) {
+    public void deleteDirectoryEntriesFromCollection(Firestore firestore, String collectionId) {
         fireStoreUtils.scanCollectionObjects(
             firestore,
             collectionId,
@@ -201,45 +201,6 @@ public class FireStoreDirectoryDao {
 
     // -- private methods --
 
-    private void deleteFileWorker(Dataset dataset, DocumentReference fileDocRef, String dirPath, Transaction xn) {
-        // We must do all reads before any writes, so we collect the document references that we need to delete
-        // first and then perform the deletes afterward. This must be the last part of a transaction that performs
-        // a read.
-        List<DocumentReference> docRefList = new ArrayList<>();
-        docRefList.add(fileDocRef);
-        FireStoreProject fireStoreProject = FireStoreProject.get(dataset.getDataProjectId());
-        CollectionReference datasetCollection = fireStoreProject.getFirestore().collection(dataset.getId().toString());
-
-        String lookupPath = makeLookupPath(dirPath);
-        try {
-            while (!lookupPath.isEmpty()) {
-                // Count the number of objects with this path as their directory path
-                // A value of 1 means that the directory will be empty after its child is
-                // deleted, so we should delete it also.
-                Query query = datasetCollection.whereEqualTo("path", makePathFromLookupPath(lookupPath));
-                ApiFuture<QuerySnapshot> querySnapshot = xn.get(query);
-
-                List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
-                if (documents.size() > 1) {
-                    break;
-                }
-                DocumentReference docRef = datasetCollection.document(encodePathAsFirestoreDocumentName(lookupPath));
-                docRefList.add(docRef);
-                lookupPath = fireStoreUtils.getDirectoryPath(lookupPath);
-            }
-
-            for (DocumentReference docRef : docRefList) {
-                xn.delete(docRef);
-            }
-
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("delete worker - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("delete worker - execution exception", ex);
-        }
-    }
-
     List<FireStoreObject> enumerateDirectory(Firestore firestore, String collectionId, String dirPath) {
         ApiFuture<List<FireStoreObject>> transaction = firestore.runTransaction(xn -> {
             Query query = firestore.collection(collectionId).whereEqualTo("path", dirPath);
@@ -264,7 +225,11 @@ public class FireStoreDirectoryDao {
     }
 
     private DocumentReference getDocRef(Firestore firestore, String collectionId, FireStoreObject fireStoreObject) {
-        String fullPath = fireStoreUtils.getFullPath(fireStoreObject.getPath(), fireStoreObject.getName());
+        return getDocRef(firestore, collectionId, fireStoreObject.getPath(), fireStoreObject.getName());
+    }
+
+    private DocumentReference getDocRef(Firestore firestore, String collectionId, String path, String name) {
+        String fullPath = fireStoreUtils.getFullPath(path, name);
         String lookupPath = makeLookupPath(fullPath);
         return firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
     }
@@ -314,7 +279,7 @@ public class FireStoreDirectoryDao {
         }
     }
 
-    private FireStoreObject makeDirectoryObject(String dataset, String lookupDirPath) {
+    private FireStoreObject makeDirectoryObject(String lookupDirPath) {
         // We have some special cases to deal with at the top of the directory tree.
         String fullPath = makePathFromLookupPath(lookupDirPath);
         String dirPath = fireStoreUtils.getDirectoryPath(fullPath);
@@ -347,4 +312,120 @@ public class FireStoreDirectoryDao {
     private String makePathFromLookupPath(String lookupPath) {
         return StringUtils.removeStart(lookupPath, ROOT_DIR_NAME);
     }
+
+    // -- Snapshot filesystem methods --
+
+    /**
+     * Given ane object id from a dataset directory, create a similar object in the snapshot directory.
+     * The snapshot version of the object differs because it has a the dataset name added to its path.
+     */
+    public void addObjectToSnapshot(Firestore datasetFirestore,
+                                    String datasetId,
+                                    String datasetDirName,
+                                    Firestore snapshotFirestore,
+                                    String snapshotId,
+                                    String objectId) {
+
+        FireStoreObject datasetObject = retrieveById(datasetFirestore, datasetId, objectId);
+        if (!datasetObject.getFileRef()) {
+            throw new InvalidFileSystemObjectTypeException("Directories are not supported as references");
+            // TODO: Add directory support. Here is a sketch of a brute force implementation:
+            // Given the directory, walk its entire subtree collecting the ids of all of the files.
+            // Then loop through that id set calling this method on each id. It is simple, but wasteful
+            // because as we walk the subtree, we can build the directory structure, so we can skip the
+            // algorithm below that creates all of the parent directories. A better way would be to
+            // insert the directory and its parents and then, as we walk the subtree, clone the directory
+            // objects as we go. More efficient, but an entirely separate code path...
+        }
+
+        // Create the top directory structure (/_dr_/<datasetDirName>)
+        storeTopDirectory(snapshotFirestore, snapshotId, datasetDirName);
+
+        // Store the base object under the datasetDir
+        FireStoreObject snapObject = datasetObject.copyObjectUnderNewPath(datasetDirName);
+        storeFileStoreObject(snapshotFirestore, snapshotId, snapObject);
+
+        // Now we walk up the *dataset* directory path, retrieving existing directories.
+        // For each directory, we make a new object under the datasetDir path and store it.
+        // That keeps the directory object ids consistent
+        String lookupDirPath = makeLookupPath(datasetObject.getPath());
+        for (String testPath = lookupDirPath;
+             !testPath.isEmpty();
+             testPath = fireStoreUtils.getDirectoryPath(testPath)) {
+
+            DocumentSnapshot docSnap = lookupByPathNoXn(datasetFirestore, datasetId, testPath);
+            FireStoreObject datasetDir = docSnap.toObject(FireStoreObject.class);
+            FireStoreObject snapshotDir = datasetDir.copyObjectUnderNewPath(datasetDirName);
+            storeFileStoreObject(snapshotFirestore, snapshotId, snapshotDir);
+        }
+    }
+
+    private void storeTopDirectory(Firestore firestore, String collectionId, String dirName) {
+        // We have to create the top directory structure for the dataset and the root folder.
+        // Those components cannot be copied from the dataset, but have to be created new
+        // in the snapshot directory. We probe to see if the dirName directory exists. If not,
+        // we use the createFileRef path to construct it and the parent, if necessary.
+        String dirPath = "/" + dirName;
+        DocumentSnapshot dirSnap = lookupByPathNoXn(firestore, collectionId, dirPath);
+        if (dirSnap.exists()) {
+            return;
+        }
+
+        FireStoreObject topDir = new FireStoreObject()
+            .objectId(UUID.randomUUID().toString())
+            .fileRef(false)
+            .path("/")
+            .name(dirName)
+            .fileCreatedDate(Instant.now().toString());
+
+        createFileRef(firestore, collectionId, topDir);
+    }
+
+    // Non-transactional store of a directory object
+    private void storeFileStoreObject(Firestore firestore, String collectionId, FireStoreObject fireStoreObject) {
+        try {
+            DocumentReference newRef = getDocRef(firestore, collectionId, fireStoreObject);
+            ApiFuture<DocumentSnapshot> newSnapFuture = newRef.get();
+            DocumentSnapshot newSnap = newSnapFuture.get();
+            if (!newSnap.exists()) {
+                ApiFuture<WriteResult> writeFuture = newRef.set(fireStoreObject);
+                writeFuture.get();
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("storeFireStoreObject - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("storeFireStoreObject - execution exception", ex);
+        }
+    }
+
+    // Non-transactional update of a directory object
+    void updateFileStoreObject(Firestore firestore, String collectionId, FireStoreObject fireStoreObject) {
+        try {
+            DocumentReference newRef = getDocRef(firestore, collectionId, fireStoreObject);
+            ApiFuture<WriteResult> writeFuture = newRef.set(fireStoreObject);
+            writeFuture.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("updateFireStoreObject - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("updateFireStoreObject - execution exception", ex);
+        }
+    }
+
+    // Non-transactional lookup of an object
+    private DocumentSnapshot lookupByPathNoXn(Firestore firestore, String collectionId, String lookupPath) {
+        try {
+            DocumentReference docRef =
+                firestore.collection(collectionId).document(encodePathAsFirestoreDocumentName(lookupPath));
+            ApiFuture<DocumentSnapshot> docSnapFuture = docRef.get();
+            return docSnapFuture.get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("lookupByPathNoXn - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw new FileSystemExecutionException("lookupByPathNoXn - execution exception", ex);
+        }
+    }
+
 }

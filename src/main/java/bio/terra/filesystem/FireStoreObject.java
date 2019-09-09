@@ -1,5 +1,6 @@
 package bio.terra.filesystem;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
@@ -116,6 +117,20 @@ public class FireStoreObject {
     public FireStoreObject size(Long size) {
         this.size = size;
         return this;
+    }
+
+    public FireStoreObject copyObjectUnderNewPath(String newPath) {
+        String fullPath = StringUtils.removeEnd("/" + newPath + getPath(), "/");
+        return new FireStoreObject()
+            .objectId(getObjectId())
+            .fileRef(getFileRef())
+            .path(fullPath)
+            .name(getName())
+            .datasetId(getDatasetId())
+            .fileCreatedDate(getFileCreatedDate())
+            .checksumCrc32c(getChecksumCrc32c())
+            .checksumMd5(getChecksumMd5())
+            .size(getSize());
     }
 
     @Override

@@ -1,13 +1,14 @@
 package bio.terra.flight.snapshot.delete;
 
-import bio.terra.dao.SnapshotDao;
 import bio.terra.exception.NotFoundException;
+import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
+import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSource;
-import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
+import bio.terra.service.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -19,19 +20,22 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
 
 
     private BigQueryPdao bigQueryPdao;
-    private SnapshotDao snapshotDao;
+    private SnapshotService snapshotService;
     private FireStoreDependencyDao dependencyDao;
+    private FireStoreDao fileDao;
     private UUID snapshotId;
     private DatasetService datasetService;
 
     public DeleteSnapshotPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                        SnapshotDao snapshotDao,
+                                        SnapshotService snapshotService,
                                         FireStoreDependencyDao dependencyDao,
+                                        FireStoreDao fileDao,
                                         UUID snapshotId,
                                         DatasetService datasetService) {
         this.bigQueryPdao = bigQueryPdao;
-        this.snapshotDao = snapshotDao;
+        this.snapshotService = snapshotService;
         this.dependencyDao = dependencyDao;
+        this.fileDao = fileDao;
         this.snapshotId = snapshotId;
         this.datasetService = datasetService;
     }
@@ -39,7 +43,7 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Snapshot snapshot = snapshotDao.retrieveSnapshot(snapshotId);
+            Snapshot snapshot = snapshotService.retrieveSnapshot(snapshotId);
             bigQueryPdao.deleteSnapshot(snapshot);
 
             // Remove snapshot file references from the underlying datasets
@@ -49,7 +53,7 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
                     dataset,
                     snapshotId.toString());
             }
-
+            fileDao.deleteFilesFromSnapshot(snapshot);
         } catch (NotFoundException nfe) {
             // If we do not find the dataset, we assume things are already clean
         }

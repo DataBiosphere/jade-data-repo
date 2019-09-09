@@ -30,6 +30,7 @@ public class CreateDatasetMetadataStep implements Step {
         UUID datasetId = datasetDao.create(newDataset);
         FlightMap workingMap = context.getWorkingMap();
         workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
+
         DatasetSummaryModel datasetSummary =
             DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);

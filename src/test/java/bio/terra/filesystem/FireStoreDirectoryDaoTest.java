@@ -101,7 +101,7 @@ public class FireStoreDirectoryDaoTest {
 
 
     @Test
-    // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromDataset, retrieveById, retrieveByPath
+    // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromCollection, retrieveById, retrieveByPath
     public void directoryOperationsTest() throws Exception {
         List<FireStoreObject> fileObjects = new ArrayList<>();
         fileObjects.add(makeFileObject("/adir/A1"));
@@ -154,7 +154,7 @@ public class FireStoreDirectoryDaoTest {
         fileRefs.add(retrieveDirectoryObjectId("/adir/bdir"));
         fileRefs.add(retrieveDirectoryObjectId("/adir/bdir/cdir"));
 
-        directoryDao.deleteDirectoryEntriesFromDataset(firestore, collectionId);
+        directoryDao.deleteDirectoryEntriesFromCollection(firestore, collectionId);
 
         for (String objectId : fileRefs) {
             FireStoreObject fso = directoryDao.retrieveById(firestore, collectionId, objectId);
@@ -175,23 +175,5 @@ public class FireStoreDirectoryDaoTest {
             .name(fireStoreUtils.getObjectName(fullPath))
             .datasetId(pretendDatasetId);
     }
-
-/*
- Tests:
-
-    validateRefIds
-    deleteDirectoryEntriesFromDataset
-    retrieveByPath
-    - create a file/directory structure
-    - look up all objects by path - save object ids
-    - validateRefIds - some valid, some invalid - check proper missing return
-    - enumerateDirectory - make sure it has the right things in it
-    - deleteDirectoryEntriesFromDataset
-    - lookup all object ids - none should exist
-
- */
-
-
-
 
 }

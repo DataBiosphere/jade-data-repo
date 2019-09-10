@@ -61,12 +61,12 @@ public class ResourceServiceTest {
     @Test
     // this test should be unignored whenever there are changes to the project creation or deletion code
     @Ignore
-    public void createAndDeleteProjectTest() throws IOException, GeneralSecurityException {
+    public void createAndDeleteProjectTest() {
         // the project id can't be more than 30 characters
         String projectId = ("test-" + UUID.randomUUID().toString()).substring(0, 30);
 
         String role = "roles/bigquery.jobUser";
-        String stewardsGroupEmail = "stewardEmail";
+        String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
         List<String> stewardsGroupEmailList = Lists.newArrayList();
         stewardsGroupEmailList.add(stewardsGroupEmail);
         Map<String, List<String>> roleToStewardMap = new HashMap();
@@ -84,10 +84,12 @@ public class ResourceServiceTest {
             project.getLifecycleState(),
             equalTo("ACTIVE"));
 
+        // TODO check to make sure a steward can complete a job in another test
+
         resourceService.deleteProjectResource(projectResource.getRepositoryId());
         project = resourceService.getProject(projectId);
         assertThat("the project is not active after delete",
-            project.getLifecycleState(),
-            not(equalTo("ACTIVE")));
+           project.getLifecycleState(),
+           not(equalTo("ACTIVE")));
     }
 }

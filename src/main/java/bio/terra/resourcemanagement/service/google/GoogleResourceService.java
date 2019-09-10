@@ -289,7 +289,8 @@ public class GoogleResourceService {
 
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
-            Policy getIamPolicy = resourceManager.projects().getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
+            Policy getIamPolicy = resourceManager.projects()
+                .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
             List<Binding> bindingsList = getIamPolicy.getBindings();
 
             for (String role : userPermissions.keySet()) {
@@ -301,8 +302,8 @@ public class GoogleResourceService {
 
             Policy policy = new Policy().setBindings(bindingsList);
             SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-
-            resourceManager.projects().setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
+            resourceManager.projects()
+                .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
         } catch (IOException | GeneralSecurityException ex) {
             throw new InternalServerErrorException("Cannot enable iam permissions", ex);
         }

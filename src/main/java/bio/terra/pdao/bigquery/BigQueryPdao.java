@@ -47,10 +47,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
@@ -398,6 +395,137 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(" IS NULL");
 
         bigQueryProject.query(sql.toString());
+    }
+
+    public Set<String> getOverLappingRows(Dataset dataset,
+                                    Table targetTable,
+                                    String stagingTableName) {
+        /*
+         * SELECT T.PDAO_ROW_ID_COLUMN
+         * FROM <(Staging Table Name)> S
+         * LEFT JOIN <(Target Table Name)> T
+         * USING (primary_key)
+         * WHERE T.PDAO_ROW_ID_COLUMN IS NULL
+         *      OR (TO_JSON_STRING(T.column name) = TO_JSON_STRING(S.column name))
+         */
+        List<String> columnNames = targetTable.getColumns()
+            .stream()
+            .map(Column::getName)
+            .collect(Collectors.toList());
+
+        List<String> primaryKeyNames = dataset
+            .getTableByName(targetTable.getName())
+            .get()
+            .getPrimaryKey()
+            .stream()
+            .map(Column::getName)
+            .collect(Collectors.toList());
+
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String projectId = bigQueryProject.getProjectId();
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("SELECT T.")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append("` S LEFT JOIN ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(targetTable.getName())
+            .append("` T USING (");
+
+        String prefix = "";
+        for (String primaryKeyName : primaryKeyNames) {
+            builder.append(prefix)
+                .append(primaryKeyName);
+            prefix = ", ";
+        }
+
+        builder.append(") WHERE T.")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" IS NULL OR (");
+
+        prefix = "";
+        for (String columnName : columnNames) {
+            builder.append(prefix)
+                .append(" TO_JSON_STRING(T.")
+                .append(columnName)
+                .append(") = TO_JSON_STRING(S.")
+                .append(columnName);
+            prefix = ") AND ";
+        }
+
+        builder.append(")");
+
+        String sql = builder.toString();
+        TableResult result = bigQueryProject.query(sql);
+
+        Set<String> overlappingRows = new HashSet<>();
+        for (FieldValueList row : result.iterateAll()) {
+            if (!row.get(0).isNull()) {
+                String rowID = row.get(0).getStringValue();
+                overlappingRows.add(rowID);
+            }
+        }
+
+        return overlappingRows;
+    }
+
+    public Set<String> getChangedOverlappingRows(Dataset dataset,
+                                                 Table targetTable,
+                                                 Set<String> overlappingRows) {
+        /*
+         * SELECT PDAO_ROW_ID_COLUMN
+         * FROM <(Target Table Name)>
+         * WHERE PDAO_ROW_ID_COLUMN IN (overlappingRows)
+         */
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String projectId = bigQueryProject.getProjectId();
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(targetTable.getName())
+            .append(" ` WHERE ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" IN (");
+
+        String prefix = "";
+        for (String overlappingRow : overlappingRows) {
+            builder.append(prefix)
+                .append(overlappingRow);
+            prefix = ", ";
+        }
+
+        builder.append(")");
+
+        String sql = builder.toString();
+        TableResult result = bigQueryProject.query(sql);
+
+        Set<String> changedOverlappingRows = new HashSet<>();
+        for (FieldValueList row : result.iterateAll()) {
+            if (!row.get(0).isNull()) {
+                String rowID = row.get(0).getStringValue();
+                changedOverlappingRows.add(rowID);
+            }
+        }
+
+        return changedOverlappingRows;
     }
 
     public void insertIntoDatasetTable(Dataset dataset,

@@ -17,13 +17,10 @@ public class GcsProjectFactory {
     }
 
     public GcsProject get(String projectId) {
-        if (!gcsProjectCache.containsKey(projectId)) {
-            GcsProject gcsProject = new GcsProject(
-                projectId,
+        gcsProjectCache.computeIfAbsent(projectId, (p) -> new GcsProject(
+                p,
                 gcsConfiguration.getConnectTimeoutSeconds(),
-                gcsConfiguration.getReadTimeoutSeconds());
-            gcsProjectCache.putIfAbsent(projectId, gcsProject);
-        }
+                gcsConfiguration.getReadTimeoutSeconds()));
         return gcsProjectCache.get(projectId);
     }
 }

@@ -41,10 +41,7 @@ public final class BigQueryProject {
     }
 
     public static BigQueryProject get(String projectId) {
-        if (!bigQueryProjectCache.containsKey(projectId)) {
-            BigQueryProject bigQueryProject = new BigQueryProject(projectId);
-            bigQueryProjectCache.putIfAbsent(projectId, bigQueryProject);
-        }
+        bigQueryProjectCache.computeIfAbsent(projectId, BigQueryProject::new);
         return bigQueryProjectCache.get(projectId);
     }
 

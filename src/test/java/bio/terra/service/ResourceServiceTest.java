@@ -10,7 +10,6 @@ import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.resourcemanagement.service.google.GoogleResourceService;
 import bio.terra.service.dataproject.DataLocationService;
 import com.google.api.client.util.Lists;
-import com.google.api.client.util.Maps;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.After;
 import org.junit.Before;
@@ -24,8 +23,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,7 +86,7 @@ public class ResourceServiceTest {
         resourceService.deleteProjectResource(projectResource.getRepositoryId());
         project = resourceService.getProject(projectId);
         assertThat("the project is not active after delete",
-           project.getLifecycleState(),
-           not(equalTo("ACTIVE")));
+            project.getLifecycleState(),
+            not(equalTo("ACTIVE")));
     }
 }

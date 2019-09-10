@@ -8,7 +8,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.Set;
+import java.util.List;
 
 public class IngestEvaluateOverlapStep implements Step {
     private DatasetService datasetService;
@@ -25,8 +25,8 @@ public class IngestEvaluateOverlapStep implements Step {
         Table targetTable = IngestUtils.getDatasetTable(context, dataset);
         String stagingTableName = IngestUtils.getStagingTableName(context);
 
-        Set<String> overlappingRows = bigQueryPdao.getOverLappingRows(dataset, targetTable, stagingTableName);
-        Set<String> changedOverlappingRows = bigQueryPdao.getChangedOverlappingRows(dataset,
+        List<String> overlappingRows = bigQueryPdao.getOverLappingRows(dataset, targetTable, stagingTableName);
+        List<String> changedOverlappingRows = bigQueryPdao.getChangedOverlappingRows(dataset,
             targetTable,
             overlappingRows);
         bigQueryPdao.softDeleteRows(dataset, targetTable.getName(), dataset.getDataProjectId(), changedOverlappingRows);
@@ -36,6 +36,8 @@ public class IngestEvaluateOverlapStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        // We do not need to undo the data insert into the soft deletes table. BigQuery guarantees that this statement
+        // is atomic, so eithe the data will be in the table or we will fail and none of the data is in the table.
         return StepResult.getStepResultSuccess();
     }
 }

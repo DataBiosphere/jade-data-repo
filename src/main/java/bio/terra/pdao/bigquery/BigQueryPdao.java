@@ -397,7 +397,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sql.toString());
     }
 
-    public Set<String> getOverLappingRows(Dataset dataset,
+    public List<String> getOverLappingRows(Dataset dataset,
                                     Table targetTable,
                                     String stagingTableName) {
         /*
@@ -469,7 +469,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String sql = builder.toString();
         TableResult result = bigQueryProject.query(sql);
 
-        Set<String> overlappingRows = new HashSet<>();
+        List<String> overlappingRows = new ArrayList<>();
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
                 String rowID = row.get(0).getStringValue();
@@ -480,9 +480,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return overlappingRows;
     }
 
-    public Set<String> getChangedOverlappingRows(Dataset dataset,
+    public List<String> getChangedOverlappingRows(Dataset dataset,
                                                  Table targetTable,
-                                                 Set<String> overlappingRows) {
+                                                 List<String> overlappingRows) {
         /*
          * SELECT PDAO_ROW_ID_COLUMN
          * FROM <(Target Table Name)>
@@ -517,7 +517,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String sql = builder.toString();
         TableResult result = bigQueryProject.query(sql);
 
-        Set<String> changedOverlappingRows = new HashSet<>();
+        List<String> changedOverlappingRows = new ArrayList<>();
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
                 String rowID = row.get(0).getStringValue();
@@ -1200,7 +1200,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public void softDeleteRows(Dataset dataset,
                                String tableName,
                                String projectId,
-                               Set<String> softDeleteRowIds) {
+                               List<String> softDeleteRowIds) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String softDeletesTableName = prefixSoftDeleteTableName(tableName);
 

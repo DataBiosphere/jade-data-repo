@@ -2,7 +2,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: prometheus
-  namespace: data-repo
 rules:
   - apiGroups: ['policy']
     resources: ['podsecuritypolicies']
@@ -29,7 +28,6 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: prometheus
-  namespace: data-repo
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -42,5 +40,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: prometheus
-    namespace: data-repo
+    namespace: "{{env "KUBE_NAMESPACE"}}"
 ---

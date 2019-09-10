@@ -1,0 +1,15 @@
+{{ with $environment := env "ENVIRONMENT"}}
+{{ with $suffix := env "SUFFIX" }}
+{{ with $project := env "GOOGLE_CLOUD_PROJECT" }}
+{{ with $sa_secret := secret (printf "secret/dsde/datarepo/%s/proxy-sa-%s.json" $environment $suffix)}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sql-proxy-sa
+type: Opaque
+data:
+  credential-file-json: {{$sa_secret.Data | toJSON | base64Encode}}
+{{end}}
+{{end}}
+{{end}}
+{{end}}

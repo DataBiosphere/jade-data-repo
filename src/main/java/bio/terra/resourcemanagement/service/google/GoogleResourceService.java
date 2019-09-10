@@ -1,6 +1,7 @@
 package bio.terra.resourcemanagement.service.google;
 
 import bio.terra.configuration.SamConfiguration;
+import bio.terra.exception.InternalServerErrorException;
 import bio.terra.pdao.gcs.GcsProject;
 import bio.terra.pdao.gcs.GcsProjectFactory;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
@@ -28,7 +29,6 @@ import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.Operation;
-import com.google.api.services.iam.v1.Iam;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
@@ -40,7 +40,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,7 +127,7 @@ public class GoogleResourceService {
         return gcsProject.getStorage().create(bucketInfo);
     }
 
-    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) throws IOException, GeneralSecurityException {
+    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
         String googleProjectId = projectRequest.getProjectId();
@@ -284,23 +283,29 @@ public class GoogleResourceService {
         }
     }
 
-    public void enableIamPermissions(GoogleProjectResource projectResource) throws IOException, GeneralSecurityException {
+    public void enableIamPermissions(GoogleProjectResource projectResource) {
         Map<String, List<String>> userPermissions = projectResource.getUserPermissions();
+        GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
-        List<Binding> bindingsList = Lists.newArrayList();
+        try {
+            CloudResourceManager resourceManager = cloudResourceManager();
+            Policy getIamPolicy = resourceManager.projects().getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
+            List<Binding> bindingsList = getIamPolicy.getBindings();
 
-        for (String role : userPermissions.keySet()) {
-            Binding binding = new Binding()
-                .setRole(role)
-                .setMembers(userPermissions.get(role));
-            bindingsList.add(binding);
+            for (String role : userPermissions.keySet()) {
+                Binding binding = new Binding()
+                    .setRole(role)
+                    .setMembers(userPermissions.get(role));
+                bindingsList.add(binding);
+            }
+
+            Policy policy = new Policy().setBindings(bindingsList);
+            SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+
+            resourceManager.projects().setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
+        } catch (IOException | GeneralSecurityException ex) {
+            throw new InternalServerErrorException("Cannot enable iam permissions", ex);
         }
-
-        Policy policy = new Policy().setBindings(bindingsList);
-        SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-
-        CloudResourceManager resourceManager = cloudResourceManager();
-        resourceManager.projects().setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest);
     }
 
     private void setupBilling(GoogleProjectResource project) {

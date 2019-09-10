@@ -21,8 +21,6 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -47,7 +45,6 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -258,7 +255,7 @@ public class BigQueryPdaoTest {
                 bigQueryProject);
             int numOfRowsWithSoftDeletes = rowIds.size();
             int numOfRowsSoftDeleted = 2;
-            Set<String> rowsToSoftDelete = ImmutableSet.copyOf(Iterables.limit(rowIds, numOfRowsSoftDeleted));
+            List<String> rowsToSoftDelete = rowIds.subList(0, numOfRowsSoftDeleted);
             bigQueryPdao.softDeleteRows(dataset, tableName, dataset.getDataProjectId(), rowsToSoftDelete);
 
             // Create a snapshot!

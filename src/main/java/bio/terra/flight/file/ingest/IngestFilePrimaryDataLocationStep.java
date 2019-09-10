@@ -29,7 +29,7 @@ public class IngestFilePrimaryDataLocationStep implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap inputParameters = context.getInputParameters();
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        GoogleBucketResource bucketForFile = locationService.getBucketForFile(fileLoadModel.getProfileId(), null);
+        GoogleBucketResource bucketForFile = locationService.getBucketForFile(fileLoadModel.getProfileId());
         FlightMap workingMap = context.getWorkingMap();
         workingMap.put(FileMapKeys.BUCKET_INFO, bucketForFile);
         return StepResult.getStepResultSuccess();

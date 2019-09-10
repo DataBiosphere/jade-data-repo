@@ -50,7 +50,7 @@ public class FileIngestFlight extends Flight {
         // 2. Create the directory entry for the file; lack of a file entry means it will be invisible
         //    to outside retrieval. Existence of a directory entry keeps a second file from getting the
         //    same name.
-        // 3. Locate the bucket where this file sould go and store it in the working map
+        // 3. Locate the bucket where this file should go and store it in the working map
         // 4. Copy the file into the bucket. Return the gspath, checksum, size, and create time
         // 5. Create the file object.
         addStep(new IngestFileObjectIdStep());

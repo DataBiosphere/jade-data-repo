@@ -222,20 +222,27 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<FSObjectModel> lookupFileObjectById(@PathVariable("id") String id,
-                                                @PathVariable("fileid") String fileid) {
+    public ResponseEntity<FSObjectModel> lookupFileObjectById(
+        @PathVariable("id") String id,
+        @PathVariable("fileid") String fileid,
+        @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
+
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.DATASET,
             id,
             SamClientService.DataRepoAction.READ_DATA);
-        FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid, 1);
+
+        FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid, depth);
         return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<FSObjectModel> lookupFileObjectByPath(@PathVariable("id") String id,
-                                                @RequestParam(value = "path", required = true) String path) {
+    public ResponseEntity<FSObjectModel> lookupFileObjectByPath(
+        @PathVariable("id") String id,
+        @RequestParam(value = "path", required = true) String path,
+        @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
+
         samService.verifyAuthorization(
             getAuthenticatedInfo(),
             SamClientService.ResourceType.DATASET,
@@ -244,7 +251,8 @@ public class RepositoryApiController implements RepositoryApi {
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
-        FSObjectModel fsObjectModel = fileService.lookupPath(id, path, 1);
+
+        FSObjectModel fsObjectModel = fileService.lookupPath(id, path, depth);
         return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
 
@@ -372,6 +380,40 @@ public class RepositoryApiController implements RepositoryApi {
         SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(UUID.fromString(id));
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
+
+    @Override
+    public ResponseEntity<FSObjectModel> lookupSnapshotFileObjectById(
+        @PathVariable("id") String id,
+        @PathVariable("fileid") String fileid,
+        @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
+
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
+        FSObjectModel fsObjectModel = fileService.lookupSnapshotFile(id, fileid, depth);
+        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<FSObjectModel> lookupSnapshotFileObjectByPath(
+        @PathVariable("id") String id,
+        @RequestParam(value = "path", required = true) String path,
+        @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
+
+        samService.verifyAuthorization(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            id,
+            SamClientService.DataRepoAction.READ_DATA);
+        if (!ValidationUtils.isValidPath(path)) {
+            throw new ValidationException("InvalidPath");
+        }
+        FSObjectModel fsObjectModel = fileService.lookupSnapshotPath(id, path, depth);
+        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+    }
+
 
     // --snapshot policies --
     @Override

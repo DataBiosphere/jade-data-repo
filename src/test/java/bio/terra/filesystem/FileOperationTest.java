@@ -122,9 +122,9 @@ public class FileOperationTest {
             containsString("already exists"));
 
         // Lookup the file by path
-        url = "/api/repository/v1/datasets/" + datasetSummary.getId() +
-            "/filesystem/objects?path=" + fileModel.getPath();
-        result = mvc.perform(get(url))
+        url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/filesystem/objects";
+        result = mvc.perform(get(url)
+            .param("path", fileModel.getPath()))
             .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
             .andReturn();
         response = result.getResponse();

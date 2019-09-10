@@ -125,8 +125,4 @@ public class FireStoreUtils {
         return Long.toHexString(crc.getValue());
     }
 
-
-
-
-
 }

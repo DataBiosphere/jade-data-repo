@@ -3,7 +3,6 @@ package bio.terra.service;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dao.DatasetDao;
 import bio.terra.dao.SnapshotDao;
-import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDirectoryDao;
@@ -16,6 +15,8 @@ import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.pdao.gcs.GcsConfiguration;
+import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
+import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.service.exception.DrsObjectNotFoundException;
 import bio.terra.service.exception.InvalidDrsIdException;
 import org.apache.commons.lang3.StringUtils;
@@ -47,6 +48,7 @@ public class DrsService {
     private final GcsConfiguration gcsConfiguration;
     private final DatasetService datasetService;
     private final SamClientService samService;
+    private final DataLocationService locationService;
 
     @Autowired
     public DrsService(DatasetDao datasetDao,
@@ -56,7 +58,8 @@ public class DrsService {
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
                       DatasetService datasetService,
-                      SamClientService samService) {
+                      SamClientService samService,
+                      DataLocationService locationService) {
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
         this.fileDao = fileDao;
@@ -65,6 +68,7 @@ public class DrsService {
         this.gcsConfiguration = gcsConfiguration;
         this.datasetService = datasetService;
         this.samService = samService;
+        this.locationService = locationService;
     }
 
     public DRSObject lookupObjectByDrsId(AuthenticatedUserRequest authUser, String drsObjectId, Boolean expand) {
@@ -80,15 +84,15 @@ public class DrsService {
 
         int depth = (expand ? -1 : 1);
 
-        FSObjectBase fsObject = fileService.lookupFSObject(
-            drsId.getDatasetId(),
+        FSObjectBase fsObject = fileService.lookupSnapshotFSObject(
+            drsId.getSnapshotId(),
             drsId.getFsObjectId(),
             depth);
 
         if (fsObject instanceof FSFile) {
             return drsObjectFromFSFile((FSFile)fsObject, snapshotId, authUser);
         } else if (fsObject instanceof FSDir) {
-            return drsObjectFromFSDir((FSDir)fsObject, snapshotId.toString());
+            return drsObjectFromFSDir((FSDir)fsObject, snapshotId);
         }
 
         throw new IllegalArgumentException("Invalid object type");
@@ -97,13 +101,15 @@ public class DrsService {
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
+        GoogleBucketResource bucketResource = locationService.lookupBucket(fsFile.getBucketResourceId());
+
         DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());
 
         DRSAccessMethod gsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.GS)
             .accessUrl(gsAccessURL)
-            .region(fsFile.getRegion());
+            .region(bucketResource.getRegion());
 
         DRSAccessURL httpsAccessURL = new DRSAccessURL()
             .url(makeHttpsFromGs(fsFile.getGspath()))
@@ -112,7 +118,7 @@ public class DrsService {
         DRSAccessMethod httpsAccessMethod = new DRSAccessMethod()
             .type(DRSAccessMethod.TypeEnum.HTTPS)
             .accessUrl(httpsAccessURL)
-            .region(fsFile.getRegion());
+            .region(bucketResource.getRegion());
 
         List<DRSAccessMethod> accessMethods = new ArrayList<>();
         accessMethods.add(gsAccessMethod);
@@ -120,7 +126,6 @@ public class DrsService {
 
 
         fileObject
-            .size(fsFile.getSize())
             .mimeType(fsFile.getMimeType())
             .checksums(fileService.makeChecksums(fsFile))
             .accessMethods(accessMethods);
@@ -131,7 +136,6 @@ public class DrsService {
     private DRSObject drsObjectFromFSDir(FSDir fsDir, String snapshotId) {
         DRSObject dirObject = makeCommonDrsObject(fsDir, snapshotId);
 
-        // TODO: Directory size and checksum not yet implemented
         DRSChecksum drsChecksum = new DRSChecksum().type("crc32c").checksum("0");
         dirObject
             .size(0L)
@@ -153,7 +157,9 @@ public class DrsService {
             .updatedTime(theTime)
             .version(DRS_OBJECT_VERSION)
             .description(fsObject.getDescription())
-            .aliases(Collections.singletonList(fsObject.getPath()));
+            .aliases(Collections.singletonList(fsObject.getPath()))
+            .size(fsObject.getSize())
+            .checksums(fileService.makeChecksums(fsObject));
     }
 
     private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
@@ -189,7 +195,6 @@ public class DrsService {
 
     private DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
         return DrsId.builder()
-            .datasetId(fsObject.getDatasetId().toString())
             .snapshotId(snapshotId)
             .fsObjectId(fsObject.getObjectId().toString())
             .build();
@@ -208,6 +213,12 @@ public class DrsService {
     }
 
     private List<String> makeAuthHeader(AuthenticatedUserRequest authUser) {
+        // TODO: I added this so that connected tests would work. Seems like we should have a better solution.
+        // I don't like putting test-path-only stuff into the production code.
+        if (authUser == null || !authUser.getToken().isPresent()) {
+            return Collections.EMPTY_LIST;
+        }
+
         String hdr = String.format("Authorization: Bearer %s", authUser.getRequiredToken());
         return Collections.singletonList(hdr);
     }
@@ -220,17 +231,11 @@ public class DrsService {
     private DrsId parseAndValidateDrsId(String drsObjectId) {
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         try {
-            UUID datasetId = UUID.fromString(drsId.getDatasetId());
-            datasetDao.retrieveSummaryById(datasetId);
-
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
             snapshotDao.retrieveSnapshotSummary(snapshotId);
-
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);
-        } catch (DatasetNotFoundException ex) {
-            throw new DrsObjectNotFoundException("No dataset found for DRS object id '" + drsObjectId + "'", ex);
         } catch (SnapshotNotFoundException ex) {
             throw new DrsObjectNotFoundException("No snapshot found for DRS object id '" + drsObjectId + "'", ex);
         }

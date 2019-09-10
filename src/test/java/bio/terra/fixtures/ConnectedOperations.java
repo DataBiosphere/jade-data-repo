@@ -4,6 +4,7 @@ import bio.terra.configuration.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
@@ -315,7 +316,7 @@ public class ConnectedOperations {
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
             CoreMatchers.equalTo(fileLoadModel.getMimeType()));
 
-        for (DRSChecksum checksum : fileModel.getFileDetail().getChecksums()) {
+        for (DRSChecksum checksum : fileModel.getChecksums()) {
             assertTrue("valid checksum type",
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));
@@ -338,6 +339,37 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         return handleAsyncFailureCase(response);
+    }
+
+    public FSObjectModel lookupSnapshotFile(String snapshotId, String objectId) throws Exception {
+        String url = "/api/repository/v1/snapshots/" + snapshotId + "/files/" + objectId;
+        MvcResult result = mvc.perform(get(url)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), FSObjectModel.class);
+    }
+
+    public FSObjectModel lookupSnapshotFileByPath(String snapshotId, String path, long depth) throws Exception {
+        String url = "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects";
+        MvcResult result = mvc.perform(get(url)
+            .param("path", path)
+            .param("depth", Long.toString(depth))
+            .contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), FSObjectModel.class);
+    }
+
+    public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {
+        String url = "/ga4gh/drs/v1/objects/" + drsObjectId;
+        MvcResult result = mvc.perform(get(url)
+            .param("expand", Boolean.toString(expand))
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        return objectMapper.readValue(result.getResponse().getContentAsString(), DRSObject.class);
     }
 
     public MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {

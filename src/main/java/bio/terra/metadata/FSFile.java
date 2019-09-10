@@ -8,11 +8,19 @@ import java.time.Instant;
 import java.util.UUID;
 
 public class FSFile extends FSObjectBase {
+    private UUID datasetId;
     private String gspath;
     private String mimeType;
-    private String profileId;
-    private String region;
     private String bucketResourceId;
+
+    public UUID getDatasetId() {
+        return datasetId;
+    }
+
+    public FSFile datasetId(UUID datasetId) {
+        this.datasetId = datasetId;
+        return this;
+    }
 
     public String getGspath() {
         return gspath;
@@ -32,24 +40,6 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
-    public String getProfileId() {
-        return profileId;
-    }
-
-    public FSFile profileId(String profileId) {
-        this.profileId = profileId;
-        return this;
-    }
-
-    public String getRegion() {
-        return region;
-    }
-
-    public FSFile region(String region) {
-        this.region = region;
-        return this;
-    }
-
     public String getBucketResourceId() {
         return bucketResourceId;
     }
@@ -59,14 +49,14 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
-    // setters for super object, so fluent style works without ordering dependency
+    // Fluent setters for super
     public FSFile objectId(UUID objectId) {
         super.objectId(objectId);
         return this;
     }
 
-    public FSFile datasetId(UUID datasetId) {
-        super.datasetId(datasetId);
+    public FSFile collectionId(UUID collectionId) {
+        super.collectionId(collectionId);
         return this;
     }
 
@@ -91,7 +81,7 @@ public class FSFile extends FSObjectBase {
     }
 
     public FSFile size(Long size) {
-        super.size(size); // Super size it!
+        super.size(size);
         return this;
     }
 
@@ -110,10 +100,9 @@ public class FSFile extends FSObjectBase {
 
         return new EqualsBuilder()
             .appendSuper(super.equals(o))
+            .append(datasetId, fsFile.datasetId)
             .append(gspath, fsFile.gspath)
             .append(mimeType, fsFile.mimeType)
-            .append(profileId, fsFile.profileId)
-            .append(region, fsFile.region)
             .append(bucketResourceId, fsFile.bucketResourceId)
             .isEquals();
     }
@@ -122,10 +111,9 @@ public class FSFile extends FSObjectBase {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
             .appendSuper(super.hashCode())
+            .append(datasetId)
             .append(gspath)
             .append(mimeType)
-            .append(profileId)
-            .append(region)
             .append(bucketResourceId)
             .toHashCode();
     }
@@ -133,10 +121,9 @@ public class FSFile extends FSObjectBase {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
+            .append("datasetId", datasetId)
             .append("gspath", gspath)
             .append("mimeType", mimeType)
-            .append("profileId", profileId)
-            .append("region", region)
             .append("bucketResourceId", bucketResourceId)
             .toString();
     }

@@ -400,6 +400,70 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/snapshots/{id}/files/{fileid}':
+    get:
+      description: Lookup metadata for one file
+      operationId: lookupSnapshotFileObjectById
+      tags:
+        - repository
+      parameters:
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/FileId'
+        - $ref: '#/parameters/Depth'
+      responses:
+        200:
+          description: File exists
+          schema:
+            $ref: '#/definitions/FSObjectModel'
+        400:
+          description: Bad request - not sure this will ever happen
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - file id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: No idea if we will generate this error code
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/snapshots/{id}/filesystem/objects':
+    get:
+      description: Lookup metadata for one file
+      operationId: lookupSnapshotFileObjectByPath
+      tags:
+        - repository
+      parameters:
+        - $ref: '#/parameters/Id'
+        - $ref: '#/parameters/Path'
+        - $ref: '#/parameters/Depth'
+      responses:
+        200:
+          description: File exists
+          schema:
+            $ref: '#/definitions/FSObjectModel'
+        400:
+          description: Bad request - not sure this will ever happen
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - file id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: No idea if we will generate this error code
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
   '/api/repository/v1/snapshots/{id}/policies':
     get:  ## retrieve
       description: Retrieve the read and discover policies for the snapshot
@@ -827,6 +891,7 @@ paths:
       parameters:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/FileId'
+      - $ref: '#/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -898,6 +963,7 @@ paths:
       parameters:
       - $ref: '#/parameters/Id'
       - $ref: '#/parameters/Path'
+      - $ref: '#/parameters/Depth'
       responses:
         200:
           description: File exists
@@ -1201,10 +1267,16 @@ parameters:
     in: path
   Path:
     name: path
-    description: Full path to a file or directory
+    description: URL-encoded full path to a file or directory
     required: true
     type: string
-    allowReserved: true
+    in: query
+  Depth:
+    name: depth
+    description: Enumeration depth; -1 means fully expand; 0 means no expansion; 1..N expands that many subdirectories
+    required: false
+    type: integer
+    default: 0
     in: query
 
 ##########################################################################################
@@ -1653,16 +1725,26 @@ definitions:
       objectId:
         type: string
         description: Unique id of the filesystem object within the dataset
-      datasetId:
+      collectionId:
         type: string
-        description: Dataset holding the file
+        description: Id of the dataset or snapshot directory describing the object
       path:
         type: string
         description: full path of the file in the dataset
       size:
         type: integer
         format: int64
-        description: file size in bytes of sum of file sizes in a directory
+        description: |
+          Always present for files - the file size in bytes
+          Present for directories in snapshots - sum of sizes of objects in a directory
+      checksums:
+        type: array
+        items:
+          $ref: '#/definitions/DRSChecksum'
+        description: |
+          Always present for files - checksums; always includes crc32c. May include md5.
+          Present for directories in snapshots - see DRS spec for algorithm for combining checksums of
+          underlying directory contents.
       created:
         type: string
         description: timestamp of object creation in RFC3339
@@ -1686,11 +1768,9 @@ definitions:
     description: File in the data repository
     type: object
     properties:
-      checksums:
-        type: array
-        items:
-          $ref: '#/definitions/DRSChecksum'
-        description: checksums; always includes crc32c. May include md5.
+      datasetId:
+        type: string
+        description: Id of the dataset that holds the file
       mimeType:
         type: string
       accessUrl:

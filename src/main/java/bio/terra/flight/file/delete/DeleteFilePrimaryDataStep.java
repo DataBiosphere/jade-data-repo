@@ -41,8 +41,7 @@ public class DeleteFilePrimaryDataStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         FireStoreFile fireStoreFile = workingMap.get(FileMapKeys.FIRESTORE_FILE, FireStoreFile.class);
         if (fireStoreFile != null) {
-            GoogleBucketResource bucketResource =
-                locationService.getBucketForFile(fireStoreFile.getProfileId(), fireStoreFile.getBucketResourceId());
+            GoogleBucketResource bucketResource = locationService.lookupBucket(fireStoreFile.getBucketResourceId());
             gcsPdao.deleteFileByGspath(fireStoreFile.getGspath(), bucketResource);
         }
         return StepResult.getStepResultSuccess();

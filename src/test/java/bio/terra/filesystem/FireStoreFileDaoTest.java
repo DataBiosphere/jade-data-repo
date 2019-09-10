@@ -115,8 +115,6 @@ public class FireStoreFileDaoTest {
             .objectId(objectId)
             .mimeType("application/test")
             .description("file")
-            .profileId("xyzzy")
-            .region("Boston-1")
             .bucketResourceId("BostonBucket")
             .gspath("gs://server.example.com/" + objectId)
             .size(FILE_SIZE);

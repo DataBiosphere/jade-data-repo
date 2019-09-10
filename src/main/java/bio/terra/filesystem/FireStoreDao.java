@@ -2,6 +2,7 @@ package bio.terra.filesystem;
 
 import bio.terra.filesystem.exception.FileSystemObjectNotFoundException;
 import bio.terra.metadata.Dataset;
+import bio.terra.metadata.FSContainerInterface;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSObjectBase;
@@ -18,13 +19,15 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-// One DAO to rule them all...
+// Operations on a file often need to touch file and directory collections that is,
+// the FireStoreFileDao and the FireStoreDirectoryDao.
 //
-// Operations on a file often need to touch file, directory, and dependency collections;
-// that is, the FireStoreFileDao, the FireStoreDirectoryDao, and the FireStoreDirectoryDao.
 // The data to make an FSDir or FSFile is now spread between the file collection and the
 // directory collection, so a lookup needs to visit two places to generate a complete FSObject.
 // This class coordinates operations between the daos.
+//
+// The dependency collection is independent, so it is not included under this dao.
+// Perhaps it should be.
 //
 // There are several functions performed in this layer.
 //  1. Encapsulating the underlying daos
@@ -99,7 +102,9 @@ public class FireStoreDao {
         Firestore datasetFirestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         Firestore snapshotFirestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
-        // TODO: Do we need to clean up the database name?
+
+        // TODO: Do we need to make sure the dataset name does not contain characters that are invalid for paths?
+        // Added the work to figure that out to DR-325
         String datasetName = dataset.getName();
         String snapshotId = snapshot.getId().toString();
 
@@ -134,7 +139,7 @@ public class FireStoreDao {
     /**
      * Retrieve an FS Object by path
      *
-     * @param dataset - dataset containing the filesystem object
+     * @param container - dataset or snapshot containing the filesystem object
      * @param fullPath - path of the object in the directory
      * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
      *                         1 means contents of this directory; 2 means this and its directories, etc.
@@ -143,10 +148,12 @@ public class FireStoreDao {
      *                         null is returned on not found.
      * @return FSFile or FSDir of retrieved object; can return null on not found
      */
-    public FSObjectBase retrieveByPath(Dataset dataset, String fullPath, int enumerateDepth, boolean throwOnNotFound) {
-        Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
-        String datasetId = dataset.getId().toString();
-
+    public FSObjectBase retrieveByPath(FSContainerInterface container,
+                                       String fullPath,
+                                       int enumerateDepth,
+                                       boolean throwOnNotFound) {
+        Firestore firestore = FireStoreProject.get(container.getDataProjectId()).getFirestore();
+        String datasetId = container.getId().toString();
         FireStoreObject fireStoreObject = directoryDao.retrieveByPath(firestore, datasetId, fullPath);
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, fullPath);
     }
@@ -154,7 +161,7 @@ public class FireStoreDao {
     /**
      * Retrieve an FS Object by id
      *
-     * @param dataset - dataset containing the filesystem object
+     * @param container - dataset or snapshot containing the filesystem object
      * @param objectId - id of the objecct
      * @param enumerateDepth - how far to enumerate the directory structure; 0 means not at all;
      *                         1 means contents of this directory; 2 means this and its directories, etc.
@@ -163,10 +170,12 @@ public class FireStoreDao {
      *                         null is returned on not found.
      * @return FSFile or FSDir of retrieved object; can return null on not found
      */
-    public FSObjectBase retrieveById(Dataset dataset, String objectId, int enumerateDepth, boolean throwOnNotFound) {
-        Firestore firestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
-        String datasetId = dataset.getId().toString();
-
+    public FSObjectBase retrieveById(FSContainerInterface container,
+                                     String objectId,
+                                     int enumerateDepth,
+                                     boolean throwOnNotFound) {
+        Firestore firestore = FireStoreProject.get(container.getDataProjectId()).getFirestore();
+        String datasetId = container.getId().toString();
         FireStoreObject fireStoreObject = directoryDao.retrieveById(firestore, datasetId, objectId);
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, objectId);
     }
@@ -179,8 +188,9 @@ public class FireStoreDao {
 
     // -- private methods --
 
+    // The context string provides either the object id or the file path, for use in error messages.
     private FSObjectBase retrieveWorker(Firestore firestore,
-                                        String datasetId,
+                                        String collectionId,
                                         int enumerateDepth,
                                         FireStoreObject fireStoreObject,
                                         boolean throwOnNotFound,
@@ -190,7 +200,7 @@ public class FireStoreDao {
         }
 
         if (fireStoreObject.getFileRef()) {
-            FSObjectBase fsFile = makeFSFile(firestore, datasetId, fireStoreObject);
+            FSObjectBase fsFile = makeFSFile(firestore, collectionId, fireStoreObject);
             if (fsFile == null) {
                 // We found a file in the directory that is not done being created. We treat this
                 // as not found.
@@ -198,7 +208,8 @@ public class FireStoreDao {
             }
             return fsFile;
         }
-        return makeFSDir(firestore, datasetId, enumerateDepth, fireStoreObject);
+        FSObjectBase fsObjectBase = makeFSDir(firestore, collectionId, enumerateDepth, fireStoreObject);
+        return fsObjectBase;
     }
 
     private FSObjectBase handleNotFound(boolean throwOnNotFound, String context) {
@@ -210,7 +221,7 @@ public class FireStoreDao {
     }
 
     private FSObjectBase makeFSDir(Firestore firestore,
-                                   String datasetId,
+                                   String collectionId,
                                    int level,
                                    FireStoreObject fireStoreObject) {
         if (fireStoreObject.getFileRef()) {
@@ -222,7 +233,7 @@ public class FireStoreDao {
         FSDir fsDir = new FSDir();
         fsDir
             .objectId(UUID.fromString(fireStoreObject.getObjectId()))
-            .datasetId(UUID.fromString(datasetId))
+            .collectionId(UUID.fromString(collectionId))
             .createdDate(Instant.parse(fireStoreObject.getFileCreatedDate()))
             .path(fullPath)
             .checksumCrc32c(fireStoreObject.getChecksumCrc32c())
@@ -234,16 +245,17 @@ public class FireStoreDao {
         if (level != 0) {
             List<FSObjectBase> fsContents = new ArrayList<>();
             List<FireStoreObject> dirContents =
-                directoryDao.enumerateDirectory(firestore, datasetId, fireStoreObject.getPath());
+                directoryDao.enumerateDirectory(firestore, collectionId, fullPath);
             for (FireStoreObject fso : dirContents) {
                 if (fso.getFileRef()) {
-                    // Skip files that are not fully created
-                    FSObjectBase fsFile = makeFSFile(firestore, datasetId, fso);
+                    // Files that are in the middle of being ingested can have a directory entry, but not yet have
+                    // a file entry. We do not return files that do not yet have a file entry.
+                    FSObjectBase fsFile = makeFSFile(firestore, collectionId, fso);
                     if (fsFile != null) {
                         fsContents.add(fsFile);
                     }
                 } else {
-                    fsContents.add(makeFSDir(firestore, datasetId, level - 1, fso));
+                    fsContents.add(makeFSDir(firestore, collectionId, level - 1, fso));
                 }
             }
             fsDir.contents(fsContents);
@@ -253,10 +265,8 @@ public class FireStoreDao {
     }
 
     // Handle files - the fireStoreObject is a reference to a file in a dataset.
-    // TODO: when we do this for snapshot, we will need to lookup the dataset from
-    // the id in the leaf. For now, just use dataset.
     private FSObjectBase makeFSFile(Firestore firestore,
-                                    String datasetId,
+                                    String collectionId,
                                     FireStoreObject fireStoreObject) {
         if (!fireStoreObject.getFileRef()) {
             throw new IllegalStateException("Expected file; got directory!");
@@ -265,7 +275,10 @@ public class FireStoreDao {
         String fullPath = fireStoreUtils.getFullPath(fireStoreObject.getPath(), fireStoreObject.getName());
         String objectId = fireStoreObject.getObjectId();
 
-        FireStoreFile fireStoreFile = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
+        // Lookup the file in its owning dataset, not in the collection. The collection may be a snapshot directory
+        // pointing to the files in one or more datasets.
+        FireStoreFile fireStoreFile =
+            fileDao.retrieveFileMetadata(firestore, fireStoreObject.getDatasetId(), objectId);
         if (fireStoreFile == null) {
             return null;
         }
@@ -273,7 +286,8 @@ public class FireStoreDao {
         FSFile fsFile = new FSFile();
         fsFile
             .objectId(UUID.fromString(objectId))
-            .datasetId(UUID.fromString(datasetId))
+            .collectionId(UUID.fromString(collectionId))
+            .datasetId(UUID.fromString(fireStoreObject.getDatasetId()))
             .createdDate(Instant.parse(fireStoreFile.getFileCreatedDate()))
             .path(fullPath)
             .checksumCrc32c(fireStoreFile.getChecksumCrc32c())
@@ -282,8 +296,6 @@ public class FireStoreDao {
             .description(fireStoreFile.getDescription())
             .gspath(fireStoreFile.getGspath())
             .mimeType(fireStoreFile.getMimeType())
-            .profileId(fireStoreFile.getProfileId())
-            .region(fireStoreFile.getRegion())
             .bucketResourceId(fireStoreFile.getBucketResourceId());
 
         return fsFile;

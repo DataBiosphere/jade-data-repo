@@ -7,7 +7,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import java.time.Instant;
 import java.util.UUID;
 
-public class FSFile extends FSObjectBase {
+public class FSFile extends FSItem {
     private UUID datasetId;
     private String gspath;
     private String mimeType;
@@ -49,9 +49,9 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
-    // Fluent setters for super
-    public FSFile objectId(UUID objectId) {
-        super.objectId(objectId);
+    // setters for super object, so fluent style works without ordering dependency
+    public FSFile fileId(UUID fileId) {
+        super.fileId(fileId);
         return this;
     }
 
@@ -81,7 +81,7 @@ public class FSFile extends FSObjectBase {
     }
 
     public FSFile size(Long size) {
-        super.size(size);
+        super.size(size); // Super size it!
         return this;
     }
 
@@ -100,7 +100,6 @@ public class FSFile extends FSObjectBase {
 
         return new EqualsBuilder()
             .appendSuper(super.equals(o))
-            .append(datasetId, fsFile.datasetId)
             .append(gspath, fsFile.gspath)
             .append(mimeType, fsFile.mimeType)
             .append(bucketResourceId, fsFile.bucketResourceId)
@@ -111,7 +110,6 @@ public class FSFile extends FSObjectBase {
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
             .appendSuper(super.hashCode())
-            .append(datasetId)
             .append(gspath)
             .append(mimeType)
             .append(bucketResourceId)
@@ -121,7 +119,6 @@ public class FSFile extends FSObjectBase {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-            .append("datasetId", datasetId)
             .append("gspath", gspath)
             .append("mimeType", mimeType)
             .append("bucketResourceId", bucketResourceId)

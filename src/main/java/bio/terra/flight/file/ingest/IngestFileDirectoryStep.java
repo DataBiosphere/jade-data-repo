@@ -1,9 +1,9 @@
 package bio.terra.flight.file.ingest;
 
 import bio.terra.filesystem.FireStoreDao;
-import bio.terra.filesystem.FireStoreObject;
+import bio.terra.filesystem.FireStoreDirectoryEntry;
 import bio.terra.filesystem.FireStoreUtils;
-import bio.terra.filesystem.exception.FileSystemObjectAlreadyExistsException;
+import bio.terra.filesystem.exception.FileAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.FileLoadModel;
@@ -33,27 +33,27 @@ public class IngestFileDirectoryStep implements Step {
         FileLoadModel loadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
 
         FlightMap workingMap = context.getWorkingMap();
-        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
+        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
 
         String datasetId = dataset.getId().toString();
         String targetPath = loadModel.getTargetPath();
 
         // Lookup the file - on a recovery, we may have already created it, but not
         // finished. Or it might already exist, created by someone else.
-        FireStoreObject existingObject = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
-        if (existingObject == null) {
+        FireStoreDirectoryEntry existingEntry = fileDao.lookupDirectoryEntryByPath(dataset, targetPath);
+        if (existingEntry == null) {
             // Not there - create it
-            FireStoreObject newObject = new FireStoreObject()
-                .objectId(objectId)
-                .fileRef(true)
+            FireStoreDirectoryEntry newEntry = new FireStoreDirectoryEntry()
+                .fileId(fileId)
+                .isFileRef(true)
                 .path(fireStoreUtils.getDirectoryPath(loadModel.getTargetPath()))
-                .name(fireStoreUtils.getObjectName((loadModel.getTargetPath())))
+                .name(fireStoreUtils.getName((loadModel.getTargetPath())))
                 .datasetId(datasetId);
-            fileDao.createDirectoryEntry(dataset, newObject);
+            fileDao.createDirectoryEntry(dataset, newEntry);
         } else {
-            if (!StringUtils.equals(existingObject.getObjectId(), objectId)) {
-                // Exists, but is not our object!
-                throw new FileSystemObjectAlreadyExistsException("Path already exists: " + targetPath);
+            if (!StringUtils.equals(existingEntry.getFileId(), fileId)) {
+                // Exists, but is not our file!
+                throw new FileAlreadyExistsException("Path already exists: " + targetPath);
             }
         }
 
@@ -63,8 +63,8 @@ public class IngestFileDirectoryStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        String objectId = workingMap.get(FileMapKeys.OBJECT_ID, String.class);
-        fileDao.deleteDirectoryEntry(dataset, objectId);
+        String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+        fileDao.deleteDirectoryEntry(dataset, fileId);
         return StepResult.getStepResultSuccess();
     }
 

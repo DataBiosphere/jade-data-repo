@@ -8,7 +8,7 @@ import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;
 import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSObjectBase;
+import bio.terra.metadata.FSItem;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
@@ -84,7 +84,7 @@ public class DrsService {
 
         int depth = (expand ? -1 : 1);
 
-        FSObjectBase fsObject = fileService.lookupSnapshotFSObject(
+        FSItem fsObject = fileService.lookupSnapshotFSItem(
             drsId.getSnapshotId(),
             drsId.getFsObjectId(),
             depth);
@@ -145,7 +145,7 @@ public class DrsService {
         return dirObject;
     }
 
-    private DRSObject makeCommonDrsObject(FSObjectBase fsObject, String snapshotId) {
+    private DRSObject makeCommonDrsObject(FSItem fsObject, String snapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsObject.getCreatedDate().toString();
         DrsId drsId = makeDrsId(fsObject, snapshotId);
@@ -165,14 +165,14 @@ public class DrsService {
     private List<DRSContentsObject> makeContentsList(FSDir fsDir, String snapshotId) {
         List<DRSContentsObject> contentsList = new ArrayList<>();
 
-        for (FSObjectBase fsObject : fsDir.getContents()) {
+        for (FSItem fsObject : fsDir.getContents()) {
             contentsList.add(makeDrsContentsObject(fsObject, snapshotId));
         }
 
         return contentsList;
     }
 
-    private DRSContentsObject makeDrsContentsObject(FSObjectBase fsObject, String snapshotId) {
+    private DRSContentsObject makeDrsContentsObject(FSItem fsObject, String snapshotId) {
         DrsId drsId = makeDrsId(fsObject, snapshotId);
 
         List<String> drsUris = new ArrayList<>();
@@ -193,10 +193,10 @@ public class DrsService {
         return contentsObject;
     }
 
-    private DrsId makeDrsId(FSObjectBase fsObject, String snapshotId) {
+    private DrsId makeDrsId(FSItem fsObject, String snapshotId) {
         return DrsId.builder()
             .snapshotId(snapshotId)
-            .fsObjectId(fsObject.getObjectId().toString())
+            .fsObjectId(fsObject.getFileId().toString())
             .build();
     }
 

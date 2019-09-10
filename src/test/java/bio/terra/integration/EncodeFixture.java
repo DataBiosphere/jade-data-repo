@@ -7,7 +7,7 @@ import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SamClientService;
@@ -153,8 +153,8 @@ public class EncodeFixture {
         String profileId,
         String gsPath) throws Exception {
         String filePath = URI.create(gsPath).getPath();
-        FSObjectModel fsObject = dataRepoFixtures.ingestFile(user, datasetId, profileId, gsPath, filePath);
-        return fsObject.getObjectId();
+        FileModel fileModel = dataRepoFixtures.ingestFile(user, datasetId, profileId, gsPath, filePath);
+        return fileModel.getFileId();
     }
 
 }

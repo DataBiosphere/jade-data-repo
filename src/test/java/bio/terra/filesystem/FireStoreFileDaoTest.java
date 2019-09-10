@@ -56,7 +56,7 @@ public class FireStoreFileDaoTest {
     @Test
     public void createDeleteFileTest() throws Exception {
         FireStoreFile file1 = makeFile();
-        String objectId = file1.getObjectId();
+        String objectId = file1.getFileId();
 
         FireStoreFile existCheck = fileDao.retrieveFileMetadata(firestore, datasetId, objectId);
         assertNull("Object id does not exists", existCheck);
@@ -92,13 +92,13 @@ public class FireStoreFileDaoTest {
 
         List<String> fileIds = fileList
             .stream()
-            .map(fsf -> fsf.getObjectId())
+            .map(fsf -> fsf.getFileId())
             .collect(Collectors.toList());
 
         List<String> deleteIds = new ArrayList<>();
 
         // Delete the files; our function collects the deleted object ids in a list
-        fileDao.deleteFilesFromDataset(firestore, datasetId, fsf -> deleteIds.add(fsf.getObjectId()));
+        fileDao.deleteFilesFromDataset(firestore, datasetId, fsf -> deleteIds.add(fsf.getFileId()));
 
         StringListCompare listCompare = new StringListCompare(fileIds, deleteIds);
         assertTrue("Deleted id list matched created id list", listCompare.compare());
@@ -110,13 +110,13 @@ public class FireStoreFileDaoTest {
     }
 
     private FireStoreFile makeFile() {
-        String objectId = UUID.randomUUID().toString();
+        String fileId = UUID.randomUUID().toString();
         return new FireStoreFile()
-            .objectId(objectId)
+            .fileId(fileId)
             .mimeType("application/test")
             .description("file")
             .bucketResourceId("BostonBucket")
-            .gspath("gs://server.example.com/" + objectId)
+            .gspath("gs://server.example.com/" + fileId)
             .size(FILE_SIZE);
     }
 }

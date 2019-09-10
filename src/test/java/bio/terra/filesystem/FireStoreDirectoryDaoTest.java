@@ -56,46 +56,46 @@ public class FireStoreDirectoryDaoTest {
     }
 
     @Test
-    // Tests createFileRef, deleteFileRef, retrieveById, retrieveByPath
+    // Tests createFileRef, deleteDirectoryEntry, retrieveById, retrieveByPath
     public void createDeleteTest() throws Exception {
-        FireStoreObject fileA = makeFileObject("/adir/A");
+        FireStoreDirectoryEntry fileA = makeFileObject("/adir/A");
 
         // Verify file A should not exist
-        FireStoreObject testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getObjectId());
+        FireStoreDirectoryEntry testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
         assertNull("Object id does not exist", testFileA);
 
         // Create the file
-        directoryDao.createFileRef(firestore, collectionId, fileA);
-        testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getObjectId());
+        directoryDao.createDirectoryEntry(firestore, collectionId, fileA);
+        testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
         assertNotNull("Object id exists", testFileA);
-        assertTrue("Is file object", testFileA.getFileRef());
+        assertTrue("Is file object", testFileA.getIsFileRef());
         assertThat("Dataset id matches", pretendDatasetId, equalTo(testFileA.getDatasetId()));
 
         // Test overwrite semantics - a second create acts as an update
         String updatedDatasetId = pretendDatasetId + "X";
         fileA.datasetId(updatedDatasetId);
-        directoryDao.createFileRef(firestore, collectionId, fileA);
-        testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getObjectId());
+        directoryDao.createDirectoryEntry(firestore, collectionId, fileA);
+        testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
         assertNotNull("Object id exists", testFileA);
-        assertTrue("Is file object", testFileA.getFileRef());
+        assertTrue("Is file object", testFileA.getIsFileRef());
         assertThat("Updated id matches", testFileA.getDatasetId(), equalTo(updatedDatasetId));
 
         // Lookup the directory by path to get its object id so that we can make sure
         // it goes away when we delete the file.
-        FireStoreObject dirA = directoryDao.retrieveByPath(firestore, collectionId, "/adir");
+        FireStoreDirectoryEntry dirA = directoryDao.retrieveByPath(firestore, collectionId, "/adir");
         assertNotNull("Directory exists", dirA);
-        assertFalse("Is dir object", dirA.getFileRef());
+        assertFalse("Is dir object", dirA.getIsFileRef());
 
         // Delete file and verify everything is gone
-        boolean objectExisted = directoryDao.deleteFileRef(firestore, collectionId, fileA.getObjectId());
+        boolean objectExisted = directoryDao.deleteDirectoryEntry(firestore, collectionId, fileA.getFileId());
         assertTrue("Object existed", objectExisted);
-        testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getObjectId());
+        testFileA = directoryDao.retrieveById(firestore, collectionId, fileA.getFileId());
         assertNull("File was deleted", testFileA);
-        FireStoreObject testDirA = directoryDao.retrieveById(firestore, collectionId, dirA.getObjectId());
+        FireStoreDirectoryEntry testDirA = directoryDao.retrieveById(firestore, collectionId, dirA.getFileId());
         assertNull("Directory was deleted", testDirA);
 
         // Delete again. Should succeed and let us know the object didn't exist
-        objectExisted = directoryDao.deleteFileRef(firestore, collectionId, fileA.getObjectId());
+        objectExisted = directoryDao.deleteDirectoryEntry(firestore, collectionId, fileA.getFileId());
         assertFalse("Object did not exist", objectExisted);
     }
 
@@ -103,7 +103,7 @@ public class FireStoreDirectoryDaoTest {
     @Test
     // Tests validateRefIds, enumerateDirectory, deleteDirectoryEntriesFromCollection, retrieveById, retrieveByPath
     public void directoryOperationsTest() throws Exception {
-        List<FireStoreObject> fileObjects = new ArrayList<>();
+        List<FireStoreDirectoryEntry> fileObjects = new ArrayList<>();
         fileObjects.add(makeFileObject("/adir/A1"));
         fileObjects.add(makeFileObject("/adir/bdir/B1"));
         fileObjects.add(makeFileObject("/adir/bdir/cdir/C1"));
@@ -111,14 +111,14 @@ public class FireStoreDirectoryDaoTest {
         fileObjects.add(makeFileObject("/adir/bdir/B2"));
         fileObjects.add(makeFileObject("/adir/A2"));
 
-        for (FireStoreObject fireStoreObject : fileObjects) {
-            directoryDao.createFileRef(firestore, collectionId, fireStoreObject);
+        for (FireStoreDirectoryEntry fireStoreDirectoryEntry : fileObjects) {
+            directoryDao.createDirectoryEntry(firestore, collectionId, fireStoreDirectoryEntry);
         }
 
         // Test all valid file references
         List<String> fileRefs = fileObjects
             .stream()
-            .map(fireStoreObject -> fireStoreObject.getObjectId())
+            .map(fireStoreObject -> fireStoreObject.getFileId())
             .collect(Collectors.toList());
         List<String> mismatches = directoryDao.validateRefIds(firestore, collectionId, fileRefs);
         assertThat("No invalid file refs", mismatches.size(), equalTo(0));
@@ -137,7 +137,7 @@ public class FireStoreDirectoryDaoTest {
         assertTrue("Bad ids match", listCompare.compare());
 
         // Test enumeration with adir. We should get three things back: two files (A1, A2) and a directory (bdir).
-        List<FireStoreObject> enumList = directoryDao.enumerateDirectory(firestore, collectionId, "/adir");
+        List<FireStoreDirectoryEntry> enumList = directoryDao.enumerateDirectory(firestore, collectionId, "/adir");
         assertThat("Correct number of object returned", enumList.size(), equalTo(3));
         List<String> expectedNames = Arrays.asList("A1", "A2", "bdir");
         List<String> enumNames = enumList
@@ -157,22 +157,22 @@ public class FireStoreDirectoryDaoTest {
         directoryDao.deleteDirectoryEntriesFromCollection(firestore, collectionId);
 
         for (String objectId : fileRefs) {
-            FireStoreObject fso = directoryDao.retrieveById(firestore, collectionId, objectId);
+            FireStoreDirectoryEntry fso = directoryDao.retrieveById(firestore, collectionId, objectId);
             assertNull("File or dir object is deleted", fso);
         }
     }
 
     private String retrieveDirectoryObjectId(String fullPath) {
-        FireStoreObject fireStoreObject = directoryDao.retrieveByPath(firestore, collectionId, fullPath);
-        return fireStoreObject.getObjectId();
+        FireStoreDirectoryEntry entry = directoryDao.retrieveByPath(firestore, collectionId, fullPath);
+        return entry.getFileId();
     }
 
-    private FireStoreObject makeFileObject(String fullPath) {
-        return new FireStoreObject()
-            .objectId(UUID.randomUUID().toString())
-            .fileRef(true)
+    private FireStoreDirectoryEntry makeFileObject(String fullPath) {
+        return new FireStoreDirectoryEntry()
+            .fileId(UUID.randomUUID().toString())
+            .isFileRef(true)
             .path(fireStoreUtils.getDirectoryPath(fullPath))
-            .name(fireStoreUtils.getObjectName(fullPath))
+            .name(fireStoreUtils.getName(fullPath))
             .datasetId(pretendDatasetId);
     }
 

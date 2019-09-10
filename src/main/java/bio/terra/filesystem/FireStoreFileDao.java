@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * FireStoreFileDao provides CRUD operations on the file collection in Firestore.
  * Objects in the file collection are referred to by the dataset (owner of the files)
  * and by any snapshots that reference the files. File naming is handled by the directory DAO.
- * This just handles the basic operations for managing the collection. It does not have
+ * This DAO just handles the basic operations for managing the collection. It does not have
  * logic for protecting against deleting files that have dependencies or creating files
  * with duplicate paths.
  *
@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  */
 @Component
 class FireStoreFileDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filesystem.FireStoreFileDao");
+    private final Logger logger = LoggerFactory.getLogger(FireStoreFileDao.class);
 
     private FireStoreUtils fireStoreUtils;
 
@@ -38,17 +38,17 @@ class FireStoreFileDao {
     void createFileMetadata(Firestore firestore, String datasetId, FireStoreFile newFile) {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<Void> transaction = firestore.runTransaction(xn -> {
-            xn.set(getFileDocRef(firestore, collectionId, newFile.getObjectId()), newFile);
+            xn.set(getFileDocRef(firestore, collectionId, newFile.getFileId()), newFile);
             return null;
         });
 
         fireStoreUtils.transactionGet("createFileMetadata", transaction);
     }
 
-    boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
+    boolean deleteFileMetadata(Firestore firestore, String datasetId, String fileId) {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<Boolean> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileObjectId, xn);
+            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
             if (docSnap == null || !docSnap.exists()) {
                 return false;
             }
@@ -61,10 +61,10 @@ class FireStoreFileDao {
     }
 
     // Returns null on not found
-    FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileObjectId) {
+    FireStoreFile retrieveFileMetadata(Firestore firestore, String datasetId, String fileId) {
         String collectionId = makeCollectionId(datasetId);
         ApiFuture<FireStoreFile> transaction = firestore.runTransaction(xn -> {
-            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileObjectId, xn);
+            DocumentSnapshot docSnap = lookupByFileId(firestore, collectionId, fileId, xn);
             if (docSnap == null || !docSnap.exists()) {
                 return null;
             }
@@ -76,9 +76,9 @@ class FireStoreFileDao {
 
     private DocumentSnapshot lookupByFileId(Firestore firestore,
                                             String collectionId,
-                                            String fileObjectId,
+                                            String fileId,
                                             Transaction xn) {
-        DocumentReference docRef = getFileDocRef(firestore, collectionId, fileObjectId);
+        DocumentReference docRef = getFileDocRef(firestore, collectionId, fileId);
         ApiFuture<DocumentSnapshot> docSnapFuture = xn.get(docRef);
         try {
             return docSnapFuture.get();
@@ -109,8 +109,8 @@ class FireStoreFileDao {
         return datasetId + "-files";
     }
 
-    private DocumentReference getFileDocRef(Firestore firestore, String collectionId, String objectId) {
-        return firestore.collection(collectionId).document(objectId);
+    private DocumentReference getFileDocRef(Firestore firestore, String collectionId, String fileId) {
+        return firestore.collection(collectionId).document(fileId);
     }
 
 }

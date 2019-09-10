@@ -8,15 +8,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * This provides the base class for all file system objects.
+ * This provides the base class for files and directories.
  * <ul>
  *     <li>FSFile - describes a file</li>
  *     <li>FSDir - describes a directory and, optionally, its contents</li>
  * </ul>
  *
  */
-public class FSObjectBase {
-    private UUID objectId;
+public class FSItem {
+    private UUID fileId;
     private UUID collectionId;
     private Instant createdDate;
     private String path;
@@ -25,15 +25,15 @@ public class FSObjectBase {
     private Long size;
     private String description;
 
-    public FSObjectBase() {
+    public FSItem() {
     }
 
-    public UUID getObjectId() {
-        return objectId;
+    public UUID getFileId() {
+        return fileId;
     }
 
-    public FSObjectBase objectId(UUID objectId) {
-        this.objectId = objectId;
+    public FSItem fileId(UUID fileId) {
+        this.fileId = fileId;
         return this;
     }
 
@@ -41,7 +41,7 @@ public class FSObjectBase {
         return collectionId;
     }
 
-    public FSObjectBase collectionId(UUID datasetId) {
+    public FSItem collectionId(UUID datasetId) {
         this.collectionId = datasetId;
         return this;
     }
@@ -50,7 +50,7 @@ public class FSObjectBase {
         return createdDate;
     }
 
-    public FSObjectBase createdDate(Instant createdDate) {
+    public FSItem createdDate(Instant createdDate) {
         this.createdDate = createdDate;
         return this;
     }
@@ -59,7 +59,7 @@ public class FSObjectBase {
         return path;
     }
 
-    public FSObjectBase path(String path) {
+    public FSItem path(String path) {
         this.path = path;
         return this;
     }
@@ -68,7 +68,7 @@ public class FSObjectBase {
         return checksumCrc32c;
     }
 
-    public FSObjectBase checksumCrc32c(String checksumCrc32c) {
+    public FSItem checksumCrc32c(String checksumCrc32c) {
         this.checksumCrc32c = checksumCrc32c;
         return this;
     }
@@ -77,7 +77,7 @@ public class FSObjectBase {
         return checksumMd5;
     }
 
-    public FSObjectBase checksumMd5(String checksumMd5) {
+    public FSItem checksumMd5(String checksumMd5) {
         this.checksumMd5 = checksumMd5;
         return this;
     }
@@ -86,7 +86,7 @@ public class FSObjectBase {
         return size;
     }
 
-    public FSObjectBase size(Long size) {
+    public FSItem size(Long size) {
         this.size = size;
         return this;
     }
@@ -95,7 +95,7 @@ public class FSObjectBase {
         return description;
     }
 
-    public FSObjectBase description(String description) {
+    public FSItem description(String description) {
         this.description = description;
         return this;
     }
@@ -106,10 +106,10 @@ public class FSObjectBase {
 
         if (o == null || getClass() != o.getClass()) return false;
 
-        FSObjectBase that = (FSObjectBase) o;
+        FSItem that = (FSItem) o;
 
         return new EqualsBuilder()
-            .append(objectId, that.objectId)
+            .append(fileId, that.fileId)
             .append(collectionId, that.collectionId)
             .append(createdDate, that.createdDate)
             .append(path, that.path)
@@ -123,7 +123,7 @@ public class FSObjectBase {
     @Override
     public int hashCode() {
         return new HashCodeBuilder(17, 37)
-            .append(objectId)
+            .append(fileId)
             .append(collectionId)
             .append(createdDate)
             .append(path)
@@ -137,7 +137,7 @@ public class FSObjectBase {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-            .append("objectId", objectId)
+            .append("fileId", fileId)
             .append("collectionId", collectionId)
             .append("createdDate", createdDate)
             .append("path", path)

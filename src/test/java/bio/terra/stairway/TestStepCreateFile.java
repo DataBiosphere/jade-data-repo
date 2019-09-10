@@ -18,7 +18,7 @@ public class TestStepCreateFile implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // We assume the file does not exist, since that was checked in the previous step
-        // The createFile will fail if the file exists.
+        // The createFileMetadata will fail if the file exists.
         try {
             Path filepath = Paths.get(filename);
             Files.createFile(filepath);

@@ -13,16 +13,16 @@ import java.util.UUID;
 // be simpler. Implementations of file storage on other platforms may
 // be quite different, so we do not want to push this out of the firestore-specific
 // code and into the common code.
-public class IngestFileObjectIdStep implements Step {
+public class IngestFileIdStep implements Step {
 
-    public IngestFileObjectIdStep() {
+    public IngestFileIdStep() {
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
-        String objectId = UUID.randomUUID().toString();
-        workingMap.put(FileMapKeys.FILE_ID, objectId);
+        String fileId = UUID.randomUUID().toString();
+        workingMap.put(FileMapKeys.FILE_ID, fileId);
         return StepResult.getStepResultSuccess();
     }
 

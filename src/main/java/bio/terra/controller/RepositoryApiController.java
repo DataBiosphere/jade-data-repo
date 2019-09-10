@@ -6,30 +6,30 @@ import bio.terra.exception.InternalServerErrorException;
 import bio.terra.exception.UnauthorizedException;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSource;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.UserStatusInfo;
-import bio.terra.service.SnapshotService;
+import bio.terra.service.DatasetService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobService;
 import bio.terra.service.SamClientService;
-import bio.terra.service.DatasetService;
-import bio.terra.validation.SnapshotRequestValidator;
+import bio.terra.service.SnapshotService;
+import bio.terra.validation.DatasetRequestValidator;
 import bio.terra.validation.IngestRequestValidator;
 import bio.terra.validation.PolicyMemberValidator;
-import bio.terra.validation.DatasetRequestValidator;
+import bio.terra.validation.SnapshotRequestValidator;
 import bio.terra.validation.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -222,7 +222,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<FSObjectModel> lookupFileObjectById(
+    public ResponseEntity<FileModel> lookupFileById(
         @PathVariable("id") String id,
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
@@ -232,13 +232,12 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.DATASET,
             id,
             SamClientService.DataRepoAction.READ_DATA);
-
-        FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid, depth);
-        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+        FileModel fileModel = fileService.lookupFile(id, fileid, depth);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<FSObjectModel> lookupFileObjectByPath(
+    public ResponseEntity<FileModel> lookupFileByPath(
         @PathVariable("id") String id,
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
@@ -251,9 +250,8 @@ public class RepositoryApiController implements RepositoryApi {
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
-
-        FSObjectModel fsObjectModel = fileService.lookupPath(id, path, depth);
-        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+        FileModel fileModel = fileService.lookupPath(id, path, depth);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     // --dataset policies --
@@ -382,7 +380,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<FSObjectModel> lookupSnapshotFileObjectById(
+    public ResponseEntity<FileModel> lookupSnapshotFileById(
         @PathVariable("id") String id,
         @PathVariable("fileid") String fileid,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
@@ -392,12 +390,12 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.DATASNAPSHOT,
             id,
             SamClientService.DataRepoAction.READ_DATA);
-        FSObjectModel fsObjectModel = fileService.lookupSnapshotFile(id, fileid, depth);
-        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+        FileModel fileModel = fileService.lookupSnapshotFile(id, fileid, depth);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
     @Override
-    public ResponseEntity<FSObjectModel> lookupSnapshotFileObjectByPath(
+    public ResponseEntity<FileModel> lookupSnapshotFileByPath(
         @PathVariable("id") String id,
         @RequestParam(value = "path", required = true) String path,
         @RequestParam(value = "depth", required = false, defaultValue = "0") Integer depth) {
@@ -410,8 +408,8 @@ public class RepositoryApiController implements RepositoryApi {
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
-        FSObjectModel fsObjectModel = fileService.lookupSnapshotPath(id, path, depth);
-        return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
+        FileModel fileModel = fileService.lookupSnapshotPath(id, path, depth);
+        return new ResponseEntity<>(fileModel, HttpStatus.OK);
     }
 
 

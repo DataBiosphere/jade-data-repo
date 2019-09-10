@@ -6,14 +6,14 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class DeleteFileObjectStep implements Step {
+public class DeleteFileMetadataStep implements Step {
     private final FireStoreDao fileDao;
     private final String fileId;
     private final Dataset dataset;
 
-    public DeleteFileObjectStep(FireStoreDao fileDao,
-                                String fileId,
-                                Dataset dataset) {
+    public DeleteFileMetadataStep(FireStoreDao fileDao,
+                                  String fileId,
+                                  Dataset dataset) {
         this.fileDao = fileDao;
         this.fileId = fileId;
         this.dataset = dataset;
@@ -21,7 +21,7 @@ public class DeleteFileObjectStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        fileDao.deleteFileObject(dataset, fileId);
+        fileDao.deleteFileMetadata(dataset, fileId);
         return StepResult.getStepResultSuccess();
     }
 

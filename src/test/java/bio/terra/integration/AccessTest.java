@@ -8,7 +8,7 @@ import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.FSObjectModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -163,7 +163,7 @@ public class AccessTest extends UsersBase {
 
         // Step 1. Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
-        FSObjectModel fsObjectModel = dataRepoFixtures.ingestFile(
+        FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(),
             datasetSummaryModel.getId(),
             profileId,
@@ -171,7 +171,7 @@ public class AccessTest extends UsersBase {
             "/foo/bar");
 
         // Step 2. Ingest one row into the study 'file' table with a reference to that ingested file
-        String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fsObjectModel.getObjectId());
+        String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileModel.getFileId());
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
         BlobInfo targetBlobInfo = BlobInfo
             .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))

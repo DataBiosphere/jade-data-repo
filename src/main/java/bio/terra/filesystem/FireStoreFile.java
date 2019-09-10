@@ -3,10 +3,9 @@ package bio.terra.filesystem;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 /**
- * POJO for file objects to FireStore. This object is used to describe physical files
- * of a dataset. There is one collection named: "<dataset-id>-files"
- * and the file objects are named with their object ids.
- * All path naming is done in the directory collection.
+ * POJO for file objects held in our FireStore files collection.
+ * This object is used to describe physical files of a dataset. There is one collection named: "<dataset-id>-files"
+ * and the file objects are named with their object ids. All path naming is done in the directory collection.
  *
  * Requirements from the documentation are:
  *   "Each custom class must have a public constructor that takes no arguments.
@@ -14,7 +13,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
  */
 
 public class FireStoreFile {
-    private String objectId;
+    private String fileId;
     private String mimeType;
     private String description;
     private String bucketResourceId;
@@ -28,14 +27,15 @@ public class FireStoreFile {
     public FireStoreFile() {
     }
 
-    public String getObjectId() {
-        return objectId;
+    public String getFileId() {
+        return fileId;
     }
 
-    public FireStoreFile objectId(String objectId) {
-        this.objectId = objectId;
+    public FireStoreFile fileId(String fileId) {
+        this.fileId = fileId;
         return this;
     }
+
     public String getFileCreatedDate() {
         return fileCreatedDate;
     }
@@ -111,7 +111,7 @@ public class FireStoreFile {
     @Override
     public String toString() {
         return new ToStringBuilder(this)
-            .append("objectId", objectId)
+            .append("fileId", fileId)
             .append("fileCreatedDate", fileCreatedDate)
             .append("gspath", gspath)
             .append("checksumCrc32c", checksumCrc32c)

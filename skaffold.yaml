@@ -10,4 +10,7 @@ deploy:
   kubectl:
     manifests:
     - ops/k8s/deployments/api-deployment.yaml
+    flags:
+      global:
+        - --namespace=data-repo
 

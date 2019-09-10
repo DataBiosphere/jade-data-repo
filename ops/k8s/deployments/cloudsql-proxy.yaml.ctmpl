@@ -7,7 +7,6 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: cloudsql-proxy
-  namespace: data-repo
 spec:
   replicas: 1
   template:
@@ -20,7 +19,6 @@ spec:
       - name: check-db-ready
         image: postgres:9.6.5
         command: ['sh', '-c','until pg_isready -h {{ .Data.ip }} -p 5432;do echo waiting for database; sleep 2; done;']
-      volumes:
       containers:
         - name: cloudsql-proxy
           image: b.gcr.io/cloudsql-docker/gce-proxy:latest
@@ -43,10 +41,13 @@ spec:
             timeoutSeconds: 1
           volumeMounts:
             - name: cloud-sql-sa
-              mountPath: /secrets/cloudsql
+              mountPath: /secrets/cloudsql/
               readOnly: true
       volumes:
         - name: cloud-sql-sa
           secret:
             secretName: sql-proxy-sa
+            items:
+              - key: credential-file-json
+                path: proxy-sa.json
 {{end}}{{end}}{{end}}

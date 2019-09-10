@@ -14,10 +14,15 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
+import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -36,7 +41,13 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static org.junit.Assert.assertThat;
+
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -56,6 +67,7 @@ public class BigQueryPdaoTest {
     @Autowired private DatasetDao datasetDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private DatasetService datasetService;
 
     @MockBean
     private SamClientService samService;
@@ -79,7 +91,7 @@ public class BigQueryPdaoTest {
             .name(datasetName());
         dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
         UUID datasetId = datasetDao.create(dataset);
-        dataset.id(datasetId);
+        dataset = datasetService.retrieve(datasetId);
         logger.info("Created dataset in setup: {}", datasetId);
     }
 
@@ -93,26 +105,98 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
+    private void assertThatDatasetAndTablesShouldExist(boolean shouldExist) {
+        boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
+        assertThat(
+            String.format("Dataset: %s, exists", dataset.getName()),
+            datasetExists,
+            equalTo(shouldExist));
+
+        boolean participantTableExists = bigQueryPdao.tableExists(dataset, "participant");
+        assertThat(
+            String.format("Table: %s.participant, exists", dataset.getName()),
+            participantTableExists,
+            equalTo(shouldExist));
+        String participantSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("participant");
+        boolean participantSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, participantSoftDeleteTableName);
+        assertThat(
+            String.format("Table: %s.%s, exists", dataset.getName(), participantSoftDeleteTableName),
+            participantSoftDeleteTableExists,
+            equalTo(shouldExist));
+
+        boolean sampleTableExists =  bigQueryPdao.tableExists(dataset, "sample");
+        assertThat(
+            String.format("Table: %s.sample, exists", dataset.getName()),
+            sampleTableExists,
+            equalTo(shouldExist));
+        String sampleSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("sample");
+        boolean sampleSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, sampleSoftDeleteTableName);
+        assertThat(
+            String.format("Table: %s.%s, exists", dataset.getName(), sampleSoftDeleteTableName),
+            sampleSoftDeleteTableExists,
+            equalTo(shouldExist));
+
+        boolean fileTableExists =  bigQueryPdao.tableExists(dataset, "file");
+        assertThat(
+            String.format("Table: %s.file, exists", dataset.getName()),
+            fileTableExists,
+            equalTo(shouldExist));
+        String fileSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("file");
+        boolean fileSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, fileSoftDeleteTableName);
+        assertThat(
+            String.format("Table: %s.%s, exists", dataset.getName(), fileSoftDeleteTableName),
+            fileSoftDeleteTableExists,
+            equalTo(shouldExist));
+    }
+
+    private List<String> getRowIds(Dataset dataset,
+                                   String tableName,
+                                   String projectId,
+                                   BigQueryProject bigQueryProject) {
+        String softDeleteTableName = bigQueryPdao.prefixSoftDeleteTableName(tableName);
+        String table = projectId + "." + bigQueryPdao.prefixName(dataset.getName()) + "." + tableName;
+        String softDeleteTable = projectId +
+            "." +
+            bigQueryPdao.prefixName(dataset.getName()) +
+            "." +
+            softDeleteTableName;
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(table)
+            .append("` EXCEPT DISTINCT (SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(softDeleteTable)
+            .append("`)");
+
+        String sql = builder.toString();
+        TableResult result = bigQueryProject.query(sql);
+
+        List<String> rowIds = new ArrayList<>();
+        for (FieldValueList row : result.iterateAll()) {
+            String rowId = row.get(0).getStringValue();
+            rowIds.add(rowId);
+        }
+
+        return rowIds;
+    }
+
     @Test
     public void basicTest() throws Exception {
-        boolean exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(false)));
+        assertThatDatasetAndTablesShouldExist(false);
 
         bigQueryPdao.createDataset(dataset);
-
-        exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(true)));
+        assertThatDatasetAndTablesShouldExist(true);
 
         // Perform the redo, which should delete and re-create
         bigQueryPdao.createDataset(dataset);
-        exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(true)));
-
+        assertThatDatasetAndTablesShouldExist(true);
 
         // Now delete it and test that it is gone
         bigQueryPdao.deleteDataset(dataset);
-        exists = bigQueryPdao.datasetExists(dataset);
-        Assert.assertThat(exists, is(equalTo(false)));
+        assertThatDatasetAndTablesShouldExist(false);
     }
 
     @Test
@@ -166,11 +250,23 @@ public class BigQueryPdaoTest {
             connectedOperations.ingestTableFailure(datasetId,
                 ingestRequest.table("sample").path(gsPath(nullPkBlob)));
 
+            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+            String tableName = "participant";
+            List<String> rowIds = getRowIds(dataset,
+                tableName,
+                dataset.getDataProjectId(),
+                bigQueryProject);
+            int numOfRowsWithSoftDeletes = rowIds.size();
+            int numOfRowsSoftDeleted = 2;
+            Set<String> rowsToSoftDelete = ImmutableSet.copyOf(Iterables.limit(rowIds, numOfRowsSoftDeleted));
+            bigQueryPdao.softDeleteRows(dataset, tableName, dataset.getDataProjectId(), rowsToSoftDelete);
+
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
             MockHttpServletResponse snapshotResponse =
-                connectedOperations.launchCreateSnapshot(datasetSummaryModel, "ingest-test-snapshot.json", "");
+                connectedOperations.launchCreateSnapshot(datasetSummaryModel,
+                    "ingest-test-snapshot.json", "");
             SnapshotSummaryModel snapshotSummary =
                 connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
@@ -178,6 +274,13 @@ public class BigQueryPdaoTest {
             // TODO: Assert that the snapshot contains the rows we expect.
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
+
+            // Assert that the given rows are soft deleted
+            rowIds = getRowIds(dataset,
+                tableName,
+                dataset.getDataProjectId(),
+                bigQueryProject);
+            Assert.assertThat(numOfRowsWithSoftDeletes - numOfRowsSoftDeleted, is(equalTo(rowIds.size())));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());

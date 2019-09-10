@@ -99,6 +99,14 @@ public interface PrimaryDataAccess {
     boolean datasetExists(Dataset dataset);
 
     /**
+     * Checks to see if a table within a dataset exists
+     * @param dataset
+     * @param tableName
+     * @return true if the table exists, false otherwise
+     */
+    boolean tableExists(Dataset dataset, String tableName);
+
+    /**
      * Checks to see if a snapshot exists
      * @param snapshot
      * @return true if the snapshot exists, false otherwise

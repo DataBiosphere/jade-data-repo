@@ -293,10 +293,10 @@ public class GoogleResourceService {
                 .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
             List<Binding> bindingsList = getIamPolicy.getBindings();
 
-            for (String role : userPermissions.keySet()) {
+            for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
                 Binding binding = new Binding()
-                    .setRole(role)
-                    .setMembers(userPermissions.get(role));
+                    .setRole(entry.getKey())
+                    .setMembers(entry.getValue());
                 bindingsList.add(binding);
             }
 

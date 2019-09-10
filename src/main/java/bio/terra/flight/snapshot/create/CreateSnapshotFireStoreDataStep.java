@@ -59,9 +59,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
             for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
                 for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
                     String fromDatatype = mapColumn.getFromColumn().getType();
-                    if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF") ||
-                        StringUtils.equalsIgnoreCase(fromDatatype, "DIRREF")) {
-
+                    if (StringUtils.equalsIgnoreCase(fromDatatype, "FILEREF")) {
                         List<String> refIds = bigQueryPdao.getSnapshotRefIds(snapshotSource.getDataset(),
                             snapshot.getName(),
                             mapTable.getFromTable().getName(),

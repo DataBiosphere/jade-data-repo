@@ -139,6 +139,7 @@ public class GcsPdao {
                 .checksumCrc32c(targetBlob.getCrc32cToHexString())
                 .checksumMd5(checksumMd5)
                 .size(targetBlob.getSize())
+                .region(bucketResource.getRegion())
                 .bucketResourceId(bucketResource.getResourceId().toString());
 
             return fsFileInfo;

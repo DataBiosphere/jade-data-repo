@@ -84,17 +84,17 @@ data:
         # <string, required> path to dashboard files on disk. Required
         path: /var/lib/grafana/dashboards
   k8sdashboard: |-
-{{ file "ops/k8s/secrets/grafana/k8s-dashboard.json" | indent 4 }}
+{{ file "ops/k8s/configs/grafana/k8s-dashboard.json" | indent 4 }}
   loadbalancerdashboard: |-
-{{ file "ops/k8s/secrets/grafana/loadbalancer-dashboard.json" | indent 4 }}
+{{ file "ops/k8s/configs/grafana/loadbalancer-dashboard.json" | indent 4 }}
   cloud-sql-dashboard: |-
-{{ file "ops/k8s/secrets/grafana/cloudsql-dashboard.json" | indent 4 }}
+{{ file "ops/k8s/configs/grafana/cloudsql-dashboard.json" | indent 4 }}
   k8sprometheus: |-
-{{ file "ops/k8s/secrets/grafana/k8s-prometheus.json" | indent 4 }}
+{{ file "ops/k8s/configs/grafana/k8s-prometheus.json" | indent 4 }}
   cloudstorage-dashboard: |-
-{{ file "ops/k8s/secrets/grafana/cloudstorage-dashboard.json" | indent 4 }}
+{{ file "ops/k8s/configs/grafana/cloudstorage-dashboard.json" | indent 4 }}
   bigquery-logs: |-
-{{ file "ops/k8s/secrets/grafana/bigquery-logs.json" | indent 4 }}
+{{ file "ops/k8s/configs/grafana/bigquery-logs.json" | indent 4 }}
 
 
 {{end}}

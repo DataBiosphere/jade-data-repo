@@ -21,6 +21,7 @@ import java.util.function.Consumer;
 
 // Operations on a file often need to touch file and directory collections that is,
 // the FireStoreFileDao and the FireStoreDirectoryDao.
+//
 // The data to make an FSDir or FSFile is now spread between the file collection and the
 // directory collection, so a lookup needs to visit two places to generate a complete FSObject.
 // This class coordinates operations between the daos.
@@ -101,6 +102,7 @@ public class FireStoreDao {
         Firestore datasetFirestore = FireStoreProject.get(dataset.getDataProjectId()).getFirestore();
         Firestore snapshotFirestore = FireStoreProject.get(snapshot.getDataProjectId()).getFirestore();
         String datasetId = dataset.getId().toString();
+
         // TODO: Do we need to make sure the dataset name does not contain characters that are invalid for paths?
         // Added the work to figure that out to DR-325
         String datasetName = dataset.getName();
@@ -152,7 +154,6 @@ public class FireStoreDao {
                                        boolean throwOnNotFound) {
         Firestore firestore = FireStoreProject.get(container.getDataProjectId()).getFirestore();
         String datasetId = container.getId().toString();
-
         FireStoreObject fireStoreObject = directoryDao.retrieveByPath(firestore, datasetId, fullPath);
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, fullPath);
     }
@@ -175,7 +176,6 @@ public class FireStoreDao {
                                      boolean throwOnNotFound) {
         Firestore firestore = FireStoreProject.get(container.getDataProjectId()).getFirestore();
         String datasetId = container.getId().toString();
-
         FireStoreObject fireStoreObject = directoryDao.retrieveById(firestore, datasetId, objectId);
         return retrieveWorker(firestore, datasetId, enumerateDepth, fireStoreObject, throwOnNotFound, objectId);
     }
@@ -209,7 +209,6 @@ public class FireStoreDao {
             return fsFile;
         }
         FSObjectBase fsObjectBase = makeFSDir(firestore, collectionId, enumerateDepth, fireStoreObject);
-
         return fsObjectBase;
     }
 
@@ -297,6 +296,8 @@ public class FireStoreDao {
             .description(fireStoreFile.getDescription())
             .gspath(fireStoreFile.getGspath())
             .mimeType(fireStoreFile.getMimeType())
+            .profileId(fireStoreFile.getProfileId())
+            .region(fireStoreFile.getRegion())
             .bucketResourceId(fireStoreFile.getBucketResourceId());
 
         return fsFile;

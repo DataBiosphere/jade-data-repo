@@ -232,6 +232,7 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.ResourceType.DATASET,
             id,
             SamClientService.DataRepoAction.READ_DATA);
+
         FSObjectModel fsObjectModel = fileService.lookupFile(id, fileid, depth);
         return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }
@@ -250,6 +251,7 @@ public class RepositoryApiController implements RepositoryApi {
         if (!ValidationUtils.isValidPath(path)) {
             throw new ValidationException("InvalidPath");
         }
+
         FSObjectModel fsObjectModel = fileService.lookupPath(id, path, depth);
         return new ResponseEntity<>(fsObjectModel, HttpStatus.OK);
     }

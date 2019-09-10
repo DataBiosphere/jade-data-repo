@@ -31,12 +31,12 @@ public class FSFile extends FSObjectBase {
         return this;
     }
 
-    public String getMimeType() {
-        return mimeType;
+    public String getRegion() {
+        return region;
     }
 
-    public FSFile mimeType(String mimeType) {
-        this.mimeType = mimeType;
+    public FSFile region(String region) {
+        this.region = region;
         return this;
     }
 

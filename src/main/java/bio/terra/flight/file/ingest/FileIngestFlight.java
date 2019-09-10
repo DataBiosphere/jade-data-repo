@@ -46,13 +46,21 @@ public class FileIngestFlight extends Flight {
         Dataset dataset = datasetService.retrieve(datasetId);
 
         // The flight plan:
-        // 1. Generate the new file id and store it in the working map
-        // 2. Create the directory entry for the file; lack of a file entry means it will be invisible
-        //    to outside retrieval. Existence of a directory entry keeps a second file from getting the
-        //    same name.
-        // 3. Locate the bucket where this file should go and store it in the working map
-        // 4. Copy the file into the bucket. Return the gspath, checksum, size, and create time
-        // 5. Create the file entry in the filesystem.
+        // 1. Generate the new file id and store it in the working map. We need to allocate the file id before any
+        //    other operation so that it is persisted in the working map. In particular, IngestFileDirectoryStep undo
+        //    needs to know the file id in order to clean up.
+        // 2. Create the directory entry for the file. The state where there is a directory entry for a file, but
+        //    no entry in the file collection, indicates that the file is being ingested (or deleted) and so REST API
+        //    lookups will not reveal that it exists. We make the directory entry first, because that atomic operation
+        //    prevents a second ingest with the same path from getting created.
+        // 3. Locate the bucket where this file should go and store it in the working map. We need to make the
+        //    decision about where we will put the file and remember it persistently in the working map before
+        //    we copy the file in. That allows the copy undo to know the location to look at to delete the file.
+        // 4. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the working map.
+        // 5. Create the file entry in the filesystem. The file object takes the gspath, checksum, size, and create
+        //    time of the actual file in GCS. That ensures that the file info we return on REST API (and DRS) lookups
+        //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
+        //    created in the file firestore collection, the file becomes visible for REST API lookups.
         addStep(new IngestFileIdStep());
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset));
         addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService));

@@ -40,10 +40,14 @@ public class FileDeleteFlight extends Flight {
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
         // The flight plan:
-        // 1. Lookup file object and store the data in the flight map; check dependencies
-        // 2. Delete the file object - after this point, no one will be able to retrieve the file
+        // 1. Lookup file and store the file data in the flight map. Check dependencies to make sure that the
+        //    delete is allowed. We do the lookup and store so that we have all of the file information, since
+        //    once we start deleting things, we can't look it up again!
+        // 2. Delete the file object - after this point, the file is not shown through the REST API.
         // 3. pdao GCS delete the file
         // 4. Delete the directory entry
+        // This flight updates GCS and firestore in exactly the reverse order of create, so no new
+        // data structure states are introduced by this flight.
         addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao));
         addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset));
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));

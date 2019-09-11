@@ -11,7 +11,11 @@ data:
     ServerTokens ProductOnly
     TraceEnable off
 
-    LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+    LogFormat "%h %l %u \"%{OIDC_CLAIM_email}i\" \"%{X-App-ID}i\" [%{%FT%T}t.%{msec_frac}t%{%z}t] %D %X \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+    LogFormat "%{X-Forwarded-For}i %l %u \"%{OIDC_CLAIM_email}i\" \"%{X-App-ID}i\" [%{%FT%T}t.%{msec_frac}t%{%z}t] %D %X \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"" proxy
+    SetEnvIf X-Forwarded-For "^.*\..*\..*\..*" forwarded
+    CustomLog "/dev/stdout" combined env=!forwarded
+    CustomLog "/dev/stdout" proxy env=forwarded
     LogLevel ${LOG_LEVEL}
 
     Header unset X-Frame-Options

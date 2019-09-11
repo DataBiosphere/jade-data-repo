@@ -23,7 +23,7 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final OauthConfiguration oauthConfig;
 
     @Autowired
-    Environment env;
+    private Environment env;
 
     @Autowired
     public UnauthenticatedApiController(

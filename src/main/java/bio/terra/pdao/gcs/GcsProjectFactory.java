@@ -17,7 +17,7 @@ public class GcsProjectFactory {
     }
 
     public GcsProject get(String projectId) {
-        gcsProjectCache.computeIfAbsent(projectId, (p) -> new GcsProject(
+        gcsProjectCache.computeIfAbsent(projectId, p -> new GcsProject(
                 p,
                 gcsConfiguration.getConnectTimeoutSeconds(),
                 gcsConfiguration.getReadTimeoutSeconds()));

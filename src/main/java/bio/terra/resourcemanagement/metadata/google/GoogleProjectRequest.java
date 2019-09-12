@@ -8,7 +8,7 @@ public class GoogleProjectRequest {
     private UUID profileId;
     private String projectId;
     private List<String> serviceIds;
-    private Map<String, List<String>> userPermissions;
+    private Map<String, List<String>> roleIdentityMapping;
 
     public UUID getProfileId() {
         return profileId;
@@ -37,14 +37,14 @@ public class GoogleProjectRequest {
         return this;
     }
 
-    // map of identities to list of iam permissions (a list of things the id'ed user can do)
+    // map of iam permissions to list of identities (things the list of id'ed users can do)
 
-    public Map<String, List<String>> getUserPermissions() {
-        return userPermissions;
+    public Map<String, List<String>> getRoleIdentityMapping() {
+        return roleIdentityMapping;
     }
 
-    public GoogleProjectRequest userPermissions(Map<String, List<String>> userPermissions) {
-        this.userPermissions = userPermissions;
+    public GoogleProjectRequest roleIdentityMapping(Map<String, List<String>> roleIdentityMapping) {
+        this.roleIdentityMapping = roleIdentityMapping;
         return this;
     }
 }

@@ -134,7 +134,7 @@ public class DataLocationService {
             .projectId(dataLocationSelector.projectIdForDataset(dataset))
             .profileId(dataset.getDefaultProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS)
-            .userPermissions(getStewardPolicy());
+            .roleIdentityMapping(getStewardPolicy());
         try {
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProject(dataset.getId());
             googleProjectResource = resourceService.getProjectResourceById(

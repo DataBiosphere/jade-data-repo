@@ -73,7 +73,7 @@ public class ResourceServiceTest {
             .projectId(projectId)
             .profileId(UUID.fromString(profile.getId()))
             .serviceIds(DataLocationService.DATA_PROJECT_SERVICE_IDS)
-            .userPermissions(roleToStewardMap);
+            .roleIdentityMapping(roleToStewardMap);
         GoogleProjectResource projectResource = resourceService.getOrCreateProject(projectRequest);
 
         Project project = resourceService.getProject(projectId);

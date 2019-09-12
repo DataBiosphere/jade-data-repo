@@ -284,7 +284,7 @@ public class GoogleResourceService {
     }
 
     public void enableIamPermissions(GoogleProjectResource projectResource) {
-        Map<String, List<String>> userPermissions = projectResource.getUserPermissions();
+        Map<String, List<String>> userPermissions = projectResource.getRoleIdentityMapping();
         GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
         try {

@@ -44,12 +44,12 @@ public class GoogleProjectResource {
         return this;
     }
 
-    public Map<String, List<String>> getUserPermissions() {
-        return googleProjectRequest.getUserPermissions();
+    public Map<String, List<String>> getRoleIdentityMapping() {
+        return googleProjectRequest.getRoleIdentityMapping();
     }
 
-    public GoogleProjectResource userPermissions(Map<String, List<String>> userPermissions) {
-        googleProjectRequest.userPermissions(userPermissions);
+    public GoogleProjectResource roleIdentityMapping(Map<String, List<String>> roleIdentityMapping) {
+        googleProjectRequest.roleIdentityMapping(roleIdentityMapping);
         return this;
     }
 

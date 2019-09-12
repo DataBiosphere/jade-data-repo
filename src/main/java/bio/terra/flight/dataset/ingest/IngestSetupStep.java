@@ -7,10 +7,13 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoConstant;
+import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -40,9 +43,11 @@ import liquibase.util.StringUtils;
 
 public class IngestSetupStep implements Step {
     private DatasetService datasetService;
+    private BigQueryPdao bigQueryPdao;
 
-    public IngestSetupStep(DatasetService datasetService) {
+    public IngestSetupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
         this.datasetService = datasetService;
+        this.bigQueryPdao = bigQueryPdao;
     }
 
     @Override
@@ -54,6 +59,14 @@ public class IngestSetupStep implements Step {
         String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
         String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
         IngestUtils.putStagingTableName(context, sgName);
+        String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
+
+        IngestUtils.putOverlappingTableName(context, olName);
+        String overlappingTableName = IngestUtils.getOverlappingTableName(context);
+
+        Schema OverlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
+        BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+        bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()), overlappingTableName, OverlappingTableSchema);
 
         IngestRequestModel requestModel = IngestUtils.getIngestRequestModel(context);
         IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(requestModel.getPath());

@@ -50,10 +50,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
-import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_TABLE;
-import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.pdao.PdaoConstant.*;
 
 @Component
 @Profile("google")
@@ -397,14 +394,17 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sql.toString());
     }
 
-    public List<String> getOverLappingRows(Dataset dataset,
+    public void getOverlappingRows(Dataset dataset,
                                     Table targetTable,
-                                    String stagingTableName) {
+                                    String stagingTableName,
+                                    String overlappingTableName) {
         /*
-         * SELECT T.PDAO_ROW_ID_COLUMN
-         * FROM <(Staging Table Name)> S
-         * LEFT JOIN <(Target Table Name)> T
-         * USING (primary_key)
+         * INSERT INTO overlappingTableName
+         * (STAGING_TABLE_ID_COLUMN, TARGET_TABLE_ID_COLUMN)
+         * SELECT S.PDAO_ROW_ID_COLUMN AS STAGING_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN AS TARGET_TABLE_ID_COLUMN
+         * FROM stagingTableName S
+         * LEFT JOIN targetTableName T
+         * USING (naturalKeys)
          * WHERE T.PDAO_ROW_ID_COLUMN IS NULL
          *      OR (TO_JSON_STRING(T.column name) = TO_JSON_STRING(S.column name))
          */
@@ -413,7 +413,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .map(Column::getName)
             .collect(Collectors.toList());
 
-        List<String> primaryKeyNames = dataset
+        List<String> naturalKeyColumnNames = dataset
             .getTableByName(targetTable.getName())
             .get()
             .getPrimaryKey()
@@ -425,17 +425,31 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId = bigQueryProject.getProjectId();
         StringBuilder builder = new StringBuilder();
 
-        builder.append("SELECT T.")
+        builder.append("INSERT INTO `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(overlappingTableName)
+            .append("` (")
+            .append(STAGING_TABLE_ROW_ID_COLUMN)
+            .append(",")
+            .append(TARGET_TABLE_ROW_ID_COLUMN)
+            .append(") SELECT S.")
             .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM ")
-            .append("`")
+            .append(" AS ")
+            .append(STAGING_TABLE_ROW_ID_COLUMN)
+            .append(", T.")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" AS ")
+            .append(TARGET_TABLE_ROW_ID_COLUMN)
+            .append(" FROM `")
             .append(projectId)
             .append(".")
             .append(prefixName(dataset.getName()))
             .append(".")
             .append(stagingTableName)
-            .append("` S LEFT JOIN ")
-            .append("`")
+            .append("` S LEFT JOIN `")
             .append(projectId)
             .append(".")
             .append(prefixName(dataset.getName()))
@@ -444,9 +458,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append("` T USING (");
 
         String prefix = "";
-        for (String primaryKeyName : primaryKeyNames) {
+        for (String naturalKeyColumnName : naturalKeyColumnNames) {
             builder.append(prefix)
-                .append(primaryKeyName);
+                .append(naturalKeyColumnName);
             prefix = ", ";
         }
 
@@ -454,78 +468,64 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(PDAO_ROW_ID_COLUMN)
             .append(" IS NULL OR (");
 
+        /* TODO:
+             We are currently converting to JSON String to compare 2 columns in the case where they are both null,
+             Nana or Arrays. In order to compare structs when they are supported in the future, order becomes an issue.
+             As a result, we need to case by case type handling.
+         */
         prefix = "";
         for (String columnName : columnNames) {
             builder.append(prefix)
                 .append(" TO_JSON_STRING(T.")
                 .append(columnName)
-                .append(") = TO_JSON_STRING(S.")
-                .append(columnName);
-            prefix = ") AND ";
+                .append(") != TO_JSON_STRING(S.")
+                .append(columnName)
+                .append(")");
+            prefix = " OR ";
         }
-
         builder.append(")");
 
         String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
-
-        List<String> overlappingRows = new ArrayList<>();
-        for (FieldValueList row : result.iterateAll()) {
-            if (!row.get(0).isNull()) {
-                String rowID = row.get(0).getStringValue();
-                overlappingRows.add(rowID);
-            }
-        }
-
-        return overlappingRows;
+        bigQueryProject.query(sql);
     }
 
-    public List<String> getChangedOverlappingRows(Dataset dataset,
+    public void softDeleteChangedOverlappingRows(Dataset dataset,
                                                  Table targetTable,
-                                                 List<String> overlappingRows) {
+                                                 String overLappingTableName) {
         /*
-         * SELECT PDAO_ROW_ID_COLUMN
-         * FROM <(Target Table Name)>
-         * WHERE PDAO_ROW_ID_COLUMN IN (overlappingRows)
+         * INSERT INTO softDeletesTableName
+         * (PDAO_ROW_ID_COLUMN)
+         * SELECT TARGET_TABLE_ROW_ID_COLUMN
+         * FROM overLappingTableName
+         * Where TARGET_TABLE_ROW_ID_COLUMN IS NULL
          */
+        String softDeleteTableName = prefixSoftDeleteTableName(targetTable.getName());
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();
         StringBuilder builder = new StringBuilder();
 
-        builder.append("SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM ")
-            .append("`")
+        builder.append("INSERT INTO `")
             .append(projectId)
             .append(".")
             .append(prefixName(dataset.getName()))
             .append(".")
-            .append(targetTable.getName())
-            .append(" ` WHERE ")
+            .append(softDeleteTableName)
+            .append("` (")
             .append(PDAO_ROW_ID_COLUMN)
-            .append(" IN (");
-
-        String prefix = "";
-        for (String overlappingRow : overlappingRows) {
-            builder.append(prefix)
-                .append(overlappingRow);
-            prefix = ", ";
-        }
-
-        builder.append(")");
+            .append(") SELECT ")
+            .append(TARGET_TABLE_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(overLappingTableName)
+            .append("` WHERE ")
+            .append(TARGET_TABLE_ROW_ID_COLUMN)
+            .append(" IS NULL");
 
         String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
-
-        List<String> changedOverlappingRows = new ArrayList<>();
-        for (FieldValueList row : result.iterateAll()) {
-            if (!row.get(0).isNull()) {
-                String rowID = row.get(0).getStringValue();
-                changedOverlappingRows.add(rowID);
-            }
-        }
-
-        return changedOverlappingRows;
+        bigQueryProject.query(sql);
     }
 
     public void insertIntoDatasetTable(Dataset dataset,
@@ -712,6 +712,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public String prefixSoftDeleteTableName(String tableName) {
         return PDAO_PREFIX + "sd_" + tableName;
+    }
+
+    public Schema buildOverlappingTableSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.of(STAGING_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        fieldList.add(Field.of(TARGET_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+
+        return Schema.of(fieldList);
     }
 
     private Schema buildSoftDeletesSchema() {

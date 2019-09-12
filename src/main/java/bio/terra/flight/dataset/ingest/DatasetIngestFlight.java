@@ -19,13 +19,13 @@ public class DatasetIngestFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         FireStoreDao fileDao  = (FireStoreDao)appContext.getBean("fireStoreDao");
 
-        addStep(new IngestSetupStep(datasetService));
+        addStep(new IngestSetupStep(datasetService, bigQueryPdao));
         addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
         addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
         addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
         addStep(new IngestEvaluateOverlapStep(datasetService, bigQueryPdao));
+        addStep(new IngestSoftDeleteChangedRowsService(datasetService, bigQueryPdao));
         addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     }
-
 }

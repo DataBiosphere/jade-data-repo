@@ -2,17 +2,11 @@ package bio.terra.flight.dataset.ingest;
 
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.google.cloud.bigquery.Schema;
-
-import java.util.List;
 
 public class IngestEvaluateOverlapStep implements Step {
     private DatasetService datasetService;

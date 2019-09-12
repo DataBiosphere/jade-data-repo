@@ -66,7 +66,9 @@ public class IngestSetupStep implements Step {
 
         Schema OverlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
         BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-        bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()), overlappingTableName, OverlappingTableSchema);
+        bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
+            overlappingTableName,
+            OverlappingTableSchema);
 
         IngestRequestModel requestModel = IngestUtils.getIngestRequestModel(context);
         IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(requestModel.getPath());

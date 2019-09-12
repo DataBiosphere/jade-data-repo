@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class FireStoreProject {
     private static final Logger logger = LoggerFactory.getLogger(FireStoreProject.class);
-    private static ConcurrentHashMap<String, FireStoreProject> fireStoreProjectCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, FireStoreProject> fireStoreProjectCache = new ConcurrentHashMap<>();
 
     private String projectId;
     private Firestore firestore;

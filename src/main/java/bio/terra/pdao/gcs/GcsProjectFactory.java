@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class GcsProjectFactory {
-    private static ConcurrentHashMap<String, GcsProject> gcsProjectCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, GcsProject> gcsProjectCache = new ConcurrentHashMap<>();
 
     private final GcsConfiguration gcsConfiguration;
 

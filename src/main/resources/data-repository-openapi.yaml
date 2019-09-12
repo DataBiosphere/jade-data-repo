@@ -2039,6 +2039,11 @@ definitions:
       clientId:
         description: the google defined client id for the repository
         type: string
+      activeProfiles:
+        description: the active profiles for this instance
+        type: array
+        items:
+          type: string
 
 ##########################################################################################
 # DRS DEFINITIONS

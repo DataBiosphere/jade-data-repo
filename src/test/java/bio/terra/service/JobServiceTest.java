@@ -139,8 +139,8 @@ public class JobServiceTest {
             new UserRequestInfo()
                 .subjectId(testUser.getSubjectId())
                 .name(testUser.getEmail())
-                .canListJobs(testUser.canListJobs())
-                .canDeleteJobs(testUser.canDeleteJobs()));
+                .canListJobs(testUser.getCanListJobs())
+                .canDeleteJobs(testUser.getCanDeleteJobs()));
         stairway.waitForFlight(flightId);
         return flightId;
     }

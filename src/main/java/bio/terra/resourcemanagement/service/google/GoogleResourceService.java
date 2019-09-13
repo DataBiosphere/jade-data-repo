@@ -289,9 +289,9 @@ public class GoogleResourceService {
 
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
-            Policy getIamPolicy = resourceManager.projects()
+            Policy policy = resourceManager.projects()
                 .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
-            List<Binding> bindingsList = getIamPolicy.getBindings();
+            List<Binding> bindingsList = policy.getBindings();
 
             for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
                 Binding binding = new Binding()
@@ -300,7 +300,7 @@ public class GoogleResourceService {
                 bindingsList.add(binding);
             }
 
-            Policy policy = new Policy().setBindings(bindingsList);
+            policy.setBindings(bindingsList);
             SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
             resourceManager.projects()
                 .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();

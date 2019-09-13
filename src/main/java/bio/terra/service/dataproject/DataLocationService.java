@@ -42,6 +42,7 @@ public class DataLocationService {
         "storage-api.googleapis.com",
         "cloudbilling.googleapis.com"
     ));
+    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
     private final DataProjectDao dataProjectDao;
     private final DataLocationSelector dataLocationSelector;
@@ -65,12 +66,12 @@ public class DataLocationService {
 
     public Map<String, List<String>> getStewardPolicy() {
         //hard code user string for now
-        String role = "roles/bigquery.jobUser";
+        String role = BQ_JOB_USER_ROLE;
         // get steward emails and add to policy
         String stewardsGroupEmail = "group:" + samConfiguration.getStewardsGroupEmail();
         Map<String, List<String>> policyMap = new HashMap<>();
         policyMap.put(role, Collections.singletonList(stewardsGroupEmail));
-        return policyMap;
+        return Collections.unmodifiableMap(policyMap);
     }
 
     public GoogleProjectResource getProjectForFile(String profileId) {

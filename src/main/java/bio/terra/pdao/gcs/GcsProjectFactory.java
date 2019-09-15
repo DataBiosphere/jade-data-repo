@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class GcsProjectFactory {
-    private static ConcurrentHashMap<String, GcsProject> gcsProjectCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, GcsProject> gcsProjectCache = new ConcurrentHashMap<>();
 
     private final GcsConfiguration gcsConfiguration;
 
@@ -17,13 +17,10 @@ public class GcsProjectFactory {
     }
 
     public GcsProject get(String projectId) {
-        if (!gcsProjectCache.containsKey(projectId)) {
-            GcsProject gcsProject = new GcsProject(
-                projectId,
+        gcsProjectCache.computeIfAbsent(projectId, p -> new GcsProject(
+                p,
                 gcsConfiguration.getConnectTimeoutSeconds(),
-                gcsConfiguration.getReadTimeoutSeconds());
-            gcsProjectCache.putIfAbsent(projectId, gcsProject);
-        }
+                gcsConfiguration.getReadTimeoutSeconds()));
         return gcsProjectCache.get(projectId);
     }
 }

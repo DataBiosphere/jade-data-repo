@@ -25,9 +25,6 @@ public class IngestEvaluateOverlapStep implements Step {
         String overlappingTableName = IngestUtils.getOverlappingTableName(context);
 
         bigQueryPdao.getOverlappingRows(dataset, targetTable, stagingTableName, overlappingTableName);
-        bigQueryPdao.softDeleteChangedOverlappingRows(dataset,
-            targetTable,
-            overlappingTableName);
 
         return StepResult.getStepResultSuccess();
     }

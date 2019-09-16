@@ -423,6 +423,8 @@ public class DataRepoFixtures {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table(table)
             .path(gsPath);
+        ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
+
         return objectMapper.writeValueAsString(ingestRequest);
     }
 

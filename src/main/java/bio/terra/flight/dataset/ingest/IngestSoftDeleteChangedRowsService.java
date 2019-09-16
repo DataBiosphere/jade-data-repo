@@ -32,7 +32,7 @@ public class IngestSoftDeleteChangedRowsService implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // Add undo for softdeleted rows
+        // TODO: Add undo for softdeleted rows
         return StepResult.getStepResultSuccess();
     }
 }

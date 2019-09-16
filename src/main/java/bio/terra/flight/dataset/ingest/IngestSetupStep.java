@@ -1,8 +1,10 @@
 package bio.terra.flight.dataset.ingest;
 
+import bio.terra.exception.BadRequestException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.InvalidUriException;
+import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
@@ -20,6 +22,8 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import liquibase.util.StringUtils;
+
+import java.util.List;
 
 /**
  *  * The setup step required to generate the staging file name.
@@ -59,16 +63,37 @@ public class IngestSetupStep implements Step {
         String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
         String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
         IngestUtils.putStagingTableName(context, sgName);
-        String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
 
-        IngestUtils.putOverlappingTableName(context, olName);
-        String overlappingTableName = IngestUtils.getOverlappingTableName(context);
+        IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
+        IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
 
-        Schema OverlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
-        BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-        bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
-            overlappingTableName,
-            OverlappingTableSchema);
+        // TODO:
+        //      ASK JEREMY IF WE ARE WORRIED ABOUT CREATING AN OVERLAPPING TABLE ONLY IF "UPSERT" COULD BECOME OUT OF
+        //      SYNC WITH LATER FLIGHT STEPS IN THE FUTURE
+        if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
+            List<Column> primaryKey = dataset
+                .getTableByName(targetTable.getName())
+                .get()
+                .getPrimaryKey();
+            if (primaryKey.size() < 1) {
+                // TODO: add test
+                throw new BadRequestException(
+                    "The dataset ingest flight expects ingestStrategy `upsert` or `append` but was "
+                        + ingestStrategy.toString());
+            }
+
+            Schema OverlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
+            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+
+            String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
+
+            IngestUtils.putOverlappingTableName(context, olName);
+            String overlappingTableName = IngestUtils.getOverlappingTableName(context);
+
+            bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
+                overlappingTableName,
+                OverlappingTableSchema);
+        }
 
         IngestRequestModel requestModel = IngestUtils.getIngestRequestModel(context);
         IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(requestModel.getPath());

@@ -406,7 +406,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * LEFT JOIN targetTableName T
          * USING (naturalKeys)
          * WHERE T.PDAO_ROW_ID_COLUMN IS NULL
-         *      OR (TO_JSON_STRING(T.column name) = TO_JSON_STRING(S.column name))
+         *      OR (TO_JSON_STRING(T.column name) != TO_JSON_STRING(S.column name))
          */
         List<String> columnNames = targetTable.getColumns()
             .stream()
@@ -497,7 +497,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * (PDAO_ROW_ID_COLUMN)
          * SELECT TARGET_TABLE_ROW_ID_COLUMN
          * FROM overLappingTableName
-         * Where TARGET_TABLE_ROW_ID_COLUMN IS NULL
+         * Where TARGET_TABLE_ROW_ID_COLUMN IS NOT NULL
          */
         String softDeleteTableName = prefixSoftDeleteTableName(targetTable.getName());
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
@@ -522,10 +522,56 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append(overLappingTableName)
             .append("` WHERE ")
             .append(TARGET_TABLE_ROW_ID_COLUMN)
-            .append(" IS NULL");
+            .append(" IS NOT NULL");
 
         String sql = builder.toString();
         bigQueryProject.query(sql);
+    }
+
+    public void upsertIntoDatasetTable(Dataset dataset,
+                                       Table targetTable,
+                                       String stagingTableName,
+                                       String overlappingTableName) {
+        /*
+         * INSERT INTO `project.dataset.datasettable`
+         * (<column names...>)
+         * SELECT <column names...>
+         * FROM stagingTableName S
+         * INNER JOIN overlappingTableName O
+         * ON S.PDAO_ROW_ID_COLUMN = O.STAGING_TABLE_ROW_ID_COLUMN
+         */
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String projectId = bigQueryProject.getProjectId();
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT ")
+            .append("`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(targetTable.getName())
+            .append("` (");
+        buildColumnList(sql, targetTable, true);
+        sql.append(") SELECT ");
+        buildColumnList(sql, targetTable, true);
+        sql.append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append("` INNER JOIN `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(overlappingTableName)
+            .append("` ON ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" = ")
+            .append(STAGING_TABLE_ROW_ID_COLUMN);
+
+        bigQueryProject.query(sql.toString());
     }
 
     public void insertIntoDatasetTable(Dataset dataset,
@@ -535,7 +581,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * INSERT INTO `project.dataset.datasettable`
          * (<column names...>)
          * SELECT <column names...>
-         * FROM `project.dataset.datasettable`
+         * FROM stagingTableName
          */
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String projectId = bigQueryProject.getProjectId();

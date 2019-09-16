@@ -135,8 +135,9 @@ public class FileService {
         } else if (fsItem instanceof FSDir) {
             fileModel.fileType(FileModelType.DIRECTORY);
             FSDir fsDir = (FSDir)fsItem;
-            DirectoryDetailModel directoryDetail = new DirectoryDetailModel().contents(new ArrayList<>());
+            DirectoryDetailModel directoryDetail = new DirectoryDetailModel().enumerated(fsDir.isEnumerated());
             if (fsDir.isEnumerated()) {
+                directoryDetail.contents(new ArrayList<>());
                 for (FSItem fsContentsItem : fsDir.getContents()) {
                     FileModel itemModel = fileModelFromFSItem(fsContentsItem);
                     directoryDetail.addContentsItem(itemModel);

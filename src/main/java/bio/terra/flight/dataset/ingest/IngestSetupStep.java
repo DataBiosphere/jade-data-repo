@@ -67,9 +67,6 @@ public class IngestSetupStep implements Step {
         IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
         IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
 
-        // TODO:
-        //      ASK JEREMY IF WE ARE WORRIED ABOUT CREATING AN OVERLAPPING TABLE ONLY IF "UPSERT" COULD BECOME OUT OF
-        //      SYNC WITH LATER FLIGHT STEPS IN THE FUTURE
         if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
             List<Column> primaryKey = dataset
                 .getTableByName(targetTable.getName())

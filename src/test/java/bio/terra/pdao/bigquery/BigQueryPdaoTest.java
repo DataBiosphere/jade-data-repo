@@ -315,7 +315,9 @@ public class BigQueryPdaoTest {
                 tableName,
                 dataset.getDataProjectId(),
                 bigQueryProject);
-            Assert.assertThat(numOfRowsSoftDeleted, is(equalTo(softDeletedRowIds.size())));
+            Assert.assertThat("On upsert the changed row is soft deleted",
+                softDeletedRowIds.size(),
+                is(equalTo(numOfRowsSoftDeleted)));
 
             // assert only the new row is added
             rowIds = getRowIds(dataset,
@@ -323,7 +325,9 @@ public class BigQueryPdaoTest {
                 dataset.getDataProjectId(),
                 bigQueryProject);
             // originalNumOfRows + 2 for the new row being added and the chnaged row being added
-            Assert.assertThat(originalNumOfRows + 2 - numOfRowsSoftDeleted, is(equalTo(rowIds.size())));
+            Assert.assertThat("On upsert that # of rows being added accounts for the soft delete",
+                rowIds.size(),
+                is(equalTo(originalNumOfRows + 2 - numOfRowsSoftDeleted)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());

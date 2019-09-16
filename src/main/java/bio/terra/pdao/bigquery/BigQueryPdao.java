@@ -761,9 +761,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public Schema buildOverlappingTableSchema() {
-        List<Field> fieldList = new ArrayList<>();
-        fieldList.add(Field.of(STAGING_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
-        fieldList.add(Field.of(TARGET_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        List<Field> fieldList =  Arrays.asList(
+            Field.of(STAGING_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING),
+            Field.of(TARGET_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING)
+        );
 
         return Schema.of(fieldList);
     }

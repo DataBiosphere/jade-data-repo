@@ -482,19 +482,6 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     // -- jobs --
-    private void setManageJobFlags(AuthenticatedUserRequest userReq) {
-        userReq.canListJobs(samService.isAuthorized(
-            userReq,
-            SamClientService.ResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            SamClientService.DataRepoAction.LIST_JOBS));
-        userReq.canDeleteJobs(samService.isAuthorized(
-            userReq,
-            SamClientService.ResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            SamClientService.DataRepoAction.DELETE_JOBS));
-    }
-
     private ResponseEntity<JobModel> jobToResponse(JobModel job) {
         if (job.getJobStatus() == JobModel.JobStatusEnum.RUNNING) {
             return ResponseEntity
@@ -516,9 +503,13 @@ public class RepositoryApiController implements RepositoryApi {
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         validiateOffsetAndLimit(offset, limit);
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
-        // TODO this should be set in job servicev (during refactor)
-        // -- put setter in the calls also when is this even getting set when the job is created in the first place?
+        // TODO the boolean for canListJobs is being set, but never used --> maybe it should be?
+        // setManageJobFlags(userReq);
+        userReq.canListJobs(samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            SamClientService.DataRepoAction.LIST_JOBS));
         List<JobModel> results = jobService.enumerateJobs(offset, limit, userReq);
         return new ResponseEntity<>(results, HttpStatus.OK);
     }
@@ -526,7 +517,12 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
+        // setManageJobFlags(userReq); seems like for this method we use the boolean canlistjobs as expected
+        userReq.canListJobs(samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            SamClientService.DataRepoAction.LIST_JOBS));
         JobModel job = jobService.retrieveJob(id, userReq);
         return jobToResponse(job);
     }
@@ -534,7 +530,12 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
+        // setManageJobFlags(userReq); seems like for this method we use the boolean canlistjobs as expected (same as above)
+        userReq.canListJobs(samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            SamClientService.DataRepoAction.LIST_JOBS));
         JobService.JobResultWithStatus<Object> resultHolder = jobService.retrieveJobResult(id, Object.class, userReq);
         return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
     }
@@ -542,8 +543,13 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Void> deleteJob(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
-        jobService.releaseJob(id, userReq);
+        // setManageJobFlags(userReq);
+        userReq.canDeleteJobs(samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            SamClientService.DataRepoAction.DELETE_JOBS));
+        jobService.releaseJob(id, userReq); // TODO why is this named release and not delete?
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

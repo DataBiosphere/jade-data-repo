@@ -4,11 +4,13 @@ import bio.terra.configuration.OauthConfiguration;
 import bio.terra.model.RepositoryConfigurationModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.Arrays;
 import java.util.Optional;
 
 @Controller
@@ -19,6 +21,9 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final HttpServletRequest request;
 
     private final OauthConfiguration oauthConfig;
+
+    @Autowired
+    private Environment env;
 
     @Autowired
     public UnauthenticatedApiController(
@@ -49,7 +54,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     @Override
     public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
         RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
-            .clientId(oauthConfig.getClientId());
+            .clientId(oauthConfig.getClientId())
+            .activeProfiles(Arrays.asList(env.getActiveProfiles()));
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }
 

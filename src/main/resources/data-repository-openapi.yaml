@@ -1781,6 +1781,12 @@ definitions:
     description: Directory in the data repository
     type: object
     properties:
+      enumerated:
+        type: boolean
+        description: |
+          Indicates whether or not the directory has been enumerated. True means the directory has been enumerated.
+          The contents property describes the contents. An empty array indicates and empty directory. False means
+          the directory has not been enumerated. If the contents property is present, it should be ignored.
       contents:
         type: array
         description: Array of directory contents
@@ -2039,6 +2045,11 @@ definitions:
       clientId:
         description: the google defined client id for the repository
         type: string
+      activeProfiles:
+        description: the active profiles for this instance
+        type: array
+        items:
+          type: string
 
 ##########################################################################################
 # DRS DEFINITIONS

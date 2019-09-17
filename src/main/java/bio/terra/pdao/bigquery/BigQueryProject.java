@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class BigQueryProject {
     private static final Logger logger = LoggerFactory.getLogger(BigQueryProject.class);
-    private static ConcurrentHashMap<String, BigQueryProject> bigQueryProjectCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, BigQueryProject> bigQueryProjectCache = new ConcurrentHashMap<>();
     private final String projectId;
     private final BigQuery bigQuery;
 
@@ -41,10 +41,7 @@ public final class BigQueryProject {
     }
 
     public static BigQueryProject get(String projectId) {
-        if (!bigQueryProjectCache.containsKey(projectId)) {
-            BigQueryProject bigQueryProject = new BigQueryProject(projectId);
-            bigQueryProjectCache.putIfAbsent(projectId, bigQueryProject);
-        }
+        bigQueryProjectCache.computeIfAbsent(projectId, BigQueryProject::new);
         return bigQueryProjectCache.get(projectId);
     }
 

@@ -517,6 +517,8 @@ public class RepositoryApiController implements RepositoryApi {
         validiateOffsetAndLimit(offset, limit);
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         setManageJobFlags(userReq);
+        // TODO this should be set in job servicev (during refactor)
+        // -- put setter in the calls also when is this even getting set when the job is created in the first place?
         List<JobModel> results = jobService.enumerateJobs(offset, limit, userReq);
         return new ResponseEntity<>(results, HttpStatus.OK);
     }

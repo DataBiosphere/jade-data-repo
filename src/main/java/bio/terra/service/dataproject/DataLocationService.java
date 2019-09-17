@@ -1,7 +1,9 @@
 package bio.terra.service.dataproject;
 
-import bio.terra.dao.DataProjectDao;
+import bio.terra.configuration.SamConfiguration;
 import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
+import bio.terra.dao.DataProjectDao;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetDataProject;
@@ -9,7 +11,6 @@ import bio.terra.metadata.DatasetDataProjectSummary;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotDataProject;
 import bio.terra.metadata.SnapshotDataProjectSummary;
-import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
@@ -23,7 +24,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -39,22 +42,36 @@ public class DataLocationService {
         "storage-api.googleapis.com",
         "cloudbilling.googleapis.com"
     ));
+    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
     private final DataProjectDao dataProjectDao;
     private final DataLocationSelector dataLocationSelector;
     private final GoogleResourceService resourceService;
     private final ProfileService profileService;
+    private final SamConfiguration samConfiguration;
 
     @Autowired
     public DataLocationService(
             DataProjectDao dataProjectDao,
             DataLocationSelector dataLocationSelector,
             GoogleResourceService resourceService,
-            ProfileService profileService) {
+            ProfileService profileService,
+            SamConfiguration samConfiguration) {
         this.dataProjectDao = dataProjectDao;
         this.dataLocationSelector = dataLocationSelector;
         this.resourceService = resourceService;
         this.profileService = profileService;
+        this.samConfiguration = samConfiguration;
+    }
+
+    public Map<String, List<String>> getStewardPolicy() {
+        //hard code user string for now
+        String role = BQ_JOB_USER_ROLE;
+        // get steward emails and add to policy
+        String stewardsGroupEmail = "group:" + samConfiguration.getStewardsGroupEmail();
+        Map<String, List<String>> policyMap = new HashMap<>();
+        policyMap.put(role, Collections.singletonList(stewardsGroupEmail));
+        return Collections.unmodifiableMap(policyMap);
     }
 
     public GoogleProjectResource getProjectForFile(String profileId) {
@@ -117,7 +134,8 @@ public class DataLocationService {
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataLocationSelector.projectIdForDataset(dataset))
             .profileId(dataset.getDefaultProfileId())
-            .serviceIds(DATA_PROJECT_SERVICE_IDS);
+            .serviceIds(DATA_PROJECT_SERVICE_IDS)
+            .roleIdentityMapping(getStewardPolicy());
         try {
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProject(dataset.getId());
             googleProjectResource = resourceService.getProjectResourceById(

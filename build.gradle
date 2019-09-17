@@ -29,7 +29,7 @@ buildscript {
 }
 
 plugins {
-  id "com.google.cloud.tools.jib" version "1.5.1"
+  id "com.google.cloud.tools.jib" version "1.6.1"
   id 'org.liquibase.gradle' version '2.0.1'
 }
 
@@ -112,16 +112,16 @@ dependencies {
     compile 'com.google.apis:google-api-services-cloudbilling:v1-rev20190805-1.30.1'
     compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
-    compile 'com.google.cloud:google-cloud-bigquery:1.89.0'
-    compile 'com.google.cloud:google-cloud-storage:1.89.0'
-    compile 'com.google.cloud:google-cloud-firestore:1.19.0'
+    compile 'com.google.cloud:google-cloud-bigquery:1.91.0'
+    compile 'com.google.cloud:google-cloud-storage:1.91.0'
+    compile 'com.google.cloud:google-cloud-firestore:1.21.0'
     compile 'io.springfox:springfox-swagger-ui:2.9.2'
     compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
     compile 'org.apache.commons:commons-lang3:3.9'
     compile 'org.apache.directory.studio:org.apache.commons.io:2.4'
     compile 'org.liquibase:liquibase-core:3.7.0'         // For upgrade
-    compile 'org.postgresql:postgresql:42.2.6'           // Postgres jdbc driver
+    compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
     compile "org.springframework.boot:spring-boot-starter-web"
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
@@ -135,13 +135,13 @@ dependencies {
     compileOnly 'com.google.code.findbugs:annotations:3.0.1u2'
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.6.3'
-    liquibaseRuntime 'org.postgresql:postgresql:42.2.5'
+    liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
     liquibaseRuntime 'ch.qos.logback:logback-classic:1.2.3'
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testCompile "org.springframework.boot:spring-boot-starter-test"
-    testCompile 'org.postgresql:postgresql:42.2.5'
+    testCompile 'org.postgresql:postgresql:42.2.8'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'

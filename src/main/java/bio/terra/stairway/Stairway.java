@@ -125,14 +125,19 @@ public class Stairway {
         launchFlight(flight);
     }
 
+    /**
+     * Verify user list flight access
+     *
+     * @throws StairwayUnauthorizedException or other RuntimeException if user should not have access
+     */
     public void verifyListFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
-        if (userRequestInfo != null && !userRequestInfo.canListJobs()) {
+        if (userRequestInfo != null && !userRequestInfo.getCanListJobs()) {
             verifyUserAccess(flightId, userRequestInfo);
         }
     }
 
     public void verifyDeleteFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
-        if (userRequestInfo != null && !userRequestInfo.canDeleteJobs()) {
+        if (userRequestInfo != null && !userRequestInfo.getCanDeleteJobs()) {
             verifyUserAccess(flightId, userRequestInfo);
         }
     }

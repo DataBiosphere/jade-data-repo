@@ -37,7 +37,7 @@ public class UserRequestInfo {
         return this;
     }
 
-    public boolean canListJobs() {
+    public boolean getCanListJobs() {
         return canListJobs;
     }
 
@@ -46,7 +46,7 @@ public class UserRequestInfo {
         return this;
     }
 
-    public boolean canDeleteJobs() {
+    public boolean getCanDeleteJobs() {
         return canDeleteJobs;
     }
 

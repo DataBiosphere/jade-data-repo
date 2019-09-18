@@ -5,18 +5,18 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: sqlbackupjob-cronjob
+  name: sqlbackup-cleanupjob
 spec:
-  schedule: "0 3 * * *"
+  schedule: "0 1 * * *"
   jobTemplate:
     spec:
       template:
         spec:
           serviceAccountName: jade-sa
           containers:
-          - name: sqlbackup
+          - name: sqlbackup-cleanup
             image: google/cloud-sdk:slim
-            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} --key-file=/secrets/key.json && gcloud sql backups create --async --instance {{$api_secret.Data.instanceName}} --description \"$(date '+%Y%m%d')\" --project {{$sa_secret.Data.project_id}}"]
+            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} --key-file=/secrets/key.json && apt-get -qq install jq -y > /dev/null && export removaldate=\"$(date \'+%Y%m%d\' -d \"+90 days ago\")\" && backups=$(gcloud sql backups list --instance {{$api_secret.Data.instanceName}} --project {{$sa_secret.Data.project_id}} --format json | jq  -r \'.[]| select (.| has(\"description\"))| select(.description < env.removaldate)\') && for i in $(echo \"${backups}\" | jq -r \'.id\'); do gcloud sql backups delete $i --instance {{$api_secret.Data.instanceName}} --project {{$sa_secret.Data.project_id}} --quiet; done"]
             volumeMounts:
               - name: sql-backup-credential
                 mountPath: /secrets/

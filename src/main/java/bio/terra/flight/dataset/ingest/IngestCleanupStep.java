@@ -1,7 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
 import bio.terra.metadata.Dataset;
-import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
@@ -38,11 +37,9 @@ public class IngestCleanupStep implements Step {
         }
 
         try {
-            IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
-            IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
-            if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
-                Dataset dataset = IngestUtils.getDataset(context, datasetService);
+            Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
+            if (bigQueryPdao.tableExists(dataset, overlappingTableName)) {
                 overlappingTableName = IngestUtils.getOverlappingTableName(context);
 
                 bigQueryPdao.deleteDatasetTable(dataset, overlappingTableName);

@@ -16,7 +16,12 @@ spec:
           containers:
           - name: sqlbackup-cleanup
             image: google/cloud-sdk:slim
-            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} --key-file=/secrets/key.json && apt-get -qq install jq -y > /dev/null && export removaldate=\"$(date \'+%Y%m%d\' -d \"+90 days ago\")\" && backups=$(gcloud sql backups list --instance {{$api_secret.Data.instanceName}} --project {{$sa_secret.Data.project_id}} --format json | jq  -r \'.[]| select (.| has(\"description\"))| select(.description < env.removaldate)\') && for i in $(echo \"${backups}\" | jq -r \'.id\'); do gcloud sql backups delete $i --instance {{$api_secret.Data.instanceName}} --project {{$sa_secret.Data.project_id}} --quiet; done"]
+            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} \
+            --key-file=/secrets/key.json && apt-get -qq install jq -y > /dev/null && export removaldate=\"$(date \'+%Y%m%d\' -d \"+90 days ago\")\" \
+            && backups=$(gcloud sql backups list --instance {{$api_secret.Data.instanceName}} --project {{$sa_secret.Data.project_id}} \
+            --format json | jq  -r \'.[]| select (.| has(\"description\"))| select(.description < env.removaldate)\') && \
+            for i in $(echo \"${backups}\" | jq -r \'.id\'); do gcloud sql backups delete $i --instance {{$api_secret.Data.instanceName}} \
+            --project {{$sa_secret.Data.project_id}} --quiet; done"]
             volumeMounts:
               - name: sql-backup-credential
                 mountPath: /secrets/

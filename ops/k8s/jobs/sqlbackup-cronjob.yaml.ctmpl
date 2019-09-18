@@ -16,7 +16,10 @@ spec:
           containers:
           - name: sqlbackup
             image: google/cloud-sdk:slim
-            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} --key-file=/secrets/key.json && gcloud sql backups create --async --instance {{$api_secret.Data.instanceName}} --description \"$(date '+%Y%m%d')\" --project {{$sa_secret.Data.project_id}}"]
+            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} \
+             --key-file=/secrets/key.json && gcloud sql backups create --async --instance \
+             {{$api_secret.Data.instanceName}} --description \"$(date '+%Y%m%d')\" --project \
+             {{$sa_secret.Data.project_id}}"]
             volumeMounts:
               - name: sql-backup-credential
                 mountPath: /secrets/

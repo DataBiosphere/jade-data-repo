@@ -39,9 +39,8 @@ public class IngestCleanupStep implements Step {
         try {
             Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
+            overlappingTableName = IngestUtils.getOverlappingTableName(context);
             if (bigQueryPdao.tableExists(dataset, overlappingTableName)) {
-                overlappingTableName = IngestUtils.getOverlappingTableName(context);
-
                 bigQueryPdao.deleteDatasetTable(dataset, overlappingTableName);
             }
         } catch (Exception ex) {

@@ -148,7 +148,7 @@ public class DrsService {
     private DRSObject makeCommonDrsObject(FSItem fsObject, String snapshotId) {
         // Compute the time once; used for both created and updated times as per DRS spec for immutable objects
         String theTime = fsObject.getCreatedDate().toString();
-        DrsId drsId = makeDrsId(fsObject, snapshotId);
+        DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
 
         return new DRSObject()
             .id(drsId.toDrsObjectId())
@@ -173,7 +173,7 @@ public class DrsService {
     }
 
     private DRSContentsObject makeDrsContentsObject(FSItem fsObject, String snapshotId) {
-        DrsId drsId = makeDrsId(fsObject, snapshotId);
+        DrsId drsId = drsIdService.makeDrsId(fsObject, snapshotId);
 
         List<String> drsUris = new ArrayList<>();
         drsUris.add(drsId.toDrsUri());
@@ -191,13 +191,6 @@ public class DrsService {
         }
 
         return contentsObject;
-    }
-
-    private DrsId makeDrsId(FSItem fsObject, String snapshotId) {
-        return DrsId.builder()
-            .snapshotId(snapshotId)
-            .fsObjectId(fsObject.getFileId().toString())
-            .build();
     }
 
     private String makeHttpsFromGs(String gspath) {

@@ -530,7 +530,8 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        // setManageJobFlags(userReq); seems like for this method we use the boolean canlistjobs as expected (same as above)
+        // setManageJobFlags(userReq);
+        // seems like for this method we use the boolean canlistjobs as expected (same as above)
         userReq.canListJobs(samService.isAuthorized(
             userReq,
             SamClientService.ResourceType.DATAREPO,

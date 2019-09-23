@@ -1,0 +1,39 @@
+{{ with $environment := env "ENVIRONMENT"}}
+{{ with $suffix := env "SUFFIX" }}
+{{ with $sa_secret := secret (printf "secret/dsde/datarepo/%s/sql-backup-sa-%s.json" $environment $suffix)}}
+{{ with $api_secret := secret (printf "secret/dsde/datarepo/%s/api-secrets-%s.json" $environment $suffix)}}
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: sqlbackupjob-cronjob
+spec:
+  schedule: "0 3 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: jade-sa
+          containers:
+          - name: sqlbackup
+            image: google/cloud-sdk:slim
+            command: ["/bin/sh", "-c", "gcloud auth activate-service-account {{$sa_secret.Data.client_email}} \
+             --key-file=/secrets/key.json && gcloud sql backups create --async --instance \
+             {{$api_secret.Data.instanceName}} --description \"$(date '+%Y%m%d')\" --project \
+             {{$sa_secret.Data.project_id}}"]
+            volumeMounts:
+              - name: sql-backup-credential
+                mountPath: /secrets/
+                readOnly: true
+          volumes:
+            - name: sql-backup-credential
+              secret:
+                secretName: sql-backup-sa
+                items:
+                  - key: credential-file-json
+                    path: key.json
+          restartPolicy: Never
+      backoffLimit: 4
+{{end}}
+{{end}}
+{{end}}
+{{end}}

@@ -31,9 +31,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class JobServiceTest {
     private AuthenticatedUserRequest testUser = new AuthenticatedUserRequest()
         .subjectId("StairwayUnit")
-        .email("stairway@unit.com")
-        .canListJobs(true)
-        .canDeleteJobs(true);
+        .email("stairway@unit.com");
 
     @Autowired
     private Stairway stairway;
@@ -138,9 +136,7 @@ public class JobServiceTest {
             inputs,
             new UserRequestInfo()
                 .subjectId(testUser.getSubjectId())
-                .name(testUser.getEmail())
-                .canListJobs(testUser.getCanListJobs())
-                .canDeleteJobs(testUser.getCanDeleteJobs()));
+                .name(testUser.getEmail()));
         stairway.waitForFlight(flightId);
         return flightId;
     }

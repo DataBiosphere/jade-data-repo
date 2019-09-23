@@ -1,5 +1,6 @@
 package bio.terra.service;
 
+import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.service.exception.InvalidResultStateException;
@@ -26,10 +27,14 @@ public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private final Stairway stairway;
+    private final SamClientService samService;
+    private final ApplicationConfiguration appConfig;
 
     @Autowired
-    public JobService(Stairway stairway) {
+    public JobService(Stairway stairway, SamClientService samService, ApplicationConfiguration appConfig) {
         this.stairway = stairway;
+        this.samService = samService;
+        this.appConfig = appConfig;
     }
 
     public static class JobResultWithStatus<T> {
@@ -120,13 +125,25 @@ public class JobService {
         return new UserRequestInfo()
             .name(userReq.getEmail())
             .subjectId(userReq.getSubjectId())
-            .requestId(userReq.getReqId())
-            .canListJobs(userReq.getCanListJobs())
-            .canDeleteJobs(userReq.getCanDeleteJobs());
+            .requestId(userReq.getReqId());
     }
 
     public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-        stairway.verifyDeleteFlightAccess(jobId, buildUserRequestInfo(userReq));
+        if (userReq!=null) {
+            // currently, this check will be true for stewards only
+            boolean canDeleteAnyJob = samService.isAuthorized(
+                userReq,
+                SamClientService.ResourceType.DATAREPO,
+                appConfig.getResourceId(),
+                SamClientService.DataRepoAction.DELETE_JOBS);
+
+            // if the user has access to all jobs, no need to check for this one individually
+            // otherwise, check that the user has access to this job before deleting
+            if (!canDeleteAnyJob) {
+                // throws exception if no access
+                stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+            }
+        }
         stairway.deleteFlight(jobId);
     }
 
@@ -179,7 +196,25 @@ public class JobService {
 
     public List<JobModel> enumerateJobs(
         int offset, int limit, AuthenticatedUserRequest userReq) {
-        List<FlightState> flightStateList = stairway.getFlightsForUser(offset, limit, buildUserRequestInfo(userReq));
+        boolean canListAnyJob = true;
+        if (userReq!=null) {
+            // currently, this check will be true for stewards only
+            canListAnyJob = samService.isAuthorized(
+                userReq,
+                SamClientService.ResourceType.DATAREPO,
+                appConfig.getResourceId(),
+                SamClientService.DataRepoAction.LIST_JOBS);
+        }
+
+        // if the user has access to all jobs, then fetch everything
+        // otherwise, filter the jobs on the user
+        List<FlightState> flightStateList;
+        if (canListAnyJob) {
+            flightStateList = stairway.getFlights(offset, limit);
+        } else {
+            flightStateList = stairway.getFlightsForUser(offset, limit, buildUserRequestInfo(userReq));
+        }
+
         List<JobModel> jobModelList = new ArrayList<>();
         for (FlightState flightState : flightStateList) {
             JobModel jobModel = mapFlightStateToJobModel(flightState);
@@ -189,7 +224,21 @@ public class JobService {
     }
 
     public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
-        stairway.verifyListFlightAccess(jobId, buildUserRequestInfo(userReq));
+        boolean canListAnyJob = true;
+        if (userReq!=null) {
+            // currently, this check will be true for stewards only
+            canListAnyJob = samService.isAuthorized(
+                userReq,
+                SamClientService.ResourceType.DATAREPO,
+                appConfig.getResourceId(),
+                SamClientService.DataRepoAction.LIST_JOBS);
+        }
+
+        // if the user has access to all jobs, then fetch the requested one
+        // otherwise, check that the user has access to it first
+        if (!canListAnyJob) {
+            stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+        }
         FlightState flightState = stairway.getFlightState(jobId);
         return mapFlightStateToJobModel(flightState);
     }
@@ -217,7 +266,21 @@ public class JobService {
         String jobId,
         Class<T> resultClass,
         AuthenticatedUserRequest userReq) {
-        stairway.verifyListFlightAccess(jobId, buildUserRequestInfo(userReq));
+        boolean canListAnyJob = true;
+        if (userReq!=null) {
+            // currently, this check will be true for stewards only
+            canListAnyJob = samService.isAuthorized(
+                userReq,
+                SamClientService.ResourceType.DATAREPO,
+                appConfig.getResourceId(),
+                SamClientService.DataRepoAction.LIST_JOBS);
+        }
+
+        // if the user has access to all jobs, then fetch the requested result
+        // otherwise, check that the user has access to it first
+        if (!canListAnyJob) {
+            stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+        }
         return retrieveJobResultWorker(jobId, resultClass);
     }
 

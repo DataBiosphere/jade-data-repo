@@ -77,21 +77,21 @@ public class JobServiceTest {
 
     private void testSingleRetrieval(List<String> fids) {
 //        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
-        JobModel response = jobService.retrieveJob(fids.get(2), testUser);
+        JobModel response = jobService.retrieveJob(fids.get(2), null);
         Assert.assertNotNull(response);
         validateJobModel(response, 2, fids);
     }
 
     private void testResultRetrieval(List<String> fids) {
         JobService.JobResultWithStatus<String> resultHolder =
-            jobService.retrieveJobResult(fids.get(2), String.class, testUser);
+            jobService.retrieveJobResult(fids.get(2), String.class, null);
         Assert.assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
         Assert.assertThat(resultHolder.getResult(), is(equalTo(makeDescription(2))));
     }
 
     // Get some range and compare it with the fids
     private void testEnumRange(List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds) {
-        List<JobModel> jobList = jobService.enumerateJobs(offset, limit, testUser);
+        List<JobModel> jobList = jobService.enumerateJobs(offset, limit, null);
         Assert.assertNotNull(jobList);
         int index = offset;
         for (JobModel job : jobList) {
@@ -102,19 +102,19 @@ public class JobServiceTest {
 
     // Get some range and make sure we got the number we expected
     private void testEnumCount(int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds) {
-        List<JobModel> jobList = jobService.enumerateJobs(offset, length, testUser);
+        List<JobModel> jobList = jobService.enumerateJobs(offset, length, null);
         Assert.assertNotNull(jobList);
         Assert.assertThat(jobList.size(), is(count));
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveJob() {
-        jobService.retrieveJob("abcdef", testUser);
+        jobService.retrieveJob("abcdef", null);
     }
 
     @Test(expected = FlightNotFoundException.class)
     public void testBadIdRetrieveResult() {
-        jobService.retrieveJobResult("abcdef", Object.class, testUser);
+        jobService.retrieveJobResult("abcdef", Object.class, null);
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {

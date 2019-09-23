@@ -35,9 +35,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class DatabaseOperationsTest {
     private UserRequestInfo testUser = new UserRequestInfo()
         .subjectId("StairwayUnit")
-        .name("stairway@unit.com")
-        .canListJobs(true)
-        .canDeleteJobs(true);
+        .name("stairway@unit.com");
 
     @Autowired
     private StairwayJdbcConfiguration jdbcConfiguration;

@@ -129,7 +129,7 @@ public class JobService {
     }
 
     public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-        if (userReq!=null) {
+        if (userReq != null) {
             // currently, this check will be true for stewards only
             boolean canDeleteAnyJob = samService.isAuthorized(
                 userReq,
@@ -197,7 +197,7 @@ public class JobService {
     public List<JobModel> enumerateJobs(
         int offset, int limit, AuthenticatedUserRequest userReq) {
         boolean canListAnyJob = true;
-        if (userReq!=null) {
+        if (userReq != null) {
             // currently, this check will be true for stewards only
             canListAnyJob = samService.isAuthorized(
                 userReq,
@@ -225,7 +225,7 @@ public class JobService {
 
     public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
         boolean canListAnyJob = true;
-        if (userReq!=null) {
+        if (userReq != null) {
             // currently, this check will be true for stewards only
             canListAnyJob = samService.isAuthorized(
                 userReq,
@@ -267,7 +267,7 @@ public class JobService {
         Class<T> resultClass,
         AuthenticatedUserRequest userReq) {
         boolean canListAnyJob = true;
-        if (userReq!=null) {
+        if (userReq != null) {
             // currently, this check will be true for stewards only
             canListAnyJob = samService.isAuthorized(
                 userReq,

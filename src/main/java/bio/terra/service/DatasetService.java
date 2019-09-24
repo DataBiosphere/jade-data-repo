@@ -104,11 +104,5 @@ public class DatasetService {
             .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
             .submit();
-        /*return jobService.submit(
-            description,
-            DatasetIngestFlight.class,
-            ingestRequestModel,
-            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
-            userReq);*/
     }
 }

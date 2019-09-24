@@ -47,9 +47,6 @@ public final class IngestUtils {
 
     public static Dataset getDataset(FlightContext context, DatasetService datasetService) {
         FlightMap inputParameters = context.getInputParameters();
-        /*Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
-            JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
-        UUID datasetId = UUID.fromString(pathParams.get(JobMapKeys.DATASET_ID.getKeyName()));*/
         UUID datasetId = UUID.fromString(inputParameters.get(
             JobMapKeys.DATASET_ID.getKeyName(), String.class));
         return datasetService.retrieve(datasetId);

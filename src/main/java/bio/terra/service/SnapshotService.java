@@ -72,8 +72,12 @@ public class SnapshotService {
      * @returns jobId (flightId) of the job
      */
     public String createSnapshot(SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
-        return jobService.submit("Create snapshot " + snapshotRequestModel.getName(),
-            SnapshotCreateFlight.class, snapshotRequestModel, Collections.EMPTY_MAP, userReq);
+        String description = "Create snapshot " + snapshotRequestModel.getName();
+        return jobService
+            .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
+            .submit();
+        /*return jobService.submit("Create snapshot " + snapshotRequestModel.getName(),
+            SnapshotCreateFlight.class, snapshotRequestModel, Collections.EMPTY_MAP, userReq);*/
     }
 
     /**
@@ -83,8 +87,13 @@ public class SnapshotService {
      * @returns jobId (flightId) of the job
      */
     public String deleteSnapshot(UUID id, AuthenticatedUserRequest userReq) {
-        return jobService.submit("Delete snapshot " + id, SnapshotDeleteFlight.class, null,
-            Collections.singletonMap(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString()), userReq);
+        String description = "Delete snapshot " + id;
+        return jobService
+            .newJob(description, SnapshotDeleteFlight.class, null, userReq)
+            .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
+            .submit();
+        /*return jobService.submit("Delete snapshot " + id, SnapshotDeleteFlight.class, null,
+            Collections.singletonMap(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString()), userReq);*/
     }
 
     /**

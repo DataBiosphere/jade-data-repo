@@ -10,7 +10,9 @@ public enum JobMapKeys {
     AUTH_USER_INFO("auth_user_info"),
     DATASET_ID("datasetId"),
     SNAPSHOT_ID("snapshotId"),
-    FILE_ID("fileId");
+    FILE_ID("fileId"),
+
+    FLIGHT_CLASS("flight_class");
 
     private String keyName;
 

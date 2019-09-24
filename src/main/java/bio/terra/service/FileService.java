@@ -21,14 +21,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Component
 public class FileService {
@@ -51,7 +46,13 @@ public class FileService {
     }
 
     public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
-        return jobService.submit(
+        String description = "Delete file from dataset " + datasetId + " file " + fileId;
+        return jobService
+            .newJob(description, FileDeleteFlight.class, null, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .addParameter(JobMapKeys.FILE_ID.getKeyName(), fileId)
+            .submit();
+        /*return jobService.submit(
             "Delete file from dataset " + datasetId + " file " + fileId,
             FileDeleteFlight.class,
             null,
@@ -59,16 +60,21 @@ public class FileService {
                 new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
                 new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.FILE_ID.getKeyName(), fileId))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
-            userReq);
+            userReq);*/
     }
 
     public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
-        return jobService.submit(
+        String description = "Ingest file " + fileLoad.getTargetPath();
+        return jobService
+            .newJob(description, FileIngestFlight.class, fileLoad, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .submit();
+        /*return jobService.submit(
             "Ingest file " + fileLoad.getTargetPath(),
             FileIngestFlight.class,
             fileLoad,
             Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
-            userReq);
+            userReq);*/
     }
 
     // -- dataset lookups --

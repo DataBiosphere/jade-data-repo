@@ -60,21 +60,48 @@ public class JobService {
         }
     }
 
+    // creates a new JobBuilder object and returns it.
+    public JobBuilder newJob(String description, Class<? extends Flight> flightClass, Object request,
+                             AuthenticatedUserRequest userReq) {
+        return new JobBuilder(description, flightClass, request, userReq, this);
+    }
+
+    // submit a new job to stairway
+    // protected method intended to be called only from JobBuilder
+    protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap,
+                            AuthenticatedUserRequest userReq) {
+        String jobId = createJobId();
+        stairway.submit(jobId, flightClass, parameterMap, buildUserRequestInfo(userReq));
+        return jobId;
+    }
+
+    // submit a new job to stairway, wait for it to finish, then return the result
+    // protected method intended to be called only from JobBuilder
+    protected <T> T submitAndWait(Class<? extends Flight> flightClass, FlightMap parameterMap,
+                                  AuthenticatedUserRequest userReq, Class<T> resultClass) {
+        String jobId = submit(flightClass, parameterMap, userReq);
+        stairway.waitForFlight(jobId);
+        return retrieveJobResult(jobId, resultClass, userReq).getResult();
+    }
+
+    // generate a new jobId
     private String createJobId() {
         // in the future, if we have multiple stairways, we may need to maintain a connection from job id to flight id
         return stairway.createFlightId().toString();
     }
 
-    public String submit(
+    // ** to delete, replace calls with same named method in JobBuilder
+    /*public String submit(
         String description,
         Class<? extends Flight> flightClass,
         Object request,
         Map<String, String> params,
         AuthenticatedUserRequest userReq) {
-        return submitToStairway(description, flightClass, request, params, userReq);
-    }
+            return submitToStairway(description, flightClass, request, params, userReq);
+    }*/
 
-    public <T> T submitAndWait(
+    // ** to delete, replace calls with same named method in JobBuilder
+    /*public <T> T submitAndWait(
         String description,
         Class<? extends Flight> flightClass,
         Object request,
@@ -84,9 +111,10 @@ public class JobService {
         String jobId = submitToStairway(description, flightClass, request, params, userReq);
         stairway.waitForFlight(jobId);
         return retrieveJobResult(jobId, resultClass, userReq).getResult();
-    }
+    }*/
 
-    private String submitToStairway(
+    // ** to delete, once calls to public submit and submitAndWait methods above are removed
+    /*private String submitToStairway(
         String description,
         Class<? extends Flight> flightClass,
         Object request,
@@ -99,9 +127,10 @@ public class JobService {
             buildFlightMap(description, request, params, userReq),
             buildUserRequestInfo(userReq));
         return jobId;
-    }
+    }*/
 
 
+    // ** to delete, once calls to public submit and submitAndWait methods above are removed
     // TODO: fix this
     // There are at least two problems here. First, Stairway uses a map of <String, Object>, but the parameter
     // map only takes strings. Second, instead of putting the param elements into the inputParameters FlightMap

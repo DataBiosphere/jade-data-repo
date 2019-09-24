@@ -46,26 +46,6 @@ public class JobBuilder {
         return this;
     }
 
-    // use getParameter method to lookup all parameters, required and optional
-    // throw an exception if the keyName is invalid (i.e. is null or doesn't exist in the map)
-    public <T> T getParameter(String keyName, Class<T> type) {
-        if (keyName == null) {
-            throw new RuntimeException("Parameter name cannot be null.");
-        }
-
-        // flight parameter is stored separately as property, not part of the map
-        if (keyName.equals(JobMapKeys.FLIGHT_CLASS.getKeyName())) {
-            if (type.isInstance(flightClass)) {
-                return type.cast(flightClass);
-            }
-            throw new ClassCastException("Found value '" + flightClass.toString() +
-                "' is not an instance of type " + type.getName());
-        }
-
-        // lookup optional parameters in the map
-        return jobParameterMap.get(keyName, type);
-    }
-
     // submits this job to stairway and returns the jobId immediately
     public String submit() {
         AuthenticatedUserRequest userReq = jobParameterMap.get(

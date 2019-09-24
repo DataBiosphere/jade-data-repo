@@ -66,16 +66,14 @@ public class JobBuilder {
         return jobParameterMap.get(keyName, type);
     }
 
-    // submits this job to stairway and returns the jobId immediately.
-    // equivalent of JobService.submit pre-change.
+    // submits this job to stairway and returns the jobId immediately
     public String submit() {
         AuthenticatedUserRequest userReq = jobParameterMap.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         return jobServiceRef.submit(flightClass, jobParameterMap, userReq);
     }
 
-    // submits this job to stairway, waits until it finishes, then returns an instance of the result class.
-    // equivalent of JobService.submitAndWait pre-change.
+    // submits this job to stairway, waits until it finishes, then returns an instance of the result class
     public <T> T submitAndWait(Class<T> resultClass) {
         AuthenticatedUserRequest userReq = jobParameterMap.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);

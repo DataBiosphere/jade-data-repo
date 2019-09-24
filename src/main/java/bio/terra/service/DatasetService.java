@@ -53,13 +53,6 @@ public class DatasetService {
         return jobService
             .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
             .submitAndWait(DatasetSummaryModel.class);
-        /*return jobService.submitAndWait(
-            "Create dataset " + datasetRequest.getName(),
-            DatasetCreateFlight.class,
-            datasetRequest,
-            Collections.EMPTY_MAP,
-            userReq,
-            DatasetSummaryModel.class);*/
     }
 
     public Dataset retrieve(UUID id) {
@@ -93,14 +86,8 @@ public class DatasetService {
         String description = "Delete dataset " + id;
         return jobService
             .newJob(description, DatasetDeleteFlight.class, null, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
             .submitAndWait(DeleteResponseModel.class);
-        /*return jobService.submitAndWait(
-            "Delete dataset " + id,
-            DatasetDeleteFlight.class,
-            null,
-            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
-            userReq,
-            DeleteResponseModel.class);*/
     }
 
     public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {

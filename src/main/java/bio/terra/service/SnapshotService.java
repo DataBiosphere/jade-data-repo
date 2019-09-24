@@ -76,8 +76,6 @@ public class SnapshotService {
         return jobService
             .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
             .submit();
-        /*return jobService.submit("Create snapshot " + snapshotRequestModel.getName(),
-            SnapshotCreateFlight.class, snapshotRequestModel, Collections.EMPTY_MAP, userReq);*/
     }
 
     /**
@@ -92,8 +90,6 @@ public class SnapshotService {
             .newJob(description, SnapshotDeleteFlight.class, null, userReq)
             .addParameter(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString())
             .submit();
-        /*return jobService.submit("Delete snapshot " + id, SnapshotDeleteFlight.class, null,
-            Collections.singletonMap(JobMapKeys.SNAPSHOT_ID.getKeyName(), id.toString()), userReq);*/
     }
 
     /**

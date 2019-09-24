@@ -90,66 +90,6 @@ public class JobService {
         return stairway.createFlightId().toString();
     }
 
-    // ** to delete, replace calls with same named method in JobBuilder
-    /*public String submit(
-        String description,
-        Class<? extends Flight> flightClass,
-        Object request,
-        Map<String, String> params,
-        AuthenticatedUserRequest userReq) {
-            return submitToStairway(description, flightClass, request, params, userReq);
-    }*/
-
-    // ** to delete, replace calls with same named method in JobBuilder
-    /*public <T> T submitAndWait(
-        String description,
-        Class<? extends Flight> flightClass,
-        Object request,
-        Map<String, String> params,
-        AuthenticatedUserRequest userReq,
-        Class<T> resultClass) {
-        String jobId = submitToStairway(description, flightClass, request, params, userReq);
-        stairway.waitForFlight(jobId);
-        return retrieveJobResult(jobId, resultClass, userReq).getResult();
-    }*/
-
-    // ** to delete, once calls to public submit and submitAndWait methods above are removed
-    /*private String submitToStairway(
-        String description,
-        Class<? extends Flight> flightClass,
-        Object request,
-        Map<String, String> params,
-        AuthenticatedUserRequest userReq) {
-        String jobId = createJobId();
-        stairway.submit(
-            jobId,
-            flightClass,
-            buildFlightMap(description, request, params, userReq),
-            buildUserRequestInfo(userReq));
-        return jobId;
-    }*/
-
-
-    // ** to delete, once calls to public submit and submitAndWait methods above are removed
-    // TODO: fix this
-    // There are at least two problems here. First, Stairway uses a map of <String, Object>, but the parameter
-    // map only takes strings. Second, instead of putting the param elements into the inputParameters FlightMap
-    // a level of indirection was introduced. That required that code be changed in every flight to unpack
-    // those parameters to get out the actual parameters.
-    //
-    // I think a better approach would be to make a job parameter builder class that could construct with the
-    // required params (class, description, request) and then have the job creator add additional params.
-    // Then that class would be passed into submit along with the auth info.
-    private FlightMap buildFlightMap(
-        String description, Object request, Map<String, String> params, AuthenticatedUserRequest userReq) {
-        FlightMap inputs = new FlightMap();
-        inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
-        inputs.put(JobMapKeys.REQUEST.getKeyName(), request);
-        inputs.put(JobMapKeys.PATH_PARAMETERS.getKeyName(), params);
-        inputs.put(JobMapKeys.AUTH_USER_INFO.getKeyName(), userReq);
-        return inputs;
-    }
-
     private UserRequestInfo buildUserRequestInfo(AuthenticatedUserRequest userReq) {
         return new UserRequestInfo()
             .name(userReq.getEmail())

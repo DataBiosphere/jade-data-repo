@@ -15,7 +15,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
-import java.util.Map;
 import java.util.UUID;
 
 public class DatasetDeleteFlight extends Flight {
@@ -38,7 +37,7 @@ public class DatasetDeleteFlight extends Flight {
 
         // get data from inputs that steps need
         UUID datasetId = UUID.fromString(inputParameters.get(
-           JobMapKeys.DATASET_ID.getKeyName(), String.class));
+            JobMapKeys.DATASET_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 

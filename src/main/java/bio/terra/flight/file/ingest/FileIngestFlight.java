@@ -13,7 +13,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
-import java.util.Map;
 import java.util.UUID;
 
 // The FileIngestFlight is specific to firestore. Another cloud or file system implementation

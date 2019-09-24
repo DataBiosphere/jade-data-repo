@@ -96,6 +96,12 @@ kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/services"
 # create Deployments
 kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/deployments"
 
+# sql cronjobs for prod
+if [ ${ENVIRONMENT} == "prod" ]
+then
+kubectl --namespace="${KUBE_NAMESPACE}" apply -f "${SCRATCH}/ops/k8s/jobs"
+fi
+
 # build a docker container and push it to gcr
 pushd ${WD}/..
 GCR_TAG=$DATA_REPO_TAG ./gradlew jib

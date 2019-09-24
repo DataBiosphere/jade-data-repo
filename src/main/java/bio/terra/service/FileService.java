@@ -52,15 +52,6 @@ public class FileService {
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(JobMapKeys.FILE_ID.getKeyName(), fileId)
             .submit();
-        /*return jobService.submit(
-            "Delete file from dataset " + datasetId + " file " + fileId,
-            FileDeleteFlight.class,
-            null,
-            Stream.of(
-                new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
-                new AbstractMap.SimpleImmutableEntry<>(JobMapKeys.FILE_ID.getKeyName(), fileId))
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)),
-            userReq);*/
     }
 
     public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
@@ -69,12 +60,6 @@ public class FileService {
             .newJob(description, FileIngestFlight.class, fileLoad, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .submit();
-        /*return jobService.submit(
-            "Ingest file " + fileLoad.getTargetPath(),
-            FileIngestFlight.class,
-            fileLoad,
-            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), datasetId),
-            userReq);*/
     }
 
     // -- dataset lookups --

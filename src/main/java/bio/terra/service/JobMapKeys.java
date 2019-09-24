@@ -4,10 +4,11 @@ package bio.terra.service;
 public enum JobMapKeys {
     DESCRIPTION("description"),
     REQUEST("request"),
-    PATH_PARAMETERS("path_parameters"),
     RESPONSE("response"),
     STATUS_CODE("status_code"),
     AUTH_USER_INFO("auth_user_info"),
+
+    PATH_PARAMETERS("path_parameters"),
     DATASET_ID("datasetId"),
     SNAPSHOT_ID("snapshotId"),
     FILE_ID("fileId"),

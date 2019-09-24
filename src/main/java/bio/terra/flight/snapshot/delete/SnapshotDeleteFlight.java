@@ -32,9 +32,11 @@ public class SnapshotDeleteFlight extends Flight {
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
 
-        Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
+        /*Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
             JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
-        UUID snapshotId = UUID.fromString(pathParams.get(JobMapKeys.SNAPSHOT_ID.getKeyName()));
+        UUID snapshotId = UUID.fromString(pathParams.get(JobMapKeys.SNAPSHOT_ID.getKeyName()));*/
+        UUID snapshotId = UUID.fromString(inputParameters.get(
+            JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 

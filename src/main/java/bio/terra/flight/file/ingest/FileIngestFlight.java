@@ -40,9 +40,11 @@ public class FileIngestFlight extends Flight {
         // We should NOT put code like that in the flight constructor.
 
         // get data from inputs that steps need
-        Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
+        /*Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
             JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
-        UUID datasetId = UUID.fromString(pathParams.get(JobMapKeys.DATASET_ID.getKeyName()));
+        UUID datasetId = UUID.fromString(pathParams.get(JobMapKeys.DATASET_ID.getKeyName()));*/
+        UUID datasetId = UUID.fromString(inputParameters.get(
+            JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);
 
         // The flight plan:

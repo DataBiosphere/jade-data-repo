@@ -2,17 +2,19 @@ package bio.terra.service;
 
 
 public enum JobMapKeys {
+    // parameters for all flight types
     DESCRIPTION("description"),
     REQUEST("request"),
     RESPONSE("response"),
     STATUS_CODE("status_code"),
     AUTH_USER_INFO("auth_user_info"),
 
-    PATH_PARAMETERS("path_parameters"),
+    // parameters for specific flight types
     DATASET_ID("datasetId"),
     SNAPSHOT_ID("snapshotId"),
     FILE_ID("fileId"),
 
+    // parameter for the job
     FLIGHT_CLASS("flight_class");
 
     private String keyName;

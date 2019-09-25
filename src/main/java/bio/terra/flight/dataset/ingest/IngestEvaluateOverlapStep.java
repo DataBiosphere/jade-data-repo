@@ -32,7 +32,7 @@ public class IngestEvaluateOverlapStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // We do not need to undo the data insert into the soft deletes table. BigQuery guarantees that this statement
-        // is atomic, so eithe the data will be in the table or we will fail and none of the data is in the table.
+        // is atomic, so either the data will be in the table or we will fail and none of the data is in the table.
         return StepResult.getStepResultSuccess();
     }
 }

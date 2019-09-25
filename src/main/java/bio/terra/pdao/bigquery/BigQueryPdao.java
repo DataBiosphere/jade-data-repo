@@ -47,10 +47,18 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import static bio.terra.pdao.PdaoConstant.*;
+import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_TABLE;
+import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.pdao.PdaoConstant.STAGING_TABLE_ROW_ID_COLUMN;
+import static bio.terra.pdao.PdaoConstant.TARGET_TABLE_ROW_ID_COLUMN;
 
 @Component
 @Profile("google")
@@ -414,8 +422,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .collect(Collectors.toList());
 
         List<String> naturalKeyColumnNames = dataset
-            .getTableByName(targetTable.getName())
-            .get()
+            .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
             .getPrimaryKey()
             .stream()
             .map(Column::getName)

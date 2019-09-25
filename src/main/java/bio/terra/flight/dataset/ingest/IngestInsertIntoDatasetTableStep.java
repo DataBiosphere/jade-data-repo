@@ -48,7 +48,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // We do not need to undo the data insert. BigQuery guarantees that this statement is atomic, so either
-        // of the data will be in the table or we will fail and none of the data is in the table. The
+        // the data will be in the table or we will fail and none of the data is in the table. The
         return StepResult.getStepResultSuccess();
     }
 }

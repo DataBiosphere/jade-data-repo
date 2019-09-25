@@ -37,7 +37,7 @@ public class DatasetIngestFlight extends Flight {
             addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         } else {
             throw new BadRequestException(
-                "The dataset ingest flight expects the ingest request to have a stratgey of  `upsert` or `append`" +
+                "The dataset ingest flight expects the ingest request to have a strategy of  `upsert` or `append`" +
                     " but was "
                     + ingestStrategy.toString());
         }

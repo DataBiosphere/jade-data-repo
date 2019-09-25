@@ -69,8 +69,7 @@ public class IngestSetupStep implements Step {
 
         if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
             List<Column> primaryKey = dataset
-                .getTableByName(targetTable.getName())
-                .get()
+                .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
                 .getPrimaryKey();
             if (primaryKey.size() < 1) {
                 // TODO: add test
@@ -79,7 +78,7 @@ public class IngestSetupStep implements Step {
                         + ingestStrategy.toString());
             }
 
-            Schema OverlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
+            Schema overlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
             BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
 
             String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
@@ -89,7 +88,7 @@ public class IngestSetupStep implements Step {
 
             bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
                 overlappingTableName,
-                OverlappingTableSchema);
+                overlappingTableSchema);
         }
 
         IngestRequestModel requestModel = IngestUtils.getIngestRequestModel(context);

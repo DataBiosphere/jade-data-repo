@@ -8,6 +8,24 @@ metadata:
   labels:
     name: grafana-config
 data:
+  bigquerydatasource: |-
+    apiVersion: 1
+
+    datasources:
+      - name: BigQuery
+        type: doitintl-bigquery-datasource
+        access: proxy
+        isDefault: true
+        jsonData:
+          authenticationType: jwt
+          clientEmail: {{ .Data.client_email }}
+          defaultProject: {{ .Data.project_id}}
+          tokenUri: {{ .Data.token_uri }}
+        secureJsonData:
+          privateKey: |
+{{ .Data.private_key | indent 12 }}
+          version: 2
+          readOnly: false
   stackdriverdatasource: |-
     apiVersion: 1
 

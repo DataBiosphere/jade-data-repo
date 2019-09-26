@@ -125,6 +125,7 @@ public class EncodeFileTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("file")
             .path(gsPath);
+        ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
 
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
@@ -281,6 +282,7 @@ public class EncodeFileTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("file")
             .path(gsPath);
+        ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
         String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
@@ -317,6 +319,7 @@ public class EncodeFileTest {
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("file")
             .path(gsPath);
+        ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
 
         String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
         String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";

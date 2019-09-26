@@ -6,17 +6,17 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
+import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class IngestInsertIntoDatasetTableStep implements Step {
+public class IngestUpsertIntoDatasetTableStep implements Step {
     private DatasetService datasetService;
     private BigQueryPdao bigQueryPdao;
 
-    public IngestInsertIntoDatasetTableStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+    public IngestUpsertIntoDatasetTableStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
         this.datasetService = datasetService;
         this.bigQueryPdao = bigQueryPdao;
     }
@@ -26,6 +26,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         Table targetTable = IngestUtils.getDatasetTable(context, dataset);
         String stagingTableName = IngestUtils.getStagingTableName(context);
+        String overlappingTableName = IngestUtils.getOverlappingTableName(context);
 
         IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
         PdaoLoadStatistics loadStatistics = IngestUtils.getIngestStatistics(context);
@@ -40,7 +41,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
             .rowCount(loadStatistics.getRowCount());
         context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
 
-        bigQueryPdao.insertIntoDatasetTable(dataset, targetTable, stagingTableName);
+        bigQueryPdao.upsertIntoDatasetTable(dataset, targetTable, stagingTableName, overlappingTableName);
 
         return StepResult.getStepResultSuccess();
     }
@@ -48,7 +49,7 @@ public class IngestInsertIntoDatasetTableStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // We do not need to undo the data insert. BigQuery guarantees that this statement is atomic, so either
-        // the data will be in the table or we will fail and none of the data is in the table. The
+        // of the data will be in the table or we will fail and none of the data is in the table. The
         return StepResult.getStepResultSuccess();
     }
 }

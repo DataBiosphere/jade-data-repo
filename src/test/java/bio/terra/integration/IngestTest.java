@@ -69,6 +69,17 @@ public class IngestTest extends UsersBase {
     }
 
     @Test
+    public void ingestUpdatedParticipants() throws Exception {
+        IngestResponseModel ingestResponse =
+            dataRepoFixtures.ingestJsonData(
+                steward(),
+                datasetId,
+                "participant",
+                "ingest-test/ingest-test-updated-participant.json");
+        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
+    }
+
+    @Test
     public void ingestBuildSnapshot() throws Exception {
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(

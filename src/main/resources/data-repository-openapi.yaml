@@ -1609,6 +1609,7 @@ definitions:
       - table
       - path
       - format
+      - strategy
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
@@ -1621,6 +1622,11 @@ definitions:
         enum:
           - csv
           - json
+      strategy:
+        type: string
+        enum:
+          - upsert
+          - append
       load_tag:
         type: string
         description: |

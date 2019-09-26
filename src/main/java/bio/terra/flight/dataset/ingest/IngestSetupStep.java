@@ -1,22 +1,29 @@
 package bio.terra.flight.dataset.ingest;
 
+import bio.terra.exception.BadRequestException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.InvalidUriException;
+import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoConstant;
+import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.pdao.bigquery.BigQueryProject;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.google.cloud.bigquery.Schema;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import liquibase.util.StringUtils;
+
+import java.util.List;
 
 /**
  *  * The setup step required to generate the staging file name.
@@ -40,9 +47,11 @@ import liquibase.util.StringUtils;
 
 public class IngestSetupStep implements Step {
     private DatasetService datasetService;
+    private BigQueryPdao bigQueryPdao;
 
-    public IngestSetupStep(DatasetService datasetService) {
+    public IngestSetupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
         this.datasetService = datasetService;
+        this.bigQueryPdao = bigQueryPdao;
     }
 
     @Override
@@ -54,6 +63,33 @@ public class IngestSetupStep implements Step {
         String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
         String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
         IngestUtils.putStagingTableName(context, sgName);
+
+        IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
+        IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
+
+        if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
+            List<Column> primaryKey = dataset
+                .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
+                .getPrimaryKey();
+            if (primaryKey.size() < 1) {
+                // TODO: add test
+                throw new BadRequestException(
+                    "The dataset ingest flight expects ingestStrategy `upsert` or `append` but was "
+                        + ingestStrategy.toString());
+            }
+
+            Schema overlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
+            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+
+            String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
+
+            IngestUtils.putOverlappingTableName(context, olName);
+            String overlappingTableName = IngestUtils.getOverlappingTableName(context);
+
+            bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
+                overlappingTableName,
+                overlappingTableSchema);
+        }
 
         IngestRequestModel requestModel = IngestUtils.getIngestRequestModel(context);
         IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(requestModel.getPath());

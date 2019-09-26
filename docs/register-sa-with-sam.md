@@ -42,6 +42,8 @@ It is important that the `etag` matches what you got from the previous step. The
 Next you'll want to set the new policy:
 
     gcloud iam service-accounts set-iam-policy <sa-name>@<project>.iam.gserviceaccount.com policy.json
+    
+# Registering
 
 Now, while authenticated as one of the service account users, you can generate an access token for the SA and use that
 to register with SAM.

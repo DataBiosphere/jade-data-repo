@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.service.exception.InvalidJobParameterException;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 
@@ -27,7 +28,7 @@ public class JobBuilder {
     // returns the JobBuilder object to allow method chaining
     public JobBuilder addParameter(String keyName, Object val) {
         if (keyName == null) {
-            throw new RuntimeException("Parameter name cannot be null.");
+            throw new InvalidJobParameterException("Parameter name cannot be null.");
         }
 
         // check that keyName doesn't match one of the required parameter names
@@ -37,7 +38,8 @@ public class JobBuilder {
             || keyName.equals(JobMapKeys.REQUEST.getKeyName())
             || keyName.equals(JobMapKeys.AUTH_USER_INFO.getKeyName());
         if (isParameterRequired) {
-            throw new RuntimeException("Required parameters can only be set by the constructor.");
+            throw new InvalidJobParameterException(
+                "Required parameters can only be set by the constructor. (" + keyName + ")");
         }
 
         // note that this call overwrites a parameter if it already exists

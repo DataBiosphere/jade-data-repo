@@ -20,7 +20,8 @@
           {"name": "participant_ids", "datatype": "string", "array_of": true},
           {"name": "date_collected", "datatype": "date"},
           {"name": "derived_from", "datatype": "string"}
-        ]
+        ],
+        "primaryKey": ["id"]
       },
       {
         "name": "file",

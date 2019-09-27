@@ -127,27 +127,27 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestAppendNoPkTest() throws Exception {
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
+        assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
         ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
-        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(14L));
+            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
+        assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(2L));
     }
 
     @Test
     public void ingestUpsertNoPkTest() throws Exception {
         IngestResponseModel ingestOne = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
-        assertThat("correct sample row count", ingestOne.getRowCount(), equalTo(7L));
+            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
+        assertThat("correct file row count", ingestOne.getRowCount(), equalTo(1L));
         DataRepoResponse<JobModel> upsertJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json",
+            steward(), datasetId, "file", "ingest-test/ingest-test-file.json",
             IngestRequestModel.StrategyEnum.UPSERT);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
             steward(), upsertJobResponse, IngestResponseModel.class);
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("primary key"));
+            containsString("no primary key"));
     }
 
     @Test

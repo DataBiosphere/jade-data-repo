@@ -252,7 +252,14 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
         TestConfiguration.User user, String datasetId, String tableName, String filePath) throws Exception {
-        String ingestBody = buildSimpleIngest(tableName, filePath);
+        return ingestJsonDataLaunch(user, datasetId, tableName, filePath, IngestRequestModel.StrategyEnum.APPEND);
+    }
+
+    public DataRepoResponse<JobModel> ingestJsonDataLaunch(
+        TestConfiguration.User user, String datasetId,
+        String tableName, String filePath, IngestRequestModel.StrategyEnum strategy) throws Exception {
+
+        String ingestBody = buildSimpleIngest(tableName, filePath, strategy);
         return dataRepoClient.post(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/ingest",
@@ -262,7 +269,14 @@ public class DataRepoFixtures {
 
     public IngestResponseModel ingestJsonData(
         TestConfiguration.User user, String datasetId, String tableName, String filePath) throws Exception {
-        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, tableName, filePath);
+        return ingestJsonData(user, datasetId, tableName, filePath, IngestRequestModel.StrategyEnum.APPEND);
+    }
+
+    public IngestResponseModel ingestJsonData(
+        TestConfiguration.User user, String datasetId,
+        String tableName, String filePath, IngestRequestModel.StrategyEnum strategy) throws Exception {
+
+        DataRepoResponse<JobModel> launchResp = ingestJsonDataLaunch(user, datasetId, tableName, filePath, strategy);
         assertTrue("ingest launch succeeded", launchResp.getStatusCode().is2xxSuccessful());
         assertTrue("ingest launch response is present", launchResp.getResponseObject().isPresent());
         DataRepoResponse<IngestResponseModel> response = dataRepoClient.waitForResponse(
@@ -417,13 +431,13 @@ public class DataRepoFixtures {
         return storageOptions.getService();
     }
 
-    private String buildSimpleIngest(String table, String filename) throws Exception {
+    private String buildSimpleIngest(String table, String filename, IngestRequestModel.StrategyEnum strategy) throws Exception {
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .table(table)
-            .path(gsPath);
-        ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
+            .path(gsPath)
+            .strategy(strategy);
 
         return objectMapper.writeValueAsString(ingestRequest);
     }

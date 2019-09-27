@@ -1,6 +1,7 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -34,6 +36,9 @@ public class IngestTest extends UsersBase {
 
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
+
+    @Autowired
+    private DataRepoClient dataRepoClient;
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
@@ -70,12 +75,14 @@ public class IngestTest extends UsersBase {
 
     @Test
     public void ingestUpdatedParticipants() throws Exception {
+        ingestParticipants();
         IngestResponseModel ingestResponse =
             dataRepoFixtures.ingestJsonData(
                 steward(),
                 datasetId,
                 "participant",
-                "ingest-test/ingest-test-updated-participant.json");
+                "ingest-test/ingest-test-updated-participant.json",
+                IngestRequestModel.StrategyEnum.UPSERT);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
     }
 
@@ -113,4 +120,28 @@ public class IngestTest extends UsersBase {
             equalTo(HttpStatus.UNAUTHORIZED));
     }
 
+    @Test
+    public void ingestAppendNoPkTest() throws Exception {
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+        ingestResponse = dataRepoFixtures.ingestJsonData(
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(14L));
+    }
+
+    @Test
+    public void ingestUpsertNoPkTest() throws Exception {
+        IngestResponseModel ingestOne = dataRepoFixtures.ingestJsonData(
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
+        assertThat("correct sample row count", ingestOne.getRowCount(), equalTo(7L));
+        DataRepoResponse<JobModel> upsertJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.UPSERT);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), upsertJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
+            containsString("primary key"));
+    }
 }

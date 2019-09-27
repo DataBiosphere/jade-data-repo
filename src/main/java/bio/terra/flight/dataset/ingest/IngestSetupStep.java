@@ -26,7 +26,8 @@ import liquibase.util.StringUtils;
 import java.util.List;
 
 /**
- *  * The setup step required to generate the staging file name.
+ * The setup step required to generate the staging file name.
+ *
  * You might ask, "why can't you do that in the staging table step?"
  * The answer is that we need a step boundary so that the staging
  * table name is written to the database. Otherwise, on a failure of
@@ -44,7 +45,6 @@ import java.util.List;
  * Second, it stores away the dataset name. Several steps only need the dataset name
  * and not the dataset object.
  */
-
 public class IngestSetupStep implements Step {
     private DatasetService datasetService;
     private BigQueryPdao bigQueryPdao;
@@ -74,8 +74,7 @@ public class IngestSetupStep implements Step {
             if (primaryKey.size() < 1) {
                 // TODO: add test
                 throw new BadRequestException(
-                    "The dataset ingest flight expects ingestStrategy `upsert` or `append` but was "
-                        + ingestStrategy.toString());
+                    "Cannot use ingestStrategy `upsert` on table with no primary key: " + targetTable.getName());
             }
 
             Schema overlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
@@ -99,10 +98,10 @@ public class IngestSetupStep implements Step {
             BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
             Blob blob = storage.get(blobId);
             if (!blob.exists()) {
-                throw new IngestFileNotFoundException("Ingest source file not found: '" + requestModel.getPath());
+                throw new IngestFileNotFoundException("Ingest source file not found: " + requestModel.getPath());
             }
         } catch (StorageException ex) {
-            throw new InvalidUriException("Failed to access ingest source file: '" + requestModel.getPath(), ex);
+            throw new InvalidUriException("Failed to access ingest source file: " + requestModel.getPath(), ex);
         }
 
         return StepResult.getStepResultSuccess();

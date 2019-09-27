@@ -258,8 +258,12 @@ public class DataRepoFixtures {
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
         TestConfiguration.User user, String datasetId,
         String tableName, String filePath, IngestRequestModel.StrategyEnum strategy) throws Exception {
+        return ingestJsonDataLaunch(user, datasetId, buildSimpleIngest(tableName, filePath, strategy));
+    }
 
-        String ingestBody = buildSimpleIngest(tableName, filePath, strategy);
+    public DataRepoResponse<JobModel> ingestJsonDataLaunch(
+        TestConfiguration.User user, String datasetId, IngestRequestModel request) throws Exception {
+        String ingestBody = objectMapper.writeValueAsString(request);
         return dataRepoClient.post(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/ingest",
@@ -431,16 +435,14 @@ public class DataRepoFixtures {
         return storageOptions.getService();
     }
 
-    private String buildSimpleIngest(
+    private IngestRequestModel buildSimpleIngest(
         String table, String filename, IngestRequestModel.StrategyEnum strategy) throws Exception {
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
-        IngestRequestModel ingestRequest = new IngestRequestModel()
+        return new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .table(table)
             .path(gsPath)
             .strategy(strategy);
-
-        return objectMapper.writeValueAsString(ingestRequest);
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteProfile(

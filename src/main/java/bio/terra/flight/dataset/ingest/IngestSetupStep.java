@@ -97,7 +97,7 @@ public class IngestSetupStep implements Step {
             Storage storage = StorageOptions.getDefaultInstance().getService();
             BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
             Blob blob = storage.get(blobId);
-            if (!blob.exists()) {
+            if (!blob.exists()) { // NPE is here
                 throw new IngestFileNotFoundException("Ingest source file not found: " + requestModel.getPath());
             }
         } catch (StorageException ex) {

@@ -1,6 +1,7 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
+import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.IngestResponseModel;
@@ -39,6 +40,9 @@ public class IngestTest extends UsersBase {
 
     @Autowired
     private DataRepoClient dataRepoClient;
+
+    @Autowired
+    private TestConfiguration testConfig;
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
@@ -144,5 +148,21 @@ public class IngestTest extends UsersBase {
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
             containsString("primary key"));
+    }
+
+    @Test
+    public void ingestBadPathTest() throws Exception {
+        IngestRequestModel request = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .path("gs://" + testConfig.getIngestbucket() + "/totally-legit-file.json")
+            .table("file");
+        DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, request);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), ingestJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
+            containsString("file not found"));
     }
 }

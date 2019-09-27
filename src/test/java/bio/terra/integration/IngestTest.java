@@ -136,7 +136,8 @@ public class IngestTest extends UsersBase {
             steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
         assertThat("correct sample row count", ingestOne.getRowCount(), equalTo(7L));
         DataRepoResponse<JobModel> upsertJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.UPSERT);
+            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json",
+            IngestRequestModel.StrategyEnum.UPSERT);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
             steward(), upsertJobResponse, IngestResponseModel.class);
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));

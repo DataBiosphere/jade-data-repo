@@ -431,7 +431,8 @@ public class DataRepoFixtures {
         return storageOptions.getService();
     }
 
-    private String buildSimpleIngest(String table, String filename, IngestRequestModel.StrategyEnum strategy) throws Exception {
+    private String buildSimpleIngest(
+        String table, String filename, IngestRequestModel.StrategyEnum strategy) throws Exception {
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)

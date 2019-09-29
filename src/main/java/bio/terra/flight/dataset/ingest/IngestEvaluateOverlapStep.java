@@ -24,7 +24,7 @@ public class IngestEvaluateOverlapStep implements Step {
         String stagingTableName = IngestUtils.getStagingTableName(context);
         String overlappingTableName = IngestUtils.getOverlappingTableName(context);
 
-        bigQueryPdao.getOverlappingRows(dataset, targetTable, stagingTableName, overlappingTableName);
+        bigQueryPdao.loadOverlapTable(dataset, targetTable, stagingTableName, overlappingTableName);
 
         return StepResult.getStepResultSuccess();
     }

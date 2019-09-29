@@ -56,6 +56,24 @@ public class IngestSetupStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
+        IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
+        IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(ingestRequestModel.getPath());
+
+        // FIXME: This check is preventing us from using wildcard patterns to ingest,
+        //  which is a giant PITA. How can we enable the pattern-matching without losing
+        //  the safety check?
+        //  https://cloud.google.com/bigquery/docs/loading-data-cloud-storage#load-wildcards
+        try {
+            Storage storage = StorageOptions.getDefaultInstance().getService();
+            BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
+            Blob blob = storage.get(blobId);
+            if (!blob.exists()) { // NPE is here
+                throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequestModel.getPath());
+            }
+        } catch (StorageException ex) {
+            throw new InvalidUriException("Failed to access ingest source file: " + ingestRequestModel.getPath(), ex);
+        }
+
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         IngestUtils.putDatasetName(context, dataset.getName());
 
@@ -64,7 +82,6 @@ public class IngestSetupStep implements Step {
         String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
         IngestUtils.putStagingTableName(context, sgName);
 
-        IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
         IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
 
         if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
@@ -88,20 +105,6 @@ public class IngestSetupStep implements Step {
             bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
                 overlappingTableName,
                 overlappingTableSchema);
-        }
-
-        IngestRequestModel requestModel = IngestUtils.getIngestRequestModel(context);
-        IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(requestModel.getPath());
-
-        try {
-            Storage storage = StorageOptions.getDefaultInstance().getService();
-            BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
-            Blob blob = storage.get(blobId);
-            if (!blob.exists()) { // NPE is here
-                throw new IngestFileNotFoundException("Ingest source file not found: " + requestModel.getPath());
-            }
-        } catch (StorageException ex) {
-            throw new InvalidUriException("Failed to access ingest source file: " + requestModel.getPath(), ex);
         }
 
         return StepResult.getStepResultSuccess();

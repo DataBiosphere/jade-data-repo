@@ -1,6 +1,5 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.exception.BadRequestException;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
@@ -33,13 +32,9 @@ public class DatasetIngestFlight extends Flight {
             addStep(new IngestEvaluateOverlapStep(datasetService, bigQueryPdao));
             addStep(new IngestSoftDeleteChangedRowsService(datasetService, bigQueryPdao));
             addStep(new IngestUpsertIntoDatasetTableStep(datasetService, bigQueryPdao));
-        } else if (ingestStrategy == IngestRequestModel.StrategyEnum.APPEND) {
-            addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         } else {
-            throw new BadRequestException(
-                "The dataset ingest flight expects the ingest request to have a strategy of  `upsert` or `append`" +
-                    " but was "
-                    + ingestStrategy.toString());
+            // 'append' strategy.
+            addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         }
         addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     }

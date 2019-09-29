@@ -87,6 +87,7 @@ public class IngestTest extends UsersBase {
                 "participant",
                 "ingest-test/ingest-test-updated-participant.json",
                 IngestRequestModel.StrategyEnum.UPSERT);
+        // FIXME: Ideally we'd be able to assert on the # of rows added, updated, and left unchanged.
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
     }
 
@@ -131,7 +132,7 @@ public class IngestTest extends UsersBase {
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
         ingestResponse = dataRepoFixtures.ingestJsonData(
             steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
-        assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(2L));
+        assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
     }
 
     @Test

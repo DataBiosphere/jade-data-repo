@@ -162,7 +162,7 @@ public class IngestTest extends UsersBase {
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
             steward(), ingestJobResponse, IngestResponseModel.class);
-        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
             containsString("file not found"));

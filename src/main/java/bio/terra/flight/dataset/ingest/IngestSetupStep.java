@@ -24,6 +24,7 @@ import com.google.cloud.storage.StorageOptions;
 import liquibase.util.StringUtils;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The setup step required to generate the staging file name.
@@ -66,8 +67,8 @@ public class IngestSetupStep implements Step {
         try {
             Storage storage = StorageOptions.getDefaultInstance().getService();
             BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
-            Blob blob = storage.get(blobId);
-            if (!blob.exists()) { // NPE is here
+            boolean blobExists = Optional.ofNullable(storage.get(blobId)).map(blob -> blob.exists()).orElse(false);
+            if (!blobExists) {
                 throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequestModel.getPath());
             }
         } catch (StorageException ex) {
@@ -89,7 +90,6 @@ public class IngestSetupStep implements Step {
                 .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
                 .getPrimaryKey();
             if (primaryKey.size() < 1) {
-                // TODO: add test
                 throw new BadRequestException(
                     "Cannot use ingestStrategy `upsert` on table with no primary key: " + targetTable.getName());
             }

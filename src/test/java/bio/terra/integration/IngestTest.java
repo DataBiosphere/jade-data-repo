@@ -156,7 +156,8 @@ public class IngestTest extends UsersBase {
         IngestRequestModel request = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .path("gs://" + testConfig.getIngestbucket() + "/totally-legit-file.json")
-            .table("file");
+            .table("file")
+            .strategy(IngestRequestModel.StrategyEnum.APPEND);
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(

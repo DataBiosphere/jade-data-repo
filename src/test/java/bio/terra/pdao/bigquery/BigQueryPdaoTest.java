@@ -21,8 +21,6 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -47,7 +45,6 @@ import static org.junit.Assert.assertThat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -149,26 +146,55 @@ public class BigQueryPdaoTest {
             equalTo(shouldExist));
     }
 
-    private List<String> getRowIds(Dataset dataset,
-                                   String tableName,
-                                   String projectId,
-                                   BigQueryProject bigQueryProject) {
-        String softDeleteTableName = bigQueryPdao.prefixSoftDeleteTableName(tableName);
-        String table = projectId + "." + bigQueryPdao.prefixName(dataset.getName()) + "." + tableName;
-        String softDeleteTable = projectId +
-            "." +
-            bigQueryPdao.prefixName(dataset.getName()) +
-            "." +
-            softDeleteTableName;
+    private List<String> getSoftDeletedRowIds(Dataset dataset,
+                                           String tableName,
+                                           String projectId,
+                                           BigQueryProject bigQueryProject) {
+
         StringBuilder builder = new StringBuilder();
         builder.append("SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" FROM `")
-            .append(table)
+            .append(projectId)
+            .append(".")
+            .append(bigQueryPdao.prefixName(dataset.getName()))
+            .append(".")
+            .append(bigQueryPdao.prefixSoftDeleteTableName(tableName))
+            .append("`");
+
+        String sql = builder.toString();
+        TableResult result = bigQueryProject.query(sql);
+
+        List<String> rowIds = new ArrayList<>();
+        for (FieldValueList row : result.iterateAll()) {
+            String rowId = row.get(0).getStringValue();
+            rowIds.add(rowId);
+        }
+
+        return rowIds;
+    }
+
+    private List<String> getRowIds(Dataset dataset,
+                                   String tableName,
+                                   String projectId,
+                                   BigQueryProject bigQueryProject) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(bigQueryPdao.prefixName(dataset.getName()))
+            .append(".")
+            .append(tableName)
             .append("` EXCEPT DISTINCT (SELECT ")
             .append(PDAO_ROW_ID_COLUMN)
             .append(" FROM `")
-            .append(softDeleteTable)
+            .append(projectId)
+            .append(".")
+            .append(bigQueryPdao.prefixName(dataset.getName()))
+            .append(".")
+            .append(bigQueryPdao.prefixSoftDeleteTableName(tableName))
             .append("`)");
 
         String sql = builder.toString();
@@ -225,6 +251,10 @@ public class BigQueryPdaoTest {
             .newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json")
             .build();
 
+        BlobInfo updatedParticipantBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-updated-participant.json")
+            .build();
+
         try {
             storage.create(participantBlob, readFile("ingest-test-participant.json"));
             storage.create(sampleBlob, readFile("ingest-test-sample.json"));
@@ -235,6 +265,7 @@ public class BigQueryPdaoTest {
             // Ingest staged data into the new dataset.
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
+            ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
 
             String datasetId = dataset.getId().toString();
             connectedOperations.ingestTableSuccess(datasetId,
@@ -250,17 +281,6 @@ public class BigQueryPdaoTest {
             connectedOperations.ingestTableFailure(datasetId,
                 ingestRequest.table("sample").path(gsPath(nullPkBlob)));
 
-            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-            String tableName = "participant";
-            List<String> rowIds = getRowIds(dataset,
-                tableName,
-                dataset.getDataProjectId(),
-                bigQueryProject);
-            int numOfRowsWithSoftDeletes = rowIds.size();
-            int numOfRowsSoftDeleted = 2;
-            Set<String> rowsToSoftDelete = ImmutableSet.copyOf(Iterables.limit(rowIds, numOfRowsSoftDeleted));
-            bigQueryPdao.softDeleteRows(dataset, tableName, dataset.getDataProjectId(), rowsToSoftDelete);
-
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
@@ -275,12 +295,39 @@ public class BigQueryPdaoTest {
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
 
-            // Assert that the given rows are soft deleted
+            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+            String tableName = "participant";
+            List<String> rowIds = getRowIds(dataset,
+                tableName,
+                dataset.getDataProjectId(),
+                bigQueryProject);
+            int originalNumOfRows = rowIds.size();
+
+            // Ingest updated data into the new dataset.
+            storage.create(updatedParticipantBlob, readFile("ingest-test-updated-participant.json"));
+            ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.UPSERT);
+            connectedOperations.ingestTableSuccess(datasetId,
+                ingestRequest.table(tableName).path(gsPath(updatedParticipantBlob)));
+            int numOfRowsSoftDeleted = 1;
+
+            // assert the changed row is soft deleted
+            List<String> softDeletedRowIds = getSoftDeletedRowIds(dataset,
+                tableName,
+                dataset.getDataProjectId(),
+                bigQueryProject);
+            Assert.assertThat("On upsert the changed row is soft deleted",
+                softDeletedRowIds.size(),
+                is(equalTo(numOfRowsSoftDeleted)));
+
+            // assert only the new row is added
             rowIds = getRowIds(dataset,
                 tableName,
                 dataset.getDataProjectId(),
                 bigQueryProject);
-            Assert.assertThat(numOfRowsWithSoftDeletes - numOfRowsSoftDeleted, is(equalTo(rowIds.size())));
+            // originalNumOfRows + 2 for the new row being added and the chnaged row being added
+            Assert.assertThat("On upsert that # of rows being added accounts for the soft delete",
+                rowIds.size(),
+                is(equalTo(originalNumOfRows + 2 - numOfRowsSoftDeleted)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());

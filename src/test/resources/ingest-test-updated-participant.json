@@ -1,0 +1,6 @@
+{"id":"participant_1","age":65,"children":["participant_3","participant_4"],"donated":["sample1"]}
+{"id":"participant_2","age":42,"children":["participant_3","participant_5"],"donated":["sample2","sample5"]}
+{"id":"participant_3","age":15,"children":[],"donated":["sample3","sample4"]}
+{"id":"participant_4","age":27,"children":["participant_5"],"donated":[]}
+{"id":"participant_5","age":24,"children":["participant_6"],"donated":["sample5"]}
+{"id":"participant_6","age":3,"children":[],"donated":["sample5"]}

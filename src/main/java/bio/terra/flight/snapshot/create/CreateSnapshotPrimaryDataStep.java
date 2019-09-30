@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.dao.SnapshotDao;
+import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;

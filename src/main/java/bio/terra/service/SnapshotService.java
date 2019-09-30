@@ -2,8 +2,8 @@ package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.dao.DatasetDao;
-import bio.terra.dao.SnapshotDao;
+import bio.terra.dataset.dao.DatasetDao;
+import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.flight.snapshot.create.SnapshotCreateFlight;
 import bio.terra.flight.snapshot.delete.SnapshotDeleteFlight;
 import bio.terra.metadata.AssetColumn;

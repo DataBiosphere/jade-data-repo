@@ -1,5 +1,6 @@
-package bio.terra.dao;
+package bio.terra.dataset.dao;
 
+import bio.terra.utils.dao.DaoKeyHolder;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetRelationship;
 import bio.terra.metadata.Table;

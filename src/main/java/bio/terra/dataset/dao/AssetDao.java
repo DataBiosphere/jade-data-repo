@@ -1,6 +1,7 @@
-package bio.terra.dao;
+package bio.terra.dataset.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
+import bio.terra.utils.dao.DaoKeyHolder;
 import bio.terra.metadata.AssetColumn;
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;

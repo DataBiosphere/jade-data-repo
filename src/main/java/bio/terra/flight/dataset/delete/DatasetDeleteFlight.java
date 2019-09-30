@@ -1,8 +1,8 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.DatasetDao;
-import bio.terra.dao.SnapshotDao;
+import bio.terra.dataset.dao.DatasetDao;
+import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;

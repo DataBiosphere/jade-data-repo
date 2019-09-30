@@ -1,4 +1,4 @@
-package bio.terra.dao;
+package bio.terra.utils.dao;
 
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 

@@ -1,7 +1,7 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.dao.SnapshotDao;
+import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.metadata.Dataset;

@@ -1,9 +1,9 @@
 package bio.terra.service.dataproject;
 
 import bio.terra.configuration.SamConfiguration;
-import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.utils.dao.exception.DataProjectNotFoundException;
+import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
-import bio.terra.dao.DataProjectDao;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetDataProject;
@@ -44,7 +44,7 @@ public class DataLocationService {
     ));
     private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
 
-    private final DataProjectDao dataProjectDao;
+    private final ProfileDao.DataProjectDao dataProjectDao;
     private final DataLocationSelector dataLocationSelector;
     private final GoogleResourceService resourceService;
     private final ProfileService profileService;
@@ -52,7 +52,7 @@ public class DataLocationService {
 
     @Autowired
     public DataLocationService(
-            DataProjectDao dataProjectDao,
+            ProfileDao.DataProjectDao dataProjectDao,
             DataLocationSelector dataLocationSelector,
             GoogleResourceService resourceService,
             ProfileService profileService,

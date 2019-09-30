@@ -1,7 +1,8 @@
-package bio.terra.dao;
+package bio.terra.utils.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.utils.dao.exception.DatasetNotFoundException;
+import bio.terra.dataset.dao.DatasetDao;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.AssetSpecification;

@@ -1,9 +1,11 @@
-package bio.terra.dao;
+package bio.terra.dataset.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.InvalidDatasetException;
-import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.utils.dao.DaoKeyHolder;
+import bio.terra.utils.dao.DaoUtils;
+import bio.terra.utils.dao.exception.CorruptMetadataException;
+import bio.terra.utils.dao.exception.InvalidDatasetException;
+import bio.terra.utils.dao.exception.DatasetNotFoundException;
 import bio.terra.metadata.MetadataEnumeration;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.DatasetSummary;

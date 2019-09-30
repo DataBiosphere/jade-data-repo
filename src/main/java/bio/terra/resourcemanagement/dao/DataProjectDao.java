@@ -1,7 +1,8 @@
-package bio.terra.dao;
+package bio.terra.resourcemanagement.dao;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.utils.dao.DaoKeyHolder;
+import bio.terra.utils.dao.exception.DataProjectNotFoundException;
 import bio.terra.metadata.SnapshotDataProjectSummary;
 import bio.terra.metadata.DatasetDataProjectSummary;
 import org.springframework.beans.factory.annotation.Autowired;

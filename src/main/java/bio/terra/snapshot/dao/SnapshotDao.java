@@ -1,7 +1,10 @@
-package bio.terra.dao;
+package bio.terra.snapshot.dao;
 
-import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.SnapshotNotFoundException;
+import bio.terra.utils.dao.DaoKeyHolder;
+import bio.terra.utils.dao.DaoUtils;
+import bio.terra.utils.dao.exception.CorruptMetadataException;
+import bio.terra.utils.dao.exception.SnapshotNotFoundException;
+import bio.terra.dataset.dao.DatasetDao;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSource;
@@ -30,7 +33,7 @@ import java.util.UUID;
 
 @Repository
 public class SnapshotDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.dao.SnapshotDao");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.snapshot.dao.SnapshotDao");
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final SnapshotTableDao snapshotTableDao;

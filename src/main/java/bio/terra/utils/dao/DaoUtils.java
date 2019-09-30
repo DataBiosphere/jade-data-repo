@@ -1,4 +1,4 @@
-package bio.terra.dao;
+package bio.terra.utils.dao;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;

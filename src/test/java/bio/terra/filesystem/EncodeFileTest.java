@@ -2,7 +2,7 @@ package bio.terra.filesystem;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
-import bio.terra.dao.SnapshotDao;
+import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.StringListCompare;
 import bio.terra.metadata.Snapshot;

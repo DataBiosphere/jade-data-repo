@@ -1,9 +1,9 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.DatasetDao;
-import bio.terra.dao.SnapshotDao;
-import bio.terra.dao.exception.SnapshotNotFoundException;
+import bio.terra.dataset.dao.DatasetDao;
+import bio.terra.snapshot.dao.SnapshotDao;
+import bio.terra.utils.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filesystem.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;

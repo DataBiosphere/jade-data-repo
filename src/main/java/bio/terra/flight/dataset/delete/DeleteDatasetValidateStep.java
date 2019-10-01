@@ -6,7 +6,7 @@ import bio.terra.filesystem.FireStoreDependencyDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.SnapshotSummary;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

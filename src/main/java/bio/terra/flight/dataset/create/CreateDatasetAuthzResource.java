@@ -5,7 +5,7 @@ import bio.terra.exception.InternalServerErrorException;
 import bio.terra.flight.dataset.DatasetWorkingMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

@@ -8,7 +8,7 @@ import bio.terra.metadata.DatasetTable;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.service.JobMapKeys;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.StringUtils;

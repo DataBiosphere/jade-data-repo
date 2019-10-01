@@ -1,8 +1,10 @@
-package bio.terra.service;
+package bio.terra.snapshot.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dataset.dao.DatasetDao;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.flight.snapshot.create.SnapshotCreateFlight;
 import bio.terra.flight.snapshot.delete.SnapshotDeleteFlight;
@@ -46,7 +48,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.SnapshotService");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.snapshot.service.SnapshotService");
 
     private final JobService jobService;
     private final DatasetDao datasetDao;

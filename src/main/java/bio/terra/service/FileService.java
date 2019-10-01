@@ -1,6 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.exception.FileSystemCorruptException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
@@ -16,6 +17,7 @@ import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
+import bio.terra.snapshot.service.SnapshotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package bio.terra.service;
+package bio.terra.dataset.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dataset.dao.DatasetDao;
@@ -12,6 +12,8 @@ import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
 import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;

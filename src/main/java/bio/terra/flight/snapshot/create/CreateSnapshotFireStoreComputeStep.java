@@ -4,7 +4,7 @@ package bio.terra.flight.snapshot.create;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.metadata.Snapshot;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.SnapshotService;
+import bio.terra.snapshot.service.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

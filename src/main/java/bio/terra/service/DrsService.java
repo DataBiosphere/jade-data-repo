@@ -2,6 +2,7 @@ package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dataset.dao.DatasetDao;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.snapshot.dao.SnapshotDao;
 import bio.terra.utils.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;

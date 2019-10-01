@@ -4,7 +4,7 @@ import bio.terra.exception.BadRequestException;
 import bio.terra.filesystem.FireStoreDao;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;

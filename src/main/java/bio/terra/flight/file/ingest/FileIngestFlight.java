@@ -4,7 +4,7 @@ import bio.terra.filesystem.FireStoreDao;
 import bio.terra.filesystem.FireStoreUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.service.DatasetService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.dataproject.DataLocationService;

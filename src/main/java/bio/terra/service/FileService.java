@@ -1,8 +1,8 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.filesystem.FireStoreDao;
-import bio.terra.filesystem.exception.FileSystemCorruptException;
+import bio.terra.filedata.google.FireStoreDao;
+import bio.terra.filedata.exception.FileSystemCorruptException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
 import bio.terra.flight.file.ingest.FileIngestFlight;
 import bio.terra.metadata.Dataset;

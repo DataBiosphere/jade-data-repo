@@ -1,7 +1,7 @@
 package bio.terra.flight.snapshot.create;
 
 
-import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.metadata.Snapshot;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.SnapshotService;

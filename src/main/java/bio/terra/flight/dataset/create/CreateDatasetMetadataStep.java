@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.create;
 
-import bio.terra.dao.DatasetDao;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.flight.dataset.DatasetWorkingMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.DatasetJsonConversion;

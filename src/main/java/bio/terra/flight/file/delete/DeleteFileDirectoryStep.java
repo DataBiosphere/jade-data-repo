@@ -1,6 +1,6 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.model.DeleteResponseModel;

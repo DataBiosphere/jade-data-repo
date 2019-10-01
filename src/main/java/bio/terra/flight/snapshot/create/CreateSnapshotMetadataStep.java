@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.dao.SnapshotDao;
+import bio.terra.snapshot.SnapshotDao;
 import bio.terra.exception.NotFoundException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.snapshot.SnapshotWorkingMapKeys;

@@ -1,7 +1,7 @@
 package bio.terra.controller;
 
 import bio.terra.category.Connected;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.Names;

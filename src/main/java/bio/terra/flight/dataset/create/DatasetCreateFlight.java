@@ -1,7 +1,7 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;

@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.delete;
 
-import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;

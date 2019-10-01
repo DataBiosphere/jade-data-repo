@@ -1,9 +1,9 @@
 package bio.terra.flight.snapshot.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.SnapshotDao;
-import bio.terra.filesystem.FireStoreDao;
-import bio.terra.filesystem.FireStoreDependencyDao;
+import bio.terra.snapshot.SnapshotDao;
+import bio.terra.filedata.google.FireStoreDao;
+import bio.terra.filedata.google.FireStoreDependencyDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;

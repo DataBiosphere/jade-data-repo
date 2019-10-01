@@ -1,6 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.Column;
@@ -17,6 +18,7 @@ import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.service.SnapshotService;
+import bio.terra.snapshot.SnapshotDao;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

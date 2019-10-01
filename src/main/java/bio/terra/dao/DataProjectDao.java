@@ -4,6 +4,7 @@ import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.dao.exception.DataProjectNotFoundException;
 import bio.terra.metadata.SnapshotDataProjectSummary;
 import bio.terra.metadata.DatasetDataProjectSummary;
+import bio.terra.utils.DaoKeyHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;

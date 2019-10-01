@@ -2,7 +2,7 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.category.Connected;
 import bio.terra.configuration.ConnectedTestConfiguration;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.metadata.Dataset;

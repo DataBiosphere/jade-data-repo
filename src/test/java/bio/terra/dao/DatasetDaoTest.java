@@ -2,6 +2,7 @@ package bio.terra.dao;
 
 import bio.terra.category.Unit;
 import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.AssetSpecification;

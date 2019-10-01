@@ -1,8 +1,8 @@
 package bio.terra.resourcemanagement.dao.google;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.dao.DaoKeyHolder;
-import bio.terra.dao.DaoUtils;
+import bio.terra.utils.DaoKeyHolder;
+import bio.terra.utils.DaoUtils;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.service.exception.GoogleResourceException;

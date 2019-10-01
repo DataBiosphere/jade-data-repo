@@ -1,7 +1,7 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filesystem.FireStoreDao;
-import bio.terra.filesystem.FireStoreFile;
+import bio.terra.filedata.google.FireStoreDao;
+import bio.terra.filedata.google.FireStoreFile;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.pdao.gcs.GcsPdao;

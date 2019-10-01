@@ -1,7 +1,7 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.filesystem.FireStoreDao;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;

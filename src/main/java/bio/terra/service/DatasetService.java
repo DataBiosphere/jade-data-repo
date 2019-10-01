@@ -1,7 +1,7 @@
 package bio.terra.service;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
 import bio.terra.flight.dataset.ingest.DatasetIngestFlight;

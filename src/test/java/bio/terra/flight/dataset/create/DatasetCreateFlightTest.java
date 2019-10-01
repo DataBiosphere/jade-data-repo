@@ -2,7 +2,7 @@ package bio.terra.flight.dataset.create;
 
 import bio.terra.category.Connected;
 import bio.terra.stairway.UserRequestInfo;
-import bio.terra.dao.DatasetDao;
+import bio.terra.dataset.DatasetDao;
 import bio.terra.dao.exception.DatasetNotFoundException;
 import bio.terra.fixtures.ConnectedOperations;
 import bio.terra.fixtures.JsonLoader;

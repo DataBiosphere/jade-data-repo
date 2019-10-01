@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.filesystem.FireStoreDao;
+import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.flight.exception.InvalidFileRefException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;

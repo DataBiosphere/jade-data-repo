@@ -8,7 +8,7 @@ import bio.terra.resourcemanagement.metadata.google.GoogleProjectRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.resourcemanagement.service.google.GoogleResourceService;
-import bio.terra.service.dataproject.DataLocationService;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import org.junit.After;

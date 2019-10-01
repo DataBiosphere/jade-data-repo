@@ -9,7 +9,7 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoConstant;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

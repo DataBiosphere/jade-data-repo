@@ -7,7 +7,7 @@ import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFileInfo;
 import bio.terra.metadata.FSItem;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.FileService;
+import bio.terra.filedata.FileService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

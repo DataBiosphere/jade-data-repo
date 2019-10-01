@@ -1,6 +1,7 @@
-package bio.terra.service;
+package bio.terra.filedata;
 
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.dataset.DatasetService;
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.filedata.exception.FileSystemCorruptException;
 import bio.terra.flight.file.delete.FileDeleteFlight;
@@ -16,6 +17,9 @@ import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
+import bio.terra.snapshot.SnapshotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

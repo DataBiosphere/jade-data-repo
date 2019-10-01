@@ -9,7 +9,7 @@ import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
-import bio.terra.service.DrsService;
+import bio.terra.filedata.DrsService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

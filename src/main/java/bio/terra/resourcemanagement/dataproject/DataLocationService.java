@@ -1,4 +1,4 @@
-package bio.terra.service.dataproject;
+package bio.terra.resourcemanagement.dataproject;
 
 import bio.terra.configuration.SamConfiguration;
 import bio.terra.dao.exception.DataProjectNotFoundException;

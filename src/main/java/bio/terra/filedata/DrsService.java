@@ -1,7 +1,9 @@
-package bio.terra.service;
+package bio.terra.filedata;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dataset.DatasetDao;
+import bio.terra.dataset.DatasetService;
+import bio.terra.service.SamClientService;
 import bio.terra.snapshot.SnapshotDao;
 import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;
@@ -16,9 +18,7 @@ import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
 import bio.terra.filedata.google.gcs.GcsConfiguration;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
-import bio.terra.service.dataproject.DataLocationService;
-import bio.terra.service.exception.DrsObjectNotFoundException;
-import bio.terra.service.exception.InvalidDrsIdException;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,7 +36,7 @@ import java.util.UUID;
 
 @Component
 public class DrsService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.DrsService");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.filedata.DrsService");
 
     private static final String DRS_OBJECT_VERSION = "0";
 

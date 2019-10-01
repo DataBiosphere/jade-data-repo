@@ -8,7 +8,7 @@ import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSummary;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.SnapshotService;
+import bio.terra.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

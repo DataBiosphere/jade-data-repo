@@ -1,9 +1,8 @@
-package bio.terra.service;
+package bio.terra.snapshot;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.dataset.DatasetDao;
-import bio.terra.snapshot.SnapshotDao;
 import bio.terra.flight.snapshot.create.SnapshotCreateFlight;
 import bio.terra.flight.snapshot.delete.SnapshotDeleteFlight;
 import bio.terra.metadata.AssetColumn;
@@ -29,7 +28,9 @@ import bio.terra.model.SnapshotRequestSourceModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
-import bio.terra.service.dataproject.DataLocationService;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import bio.terra.service.exception.AssetNotFoundException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
@@ -46,7 +47,7 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.SnapshotService");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.snapshot.SnapshotService");
 
     private final JobService jobService;
     private final DatasetDao datasetDao;

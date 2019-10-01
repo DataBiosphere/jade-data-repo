@@ -1,4 +1,4 @@
-package bio.terra.service.exception;
+package bio.terra.filedata;
 
 import bio.terra.exception.BadRequestException;
 

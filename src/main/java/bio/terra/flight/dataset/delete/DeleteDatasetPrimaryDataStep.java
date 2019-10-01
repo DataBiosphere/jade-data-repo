@@ -4,7 +4,7 @@ import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.filedata.google.gcs.GcsPdao;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

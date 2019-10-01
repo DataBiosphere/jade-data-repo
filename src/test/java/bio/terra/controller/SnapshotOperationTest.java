@@ -23,7 +23,7 @@ import bio.terra.tabulardata.google.BigQueryProject;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.SamClientService;
-import bio.terra.service.dataproject.DataLocationService;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;

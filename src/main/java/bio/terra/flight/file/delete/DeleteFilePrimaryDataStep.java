@@ -6,7 +6,7 @@ import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
-import bio.terra.service.dataproject.DataLocationService;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

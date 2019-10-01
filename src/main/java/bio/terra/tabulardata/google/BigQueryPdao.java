@@ -19,7 +19,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.pdao.PdaoLoadStatistics;
 import bio.terra.pdao.PrimaryDataAccess;
 import bio.terra.pdao.exception.PdaoException;
-import bio.terra.service.dataproject.DataLocationService;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;

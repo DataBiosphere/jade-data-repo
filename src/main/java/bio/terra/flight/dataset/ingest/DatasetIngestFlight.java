@@ -2,12 +2,12 @@ package bio.terra.flight.dataset.ingest;
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
+import bio.terra.tabulardata.google.BigQueryPdao;
+import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
-import bio.terra.tabulardata.google.BigQueryPdao;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {

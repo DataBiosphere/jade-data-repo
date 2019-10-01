@@ -1,4 +1,4 @@
-package bio.terra.service.dataproject;
+package bio.terra.resourcemanagement.dataproject;
 
 import bio.terra.category.Connected;
 import bio.terra.fixtures.ConnectedOperations;
@@ -12,9 +12,9 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.DatasetService;
 import bio.terra.service.SamClientService;
-import bio.terra.service.SnapshotService;
+import bio.terra.snapshot.SnapshotService;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.junit.Before;
 import org.junit.Ignore;

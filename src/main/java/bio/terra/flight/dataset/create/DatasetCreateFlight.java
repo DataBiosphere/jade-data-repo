@@ -4,7 +4,7 @@ import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.tabulardata.google.BigQueryPdao;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;
 import bio.terra.stairway.Flight;

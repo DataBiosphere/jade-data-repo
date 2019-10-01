@@ -1,4 +1,4 @@
-package bio.terra.service.dataproject;
+package bio.terra.resourcemanagement.dataproject;
 
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Snapshot;

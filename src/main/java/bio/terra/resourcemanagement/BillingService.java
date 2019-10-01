@@ -1,4 +1,4 @@
-package bio.terra.service;
+package bio.terra.resourcemanagement;
 
 import bio.terra.metadata.BillingProfile;
 

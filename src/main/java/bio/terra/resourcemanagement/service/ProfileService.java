@@ -8,7 +8,7 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateBillingProfileModel;
-import bio.terra.service.BillingService;
+import bio.terra.resourcemanagement.BillingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

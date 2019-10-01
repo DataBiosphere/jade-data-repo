@@ -11,7 +11,7 @@ import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.SamClientService;
-import bio.terra.service.DatasetService;
+import bio.terra.dataset.DatasetService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

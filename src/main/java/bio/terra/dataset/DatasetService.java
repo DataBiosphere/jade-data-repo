@@ -1,7 +1,6 @@
-package bio.terra.service;
+package bio.terra.dataset;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.dataset.DatasetDao;
 import bio.terra.flight.dataset.create.DatasetCreateFlight;
 import bio.terra.flight.dataset.delete.DatasetDeleteFlight;
 import bio.terra.flight.dataset.ingest.DatasetIngestFlight;
@@ -12,7 +11,9 @@ import bio.terra.model.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.dataproject.DataLocationService;
+import bio.terra.service.JobMapKeys;
+import bio.terra.service.JobService;
+import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;

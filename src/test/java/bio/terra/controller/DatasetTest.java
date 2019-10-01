@@ -2,7 +2,7 @@ package bio.terra.controller;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.exception.ApiException;
-import bio.terra.dao.exception.DatasetNotFoundException;
+import bio.terra.dataset.DatasetNotFoundException;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.DatasetFixtures;
 import bio.terra.metadata.Dataset;

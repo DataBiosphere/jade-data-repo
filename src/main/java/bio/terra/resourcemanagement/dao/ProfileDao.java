@@ -1,7 +1,7 @@
 package bio.terra.resourcemanagement.dao;
 
 import bio.terra.utils.DaoKeyHolder;
-import bio.terra.dao.exception.ProfileNotFoundException;
+import bio.terra.resourcemanagement.ProfileNotFoundException;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package bio.terra.dao.exception;
+package bio.terra.dataset;
 
 import bio.terra.exception.NotFoundException;
 

@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.dao.exception.ProfileNotFoundException;
+import bio.terra.resourcemanagement.ProfileNotFoundException;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.metadata.BillingProfile;
 import bio.terra.metadata.MetadataEnumeration;

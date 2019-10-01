@@ -1,7 +1,7 @@
 package bio.terra.flight.snapshot.delete;
 
 import bio.terra.snapshot.SnapshotDao;
-import bio.terra.dao.exception.SnapshotNotFoundException;
+import bio.terra.snapshot.SnapshotNotFoundException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Snapshot;
 import bio.terra.model.DeleteResponseModel;

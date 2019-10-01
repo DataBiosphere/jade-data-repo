@@ -1,7 +1,7 @@
 package bio.terra.resourcemanagement.dao.google;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.resourcemanagement.DataProjectNotFoundException;
 import bio.terra.metadata.SnapshotDataProjectSummary;
 import bio.terra.metadata.DatasetDataProjectSummary;
 import bio.terra.utils.DaoKeyHolder;

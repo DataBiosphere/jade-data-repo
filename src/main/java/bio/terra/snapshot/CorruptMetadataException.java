@@ -1,4 +1,4 @@
-package bio.terra.dao.exception;
+package bio.terra.snapshot;
 
 import bio.terra.exception.InternalServerErrorException;
 

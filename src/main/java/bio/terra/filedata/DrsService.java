@@ -5,7 +5,7 @@ import bio.terra.dataset.DatasetDao;
 import bio.terra.dataset.DatasetService;
 import bio.terra.service.SamClientService;
 import bio.terra.snapshot.SnapshotDao;
-import bio.terra.dao.exception.SnapshotNotFoundException;
+import bio.terra.snapshot.SnapshotNotFoundException;
 import bio.terra.exception.InternalServerErrorException;
 import bio.terra.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.metadata.FSDir;

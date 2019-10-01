@@ -1,7 +1,7 @@
 package bio.terra.resourcemanagement.dataproject;
 
 import bio.terra.configuration.SamConfiguration;
-import bio.terra.dao.exception.DataProjectNotFoundException;
+import bio.terra.resourcemanagement.DataProjectNotFoundException;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.dao.google.DataProjectDao;
 import bio.terra.metadata.BillingProfile;

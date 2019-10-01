@@ -1,7 +1,6 @@
 package bio.terra.snapshot;
 
 import bio.terra.utils.DaoKeyHolder;
-import bio.terra.dao.exception.CorruptMetadataException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.DatasetTable;
 import bio.terra.metadata.Snapshot;

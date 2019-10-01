@@ -1,7 +1,5 @@
 package bio.terra.snapshot;
 
-import bio.terra.dao.exception.CorruptMetadataException;
-import bio.terra.dao.exception.SnapshotNotFoundException;
 import bio.terra.dataset.DatasetDao;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Snapshot;

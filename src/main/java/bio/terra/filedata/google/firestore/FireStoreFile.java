@@ -1,4 +1,4 @@
-package bio.terra.filedata.google;
+package bio.terra.filedata.google.firestore;
 
 import org.apache.commons.lang3.builder.ToStringBuilder;
 

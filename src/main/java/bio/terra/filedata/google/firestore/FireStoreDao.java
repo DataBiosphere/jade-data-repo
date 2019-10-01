@@ -1,4 +1,4 @@
-package bio.terra.filedata.google;
+package bio.terra.filedata.google.firestore;
 
 import bio.terra.filedata.exception.FileNotFoundException;
 import bio.terra.metadata.Dataset;

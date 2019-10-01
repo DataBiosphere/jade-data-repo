@@ -1,4 +1,4 @@
-package bio.terra.pdao.gcs;
+package bio.terra.filedata.google.gcs;
 
 import com.google.cloud.http.HttpTransportOptions;
 import com.google.cloud.storage.Storage;

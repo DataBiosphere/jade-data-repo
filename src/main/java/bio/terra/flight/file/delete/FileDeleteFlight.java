@@ -1,9 +1,9 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreDependencyDao;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.metadata.Dataset;
-import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.dataproject.DataLocationService;

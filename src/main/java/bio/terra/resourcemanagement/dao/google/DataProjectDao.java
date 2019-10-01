@@ -1,4 +1,4 @@
-package bio.terra.dao;
+package bio.terra.resourcemanagement.dao.google;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.dao.exception.DataProjectNotFoundException;

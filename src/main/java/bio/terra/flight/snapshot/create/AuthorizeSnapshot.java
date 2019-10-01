@@ -2,7 +2,7 @@ package bio.terra.flight.snapshot.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.exception.InternalServerErrorException;
-import bio.terra.filedata.google.FireStoreDependencyDao;
+import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
 import bio.terra.flight.snapshot.SnapshotWorkingMapKeys;
 import bio.terra.metadata.Dataset;
@@ -10,7 +10,7 @@ import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSource;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.tabulardata.google.BigQueryPdao;
-import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
 import bio.terra.service.SnapshotService;

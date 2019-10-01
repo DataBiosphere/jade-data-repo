@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
-import bio.terra.filedata.google.EncodeFileIn;
-import bio.terra.filedata.google.EncodeFileOut;
+import bio.terra.filedata.google.firestore.EncodeFileIn;
+import bio.terra.filedata.google.firestore.EncodeFileOut;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;

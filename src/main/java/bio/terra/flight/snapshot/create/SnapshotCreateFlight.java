@@ -2,11 +2,11 @@ package bio.terra.flight.snapshot.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.snapshot.SnapshotDao;
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreDependencyDao;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.tabulardata.google.BigQueryPdao;
-import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;

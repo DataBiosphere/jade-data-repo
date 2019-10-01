@@ -1,4 +1,4 @@
-package bio.terra.filedata.google;
+package bio.terra.filedata.google.firestore;
 
 import bio.terra.filedata.exception.FileSystemCorruptException;
 import bio.terra.filedata.exception.FileSystemExecutionException;

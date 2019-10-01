@@ -1,7 +1,7 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreFile;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreFile;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFileInfo;

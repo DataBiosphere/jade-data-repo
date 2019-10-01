@@ -1,8 +1,8 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreDirectoryEntry;
-import bio.terra.filedata.google.FireStoreUtils;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreDirectoryEntry;
+import bio.terra.filedata.google.firestore.FireStoreUtils;
 import bio.terra.filedata.exception.FileAlreadyExistsException;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;

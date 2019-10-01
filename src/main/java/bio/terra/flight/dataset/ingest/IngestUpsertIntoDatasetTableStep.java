@@ -5,12 +5,12 @@ import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.pdao.PdaoLoadStatistics;
-import bio.terra.pdao.bigquery.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.tabulardata.google.BigQueryPdao;
 
 public class IngestUpsertIntoDatasetTableStep implements Step {
     private DatasetService datasetService;

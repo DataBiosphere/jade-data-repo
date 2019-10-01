@@ -1,9 +1,9 @@
 package bio.terra.flight.file.ingest;
 
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreUtils;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreUtils;
 import bio.terra.metadata.Dataset;
-import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.FileService;
 import bio.terra.service.JobMapKeys;

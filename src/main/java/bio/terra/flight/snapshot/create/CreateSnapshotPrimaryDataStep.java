@@ -1,7 +1,7 @@
 package bio.terra.flight.snapshot.create;
 
 import bio.terra.snapshot.SnapshotDao;
-import bio.terra.filedata.google.FireStoreDependencyDao;
+import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.flight.FlightUtils;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.RowIdMatch;

@@ -1,10 +1,10 @@
 package bio.terra.flight.file.delete;
 
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreFile;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreFile;
 import bio.terra.flight.file.FileMapKeys;
 import bio.terra.metadata.Dataset;
-import bio.terra.pdao.gcs.GcsPdao;
+import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.service.dataproject.DataLocationService;
 import bio.terra.stairway.FlightContext;

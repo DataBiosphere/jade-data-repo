@@ -1,4 +1,4 @@
-package bio.terra.pdao.gcs;
+package bio.terra.filedata.google.gcs;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;

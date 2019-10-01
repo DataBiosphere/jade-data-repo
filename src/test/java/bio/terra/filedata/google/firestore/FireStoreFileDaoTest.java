@@ -1,9 +1,6 @@
-package bio.terra.filedata.google;
+package bio.terra.filedata.google.firestore;
 
 import bio.terra.category.Connected;
-import bio.terra.filedata.google.FireStoreFile;
-import bio.terra.filedata.google.FireStoreFileDao;
-import bio.terra.filedata.google.FireStoreUtils;
 import bio.terra.fixtures.StringListCompare;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
@@ -37,7 +34,7 @@ import static org.junit.Assert.assertTrue;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreFileDaoTest {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filedata.google.FireStoreFileDaoTest");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.filedata.google.firestore.FireStoreFileDaoTest");
     private final Long FILE_SIZE = 42L;
     private final Long CHANGED_FILE_SIZE = 22L;
 

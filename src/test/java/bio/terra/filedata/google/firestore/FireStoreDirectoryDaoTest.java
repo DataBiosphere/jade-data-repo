@@ -1,9 +1,6 @@
-package bio.terra.filedata.google;
+package bio.terra.filedata.google.firestore;
 
 import bio.terra.category.Connected;
-import bio.terra.filedata.google.FireStoreDirectoryDao;
-import bio.terra.filedata.google.FireStoreDirectoryEntry;
-import bio.terra.filedata.google.FireStoreUtils;
 import bio.terra.fixtures.StringListCompare;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
@@ -39,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreDirectoryDaoTest {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filedata.google.FireStoreDirectoryDaoTest");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.filedata.google.firestore.FireStoreDirectoryDaoTest");
 
     @Autowired
     private FireStoreDirectoryDao directoryDao;

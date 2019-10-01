@@ -2,7 +2,7 @@ package bio.terra.flight.dataset.delete;
 
 import bio.terra.controller.exception.ValidationException;
 import bio.terra.snapshot.SnapshotDao;
-import bio.terra.filedata.google.FireStoreDependencyDao;
+import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.filedata.exception.FileSystemCorruptException;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.SnapshotSummary;

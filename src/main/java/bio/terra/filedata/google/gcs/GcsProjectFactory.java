@@ -1,4 +1,4 @@
-package bio.terra.pdao.gcs;
+package bio.terra.filedata.google.gcs;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

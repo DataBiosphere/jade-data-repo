@@ -1,7 +1,7 @@
-package bio.terra.pdao.gcs;
+package bio.terra.filedata.google.gcs;
 
-import bio.terra.filedata.google.FireStoreDao;
-import bio.terra.filedata.google.FireStoreFile;
+import bio.terra.filedata.google.firestore.FireStoreDao;
+import bio.terra.filedata.google.firestore.FireStoreFile;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.FSFile;
 import bio.terra.metadata.FSFileInfo;

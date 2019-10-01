@@ -5,7 +5,7 @@ import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.pdao.PdaoLoadStatistics;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;

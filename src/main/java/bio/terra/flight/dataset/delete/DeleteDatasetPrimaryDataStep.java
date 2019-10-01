@@ -2,7 +2,7 @@ package bio.terra.flight.dataset.delete;
 
 import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.metadata.Dataset;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;

@@ -4,7 +4,7 @@ import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.snapshot.SnapshotDao;
 import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.filedata.google.FireStoreDependencyDao;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;

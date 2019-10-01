@@ -1,4 +1,4 @@
-package bio.terra.pdao.bigquery;
+package bio.terra.tabulardata.google;
 
 import bio.terra.metadata.AssetRelationship;
 import bio.terra.metadata.AssetSpecification;

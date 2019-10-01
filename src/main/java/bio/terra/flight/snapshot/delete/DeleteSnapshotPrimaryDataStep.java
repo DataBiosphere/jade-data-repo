@@ -6,7 +6,7 @@ import bio.terra.filedata.google.FireStoreDependencyDao;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Snapshot;
 import bio.terra.metadata.SnapshotSource;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SnapshotService;
 import bio.terra.stairway.FlightContext;

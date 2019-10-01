@@ -5,7 +5,7 @@ import bio.terra.dataset.DatasetDao;
 import bio.terra.snapshot.SnapshotDao;
 import bio.terra.filedata.google.FireStoreDao;
 import bio.terra.filedata.google.FireStoreDependencyDao;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.pdao.gcs.GcsPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;

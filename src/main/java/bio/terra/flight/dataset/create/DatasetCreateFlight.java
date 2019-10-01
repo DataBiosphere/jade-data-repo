@@ -3,7 +3,7 @@ package bio.terra.flight.dataset.create;
 import bio.terra.controller.AuthenticatedUserRequest;
 import bio.terra.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.JobMapKeys;
 import bio.terra.service.SamClientService;

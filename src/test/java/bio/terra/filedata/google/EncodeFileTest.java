@@ -16,7 +16,7 @@ import bio.terra.model.FileModelType;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.pdao.bigquery.BigQueryProject;
+import bio.terra.tabulardata.google.BigQueryProject;
 import bio.terra.pdao.exception.PdaoException;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DrsId;

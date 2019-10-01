@@ -11,7 +11,7 @@ import bio.terra.metadata.SnapshotMapTable;
 import bio.terra.metadata.SnapshotSource;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

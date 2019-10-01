@@ -8,7 +8,7 @@ import bio.terra.metadata.SnapshotMapColumn;
 import bio.terra.metadata.SnapshotMapTable;
 import bio.terra.metadata.SnapshotSource;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.pdao.bigquery.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SnapshotService;
 import bio.terra.stairway.FlightContext;

@@ -1,4 +1,4 @@
-package bio.terra.pdao.bigquery;
+package bio.terra.tabulardata.google;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.flight.exception.IngestFailureException;

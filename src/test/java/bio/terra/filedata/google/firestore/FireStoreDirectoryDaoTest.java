@@ -36,7 +36,8 @@ import static org.junit.Assert.assertTrue;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreDirectoryDaoTest {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.filedata.google.firestore.FireStoreDirectoryDaoTest");
+    private final Logger logger = LoggerFactory
+        .getLogger("bio.terra.filedata.google.firestore.FireStoreDirectoryDaoTest");
 
     @Autowired
     private FireStoreDirectoryDao directoryDao;

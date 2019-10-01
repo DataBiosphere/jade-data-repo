@@ -16,6 +16,8 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.service.DatasetService;
 import bio.terra.service.SamClientService;
+import bio.terra.tabulardata.google.BigQueryPdao;
+import bio.terra.tabulardata.google.BigQueryProject;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;

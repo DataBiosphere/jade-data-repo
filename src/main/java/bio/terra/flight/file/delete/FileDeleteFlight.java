@@ -26,13 +26,13 @@ public class FileDeleteFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         DataLocationService locationService = (DataLocationService) appContext.getBean("dataLocationService");
 
+        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
+        String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
+
         // TODO: fix this
         // Error handling within this constructor results in an obscure throw from
         // Java (INVOCATION_EXCEPTION), instead of getting a good DATASET_NOT_FOUND error.
         // We should NOT put code like that in the flight constructor.
-        String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
-        String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
-
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
         // The flight plan:

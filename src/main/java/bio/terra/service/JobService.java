@@ -164,15 +164,7 @@ public class JobService {
 
     public List<JobModel> enumerateJobs(
         int offset, int limit, AuthenticatedUserRequest userReq) {
-        boolean canListAnyJob = true;
-        if (userReq != null) {
-            // currently, this check will be true for stewards only
-            canListAnyJob = samService.isAuthorized(
-                userReq,
-                SamClientService.ResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                SamClientService.DataRepoAction.LIST_JOBS);
-        }
+        boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
         // if the user has access to all jobs, then fetch everything
         // otherwise, filter the jobs on the user
@@ -192,15 +184,7 @@ public class JobService {
     }
 
     public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
-        boolean canListAnyJob = true;
-        if (userReq != null) {
-            // currently, this check will be true for stewards only
-            canListAnyJob = samService.isAuthorized(
-                userReq,
-                SamClientService.ResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                SamClientService.DataRepoAction.LIST_JOBS);
-        }
+        boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
         // if the user has access to all jobs, then fetch the requested one
         // otherwise, check that the user has access to it first
@@ -234,15 +218,7 @@ public class JobService {
         String jobId,
         Class<T> resultClass,
         AuthenticatedUserRequest userReq) {
-        boolean canListAnyJob = true;
-        if (userReq != null) {
-            // currently, this check will be true for stewards only
-            canListAnyJob = samService.isAuthorized(
-                userReq,
-                SamClientService.ResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                SamClientService.DataRepoAction.LIST_JOBS);
-        }
+        boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
         // if the user has access to all jobs, then fetch the requested result
         // otherwise, check that the user has access to it first
@@ -297,6 +273,24 @@ public class JobService {
             throw new InvalidResultStateException("No result map returned from flight");
         }
         return resultMap;
+    }
+
+    private boolean checkUserCanListAnyJob(AuthenticatedUserRequest userReq) {
+        // TODO: investigate stubbing out SAM service in unit tests, then throw an exception here instead,
+        // or at least default to something other than steward-level access.
+        // this check is currently intended for handling unit tests that want to bypass a SAM check,
+        // not as an error checking mechanism in production.
+        if (userReq == null) {
+            return true;
+        }
+
+        // currently, this check will be true for stewards only
+        return samService.isAuthorized(
+            userReq,
+            SamClientService.ResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            SamClientService.DataRepoAction.LIST_JOBS);
+
     }
 
 }

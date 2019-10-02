@@ -1,12 +1,12 @@
 package bio.terra.filedata.google.firestore;
 
 import bio.terra.filedata.exception.FileNotFoundException;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSContainerInterface;
-import bio.terra.metadata.FSDir;
-import bio.terra.metadata.FSFile;
-import bio.terra.metadata.FSItem;
-import bio.terra.metadata.Snapshot;
+import bio.terra.dataset.Dataset;
+import bio.terra.filedata.FSContainerInterface;
+import bio.terra.filedata.FSDir;
+import bio.terra.filedata.FSFile;
+import bio.terra.filedata.FSItem;
+import bio.terra.snapshot.Snapshot;
 import com.google.cloud.firestore.Firestore;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;

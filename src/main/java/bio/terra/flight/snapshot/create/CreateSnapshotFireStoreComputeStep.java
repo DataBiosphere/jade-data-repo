@@ -2,7 +2,7 @@ package bio.terra.flight.snapshot.create;
 
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
-import bio.terra.metadata.Snapshot;
+import bio.terra.snapshot.Snapshot;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;

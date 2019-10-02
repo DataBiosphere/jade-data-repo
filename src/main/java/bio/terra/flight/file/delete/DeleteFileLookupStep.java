@@ -5,7 +5,7 @@ import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.filedata.google.firestore.FireStoreFile;
 import bio.terra.filedata.exception.FileDependencyException;
 import bio.terra.flight.file.FileMapKeys;
-import bio.terra.metadata.Dataset;
+import bio.terra.dataset.Dataset;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

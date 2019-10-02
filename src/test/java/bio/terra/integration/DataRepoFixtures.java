@@ -22,7 +22,7 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;

@@ -2,9 +2,9 @@ package bio.terra.flight.dataset.ingest;
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.flight.exception.InvalidFileRefException;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Table;
+import bio.terra.common.Column;
+import bio.terra.dataset.Dataset;
+import bio.terra.common.Table;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;

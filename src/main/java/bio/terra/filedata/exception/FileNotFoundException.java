@@ -1,6 +1,6 @@
 package bio.terra.filedata.exception;
 
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 
 public class FileNotFoundException extends NotFoundException {
     public FileNotFoundException(String message) {

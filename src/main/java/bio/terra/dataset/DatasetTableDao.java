@@ -1,11 +1,10 @@
 package bio.terra.dataset;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.utils.DaoKeyHolder;
-import bio.terra.utils.DaoUtils;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.DatasetTable;
-import bio.terra.metadata.Table;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.DaoUtils;
+import bio.terra.common.Column;
+import bio.terra.common.Table;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

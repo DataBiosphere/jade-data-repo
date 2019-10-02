@@ -1,11 +1,11 @@
 package bio.terra.flight.snapshot.delete;
 
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotSource;
+import bio.terra.dataset.Dataset;
+import bio.terra.snapshot.Snapshot;
+import bio.terra.snapshot.SnapshotSource;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.dataset.DatasetService;
 import bio.terra.snapshot.SnapshotService;

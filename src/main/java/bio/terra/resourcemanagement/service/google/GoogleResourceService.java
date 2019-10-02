@@ -1,13 +1,13 @@
 package bio.terra.resourcemanagement.service.google;
 
 import bio.terra.configuration.SamConfiguration;
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.filedata.google.gcs.GcsProject;
 import bio.terra.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceNotFoundException;
 import bio.terra.resourcemanagement.dao.google.GoogleResourceDao;
 import bio.terra.flight.exception.InaccessibleBillingAccountException;
-import bio.terra.metadata.BillingProfile;
+import bio.terra.resourcemanagement.BillingProfile;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketRequest;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;

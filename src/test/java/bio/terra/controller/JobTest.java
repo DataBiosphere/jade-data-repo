@@ -4,7 +4,7 @@ import bio.terra.category.Unit;
 import bio.terra.fixtures.FlightStates;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.JobModel;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;

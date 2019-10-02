@@ -1,7 +1,7 @@
 package bio.terra.fixtures;
 
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.JobMapKeys;
+import bio.terra.job.JobMapKeys;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;

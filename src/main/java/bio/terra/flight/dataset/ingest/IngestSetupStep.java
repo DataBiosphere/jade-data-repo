@@ -1,15 +1,15 @@
 package bio.terra.flight.dataset.ingest;
 
+import bio.terra.common.Column;
+import bio.terra.common.PdaoConstant;
+import bio.terra.common.Table;
+import bio.terra.dataset.Dataset;
+import bio.terra.dataset.DatasetService;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.InvalidIngestStrategyException;
 import bio.terra.flight.exception.InvalidUriException;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Table;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.pdao.PdaoConstant;
-import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

@@ -2,11 +2,11 @@ package bio.terra.flight.file.ingest;
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.filedata.google.firestore.FireStoreUtils;
-import bio.terra.metadata.Dataset;
+import bio.terra.dataset.Dataset;
 import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.dataset.DatasetService;
 import bio.terra.filedata.FileService;
-import bio.terra.service.JobMapKeys;
+import bio.terra.job.JobMapKeys;
 import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;

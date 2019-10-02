@@ -3,22 +3,22 @@ package bio.terra.tabulardata.google;
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.flight.exception.IngestFailureException;
 import bio.terra.flight.exception.IngestInterruptedException;
-import bio.terra.metadata.AssetSpecification;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.DatasetTable;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotMapColumn;
-import bio.terra.metadata.SnapshotMapTable;
-import bio.terra.metadata.SnapshotSource;
-import bio.terra.metadata.RowIdMatch;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Table;
-import bio.terra.metadata.SnapshotDataProject;
-import bio.terra.metadata.DatasetDataProject;
+import bio.terra.dataset.AssetSpecification;
+import bio.terra.common.Column;
+import bio.terra.dataset.DatasetTable;
+import bio.terra.snapshot.Snapshot;
+import bio.terra.snapshot.SnapshotMapColumn;
+import bio.terra.snapshot.SnapshotMapTable;
+import bio.terra.snapshot.SnapshotSource;
+import bio.terra.snapshot.RowIdMatch;
+import bio.terra.dataset.Dataset;
+import bio.terra.common.Table;
+import bio.terra.snapshot.SnapshotDataProject;
+import bio.terra.dataset.DatasetDataProject;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.pdao.PdaoLoadStatistics;
-import bio.terra.pdao.PrimaryDataAccess;
-import bio.terra.pdao.exception.PdaoException;
+import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.common.PrimaryDataAccess;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.resourcemanagement.dataproject.DataLocationService;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
@@ -53,12 +53,7 @@ import java.util.List;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import static bio.terra.pdao.PdaoConstant.PDAO_PREFIX;
-import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_COLUMN;
-import static bio.terra.pdao.PdaoConstant.PDAO_ROW_ID_TABLE;
-import static bio.terra.pdao.PdaoConstant.PDAO_TABLE_ID_COLUMN;
-import static bio.terra.pdao.PdaoConstant.STAGING_TABLE_ROW_ID_COLUMN;
-import static bio.terra.pdao.PdaoConstant.TARGET_TABLE_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.*;
 
 @Component
 @Profile("google")
@@ -81,7 +76,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
 
-    private BigQueryProject bigQueryProjectForSnapshot(bio.terra.metadata.Snapshot snapshot) {
+    private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
         SnapshotDataProject projectForSnapshot = dataLocationService.getProjectForSnapshot(snapshot);
         return BigQueryProject.get(projectForSnapshot.getGoogleProjectId());
     }
@@ -136,7 +131,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // - truncate (even tidier...)
     // So if we need to make this work in the long term, we can take that approach.
     @Override
-    public RowIdMatch mapValuesToRows(bio.terra.metadata.Snapshot snapshot,
+    public RowIdMatch mapValuesToRows(Snapshot snapshot,
                                       SnapshotSource source,
                                       List<String> inputValues) {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
@@ -200,7 +195,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void createSnapshot(bio.terra.metadata.Snapshot snapshot, List<String> rowIds) {
+    public void createSnapshot(Snapshot snapshot, List<String> rowIds) {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String projectId = bigQueryProject.getProjectId();
         String snapshotName = snapshot.getName();
@@ -262,7 +257,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void addReaderGroupToSnapshot(bio.terra.metadata.Snapshot snapshot, String readerPolicyGroupEmail) {
+    public void addReaderGroupToSnapshot(Snapshot snapshot, String readerPolicyGroupEmail) {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         bigQueryProject.addDatasetAcls(snapshot.getName(),
             Collections.singletonList(Acl.of(new Acl.Group(readerPolicyGroupEmail), Acl.Role.READER)));
@@ -300,7 +295,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public boolean deleteSnapshot(bio.terra.metadata.Snapshot snapshot) {
+    public boolean deleteSnapshot(Snapshot snapshot) {
         return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
     }
 
@@ -1085,7 +1080,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private List<String> createViews(
         String datasetBqDatasetName,
         String snapshotName,
-        bio.terra.metadata.Snapshot snapshot,
+        Snapshot snapshot,
         String projectId,
         BigQuery bigQuery) {
         return snapshot.getTables().stream().map(table -> {
@@ -1141,7 +1136,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                              String snapshotName,
                              Table table,
                              SnapshotSource source,
-                             bio.terra.metadata.Snapshot snapshot) {
+                             Snapshot snapshot) {
 
         // Find the table map for the table. If there is none, we skip it.
         // NOTE: for now, we know that there will be one, because we generate it directly.
@@ -1185,7 +1180,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private void buildSourceSelectList(StringBuilder builder,
                                        Table targetTable,
                                        SnapshotMapTable mapTable,
-                                       bio.terra.metadata.Snapshot snapshot,
+                                       Snapshot snapshot,
                                        SnapshotSource source) {
         String prefix = "";
 

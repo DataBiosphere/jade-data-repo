@@ -1,12 +1,12 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Table;
+import bio.terra.dataset.Dataset;
+import bio.terra.common.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.pdao.PdaoLoadStatistics;
+import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.tabulardata.google.BigQueryPdao;
-import bio.terra.service.JobMapKeys;
+import bio.terra.job.JobMapKeys;
 import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

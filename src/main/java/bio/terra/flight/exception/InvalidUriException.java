@@ -1,6 +1,6 @@
 package bio.terra.flight.exception;
 
-import bio.terra.exception.BadRequestException;
+import bio.terra.common.exception.BadRequestException;
 
 public class InvalidUriException extends BadRequestException {
     public InvalidUriException(String message) {

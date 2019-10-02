@@ -12,7 +12,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import bio.terra.filedata.DrsIdService;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import bio.terra.resourcemanagement.dataproject.DataLocationSelector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;

@@ -1,7 +1,7 @@
 package bio.terra.resourcemanagement.dataproject;
 
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Snapshot;
+import bio.terra.dataset.Dataset;
+import bio.terra.snapshot.Snapshot;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;

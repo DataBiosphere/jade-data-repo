@@ -1,10 +1,10 @@
 package bio.terra.tabulardata.google;
 
-import bio.terra.metadata.AssetRelationship;
-import bio.terra.metadata.AssetSpecification;
-import bio.terra.metadata.DatasetRelationship;
-import bio.terra.metadata.Table;
-import bio.terra.metadata.Column;
+import bio.terra.dataset.AssetRelationship;
+import bio.terra.dataset.AssetSpecification;
+import bio.terra.dataset.DatasetRelationship;
+import bio.terra.common.Table;
+import bio.terra.common.Column;
 
 import java.util.ArrayList;
 import java.util.List;

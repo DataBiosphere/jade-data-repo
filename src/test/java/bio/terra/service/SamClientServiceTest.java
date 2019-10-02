@@ -2,7 +2,8 @@ package bio.terra.service;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.model.sam.CreateResourceCorrectRequest;
+import bio.terra.iam.CreateResourceCorrectRequest;
+import bio.terra.iam.SamClientService;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequest;

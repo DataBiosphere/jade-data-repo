@@ -2,7 +2,7 @@ package bio.terra.resourcemanagement.controller;
 
 import bio.terra.controller.ControllerUtils;
 import bio.terra.controller.ResourcesApi;
-import bio.terra.metadata.BillingProfile;
+import bio.terra.resourcemanagement.BillingProfile;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;

@@ -10,7 +10,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.resourcemanagement.dao.ProfileDao;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

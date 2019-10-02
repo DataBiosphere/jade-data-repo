@@ -1,9 +1,9 @@
 package bio.terra.resourcemanagement.dao;
 
-import bio.terra.utils.DaoKeyHolder;
+import bio.terra.common.DaoKeyHolder;
 import bio.terra.resourcemanagement.ProfileNotFoundException;
-import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.MetadataEnumeration;
+import bio.terra.resourcemanagement.BillingProfile;
+import bio.terra.common.MetadataEnumeration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;

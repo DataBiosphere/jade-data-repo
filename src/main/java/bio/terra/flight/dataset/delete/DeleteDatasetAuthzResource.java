@@ -1,9 +1,9 @@
 package bio.terra.flight.dataset.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

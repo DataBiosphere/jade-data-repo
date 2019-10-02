@@ -1,6 +1,6 @@
 package bio.terra.snapshot;
 
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 
 public class SnapshotNotFoundException extends NotFoundException {
     public SnapshotNotFoundException(String message) {

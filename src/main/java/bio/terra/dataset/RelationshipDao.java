@@ -1,10 +1,8 @@
 package bio.terra.dataset;
 
-import bio.terra.utils.DaoKeyHolder;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetRelationship;
-import bio.terra.metadata.Table;
-import bio.terra.metadata.Column;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.Table;
+import bio.terra.common.Column;
 import bio.terra.model.RelationshipTermModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;

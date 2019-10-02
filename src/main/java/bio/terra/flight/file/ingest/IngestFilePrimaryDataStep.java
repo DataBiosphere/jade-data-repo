@@ -2,12 +2,12 @@ package bio.terra.flight.file.ingest;
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.flight.file.FileMapKeys;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.FSFileInfo;
+import bio.terra.dataset.Dataset;
+import bio.terra.filedata.FSFileInfo;
 import bio.terra.model.FileLoadModel;
 import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.resourcemanagement.metadata.google.GoogleBucketResource;
-import bio.terra.service.JobMapKeys;
+import bio.terra.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

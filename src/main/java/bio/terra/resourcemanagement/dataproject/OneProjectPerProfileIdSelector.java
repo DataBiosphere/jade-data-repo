@@ -1,8 +1,8 @@
 package bio.terra.resourcemanagement.dataproject;
 
-import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Snapshot;
+import bio.terra.resourcemanagement.BillingProfile;
+import bio.terra.dataset.Dataset;
+import bio.terra.snapshot.Snapshot;
 import bio.terra.resourcemanagement.service.ProfileService;
 import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;

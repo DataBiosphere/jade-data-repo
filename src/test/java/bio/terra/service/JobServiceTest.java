@@ -2,6 +2,8 @@ package bio.terra.service;
 
 import bio.terra.category.Unit;
 import bio.terra.controller.AuthenticatedUserRequest;
+import bio.terra.job.JobMapKeys;
+import bio.terra.job.JobService;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;

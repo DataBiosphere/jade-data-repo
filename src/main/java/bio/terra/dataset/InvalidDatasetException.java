@@ -1,6 +1,6 @@
 package bio.terra.dataset;
 
-import bio.terra.exception.BadRequestException;
+import bio.terra.common.exception.BadRequestException;
 
 import java.util.List;
 

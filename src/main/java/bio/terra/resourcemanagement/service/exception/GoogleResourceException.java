@@ -1,6 +1,6 @@
 package bio.terra.resourcemanagement.service.exception;
 
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 public class GoogleResourceException extends InternalServerErrorException {
     public GoogleResourceException(String message) {

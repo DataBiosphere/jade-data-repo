@@ -1,11 +1,11 @@
 package bio.terra.flight.snapshot.create;
 
 import bio.terra.snapshot.SnapshotDao;
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.snapshot.SnapshotWorkingMapKeys;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotSummary;
+import bio.terra.snapshot.Snapshot;
+import bio.terra.snapshot.SnapshotSummary;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.snapshot.SnapshotService;

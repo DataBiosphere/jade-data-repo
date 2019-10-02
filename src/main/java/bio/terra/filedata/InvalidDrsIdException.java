@@ -1,6 +1,6 @@
 package bio.terra.filedata;
 
-import bio.terra.exception.BadRequestException;
+import bio.terra.common.exception.BadRequestException;
 
 public class InvalidDrsIdException extends BadRequestException {
     public InvalidDrsIdException(String message) {

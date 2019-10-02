@@ -1,7 +1,7 @@
 package bio.terra.resourcemanagement.dataproject;
 
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Snapshot;
+import bio.terra.dataset.Dataset;
+import bio.terra.snapshot.Snapshot;
 
 public interface DataLocationSelector {
 

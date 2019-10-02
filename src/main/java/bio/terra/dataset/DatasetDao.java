@@ -1,12 +1,10 @@
 package bio.terra.dataset;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
-import bio.terra.utils.DaoKeyHolder;
-import bio.terra.utils.DaoUtils;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.DaoUtils;
 import bio.terra.snapshot.CorruptMetadataException;
-import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.DatasetSummary;
+import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;

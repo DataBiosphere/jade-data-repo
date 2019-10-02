@@ -1,6 +1,6 @@
 package bio.terra.snapshot;
 
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 public class CorruptMetadataException extends InternalServerErrorException {
     public CorruptMetadataException(String message) {

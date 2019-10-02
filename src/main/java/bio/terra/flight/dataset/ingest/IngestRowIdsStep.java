@@ -1,6 +1,6 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.metadata.Dataset;
+import bio.terra.dataset.Dataset;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;

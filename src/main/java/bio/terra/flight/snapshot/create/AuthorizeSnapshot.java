@@ -1,18 +1,18 @@
 package bio.terra.flight.snapshot.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.flight.dataset.create.CreateDatasetAuthzResource;
 import bio.terra.flight.snapshot.SnapshotWorkingMapKeys;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotSource;
+import bio.terra.dataset.Dataset;
+import bio.terra.snapshot.Snapshot;
+import bio.terra.snapshot.SnapshotSource;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.dataset.DatasetService;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import bio.terra.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

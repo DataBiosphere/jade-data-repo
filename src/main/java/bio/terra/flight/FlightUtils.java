@@ -1,7 +1,7 @@
 package bio.terra.flight;
 
 import bio.terra.model.ErrorModel;
-import bio.terra.service.JobMapKeys;
+import bio.terra.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import org.apache.commons.lang3.StringUtils;

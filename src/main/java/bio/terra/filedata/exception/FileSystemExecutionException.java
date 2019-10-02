@@ -1,6 +1,6 @@
 package bio.terra.filedata.exception;
 
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 public class FileSystemExecutionException extends InternalServerErrorException {
     public FileSystemExecutionException(String message) {

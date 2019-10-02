@@ -2,8 +2,8 @@ package bio.terra.resourcemanagement.service;
 
 import bio.terra.filedata.google.gcs.GcsConfiguration;
 import bio.terra.resourcemanagement.dao.ProfileDao;
-import bio.terra.metadata.BillingProfile;
-import bio.terra.metadata.MetadataEnumeration;
+import bio.terra.resourcemanagement.BillingProfile;
+import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DeleteResponseModel;

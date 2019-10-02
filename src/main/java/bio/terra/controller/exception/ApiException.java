@@ -1,6 +1,6 @@
 package bio.terra.controller.exception;
 
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 public class ApiException extends InternalServerErrorException {
     public ApiException(String message) {

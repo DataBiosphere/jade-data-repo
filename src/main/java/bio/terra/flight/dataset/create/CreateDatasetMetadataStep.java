@@ -2,11 +2,11 @@ package bio.terra.flight.dataset.create;
 
 import bio.terra.dataset.DatasetDao;
 import bio.terra.flight.dataset.DatasetWorkingMapKeys;
-import bio.terra.metadata.Dataset;
-import bio.terra.model.DatasetJsonConversion;
+import bio.terra.dataset.Dataset;
+import bio.terra.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.JobMapKeys;
+import bio.terra.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

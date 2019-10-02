@@ -2,7 +2,7 @@ package bio.terra.filedata.google.firestore;
 
 import bio.terra.filedata.exception.FileSystemCorruptException;
 import bio.terra.filedata.exception.FileSystemExecutionException;
-import bio.terra.metadata.Dataset;
+import bio.terra.dataset.Dataset;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;

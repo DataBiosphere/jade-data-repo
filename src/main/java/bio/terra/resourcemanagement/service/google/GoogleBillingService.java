@@ -1,6 +1,6 @@
 package bio.terra.resourcemanagement.service.google;
 
-import bio.terra.metadata.BillingProfile;
+import bio.terra.resourcemanagement.BillingProfile;
 import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
 import bio.terra.resourcemanagement.BillingService;
 import bio.terra.resourcemanagement.service.exception.BillingServiceException;

@@ -1,6 +1,6 @@
 package bio.terra.flight.snapshot.create;
 
-import bio.terra.exception.BadRequestException;
+import bio.terra.common.exception.BadRequestException;
 
 public class MismatchedValueException extends BadRequestException {
     public MismatchedValueException(String message) {

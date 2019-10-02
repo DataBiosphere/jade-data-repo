@@ -1,6 +1,6 @@
 package bio.terra.resourcemanagement.dao.google;
 
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 
 public class GoogleResourceNotFoundException extends NotFoundException {
     public GoogleResourceNotFoundException(String message) {

@@ -1,12 +1,12 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.flight.dataset.DatasetWorkingMapKeys;
-import bio.terra.metadata.Dataset;
+import bio.terra.dataset.Dataset;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.dataset.DatasetService;
-import bio.terra.service.SamClientService;
+import bio.terra.iam.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

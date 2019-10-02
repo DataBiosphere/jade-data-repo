@@ -1,6 +1,6 @@
 package bio.terra.resourcemanagement.service.exception;
 
-import bio.terra.exception.InternalServerErrorException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 public class BillingServiceException extends InternalServerErrorException {
     public BillingServiceException(String message) {

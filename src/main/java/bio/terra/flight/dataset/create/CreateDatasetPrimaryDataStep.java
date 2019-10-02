@@ -1,9 +1,9 @@
 package bio.terra.flight.dataset.create;
 
 import bio.terra.flight.dataset.DatasetWorkingMapKeys;
-import bio.terra.metadata.Dataset;
-import bio.terra.pdao.PrimaryDataAccess;
-import bio.terra.service.JobMapKeys;
+import bio.terra.dataset.Dataset;
+import bio.terra.common.PrimaryDataAccess;
+import bio.terra.job.JobMapKeys;
 import bio.terra.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;

@@ -1,8 +1,8 @@
 package bio.terra.flight.snapshot.delete;
 
 import bio.terra.controller.AuthenticatedUserRequest;
-import bio.terra.exception.InternalServerErrorException;
-import bio.terra.service.SamClientService;
+import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.iam.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

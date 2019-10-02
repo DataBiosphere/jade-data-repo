@@ -1,14 +1,11 @@
 package bio.terra.snapshot;
 
 import bio.terra.dataset.DatasetDao;
-import bio.terra.metadata.AssetSpecification;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotSource;
-import bio.terra.metadata.SnapshotSummary;
-import bio.terra.metadata.MetadataEnumeration;
-import bio.terra.metadata.Dataset;
-import bio.terra.utils.DaoKeyHolder;
-import bio.terra.utils.DaoUtils;
+import bio.terra.dataset.AssetSpecification;
+import bio.terra.common.MetadataEnumeration;
+import bio.terra.dataset.Dataset;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.DaoUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

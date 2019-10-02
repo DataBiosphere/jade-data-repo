@@ -1,6 +1,7 @@
 package bio.terra.validation;
 
 import bio.terra.category.Unit;
+import bio.terra.common.ValidationUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

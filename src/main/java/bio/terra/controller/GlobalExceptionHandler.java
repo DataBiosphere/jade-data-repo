@@ -1,13 +1,13 @@
 package bio.terra.controller;
 
-import bio.terra.exception.BadRequestException;
-import bio.terra.exception.DataRepoException;
-import bio.terra.exception.InternalServerErrorException;
-import bio.terra.exception.NotFoundException;
-import bio.terra.exception.NotImplementedException;
-import bio.terra.exception.UnauthorizedException;
+import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.DataRepoException;
+import bio.terra.common.exception.InternalServerErrorException;
+import bio.terra.common.exception.NotFoundException;
+import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
-import bio.terra.service.exception.JobResponseException;
+import bio.terra.job.JobResponseException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

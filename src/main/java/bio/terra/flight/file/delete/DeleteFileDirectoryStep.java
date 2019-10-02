@@ -2,7 +2,7 @@ package bio.terra.flight.file.delete;
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.flight.FlightUtils;
-import bio.terra.metadata.Dataset;
+import bio.terra.dataset.Dataset;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

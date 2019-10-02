@@ -1,6 +1,6 @@
 package bio.terra.flight.exception;
 
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 
 public class IngestFileNotFoundException extends NotFoundException {
     public IngestFileNotFoundException(String message) {

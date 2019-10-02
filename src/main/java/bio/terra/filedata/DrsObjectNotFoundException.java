@@ -1,6 +1,6 @@
 package bio.terra.filedata;
 
-import bio.terra.exception.NotFoundException;
+import bio.terra.common.exception.NotFoundException;
 
 public class DrsObjectNotFoundException extends NotFoundException {
     public DrsObjectNotFoundException(String message) {

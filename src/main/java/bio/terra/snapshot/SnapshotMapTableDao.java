@@ -1,13 +1,9 @@
 package bio.terra.snapshot;
 
-import bio.terra.utils.DaoKeyHolder;
-import bio.terra.metadata.Column;
-import bio.terra.metadata.DatasetTable;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotMapColumn;
-import bio.terra.metadata.SnapshotMapTable;
-import bio.terra.metadata.SnapshotSource;
-import bio.terra.metadata.Table;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.Column;
+import bio.terra.dataset.DatasetTable;
+import bio.terra.common.Table;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;

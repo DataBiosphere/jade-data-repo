@@ -2,9 +2,9 @@ package bio.terra.controller;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.controller.exception.ValidationException;
-import bio.terra.exception.BadRequestException;
-import bio.terra.exception.NotFoundException;
-import bio.terra.exception.NotImplementedException;
+import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.NotFoundException;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;

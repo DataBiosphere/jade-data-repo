@@ -1,6 +1,6 @@
 package bio.terra.filedata.google.firestore;
 
-import bio.terra.exception.NotImplementedException;
+import bio.terra.common.exception.NotImplementedException;
 import bio.terra.filedata.exception.FileSystemCorruptException;
 import bio.terra.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;

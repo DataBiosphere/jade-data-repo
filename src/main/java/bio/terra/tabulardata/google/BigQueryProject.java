@@ -1,6 +1,6 @@
 package bio.terra.tabulardata.google;
 
-import bio.terra.pdao.exception.PdaoException;
+import bio.terra.common.exception.PdaoException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;

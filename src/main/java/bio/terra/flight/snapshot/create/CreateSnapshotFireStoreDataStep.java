@@ -2,11 +2,11 @@ package bio.terra.flight.snapshot.create;
 
 import bio.terra.filedata.google.firestore.FireStoreDao;
 import bio.terra.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Snapshot;
-import bio.terra.metadata.SnapshotMapColumn;
-import bio.terra.metadata.SnapshotMapTable;
-import bio.terra.metadata.SnapshotSource;
+import bio.terra.dataset.Dataset;
+import bio.terra.snapshot.Snapshot;
+import bio.terra.snapshot.SnapshotMapColumn;
+import bio.terra.snapshot.SnapshotMapTable;
+import bio.terra.snapshot.SnapshotSource;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.tabulardata.google.BigQueryPdao;
 import bio.terra.dataset.DatasetService;

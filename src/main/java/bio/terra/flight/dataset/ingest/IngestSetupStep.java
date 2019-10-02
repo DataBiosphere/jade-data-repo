@@ -1,8 +1,8 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.exception.BadRequestException;
 import bio.terra.flight.FlightUtils;
 import bio.terra.flight.exception.IngestFileNotFoundException;
+import bio.terra.flight.exception.InvalidIngestStrategyException;
 import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
@@ -16,6 +16,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
@@ -23,7 +24,6 @@ import com.google.cloud.storage.StorageOptions;
 import liquibase.util.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 
 /**
  * The setup step required to generate the staging file name.
@@ -59,15 +59,11 @@ public class IngestSetupStep implements Step {
         IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
         IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(ingestRequestModel.getPath());
 
-        // FIXME: This check is preventing us from using wildcard patterns to ingest,
-        //  which is a giant PITA. How can we enable the pattern-matching without losing
-        //  the safety check?
-        //  https://cloud.google.com/bigquery/docs/loading-data-cloud-storage#load-wildcards
         try {
             Storage storage = StorageOptions.getDefaultInstance().getService();
             BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
-            boolean blobExists = Optional.ofNullable(storage.get(blobId)).map(blob -> blob.exists()).orElse(false);
-            if (!blobExists) {
+            Blob blob = storage.get(blobId);
+            if (blob == null || !blob.exists()) {
                 throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequestModel.getPath());
             }
         } catch (StorageException ex) {
@@ -89,7 +85,7 @@ public class IngestSetupStep implements Step {
                 .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
                 .getPrimaryKey();
             if (primaryKey.size() < 1) {
-                throw new BadRequestException(
+                throw new InvalidIngestStrategyException(
                     "Cannot use ingestStrategy `upsert` on table with no primary key: " + targetTable.getName());
             }
 

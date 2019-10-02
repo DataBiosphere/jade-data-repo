@@ -71,39 +71,37 @@ public class IngestTest extends UsersBase {
     @Ignore  // subset of the snapshot test; not worth running everytime, but useful for debugging
     @Test
     public void ingestParticipants() throws Exception {
-        IngestResponseModel ingestResponse =
-            dataRepoFixtures.ingestJsonData(
-                steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
+        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
 
     @Test
     public void ingestUpdatedParticipants() throws Exception {
         ingestParticipants();
-        IngestResponseModel ingestResponse =
-            dataRepoFixtures.ingestJsonData(
-                steward(),
-                datasetId,
-                "participant",
-                "ingest-test/ingest-test-updated-participant.json",
-                IngestRequestModel.StrategyEnum.UPSERT);
+        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-updated-participant.json", IngestRequestModel.StrategyEnum.UPSERT);
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         // FIXME: Ideally we'd be able to assert on the # of rows added, updated, and left unchanged.
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
     }
 
     @Test
     public void ingestBuildSnapshot() throws Exception {
-        IngestResponseModel ingestResponse =
-            dataRepoFixtures.ingestJsonData(
-                steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
+        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
-        ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
+        ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+        ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
-        ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
+        ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
+        ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 
         SnapshotSummaryModel snapshotSummary =
@@ -113,13 +111,15 @@ public class IngestTest extends UsersBase {
 
     @Test
     public void ingestUnauthorizedTest() throws Exception {
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
         DataRepoResponse<JobModel> ingestCustResp = dataRepoFixtures.ingestJsonDataLaunch(
-                custodian(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
+            custodian(), datasetId, request);
         assertThat("Custodian is not authorized to ingest data",
             ingestCustResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
         DataRepoResponse<JobModel> ingestReadResp = dataRepoFixtures.ingestJsonDataLaunch(
-                reader(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
+                reader(), datasetId, request);
         assertThat("Reader is not authorized to ingest data",
             ingestReadResp.getStatusCode(),
             equalTo(HttpStatus.UNAUTHORIZED));
@@ -127,22 +127,24 @@ public class IngestTest extends UsersBase {
 
     @Test
     public void ingestAppendNoPkTest() throws Exception {
-        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
-        ingestResponse = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
+
+        ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
     }
 
     @Test
     public void ingestUpsertNoPkTest() throws Exception {
-        IngestResponseModel ingestOne = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "file", "ingest-test/ingest-test-file.json");
-        assertThat("correct file row count", ingestOne.getRowCount(), equalTo(1L));
+        IngestRequestModel requestOne = dataRepoFixtures.buildSimpleIngest(
+            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestResponseModel responseOne = dataRepoFixtures.ingestJsonData(steward(), datasetId, requestOne);
+        assertThat("correct file row count", responseOne.getRowCount(), equalTo(1L));
+
         DataRepoResponse<JobModel> upsertJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
-            steward(), datasetId, "file", "ingest-test/ingest-test-file.json",
-            IngestRequestModel.StrategyEnum.UPSERT);
+            steward(), datasetId, requestOne.strategy(IngestRequestModel.StrategyEnum.UPSERT));
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
             steward(), upsertJobResponse, IngestResponseModel.class);
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));

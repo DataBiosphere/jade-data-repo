@@ -38,7 +38,7 @@ public class FlightMap {
 
     /**
      * Return the object from the hash map cast to the right type.
-     * Return null, if the Object cannot be cast to that type.
+     * Throw an exception if the Object cannot be cast to that type.
      *
      * @param key - key to lookup in the hash map
      * @param type - class requested

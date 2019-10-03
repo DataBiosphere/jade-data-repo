@@ -125,19 +125,15 @@ public class Stairway {
         launchFlight(flight);
     }
 
-    public void verifyListFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
-        if (userRequestInfo != null && !userRequestInfo.canListJobs()) {
-            verifyUserAccess(flightId, userRequestInfo);
-        }
-    }
-
-    public void verifyDeleteFlightAccess(String flightId, UserRequestInfo userRequestInfo) {
-        if (userRequestInfo != null && !userRequestInfo.canDeleteJobs()) {
-            verifyUserAccess(flightId, userRequestInfo);
-        }
-    }
-
-    private void verifyUserAccess(String flightId, UserRequestInfo userRequestInfo) {
+    /**
+     * Check that a user has access to a flight. Currently, this just checks that the user
+     * is the owner of the flight.
+     *
+     * @param flightId id of flight to check
+     * @param userRequestInfo subset of information about the user that can be used to determine access
+     * @throws RuntimeException if the user does not have access to the flight
+     */
+    public void verifyUserAccess(String flightId, UserRequestInfo userRequestInfo) {
         boolean hasAccess;
         try {
             hasAccess = flightDao.ownsFlight(flightId, userRequestInfo.getSubjectId());

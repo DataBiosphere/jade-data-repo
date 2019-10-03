@@ -26,7 +26,6 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,13 +48,10 @@ public class DatasetService {
     }
 
     public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
-        return jobService.submitAndWait(
-            "Create dataset " + datasetRequest.getName(),
-            DatasetCreateFlight.class,
-            datasetRequest,
-            Collections.EMPTY_MAP,
-            userReq,
-            DatasetSummaryModel.class);
+        String description = "Create dataset " + datasetRequest.getName();
+        return jobService
+            .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
+            .submitAndWait(DatasetSummaryModel.class);
     }
 
     public Dataset retrieve(UUID id) {
@@ -86,13 +82,11 @@ public class DatasetService {
     }
 
     public DeleteResponseModel delete(String id, AuthenticatedUserRequest userReq) {
-        return jobService.submitAndWait(
-            "Delete dataset " + id,
-            DatasetDeleteFlight.class,
-            null,
-            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
-            userReq,
-            DeleteResponseModel.class);
+        String description = "Delete dataset " + id;
+        return jobService
+            .newJob(description, DatasetDeleteFlight.class, null, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+            .submitAndWait(DeleteResponseModel.class);
     }
 
     public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
@@ -105,11 +99,9 @@ public class DatasetService {
             "Ingest from " + ingestRequestModel.getPath() +
                 " to " + ingestRequestModel.getTable() +
                 " in dataset id " + id;
-        return jobService.submit(
-            description,
-            DatasetIngestFlight.class,
-            ingestRequestModel,
-            Collections.singletonMap(JobMapKeys.DATASET_ID.getKeyName(), id),
-            userReq);
+        return jobService
+            .newJob(description, DatasetIngestFlight.class, ingestRequestModel, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
+            .submit();
     }
 }

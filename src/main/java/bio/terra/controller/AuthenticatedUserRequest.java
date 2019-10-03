@@ -12,8 +12,6 @@ public class AuthenticatedUserRequest {
     private String subjectId;
     private Optional<String> token;
     private UUID reqId;
-    private boolean canListJobs;
-    private boolean canDeleteJobs;
 
     public AuthenticatedUserRequest() {
         this.reqId = UUID.randomUUID();
@@ -66,24 +64,6 @@ public class AuthenticatedUserRequest {
 
     public AuthenticatedUserRequest reqId(UUID reqId) {
         this.reqId = reqId;
-        return this;
-    }
-
-    public boolean getCanListJobs() {
-        return canListJobs;
-    }
-
-    public AuthenticatedUserRequest canListJobs(boolean canListJobs) {
-        this.canListJobs = canListJobs;
-        return this;
-    }
-
-    public boolean getCanDeleteJobs() {
-        return canDeleteJobs;
-    }
-
-    public AuthenticatedUserRequest canDeleteJobs(boolean canDeleteJobs) {
-        this.canDeleteJobs = canDeleteJobs;
         return this;
     }
 

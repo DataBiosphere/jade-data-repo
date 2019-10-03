@@ -14,7 +14,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
-import java.util.Map;
 import java.util.UUID;
 
 public class SnapshotDeleteFlight extends Flight {
@@ -32,9 +31,8 @@ public class SnapshotDeleteFlight extends Flight {
         SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
 
-        Map<String, String> pathParams = (Map<String, String>) inputParameters.get(
-            JobMapKeys.PATH_PARAMETERS.getKeyName(), Map.class);
-        UUID snapshotId = UUID.fromString(pathParams.get(JobMapKeys.SNAPSHOT_ID.getKeyName()));
+        UUID snapshotId = UUID.fromString(inputParameters.get(
+            JobMapKeys.SNAPSHOT_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 

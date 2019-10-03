@@ -4,6 +4,7 @@ import bio.terra.category.Integration;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -55,10 +56,13 @@ public class SnapshotTest extends UsersBase {
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
-        dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
-        dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
+
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+        request = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     }
 
     @After

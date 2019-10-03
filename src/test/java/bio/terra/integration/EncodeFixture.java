@@ -8,6 +8,7 @@ import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FileModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.SamClientService;
@@ -67,8 +68,12 @@ public class EncodeFixture {
         String targetPath = loadFiles(datasetSummary.getId(), billingProfile.getId(), steward, stewardStorage);
 
         // Load the tables
-        dataRepoFixtures.ingestJsonData(steward, datasetId, "file", targetPath);
-        dataRepoFixtures.ingestJsonData(steward, datasetId, "donor", "encodetest/donor.json");
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, request);
+        request = dataRepoFixtures.buildSimpleIngest(
+            "donor", "encodetest/donor.json", IngestRequestModel.StrategyEnum.APPEND);
+        dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
         // Delete the scratch blob
         Blob scratchBlob = stewardStorage.get(BlobId.of(testConfiguration.getIngestbucket(), targetPath));

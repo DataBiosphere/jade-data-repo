@@ -28,7 +28,15 @@ public class IngestUpsertIntoDatasetTableStep implements Step {
         String stagingTableName = IngestUtils.getStagingTableName(context);
         String overlappingTableName = IngestUtils.getOverlappingTableName(context);
 
+        bigQueryPdao.upsertIntoDatasetTable(dataset, targetTable, stagingTableName, overlappingTableName);
+
         IngestRequestModel ingestRequest = IngestUtils.getIngestRequestModel(context);
+        // FIXME: Using the initial load stats is misleading in the upsert case.
+        //  Ideally we'd report separate numbers for:
+        //    1. Number of new rows added
+        //    2. Number of rows updated
+        //    3. Number of rows unchanged
+        //  The append case could use the same model, with the existing counts all going into bin 1.
         PdaoLoadStatistics loadStatistics = IngestUtils.getIngestStatistics(context);
 
         IngestResponseModel ingestResponse = new IngestResponseModel()
@@ -40,8 +48,6 @@ public class IngestUpsertIntoDatasetTableStep implements Step {
             .badRowCount(loadStatistics.getBadRecords())
             .rowCount(loadStatistics.getRowCount());
         context.getWorkingMap().put(JobMapKeys.RESPONSE.getKeyName(), ingestResponse);
-
-        bigQueryPdao.upsertIntoDatasetTable(dataset, targetTable, stagingTableName, overlappingTableName);
 
         return StepResult.getStepResultSuccess();
     }

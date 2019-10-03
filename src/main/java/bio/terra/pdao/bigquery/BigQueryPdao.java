@@ -402,10 +402,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sql.toString());
     }
 
-    public void getOverlappingRows(Dataset dataset,
-                                    Table targetTable,
-                                    String stagingTableName,
-                                    String overlappingTableName) {
+    public void loadOverlapTable(Dataset dataset,
+                                 Table targetTable,
+                                 String stagingTableName,
+                                 String overlappingTableName) {
         /*
          * INSERT INTO overlappingTableName
          * (STAGING_TABLE_ID_COLUMN, TARGET_TABLE_ID_COLUMN)

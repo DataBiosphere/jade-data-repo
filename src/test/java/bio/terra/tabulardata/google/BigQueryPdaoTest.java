@@ -13,7 +13,7 @@ import bio.terra.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.resourcemanagement.service.google.GoogleResourceConfiguration;
+import bio.terra.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.dataset.DatasetService;
 import bio.terra.iam.SamClientService;
 import com.google.cloud.bigquery.FieldValueList;

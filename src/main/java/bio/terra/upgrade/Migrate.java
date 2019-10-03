@@ -2,6 +2,7 @@ package bio.terra.upgrade;
 
 import bio.terra.configuration.DataRepoJdbcConfiguration;
 import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.upgrade.exception.MigrateException;
 import liquibase.Contexts;
 import liquibase.Liquibase;
 import liquibase.database.jvm.JdbcConnection;

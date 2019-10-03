@@ -1,6 +1,6 @@
 package bio.terra.dataset;
 
-import bio.terra.resourcemanagement.metadata.google.GoogleProjectResource;
+import bio.terra.resourcemanagement.google.GoogleProjectResource;
 
 import java.util.List;
 import java.util.UUID;

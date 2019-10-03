@@ -1,13 +1,6 @@
 package bio.terra.common;
 
-import bio.terra.common.Column;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Generic class for tables. It can be used for both dataset and snapshot tables.

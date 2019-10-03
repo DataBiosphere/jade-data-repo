@@ -1,5 +1,6 @@
 package bio.terra.filedata;
 
+import bio.terra.filedata.exception.InvalidDrsIdException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 import java.net.URI;

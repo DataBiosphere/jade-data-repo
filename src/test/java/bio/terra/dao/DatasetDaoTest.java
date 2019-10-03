@@ -1,7 +1,7 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.dataset.DatasetNotFoundException;
+import bio.terra.dataset.exception.DatasetNotFoundException;
 import bio.terra.dataset.DatasetDao;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.ProfileFixtures;
@@ -15,7 +15,7 @@ import bio.terra.dataset.DatasetSummary;
 import bio.terra.common.Table;
 import bio.terra.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.ProfileDao;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;

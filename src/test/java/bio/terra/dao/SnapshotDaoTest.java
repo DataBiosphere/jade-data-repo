@@ -16,7 +16,7 @@ import bio.terra.common.Table;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.resourcemanagement.dao.ProfileDao;
+import bio.terra.resourcemanagement.ProfileDao;
 import bio.terra.snapshot.SnapshotService;
 import bio.terra.snapshot.SnapshotDao;
 import org.junit.After;

@@ -1,12 +1,12 @@
 package bio.terra.dao;
 
 import bio.terra.category.Unit;
-import bio.terra.resourcemanagement.ProfileNotFoundException;
+import bio.terra.resourcemanagement.exception.ProfileNotFoundException;
 import bio.terra.fixtures.ProfileFixtures;
 import bio.terra.resourcemanagement.BillingProfile;
 import bio.terra.common.MetadataEnumeration;
-import bio.terra.resourcemanagement.dao.ProfileDao;
-import bio.terra.resourcemanagement.service.ProfileService;
+import bio.terra.resourcemanagement.ProfileDao;
+import bio.terra.resourcemanagement.ProfileService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

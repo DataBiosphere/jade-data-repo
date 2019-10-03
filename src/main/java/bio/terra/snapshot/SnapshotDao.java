@@ -6,6 +6,8 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.snapshot.exception.CorruptMetadataException;
+import bio.terra.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

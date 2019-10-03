@@ -4,6 +4,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Column;
 import bio.terra.dataset.DatasetTable;
 import bio.terra.common.Table;
+import bio.terra.snapshot.exception.CorruptMetadataException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;

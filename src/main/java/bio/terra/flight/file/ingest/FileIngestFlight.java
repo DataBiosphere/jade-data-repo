@@ -7,7 +7,7 @@ import bio.terra.filedata.google.gcs.GcsPdao;
 import bio.terra.dataset.DatasetService;
 import bio.terra.filedata.FileService;
 import bio.terra.job.JobMapKeys;
-import bio.terra.resourcemanagement.dataproject.DataLocationService;
+import bio.terra.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;

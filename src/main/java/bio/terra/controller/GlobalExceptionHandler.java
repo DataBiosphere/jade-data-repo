@@ -7,7 +7,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
-import bio.terra.job.JobResponseException;
+import bio.terra.job.exception.JobResponseException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

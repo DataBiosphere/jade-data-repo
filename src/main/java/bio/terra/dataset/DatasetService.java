@@ -10,7 +10,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.job.JobMapKeys;
 import bio.terra.job.JobService;
-import bio.terra.resourcemanagement.dataproject.DataLocationService;
+import bio.terra.resourcemanagement.DataLocationService;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;

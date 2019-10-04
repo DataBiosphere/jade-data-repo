@@ -1,6 +1,6 @@
 package bio.terra.fixtures;
 
-import bio.terra.resourcemanagement.BillingProfile;
+import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.model.BillingProfileRequestModel;
 
 import java.util.ArrayList;

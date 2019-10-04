@@ -1,9 +1,9 @@
 package bio.terra;
 
-import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.FlightDao;
 import bio.terra.stairway.Stairway;
-import bio.terra.upgrade.Migrate;
+import bio.terra.service.upgrade.Migrate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;

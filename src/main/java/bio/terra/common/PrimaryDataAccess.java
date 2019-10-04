@@ -1,9 +1,9 @@
 package bio.terra.common;
 
-import bio.terra.snapshot.Snapshot;
-import bio.terra.snapshot.SnapshotSource;
-import bio.terra.snapshot.RowIdMatch;
-import bio.terra.dataset.Dataset;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.RowIdMatch;
+import bio.terra.service.dataset.Dataset;
 
 import java.util.List;
 

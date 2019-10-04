@@ -8,7 +8,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.iam.SamClientService;
+import bio.terra.service.iam.SamClientService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

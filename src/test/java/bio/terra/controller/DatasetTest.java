@@ -1,17 +1,17 @@
 package bio.terra.controller;
 
 import bio.terra.category.Unit;
-import bio.terra.controller.exception.ApiException;
-import bio.terra.dataset.exception.DatasetNotFoundException;
+import bio.terra.app.controller.exception.ApiException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.fixtures.DatasetFixtures;
-import bio.terra.dataset.Dataset;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.model.AssetModel;
-import bio.terra.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.iam.SamClientService;
-import bio.terra.dataset.DatasetService;
+import bio.terra.service.iam.SamClientService;
+import bio.terra.service.dataset.DatasetService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

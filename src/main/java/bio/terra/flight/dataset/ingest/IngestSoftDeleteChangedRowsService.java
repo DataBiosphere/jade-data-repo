@@ -1,12 +1,13 @@
 package bio.terra.flight.dataset.ingest;
 
-import bio.terra.dataset.DatasetService;
-import bio.terra.metadata.Dataset;
-import bio.terra.metadata.Table;
+import bio.terra.common.Table;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import bio.terra.tabulardata.google.BigQueryPdao;
 
 public class IngestSoftDeleteChangedRowsService implements Step {
     private DatasetService datasetService;

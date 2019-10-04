@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
-import bio.terra.filedata.google.firestore.EncodeFileIn;
-import bio.terra.filedata.google.firestore.EncodeFileOut;
+import bio.terra.service.filedata.google.firestore.EncodeFileIn;
+import bio.terra.service.filedata.google.firestore.EncodeFileOut;
 import bio.terra.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
@@ -11,7 +11,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.iam.SamClientService;
+import bio.terra.service.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;

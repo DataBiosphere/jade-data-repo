@@ -1,8 +1,8 @@
 package bio.terra.service;
 
 import bio.terra.category.Unit;
-import bio.terra.filedata.DrsId;
-import bio.terra.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 

@@ -1,6 +1,6 @@
 package bio.terra.fixtures;
 
-import bio.terra.configuration.SamConfiguration;
+import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -17,7 +17,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.iam.SamClientService;
+import bio.terra.service.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;

@@ -34,7 +34,8 @@ import static org.junit.Assert.assertTrue;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FireStoreFileDaoTest {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.filedata.google.firestore.FireStoreFileDaoTest");
+    private final Logger logger = LoggerFactory
+        .getLogger("bio.terra.service.filedata.google.firestore.FireStoreFileDaoTest");
     private final Long FILE_SIZE = 42L;
     private final Long CHANGED_FILE_SIZE = 22L;
 

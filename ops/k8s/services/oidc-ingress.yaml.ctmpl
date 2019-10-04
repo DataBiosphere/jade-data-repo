@@ -29,3 +29,23 @@ spec:
         backend:
           serviceName: oidc-proxy-service
           servicePort: http
+---
+# grafana ingress goes here
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: oidc-ingress
+  annotations:
+    kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  tls:
+  - secretName: wildcard.datarepo.broadinstitute.org
+  rules:
+  - http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: oidc-proxy-service
+          servicePort: http

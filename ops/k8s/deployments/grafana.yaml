@@ -28,6 +28,9 @@ spec:
         - mountPath: /etc/grafana/provisioning/datasources/prometheus.yaml
           name: "grafana-config-prometheusdatasource"
           subPath: prometheus.yaml
+        - mountPath: /etc/grafana/provisioning/datasources/bigquery.yaml
+          name: "grafana-config-bigquerydatasource"
+          subPath: bigquery.yaml
         - mountPath: /etc/grafana/provisioning/dashboards
           name: "grafana-config-dashboards"
         - mountPath: /var/lib/grafana/dashboards/k8sdashboard
@@ -48,7 +51,7 @@ spec:
         - name: GF_SECURITY_ADMIN_PASSWORD
           value: "helloworld"
         - name: GF_INSTALL_PLUGINS
-          value: "grafana-kubernetes-app"
+          value: "grafana-kubernetes-app,grafana-worldmap-panel,doitintl-bigquery-datasource"
       volumes:
       - name: grafana-storage
         emptyDir: {}
@@ -64,6 +67,12 @@ spec:
           items:
             - key: prometheusdatasource
               path: prometheus.yaml
+      - name: "grafana-config-bigquerydatasource"
+        configMap:
+          name: "grafana-config"
+          items:
+            - key: bigquerydatasource
+              path: bigquery.yaml
       - name: "grafana-config-dashboards"
         configMap:
           name: "grafana-config"
@@ -106,4 +115,3 @@ spec:
           items:
             - key: bigquery-logs
               path: bigquery-logs.json
-

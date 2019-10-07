@@ -9,6 +9,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.FileModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -84,11 +85,13 @@ public class AccessTest extends UsersBase {
 
     @Test
     public void checkShared() throws  Exception {
-        dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "participant", "ingest-test/ingest-test-participant.json");
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
-        dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "sample", "ingest-test/ingest-test-sample.json");
+        request = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
         String datasetBqSnapshotName = "datarepo_" + dataset.getName();
@@ -182,11 +185,10 @@ public class AccessTest extends UsersBase {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
 
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(),
-            datasetSummaryModel.getId(),
-            "file",
-            targetPath);
+            steward(), datasetSummaryModel.getId(), request);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 

@@ -28,8 +28,7 @@
         "columns": [
           {"name": "id", "datatype": "string"},
           {"name": "derived_from", "datatype": "string", "array_of": true}
-        ],
-        "primaryKey": ["id"]
+        ]
       }
     ],
     "relationships": [

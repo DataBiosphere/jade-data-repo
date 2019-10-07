@@ -3,6 +3,7 @@ package bio.terra.integration;
 import bio.terra.category.Integration;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.FileModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -98,8 +99,10 @@ public class FileTest extends UsersBase {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
 
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
-            steward(), datasetId, "file", targetPath);
+            steward(), datasetId, request);
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 

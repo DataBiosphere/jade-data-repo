@@ -482,19 +482,6 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     // -- jobs --
-    private void setManageJobFlags(AuthenticatedUserRequest userReq) {
-        userReq.canListJobs(samService.isAuthorized(
-            userReq,
-            SamClientService.ResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            SamClientService.DataRepoAction.LIST_JOBS));
-        userReq.canDeleteJobs(samService.isAuthorized(
-            userReq,
-            SamClientService.ResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            SamClientService.DataRepoAction.DELETE_JOBS));
-    }
-
     private ResponseEntity<JobModel> jobToResponse(JobModel job) {
         if (job.getJobStatus() == JobModel.JobStatusEnum.RUNNING) {
             return ResponseEntity
@@ -515,35 +502,26 @@ public class RepositoryApiController implements RepositoryApi {
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         validiateOffsetAndLimit(offset, limit);
-        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
-        // TODO this should be set in job servicev (during refactor)
-        // -- put setter in the calls also when is this even getting set when the job is created in the first place?
-        List<JobModel> results = jobService.enumerateJobs(offset, limit, userReq);
+        List<JobModel> results = jobService.enumerateJobs(offset, limit, getAuthenticatedInfo());
         return new ResponseEntity<>(results, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<JobModel> retrieveJob(@PathVariable("id") String id) {
-        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
-        JobModel job = jobService.retrieveJob(id, userReq);
+        JobModel job = jobService.retrieveJob(id, getAuthenticatedInfo());
         return jobToResponse(job);
     }
 
     @Override
     public ResponseEntity<Object> retrieveJobResult(@PathVariable("id") String id) {
-        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
-        JobService.JobResultWithStatus<Object> resultHolder = jobService.retrieveJobResult(id, Object.class, userReq);
+        JobService.JobResultWithStatus<Object> resultHolder =
+            jobService.retrieveJobResult(id, Object.class, getAuthenticatedInfo());
         return ResponseEntity.status(resultHolder.getStatusCode()).body(resultHolder.getResult());
     }
 
     @Override
     public ResponseEntity<Void> deleteJob(@PathVariable("id") String id) {
-        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        setManageJobFlags(userReq);
-        jobService.releaseJob(id, userReq);
+        jobService.releaseJob(id, getAuthenticatedInfo());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

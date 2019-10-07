@@ -35,9 +35,9 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: oidc-ingress
+  name: grafana-ingress
   annotations:
-    kubernetes.io/ingress.global-static-ip-name: "jade-k8-100"
+    kubernetes.io/ingress.global-static-ip-name: "grafana-k8-100"
     kubernetes.io/ingress.allow-http: "false"
 spec:
   tls:
@@ -47,6 +47,6 @@ spec:
       paths:
       - path: /*
         backend:
-          serviceName: oidc-proxy-service
-          servicePort: http
+          serviceName: grafana-service
+          servicePort: 3000
 

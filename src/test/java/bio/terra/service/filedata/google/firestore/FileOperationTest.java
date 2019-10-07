@@ -1,10 +1,10 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.category.Connected;
-import bio.terra.configuration.ConnectedTestConfiguration;
-import bio.terra.fixtures.ConnectedOperations;
-import bio.terra.fixtures.JsonLoader;
-import bio.terra.fixtures.Names;
+import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;

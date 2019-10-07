@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
-import bio.terra.fixtures.JsonLoader;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.IngestRequestModel;

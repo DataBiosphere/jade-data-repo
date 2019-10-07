@@ -1,10 +1,10 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.category.Connected;
-import bio.terra.configuration.ConnectedTestConfiguration;
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.fixtures.ConnectedOperations;
-import bio.terra.fixtures.StringListCompare;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.StringListCompare;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.model.BillingProfileModel;

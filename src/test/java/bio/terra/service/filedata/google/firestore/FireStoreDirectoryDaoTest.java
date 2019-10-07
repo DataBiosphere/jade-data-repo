@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.category.Connected;
-import bio.terra.fixtures.StringListCompare;
+import bio.terra.common.fixtures.StringListCompare;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.Before;

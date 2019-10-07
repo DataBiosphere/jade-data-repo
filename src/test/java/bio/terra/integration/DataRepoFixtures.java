@@ -1,8 +1,8 @@
 package bio.terra.integration;
 
-import bio.terra.fixtures.JsonLoader;
-import bio.terra.fixtures.Names;
-import bio.terra.fixtures.ProfileFixtures;
+import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.common.fixtures.Names;
+import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;

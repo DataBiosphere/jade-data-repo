@@ -49,3 +49,4 @@ spec:
         backend:
           serviceName: oidc-proxy-service
           servicePort: http
+

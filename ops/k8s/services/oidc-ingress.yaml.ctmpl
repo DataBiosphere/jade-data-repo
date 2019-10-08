@@ -30,8 +30,6 @@ spec:
           serviceName: oidc-proxy-service
           servicePort: http
 ---
-# grafana ingress goes here
-
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
@@ -42,11 +40,6 @@ metadata:
 spec:
   tls:
   - secretName: wildcard.datarepo.broadinstitute.org
-  rules:
-  - http:
-      paths:
-      - path: /*
-        backend:
-          serviceName: grafana-service
-          servicePort: 3000
-
+  backend:
+    serviceName: grafana-service
+    servicePort: 3000

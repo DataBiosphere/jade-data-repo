@@ -1,14 +1,11 @@
-kind: Service
 apiVersion: v1
+kind: Service
 metadata:
   name: grafana-service
 spec:
+  selector:
+    name: grafana-deployment
   ports:
   - protocol: TCP
-    name: http
     port: 3000
-    targetPort: 3000
   type: NodePort
-  selector:
-    service: grafana
-    project: datarepo

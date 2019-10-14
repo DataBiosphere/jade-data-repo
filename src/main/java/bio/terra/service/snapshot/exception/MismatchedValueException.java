@@ -1,4 +1,4 @@
-package bio.terra.service.snapshot.flight.create;
+package bio.terra.service.snapshot.exception;
 
 import bio.terra.common.exception.BadRequestException;
 

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata;
 
-import bio.terra.app.controller.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.DrsObjectNotFoundException;

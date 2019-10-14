@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.service.iam;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import org.slf4j.Logger;

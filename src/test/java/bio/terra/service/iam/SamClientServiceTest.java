@@ -1,6 +1,5 @@
 package bio.terra.service.iam;
 
-import bio.terra.app.controller.AuthenticatedUserRequest;
 import bio.terra.category.Unit;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;

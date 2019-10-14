@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.app.controller.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;

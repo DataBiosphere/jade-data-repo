@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.service.iam;
 
 import javax.servlet.http.HttpServletRequest;
 

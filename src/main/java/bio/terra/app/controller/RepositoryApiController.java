@@ -6,6 +6,8 @@ import bio.terra.controller.RepositoryApi;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.model.DatasetModel;

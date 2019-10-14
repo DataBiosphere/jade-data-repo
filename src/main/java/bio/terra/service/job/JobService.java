@@ -1,7 +1,7 @@
 package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.app.controller.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.SamClientService;
 import bio.terra.service.job.exception.InvalidResultStateException;

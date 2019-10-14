@@ -1,6 +1,6 @@
 package bio.terra.service.dataset.flight.delete;
 
-import bio.terra.app.controller.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;

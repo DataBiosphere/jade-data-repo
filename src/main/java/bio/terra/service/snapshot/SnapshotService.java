@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.app.controller.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;

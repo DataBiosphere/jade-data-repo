@@ -1,7 +1,6 @@
 package bio.terra.service.iam;
 
 import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.app.controller.AuthenticatedUserRequest;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.PolicyModel;

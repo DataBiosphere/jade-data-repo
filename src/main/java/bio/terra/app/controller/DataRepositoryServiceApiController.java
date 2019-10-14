@@ -11,6 +11,8 @@ import bio.terra.model.DRSError;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DRSServiceInfo;
 import bio.terra.service.filedata.DrsService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequestFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

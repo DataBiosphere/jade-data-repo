@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.common.Table;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

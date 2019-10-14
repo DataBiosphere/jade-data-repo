@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
-import bio.terra.app.controller.AuthenticatedUserRequest;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
 import bio.terra.model.DRSObject;

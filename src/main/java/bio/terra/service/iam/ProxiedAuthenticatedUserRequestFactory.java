@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.service.iam;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.annotation.Profile;

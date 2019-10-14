@@ -1,4 +1,4 @@
-package bio.terra.flight.dataset.ingest;
+package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.common.Table;
 import bio.terra.service.dataset.Dataset;

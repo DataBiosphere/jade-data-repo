@@ -3,7 +3,7 @@ package bio.terra.service.dataset.flight.ingest;
 import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Table;
-import bio.terra.flight.exception.InvalidIngestStrategyException;
+import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;

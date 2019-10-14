@@ -1,4 +1,4 @@
-package bio.terra;
+package bio.terra.app.utils.startup;
 
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.FlightDao;

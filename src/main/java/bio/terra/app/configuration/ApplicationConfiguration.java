@@ -1,6 +1,6 @@
 package bio.terra.app.configuration;
 
-import bio.terra.StartupInitializer;
+import bio.terra.app.utils.startup.StartupInitializer;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;

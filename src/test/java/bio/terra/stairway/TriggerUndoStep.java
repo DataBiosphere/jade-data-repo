@@ -1,4 +1,4 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.stairway;
 
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

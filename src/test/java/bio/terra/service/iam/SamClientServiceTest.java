@@ -1,7 +1,7 @@
 package bio.terra.service.iam;
 
-import bio.terra.category.Unit;
 import bio.terra.service.iam.exception.SamUnauthorizedException;
+import bio.terra.common.Unit;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequest;

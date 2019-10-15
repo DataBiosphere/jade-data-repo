@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.common.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;

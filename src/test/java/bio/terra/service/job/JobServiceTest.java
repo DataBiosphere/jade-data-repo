@@ -1,7 +1,7 @@
 package bio.terra.service.job;
 
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.category.Unit;
+import bio.terra.common.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;

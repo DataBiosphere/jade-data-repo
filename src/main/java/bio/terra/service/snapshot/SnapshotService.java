@@ -64,7 +64,7 @@ public class SnapshotService {
      * Pre-condition: the snapshot request has been syntax checked by the validator
      *
      * @param snapshotRequestModel
-     * @returns jobId (flightId) of the job
+     * @returns jobId (flightId) of the unit
      */
     public String createSnapshot(SnapshotRequestModel snapshotRequestModel, AuthenticatedUserRequest userReq) {
         String description = "Create snapshot " + snapshotRequestModel.getName();
@@ -77,7 +77,7 @@ public class SnapshotService {
      * Kick-off snapshot deletion
      *
      * @param id snapshot id to delete
-     * @returns jobId (flightId) of the job
+     * @returns jobId (flightId) of the unit
      */
     public String deleteSnapshot(UUID id, AuthenticatedUserRequest userReq) {
         String description = "Delete snapshot " + id;
@@ -119,7 +119,7 @@ public class SnapshotService {
     /**
      * Return a single snapshot summary given the snapshot id.
      * This is used in the create snapshot flight to build the model response
-     * of the asynchronous job.
+     * of the asynchronous unit.
      *
      * @param id
      * @return summary model of the snapshot

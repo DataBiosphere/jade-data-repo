@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.common.Unit;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestSourceModel;

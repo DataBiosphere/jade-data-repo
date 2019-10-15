@@ -14,7 +14,7 @@ public enum JobMapKeys {
     SNAPSHOT_ID("snapshotId"),
     FILE_ID("fileId"),
 
-    // parameter for the job
+    // parameter for the unit
     FLIGHT_CLASS("flight_class");
 
     private String keyName;

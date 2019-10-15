@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.common.Unit;
 import bio.terra.common.fixtures.FlightStates;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.JobModel;
@@ -57,7 +57,7 @@ public class JobTest {
 
     @Before
     public void setup() {
-        jobModel = new JobModel().id(testFlightId).description("This is not a job");
+        jobModel = new JobModel().id(testFlightId).description("This is not a unit");
     }
 
     @Test

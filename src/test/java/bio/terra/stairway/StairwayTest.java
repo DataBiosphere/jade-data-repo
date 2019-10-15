@@ -1,7 +1,7 @@
 package bio.terra.stairway;
 
-import bio.terra.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.common.StairwayUnit;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
 import bio.terra.stairway.exception.StairwayException;

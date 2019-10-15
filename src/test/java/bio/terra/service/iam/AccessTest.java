@@ -1,9 +1,14 @@
-package bio.terra.integration;
+package bio.terra.service.iam;
 
-import bio.terra.category.Integration;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.integration.auth.AuthService;
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.common.Integration;
+import bio.terra.integration.BigQueryFixtures;
+import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.GcsFixtures;
+import bio.terra.common.TestUtils;
+import bio.terra.integration.UsersBase;
+import bio.terra.common.auth.AuthService;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -13,7 +18,6 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.iam.SamClientService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;

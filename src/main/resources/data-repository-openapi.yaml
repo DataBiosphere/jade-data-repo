@@ -304,13 +304,13 @@ paths:
           $ref: '#/definitions/SnapshotRequestModel'
       responses:
         202:
-          description: Job status of snapshot creation job & url for polling in the response header
+          description: Job status of snapshot creation unit & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
-              description: url for the job polling
+              description: url for the unit polling
         200:
           description: Redirect for snapshot successful creation
           schema:
@@ -318,7 +318,7 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job result
+              description: url for the unit result
         400:
           description: Bad request - invalid name, badly formed or user email not found
           schema:
@@ -368,13 +368,13 @@ paths:
         - $ref: '#/parameters/Id'
       responses:
         202:
-          description: Job status of snapshot creation job & url for polling in the response header
+          description: Job status of snapshot creation unit & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
-              description: url for the job polling
+              description: url for the unit polling
         200:
           description: Redirect for snapshot successful creation
           schema:
@@ -382,7 +382,7 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job result
+              description: url for the unit result
         400:
           description: Bad request - invalid id, badly formed
           schema:
@@ -796,13 +796,13 @@ paths:
           $ref: '#/definitions/IngestRequestModel'
       responses:
         202:
-          description: Job status of ingest job & url for polling in the response header
+          description: Job status of ingest unit & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
-              description: url for the job polling
+              description: url for the unit polling
         200:
           description: Redirect for ingest complete
           schema:
@@ -810,7 +810,7 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job result
+              description: url for the unit result
         400:
           description: Bad request - invalid ingest request, badly formed
           schema:
@@ -854,13 +854,13 @@ paths:
           $ref: '#/definitions/FileLoadModel'
       responses:
         202:
-          description: Job status of ingest job & url for polling in the response header
+          description: Job status of ingest unit & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
-              description: url for the job polling
+              description: url for the unit polling
         200:
           description: Redirect for ingest complete
           schema:
@@ -868,7 +868,7 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job result
+              description: url for the unit result
         400:
           description: Bad request - invalid ingest request, badly formed
           schema:
@@ -926,13 +926,13 @@ paths:
       - $ref: '#/parameters/FileId'
       responses:
         202:
-          description: Job status of snapshot creation job & url for polling in the response header
+          description: Job status of snapshot creation unit & url for polling in the response header
           schema:
             $ref: '#/definitions/JobModel'
           headers:
             location:
               type: string
-              description: url for the job polling
+              description: url for the unit polling
         200:
           description: Redirect for snapshot successful creation
           schema:
@@ -940,7 +940,7 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job result
+              description: url for the unit result
         400:
           description: Bad request - invalid id, badly formed
           schema:
@@ -1015,7 +1015,7 @@ paths:
 
   '/api/repository/v1/jobs/{id}':
     get:  ## retrieve
-      description: Retrieve a job's status by id
+      description: Retrieve a unit's status by id
       operationId: retrieveJob
       tags:
       - repository
@@ -1029,7 +1029,7 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job polling
+              description: url for the unit polling
         200:
           description: Redirect for object successful creation
           schema:
@@ -1037,21 +1037,21 @@ paths:
           headers:
             location:
               type: string
-              description: url for the job result
+              description: url for the unit result
         400:
           description: Bad request - invalid id, badly formed
           schema:
             $ref: '#/definitions/ErrorModel'
         403:
-          description: No permission to see job
+          description: No permission to see unit
           schema:
             $ref: '#/definitions/ErrorModel'
         404:
-          description: Not found - job id does not exist
+          description: Not found - unit id does not exist
           schema:
             $ref: '#/definitions/ErrorModel'
-    delete:  ## delete job data
-      description: Delete the job and data associated with it
+    delete:  ## delete unit data
+      description: Delete the unit and data associated with it
       operationId: deleteJob
       tags:
       - repository
@@ -1064,15 +1064,15 @@ paths:
 
   '/api/repository/v1/jobs/{id}/result':
     get:  ## retrieve
-      description: Retrieve a job's result by id
+      description: Retrieve a unit's result by id
       operationId: retrieveJobResult
       tags:
       - repository
       parameters:
       - $ref: '#/parameters/Id'
-      responses: ## successful responses return the type of model specified by the job
+      responses: ## successful responses return the type of model specified by the unit
         default:
-          description: Successful responses return the type of model specified by the job; otherwise, ErrorModel
+          description: Successful responses return the type of model specified by the unit; otherwise, ErrorModel
           schema:
             type: object
 
@@ -1951,9 +1951,9 @@ definitions:
         $ref: '#/definitions/UniqueIdProperty'
       description:
         type: string
-        description: Description of the job's flight from description flight input parameter
+        description: Description of the unit's flight from description flight input parameter
       job_status:
-        description: Status of job
+        description: Status of unit
         type: string
         enum:
           - running

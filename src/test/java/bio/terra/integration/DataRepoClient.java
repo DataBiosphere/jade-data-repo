@@ -1,10 +1,11 @@
 package bio.terra.integration;
 
-import bio.terra.integration.auth.AuthService;
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.common.auth.AuthService;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.DRSError;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.filedata.DrsResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +106,7 @@ public class DataRepoClient {
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
-            throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
+            throw new IllegalStateException("unexpected unit status code: " + jobModelResponse.getStatusCode());
         }
 
         String location = getLocationHeader(jobModelResponse);

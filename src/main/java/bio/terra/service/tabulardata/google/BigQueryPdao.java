@@ -343,7 +343,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         try {
             loadJob = loadJob.waitFor();
             if (loadJob.getStatus() == null) {
-                throw new PdaoException("Unexpected return from BigQuery job - no getStatus()");
+                throw new PdaoException("Unexpected return from BigQuery unit - no getStatus()");
             }
         } catch (InterruptedException ex) {
             // Someone is shutting down the application

@@ -1,5 +1,6 @@
 package bio.terra.service.job;
 
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;

@@ -1,4 +1,4 @@
-package bio.terra.category;
+package bio.terra.common;
 
 /**
  * Categories are the mechanism used by JUnit to group tests. The annotation is documented here:

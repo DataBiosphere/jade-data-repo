@@ -1,7 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 
-import bio.terra.category.Connected;
+import bio.terra.common.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
@@ -80,7 +80,7 @@ public class ResourceServiceTest {
             project.getLifecycleState(),
             equalTo("ACTIVE"));
 
-        // TODO check to make sure a steward can complete a job in another test
+        // TODO check to make sure a steward can complete a unit in another test
 
         resourceService.deleteProjectResource(projectResource.getRepositoryId());
         project = resourceService.getProject(projectId);

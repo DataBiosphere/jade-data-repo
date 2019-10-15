@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.common.Unit;
 import bio.terra.app.controller.exception.ApiException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.JsonLoader;

@@ -1,6 +1,5 @@
 package bio.terra.common;
 
-import bio.terra.category.Unit;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

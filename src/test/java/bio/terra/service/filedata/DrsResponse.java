@@ -1,5 +1,6 @@
-package bio.terra.integration;
+package bio.terra.service.filedata;
 
+import bio.terra.integration.ObjectOrErrorResponse;
 import bio.terra.model.DRSError;
 import org.springframework.http.HttpStatus;
 
@@ -9,7 +10,7 @@ import java.util.Optional;
  * Specialization of ObjectOrErrorResponse for ErrorModel
  */
 public class DrsResponse<T> {
-    private ObjectOrErrorResponse<DRSError, T>  response;
+    private ObjectOrErrorResponse<DRSError, T> response;
 
     public DrsResponse(ObjectOrErrorResponse<DRSError, T> response) {
         this.response = response;

@@ -1,9 +1,9 @@
 package bio.terra.stairway;
 
 
-import bio.terra.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.StairwayException;
+import bio.terra.common.StairwayUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

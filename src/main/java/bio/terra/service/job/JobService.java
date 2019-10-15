@@ -68,7 +68,7 @@ public class JobService {
         return new JobBuilder(description, flightClass, request, userReq, this);
     }
 
-    // submit a new job to stairway
+    // submit a new unit to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap,
                             AuthenticatedUserRequest userReq) {
@@ -77,7 +77,7 @@ public class JobService {
         return jobId;
     }
 
-    // submit a new job to stairway, wait for it to finish, then return the result
+    // submit a new unit to stairway, wait for it to finish, then return the result
     // protected method intended to be called only from JobBuilder
     protected <T> T submitAndWait(Class<? extends Flight> flightClass, FlightMap parameterMap,
                                   AuthenticatedUserRequest userReq, Class<T> resultClass) {
@@ -92,7 +92,7 @@ public class JobService {
 
     // generate a new jobId
     private String createJobId() {
-        // in the future, if we have multiple stairways, we may need to maintain a connection from job id to flight id
+        // in the future, if we have multiple stairways, we may need to maintain a connection from unit id to flight id
         return stairway.createFlightId().toString();
     }
 
@@ -113,7 +113,7 @@ public class JobService {
                 SamClientService.DataRepoAction.DELETE_JOBS);
 
             // if the user has access to all jobs, no need to check for this one individually
-            // otherwise, check that the user has access to this job before deleting
+            // otherwise, check that the user has access to this unit before deleting
             if (!canDeleteAnyJob) {
                 // throws exception if no access
                 try {
@@ -278,7 +278,7 @@ public class JobService {
                     .statusCode(statusCode)
                     .result(resultMap.get(JobMapKeys.RESPONSE.getKeyName(), resultClass));
             case RUNNING:
-                throw new JobNotCompleteException("Attempt to retrieve job result before job is complete; job id: "
+                throw new JobNotCompleteException("Attempt to retrieve unit result before unit is complete; unit id: "
                     + flightState.getFlightId());
 
             default:

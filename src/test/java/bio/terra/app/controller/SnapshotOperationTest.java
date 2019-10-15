@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Connected;
+import bio.terra.common.Connected;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -341,7 +341,7 @@ public class SnapshotOperationTest {
             IOUtils.copy(csvStream, stream);
         }
 
-        // Get load job
+        // Get load unit
         Job job = writer.getJob();
         job = job.waitFor();
         JobStatus jobStatus = job.getStatus();

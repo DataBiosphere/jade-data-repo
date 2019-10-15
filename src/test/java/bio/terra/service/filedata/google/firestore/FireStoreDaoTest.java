@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.category.Connected;
+import bio.terra.common.Connected;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.After;
@@ -26,6 +26,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+
 
 
 @RunWith(SpringRunner.class)

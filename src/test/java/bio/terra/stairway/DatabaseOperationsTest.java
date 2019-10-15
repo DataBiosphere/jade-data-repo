@@ -1,7 +1,8 @@
 package bio.terra.stairway;
 
-import bio.terra.category.StairwayUnit;
+import bio.terra.common.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -64,7 +65,7 @@ public class DatabaseOperationsTest {
         Assert.assertThat(recoveredFlight.getStepIndex(), is(equalTo(0)));
         Assert.assertThat(recoveredFlight.isDoing(), is(true));
         Assert.assertThat(recoveredFlight.getResult().isSuccess(), is(true));
-        Assert.assertThat(recoveredFlight.getFlightStatus(), is(FlightStatus.RUNNING));
+        Assert.assertThat(recoveredFlight.getFlightStatus(), CoreMatchers.is(FlightStatus.RUNNING));
 
         FlightMap recoveredInputs = recoveredFlight.getInputParameters();
         checkInputs(recoveredInputs);

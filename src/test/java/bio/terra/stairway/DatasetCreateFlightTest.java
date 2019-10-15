@@ -1,8 +1,7 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.stairway;
 
-import bio.terra.category.Connected;
+import bio.terra.common.Connected;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
-import bio.terra.stairway.UserRequestInfo;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -17,13 +16,10 @@ import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.iam.SamClientService;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightState;
-import bio.terra.stairway.FlightStatus;
-import bio.terra.stairway.Stairway;
 import bio.terra.stairway.exception.StairwayException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -118,7 +114,7 @@ public class DatasetCreateFlightTest {
         stairway.waitForFlight(flightId);
 
         FlightState result = stairway.getFlightState(flightId);
-        assertEquals(FlightStatus.SUCCESS, result.getFlightStatus());
+        Assert.assertEquals(FlightStatus.SUCCESS, result.getFlightStatus());
         Optional<FlightMap> resultMap = result.getResultMap();
         assertTrue(resultMap.isPresent());
         DatasetSummaryModel response = resultMap.get().get(JobMapKeys.RESPONSE.getKeyName(), DatasetSummaryModel.class);

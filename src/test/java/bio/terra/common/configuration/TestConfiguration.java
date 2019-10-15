@@ -1,4 +1,4 @@
-package bio.terra.integration.configuration;
+package bio.terra.common.configuration;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

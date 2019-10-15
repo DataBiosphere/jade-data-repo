@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import bio.terra.common.TestUtils;
 import bio.terra.model.SnapshotModel;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;

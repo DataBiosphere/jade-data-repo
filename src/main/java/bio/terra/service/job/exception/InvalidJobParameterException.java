@@ -1,4 +1,4 @@
-package bio.terra.service.exception;
+package bio.terra.service.job.exception;
 
 public class InvalidJobParameterException extends RuntimeException {
     public InvalidJobParameterException(String message) {

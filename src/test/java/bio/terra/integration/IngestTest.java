@@ -24,6 +24,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
@@ -193,8 +194,8 @@ public class IngestTest extends UsersBase {
             steward(), ingestJobResponse, IngestResponseModel.class);
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
         assertThat("failure is explained",
-            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("file not found"));
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getErrorDetail(),
+            contains(containsString("not found")));
     }
 
     @Test
@@ -231,7 +232,7 @@ public class IngestTest extends UsersBase {
     @Test
     public void ingestWildcardMalformedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-participant*.json", IngestRequestModel.StrategyEnum.APPEND);
+            "file", "ingest-test/ingest-test-p*.json", IngestRequestModel.StrategyEnum.APPEND);
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(

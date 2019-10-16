@@ -1,16 +1,13 @@
-apiVersion: apps/v1
+apiVersion: apps/v1beta1
 kind: Deployment
 metadata:
-  name: grafana
+  name: grafana-deployment
 spec:
   replicas: 1
-  selector:
-    matchLabels:
-      service: grafana
   template:
     metadata:
       labels:
-        service: grafana
+        name: grafana-deployment
     spec:
       serviceAccountName: jade-sa
       containers:
@@ -18,7 +15,22 @@ spec:
         image: grafana/grafana
         ports:
         - containerPort: 3000
-          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 25
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
         volumeMounts:
         - mountPath: /var/lib/grafana
           name: grafana-storage

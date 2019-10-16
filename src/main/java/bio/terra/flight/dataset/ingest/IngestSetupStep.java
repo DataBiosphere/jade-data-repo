@@ -54,7 +54,7 @@ public class IngestSetupStep implements Step {
 
         // Bucket wildcards are never supported.
         if (gsParts.getBucket().indexOf('*') > -1) {
-            throw new InvalidUriException("Buckets for ingest source files cannot contain '*': " + sourcePath);
+            throw new InvalidUriException("Bucket wildcards are not supported: " + sourcePath);
         }
 
         int globIndex = gsParts.getPath().indexOf('*');
@@ -76,7 +76,7 @@ public class IngestSetupStep implements Step {
             // BigQuery's wilcard support is restricted to a single glob.
             int lastGlobIndex = gsParts.getPath().lastIndexOf('*');
             if (globIndex != lastGlobIndex) {
-                throw new InvalidUriException("Ingest source files may only contain one wildcard: " + sourcePath);
+                throw new InvalidUriException("Multi-wildcards are not supported: " + sourcePath);
             }
         }
     }

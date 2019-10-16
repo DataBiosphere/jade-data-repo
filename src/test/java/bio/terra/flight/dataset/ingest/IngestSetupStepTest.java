@@ -26,7 +26,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 public class IngestSetupStepTest {
 
     @Autowired
-    ConnectedTestConfiguration testConfig;
+    private ConnectedTestConfiguration testConfig;
 
     @Test
     public void testValidSingleSourceFile() {

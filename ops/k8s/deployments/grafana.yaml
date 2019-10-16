@@ -64,6 +64,34 @@ spec:
           value: "helloworld"
         - name: GF_INSTALL_PLUGINS
           value: "grafana-kubernetes-app,grafana-worldmap-panel,doitintl-bigquery-datasource"
+        - name: GF_AUTH_GOOGLE_ENABLED
+          value: "true"
+        - name: GF_AUTH_GOOGLE_ALLOW_SIGN_UP
+          value: "true"
+        - name: GF_AUTH_GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: clientid
+        - name: GF_AUTH_GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: clientid_secret
+        - name: GF_AUTH_GOOGLE_SCOPES
+          value: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email"
+        - name: GF_AUTH_GOOGLE_AUTH_URL
+          value: "https://accounts.google.com/o/oauth2/auth"
+        - name: GF_AUTH_GOOGLE_AUTH_TOKEN
+          value: "https://accounts.google.com/o/oauth2/token"
+        - name: GF_AUTH_GOOGLE_API_URL
+          value: "https://www.googleapis.com/oauth2/v1/userinfo"
+        - name: GF_AUTH_GOOGLE_ALLOWED_DOMAINS
+          value: "broadinstitute.org"
+        - name: GF_SERVER_DOMAIN
+          value: "grafana-ms.datarepo-dev.broadinstitute.org"
+        - name: GF_SERVER_ROOT_URL
+          value: "https://grafana-ms.datarepo-dev.broadinstitute.org"
       volumes:
       - name: grafana-storage
         emptyDir: {}

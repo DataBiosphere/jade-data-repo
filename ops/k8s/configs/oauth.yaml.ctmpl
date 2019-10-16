@@ -1,0 +1,16 @@
+{{ with $environment := env "ENVIRONMENT" }}
+{{ with $project := env "GOOGLE_CLOUD_PROJECT" }}
+{{ with secret (printf "secret/dsde/datarepo/%s/clientid-secret.json" $environment ) }}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: google-clientid-secret
+data:
+  clientid_secret: {{ .Data.oauthClientSecret | base64Encode }}
+  clientid: {{ .Data.oauthClientId | base64Encode }}
+
+
+{{end}}
+{{end}}
+{{end}}

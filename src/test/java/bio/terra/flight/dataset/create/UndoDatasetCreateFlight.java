@@ -1,5 +1,6 @@
 package bio.terra.flight.dataset.create;
 
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.FlightMap;
 

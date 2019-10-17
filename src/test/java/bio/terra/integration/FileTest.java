@@ -7,7 +7,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.SamClientService;
+import bio.terra.service.iam.SamClientService;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;

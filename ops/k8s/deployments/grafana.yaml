@@ -58,12 +58,54 @@ spec:
         - mountPath: /var/lib/grafana/dashboards/bigquery-logs
           name: "grafana-config-bigquery-logs"
         env:
+        - name: GF_USERS_AUTO_ASSIGN_ORG_ROLE
+          value: "Editor"
         - name: GF_SERVER_HTTP_PORT
           value: "3000"
         - name: GF_SECURITY_ADMIN_PASSWORD
-          value: "helloworld"
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: adminpassword
         - name: GF_INSTALL_PLUGINS
           value: "grafana-kubernetes-app,grafana-worldmap-panel,doitintl-bigquery-datasource"
+        - name: GF_AUTH_GOOGLE_ENABLED
+          value: "true"
+        - name: GF_AUTH_GOOGLE_ALLOW_SIGN_UP
+          value: "true"
+        - name: GF_AUTH_GOOGLE_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: clientid
+        - name: GF_AUTH_GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: clientid_secret
+        - name: GF_AUTH_GOOGLE_SCOPES
+          value: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email"
+        - name: GF_AUTH_GOOGLE_AUTH_URL
+          value: "https://accounts.google.com/o/oauth2/auth"
+        - name: GF_AUTH_GOOGLE_AUTH_TOKEN
+          value: "https://accounts.google.com/o/oauth2/token"
+        - name: GF_AUTH_GOOGLE_API_URL
+          value: "https://www.googleapis.com/oauth2/v1/userinfo"
+        - name: GF_AUTH_GOOGLE_ALLOWED_DOMAINS
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: alloweddomains
+        - name: GF_SERVER_DOMAIN
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: serverdomain
+        - name: GF_SERVER_ROOT_URL
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: rooturl
       volumes:
       - name: grafana-storage
         emptyDir: {}

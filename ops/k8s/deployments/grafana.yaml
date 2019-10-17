@@ -58,10 +58,15 @@ spec:
         - mountPath: /var/lib/grafana/dashboards/bigquery-logs
           name: "grafana-config-bigquery-logs"
         env:
+        - name: GF_USERS_AUTO_ASSIGN_ORG_ROLE
+          value: "Editor"
         - name: GF_SERVER_HTTP_PORT
           value: "3000"
         - name: GF_SECURITY_ADMIN_PASSWORD
-          value: "helloworld"
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: adminpassword
         - name: GF_INSTALL_PLUGINS
           value: "grafana-kubernetes-app,grafana-worldmap-panel,doitintl-bigquery-datasource"
         - name: GF_AUTH_GOOGLE_ENABLED
@@ -87,11 +92,20 @@ spec:
         - name: GF_AUTH_GOOGLE_API_URL
           value: "https://www.googleapis.com/oauth2/v1/userinfo"
         - name: GF_AUTH_GOOGLE_ALLOWED_DOMAINS
-          value: "broadinstitute.org"
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: alloweddomains
         - name: GF_SERVER_DOMAIN
-          value: "grafana-ms.datarepo-dev.broadinstitute.org"
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: serverdomain
         - name: GF_SERVER_ROOT_URL
-          value: "https://grafana-ms.datarepo-dev.broadinstitute.org"
+          valueFrom:
+            secretKeyRef:
+              name: google-clientid-secret
+              key: rooturl
       volumes:
       - name: grafana-storage
         emptyDir: {}

@@ -1,0 +1,21 @@
+{{ with $environment := env "ENVIRONMENT" }}
+{{ with $suffix := env "SUFFIX" }}
+{{ with $project := env "GOOGLE_CLOUD_PROJECT" }}
+{{ with secret (printf "secret/dsde/datarepo/%s/clientid-secret.json" $environment ) }}
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: google-clientid-secret
+data:
+  clientid_secret: {{ .Data.oauthClientSecret | base64Encode }}
+  adminpassword: {{ .Data.adminPassword | base64Encode }}
+  alloweddomains: {{ .Data.allowedDomains | base64Encode }}
+  clientid: {{ .Data.oauthClientId | base64Encode }}
+  rooturl: {{ (printf "https://grafana-%s.datarepo-%s.broadinstitute.org" $suffix $environment)| base64Encode }}
+  serverdomain: {{ (printf "grafana-%s.datarepo-%s.broadinstitute.org" $suffix $environment)| base64Encode }}
+
+{{end}}
+{{end}}
+{{end}}
+{{end}}

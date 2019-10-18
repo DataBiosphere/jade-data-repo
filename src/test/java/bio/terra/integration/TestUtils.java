@@ -2,7 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.model.DRSAccessMethod;
 import org.apache.commons.lang3.StringUtils;
-import bio.terra.service.SamClientService;
+import bio.terra.service.iam.SamClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

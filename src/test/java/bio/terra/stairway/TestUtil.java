@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.app.configuration.StairwayJdbcConfiguration;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;

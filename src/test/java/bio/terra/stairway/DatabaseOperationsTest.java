@@ -1,7 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
-import bio.terra.configuration.StairwayJdbcConfiguration;
+import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

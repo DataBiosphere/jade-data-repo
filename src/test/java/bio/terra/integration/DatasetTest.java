@@ -1,12 +1,12 @@
 package bio.terra.integration;
 
 import bio.terra.category.Integration;
-import bio.terra.fixtures.JsonLoader;
+import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.SamClientService;
+import bio.terra.service.iam.SamClientService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

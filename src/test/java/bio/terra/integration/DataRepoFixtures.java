@@ -423,6 +423,7 @@ public class DataRepoFixtures {
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
         return new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
+            .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table(table)
             .path(gsPath)

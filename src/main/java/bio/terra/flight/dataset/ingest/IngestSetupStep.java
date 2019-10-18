@@ -1,9 +1,7 @@
 package bio.terra.flight.dataset.ingest;
 
 import bio.terra.flight.FlightUtils;
-import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.InvalidIngestStrategyException;
-import bio.terra.flight.exception.InvalidUriException;
 import bio.terra.metadata.Column;
 import bio.terra.metadata.Dataset;
 import bio.terra.metadata.Table;
@@ -16,11 +14,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageException;
-import com.google.cloud.storage.StorageOptions;
 import liquibase.util.StringUtils;
 
 import java.util.List;
@@ -49,38 +42,6 @@ public class IngestSetupStep implements Step {
     private DatasetService datasetService;
     private BigQueryPdao bigQueryPdao;
 
-    static void validateSourceUri(String sourcePath) {
-        IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(sourcePath);
-
-        // Bucket wildcards are never supported.
-        if (gsParts.getBucket().indexOf('*') > -1) {
-            throw new InvalidUriException("Bucket wildcards are not supported: " + sourcePath);
-        }
-
-        int globIndex = gsParts.getPath().indexOf('*');
-        if (globIndex == -1) {
-            // If the user is trying to ingest a single file, verify it exists.
-            // TODO: If we're OK letting BQ hit and return the "not found" error in the wildcard case,
-            // could we also be OK with that behavior here?
-            try {
-                Storage storage = StorageOptions.getDefaultInstance().getService();
-                BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
-                Blob blob = storage.get(blobId);
-                if (blob == null || !blob.exists()) {
-                    throw new IngestFileNotFoundException("Ingest source file not found: " + sourcePath);
-                }
-            } catch (StorageException ex) {
-                throw new InvalidUriException("Failed to access ingest source file: " + sourcePath, ex);
-            }
-        } else {
-            // BigQuery's wilcard support is restricted to a single glob.
-            int lastGlobIndex = gsParts.getPath().lastIndexOf('*');
-            if (globIndex != lastGlobIndex) {
-                throw new InvalidUriException("Multi-wildcards are not supported: " + sourcePath);
-            }
-        }
-    }
-
     public IngestSetupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
         this.datasetService = datasetService;
         this.bigQueryPdao = bigQueryPdao;
@@ -89,7 +50,9 @@ public class IngestSetupStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
-        validateSourceUri(ingestRequestModel.getPath());
+        // We don't actually care about the output here since BQ takes the raw "gs://" string as input.
+        // As long as parsing succeeds, we're good to move forward.
+        IngestUtils.parseBlobUri(ingestRequestModel.getPath());
 
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         IngestUtils.putDatasetName(context, dataset.getName());

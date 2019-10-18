@@ -24,6 +24,7 @@ public final class IngestUtils {
     public static class GsUrlParts {
         private String bucket;
         private String path;
+        private boolean isWildcard;
 
         public String getBucket() {
             return bucket;
@@ -40,6 +41,15 @@ public final class IngestUtils {
 
         public GsUrlParts path(String path) {
             this.path = path;
+            return this;
+        }
+
+        public boolean getIsWildcard() {
+            return isWildcard;
+        }
+
+        public GsUrlParts isWildcard(boolean isWildcard) {
+            this.isWildcard = isWildcard;
             return this;
         }
     }
@@ -78,9 +88,20 @@ public final class IngestUtils {
         if (noGsUri.length() < 4) {
             throw new InvalidUriException("Ingest source file path is not valid in gs: URI: '" + uri + "'");
         }
-        return new GsUrlParts()
-            .bucket(StringUtils.substringBefore(noGsUri, "/"))
-            .path(StringUtils.substringAfter(noGsUri, "/"));
+
+        String bucket = StringUtils.substringBefore(noGsUri, "/");
+        String path = StringUtils.substringAfter(noGsUri, "/");
+
+        if (bucket.indexOf('*') > -1) {
+            throw new InvalidUriException("Bucket wildcards are not supported: URI: '" + uri + "'");
+        }
+        int globIndex = path.indexOf('*');
+        boolean isWildcard = globIndex > -1;
+        if (isWildcard && path.lastIndexOf('*') != globIndex) {
+            throw new InvalidUriException("Multi-wildcards are not supported: URI: '" + uri + "'");
+        }
+
+        return new GsUrlParts().bucket(bucket).path(path).isWildcard(isWildcard);
     }
 
     public static void putStagingTableName(FlightContext context, String name) {

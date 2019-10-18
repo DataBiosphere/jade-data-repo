@@ -2,6 +2,7 @@ package bio.terra.pdao.bigquery;
 
 import bio.terra.configuration.ApplicationConfiguration;
 import bio.terra.flight.exception.IngestFailureException;
+import bio.terra.flight.exception.IngestFileNotFoundException;
 import bio.terra.flight.exception.IngestInterruptedException;
 import bio.terra.metadata.AssetSpecification;
 import bio.terra.metadata.Column;
@@ -356,6 +357,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         if (loadJob.getStatus().getError() != null) {
+            if ("notFound".equals(loadJob.getStatus().getError().getReason())) {
+                throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequest.getPath());
+            }
+
             List<String> loadErrors = new ArrayList<>();
             List<BigQueryError> bigQueryErrors = loadJob.getStatus().getExecutionErrors();
             for (BigQueryError bigQueryError : bigQueryErrors) {

@@ -182,7 +182,7 @@ public class IngestTest extends UsersBase {
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("file not found"));
+            containsString("not found"));
     }
 
     @Test
@@ -193,7 +193,7 @@ public class IngestTest extends UsersBase {
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
             steward(), ingestJobResponse, IngestResponseModel.class);
-        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getErrorDetail(),
             contains(containsStringIgnoringCase("not found")));
@@ -213,7 +213,7 @@ public class IngestTest extends UsersBase {
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("Bucket wildcards are not supported"));
+            containsString("not supported"));
     }
 
     @Test
@@ -227,7 +227,7 @@ public class IngestTest extends UsersBase {
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("Multi-wildcards are not supported"));
+            containsString("not supported"));
     }
 
     @Test

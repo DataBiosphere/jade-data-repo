@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.dataset.exception.IngestFailureException;
+import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.Column;
@@ -351,6 +352,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         if (loadJob.getStatus().getError() != null) {
+            if ("notFound".equals(loadJob.getStatus().getError().getReason())) {
+                throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequest.getPath());
+            }
+
             List<String> loadErrors = new ArrayList<>();
             List<BigQueryError> bigQueryErrors = loadJob.getStatus().getExecutionErrors();
             for (BigQueryError bigQueryError : bigQueryErrors) {

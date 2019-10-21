@@ -26,6 +26,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -75,6 +76,22 @@ public class IngestTest extends UsersBase {
             "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+    }
+
+    @Test
+    public void ingestWildcardSuffix() throws Exception {
+        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant*", IngestRequestModel.StrategyEnum.APPEND);
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
+    }
+
+    @Test
+    public void ingestWildcardMiddle() throws Exception {
+        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-p*t.json", IngestRequestModel.StrategyEnum.APPEND);
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
     }
 
     @Test
@@ -155,11 +172,8 @@ public class IngestTest extends UsersBase {
 
     @Test
     public void ingestBadPathTest() throws Exception {
-        IngestRequestModel request = new IngestRequestModel()
-            .format(IngestRequestModel.FormatEnum.JSON)
-            .path("gs://" + testConfig.getIngestbucket() + "/totally-legit-file.json")
-            .table("file")
-            .strategy(IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", "totally-legit-file.json", IngestRequestModel.StrategyEnum.APPEND);
         DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
             steward(), datasetId, request);
         DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
@@ -167,6 +181,79 @@ public class IngestTest extends UsersBase {
         assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
         assertThat("failure is explained",
             ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
-            containsString("file not found"));
+            containsString("not found"));
+    }
+
+    @Test
+    public void ingestEmptyPatternTest() throws Exception {
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", "prefix-matching-nothing/*", IngestRequestModel.StrategyEnum.APPEND);
+        DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, request);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), ingestJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.NOT_FOUND));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
+            containsString("not found"));
+    }
+
+    @Test
+    public void ingestBadBucketPatternTest() throws Exception {
+        IngestRequestModel request = new IngestRequestModel()
+            .table("file")
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .path("gs://bucket*pattern/some-file.json")
+            .strategy(IngestRequestModel.StrategyEnum.APPEND);
+        DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, request);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), ingestJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
+            containsString("not supported"));
+    }
+
+    @Test
+    public void ingestBadMultiWildcardTest() throws Exception {
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", "ingest-prefix/*/ingest/suffix/*.json", IngestRequestModel.StrategyEnum.APPEND);
+        DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, request);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), ingestJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getMessage(),
+            containsString("not supported"));
+    }
+
+    @Test
+    public void ingestSingleFileMalformedTest() throws Exception {
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", "ingest-test/ingest-test-prtcpnt-malformed.json", IngestRequestModel.StrategyEnum.APPEND);
+        DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, request);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), ingestJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getErrorDetail(),
+            hasItem(containsString("too many errors")));
+    }
+
+    @Test
+    public void ingestWildcardMalformedTest() throws Exception {
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "file", "ingest-test/ingest-test-p*.json", IngestRequestModel.StrategyEnum.APPEND);
+        DataRepoResponse<JobModel> ingestJobResponse = dataRepoFixtures.ingestJsonDataLaunch(
+            steward(), datasetId, request);
+        DataRepoResponse<IngestResponseModel> ingestResponse = dataRepoClient.waitForResponse(
+            steward(), ingestJobResponse, IngestResponseModel.class);
+        assertThat("ingest failed", ingestResponse.getStatusCode(), equalTo(HttpStatus.BAD_REQUEST));
+        assertThat("failure is explained",
+            ingestResponse.getErrorObject().orElseThrow(IllegalStateException::new).getErrorDetail(),
+            hasItem(containsString("too many errors")));
     }
 }

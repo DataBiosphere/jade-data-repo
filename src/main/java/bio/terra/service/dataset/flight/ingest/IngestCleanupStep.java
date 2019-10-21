@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IngestCleanupStep implements Step {
-    private Logger logger = LoggerFactory.getLogger("bio.terra.service.dataset.ingest");
+    private Logger logger = LoggerFactory.getLogger("bio.terra.service.dataset.flight.ingest");
 
     private final DatasetService datasetService;
     private final BigQueryPdao bigQueryPdao;

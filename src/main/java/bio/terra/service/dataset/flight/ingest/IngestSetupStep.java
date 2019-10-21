@@ -7,8 +7,6 @@ import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.exception.IngestFileNotFoundException;
-import bio.terra.service.dataset.exception.InvalidUriException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.stairway.FlightContext;
@@ -16,11 +14,6 @@ import bio.terra.stairway.FlightUtils;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.storage.Blob;
-import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageException;
-import com.google.cloud.storage.StorageOptions;
 import liquibase.util.StringUtils;
 
 import java.util.List;
@@ -57,18 +50,9 @@ public class IngestSetupStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         IngestRequestModel ingestRequestModel = IngestUtils.getIngestRequestModel(context);
-        IngestUtils.GsUrlParts gsParts = IngestUtils.parseBlobUri(ingestRequestModel.getPath());
-
-        try {
-            Storage storage = StorageOptions.getDefaultInstance().getService();
-            BlobId blobId = BlobId.of(gsParts.getBucket(), gsParts.getPath());
-            Blob blob = storage.get(blobId);
-            if (blob == null || !blob.exists()) {
-                throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequestModel.getPath());
-            }
-        } catch (StorageException ex) {
-            throw new InvalidUriException("Failed to access ingest source file: " + ingestRequestModel.getPath(), ex);
-        }
+        // We don't actually care about the output here since BQ takes the raw "gs://" string as input.
+        // As long as parsing succeeds, we're good to move forward.
+        IngestUtils.parseBlobUri(ingestRequestModel.getPath());
 
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         IngestUtils.putDatasetName(context, dataset.getName());

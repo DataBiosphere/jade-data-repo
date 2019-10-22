@@ -390,7 +390,7 @@ public class FlightDao {
             }
             return getObjectMapper().readValue(exceptionJson, Exception.class);
         } catch (IOException ex) {
-            logger.error("JACKSON deserialization failed. JSON:"+exceptionJson);
+            logger.error("JACKSON deserialization failed. JSON:" + exceptionJson);
             throw new DatabaseOperationException("Failed to convert JSON to exception", ex);
         }
     }

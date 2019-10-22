@@ -125,14 +125,9 @@ public class DataLocationService {
 
     // TODO: DRY this up
 
-    public DatasetDataProject getProjectForDataset(Dataset dataset) {
+    public DatasetDataProject getOrCreateProjectForDataset(Dataset dataset) {
         DatasetDataProjectSummary datasetDataProjectSummary = null;
         GoogleProjectResource googleProjectResource;
-        GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
-            .projectId(dataLocationSelector.projectIdForDataset(dataset))
-            .profileId(dataset.getDefaultProfileId())
-            .serviceIds(DATA_PROJECT_SERVICE_IDS)
-            .roleIdentityMapping(getStewardPolicy());
         try {
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProject(dataset.getId());
             googleProjectResource = resourceService.getProjectResourceById(
@@ -141,7 +136,16 @@ public class DataLocationService {
             // probably the first time we have seen this dataset, request a new project resource and save everything
             // TODO: if we are in production, don't reuse projects we don't know about
             // TODO: add a property to specify which people can view data projects
+
+            // create a new project (= an underlying cloud resource)
+            GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
+                .projectId(dataLocationSelector.projectIdForDataset(dataset))
+                .profileId(dataset.getDefaultProfileId())
+                .serviceIds(DATA_PROJECT_SERVICE_IDS)
+                .roleIdentityMapping(getStewardPolicy());
             googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+
+            // create a new dataproject (= a data repo concept, includes mapping between cloud project and dataset)
             if (datasetDataProjectSummary != null) {
                 logger.warn("metadata has a project resource id it can't resolve for dataset: " + dataset.getName());
                 dataProjectDao.deleteDatasetDataProject(datasetDataProjectSummary.getId());
@@ -152,7 +156,20 @@ public class DataLocationService {
             UUID datasetDataProjectId = dataProjectDao.createDatasetDataProject(datasetDataProjectSummary);
             datasetDataProjectSummary.id(datasetDataProjectId);
         }
-        return new DatasetDataProject(datasetDataProjectSummary)
-            .googleProjectResource(googleProjectResource);
+        return new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
+    }
+
+    // only return the project if it already exists
+    // otherwise, return null
+    public DatasetDataProject getProjectForDatasetId(UUID datasetId) {
+        try {
+            DatasetDataProjectSummary datasetDataProjectSummary =
+                dataProjectDao.retrieveDatasetDataProject(datasetId);
+            GoogleProjectResource googleProjectResource =
+                resourceService.getProjectResourceById(datasetDataProjectSummary.getProjectResourceId());
+            return new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
+        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
+            return null;
+        }
     }
 }

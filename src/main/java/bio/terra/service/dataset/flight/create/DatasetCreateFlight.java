@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight.create;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
@@ -23,6 +24,7 @@ public class DatasetCreateFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         SamClientService samClient = (SamClientService) appContext.getBean("samClientService");
+        DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
 
         // get data from inputs that steps need
         AuthenticatedUserRequest userReq = inputParameters.get(
@@ -32,7 +34,7 @@ public class DatasetCreateFlight extends Flight {
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         // TODO: create dataset data project step
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService));
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService, dataLocationService));
         addStep(new CreateDatasetAuthzResource(samClient, bigQueryPdao, datasetService, userReq));
     }
 

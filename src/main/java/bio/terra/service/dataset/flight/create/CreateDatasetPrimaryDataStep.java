@@ -38,7 +38,11 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        pdao.deleteDataset(getDataset(context));
+        try {
+            pdao.deleteDataset(getDataset(context));
+        } catch (Exception ex) {
+            System.out.println("exception caught 21. "+ex.getMessage()+", "+ex.getClass().getCanonicalName());
+        }
         return StepResult.getStepResultSuccess();
     }
 }

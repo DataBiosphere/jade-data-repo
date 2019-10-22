@@ -21,6 +21,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
+import bio.terra.stairway.exception.FlightException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -147,5 +148,43 @@ public class DatasetCreateFlightTest {
         assertFalse(deletedSomething);
 
         assertFalse(deleteDataset(dataset));
+    }
+
+    @Test
+    public void testProjectNameTooLong() {
+        // save the current project id prefix
+        String savedConfigProjectId = googleResourceConfiguration.getProjectId();
+        System.out.println("project id prefix saved at beginning of test.");
+
+        googleResourceConfiguration.setProjectId("thisprojectidislongerthanthirtycharacters");
+        String configprojectid = googleResourceConfiguration.getProjectId();
+        System.out.println("project id prefix changed to: "+configprojectid+", string length="+configprojectid.length());
+
+        FlightMap map = new FlightMap();
+        map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
+        String flightId = "projectNameTooLongTest";
+        stairway.submit(flightId, DatasetCreateFlight.class, map, testUser);
+        stairway.waitForFlight(flightId);
+
+        FlightState result = stairway.getFlightState(flightId);
+        FlightStatus resultStatus = result.getFlightStatus();
+        assertEquals(FlightStatus.ERROR, resultStatus);
+
+        Optional<Exception> resultEx = result.getException();
+        assertTrue(resultEx.isPresent());
+
+        // JACKSON can't deserialize GoogleJsonResponseException properly, so we rewrite it as a FlightException
+        // this is the reason the below checks are against the exception message, instead of the class/cause
+        assertEquals(resultEx.get().getClass(), FlightException.class);
+        assertThat(resultEx.get().getMessage(), containsString("Could not create project"));
+        assertThat(resultEx.get().getMessage(), containsString("bio.terra.service.resourcemanagement.exception.GoogleResourceException"));
+
+        boolean deletedSomething = datasetDao.deleteByName(datasetName);
+        assertFalse(deletedSomething);
+        assertFalse(deleteDataset(dataset));
+
+        // restore the project id prefix
+        googleResourceConfiguration.setProjectId(savedConfigProjectId);
+        System.out.println("project id prefix restored at end of test.");
     }
 }

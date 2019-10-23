@@ -162,7 +162,8 @@ public class DataLocationService {
                 dataProjectDao.retrieveDatasetDataProject(datasetId);
             GoogleProjectResource googleProjectResource =
                 resourceService.getProjectResourceById(datasetDataProjectSummary.getProjectResourceId());
-            DatasetDataProject datasetDataProject = new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
+            DatasetDataProject datasetDataProject =
+                new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
             return Optional.of(datasetDataProject);
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
             return Optional.empty();

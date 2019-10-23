@@ -57,7 +57,7 @@ public class FlightDao {
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
-    private static Logger logger = LoggerFactory.getLogger("bio.terra.stairway");
+    private static Logger logger = LoggerFactory.getLogger(Stairway.class);
     private static ObjectMapper objectMapper;
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final StairwayJdbcConfiguration jdbcConfiguration;

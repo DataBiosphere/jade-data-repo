@@ -19,12 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Component
 public class DataLocationService {
@@ -161,15 +156,16 @@ public class DataLocationService {
 
     // only return the project if it already exists
     // otherwise, return null
-    public DatasetDataProject getProjectForDatasetId(UUID datasetId) {
+    public Optional<DatasetDataProject> getProjectForDatasetId(UUID datasetId) {
         try {
             DatasetDataProjectSummary datasetDataProjectSummary =
                 dataProjectDao.retrieveDatasetDataProject(datasetId);
             GoogleProjectResource googleProjectResource =
                 resourceService.getProjectResourceById(datasetDataProjectSummary.getProjectResourceId());
-            return new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
+            DatasetDataProject datasetDataProject = new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
+            return Optional.of(datasetDataProject);
         } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
-            return null;
+            return Optional.empty();
         }
     }
 }

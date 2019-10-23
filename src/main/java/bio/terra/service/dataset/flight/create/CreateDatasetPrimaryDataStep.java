@@ -13,6 +13,7 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.springframework.http.HttpStatus;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class CreateDatasetPrimaryDataStep implements Step {
@@ -46,8 +47,8 @@ public class CreateDatasetPrimaryDataStep implements Step {
     public StepResult undoStep(FlightContext context) {
         // check if project was created
         UUID datasetId = context.getWorkingMap().get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        DatasetDataProject datasetProject = dataLocationService.getProjectForDatasetId(datasetId);
-        if (datasetProject != null) {
+        Optional<DatasetDataProject> datasetProject = dataLocationService.getProjectForDatasetId(datasetId);
+        if (datasetProject.isPresent()) {
             // if there is no project associated with this dataset, then there won't be primary data to delete,
             // so no need to call the below method.
             // also the below method will try to create a project if one doesn't already exist, and we don't

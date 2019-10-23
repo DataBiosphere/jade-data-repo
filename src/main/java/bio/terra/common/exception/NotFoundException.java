@@ -2,7 +2,7 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
-public class NotFoundException extends DataRepoException {
+public abstract class NotFoundException extends DataRepoException {
     public NotFoundException(String message) {
         super(message);
     }

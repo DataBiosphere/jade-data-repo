@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.dataset.Dataset;
@@ -54,7 +54,7 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
                     snapshotId.toString());
             }
             fileDao.deleteFilesFromSnapshot(snapshot);
-        } catch (NotFoundException nfe) {
+        } catch (DatasetNotFoundException nfe) {
             // If we do not find the dataset, we assume things are already clean
         }
         return StepResult.getStepResultSuccess();

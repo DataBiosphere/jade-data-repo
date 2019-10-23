@@ -2,7 +2,7 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
-public class UnauthorizedException extends DataRepoException {
+public abstract class UnauthorizedException extends DataRepoException {
     public UnauthorizedException(String message) {
         super(message);
     }

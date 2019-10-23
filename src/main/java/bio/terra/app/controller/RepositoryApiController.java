@@ -5,9 +5,9 @@ import bio.terra.app.utils.ControllerUtils;
 import bio.terra.controller.RepositoryApi;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.exception.InternalServerErrorException;
-import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.exception.SamUnauthorizedException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.model.DatasetModel;
@@ -336,7 +336,7 @@ public class RepositoryApiController implements RepositoryApi {
             // we can retrieve the job we just created
             return jobToResponse(jobService.retrieveJob(jobId, userReq));
         }
-        throw new UnauthorizedException(
+        throw new SamUnauthorizedException(
             "User is not authorized to create snapshots for these datasets " + unauthorized);
     }
 

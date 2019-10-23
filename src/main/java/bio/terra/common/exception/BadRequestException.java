@@ -2,7 +2,7 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
-public class BadRequestException extends DataRepoException {
+public abstract class BadRequestException extends DataRepoException {
     public BadRequestException(String message) {
         super(message);
     }

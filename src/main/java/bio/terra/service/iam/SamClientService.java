@@ -2,9 +2,9 @@ package bio.terra.service.iam;
 
 import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.exception.InternalServerErrorException;
-import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.iam.exception.SamUnauthorizedException;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.apache.commons.lang3.StringUtils;
@@ -178,7 +178,7 @@ public class SamClientService {
         String userEmail = userReq.getEmail();
         logger.info("email: {}, action: {}", userEmail, action);
         if (!isAuthorized(userReq, resourceType, resourceId, action)) {
-            throw new UnauthorizedException("User does not have required action: " + action);
+            throw new SamUnauthorizedException("User does not have required action: " + action);
         }
     }
 

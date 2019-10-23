@@ -12,7 +12,7 @@ import java.util.stream.Collectors;
  *     <li>id mismatch errors - invalid file id and row id references</li>
  * </ul>
  */
-public class DataRepoException extends RuntimeException {
+public abstract class DataRepoException extends RuntimeException {
     private final List<String> errorDetails;
 
     public DataRepoException(String message) {

@@ -2,6 +2,9 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
+/**
+ * This exception maps to HttpStatus.NOT_FOUND in the GlobalExceptionHandler.
+ */
 public abstract class NotFoundException extends DataRepoException {
     public NotFoundException(String message) {
         super(message);

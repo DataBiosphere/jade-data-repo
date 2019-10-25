@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
  *     <li>validation errors - to return details of each check that failed</li>
  *     <li>id mismatch errors - invalid file id and row id references</li>
  * </ul>
+ * Each subclass of this exception maps to a single HTTP status code.
  */
 public abstract class DataRepoException extends RuntimeException {
     private final List<String> errorDetails;

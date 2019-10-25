@@ -277,14 +277,14 @@ def getGitHash = { ->
 // connected tests and running all of the tests.
 test {
     useJUnit {
-        includeCategories 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
+        includeCategories 'bio.terra.common.Unit', 'bio.terra.common.StairwayUnit'
     }
     outputs.upToDateWhen { false }
 }
 
 task testConnected(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Connected'
+        includeCategories 'bio.terra.common.Connected'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -294,7 +294,7 @@ task testConnected(type: Test) {
 
 task testIntegration(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Integration'
+        includeCategories 'bio.terra.common.Integration'
     }
     testLogging {
         events = ["passed", "failed", "skipped", "started", "standard_out"]
@@ -304,14 +304,14 @@ task testIntegration(type: Test) {
 
 task testUnit(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Unit'
+        includeCategories 'bio.terra.common.Unit'
     }
     outputs.upToDateWhen { false }
 }
 
 task testAll(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.category.Connected', 'bio.terra.category.Unit', 'bio.terra.category.StairwayUnit'
+        includeCategories 'bio.terra.common.Connected', 'bio.terra.common.Unit', 'bio.terra.common.StairwayUnit'
     }
     outputs.upToDateWhen { false }
 }

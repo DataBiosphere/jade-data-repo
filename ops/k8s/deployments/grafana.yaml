@@ -57,6 +57,8 @@ spec:
           name: "grafana-config-cloudstorage-dashboard"
         - mountPath: /var/lib/grafana/dashboards/bigquery-logs
           name: "grafana-config-bigquery-logs"
+        - mountPath: /var/lib/grafana/dashboards/users-dashboard
+          name: "grafana-config-users-dashboard"
         env:
         - name: GF_USERS_AUTO_ASSIGN_ORG_ROLE
           value: "Editor"
@@ -169,3 +171,9 @@ spec:
           items:
             - key: bigquery-logs
               path: bigquery-logs.json
+      - name: "grafana-config-users-dashboard"
+        configMap:
+          name: "grafana-config"
+          items:
+          - key: users-dashboard
+            path: users-dashboard.json

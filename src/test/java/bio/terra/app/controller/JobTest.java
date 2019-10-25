@@ -57,7 +57,7 @@ public class JobTest {
 
     @Before
     public void setup() {
-        jobModel = new JobModel().id(testFlightId).description("This is not a unit");
+        jobModel = new JobModel().id(testFlightId).description("This is not a job");
     }
 
     @Test

@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
         return buildErrorModel(ex, Collections.emptyList());
     }
 
-    // -- unit response exception -- we use the JobResponseException to wrap non-runtime exceptions
+    // -- job response exception -- we use the JobResponseException to wrap non-runtime exceptions
     // returned from flights. So at this level, we catch the JobResponseException and retrieve the
     // original exception from inside it and use that to construct the error model.
     @ExceptionHandler(JobResponseException.class)

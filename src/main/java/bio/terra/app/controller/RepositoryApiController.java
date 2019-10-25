@@ -201,7 +201,7 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             SamClientService.DataRepoAction.UPDATE_DATA);
         String jobId = fileService.deleteFile(id, fileid, userReq);
-        // we can retrieve the unit we just created
+        // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
@@ -315,7 +315,7 @@ public class RepositoryApiController implements RepositoryApi {
         );
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
-            // we can retrieve the unit we just created
+            // we can retrieve the job we just created
             return jobToResponse(jobService.retrieveJob(jobId, userReq));
         }
         throw new SamUnauthorizedException(
@@ -331,7 +331,7 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             SamClientService.DataRepoAction.DELETE);
         String jobId = snapshotService.deleteSnapshot(UUID.fromString(id), userReq);
-        // we can retrieve the unit we just created
+        // we can retrieve the job we just created
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 

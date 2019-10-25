@@ -341,7 +341,7 @@ public class SnapshotOperationTest {
             IOUtils.copy(csvStream, stream);
         }
 
-        // Get load unit
+        // Get load job
         Job job = writer.getJob();
         job = job.waitFor();
         JobStatus jobStatus = job.getStatus();

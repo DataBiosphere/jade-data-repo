@@ -80,7 +80,7 @@ public class ResourceServiceTest {
             project.getLifecycleState(),
             equalTo("ACTIVE"));
 
-        // TODO check to make sure a steward can complete a unit in another test
+        // TODO check to make sure a steward can complete a job in another test
 
         resourceService.deleteProjectResource(projectResource.getRepositoryId());
         project = resourceService.getProject(projectId);

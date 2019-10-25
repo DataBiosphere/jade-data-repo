@@ -48,14 +48,14 @@ public class JobBuilder {
         return this;
     }
 
-    // submits this unit to stairway and returns the jobId immediately
+    // submits this job to stairway and returns the jobId immediately
     public String submit() {
         AuthenticatedUserRequest userReq = jobParameterMap.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         return jobServiceRef.submit(flightClass, jobParameterMap, userReq);
     }
 
-    // submits this unit to stairway, waits until it finishes, then returns an instance of the result class
+    // submits this job to stairway, waits until it finishes, then returns an instance of the result class
     public <T> T submitAndWait(Class<T> resultClass) {
         AuthenticatedUserRequest userReq = jobParameterMap.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);

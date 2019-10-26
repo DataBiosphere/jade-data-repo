@@ -1,8 +1,8 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.common.exception.NotImplementedException;
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
+import bio.terra.service.filedata.exception.FileSystemRetryException;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -267,7 +267,14 @@ public class FireStoreDirectoryDao {
                 return null;
             }
             if (documents.size() != 1) {
-                throw new FileSystemCorruptException("lookupByFileId found too many entries");
+                // TODO: We have seen duplicate documents as a result of concurrency issues.
+                //  The query.get() does not appear to be reliably transactional. That may
+                //  be a FireStore bug. Regardless, we treat this as a retryable situation.
+                //  It *might* be corruption bug on our side. If so, the retry will consistently
+                //  fail and eventually give up. When debugging that case, one will have to understand
+                //  the purpose of this logic.
+                logger.info("Found too many entries: " + documents.size());
+                throw new FileSystemRetryException("lookupByFileId found too many entries - retry");
             }
 
             return documents.get(0);

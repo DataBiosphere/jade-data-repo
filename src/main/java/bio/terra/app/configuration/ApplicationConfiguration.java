@@ -26,6 +26,7 @@ public class ApplicationConfiguration {
     private String dnsName;
     private String resourceId;
     private String userId;
+    private int maxStairwayThreads;
 
     public String getUserEmail() {
         return userEmail;
@@ -60,9 +61,17 @@ public class ApplicationConfiguration {
         this.userId = userId;
     }
 
+    public int getMaxStairwayThreads() {
+        return maxStairwayThreads;
+    }
+
+    public void setMaxStairwayThreads(int maxStairwayThreads) {
+        this.maxStairwayThreads = maxStairwayThreads;
+    }
+
     @Bean("stairway")
     public Stairway getStairway(ApplicationContext applicationContext) {
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ExecutorService executorService = Executors.newFixedThreadPool(getMaxStairwayThreads());
         return new Stairway(executorService, applicationContext);
     }
 

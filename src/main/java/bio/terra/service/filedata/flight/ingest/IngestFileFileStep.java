@@ -1,18 +1,20 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.model.FileLoadModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
-import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.FileService;
+import bio.terra.service.filedata.exception.FileSystemRetryException;
+import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 
 
 public class IngestFileFileStep implements Step {
@@ -47,12 +49,16 @@ public class IngestFileFileStep implements Step {
             .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
             .checksumMd5(fsFileInfo.getChecksumMd5())
             .size(fsFileInfo.getSize());
-        fileDao.createFileMetadata(dataset, newFile);
 
-        // Retrieve to build the complete FSItem
-        FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
+        try {
+            fileDao.createFileMetadata(dataset, newFile);
+            // Retrieve to build the complete FSItem
+            FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
+            workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
+        } catch (FileSystemRetryException rex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+        }
 
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
         return StepResult.getStepResultSuccess();
     }
 
@@ -60,7 +66,11 @@ public class IngestFileFileStep implements Step {
     public StepResult undoStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
-        fileDao.deleteFileMetadata(dataset, itemId);
+        try {
+            fileDao.deleteFileMetadata(dataset, itemId);
+        } catch (FileSystemRetryException rex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+        }
         return StepResult.getStepResultSuccess();
     }
 

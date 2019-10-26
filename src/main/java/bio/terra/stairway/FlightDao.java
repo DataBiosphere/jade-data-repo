@@ -10,7 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.bigquery.BigQueryException;
+import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.storage.StorageException;
 import org.postgresql.util.PSQLException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -358,7 +360,9 @@ public class FlightDao {
             if (inException instanceof StorageException ||
                 inException instanceof BigQueryException ||
                 inException instanceof PSQLException ||
-                inException instanceof URISyntaxException) {
+                inException instanceof URISyntaxException ||
+                inException instanceof AbortedException ||
+                inException instanceof FirestoreException) {
                 return false;
             }
         }

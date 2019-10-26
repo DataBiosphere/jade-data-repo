@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.delete;
 
+import bio.terra.service.filedata.exception.FileSystemRetryException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.dataset.Dataset;
@@ -7,6 +8,7 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import bio.terra.stairway.StepStatus;
 import org.springframework.http.HttpStatus;
 
 
@@ -25,11 +27,15 @@ public class DeleteFileDirectoryStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        boolean found = fileDao.deleteDirectoryEntry(dataset, fileId);
-        DeleteResponseModel.ObjectStateEnum stateEnum =
-            (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
-        DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
-        FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
+        try {
+            boolean found = fileDao.deleteDirectoryEntry(dataset, fileId);
+            DeleteResponseModel.ObjectStateEnum stateEnum =
+                (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
+            DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
+            FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
+        } catch (FileSystemRetryException rex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
+        }
         return StepResult.getStepResultSuccess();
     }
 

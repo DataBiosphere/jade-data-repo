@@ -81,15 +81,21 @@ public class DataRepoClient {
     public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
+        final int initialSeconds = 1;
+        final int maxSeconds = 16;
+
         try {
             int count = 0;
+            int sleepSeconds = initialSeconds;
             while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
                 String location = getLocationHeader(jobModelResponse);
                 logger.info("try #{} for {}", ++count, location);
 
-                // TODO: tune this. Maybe use exponential backoff?
-                TimeUnit.SECONDS.sleep(10);
+                TimeUnit.SECONDS.sleep(sleepSeconds);
                 jobModelResponse = get(user, location, JobModel.class);
+
+                int nextSeconds = 2 * sleepSeconds;
+                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
             }
         } catch (InterruptedException ex) {
             logger.info("interrupted ex: {}", ex.getMessage());

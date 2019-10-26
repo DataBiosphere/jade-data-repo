@@ -2,11 +2,12 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.service.iam.SamClientService;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -29,6 +30,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -45,6 +48,9 @@ public class FileTest extends UsersBase {
 
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
+
+    @Autowired
+    private DataRepoClient dataRepoClient;
 
     @Autowired
     private TestConfiguration testConfiguration;
@@ -69,6 +75,38 @@ public class FileTest extends UsersBase {
         if (datasetId != null) {
             dataRepoFixtures.deleteDataset(steward(), datasetId);
         }
+    }
+
+    // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
+    // Do file ingests in parallel using a filename that will cause failure
+    @Test
+    public void fileParallelFailedLoadTest() throws Exception {
+        List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
+        String gsPath = "gs://" + testConfiguration.getIngestbucket() + "/nonexistentfile";
+        String filePath = "/foo" + UUID.randomUUID().toString() + "/bar";
+
+        for (int i = 0; i < 20; i++) {
+            DataRepoResponse<JobModel> launchResp = dataRepoFixtures.ingestFileLaunch(
+                steward(), datasetId, profileId, gsPath, filePath + i);
+            responseList.add(launchResp);
+        }
+
+        int failureCount = 0;
+        for (DataRepoResponse<JobModel> resp : responseList) {
+            DataRepoResponse<FileModel> response = dataRepoClient.waitForResponse(steward(), resp, FileModel.class);
+            if (response.getStatusCode() == HttpStatus.NOT_FOUND) {
+                System.out.println("Got expected not found");
+            } else {
+                System.out.println("Unexpected: " + response.getStatusCode().toString());
+                if (response.getErrorObject().isPresent()) {
+                    ErrorModel errorModel = response.getErrorObject().get();
+                    System.out.println("Error: " + errorModel.getMessage());
+                }
+                failureCount++;
+            }
+        }
+
+        assertThat("No unexpected failures", failureCount, equalTo(0));
     }
 
     @Test

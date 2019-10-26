@@ -162,7 +162,9 @@ public class SamClientService {
                 resourceType.toString(),
                 resourceId,
                 action.toString());
-            logger.info("authorized is " + authorized);
+            // TODO: REVIEWERS: I set this logger to debug to cut out the chatter. If we want to alert
+            //  when authorized is not true, then we can recode it that way.
+            logger.debug("authorized is " + authorized);
         } catch (ApiException ex) {
             logger.warn("userReq token: {}", userReq.getToken());
             throw new InternalServerErrorException(ex);

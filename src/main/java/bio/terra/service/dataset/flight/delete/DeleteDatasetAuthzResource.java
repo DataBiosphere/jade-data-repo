@@ -28,11 +28,7 @@ public class DeleteDatasetAuthzResource implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        try {
-            sam.deleteDatasetResource(userReq, datasetId);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        sam.deleteDatasetResource(userReq, datasetId);
         return StepResult.getStepResultSuccess();
     }
 

@@ -7,6 +7,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
+import bio.terra.service.iam.SamClientService;
 import bio.terra.service.job.exception.JobResponseException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -80,8 +81,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorModel samApiExceptionHandler(ApiException ex) {
-        //TODO convert from sam exception to jade exception
-        return buildErrorModel(ex);
+        // All SAM ApiExceptions should be caught inside the service/iam package and converted to a DataRepo exception
+        // there. If any ApiException makes it up to this level, then it's unexpected. We can still do the conversion,
+        // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
+        DataRepoException drex = SamClientService.convertSAMExToDataRepoEx(ex);
+        return buildErrorModel(drex);
     }
 
     // -- catchall - log so we can understand what we have missed in the handlers above

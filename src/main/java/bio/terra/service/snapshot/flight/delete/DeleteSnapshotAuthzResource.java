@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.delete;
 
+import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.iam.SamClientService;
@@ -28,11 +29,8 @@ public class DeleteSnapshotAuthzResource implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             sam.deleteSnapshotResource(userReq, snapshotId);
-        } catch (ApiException ex) {
+        } catch (NotFoundException ex) {
             // If we can't find it consider the delete successful.
-            if (ex.getCode() != 404) {
-                throw new InternalServerErrorException(ex);
-            }
         }
         return StepResult.getStepResultSuccess();
     }

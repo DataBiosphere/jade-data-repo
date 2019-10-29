@@ -5,7 +5,7 @@ import java.util.List;
 /**
  * This exception maps to HttpStatus.INTERNAL_SERVER_ERROR in the GlobalExceptionHandler.
  */
-public class InternalServerErrorException extends DataRepoException {
+public abstract class InternalServerErrorException extends DataRepoException {
     public InternalServerErrorException(String message) {
         super(message);
     }

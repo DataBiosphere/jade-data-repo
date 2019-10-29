@@ -16,7 +16,7 @@ public class TestStepRetry implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws RetryException {
         logger.debug("TestStepRetry - timesFailed=" + timesFailed + " timesToFail=" + timesToFail);
 
         if (timesFailed < timesToFail) {

@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.stairway.exception.StairwayException;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,7 +29,7 @@ final class TestUtil {
         return stairway;
     }
 
-    static boolean isDone(Stairway stairway, String flightId) {
+    static boolean isDone(Stairway stairway, String flightId) throws StairwayException {
         return stairway.getFlightState(flightId).getFlightStatus() != FlightStatus.RUNNING;
     }
 }

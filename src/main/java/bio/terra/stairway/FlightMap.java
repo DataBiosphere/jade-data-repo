@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.stairway.exception.DatabaseOperationException;
+import bio.terra.stairway.exception.JsonConversionException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -66,7 +66,7 @@ public class FlightMap {
         try {
             return getObjectMapper().writeValueAsString(map);
         } catch (JsonProcessingException ex) {
-            throw new DatabaseOperationException("Failed to convert map to json string", ex);
+            throw new JsonConversionException("Failed to convert map to json string", ex);
         }
     }
 
@@ -74,7 +74,7 @@ public class FlightMap {
         try {
             map = getObjectMapper().readValue(json, new TypeReference<Map<String, Object>>() {});
         } catch (IOException ex) {
-            throw new DatabaseOperationException("Failed to convert json string to map", ex);
+            throw new JsonConversionException("Failed to convert json string to map", ex);
         }
     }
 

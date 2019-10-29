@@ -4,6 +4,7 @@ import bio.terra.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
+import bio.terra.stairway.exception.StairwayException;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -44,12 +45,12 @@ public class StairwayTest {
     }
 
     @Test(expected = FlightNotFoundException.class)
-    public void testBadFlightDone() {
+    public void testBadFlightDone() throws StairwayException {
         TestUtil.isDone(stairway, "abcdefg");
     }
 
     @Test(expected = FlightNotFoundException.class)
-    public void testBadFlightGetResult() {
+    public void testBadFlightGetResult() throws StairwayException {
         stairway.getFlightState("abcdefg");
     }
 

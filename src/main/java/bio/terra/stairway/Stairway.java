@@ -131,9 +131,11 @@ public class Stairway {
      *
      * @param flightId id of flight to check
      * @param userRequestInfo subset of information about the user that can be used to determine access
-     * @throws RuntimeException if the user does not have access to the flight
+     * @throws DatabaseOperationException if there are multiple matching flight ids
+     * @throws StairwayUnauthorizedException if the user does not own the flight
      */
-    public void verifyUserAccess(String flightId, UserRequestInfo userRequestInfo) {
+    public void verifyUserAccess(String flightId, UserRequestInfo userRequestInfo)
+        throws DatabaseOperationException, StairwayUnauthorizedException {
         boolean hasAccess;
         try {
             hasAccess = flightDao.ownsFlight(flightId, userRequestInfo.getSubjectId());
@@ -160,7 +162,7 @@ public class Stairway {
      *
      * @param flightId
      */
-    public FlightState waitForFlight(String flightId) {
+    public FlightState waitForFlight(String flightId) throws FlightException {
         TaskContext taskContext = lookupFlight(flightId);
 
         try {
@@ -185,7 +187,7 @@ public class Stairway {
      * @param flightId
      * @return FlightState
      */
-    public FlightState getFlightState(String flightId) {
+    public FlightState getFlightState(String flightId) throws DatabaseOperationException {
         FlightState flightState = flightDao.getFlightState(flightId);
         if (flightState.getFlightStatus() != FlightStatus.RUNNING) {
             releaseFlight(flightId);

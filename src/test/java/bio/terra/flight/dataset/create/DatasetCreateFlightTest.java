@@ -21,6 +21,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
+import bio.terra.stairway.exception.StairwayException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -109,7 +110,7 @@ public class DatasetCreateFlightTest {
         }
     }
     @Test
-    public void testHappyPath() {
+    public void testHappyPath() throws StairwayException {
         FlightMap map = new FlightMap();
         map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
         String flightId = "successTest";
@@ -130,7 +131,7 @@ public class DatasetCreateFlightTest {
     }
 
     @Test
-    public void testUndoAfterPrimaryDataStep() {
+    public void testUndoAfterPrimaryDataStep() throws StairwayException {
         FlightMap map = new FlightMap();
         map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
         String flightId = "undoTest";

@@ -4,7 +4,7 @@ package bio.terra.stairway.exception;
  * DatabaseSetupException indicates that something is wrong with the database environment.
  * We were not able to create or reset or recover the database. This is fatal for stairway.
  */
-public class DatabaseSetupException extends RuntimeException {
+public class DatabaseSetupException extends StairwayException {
     public DatabaseSetupException(String message) {
         super(message);
     }

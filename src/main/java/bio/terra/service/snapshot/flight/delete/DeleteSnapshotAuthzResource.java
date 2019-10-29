@@ -2,12 +2,10 @@ package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.iam.SamClientService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

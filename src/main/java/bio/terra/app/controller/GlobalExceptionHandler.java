@@ -84,6 +84,7 @@ public class GlobalExceptionHandler {
         // All SAM ApiExceptions should be caught inside the service/iam package and converted to a DataRepo exception
         // there. If any ApiException makes it up to this level, then it's unexpected. We can still do the conversion,
         // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
+        logger.error("SAM ApiException caught outside the service/iam package", ex);
         DataRepoException drex = SamClientService.convertSAMExToDataRepoEx(ex);
         return buildErrorModel(drex);
     }

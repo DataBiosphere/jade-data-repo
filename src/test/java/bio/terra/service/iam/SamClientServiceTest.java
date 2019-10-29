@@ -1,6 +1,7 @@
 package bio.terra.service.iam;
 
 import bio.terra.category.Unit;
+import bio.terra.service.iam.exception.SamUnauthorizedException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.api.ResourcesApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.CreateResourceRequest;
@@ -37,7 +38,7 @@ public class SamClientServiceTest {
     private AuthenticatedUserRequest testUser = new AuthenticatedUserRequest()
             .email("blah").subjectId("myId").token(Optional.of("blah"));
 
-    @Test(expected = ApiException.class)
+    @Test(expected = SamUnauthorizedException.class)
     public void testCreateDatasetResourceException() throws Exception {
         UUID datasetId = UUID.randomUUID();
         // TODO this code below is not mocked correctly
@@ -47,7 +48,7 @@ public class SamClientServiceTest {
         sam.createDatasetResource(testUser, datasetId);
     }
 
-    @Test(expected = ApiException.class)
+    @Test(expected = SamUnauthorizedException.class)
     public void testCreateSnapshotResourceException() throws Exception {
         UUID snapshotId = UUID.randomUUID();
         // TODO this code below is not mocked correctly
@@ -58,7 +59,7 @@ public class SamClientServiceTest {
         sam.createSnapshotResource(testUser, snapshotId, readerList);
     }
 
-    @Test(expected = ApiException.class)
+    @Test(expected = SamUnauthorizedException.class)
     public void testCreateSnapshotResourceExceptionWithReaders() throws Exception {
         UUID snapshotId = UUID.randomUUID();
         Optional<List<String>> readersList = Optional.of(Collections.singletonList("email@email.com"));
@@ -76,7 +77,7 @@ public class SamClientServiceTest {
         sam.createSnapshotResource(testUser, snapshotId, readersList);
     }
 
-    @Test(expected = ApiException.class)
+    @Test(expected = SamUnauthorizedException.class)
     public void testDeleteDatasetResourceException() throws Exception {
         UUID datasetId = UUID.randomUUID();
         willThrow(new ApiException("test"))
@@ -85,7 +86,7 @@ public class SamClientServiceTest {
         sam.deleteDatasetResource(testUser, datasetId);
     }
 
-    @Test(expected = ApiException.class)
+    @Test(expected = SamUnauthorizedException.class)
     public void testDeleteSnapshotResourceException() throws Exception {
         UUID snapshotId = UUID.randomUUID();
         willThrow(new ApiException("test"))

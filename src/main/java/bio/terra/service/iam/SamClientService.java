@@ -239,10 +239,11 @@ public class SamClientService {
             // create the resource in sam
             createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASET.toString(), req);
 
-            // we'll want all of these roles to have read access to the underlying data, so we sync and return the emails
-            // for the policies that get created by SAM
+            // we'll want all of these roles to have read access to the underlying data,
+            // so we sync and return the emails for the policies that get created by SAM
             ArrayList<String> rolePolicies = new ArrayList<>();
-            for (DataRepoRole role : Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
+            for (DataRepoRole role :
+                Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
                 Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
                     ResourceType.DATASET.toString(),
                     datasetId.toString(),

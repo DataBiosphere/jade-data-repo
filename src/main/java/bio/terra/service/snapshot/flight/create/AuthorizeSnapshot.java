@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -19,8 +18,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.google.api.client.http.HttpStatusCodes;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

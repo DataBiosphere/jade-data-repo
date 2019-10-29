@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight.create;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -13,8 +12,6 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.google.api.client.http.HttpStatusCodes;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

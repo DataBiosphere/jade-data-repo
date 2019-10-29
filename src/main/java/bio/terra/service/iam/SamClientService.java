@@ -4,9 +4,13 @@ import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.iam.exception.SamBadRequestException;
+import bio.terra.service.iam.exception.SamInternalServerErrorException;
+import bio.terra.service.iam.exception.SamNotFoundException;
 import bio.terra.service.iam.exception.SamUnauthorizedException;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.google.api.client.http.HttpStatusCodes;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -445,7 +449,25 @@ public class SamClientService {
         // TODO: add mapping based on HTTP status code
         // SAM uses com.google.api.client.http.HttpStatusCodes
         // DataRepo uses org.springframework.http.HttpStatus
-        return new SamUnauthorizedException(samEx);
+
+        switch (samEx.getCode()) {
+            case HttpStatusCodes.STATUS_CODE_BAD_REQUEST : {
+                return new SamBadRequestException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED : {
+                return new SamUnauthorizedException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_NOT_FOUND : {
+                return new SamNotFoundException(samEx);
+            }
+            case HttpStatusCodes.STATUS_CODE_SERVER_ERROR : {
+                return new SamInternalServerErrorException(samEx);
+            }
+            // note that SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
+            default : {
+                return new SamInternalServerErrorException(samEx);
+            }
+        }
     }
 
 }

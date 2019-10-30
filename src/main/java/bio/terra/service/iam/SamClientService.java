@@ -167,7 +167,7 @@ public class SamClientService {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
             boolean authorized = samResourceApi.resourceAction(resourceType.toString(), resourceId, action.toString());
-            logger.info("authorized is " + authorized);
+            logger.debug("authorized is " + authorized);
             return authorized;
         } catch (ApiException ex) {
             logger.warn("userReq token: {}", userReq.getToken());

@@ -1,7 +1,7 @@
 package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.exception.FileSystemRetryException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -25,7 +25,7 @@ public class DeleteFileMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             fileDao.deleteFileMetadata(dataset, fileId);
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
         return StepResult.getStepResultSuccess();

@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.flight.delete;
 
-import bio.terra.service.filedata.exception.FileSystemRetryException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
@@ -51,7 +51,7 @@ public class DeleteFileLookupStep implements Step {
                         "File is used by at least one snapshot and cannot be deleted");
                 }
             }
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
 

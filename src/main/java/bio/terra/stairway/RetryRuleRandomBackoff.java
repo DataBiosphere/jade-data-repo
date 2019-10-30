@@ -4,9 +4,9 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 public class RetryRuleRandomBackoff implements RetryRule {
-    private long operationIncrementMilliseconds;
-    private int maxConcurrency;
-    private int maxCount;
+    private final long operationIncrementMilliseconds;
+    private final int maxConcurrency;
+    private final int maxCount;
 
     // Initialized parameters
     private int retryCount;

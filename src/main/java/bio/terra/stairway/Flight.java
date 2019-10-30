@@ -185,8 +185,7 @@ public class Flight implements Callable<FlightState> {
                 logger.info("Caught exception: (" + ex.toString() +
                     ")\nexecuting flight id: " + context().getFlightId() +
                     " step: " + context().getStepIndex() +
-                    " direction: " + (context().isDoing() ? "doing" : "undoing"));
-                ex.printStackTrace();
+                    " direction: " + (context().isDoing() ? "doing" : "undoing"), ex);
 
                 StepStatus stepStatus = (ex instanceof RetryException)
                     ? StepStatus.STEP_RESULT_FAILURE_RETRY

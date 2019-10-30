@@ -5,7 +5,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.FSItem;
 import bio.terra.service.filedata.FileService;
-import bio.terra.service.filedata.exception.FileSystemRetryException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
@@ -55,7 +55,7 @@ public class IngestFileFileStep implements Step {
             // Retrieve to build the complete FSItem
             FSItem fsItem = fileDao.retrieveById(dataset, fileId, 1, true);
             workingMap.put(JobMapKeys.RESPONSE.getKeyName(), fileService.fileModelFromFSItem(fsItem));
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
 
@@ -68,7 +68,7 @@ public class IngestFileFileStep implements Step {
         String itemId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         try {
             fileDao.deleteFileMetadata(dataset, itemId);
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
         return StepResult.getStepResultSuccess();

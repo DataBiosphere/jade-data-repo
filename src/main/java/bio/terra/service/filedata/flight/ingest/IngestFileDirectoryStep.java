@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.service.filedata.exception.FileSystemRetryException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryEntry;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
@@ -50,7 +50,7 @@ public class IngestFileDirectoryStep implements Step {
                     .fileId(fileId)
                     .isFileRef(true)
                     .path(fireStoreUtils.getDirectoryPath(loadModel.getTargetPath()))
-                    .name(fireStoreUtils.getName((loadModel.getTargetPath())))
+                    .name(fireStoreUtils.getName(loadModel.getTargetPath()))
                     .datasetId(datasetId);
                 fileDao.createDirectoryEntry(dataset, newEntry);
             } else {
@@ -59,7 +59,7 @@ public class IngestFileDirectoryStep implements Step {
                     throw new FileAlreadyExistsException("Path already exists: " + targetPath);
                 }
             }
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
 
@@ -72,7 +72,7 @@ public class IngestFileDirectoryStep implements Step {
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
         try {
             fileDao.deleteDirectoryEntry(dataset, fileId);
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
         return StepResult.getStepResultSuccess();

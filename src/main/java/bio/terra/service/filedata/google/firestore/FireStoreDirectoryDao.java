@@ -1,8 +1,8 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.exception.FileSystemRetryException;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
@@ -273,8 +273,9 @@ public class FireStoreDirectoryDao {
                 //  It *might* be corruption bug on our side. If so, the retry will consistently
                 //  fail and eventually give up. When debugging that case, one will have to understand
                 //  the purpose of this logic.
-                logger.info("Found too many entries: " + documents.size());
-                throw new FileSystemRetryException("lookupByFileId found too many entries - retry");
+                logger.warn("Found too many entries: " + documents.size() +
+                    "; for file: " + collectionId + "/" + fileId);
+                throw new FileSystemAbortTransactionException("lookupByFileId found too many entries");
             }
 
             return documents.get(0);

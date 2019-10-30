@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.flight.delete;
 
-import bio.terra.service.filedata.exception.FileSystemRetryException;
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.dataset.Dataset;
@@ -33,7 +33,7 @@ public class DeleteFileDirectoryStep implements Step {
                 (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;
             DeleteResponseModel deleteResponseModel = new DeleteResponseModel().objectState(stateEnum);
             FlightUtils.setResponse(context, deleteResponseModel, HttpStatus.OK);
-        } catch (FileSystemRetryException rex) {
+        } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
         return StepResult.getStepResultSuccess();

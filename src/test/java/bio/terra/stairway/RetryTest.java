@@ -3,6 +3,7 @@ package bio.terra.stairway;
 
 import bio.terra.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.stairway.exception.StairwayException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +39,7 @@ public class RetryTest {
     }
 
     @Test
-    public void fixedSuccessTest() {
+    public void fixedSuccessTest() throws StairwayException {
         // Fixed interval where maxCount > failCount should succeed
         FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "fixed");
@@ -55,7 +56,7 @@ public class RetryTest {
     }
 
     @Test
-    public void fixedFailureTest() {
+    public void fixedFailureTest() throws StairwayException {
         // Fixed interval where maxCount =< failCount should fail
         int intervalSeconds = 2;
         int maxCount = 3;
@@ -83,7 +84,7 @@ public class RetryTest {
     }
 
     @Test
-    public void exponentialSuccessTest() {
+    public void exponentialSuccessTest() throws StairwayException {
         // Exponential with generous limits
         FlightMap inputParameters = new FlightMap();
         inputParameters.put("retryType", "exponential");
@@ -101,7 +102,7 @@ public class RetryTest {
     }
 
     @Test
-    public void exponentialOpTimeFailureTest() {
+    public void exponentialOpTimeFailureTest() throws StairwayException {
         // Should fail by running out of operation time
         // Should go 2 + 4 + 8 + 16 - well over 10
         FlightMap inputParameters = new FlightMap();
@@ -121,7 +122,7 @@ public class RetryTest {
     }
 
     @Test
-    public void exponentialMaxIntervalSuccessTest() {
+    public void exponentialMaxIntervalSuccessTest() throws StairwayException {
         // Should succeed in 4 tries. The time should be capped by
         // the maxInterval of 4. That is,
         // 2 + 4 + 4 + 4 = 14 should be less than 2 + 4 + 8 + 16 = 30

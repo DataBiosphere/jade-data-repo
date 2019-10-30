@@ -1,6 +1,6 @@
 package bio.terra.common.exception;
 
-public class PdaoException extends RuntimeException {
+public class PdaoException extends InternalServerErrorException {
     public PdaoException(String message) {
         super(message);
     }

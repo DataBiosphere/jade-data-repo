@@ -1,9 +1,9 @@
 package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.app.configuration.SamConfiguration;
-import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import bio.terra.service.resourcemanagement.BillingProfile;
@@ -300,7 +300,7 @@ public class GoogleResourceService {
             resourceManager.projects()
                 .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
         } catch (IOException | GeneralSecurityException ex) {
-            throw new InternalServerErrorException("Cannot enable iam permissions", ex);
+            throw new EnablePermissionsFailedException("Cannot enable iam permissions", ex);
         }
     }
 

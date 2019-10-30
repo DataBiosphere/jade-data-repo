@@ -4,7 +4,7 @@ package bio.terra.stairway.exception;
  * DatabaseOperationException indicates that something bad happened accessing the database.
  * This might be retry-able.
  */
-public class DatabaseOperationException extends RuntimeException {
+public class DatabaseOperationException extends StairwayException {
     public DatabaseOperationException(String message) {
         super(message);
     }

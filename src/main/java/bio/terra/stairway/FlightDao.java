@@ -4,6 +4,7 @@ import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.stairway.exception.JsonConversionException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -248,7 +249,7 @@ public class FlightDao {
      * @param flightId
      * @return FlightState for the flight
      */
-    public FlightState getFlightState(String flightId) {
+    public FlightState getFlightState(String flightId) throws DatabaseOperationException {
         final String sqlOneFlight = "SELECT flightid, submit_time, input_parameters," +
             " completed_time, output_parameters, status, exception, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
@@ -344,7 +345,7 @@ public class FlightDao {
             }
             return exceptionJson;
         } catch (JsonProcessingException ex) {
-            throw new DatabaseOperationException("Failed to convert exception to JSON", ex);
+            throw new JsonConversionException("Failed to convert exception to JSON", ex);
         }
     }
 
@@ -384,7 +385,7 @@ public class FlightDao {
             }
             return getObjectMapper().readValue(exceptionJson, Exception.class);
         } catch (IOException ex) {
-            throw new DatabaseOperationException("Failed to convert JSON to exception", ex);
+            throw new JsonConversionException("Failed to convert JSON to exception", ex);
         }
     }
 

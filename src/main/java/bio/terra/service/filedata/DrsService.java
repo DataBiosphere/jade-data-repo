@@ -8,7 +8,6 @@ import bio.terra.service.filedata.exception.InvalidDrsIdException;
 import bio.terra.service.iam.SamClientService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
@@ -200,7 +199,7 @@ public class DrsService {
             String encodedPath = URLEncoder.encode(gsPath, StandardCharsets.UTF_8.toString());
             return String.format("https://www.googleapis.com/storage/v1/b/%s/o/%s?alt=media", gsBucket, encodedPath);
         } catch (UnsupportedEncodingException ex) {
-            throw new InternalServerErrorException("Failed to urlencode file path", ex);
+            throw new InvalidDrsIdException("Failed to urlencode file path", ex);
         }
     }
 

@@ -2,6 +2,9 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
+/**
+ * This exception maps to HttpStatus.NOT_IMPLEMENTED in the GlobalExceptionHandler.
+ */
 public class NotImplementedException extends DataRepoException {
     public NotImplementedException(String message) {
         super(message);

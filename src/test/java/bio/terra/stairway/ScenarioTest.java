@@ -4,6 +4,7 @@ package bio.terra.stairway;
 import bio.terra.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.stairway.exception.StairwayException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +44,7 @@ public class ScenarioTest {
     }
 
     @Test
-    public void simpleTest() {
+    public void simpleTest() throws StairwayException {
         // Generate a unique filename
         String filename = makeFilename();
         logger.debug("Filename: " + filename);

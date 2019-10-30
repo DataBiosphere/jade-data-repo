@@ -14,7 +14,6 @@ import bio.terra.service.iam.SamClientService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -62,7 +61,7 @@ public class OneProjectPerProfileIdSelectorTest {
     private SamClientService samClientService;
 
     @Before
-    public void setup() throws ApiException {
+    public void setup() {
         connectedOperations.stubOutSamCalls(samClientService);
     }
 

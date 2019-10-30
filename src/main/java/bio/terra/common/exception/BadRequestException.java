@@ -2,7 +2,10 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
-public class BadRequestException extends DataRepoException {
+/**
+ * This exception maps to HttpStatus.BAD_REQUEST in the GlobalExceptionHandler.
+ */
+public abstract class BadRequestException extends DataRepoException {
     public BadRequestException(String message) {
         super(message);
     }

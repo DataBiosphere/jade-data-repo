@@ -1,7 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.common.exception.NotFoundException;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.Snapshot;
@@ -39,7 +39,7 @@ public class CreateSnapshotMetadataStep implements Step {
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
-        } catch (NotFoundException ex) {
+        } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         }

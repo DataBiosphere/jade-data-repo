@@ -1,6 +1,8 @@
 package bio.terra.service.job.exception;
 
-public class JobResponseException extends RuntimeException {
+import bio.terra.common.exception.InternalServerErrorException;
+
+public class JobResponseException extends InternalServerErrorException {
     public JobResponseException(String message) {
         super(message);
     }

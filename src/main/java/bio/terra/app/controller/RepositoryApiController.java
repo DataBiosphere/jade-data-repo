@@ -4,10 +4,9 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.controller.RepositoryApi;
 import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.common.exception.InternalServerErrorException;
-import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;
+import bio.terra.service.iam.exception.SamUnauthorizedException;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.model.DatasetModel;
@@ -20,6 +19,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
@@ -36,7 +36,6 @@ import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.common.ValidationUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,14 +171,10 @@ public class RepositoryApiController implements RepositoryApi {
             @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
             @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        try {
-            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
-                getAuthenticatedInfo(), SamClientService.ResourceType.DATASET);
-            EnumerateDatasetModel esm = datasetService.enumerate(offset, limit, sort, direction, filter, resources);
-            return new ResponseEntity<>(esm, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
+            getAuthenticatedInfo(), SamClientService.ResourceType.DATASET);
+        EnumerateDatasetModel esm = datasetService.enumerate(offset, limit, sort, direction, filter, resources);
+        return new ResponseEntity<>(esm, HttpStatus.OK);
     }
 
     @Override
@@ -221,7 +216,6 @@ public class RepositoryApiController implements RepositoryApi {
             SamClientService.DataRepoAction.INGEST_DATA);
         String jobId = fileService.ingestFile(id, ingestFile, userReq);
         // we can retrieve the job we just created
-
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
@@ -264,32 +258,24 @@ public class RepositoryApiController implements RepositoryApi {
         @PathVariable("id") String id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
-        try {
-            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
-                samService.addPolicyMember(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.DATASET,
-                    UUID.fromString(id),
-                    policyName,
-                    policyMember.getEmail())));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        PolicyModel policy = samService.addPolicyMember(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            UUID.fromString(id),
+            policyName,
+            policyMember.getEmail());
+        PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<PolicyResponse> retrieveDatasetPolicies(@PathVariable("id") String id) {
-        try {
-            PolicyResponse response = new PolicyResponse().policies(
-                samService.retrievePolicies(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.DATASET,
-                    UUID.fromString(id)));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        List<PolicyModel> policies = samService.retrievePolicies(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            UUID.fromString(id));
+        PolicyResponse response = new PolicyResponse().policies(policies);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
@@ -298,21 +284,17 @@ public class RepositoryApiController implements RepositoryApi {
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
         // member email can't be null since it is part of the URL
-        if (!ValidationUtils.isValidEmail(memberEmail))
+        if (!ValidationUtils.isValidEmail(memberEmail)) {
             throw new ValidationException("InvalidMemberEmail");
-        try {
-            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
-                samService.deletePolicyMember(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.DATASET,
-                    UUID.fromString(id),
-                    policyName,
-                    memberEmail)));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            logger.error("got error from sam", ex);
-            throw new InternalServerErrorException(ex);
         }
+        PolicyModel policy = samService.deletePolicyMember(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASET,
+            UUID.fromString(id),
+            policyName,
+            memberEmail);
+        PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
     // -- snapshot --
     @Override
@@ -336,7 +318,7 @@ public class RepositoryApiController implements RepositoryApi {
             // we can retrieve the job we just created
             return jobToResponse(jobService.retrieveJob(jobId, userReq));
         }
-        throw new UnauthorizedException(
+        throw new SamUnauthorizedException(
             "User is not authorized to create snapshots for these datasets " + unauthorized);
     }
 
@@ -361,15 +343,11 @@ public class RepositoryApiController implements RepositoryApi {
         @Valid @RequestParam(value = "direction", required = false, defaultValue = "asc") String direction,
         @Valid @RequestParam(value = "filter", required = false) String filter) {
         ControllerUtils.validateEnumerateParams(offset, limit, sort, direction);
-        try {
-            List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
-                getAuthenticatedInfo(), SamClientService.ResourceType.DATASNAPSHOT);
-            EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
-                direction, filter, resources);
-            return new ResponseEntity<>(edm, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        List<ResourceAndAccessPolicy> resources = samService.listAuthorizedResources(
+            getAuthenticatedInfo(), SamClientService.ResourceType.DATASNAPSHOT);
+        EnumerateSnapshotModel edm = snapshotService.enumerateSnapshots(offset, limit, sort,
+            direction, filter, resources);
+        return new ResponseEntity<>(edm, HttpStatus.OK);
     }
 
     @Override
@@ -423,32 +401,24 @@ public class RepositoryApiController implements RepositoryApi {
         @PathVariable("id") String id,
         @PathVariable("policyName") String policyName,
         @Valid @RequestBody PolicyMemberRequest policyMember) {
-        try {
-            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
-                samService.addPolicyMember(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.DATASNAPSHOT,
-                    UUID.fromString(id),
-                    policyName,
-                    policyMember.getEmail())));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        PolicyModel policy = samService.addPolicyMember(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            UUID.fromString(id),
+            policyName,
+            policyMember.getEmail());
+        PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<PolicyResponse> retrieveSnapshotPolicies(@PathVariable("id") String id) {
-        try {
-            PolicyResponse response = new PolicyResponse().policies(
-                samService.retrievePolicies(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.DATASNAPSHOT,
-                    UUID.fromString(id)));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            throw new InternalServerErrorException(ex);
-        }
+        PolicyResponse response = new PolicyResponse().policies(
+            samService.retrievePolicies(
+                getAuthenticatedInfo(),
+                SamClientService.ResourceType.DATASNAPSHOT,
+                UUID.fromString(id)));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
@@ -457,32 +427,24 @@ public class RepositoryApiController implements RepositoryApi {
         @PathVariable("policyName") String policyName,
         @PathVariable("memberEmail") String memberEmail) {
         // member email can't be null since it is part of the URL
-        if (!ValidationUtils.isValidEmail(memberEmail))
+        if (!ValidationUtils.isValidEmail(memberEmail)) {
             throw new ValidationException("InvalidMemberEmail");
-        try {
-            PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(
-                samService.deletePolicyMember(
-                    getAuthenticatedInfo(),
-                    SamClientService.ResourceType.DATASNAPSHOT,
-                    UUID.fromString(id),
-                    policyName,
-                    memberEmail)));
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (ApiException ex) {
-            logger.error("got error from sam", ex);
-            throw new InternalServerErrorException(ex);
         }
+
+        PolicyModel policy = samService.deletePolicyMember(
+            getAuthenticatedInfo(),
+            SamClientService.ResourceType.DATASNAPSHOT,
+            UUID.fromString(id),
+            policyName,
+            memberEmail);
+        PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @Override
     public ResponseEntity<UserStatusInfo> user() {
-        try {
-            UserStatusInfo info = samService.getUserInfo(getAuthenticatedInfo());
-            return new ResponseEntity<>(info, HttpStatus.OK);
-        } catch (ApiException ex) {
-            logger.error("got error from sam", ex);
-            throw new InternalServerErrorException(ex);
-        }
+        UserStatusInfo info = samService.getUserInfo(getAuthenticatedInfo());
+        return new ResponseEntity<>(info, HttpStatus.OK);
     }
 
     // -- jobs --

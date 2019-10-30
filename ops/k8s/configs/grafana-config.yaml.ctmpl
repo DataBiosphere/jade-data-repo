@@ -113,7 +113,8 @@ data:
 {{ file "ops/k8s/configs/grafana/cloudstorage-dashboard.json" | indent 4 }}
   bigquery-logs: |-
 {{ file "ops/k8s/configs/grafana/bigquery-logs.json" | indent 4 }}
-
+  users-dashboard: |-
+{{ file "ops/k8s/configs/grafana/users-dashboard.json " | indent 4 }}
 
 {{end}}
 {{end}}

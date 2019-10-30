@@ -7,6 +7,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.stairway.exception.StairwayException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
 import org.junit.Test;
@@ -125,7 +126,7 @@ public class JobServiceTest {
     }
 
     // Submit a flight; wait for it to finish; return the flight id
-    private String runFlight(String description) {
+    private String runFlight(String description) throws StairwayException {
         FlightMap inputs = new FlightMap();
         inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
 

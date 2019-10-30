@@ -22,7 +22,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
-import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +89,7 @@ public class ConnectedOperations {
         createdBuckets = new ArrayList<>();
     }
 
-    public void stubOutSamCalls(SamClientService samService) throws ApiException {
+    public void stubOutSamCalls(SamClientService samService) {
         when(samService.createSnapshotResource(any(), any(), any())).thenReturn("hi@hi.com");
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.createDatasetResource(any(), any())).thenReturn(

@@ -1,5 +1,6 @@
 package bio.terra.stairway;
 
+import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.RetryException;
 import bio.terra.stairway.exception.StairwayExecutionException;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -75,7 +76,7 @@ public class Flight implements Callable<FlightState> {
      * Call may be called for a flight that has been interrupted and is being recovered
      * so we may be headed either direction.
      */
-    public FlightState call() {
+    public FlightState call() throws DatabaseOperationException {
         logger.debug("Executing flight class: " + context().getFlightClassName() + " id: " + context().getFlightId());
         FlightStatus flightStatus = fly();
         context().setFlightStatus(flightStatus);
@@ -141,7 +142,7 @@ public class Flight implements Callable<FlightState> {
      * @return StepResult recording the success or failure of the most recent step
      * @throws InterruptedException
      */
-    private StepResult runSteps() throws InterruptedException {
+    private StepResult runSteps() throws InterruptedException, StairwayExecutionException {
         // Initialize with current result, in case we are all done already
         StepResult result = context().getResult();
 
@@ -160,7 +161,7 @@ public class Flight implements Callable<FlightState> {
         return result;
     }
 
-    private StepResult stepWithRetry() throws InterruptedException {
+    private StepResult stepWithRetry() throws InterruptedException, StairwayExecutionException {
         logger.debug("Executing flight id: " + context().getFlightId() + " step: " + context().getStepIndex() +
             " direction: " + (context().isDoing() ? "doing" : "undoing"));
 
@@ -210,7 +211,7 @@ public class Flight implements Callable<FlightState> {
         return result;
     }
 
-    private StepRetry getCurrentStep() {
+    private StepRetry getCurrentStep() throws StairwayExecutionException {
         int stepIndex = context().getStepIndex();
         if (stepIndex < 0 || stepIndex >= steps.size()) {
             throw new StairwayExecutionException("Invalid step index: " + stepIndex);

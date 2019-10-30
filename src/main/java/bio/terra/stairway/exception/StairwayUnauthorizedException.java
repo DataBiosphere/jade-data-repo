@@ -1,6 +1,6 @@
 package bio.terra.stairway.exception;
 
-public class StairwayUnauthorizedException extends RuntimeException {
+public class StairwayUnauthorizedException extends StairwayException {
     public StairwayUnauthorizedException(String message) {
         super(message);
     }

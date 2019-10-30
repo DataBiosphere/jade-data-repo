@@ -1,6 +1,8 @@
 package bio.terra.stairway;
 
 
+import bio.terra.stairway.exception.RetryException;
+
 /**
  * Step must implement a do and an undo method. The do performs the step and the undo
  * removes the effects of the step. Care must be taken in their implementation to
@@ -25,7 +27,7 @@ public interface Step {
      * @param context The sequencer context
      * @returns step result
      */
-    StepResult doStep(FlightContext context);
+    StepResult doStep(FlightContext context) throws RetryException;
 
     /**
      * Called by the sequencer when running "backward" on the failure/rollback path

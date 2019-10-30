@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.SamClientService;
+import bio.terra.service.job.exception.InternalStairwayException;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobResponseException;
@@ -13,6 +14,7 @@ import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.UserRequestInfo;
+import bio.terra.stairway.exception.StairwayException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -80,7 +82,11 @@ public class JobService {
     protected <T> T submitAndWait(Class<? extends Flight> flightClass, FlightMap parameterMap,
                                   AuthenticatedUserRequest userReq, Class<T> resultClass) {
         String jobId = submit(flightClass, parameterMap, userReq);
-        stairway.waitForFlight(jobId);
+        try {
+            stairway.waitForFlight(jobId);
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException(stairwayEx);
+        }
         return retrieveJobResult(jobId, resultClass, userReq).getResult();
     }
 
@@ -110,7 +116,11 @@ public class JobService {
             // otherwise, check that the user has access to this job before deleting
             if (!canDeleteAnyJob) {
                 // throws exception if no access
-                stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+                try {
+                    stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+                } catch (StairwayException stairwayEx) {
+                    throw new InternalStairwayException(stairwayEx);
+                }
             }
         }
         stairway.deleteFlight(jobId);
@@ -187,13 +197,17 @@ public class JobService {
     public JobModel retrieveJob(String jobId, AuthenticatedUserRequest userReq) {
         boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
-        // if the user has access to all jobs, then fetch the requested one
-        // otherwise, check that the user has access to it first
-        if (!canListAnyJob) {
-            stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+        try {
+            // if the user has access to all jobs, then fetch the requested one
+            // otherwise, check that the user has access to it first
+            if (!canListAnyJob) {
+                stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+            }
+            FlightState flightState = stairway.getFlightState(jobId);
+            return mapFlightStateToJobModel(flightState);
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException(stairwayEx);
         }
-        FlightState flightState = stairway.getFlightState(jobId);
-        return mapFlightStateToJobModel(flightState);
     }
 
     /**
@@ -221,17 +235,21 @@ public class JobService {
         AuthenticatedUserRequest userReq) {
         boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
-        // if the user has access to all jobs, then fetch the requested result
-        // otherwise, check that the user has access to it first
-        if (!canListAnyJob) {
-            stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+        try {
+            // if the user has access to all jobs, then fetch the requested result
+            // otherwise, check that the user has access to it first
+            if (!canListAnyJob) {
+                stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
+            }
+            return retrieveJobResultWorker(jobId, resultClass);
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException(stairwayEx);
         }
-        return retrieveJobResultWorker(jobId, resultClass);
     }
 
     private <T> JobResultWithStatus<T> retrieveJobResultWorker(
         String jobId,
-        Class<T> resultClass) {
+        Class<T> resultClass) throws StairwayException {
         FlightState flightState = stairway.getFlightState(jobId);
         FlightMap resultMap = flightState.getResultMap().orElse(null);
         if (resultMap == null) {

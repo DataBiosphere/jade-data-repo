@@ -1,6 +1,8 @@
 package bio.terra.service.upgrade.exception;
 
-public class MigrateException extends RuntimeException {
+import bio.terra.common.exception.InternalServerErrorException;
+
+public class MigrateException extends InternalServerErrorException {
     public MigrateException(String message) {
         super(message);
     }

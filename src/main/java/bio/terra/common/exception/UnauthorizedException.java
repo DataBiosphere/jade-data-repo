@@ -2,7 +2,10 @@ package bio.terra.common.exception;
 
 import java.util.List;
 
-public class UnauthorizedException extends DataRepoException {
+/**
+ * This exception maps to HttpStatus.UNAUTHORIZED in the GlobalExceptionHandler.
+ */
+public abstract class UnauthorizedException extends DataRepoException {
     public UnauthorizedException(String message) {
         super(message);
     }

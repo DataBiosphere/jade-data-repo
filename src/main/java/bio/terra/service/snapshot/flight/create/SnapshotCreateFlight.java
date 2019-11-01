@@ -28,7 +28,7 @@ public class SnapshotCreateFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
-        IamService samClient = (IamService)appContext.getBean("samClientService");
+        IamService iamClient = (IamService)appContext.getBean("iamService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
@@ -49,6 +49,6 @@ public class SnapshotCreateFlight extends Flight {
             bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
         addStep(new AuthorizeSnapshot(
-            bigQueryPdao, samClient, dependencyDao, snapshotService, gcsPdao, datasetService, snapshotReq, userReq));
+            bigQueryPdao, iamClient, dependencyDao, snapshotService, gcsPdao, datasetService, snapshotReq, userReq));
     }
 }

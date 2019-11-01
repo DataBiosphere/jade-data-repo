@@ -36,7 +36,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Component
+@Component("iamService")
+// Use @Profile to select when there is more than one IamService
 public class SamIam implements IamService {
     private final SamConfiguration samConfig;
 

@@ -22,7 +22,7 @@ public class DatasetCreateFlight extends Flight {
         DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
-        IamService samClient = (IamService) appContext.getBean("samClientService");
+        IamService iamClient = (IamService) appContext.getBean("iamService");
 
         // get data from inputs that steps need
         AuthenticatedUserRequest userReq = inputParameters.get(
@@ -33,7 +33,7 @@ public class DatasetCreateFlight extends Flight {
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         // TODO: create dataset data project step
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService));
-        addStep(new CreateDatasetAuthzResource(samClient, bigQueryPdao, datasetService, userReq));
+        addStep(new CreateDatasetAuthzResource(iamClient, bigQueryPdao, datasetService, userReq));
     }
 
 }

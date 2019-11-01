@@ -32,7 +32,7 @@ public class DatasetDeleteFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
-        IamService samClient = (IamService)appContext.getBean("samClientService");
+        IamService iamClient = (IamService)appContext.getBean("iamService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         // get data from inputs that steps need
@@ -44,6 +44,6 @@ public class DatasetDeleteFlight extends Flight {
         addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
         addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
-        addStep(new DeleteDatasetAuthzResource(samClient, datasetId, userReq));
+        addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
     }
 }

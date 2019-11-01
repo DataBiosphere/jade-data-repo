@@ -162,7 +162,8 @@ public class Flight implements Callable<FlightState> {
     }
 
     private StepResult stepWithRetry() throws InterruptedException, StairwayExecutionException {
-        logger.debug("Executing flight id: " + context().getFlightId() + " step: " + context().getStepIndex());
+        logger.debug("Executing flight id: " + context().getFlightId() + " step: " + context().getStepIndex() +
+            " direction: " + (context().isDoing() ? "doing" : "undoing"));
 
         StepRetry currentStep = getCurrentStep();
         currentStep.retryRule.initialize();
@@ -182,10 +183,10 @@ public class Flight implements Callable<FlightState> {
             } catch (Exception ex) {
                 // The purpose of this catch is to relieve steps of implementing their own repetitive try-catch
                 // simply to turn exceptions into StepResults.
-                logger.info("Caught exception executing flight id: " + context().getFlightId() +
+                logger.info("Caught exception: (" + ex.toString() +
+                    ")\nexecuting flight id: " + context().getFlightId() +
                     " step: " + context().getStepIndex() +
-                    " direction: " + (context().isDoing() ? "doing" : "undoing"));
-                ex.printStackTrace();
+                    " direction: " + (context().isDoing() ? "doing" : "undoing"), ex);
 
                 StepStatus stepStatus = (ex instanceof RetryException)
                     ? StepStatus.STEP_RESULT_FAILURE_RETRY
@@ -199,6 +200,9 @@ public class Flight implements Callable<FlightState> {
                     return result;
 
                 case STEP_RESULT_FAILURE_RETRY:
+                    logger.info("Retrying flight id: " + context().getFlightId() +
+                        " step: " + context().getStepIndex() +
+                        " direction: " + (context().isDoing() ? "doing" : "undoing"));
                 default:
                     break;
             }

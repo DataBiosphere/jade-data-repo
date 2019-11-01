@@ -1,9 +1,12 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.QuerySnapshot;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -29,14 +32,37 @@ public class FireStoreUtils {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException(op + " - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            // If this exception has a cause that is a runtime exception, then we rethrow the cause.
-            // Typically, the cause is one of our file system messages we want to see.
-            // If there is no cause or it is not runtime, we wrap the exception in a generic one of ours.
+            // The ExecutionException wraps the underlying exception caught in the Future, so we need
+            // to examine the properties of the cause to understand what to do.
+            // Possible outcomes:
+            // - throw FileSystemAbortTransactionException for retryable firestore exceptions to ask the step to retry
+            // - throw FileSystemExecutionException for other firestore exceptions (not retryable)
+            // - rethrow RuntimeExceptions to expose other unexpected exceptions
+            // - throw FileSystemExecutionException to wrap non-Runtime (oddball) exceptions
+
             Throwable throwable = ex.getCause();
+            while (throwable instanceof ExecutionException) {
+                throwable = throwable.getCause();
+            }
+            if (throwable instanceof AbortedException) {
+                AbortedException aex = (AbortedException)throwable;
+                // TODO: in general, log + rethrow is bad form. For now, I want to make sure we see these in
+                //  the log as they happen. Once we are comfortable that retry is working properly, we can
+                //  rely on the Stairway debug logging as needed.
+                String msg = "Retrying aborted exception: " + aex;
+                logger.info(msg);
+                throw new FileSystemAbortTransactionException(msg, aex);
+            }
+            if (throwable instanceof FirestoreException) {
+                FirestoreException fex = (FirestoreException)throwable;
+                String msg = "Retrying firestore exception: " + fex;
+                logger.info(msg);
+                throw new FileSystemAbortTransactionException(msg, fex);
+            }
             if (throwable instanceof RuntimeException) {
                 throw (RuntimeException)throwable;
             }
-            throw new FileSystemExecutionException(op + " - execution exception", ex);
+            throw new FileSystemExecutionException(op + " - execution exception wrapping: " + throwable.toString());
         }
     }
 

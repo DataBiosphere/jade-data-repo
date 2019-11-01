@@ -2,12 +2,12 @@ package bio.terra.integration;
 
 import bio.terra.category.Integration;
 import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
@@ -61,7 +61,7 @@ public class FileTest extends UsersBase {
         datasetId = datasetSummaryModel.getId();
         logger.info("created dataset " + datasetId);
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After

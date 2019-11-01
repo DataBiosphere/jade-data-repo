@@ -1,13 +1,13 @@
 package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.iam.SamClientService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -28,7 +28,7 @@ public class SnapshotDeleteFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
-        SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
+        IamService samClient = (IamService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
 
         UUID snapshotId = UUID.fromString(inputParameters.get(

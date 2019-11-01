@@ -2,6 +2,7 @@ package bio.terra.flight.dataset.create;
 
 import bio.terra.category.Connected;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.iam.IamService;
 import bio.terra.stairway.UserRequestInfo;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
@@ -16,7 +17,6 @@ import bio.terra.common.PrimaryDataAccess;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.iam.SamClientService;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
@@ -62,7 +62,7 @@ public class DatasetCreateFlightTest {
     @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
-    private SamClientService samService;
+    private IamService samService;
 
     private String datasetName;
     private DatasetRequestModel datasetRequest;

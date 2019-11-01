@@ -1,9 +1,11 @@
 package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.model.JobModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.exception.InternalStairwayException;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
@@ -29,11 +31,11 @@ public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private final Stairway stairway;
-    private final SamClientService samService;
+    private final IamService samService;
     private final ApplicationConfiguration appConfig;
 
     @Autowired
-    public JobService(Stairway stairway, SamClientService samService, ApplicationConfiguration appConfig) {
+    public JobService(Stairway stairway, IamService samService, ApplicationConfiguration appConfig) {
         this.stairway = stairway;
         this.samService = samService;
         this.appConfig = appConfig;
@@ -108,9 +110,9 @@ public class JobService {
             // currently, this check will be true for stewards only
             boolean canDeleteAnyJob = samService.isAuthorized(
                 userReq,
-                SamClientService.ResourceType.DATAREPO,
+                IamResourceType.DATAREPO,
                 appConfig.getResourceId(),
-                SamClientService.DataRepoAction.DELETE_JOBS);
+                IamAction.DELETE_JOBS);
 
             // if the user has access to all jobs, no need to check for this one individually
             // otherwise, check that the user has access to this job before deleting
@@ -306,9 +308,9 @@ public class JobService {
         // currently, this check will be true for stewards only
         return samService.isAuthorized(
             userReq,
-            SamClientService.ResourceType.DATAREPO,
+            IamResourceType.DATAREPO,
             appConfig.getResourceId(),
-            SamClientService.DataRepoAction.LIST_JOBS);
+            IamAction.LIST_JOBS);
 
     }
 

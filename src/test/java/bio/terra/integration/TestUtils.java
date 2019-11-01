@@ -1,8 +1,8 @@
 package bio.terra.integration;
 
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.service.iam.IamResourceType;
 import org.apache.commons.lang3.StringUtils;
-import bio.terra.service.iam.SamClientService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,9 +61,9 @@ public final class TestUtils {
         return gsuri;
     }
 
-    public static String getHttpPathString(SamClientService.ResourceType resourceType) {
+    public static String getHttpPathString(IamResourceType iamResourceType) {
         String httpPathString = null;
-        switch (resourceType) {
+        switch (iamResourceType) {
             case DATASET:
                 httpPathString = "datasets";
                 break;

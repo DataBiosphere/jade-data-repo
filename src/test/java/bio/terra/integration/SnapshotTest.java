@@ -8,7 +8,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamRole;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +55,7 @@ public class SnapshotTest extends UsersBase {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
 
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);

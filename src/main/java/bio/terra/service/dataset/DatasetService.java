@@ -1,21 +1,20 @@
 package bio.terra.service.dataset;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
-import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
-import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.job.JobService;
-import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
+import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.job.JobService;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import org.apache.commons.lang3.StringUtils;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,16 +61,12 @@ public class DatasetService {
     }
 
     public EnumerateDatasetModel enumerate(
-        int offset, int limit, String sort, String direction, String filter, List<ResourceAndAccessPolicy> resources) {
+        int offset, int limit, String sort, String direction, String filter, List<UUID> resources) {
         if (resources.isEmpty()) {
             return new EnumerateDatasetModel().total(0);
         }
-        List<UUID> resourceIds = resources
-            .stream()
-            .map(resource -> UUID.fromString(resource.getResourceId()))
-            .collect(Collectors.toList());
         MetadataEnumeration<DatasetSummary> datasetEnum = datasetDao.enumerate(
-            offset, limit, sort, direction, filter, resourceIds);
+            offset, limit, sort, direction, filter, resources);
         List<DatasetSummaryModel> summaries = datasetEnum.getItems()
             .stream()
             .map(DatasetJsonConversion::datasetSummaryModelFromDatasetSummary)

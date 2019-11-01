@@ -1,7 +1,5 @@
 package bio.terra.integration;
 
-import bio.terra.service.filedata.google.firestore.EncodeFileIn;
-import bio.terra.service.filedata.google.firestore.EncodeFileOut;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.auth.AuthService;
 import bio.terra.integration.configuration.TestConfiguration;
@@ -11,7 +9,9 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.filedata.google.firestore.EncodeFileIn;
+import bio.terra.service.filedata.google.firestore.EncodeFileOut;
+import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
@@ -54,11 +54,11 @@ public class EncodeFixture {
         DatasetSummaryModel datasetSummary = dataRepoFixtures.createDataset(steward, "encodefiletest-dataset.json");
         String datasetId = datasetSummary.getId();
 
-        // TODO: Fix use of SamClientService - see DR-494
+        // TODO: Fix use of IamService - see DR-494
         dataRepoFixtures.addDatasetPolicyMember(
             steward,
             datasetId,
-            SamClientService.DataRepoRole.CUSTODIAN,
+            IamRole.CUSTODIAN,
             custodian.getEmail());
 
         // Parse the input data and load the files; generate revised data file
@@ -85,11 +85,11 @@ public class EncodeFixture {
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
             custodian, datasetSummary, "encodefiletest-snapshot.json");
 
-        // TODO: Fix use of SamClientService - see DR-494
+        // TODO: Fix use of IamService - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
             snapshotSummary.getId(),
-            SamClientService.DataRepoRole.READER,
+            IamRole.READER,
             reader.getEmail());
 
         // We wait here for SAM to sync. We expect this to take 5 minutes. It can take more as recent

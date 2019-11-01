@@ -9,7 +9,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.UserRequestInfo;
@@ -32,7 +32,7 @@ public class DatasetDeleteFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
-        SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
+        IamService samClient = (IamService)appContext.getBean("samClientService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         // get data from inputs that steps need

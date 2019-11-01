@@ -1,22 +1,24 @@
 package bio.terra.service.filedata;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
-import bio.terra.service.filedata.exception.InvalidDrsIdException;
-import bio.terra.service.iam.SamClientService;
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.model.DRSAccessMethod;
 import bio.terra.model.DRSAccessURL;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSContentsObject;
 import bio.terra.model.DRSObject;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.exception.DrsObjectNotFoundException;
+import bio.terra.service.filedata.exception.InvalidDrsIdException;
+import bio.terra.service.filedata.google.firestore.FireStoreDirectoryDao;
 import bio.terra.service.filedata.google.gcs.GcsConfiguration;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +47,7 @@ public class DrsService {
     private final DrsIdService drsIdService;
     private final GcsConfiguration gcsConfiguration;
     private final DatasetService datasetService;
-    private final SamClientService samService;
+    private final IamService samService;
     private final DataLocationService locationService;
 
     @Autowired
@@ -56,7 +58,7 @@ public class DrsService {
                       DrsIdService drsIdService,
                       GcsConfiguration gcsConfiguration,
                       DatasetService datasetService,
-                      SamClientService samService,
+                      IamService samService,
                       DataLocationService locationService) {
         this.datasetDao = datasetDao;
         this.snapshotDao = snapshotDao;
@@ -76,9 +78,9 @@ public class DrsService {
         // Make sure requester is a READER on the snapshot
         samService.verifyAuthorization(
             authUser,
-            SamClientService.ResourceType.DATASNAPSHOT,
+            IamResourceType.DATASNAPSHOT,
             snapshotId,
-            SamClientService.DataRepoAction.READ_DATA);
+            IamAction.READ_DATA);
 
         int depth = (expand ? -1 : 1);
 

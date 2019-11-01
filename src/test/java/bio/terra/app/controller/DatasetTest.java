@@ -10,7 +10,7 @@ import bio.terra.model.AssetModel;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.dataset.DatasetService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
@@ -52,7 +52,7 @@ public class DatasetTest {
     private MockMvc mvc;
 
     @MockBean
-    private SamClientService sam;
+    private IamService sam;
 
     @Autowired
     private ObjectMapper objectMapper;

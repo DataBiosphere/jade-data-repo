@@ -13,9 +13,9 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.iam.SamClientService;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
@@ -67,7 +67,7 @@ public class BigQueryPdaoTest {
     @Autowired private DatasetService datasetService;
 
     @MockBean
-    private SamClientService samService;
+    private IamService samService;
 
     private Dataset dataset;
     private BillingProfileModel profileModel;

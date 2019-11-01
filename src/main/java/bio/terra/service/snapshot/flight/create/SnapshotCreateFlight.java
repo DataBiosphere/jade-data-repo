@@ -9,7 +9,7 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -28,7 +28,7 @@ public class SnapshotCreateFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
-        SamClientService samClient = (SamClientService)appContext.getBean("samClientService");
+        IamService samClient = (IamService)appContext.getBean("samClientService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 

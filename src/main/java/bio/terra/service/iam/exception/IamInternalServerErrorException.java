@@ -10,4 +10,9 @@ public class IamInternalServerErrorException extends InternalServerErrorExceptio
     public IamInternalServerErrorException(Throwable cause) {
         super(cause);
     }
+
+    public IamInternalServerErrorException(String message) {
+        super(message);
+    }
+
 }

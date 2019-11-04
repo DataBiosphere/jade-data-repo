@@ -14,6 +14,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,7 +126,7 @@ public class DataLocationService {
 
     // TODO: DRY this up
 
-    public DatasetDataProject getProjectForDataset(Dataset dataset) {
+    public DatasetDataProject getOrCreateProjectForDataset(Dataset dataset) {
         DatasetDataProjectSummary datasetDataProjectSummary = null;
         GoogleProjectResource googleProjectResource;
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
@@ -155,4 +156,5 @@ public class DataLocationService {
         return new DatasetDataProject(datasetDataProjectSummary)
             .googleProjectResource(googleProjectResource);
     }
+
 }

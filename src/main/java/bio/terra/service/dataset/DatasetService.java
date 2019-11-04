@@ -53,7 +53,7 @@ public class DatasetService {
 
     public Dataset retrieve(UUID id) {
         Dataset dataset = datasetDao.retrieve(id);
-        return dataset.dataProject(dataLocationService.getProjectForDataset(dataset));
+        return dataset.dataProject(dataLocationService.getOrCreateProjectForDataset(dataset));
     }
 
     public DatasetModel retrieveModel(UUID id) {

@@ -131,7 +131,7 @@ public class SnapshotService {
      */
     public SnapshotModel retrieveSnapshotModel(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
+        snapshot.dataProject(dataLocationService.getOrCreateProjectForSnapshot(snapshot));
         return makeSnapshotModelFromSnapshot(snapshot);
     }
 
@@ -142,7 +142,7 @@ public class SnapshotService {
      */
     public Snapshot retrieveSnapshot(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        return snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
+        return snapshot.dataProject(dataLocationService.getOrCreateProjectForSnapshot(snapshot));
     }
 
     /**
@@ -152,7 +152,7 @@ public class SnapshotService {
      */
     public Snapshot retrieveSnapshotByName(String name) {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(name);
-        return snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
+        return snapshot.dataProject(dataLocationService.getOrCreateProjectForSnapshot(snapshot));
     }
 
     /**

@@ -78,7 +78,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
-        SnapshotDataProject projectForSnapshot = dataLocationService.getProjectForSnapshot(snapshot);
+        SnapshotDataProject projectForSnapshot = dataLocationService.getOrCreateProjectForSnapshot(snapshot);
         return BigQueryProject.get(projectForSnapshot.getGoogleProjectId());
     }
 

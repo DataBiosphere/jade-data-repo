@@ -96,34 +96,77 @@ public class DataLocationService {
         return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
     }
 
-    public SnapshotDataProject getProjectForSnapshot(Snapshot snapshot) {
-        SnapshotDataProjectSummary snapshotDataProjectSummary = null;
-        GoogleProjectResource googleProjectResource;
+    /** Fetch existing SnapshotDataProject for the Snapshot.
+     * Create a new one if none exists already.
+     *
+     * @param snapshot
+     * @return a populated and valid SnapshotDataProject
+     */
+    public SnapshotDataProject getOrCreateProjectForSnapshot(Snapshot snapshot) {
+        // check if for an existing SnapshotDataProject first, and return here if found one
+        Optional<SnapshotDataProject> existingDataProject = getProjectForSnapshot(snapshot);
+        if (existingDataProject.isPresent()) {
+            return existingDataProject.get();
+        }
+
+        // if we've made it here, then we need to create a new cloud resource and SnapshotDataProject
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataLocationSelector.projectIdForSnapshot(snapshot))
             .profileId(snapshot.getProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS);
+        GoogleProjectResource googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+
+        // create the SnapshotDataProjectSummary object first, which just holds all the IDs
+        SnapshotDataProjectSummary snapshotDataProjectSummary = new SnapshotDataProjectSummary()
+            .projectResourceId(googleProjectResource.getRepositoryId())
+            .snapshotId(snapshot.getId());
+        UUID snapshotDataProjectId = dataProjectDao.createSnapshotDataProject(snapshotDataProjectSummary);
+        snapshotDataProjectSummary.id(snapshotDataProjectId);
+
+        // then create the SnapshotDataProject object from the summary
+        return new SnapshotDataProject(snapshotDataProjectSummary).googleProjectResource(googleProjectResource);
+    }
+
+    /** Fetch existing SnapshotDataProject for the Snapshot.
+     * Delete it if it's invalid, that is, the referenced cloud resource doesn't exist.
+     *
+     * @param snapshot
+     * @return a populated SnapshotDataProject if one exists, empty if not
+     */
+    public Optional<SnapshotDataProject> getProjectForSnapshot(Snapshot snapshot) {
+        SnapshotDataProjectSummary snapshotDataProjectSummary = null;
         try {
+            // first, check if SnapshotDataProjectSummary (= mapping btw Snapshot ID and cloud Project ID) exists
             snapshotDataProjectSummary = dataProjectDao.retrieveSnapshotDataProject(snapshot.getId());
-            googleProjectResource = resourceService.getProjectResourceById(
-                snapshotDataProjectSummary.getProjectResourceId());
-        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
-            // probably the first time we have seen this snapshot, request a new project resource and save everything
-            googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+
+            // second, check if the referenced cloud resource exists
+            GoogleProjectResource googleProjectResource =
+                resourceService.getProjectResourceById(snapshotDataProjectSummary.getProjectResourceId());
+
+            // if both exist, then create the DatasetDataProject object from the summary and return here
+            return Optional.of(
+                new SnapshotDataProject(snapshotDataProjectSummary).googleProjectResource(googleProjectResource));
+        } catch (DataProjectNotFoundException projNfEx) {
+            // suppress exception here, will create later
+        } catch (GoogleResourceNotFoundException rsrcNfEx) {
+            // delete the bad SnapshotDataProjectSummary, since its ID mapping is not valid
+            // I don't think this null check will ever be false, but just in case
             if (snapshotDataProjectSummary != null) {
                 logger.warn("metadata has a project resource id it can't resolve for snapshot: " + snapshot.getName());
                 dataProjectDao.deleteSnapshotDataProject(snapshotDataProjectSummary.getId());
             }
-            snapshotDataProjectSummary = new SnapshotDataProjectSummary()
-                .projectResourceId(googleProjectResource.getRepositoryId())
-                .snapshotId(snapshot.getId());
-            UUID snapshotDataProjectId = dataProjectDao.createSnapshotDataProject(snapshotDataProjectSummary);
-            snapshotDataProjectSummary.id(snapshotDataProjectId);
         }
-        return new SnapshotDataProject(snapshotDataProjectSummary)
-            .googleProjectResource(googleProjectResource);
+
+        // did not find a valid SnapshotDataProject for the given Snapshot
+        return Optional.empty();
     }
 
+    /** Fetch existing DatasetDataProject for the Dataset.
+     * Create a new one if none exists already.
+     *
+     * @param dataset
+     * @return a populated and valid DatasetDataProject
+     */
     public DatasetDataProject getOrCreateProjectForDataset(Dataset dataset) {
         // check if for an existing DatasetDataProject first, and return here if found one
         Optional<DatasetDataProject> existingDataProject = getProjectForDataset(dataset);
@@ -152,7 +195,8 @@ public class DataLocationService {
         return new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
     }
 
-    /** Fetch existing project ID for the Dataset.
+    /** Fetch existing DatasetDataProject for the Dataset.
+     * Delete it if it's invalid, that is, the referenced cloud resource doesn't exist.
      *
      * @param dataset
      * @return a populated DatasetDataProject if one exists, empty if not

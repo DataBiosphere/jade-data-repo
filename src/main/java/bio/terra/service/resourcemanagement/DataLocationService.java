@@ -14,7 +14,6 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -124,37 +124,65 @@ public class DataLocationService {
             .googleProjectResource(googleProjectResource);
     }
 
-    // TODO: DRY this up
-
     public DatasetDataProject getOrCreateProjectForDataset(Dataset dataset) {
-        DatasetDataProjectSummary datasetDataProjectSummary = null;
-        GoogleProjectResource googleProjectResource;
+        // check if for an existing DatasetDataProject first, and return here if found one
+        Optional<DatasetDataProject> existingDataProject = getProjectForDataset(dataset);
+        if (existingDataProject.isPresent()) {
+            return existingDataProject.get();
+        }
+
+        // if we've made it here, then we need to create a new cloud resource and DatasetDataProject
+        // TODO: if we are in production, don't reuse projects we don't know about
+        // TODO: add a property to specify which people can view data projects
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataLocationSelector.projectIdForDataset(dataset))
             .profileId(dataset.getDefaultProfileId())
             .serviceIds(DATA_PROJECT_SERVICE_IDS)
             .roleIdentityMapping(getStewardPolicy());
+        GoogleProjectResource googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+
+        // create the DatasetDataProjectSummary object first, which just holds all the IDs
+        DatasetDataProjectSummary datasetDataProjectSummary = new DatasetDataProjectSummary()
+            .projectResourceId(googleProjectResource.getRepositoryId())
+            .datasetId(dataset.getId());
+        UUID datasetDataProjectId = dataProjectDao.createDatasetDataProject(datasetDataProjectSummary);
+        datasetDataProjectSummary.id(datasetDataProjectId);
+
+        // then create the DatasetDataProject object from the summary
+        return new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource);
+    }
+
+    /** Fetch existing project ID for the Dataset.
+     *
+     * @param dataset
+     * @return a populated DatasetDataProject if one exists, empty if not
+     */
+    public Optional<DatasetDataProject> getProjectForDataset(Dataset dataset) {
+        DatasetDataProjectSummary datasetDataProjectSummary = null;
         try {
+            // first, check if DatasetDataProjectSummary (= mapping btw Dataset ID and cloud Project ID) exists
             datasetDataProjectSummary = dataProjectDao.retrieveDatasetDataProject(dataset.getId());
-            googleProjectResource = resourceService.getProjectResourceById(
-                datasetDataProjectSummary.getProjectResourceId());
-        } catch (DataProjectNotFoundException | GoogleResourceNotFoundException e) {
-            // probably the first time we have seen this dataset, request a new project resource and save everything
-            // TODO: if we are in production, don't reuse projects we don't know about
-            // TODO: add a property to specify which people can view data projects
-            googleProjectResource = resourceService.getOrCreateProject(googleProjectRequest);
+
+            // second, check if the referenced cloud resource exists
+            GoogleProjectResource googleProjectResource =
+                resourceService.getProjectResourceById(datasetDataProjectSummary.getProjectResourceId());
+
+            // if both exist, then create the DatasetDataProject object from the summary and return here
+            return Optional.of(
+                new DatasetDataProject(datasetDataProjectSummary).googleProjectResource(googleProjectResource));
+        } catch (DataProjectNotFoundException projNfEx) {
+            // suppress exception here, will create later
+        } catch (GoogleResourceNotFoundException rsrcNfEx) {
+            // delete the bad DatasetDataProjectSummary, since its ID mapping is not valid
+            // I don't think this null check will ever be false, but just in case
             if (datasetDataProjectSummary != null) {
                 logger.warn("metadata has a project resource id it can't resolve for dataset: " + dataset.getName());
                 dataProjectDao.deleteDatasetDataProject(datasetDataProjectSummary.getId());
             }
-            datasetDataProjectSummary = new DatasetDataProjectSummary()
-                .projectResourceId(googleProjectResource.getRepositoryId())
-                .datasetId(dataset.getId());
-            UUID datasetDataProjectId = dataProjectDao.createDatasetDataProject(datasetDataProjectSummary);
-            datasetDataProjectSummary.id(datasetDataProjectId);
         }
-        return new DatasetDataProject(datasetDataProjectSummary)
-            .googleProjectResource(googleProjectResource);
+
+        // did not find a valid DatasetDataProject for the given Dataset
+        return Optional.empty();
     }
 
 }

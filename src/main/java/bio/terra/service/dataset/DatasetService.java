@@ -1,5 +1,10 @@
 package bio.terra.service.dataset;
 
+import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
+import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -7,10 +12,6 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
-import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
-import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -24,6 +25,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,11 +55,17 @@ public class DatasetService {
 
     public Dataset retrieve(UUID id) {
         Dataset dataset = datasetDao.retrieve(id);
-        return dataset.dataProject(dataLocationService.getOrCreateProjectForDataset(dataset));
+        Optional<DatasetDataProject> optDataProject = dataLocationService.getProjectForDataset(dataset);
+        if (optDataProject.isPresent()) {
+            return dataset.dataProject(optDataProject.get());
+        } else {
+            throw new InvalidDatasetException("Dataset project invalid for id: " + id);
+        }
     }
 
     public DatasetModel retrieveModel(UUID id) {
-        return DatasetJsonConversion.datasetModelFromDataset(retrieve(id));
+        Dataset dataset = retrieve(id);
+        return DatasetJsonConversion.datasetModelFromDataset(dataset);
     }
 
     public EnumerateDatasetModel enumerate(

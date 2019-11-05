@@ -1,36 +1,50 @@
 package bio.terra.service.dataset.flight.create;
 
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import org.springframework.http.HttpStatus;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class CreateDatasetPrimaryDataStep implements Step {
     private final PrimaryDataAccess pdao;
-    private final DatasetService datasetService;
+    private final DatasetDao datasetDao;
+    private final DataLocationService dataLocationService;
 
-    public CreateDatasetPrimaryDataStep(PrimaryDataAccess pdao, DatasetService datasetService) {
+    public CreateDatasetPrimaryDataStep(
+        PrimaryDataAccess pdao, DatasetDao datasetDao, DataLocationService dataLocationService) {
         this.pdao = pdao;
-        this.datasetService = datasetService;
+        this.datasetDao = datasetDao;
+        this.dataLocationService = dataLocationService;
     }
 
-    Dataset getDataset(FlightContext context) {
+    private Dataset getDatasetWithoutProject(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        return datasetService.retrieve(datasetId);
+        return datasetDao.retrieve(datasetId);
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        pdao.createDataset(getDataset(context));
+        // fetch the dataset object, unpopulated with cloud project information
+        Dataset dataset = getDatasetWithoutProject(context);
+
+        // get or create a cloud project for the dataset
+        // and update the project reference on the dataset object
+        dataset.dataProject(dataLocationService.getOrCreateProjectForDataset(dataset));
+
+        pdao.createDataset(dataset);
+
         FlightMap map = context.getWorkingMap();
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
         return StepResult.getStepResultSuccess();
@@ -38,7 +52,19 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        pdao.deleteDataset(getDataset(context));
+        // fetch the dataset object, unpopulated with cloud project information
+        Dataset dataset = getDatasetWithoutProject(context);
+
+        // get the cloud project for the dataset if it exists
+        Optional<DatasetDataProject> optDataProject = dataLocationService.getProjectForDataset(dataset);
+        if (optDataProject.isPresent()) {
+            // and update the project reference on the dataset object
+            dataset.dataProject(optDataProject.get());
+
+            // there can only be primary data to delete if a cloud project exists for the dataset
+            pdao.deleteDataset(dataset);
+        }
+
         return StepResult.getStepResultSuccess();
     }
 }

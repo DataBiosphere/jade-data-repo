@@ -14,6 +14,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
 import com.google.cloud.bigquery.FieldValueList;
@@ -65,6 +66,7 @@ public class BigQueryPdaoTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private DatasetService datasetService;
+    @Autowired private DataLocationService dataLocationService;
 
     @MockBean
     private IamService samService;
@@ -88,7 +90,7 @@ public class BigQueryPdaoTest {
             .name(datasetName());
         dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
         UUID datasetId = datasetDao.create(dataset);
-        dataset = datasetService.retrieve(datasetId);
+        dataset.dataProject(dataLocationService.getOrCreateProjectForDataset(dataset));
         logger.info("Created dataset in setup: {}", datasetId);
     }
 

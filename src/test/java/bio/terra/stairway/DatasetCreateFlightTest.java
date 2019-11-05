@@ -16,6 +16,7 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.StairwayException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -145,4 +146,46 @@ public class DatasetCreateFlightTest {
 
         assertFalse(deleteDataset(dataset));
     }
+
+    @Test
+    public void testProjectNameTooLong() throws StairwayException {
+        // save the current project id prefix
+        String savedConfigProjectId = googleResourceConfiguration.getProjectId();
+
+        // set the project id prefix to something that will cause GCP to return an error
+        // currently the limit is 30 characters
+        googleResourceConfiguration.setProjectId("thisprojectidislongerthanthirtycharacters");
+
+        // kick off a flight to create a new dataset
+        // since a project with the above prefix doesn't exist, the flight will try to create one
+        FlightMap map = new FlightMap();
+        map.put(JobMapKeys.REQUEST.getKeyName(), datasetRequest);
+        String flightId = "projectNameTooLongTest";
+        stairway.submit(flightId, DatasetCreateFlight.class, map, testUser);
+        stairway.waitForFlight(flightId);
+
+        // the flight should fail and Stairway should handle the exception
+        FlightState result = stairway.getFlightState(flightId);
+        FlightStatus resultStatus = result.getFlightStatus();
+        assertEquals(FlightStatus.ERROR, resultStatus);
+        Optional<Exception> resultEx = result.getException();
+        assertTrue(resultEx.isPresent());
+
+        // JACKSON can't deserialize GoogleJsonResponseException properly, so we rewrite it as a FlightException
+        // this is the reason the below checks are against the exception message, instead of the class/cause
+        assertEquals(resultEx.get().getClass(), FlightException.class);
+        assertThat(resultEx.get().getMessage(), containsString("Could not create project"));
+        assertThat(resultEx.get().getMessage(),
+            containsString("bio.terra.service.resourcemanagement.exception.GoogleResourceException"));
+
+        // if the flight undo direction already cleaned up the dataset, as it's supposed to,
+        // then a second deletion here should have no effect
+        boolean deletedSomething = datasetDao.deleteByName(datasetName);
+        assertFalse(deletedSomething);
+        assertFalse(deleteDataset(dataset));
+
+        // restore the project id prefix
+        googleResourceConfiguration.setProjectId(savedConfigProjectId);
+    }
+
 }

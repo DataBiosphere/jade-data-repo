@@ -90,7 +90,7 @@ public class BigQueryPdaoTest {
             .name(datasetName());
         dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
         UUID datasetId = datasetDao.create(dataset);
-        dataset.dataProject(dataLocationService.getOrCreateProjectForDataset(dataset));
+        dataset.dataProject(dataLocationService.getOrCreateProject(dataset));
         logger.info("Created dataset in setup: {}", datasetId);
     }
 

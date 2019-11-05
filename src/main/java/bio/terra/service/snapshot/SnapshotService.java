@@ -141,7 +141,7 @@ public class SnapshotService {
      */
     public Snapshot retrieve(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProjectForSnapshot(snapshot);
+        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProject(snapshot);
         if (optDataProject.isPresent()) {
             return snapshot.dataProject(optDataProject.get());
         } else {
@@ -156,7 +156,7 @@ public class SnapshotService {
      */
     public Snapshot retrieveByName(String name) {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(name);
-        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProjectForSnapshot(snapshot);
+        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProject(snapshot);
         if (optDataProject.isPresent()) {
             return snapshot.dataProject(optDataProject.get());
         } else {

@@ -60,7 +60,7 @@ public class DatasetService {
      */
     public Dataset retrieve(UUID id) {
         Dataset dataset = datasetDao.retrieve(id);
-        Optional<DatasetDataProject> optDataProject = dataLocationService.getProjectForDataset(dataset);
+        Optional<DatasetDataProject> optDataProject = dataLocationService.getProject(dataset);
         if (optDataProject.isPresent()) {
             return dataset.dataProject(optDataProject.get());
         } else {

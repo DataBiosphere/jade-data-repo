@@ -41,7 +41,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
         // get or create a cloud project for the dataset
         // and update the project reference on the dataset object
-        dataset.dataProject(dataLocationService.getOrCreateProjectForDataset(dataset));
+        dataset.dataProject(dataLocationService.getOrCreateProject(dataset));
 
         pdao.createDataset(dataset);
 
@@ -56,7 +56,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         Dataset dataset = getDatasetWithoutProject(context);
 
         // get the cloud project for the dataset if it exists
-        Optional<DatasetDataProject> optDataProject = dataLocationService.getProjectForDataset(dataset);
+        Optional<DatasetDataProject> optDataProject = dataLocationService.getProject(dataset);
         if (optDataProject.isPresent()) {
             // and update the project reference on the dataset object
             dataset.dataProject(optDataProject.get());

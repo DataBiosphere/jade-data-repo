@@ -421,7 +421,7 @@ public class EncodeFileTest {
 
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
-        SnapshotDataProject dataProject = dataLocationService.getOrCreateProjectForSnapshot(snapshot);
+        SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
         BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
 
         StringBuilder builder = new StringBuilder()

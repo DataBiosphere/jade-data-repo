@@ -98,13 +98,12 @@ public class DataLocationService {
 
     /** Fetch existing SnapshotDataProject for the Snapshot.
      * Create a new one if none exists already.
-     *
      * @param snapshot
      * @return a populated and valid SnapshotDataProject
      */
-    public SnapshotDataProject getOrCreateProjectForSnapshot(Snapshot snapshot) {
+    public SnapshotDataProject getOrCreateProject(Snapshot snapshot) {
         // check if for an existing SnapshotDataProject first, and return here if found one
-        Optional<SnapshotDataProject> existingDataProject = getProjectForSnapshot(snapshot);
+        Optional<SnapshotDataProject> existingDataProject = getProject(snapshot);
         if (existingDataProject.isPresent()) {
             return existingDataProject.get();
         }
@@ -129,11 +128,10 @@ public class DataLocationService {
 
     /** Fetch existing SnapshotDataProject for the Snapshot.
      * Delete it if it's invalid, that is, the referenced cloud resource doesn't exist.
-     *
      * @param snapshot
      * @return a populated SnapshotDataProject if one exists, empty if not
      */
-    public Optional<SnapshotDataProject> getProjectForSnapshot(Snapshot snapshot) {
+    public Optional<SnapshotDataProject> getProject(Snapshot snapshot) {
         SnapshotDataProjectSummary snapshotDataProjectSummary = null;
         try {
             // first, check if SnapshotDataProjectSummary (= mapping btw Snapshot ID and cloud Project ID) exists
@@ -163,13 +161,12 @@ public class DataLocationService {
 
     /** Fetch existing DatasetDataProject for the Dataset.
      * Create a new one if none exists already.
-     *
      * @param dataset
      * @return a populated and valid DatasetDataProject
      */
-    public DatasetDataProject getOrCreateProjectForDataset(Dataset dataset) {
+    public DatasetDataProject getOrCreateProject(Dataset dataset) {
         // check if for an existing DatasetDataProject first, and return here if found one
-        Optional<DatasetDataProject> existingDataProject = getProjectForDataset(dataset);
+        Optional<DatasetDataProject> existingDataProject = getProject(dataset);
         if (existingDataProject.isPresent()) {
             return existingDataProject.get();
         }
@@ -197,11 +194,10 @@ public class DataLocationService {
 
     /** Fetch existing DatasetDataProject for the Dataset.
      * Delete it if it's invalid, that is, the referenced cloud resource doesn't exist.
-     *
      * @param dataset
      * @return a populated DatasetDataProject if one exists, empty if not
      */
-    public Optional<DatasetDataProject> getProjectForDataset(Dataset dataset) {
+    public Optional<DatasetDataProject> getProject(Dataset dataset) {
         DatasetDataProjectSummary datasetDataProjectSummary = null;
         try {
             // first, check if DatasetDataProjectSummary (= mapping btw Dataset ID and cloud Project ID) exists

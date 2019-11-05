@@ -317,7 +317,7 @@ public class SnapshotOperationTest {
 
     private BigQueryProject bigQueryProjectForDatasetName(String datasetName) {
         Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataLocationService.getOrCreateProjectForDataset(dataset);
+        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
         return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
 

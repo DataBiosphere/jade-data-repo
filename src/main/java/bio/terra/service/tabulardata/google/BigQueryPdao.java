@@ -73,12 +73,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
-        DatasetDataProject projectForDataset = dataLocationService.getOrCreateProjectForDataset(dataset);
+        DatasetDataProject projectForDataset = dataLocationService.getOrCreateProject(dataset);
         return BigQueryProject.get(projectForDataset.getGoogleProjectId());
     }
 
     private BigQueryProject bigQueryProjectForSnapshot(Snapshot snapshot) {
-        SnapshotDataProject projectForSnapshot = dataLocationService.getOrCreateProjectForSnapshot(snapshot);
+        SnapshotDataProject projectForSnapshot = dataLocationService.getOrCreateProject(snapshot);
         return BigQueryProject.get(projectForSnapshot.getGoogleProjectId());
     }
 

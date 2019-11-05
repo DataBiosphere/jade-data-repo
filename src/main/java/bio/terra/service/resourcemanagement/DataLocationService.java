@@ -82,7 +82,7 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public GoogleBucketResource getBucketForFile(String profileId) {
+    public GoogleBucketResource getOrCreateBucketForFile(String profileId) {
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
         BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));

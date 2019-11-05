@@ -1,6 +1,7 @@
 package bio.terra.service.resourcemanagement;
 
 import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.resourcemanagement.exception.DataProjectNotFoundException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.dataset.Dataset;
@@ -14,6 +15,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -159,6 +161,21 @@ public class DataLocationService {
         return Optional.empty();
     }
 
+    /** Convenience wrapper around getProject that throws an exception if there is no cloud project associated with the
+     * snapshot, instead of returning an Optional object.
+     * @param snapshot
+     * @return a populated SnapshotDataProject if one exists
+     * @throws CorruptMetadataException if one does not exist
+     */
+    public SnapshotDataProject getProjectOrThrow(Snapshot snapshot) {
+        Optional<SnapshotDataProject> optDataProject = getProject(snapshot);
+        if (optDataProject.isPresent()) {
+            return optDataProject.get();
+        }
+        throw new CorruptMetadataException(
+            "Snapshot project invalid for id: " + snapshot.getId() + ", name: " + snapshot.getName());
+    }
+
     /** Fetch existing DatasetDataProject for the Dataset.
      * Create a new one if none exists already.
      * @param dataset
@@ -223,6 +240,20 @@ public class DataLocationService {
 
         // did not find a valid DatasetDataProject for the given Dataset
         return Optional.empty();
+    }
+
+    /** Convenience wrapper around getProject that throws an exception if there is no cloud project associated with the
+     * dataset, instead of returning an Optional object.
+     * @param dataset
+     * @return a populated DatasetDataProject if one exists
+     * @throws InvalidDatasetException if one does not exist
+     */
+    public DatasetDataProject getProjectOrThrow(Dataset dataset) {
+        Optional<DatasetDataProject> optDataProject = getProject(dataset);
+        if (optDataProject.isPresent()) {
+            return optDataProject.get();
+        }
+        throw new InvalidDatasetException("Dataset project invalid for id: " + dataset.getId());
     }
 
 }

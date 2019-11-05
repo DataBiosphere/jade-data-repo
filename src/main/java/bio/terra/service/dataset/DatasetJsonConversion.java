@@ -58,7 +58,7 @@ public final class DatasetJsonConversion {
                 .additionalProfileIds(uuidsToStrings(dataset.getAdditionalProfileIds()));
     }
 
-    public static DatasetModel datasetModelFromDataset(Dataset dataset) {
+    public static DatasetModel populateDatasetModelFromDataset(Dataset dataset) {
         return new DatasetModel()
                 .id(dataset.getId().toString())
                 .name(dataset.getName())
@@ -66,8 +66,7 @@ public final class DatasetJsonConversion {
                 .defaultProfileId(dataset.getDefaultProfileId().toString())
                 .additionalProfileIds(uuidsToStrings(dataset.getAdditionalProfileIds()))
                 .createdDate(dataset.getCreatedDate().toString())
-                .schema(datasetSpecificationModelFromDatasetSchema(dataset))
-                .dataProject(dataset.getDataProjectId());
+                .schema(datasetSpecificationModelFromDatasetSchema(dataset));
     }
 
     public static DatasetSpecificationModel datasetSpecificationModelFromDatasetSchema(Dataset dataset) {

@@ -123,12 +123,13 @@ public class DatasetTest {
         UUID id = UUID.fromString("8d2e052c-e1d1-4a29-88ed-26920907791f");
         DatasetRequestModel req = DatasetFixtures.buildDatasetRequest();
         Dataset dataset = DatasetJsonConversion.datasetRequestToDataset(req);
+        String datasetProjectId = "foo-bar-baz";
         dataset
             .id(id)
-            .createdDate(Instant.now())
-            .dataProjectId("foo-bar-baz");
+            .createdDate(Instant.now());
 
-        when(datasetService.retrieveModel(eq(id))).thenReturn(DatasetJsonConversion.datasetModelFromDataset(dataset));
+        when(datasetService.retrieveModel(eq(id)))
+            .thenReturn(DatasetJsonConversion.populateDatasetModelFromDataset(dataset).dataProject(datasetProjectId));
         assertThat("Dataset retrieve returns 200",
                 mvc.perform(get("/api/repository/v1/datasets/{id}", id.toString()))
                         .andReturn().getResponse().getStatus(),

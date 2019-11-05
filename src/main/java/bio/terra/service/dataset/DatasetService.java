@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
@@ -25,7 +24,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,28 +51,24 @@ public class DatasetService {
             .submitAndWait(DatasetSummaryModel.class);
     }
 
-    /** Fetch existing Dataset object and populate the associated existing cloud project.
-     * If either the Dataset object or the associated cloud project does not exist, throws a runtime exception.
+    /** Fetch existing Dataset object.
      * @param id in UUID format
-     * @return a Dataset populated with a valid cloud project
+     * @return a Dataset object
      */
     public Dataset retrieve(UUID id) {
-        Dataset dataset = datasetDao.retrieve(id);
-        Optional<DatasetDataProject> optDataProject = dataLocationService.getProject(dataset);
-        if (optDataProject.isPresent()) {
-            return dataset.dataProject(optDataProject.get());
-        } else {
-            throw new InvalidDatasetException("Dataset project invalid for id: " + id);
-        }
+        return datasetDao.retrieve(id);
     }
 
     /** Convenience wrapper around fetching an existing Dataset object and converting it to a Model object.
+     * Unlike the Dataset object, the Model object includes a reference to the associated cloud project.
      * @param id in UUID formant
      * @return a DatasetModel = API output-friendly representation of the Dataset
      */
     public DatasetModel retrieveModel(UUID id) {
         Dataset dataset = retrieve(id);
-        return DatasetJsonConversion.datasetModelFromDataset(dataset);
+        DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
+        return DatasetJsonConversion.populateDatasetModelFromDataset(dataset)
+            .dataProject(dataProject.getGoogleProjectId());
     }
 
     public EnumerateDatasetModel enumerate(

@@ -19,7 +19,6 @@ public class Dataset implements FSContainerInterface {
     private List<DatasetTable> tables = Collections.emptyList();
     private List<DatasetRelationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
-    private DatasetDataProject dataProject = new DatasetDataProject();
 
     public Dataset() {
         datasetSummary = new DatasetSummary();
@@ -158,21 +157,4 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
-    public DatasetDataProject getDataProject() {
-        return dataProject;
-    }
-
-    public Dataset dataProject(DatasetDataProject dataProject) {
-        this.dataProject = dataProject;
-        return this;
-    }
-
-    public String getDataProjectId() {
-        return dataProject.getGoogleProjectId();
-    }
-
-    public Dataset dataProjectId(String dataProjectId) {
-        dataProject.googleProjectId(dataProjectId);
-        return this;
-    }
 }

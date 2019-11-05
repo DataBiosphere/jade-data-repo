@@ -28,7 +28,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
         this.dataLocationService = dataLocationService;
     }
 
-    private Dataset getDatasetWithoutProject(FlightContext context) {
+    private Dataset getDataset(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         return datasetDao.retrieve(datasetId);
@@ -36,13 +36,8 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        // fetch the dataset object, unpopulated with cloud project information
-        Dataset dataset = getDatasetWithoutProject(context);
-
-        // get or create a cloud project for the dataset
-        // and update the project reference on the dataset object
-        dataset.dataProject(dataLocationService.getOrCreateProject(dataset));
-
+        Dataset dataset = getDataset(context);
+        dataLocationService.getOrCreateProject(dataset);
         pdao.createDataset(dataset);
 
         FlightMap map = context.getWorkingMap();
@@ -52,15 +47,11 @@ public class CreateDatasetPrimaryDataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // fetch the dataset object, unpopulated with cloud project information
-        Dataset dataset = getDatasetWithoutProject(context);
+        Dataset dataset = getDataset(context);
 
         // get the cloud project for the dataset if it exists
         Optional<DatasetDataProject> optDataProject = dataLocationService.getProject(dataset);
         if (optDataProject.isPresent()) {
-            // and update the project reference on the dataset object
-            dataset.dataProject(optDataProject.get());
-
             // there can only be primary data to delete if a cloud project exists for the dataset
             pdao.deleteDataset(dataset);
         }

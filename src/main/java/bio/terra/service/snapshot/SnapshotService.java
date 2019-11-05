@@ -2,7 +2,6 @@ package bio.terra.service.snapshot;
 
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.dataset.AssetColumn;
@@ -27,8 +26,6 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -41,8 +38,6 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.SnapshotService");
-
     private final JobService jobService;
     private final DatasetDao datasetDao;
     private final SnapshotDao snapshotDao;
@@ -126,42 +121,30 @@ public class SnapshotService {
     }
 
     /** Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
+     * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
      * @param id in UUID formant
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
     public SnapshotModel retrieveModel(UUID id) {
         Snapshot snapshot = retrieve(id);
-        return makeSnapshotModelFromSnapshot(snapshot);
+        SnapshotDataProject dataProject = dataLocationService.getProjectOrThrow(snapshot);
+        return populateSnapshotModelFromSnapshot(snapshot).dataProject(dataProject.getGoogleProjectId());
     }
 
-    /** Fetch existing Snapshot object using the id and populate the associated existing cloud project.
-     * If either the Snapshot object or the associated cloud project does not exist, throws a runtime exception.
+    /** Fetch existing Snapshot object using the id.
      * @param id in UUID format
-     * @return a Snapshot populated with a valid cloud project
+     * @return a Snapshot object
      */
     public Snapshot retrieve(UUID id) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProject(snapshot);
-        if (optDataProject.isPresent()) {
-            return snapshot.dataProject(optDataProject.get());
-        } else {
-            throw new CorruptMetadataException("Snapshot project invalid for id: " + id);
-        }
+        return snapshotDao.retrieveSnapshot(id);
     }
 
-    /** Fetch existing Snapshot object using the name and populate the associated existing cloud project.
-     * If either the Snapshot object or the associated cloud project does not exist, throws a runtime exception.
+    /** Fetch existing Snapshot object using the name.
      * @param name
-     * @return a Snapshot populated with a valid cloud project
+     * @return a Snapshot object
      */
     public Snapshot retrieveByName(String name) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(name);
-        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProject(snapshot);
-        if (optDataProject.isPresent()) {
-            return snapshot.dataProject(optDataProject.get());
-        } else {
-            throw new CorruptMetadataException("Snapshot project invalid for name: " + name);
-        }
+        return snapshotDao.retrieveSnapshotByName(name);
     }
 
     /**
@@ -272,7 +255,7 @@ public class SnapshotService {
         return summaryModel;
     }
 
-    private SnapshotModel makeSnapshotModelFromSnapshot(Snapshot snapshot) {
+    private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot) {
         return new SnapshotModel()
                 .id(snapshot.getId().toString())
                 .name(snapshot.getName())
@@ -286,8 +269,7 @@ public class SnapshotService {
                 .tables(snapshot.getTables()
                         .stream()
                         .map(table -> makeTableModelFromTable(table))
-                        .collect(Collectors.toList()))
-                .dataProject(snapshot.getDataProjectId());
+                        .collect(Collectors.toList()));
     }
 
     private SnapshotSourceModel makeSourceModelFromSource(SnapshotSource source) {

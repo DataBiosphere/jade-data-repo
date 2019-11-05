@@ -1,6 +1,13 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
+import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
+import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
@@ -14,18 +21,12 @@ import bio.terra.model.SnapshotRequestSourceModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
-import bio.terra.service.dataset.AssetColumn;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
-import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -142,7 +143,12 @@ public class SnapshotService {
      */
     public Snapshot retrieveSnapshot(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        return snapshot.dataProject(dataLocationService.getOrCreateProjectForSnapshot(snapshot));
+        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProjectForSnapshot(snapshot);
+        if (optDataProject.isPresent()) {
+            return snapshot.dataProject(optDataProject.get());
+        } else {
+            throw new CorruptMetadataException("Snapshot project invalid for id: " + id);
+        }
     }
 
     /**

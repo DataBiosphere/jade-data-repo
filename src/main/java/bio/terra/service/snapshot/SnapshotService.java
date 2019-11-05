@@ -125,23 +125,21 @@ public class SnapshotService {
         return makeSummaryModelFromSummary(snapshotSummary);
     }
 
-    /**
-     * Return the output form of snapshot
-     * @param id
-     * @return snapshot model
+    /** Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
+     * @param id in UUID formant
+     * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
-    public SnapshotModel retrieveSnapshotModel(UUID id) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        snapshot.dataProject(dataLocationService.getOrCreateProjectForSnapshot(snapshot));
+    public SnapshotModel retrieveModel(UUID id) {
+        Snapshot snapshot = retrieve(id);
         return makeSnapshotModelFromSnapshot(snapshot);
     }
 
-    /**
-     * Return the snapshot
-     * @param id
-     * @return snapshot
+    /** Fetch existing Snapshot object using the id and populate the associated existing cloud project.
+     * If either the Snapshot object or the associated cloud project does not exist, throws a runtime exception.
+     * @param id in UUID format
+     * @return a Snapshot populated with a valid cloud project
      */
-    public Snapshot retrieveSnapshot(UUID id) {
+    public Snapshot retrieve(UUID id) {
         Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
         Optional<SnapshotDataProject> optDataProject = dataLocationService.getProjectForSnapshot(snapshot);
         if (optDataProject.isPresent()) {
@@ -151,14 +149,19 @@ public class SnapshotService {
         }
     }
 
-    /**
-     * Return the snapshot
+    /** Fetch existing Snapshot object using the name and populate the associated existing cloud project.
+     * If either the Snapshot object or the associated cloud project does not exist, throws a runtime exception.
      * @param name
-     * @return snapshot
+     * @return a Snapshot populated with a valid cloud project
      */
-    public Snapshot retrieveSnapshotByName(String name) {
+    public Snapshot retrieveByName(String name) {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(name);
-        return snapshot.dataProject(dataLocationService.getOrCreateProjectForSnapshot(snapshot));
+        Optional<SnapshotDataProject> optDataProject = dataLocationService.getProjectForSnapshot(snapshot);
+        if (optDataProject.isPresent()) {
+            return snapshot.dataProject(optDataProject.get());
+        } else {
+            throw new CorruptMetadataException("Snapshot project invalid for name: " + name);
+        }
     }
 
     /**

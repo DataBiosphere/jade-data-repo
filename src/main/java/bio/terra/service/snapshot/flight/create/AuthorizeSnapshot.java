@@ -57,7 +57,7 @@ public class AuthorizeSnapshot implements Step {
     public StepResult doStep(FlightContext context) {
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
-        Snapshot snapshot = snapshotService.retrieveSnapshot(snapshotId);
+        Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
         // This returns the policy email created by Google to correspond to the readers list in SAM
         String readersPolicyEmail = sam.createSnapshotResource(userReq, snapshotId, snapshotReq.getReaders());

@@ -53,6 +53,11 @@ public class DatasetService {
             .submitAndWait(DatasetSummaryModel.class);
     }
 
+    /** Fetch existing Dataset object and populate the associated existing cloud project.
+     * If either the Dataset object or the associated cloud project does not exist, throws a runtime exception.
+     * @param id in UUID format
+     * @return a Dataset populated with a valid cloud project
+     */
     public Dataset retrieve(UUID id) {
         Dataset dataset = datasetDao.retrieve(id);
         Optional<DatasetDataProject> optDataProject = dataLocationService.getProjectForDataset(dataset);
@@ -63,6 +68,10 @@ public class DatasetService {
         }
     }
 
+    /** Convenience wrapper around fetching an existing Dataset object and converting it to a Model object.
+     * @param id in UUID formant
+     * @return a DatasetModel = API output-friendly representation of the Dataset
+     */
     public DatasetModel retrieveModel(UUID id) {
         Dataset dataset = retrieve(id);
         return DatasetJsonConversion.datasetModelFromDataset(dataset);

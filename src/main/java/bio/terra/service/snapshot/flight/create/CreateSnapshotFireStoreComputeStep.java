@@ -25,7 +25,7 @@ public class CreateSnapshotFireStoreComputeStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Snapshot snapshot = snapshotService.retrieveSnapshotByName(snapshotReq.getName());
+        Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
         fileDao.snapshotCompute(snapshot);
         return StepResult.getStepResultSuccess();
     }

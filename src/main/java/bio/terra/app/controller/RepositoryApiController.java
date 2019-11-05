@@ -357,7 +357,7 @@ public class RepositoryApiController implements RepositoryApi {
             IamResourceType.DATASNAPSHOT,
             id,
             IamAction.READ_DATA);
-        SnapshotModel snapshotModel = snapshotService.retrieveSnapshotModel(UUID.fromString(id));
+        SnapshotModel snapshotModel = snapshotService.retrieveModel(UUID.fromString(id));
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
 

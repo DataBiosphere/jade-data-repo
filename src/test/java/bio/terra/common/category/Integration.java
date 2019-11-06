@@ -1,4 +1,4 @@
-package bio.terra.common;
+package bio.terra.common.category;
 
 /**
  * Integration test category.

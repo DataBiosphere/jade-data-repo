@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.common.Connected;
+import bio.terra.common.category.Connected;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;

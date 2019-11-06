@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.common.Connected;
+import bio.terra.common.category.Connected;
 import com.google.cloud.firestore.Firestore;
 import com.google.cloud.firestore.FirestoreOptions;
 import org.junit.After;

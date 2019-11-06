@@ -1,6 +1,6 @@
 package bio.terra.service.iam;
 
-import bio.terra.common.Integration;
+import bio.terra.common.category.Integration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;

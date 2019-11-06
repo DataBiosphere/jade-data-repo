@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.common.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;

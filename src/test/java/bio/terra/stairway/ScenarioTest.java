@@ -2,7 +2,7 @@ package bio.terra.stairway;
 
 
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
-import bio.terra.common.StairwayUnit;
+import bio.terra.common.category.StairwayUnit;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import org.hamcrest.CoreMatchers;

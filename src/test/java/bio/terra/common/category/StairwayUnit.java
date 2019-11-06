@@ -1,4 +1,4 @@
-package bio.terra.common;
+package bio.terra.common.category;
 
 /**
  * StairwayUnit unit test category for the stairway unit tests. We may not want to run these

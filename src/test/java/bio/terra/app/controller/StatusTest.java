@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.common.Unit;
+import bio.terra.common.category.Unit;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;

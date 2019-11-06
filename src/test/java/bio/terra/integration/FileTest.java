@@ -2,7 +2,7 @@ package bio.terra.integration;
 
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.common.Integration;
+import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;

@@ -1,4 +1,4 @@
-package bio.terra.common;
+package bio.terra.common.category;
 
 /**
  * Unit test category. Tests in this category only rely on a postgresql database being configured.

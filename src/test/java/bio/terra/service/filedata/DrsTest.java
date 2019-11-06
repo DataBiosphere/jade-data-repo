@@ -1,7 +1,7 @@
 package bio.terra.service.filedata;
 
 import bio.terra.common.TestUtils;
-import bio.terra.common.Integration;
+import bio.terra.common.category.Integration;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;

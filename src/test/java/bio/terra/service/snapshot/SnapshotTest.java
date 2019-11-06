@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.common.Integration;
+import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;

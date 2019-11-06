@@ -1,6 +1,6 @@
 package bio.terra.integration;
 
-import bio.terra.common.Integration;
+import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;

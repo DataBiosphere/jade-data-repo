@@ -1,6 +1,6 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.common.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;

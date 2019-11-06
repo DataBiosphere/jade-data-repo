@@ -1,6 +1,6 @@
 package bio.terra.stairway;
 
-import bio.terra.common.StairwayUnit;
+import bio.terra.common.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;

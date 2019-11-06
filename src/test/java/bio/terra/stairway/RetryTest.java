@@ -3,7 +3,7 @@ package bio.terra.stairway;
 
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.StairwayException;
-import bio.terra.common.StairwayUnit;
+import bio.terra.common.category.StairwayUnit;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.common.Connected;
+import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;

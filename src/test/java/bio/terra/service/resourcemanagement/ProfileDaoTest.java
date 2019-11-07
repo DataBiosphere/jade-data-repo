@@ -1,6 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.category.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.service.resourcemanagement.exception.ProfileNotFoundException;

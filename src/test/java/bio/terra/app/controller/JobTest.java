@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.FlightStates;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.JobModel;

@@ -1,10 +1,11 @@
 package bio.terra.stairway;
 
 
-import bio.terra.category.StairwayUnit;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.common.category.StairwayUnit;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class ScenarioTest {
         // Wait for done
         stairway.waitForFlight(flightId);
         FlightState result = stairway.getFlightState(flightId);
-        Assert.assertThat(result.getFlightStatus(), is(FlightStatus.SUCCESS));
+        Assert.assertThat(result.getFlightStatus(), CoreMatchers.is(FlightStatus.SUCCESS));
         Assert.assertFalse(result.getException().isPresent());
 
         // Should be released

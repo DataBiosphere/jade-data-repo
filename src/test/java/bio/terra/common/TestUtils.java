@@ -1,4 +1,4 @@
-package bio.terra.integration;
+package bio.terra.common;
 
 import bio.terra.model.DRSAccessMethod;
 import org.apache.commons.lang3.StringUtils;

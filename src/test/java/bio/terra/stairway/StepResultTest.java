@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
-import bio.terra.category.StairwayUnit;
+import bio.terra.common.category.StairwayUnit;
+import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -16,7 +17,7 @@ public class StepResultTest {
     @Test
     public void testStepResultSuccess() {
         StepResult result = StepResult.getStepResultSuccess();
-        Assert.assertThat(result.getStepStatus(), is(StepStatus.STEP_RESULT_SUCCESS));
+        Assert.assertThat(result.getStepStatus(), CoreMatchers.is(StepStatus.STEP_RESULT_SUCCESS));
         Optional<Exception> exception = result.getException();
         Assert.assertFalse(exception.isPresent());
     }

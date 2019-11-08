@@ -33,6 +33,9 @@ import static org.mockito.BDDMockito.willThrow;
 @Category(Unit.class)
 public class SamIamTest {
 
+    // TODO: REVIEWERS: does this test do anything useful?
+    //  It seems to be a series of self-fulfilling mocks. I'm tempted to make it disappear.
+
     @MockBean
     private ResourcesApi samResourceApi;
 

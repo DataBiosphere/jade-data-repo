@@ -1,9 +1,5 @@
-package bio.terra.flight.dataset.create;
+package bio.terra.stairway;
 
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
-import bio.terra.stairway.StepResult;
-import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.FlightException;
 
 class TriggerUndoStep implements Step {

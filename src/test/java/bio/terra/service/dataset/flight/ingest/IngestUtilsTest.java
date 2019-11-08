@@ -1,6 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.category.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.exception.InvalidUriException;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;

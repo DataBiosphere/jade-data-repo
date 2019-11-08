@@ -1,9 +1,10 @@
 package bio.terra.integration;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSObject;
@@ -24,6 +25,7 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.filedata.DrsResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;

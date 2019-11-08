@@ -6,7 +6,7 @@ import bio.terra.stairway.exception.StairwayException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-final class TestUtil {
+public final class TestUtil {
     private TestUtil() {
     }
 
@@ -15,7 +15,7 @@ final class TestUtil {
     static final Double dubValue = new Double(Math.PI);
     static final String errString = "Something bad happened";
     static final String flightId = "aaa111";
-    static final String ikey = "ikey";
+    public static final String ikey = "ikey";
     static final String skey = "skey";
     static final String fkey = "fkey";
     static final String wikey = "wikey";

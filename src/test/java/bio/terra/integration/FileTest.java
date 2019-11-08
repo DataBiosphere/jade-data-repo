@@ -1,13 +1,14 @@
 package bio.terra.integration;
 
-import bio.terra.category.Integration;
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.dataset.DatasetTest;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;

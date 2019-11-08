@@ -1,6 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.category.Connected;
+import bio.terra.common.category.Connected;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotDao;

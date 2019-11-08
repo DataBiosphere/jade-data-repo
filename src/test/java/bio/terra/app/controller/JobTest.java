@@ -4,7 +4,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.FlightStates;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.JobModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamService;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,7 +40,7 @@ public class JobTest {
     private Stairway stairway;
 
     @MockBean
-    private SamClientService sam;
+    private IamService sam;
 
     @Autowired
     private MockMvc mvc;

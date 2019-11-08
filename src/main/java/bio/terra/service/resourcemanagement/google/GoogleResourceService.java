@@ -1,6 +1,6 @@
 package bio.terra.service.resourcemanagement.google;
 
-import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;

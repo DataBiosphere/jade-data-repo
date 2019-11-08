@@ -1,14 +1,14 @@
 package bio.terra.service.iam;
 
+import bio.terra.common.TestUtils;
+import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.GcsFixtures;
-import bio.terra.common.TestUtils;
 import bio.terra.integration.UsersBase;
-import bio.terra.common.auth.AuthService;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -61,7 +61,7 @@ public class AccessTest extends UsersBase {
 
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private AuthService authService;
-    @Autowired private SamClientService samClientService;
+    @Autowired private IamService iamService;
     @Autowired private TestConfiguration testConfiguration;
 
     private String discovererToken;
@@ -113,7 +113,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addDatasetPolicyMember(
             steward(),
             datasetId,
-            SamClientService.DataRepoRole.CUSTODIAN,
+            IamRole.CUSTODIAN,
             custodian().getEmail());
         DataRepoResponse<EnumerateDatasetModel> enumDatasets = dataRepoFixtures.enumerateDatasetsRaw(custodian());
         assertThat("Custodian is authorized to enumerate datasets",
@@ -144,16 +144,16 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
             snapshotSummaryModel.getId(),
-            SamClientService.DataRepoRole.READER,
+            IamRole.READER,
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
             new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
-        assertThat("correctly added reader", samClientService.isAuthorized(
+        assertThat("correctly added reader", iamService.isAuthorized(
             authenticatedReaderRequest,
-            SamClientService.ResourceType.DATASNAPSHOT,
+            IamResourceType.DATASNAPSHOT,
             snapshotSummaryModel.getId(),
-            SamClientService.DataRepoAction.READ_DATA), equalTo(true));
+            IamAction.READ_DATA), equalTo(true));
 
         boolean readerHasAccess =
             BigQueryFixtures.hasAccess(bigQuery, snapshotModel.getDataProject(), snapshotModel.getName());
@@ -166,7 +166,7 @@ public class AccessTest extends UsersBase {
     public void fileAclTest() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId(), SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
 
         // Step 1. Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
@@ -207,16 +207,16 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian(),
             snapshotModel.getId(),
-            SamClientService.DataRepoRole.READER,
+            IamRole.READER,
             reader().getEmail());
 
         AuthenticatedUserRequest authenticatedReaderRequest =
             new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
-        assertThat("correctly added reader", samClientService.isAuthorized(
+        assertThat("correctly added reader", iamService.isAuthorized(
             authenticatedReaderRequest,
-            SamClientService.ResourceType.DATASNAPSHOT,
+            IamResourceType.DATASNAPSHOT,
             snapshotModel.getId(),
-            SamClientService.DataRepoAction.READ_DATA), equalTo(true));
+            IamAction.READ_DATA), equalTo(true));
 
         // Step 4. Wait for SAM to sync the access change out to GCP.
         //

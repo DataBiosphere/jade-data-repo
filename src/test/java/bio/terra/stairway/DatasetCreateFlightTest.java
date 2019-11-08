@@ -1,21 +1,21 @@
 package bio.terra.stairway;
 
+import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.category.Connected;
-import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.common.PrimaryDataAccess;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.iam.SamClientService;
 import bio.terra.stairway.exception.StairwayException;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -58,7 +58,7 @@ public class DatasetCreateFlightTest {
     @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
-    private SamClientService samService;
+    private IamService samService;
 
     private String datasetName;
     private DatasetRequestModel datasetRequest;

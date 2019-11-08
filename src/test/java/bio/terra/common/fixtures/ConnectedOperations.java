@@ -1,6 +1,7 @@
 package bio.terra.common.fixtures;
 
-import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DRSChecksum;
@@ -17,7 +18,6 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -89,7 +89,7 @@ public class ConnectedOperations {
         createdBuckets = new ArrayList<>();
     }
 
-    public void stubOutSamCalls(SamClientService samService) {
+    public void stubOutSamCalls(IamService samService) {
         when(samService.createSnapshotResource(any(), any(), any())).thenReturn("hi@hi.com");
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.createDatasetResource(any(), any())).thenReturn(

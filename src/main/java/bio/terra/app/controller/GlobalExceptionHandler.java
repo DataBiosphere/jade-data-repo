@@ -7,7 +7,7 @@ import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.sam.SamIam;
 import bio.terra.service.job.exception.JobResponseException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -85,7 +85,7 @@ public class GlobalExceptionHandler {
         // there. If any ApiException makes it up to this level, then it's unexpected. We can still do the conversion,
         // but want to add in a logging message that there's an escaped SAM ApiException somewhere.
         logger.error("SAM ApiException caught outside the service/iam package", ex);
-        DataRepoException drex = SamClientService.convertSAMExToDataRepoEx(ex);
+        DataRepoException drex = SamIam.convertSAMExToDataRepoEx(ex);
         return buildErrorModel(drex);
     }
 

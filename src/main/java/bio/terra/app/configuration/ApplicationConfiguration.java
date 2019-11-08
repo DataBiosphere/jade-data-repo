@@ -52,7 +52,6 @@ public class ApplicationConfiguration {
         this.resourceId = resourceId;
     }
 
-
     public String getUserId() {
         return userId;
     }

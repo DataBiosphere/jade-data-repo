@@ -1,19 +1,19 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.exception.UnauthorizedException;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;
+import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -22,11 +22,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public class AuthorizeSnapshot implements Step {
-    private SamClientService sam;
+    private IamService sam;
     private BigQueryPdao bigQueryPdao;
     private FireStoreDependencyDao fireStoreDao;
     private SnapshotService snapshotService;
@@ -37,7 +36,7 @@ public class AuthorizeSnapshot implements Step {
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
     public AuthorizeSnapshot(BigQueryPdao bigQueryPdao,
-                             SamClientService sam,
+                             IamService sam,
                              FireStoreDependencyDao fireStoreDao,
                              SnapshotService snapshotService,
                              GcsPdao gcsPdao,
@@ -59,10 +58,9 @@ public class AuthorizeSnapshot implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         Snapshot snapshot = snapshotService.retrieveSnapshot(snapshotId);
-        Optional<List<String>> readersList = Optional.ofNullable(snapshotReq.getReaders());
 
         // This returns the policy email created by Google to correspond to the readers list in SAM
-        String readersPolicyEmail = sam.createSnapshotResource(userReq, snapshotId, readersList);
+        String readersPolicyEmail = sam.createSnapshotResource(userReq, snapshotId, snapshotReq.getReaders());
         bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);
 
         // Each dataset may keep its dependencies in its own scope. Therefore,

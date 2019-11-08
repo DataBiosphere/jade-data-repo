@@ -1,6 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.app.configuration.SamConfiguration;
+import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.resourcemanagement.exception.DataProjectNotFoundException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.dataset.Dataset;

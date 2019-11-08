@@ -1,15 +1,7 @@
 package bio.terra.service.snapshot;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
-import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
-import bio.terra.service.dataset.AssetColumn;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.AssetTable;
 import bio.terra.common.Column;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
 import bio.terra.model.ColumnModel;
@@ -22,11 +14,18 @@ import bio.terra.model.SnapshotRequestSourceModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
+import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,16 +98,12 @@ public class SnapshotService {
         String sort,
         String direction,
         String filter,
-        List<ResourceAndAccessPolicy> resources) {
+        List<UUID> resources) {
         if (resources.isEmpty()) {
             return new EnumerateSnapshotModel().total(0);
         }
-        List<UUID> resourceIds = resources
-            .stream()
-            .map(resource -> UUID.fromString(resource.getResourceId()))
-            .collect(Collectors.toList());
         MetadataEnumeration<SnapshotSummary> enumeration = snapshotDao.retrieveSnapshots(offset, limit, sort, direction,
-            filter, resourceIds);
+            filter, resources);
         List<SnapshotSummaryModel> models = enumeration.getItems()
                 .stream()
                 .map(this::makeSummaryModelFromSummary)

@@ -1,29 +1,29 @@
 package bio.terra.app.controller;
 
 import bio.terra.common.category.Connected;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.service.resourcemanagement.BillingProfile;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDataProject;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotSourceModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.tabulardata.google.BigQueryProject;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSourceModel;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDataProject;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.resourcemanagement.BillingProfile;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.iam.SamClientService;
-import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -41,7 +41,6 @@ import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.bigquery.WriteChannelConfiguration;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -111,7 +110,7 @@ public class SnapshotOperationTest {
     @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
-    private SamClientService samService;
+    private IamService samService;
 
     private List<String> createdSnapshotIds;
     private List<String> createdDatasetIds;
@@ -231,8 +230,12 @@ public class SnapshotOperationTest {
             snapshotList.add(summaryModel);
         }
 
-        when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotList.stream().map(snapshot ->
-            new ResourceAndAccessPolicy().resourceId(snapshot.getId())).collect(Collectors.toList()));
+        List<UUID> snapshotIds = snapshotList
+            .stream()
+            .map(snapshot -> UUID.fromString(snapshot.getId()))
+            .collect(Collectors.toList());
+
+        when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotIds);
         EnumerateSnapshotModel enumResponse = enumerateTestSnapshots();
         List<SnapshotSummaryModel> enumeratedArray = enumResponse.getItems();
         assertThat("total is correct", enumResponse.getTotal(), equalTo(5));

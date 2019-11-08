@@ -1,17 +1,17 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
-import bio.terra.common.TestUtils;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.DeleteResponseModel;
-import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.service.iam.IamRole;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -93,7 +93,7 @@ public class DatasetTest extends UsersBase {
             dataRepoFixtures.addDatasetPolicyMember(
                 steward(),
                 summaryModel.getId(),
-                SamClientService.DataRepoRole.CUSTODIAN,
+                IamRole.CUSTODIAN,
                 custodian().getEmail());
             DataRepoResponse<EnumerateDatasetModel> enumDatasets = dataRepoFixtures.enumerateDatasetsRaw(custodian());
             assertThat("Custodian is authorized to enumerate datasets",

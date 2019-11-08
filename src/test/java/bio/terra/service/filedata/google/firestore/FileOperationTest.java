@@ -10,9 +10,9 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.iam.SamClientService;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
@@ -60,7 +60,7 @@ public class FileOperationTest {
     @Autowired private ConnectedOperations connectedOperations;
 
     @MockBean
-    private SamClientService samService;
+    private IamService samService;
 
     @SpyBean
     private DataLocationSelector dataLocationSelector;

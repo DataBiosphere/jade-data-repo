@@ -14,8 +14,8 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
-import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -23,8 +23,9 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.filedata.DrsResponse;
-import bio.terra.service.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -133,22 +134,22 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<Object> addPolicyMemberRaw(TestConfiguration.User user,
                                                        String resourceId,
-                                                       SamClientService.DataRepoRole role,
+                                                       IamRole role,
                                                        String userEmail,
-                                                       SamClientService.ResourceType resourceType) throws Exception {
+                                                       IamResourceType iamResourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(resourceType) + "/" +
+        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
             objectMapper.writeValueAsString(req), null);
     }
 
     public void addPolicyMember(TestConfiguration.User user,
                                 String resourceId,
-                                SamClientService.DataRepoRole role,
+                                IamRole role,
                                 String newMemberEmail,
-                                SamClientService.ResourceType resourceType) throws Exception {
-        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, resourceType);
-        assertThat(resourceType + " policy member is successfully added",
+                                IamResourceType iamResourceType) throws Exception {
+        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, iamResourceType);
+        assertThat(iamResourceType + " policy member is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
@@ -156,9 +157,9 @@ public class DataRepoFixtures {
     // adding dataset policy
     public void addDatasetPolicyMember(TestConfiguration.User user,
                                      String datasetId,
-                                     SamClientService.DataRepoRole role,
+                                     IamRole role,
                                      String newMemberEmail) throws Exception {
-        addPolicyMember(user, datasetId, role, newMemberEmail, SamClientService.ResourceType.DATASET);
+        addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
     }
 
     // snapshots
@@ -166,9 +167,9 @@ public class DataRepoFixtures {
     // adding snapshot policy
     public void addSnapshotPolicyMember(TestConfiguration.User user,
                                        String snapshotId,
-                                       SamClientService.DataRepoRole role,
+                                       IamRole role,
                                        String newMemberEmail) throws Exception {
-        addPolicyMember(user, snapshotId, role, newMemberEmail, SamClientService.ResourceType.DATASNAPSHOT);
+        addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
     }
 
     public DataRepoResponse<JobModel> createSnapshotLaunch(

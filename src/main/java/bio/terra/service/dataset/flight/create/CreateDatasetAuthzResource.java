@@ -7,7 +7,7 @@ import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.service.iam.IamService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -21,13 +21,13 @@ import java.util.UUID;
 public class CreateDatasetAuthzResource implements Step {
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
-    private SamClientService sam;
+    private IamService sam;
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
     private AuthenticatedUserRequest userReq;
 
     public CreateDatasetAuthzResource(
-        SamClientService sam,
+        IamService sam,
         BigQueryPdao bigQueryPdao,
         DatasetService datasetService,
         AuthenticatedUserRequest userReq) {

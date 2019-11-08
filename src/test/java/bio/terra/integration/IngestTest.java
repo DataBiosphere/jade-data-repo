@@ -2,12 +2,12 @@ package bio.terra.integration;
 
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
+import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.iam.SamClientService;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.iam.IamRole;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -24,8 +24,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
@@ -55,7 +55,7 @@ public class IngestTest extends UsersBase {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
         dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetId, SamClientService.DataRepoRole.CUSTODIAN, custodian().getEmail());
+            steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After

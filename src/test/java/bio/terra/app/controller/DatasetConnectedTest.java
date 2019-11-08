@@ -8,9 +8,9 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.iam.SamClientService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -49,7 +49,7 @@ public class DatasetConnectedTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
 
-    @MockBean private SamClientService samService;
+    @MockBean private IamService samService;
 
     @Test
     public void testCreateOmopDataset() throws Exception {

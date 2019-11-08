@@ -1,17 +1,18 @@
-package bio.terra.service.iam;
+package bio.terra.service.iam.sam;
 
-import bio.terra.app.configuration.SamConfiguration;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
-import bio.terra.service.iam.exception.SamBadRequestException;
-import bio.terra.service.iam.exception.SamInternalServerErrorException;
-import bio.terra.service.iam.exception.SamNotFoundException;
-import bio.terra.service.iam.exception.SamUnauthorizedException;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.exception.IamBadRequestException;
+import bio.terra.service.iam.exception.IamInternalServerErrorException;
+import bio.terra.service.iam.exception.IamNotFoundException;
+import bio.terra.service.iam.exception.IamUnauthorizedException;
 import com.google.api.client.http.HttpStatusCodes;
-import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.dsde.workbench.client.sam.ApiClient;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.broadinstitute.dsde.workbench.client.sam.Pair;
@@ -23,6 +24,7 @@ import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEn
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -31,109 +33,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Component
-public class SamClientService {
+@Component("iamService")
+// Use @Profile to select when there is more than one IamService
+public class SamIam implements IamService {
     private final SamConfiguration samConfig;
 
-    public SamClientService(SamConfiguration samConfig) {
+    @Autowired
+    public SamIam(SamConfiguration samConfig) {
         this.samConfig = samConfig;
     }
 
-    public enum ResourceType {
-        DATAREPO,
-        DATASET,
-        DATASNAPSHOT;
-
-        @Override
-        @JsonValue
-        public String toString() {
-            return StringUtils.lowerCase(name());
-        }
-
-        @JsonCreator
-        public static ResourceType fromValue(String text) {
-            for (ResourceType b : ResourceType.values()) {
-                if (b.name().equals(StringUtils.upperCase(text))) {
-                    return b;
-                }
-            }
-            return null;
-        }
-
-    }
-
-    public enum DataRepoRole {
-        ADMIN,
-        STEWARD,
-        CUSTODIAN,
-        INGESTER,
-        READER,
-        DISCOVERER;
-
-        @Override
-        @JsonValue
-        public String toString() {
-            return StringUtils.lowerCase(name());
-        }
-
-        @JsonCreator
-        public static ResourceType fromValue(String text) {
-            for (ResourceType b : ResourceType.values()) {
-                if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
-                    return b;
-                }
-            }
-            return null;
-        }
-
-    }
-
-
-    public enum DataRepoAction {
-        // common
-        CREATE,
-        DELETE,
-        SHARE_POLICY,
-        READ_POLICY,
-        READ_POLICIES,
-        ALTER_POLICIES,
-        // datarepo
-        CREATE_DATASET,
-        LIST_JOBS,
-        DELETE_JOBS,
-        // dataset
-        EDIT_DATASET,
-        READ_DATASET,
-        INGEST_DATA,
-        UPDATE_DATA,
-        // snapshots
-        CREATE_DATASNAPSHOT,
-        EDIT_DATASNAPSHOT,
-        READ_DATA,
-        DISCOVER_DATA;
-
-        @Override
-        @JsonValue
-        public String toString() {
-            return StringUtils.lowerCase(name());
-        }
-
-        @JsonCreator
-        public static ResourceType fromValue(String text) {
-            for (ResourceType b : ResourceType.values()) {
-                if (String.valueOf(b.name()).equals(StringUtils.upperCase(text))) {
-                    return b;
-                }
-            }
-            return null;
-        }
-    }
-
-    private static Logger logger = LoggerFactory.getLogger(SamClientService.class);
+    private static Logger logger = LoggerFactory.getLogger(SamIam.class);
 
     private ApiClient getApiClient(String accessToken) {
         ApiClient apiClient = new ApiClient();
@@ -159,15 +72,17 @@ public class SamClientService {
      * This method converts the SAM-specific ApiException to a data repo-specific common exception.
      * @return true if authorized, false otherwise
      */
+    @Override
     public boolean isAuthorized(
         AuthenticatedUserRequest userReq,
-        SamClientService.ResourceType resourceType,
+        IamResourceType iamResourceType,
         String resourceId,
-        SamClientService.DataRepoAction action) {
+        IamAction action) {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
-            boolean authorized = samResourceApi.resourceAction(resourceType.toString(), resourceId, action.toString());
-            logger.debug("authorized is " + authorized);
+            boolean authorized =
+                samResourceApi.resourceAction(iamResourceType.toString(), resourceId, action.toString());
+            logger.info("authorized is " + authorized);
             return authorized;
         } catch (ApiException ex) {
             logger.warn("userReq token: {}", userReq.getToken());
@@ -175,81 +90,71 @@ public class SamClientService {
         }
     }
 
-    /**
-     * This is a wrapper method around
-     * {@link #isAuthorized(AuthenticatedUserRequest, ResourceType, String, DataRepoAction)} that throws
-     * an exception instead of returning false when the user is NOT authorized to do the action on the resource.
-     * Note that this wrapping does not suppress other SAM exceptions, such as when SAM returns an
-     * HTTP internal server error.
-     * @throws SamUnauthorizedException if NOT authorized
-     */
-    public void verifyAuthorization(
-        AuthenticatedUserRequest userReq,
-        SamClientService.ResourceType resourceType,
-        String resourceId,
-        SamClientService.DataRepoAction action) {
-        String userEmail = userReq.getEmail();
-        logger.info("email: {}, action: {}", userEmail, action);
-        if (!isAuthorized(userReq, resourceType, resourceId, action)) {
-            throw new SamUnauthorizedException("User does not have required action: " + action);
-        }
-    }
-
-    public List<ResourceAndAccessPolicy> listAuthorizedResources(
-        AuthenticatedUserRequest userReq, ResourceType resourceType) {
+    @Override
+    public List<UUID> listAuthorizedResources(
+        AuthenticatedUserRequest userReq, IamResourceType iamResourceType) {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
-            return samResourceApi.listResourcesAndPolicies(resourceType.toString());
+            List<ResourceAndAccessPolicy> resources =
+                samResourceApi.listResourcesAndPolicies(iamResourceType.toString());
+
+            return resources
+                .stream()
+                .map(resource -> UUID.fromString(resource.getResourceId()))
+                .collect(Collectors.toList());
+
         } catch (ApiException ex) {
             throw convertSAMExToDataRepoEx(ex);
         }
     }
 
+    @Override
     public void deleteDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
+        deleteResource(userReq, IamResourceType.DATASET, datasetId.toString());
+    }
+
+    @Override
+    public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId) {
+        deleteResource(userReq, IamResourceType.DATASNAPSHOT, snapshotId.toString());
+    }
+
+    private void deleteResource(AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
-            samResourceApi.deleteResource(ResourceType.DATASET.toString(), datasetId.toString());
+            samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
         } catch (ApiException ex) {
             throw convertSAMExToDataRepoEx(ex);
         }
     }
 
-    public void deleteSnapshotResource(AuthenticatedUserRequest userReq, UUID datsetId) {
-        ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            samResourceApi.deleteResource(ResourceType.DATASNAPSHOT.toString(), datsetId.toString());
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
-    }
-
+    @Override
     public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
-            DataRepoRole.STEWARD.toString(),
-            createAccessPolicy(DataRepoRole.STEWARD.toString(),
+            IamRole.STEWARD.toString(),
+            createAccessPolicy(IamRole.STEWARD.toString(),
                 Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
-            DataRepoRole.CUSTODIAN.toString(),
-            createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
+            IamRole.CUSTODIAN.toString(),
+            createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
-            DataRepoRole.INGESTER.toString(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.INGESTER.toString())));
+            IamRole.INGESTER.toString(),
+            new AccessPolicyMembership().roles(Collections.singletonList(IamRole.INGESTER.toString())));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
         try {
             // create the resource in sam
-            createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASET.toString(), req);
+            createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);
 
             // we'll want all of these roles to have read access to the underlying data,
             // so we sync and return the emails for the policies that get created by SAM
             ArrayList<String> rolePolicies = new ArrayList<>();
-            for (DataRepoRole role :
-                Arrays.asList(DataRepoRole.STEWARD, DataRepoRole.CUSTODIAN, DataRepoRole.INGESTER)) {
+            for (IamRole role :
+                Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
                 Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-                    ResourceType.DATASET.toString(),
+                    IamResourceType.DATASET.toString(),
                     datasetId.toString(),
                     role.toString());
                 rolePolicies.add(getPolicyGroupEmailFromResponse(results));
@@ -260,53 +165,59 @@ public class SamClientService {
         }
     }
 
+    @Override
     public String createSnapshotResource(
         AuthenticatedUserRequest userReq,
         UUID snapshotId,
-        Optional<List<String>> readersList) {
+        List<String> readersList) {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
+
+        if (readersList == null) {
+            readersList = Collections.emptyList();
+        }
 
         req.setResourceId(snapshotId.toString());
         req.addPoliciesItem(
-            DataRepoRole.STEWARD.toString(),
-            createAccessPolicy(DataRepoRole.STEWARD.toString(),
+            IamRole.STEWARD.toString(),
+            createAccessPolicy(IamRole.STEWARD.toString(),
                 Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
-            DataRepoRole.CUSTODIAN.toString(),
-            createAccessPolicy(DataRepoRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
+            IamRole.CUSTODIAN.toString(),
+            createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
-            DataRepoRole.READER.toString(),
-            createAccessPolicy(DataRepoRole.READER.toString(), readersList.orElse(Collections.emptyList())));
+            IamRole.READER.toString(),
+            createAccessPolicy(IamRole.READER.toString(), readersList));
         req.addPoliciesItem(
-            DataRepoRole.DISCOVERER.toString(),
-            new AccessPolicyMembership().roles(Collections.singletonList(DataRepoRole.DISCOVERER.toString())));
+            IamRole.DISCOVERER.toString(),
+            new AccessPolicyMembership().roles(Collections.singletonList(IamRole.DISCOVERER.toString())));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
         try {
             // create the resource in sam
-            createResourceCorrectCall(samResourceApi.getApiClient(), ResourceType.DATASNAPSHOT.toString(), req);
+            createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
 
             // sync the readers policy
             // Map[WorkbenchEmail, Seq[SyncReportItem]]
             Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-                ResourceType.DATASNAPSHOT.toString(),
+                IamResourceType.DATASNAPSHOT.toString(),
                 snapshotId.toString(),
-                DataRepoRole.READER.toString());
+                IamRole.READER.toString());
             return getPolicyGroupEmailFromResponse(results);
         } catch (ApiException ex) {
             throw convertSAMExToDataRepoEx(ex);
         }
     }
 
+    @Override
     public List<PolicyModel> retrievePolicies(
         AuthenticatedUserRequest userReq,
-        ResourceType resourceType,
+        IamResourceType iamResourceType,
         UUID resourceId) {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
             List<AccessPolicyResponseEntry> results =
-                samResourceApi.listResourcePolicies(resourceType.toString(), resourceId.toString());
+                samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString());
             return results.stream().map(entry -> new PolicyModel()
                 .name(entry.getPolicyName())
                 .members(entry.getPolicy().getMemberEmails()))
@@ -316,18 +227,19 @@ public class SamClientService {
         }
     }
 
+    @Override
     public PolicyModel addPolicyMember(
         AuthenticatedUserRequest userReq,
-        ResourceType resourceType,
+        IamResourceType iamResourceType,
         UUID resourceId,
         String policyName,
         String userEmail) {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
-            samResourceApi.addUserToPolicy(resourceType.toString(), resourceId.toString(), policyName, userEmail);
+            samResourceApi.addUserToPolicy(iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
 
             AccessPolicyMembership result =
-                samResourceApi.getPolicy(resourceType.toString(), resourceId.toString(), policyName);
+                samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
             return new PolicyModel()
                 .name(policyName)
                 .members(result.getMemberEmails());
@@ -336,18 +248,23 @@ public class SamClientService {
         }
     }
 
+    @Override
     public PolicyModel deletePolicyMember(
         AuthenticatedUserRequest userReq,
-        ResourceType resourceType,
+        IamResourceType iamResourceType,
         UUID resourceId,
         String policyName,
         String userEmail) {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         try {
-            samResourceApi.removeUserFromPolicy(resourceType.toString(), resourceId.toString(), policyName, userEmail);
+            samResourceApi.removeUserFromPolicy(
+                iamResourceType.toString(),
+                resourceId.toString(),
+                policyName,
+                userEmail);
 
             AccessPolicyMembership result =
-                samResourceApi.getPolicy(resourceType.toString(), resourceId.toString(), policyName);
+                samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
             return new PolicyModel()
                 .name(policyName)
                 .members(result.getMemberEmails());
@@ -356,6 +273,7 @@ public class SamClientService {
         }
     }
 
+    @Override
     public UserStatusInfo getUserInfo(AuthenticatedUserRequest userReq) {
         UsersApi samUsersApi = samUsersApi(userReq.getRequiredToken());
         try {
@@ -368,7 +286,7 @@ public class SamClientService {
         }
     }
 
-    public AccessPolicyMembership createAccessPolicy(String role, List<String> emails) {
+    AccessPolicyMembership createAccessPolicy(String role, List<String> emails) {
         return new AccessPolicyMembership()
             .roles(Collections.singletonList(role))
             .memberEmails(emails);
@@ -452,20 +370,20 @@ public class SamClientService {
 
         switch (samEx.getCode()) {
             case HttpStatusCodes.STATUS_CODE_BAD_REQUEST : {
-                return new SamBadRequestException(samEx);
+                return new IamBadRequestException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_UNAUTHORIZED : {
-                return new SamUnauthorizedException(samEx);
+                return new IamUnauthorizedException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_NOT_FOUND : {
-                return new SamNotFoundException(samEx);
+                return new IamNotFoundException(samEx);
             }
             case HttpStatusCodes.STATUS_CODE_SERVER_ERROR : {
-                return new SamInternalServerErrorException(samEx);
+                return new IamInternalServerErrorException(samEx);
             }
             // note that SAM does not use a 501 NOT_IMPLEMENTED status code, so that case is skipped here
             default : {
-                return new SamInternalServerErrorException(samEx);
+                return new IamInternalServerErrorException(samEx);
             }
         }
     }

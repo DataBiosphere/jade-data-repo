@@ -1,7 +1,12 @@
-package bio.terra.integration;
+package bio.terra.service.dataset;
 
-import bio.terra.category.Integration;
+import bio.terra.common.TestUtils;
+import bio.terra.common.category.Integration;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.integration.DataRepoClient;
+import bio.terra.integration.DataRepoFixtures;
+import bio.terra.integration.DataRepoResponse;
+import bio.terra.integration.UsersBase;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;

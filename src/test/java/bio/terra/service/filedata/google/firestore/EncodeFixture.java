@@ -1,16 +1,17 @@
-package bio.terra.integration;
+package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.common.auth.AuthService;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.integration.auth.AuthService;
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.integration.BigQueryFixtures;
+import bio.terra.integration.DataRepoClient;
+import bio.terra.integration.DataRepoFixtures;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.filedata.google.firestore.EncodeFileIn;
-import bio.terra.service.filedata.google.firestore.EncodeFileOut;
 import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;

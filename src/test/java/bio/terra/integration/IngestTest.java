@@ -1,7 +1,7 @@
 package bio.terra.integration;
 
-import bio.terra.category.Integration;
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;

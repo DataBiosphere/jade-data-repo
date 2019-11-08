@@ -1,6 +1,6 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.category.Connected;
+import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;

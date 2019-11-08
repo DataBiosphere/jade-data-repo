@@ -1,6 +1,6 @@
 package bio.terra.service.tabulardata.google;
 
-import bio.terra.category.Connected;
+import bio.terra.common.category.Connected;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.ConnectedOperations;

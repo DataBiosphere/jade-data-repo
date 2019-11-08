@@ -1,6 +1,6 @@
 package bio.terra.service.iam.sam;
 
-import bio.terra.category.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;

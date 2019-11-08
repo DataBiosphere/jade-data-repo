@@ -1,6 +1,6 @@
-package bio.terra.integration.auth;
+package bio.terra.common.auth;
 
-import bio.terra.integration.configuration.TestConfiguration;
+import bio.terra.common.configuration.TestConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

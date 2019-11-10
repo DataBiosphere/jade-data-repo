@@ -8,7 +8,6 @@ import bio.terra.stairway.FlightStatus;
 import org.springframework.http.HttpStatus;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static bio.terra.common.fixtures.DatasetFixtures.buildMinimalDatasetSummary;
 
@@ -34,9 +33,8 @@ public final class FlightStates {
         flightState.setFlightStatus(FlightStatus.SUCCESS);
         flightState.setSubmitted(Instant.now());
         flightState.setInputParameters(resultMap); // unused
-        flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.of(Instant.now()));
-        flightState.setException(Optional.empty());
+        flightState.setResultMap(resultMap);
+        flightState.setCompleted(Instant.now());
         return flightState;
     }
 
@@ -52,9 +50,7 @@ public final class FlightStates {
         flightState.setFlightStatus(FlightStatus.RUNNING);
         flightState.setSubmitted(submittedTime);
         flightState.setInputParameters(resultMap);
-        flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.empty());
-        flightState.setException(Optional.empty());
+        flightState.setResultMap(resultMap);
         return flightState;
     }
 
@@ -70,9 +66,8 @@ public final class FlightStates {
         flightState.setFlightStatus(FlightStatus.SUCCESS);
         flightState.setSubmitted(submittedTime);
         flightState.setInputParameters(resultMap);
-        flightState.setResultMap(Optional.of(resultMap));
-        flightState.setCompleted(Optional.of(completedTime));
-        flightState.setException(Optional.empty());
+        flightState.setResultMap(resultMap);
+        flightState.setCompleted(completedTime);
         return flightState;
     }
 }

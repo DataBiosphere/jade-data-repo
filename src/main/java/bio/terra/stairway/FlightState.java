@@ -13,9 +13,9 @@ public class FlightState {
     private FlightMap inputParameters;
     private Instant submitted;
     private UserRequestInfo user;
-    private Optional<Instant> completed;
-    private Optional<FlightMap> resultMap;  // filled in when flightStatus is SUCCESS
-    private Optional<Exception> exception;  // filled in when flightStatus is ERROR or FATAL
+    private Instant completed;
+    private FlightMap resultMap;  // filled in when flightStatus is SUCCESS
+    private Exception exception;  // filled in when flightStatus is ERROR or FATAL
 
     public FlightState() {
     }
@@ -63,31 +63,30 @@ public class FlightState {
     }
 
     public Optional<Instant> getCompleted() {
-        return completed;
+        return Optional.ofNullable(completed);
     }
 
-    public void setCompleted(Optional<Instant> completed) {
+    public void setCompleted(Instant completed) {
         this.completed = completed;
     }
 
     public Optional<FlightMap> getResultMap() {
-        return resultMap;
+        return Optional.ofNullable(resultMap);
     }
 
-    public void setResultMap(Optional<FlightMap> resultMap) {
-        if (resultMap.isPresent()) {
-            resultMap.get().makeImmutable();
+    public void setResultMap(FlightMap resultMap) {
+        if (resultMap != null) {
+            resultMap.makeImmutable();
         }
         this.resultMap = resultMap;
     }
 
     public Optional<Exception> getException() {
-        return exception;
+        return Optional.ofNullable(exception);
     }
 
-    public FlightState setException(Optional<Exception> exception) {
+    public void setException(Exception exception) {
         this.exception = exception;
-        return this;
     }
 
 }

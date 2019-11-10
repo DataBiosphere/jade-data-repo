@@ -2,20 +2,12 @@ package bio.terra.stairway;
 
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.DatabaseOperationException;
-import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
-import bio.terra.stairway.exception.JsonConversionException;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import com.google.api.gax.rpc.AbortedException;
-import com.google.cloud.bigquery.BigQueryException;
-import com.google.cloud.firestore.FirestoreException;
-import com.google.cloud.storage.StorageException;
-import org.postgresql.util.PSQLException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,14 +18,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * The general layout of the stairway database is:
@@ -54,6 +43,7 @@ import java.util.Optional;
  */
 @Repository
 public class FlightDao {
+
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
@@ -104,10 +94,11 @@ public class FlightDao {
         final String sqlInsertFlightLog =
             "INSERT INTO " + FLIGHT_LOG_TABLE +
                 "(flightid, log_time, working_parameters, step_index, doing," +
-                " succeeded, exception, status)" +
+                " succeeded, exception_class, exception_message, status)" +
                 " VALUES (:flightid, CURRENT_TIMESTAMP, :working_map, :step_index, :doing," +
-                " :succeeded, :exception, :status)";
+                " :succeeded, :exception_class, :exception_message, :status)";
 
+        ExceptionFields exceptionFields = new ExceptionFields(flightContext.getResult().getException().orElse(null));
 
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("flightid", flightContext.getFlightId())
@@ -115,7 +106,8 @@ public class FlightDao {
             .addValue("step_index", flightContext.getStepIndex())
             .addValue("doing", flightContext.isDoing())
             .addValue("succeeded", flightContext.getResult().isSuccess())
-            .addValue("exception", getExceptionJson(flightContext))
+            .addValue("exception_class", exceptionFields.getExceptionClass())
+            .addValue("exception_message", exceptionFields.getExceptionMessage())
             .addValue("status", flightContext.getFlightStatus().name());
 
         jdbcTemplate.update(sqlInsertFlightLog, params);
@@ -134,16 +126,20 @@ public class FlightDao {
                 " SET completed_time = CURRENT_TIMESTAMP," +
                 " output_parameters = :output_parameters," +
                 " status = :status," +
-                " exception = :exception" +
+                " exception_class = :exception_class," +
+                " exception_message = :exception_message" +
                 " WHERE flightid = :flightid AND status = 'RUNNING'";
 
         // The delete is harmless if it has been done before. We just won't find anything.
         final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid";
 
+        ExceptionFields exceptionFields = new ExceptionFields(flightContext.getResult().getException().orElse(null));
+
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("output_parameters", flightContext.getWorkingMap().toJson())
             .addValue("status", flightContext.getFlightStatus().name())
-            .addValue("exception", getExceptionJson(flightContext))
+            .addValue("exception_class", exceptionFields.getExceptionClass())
+            .addValue("exception_message", exceptionFields.getExceptionMessage())
             .addValue("flightid", flightContext.getFlightId());
 
         jdbcTemplate.update(sqlUpdateFlight, params);
@@ -186,14 +182,14 @@ public class FlightDao {
             " WHERE status = 'RUNNING'";
 
         final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing," +
-            " succeeded, exception, status" +
+            " succeeded, exception_class, exception_message, status" +
             " FROM " + FLIGHT_LOG_TABLE +
             " WHERE flightid = :flightid AND log_time = " +
             " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid2)";
 
-
-        List<FlightContext> flightList = jdbcTemplate.query(sqlActiveFlights, new RowMapper<FlightContext>() {
-            public FlightContext mapRow(ResultSet rs, int rowNum) throws SQLException {
+        List<FlightContext> activeFlights = jdbcTemplate.query(
+            sqlActiveFlights,
+            (rs, rowNum) -> {
                 FlightMap inputParameters = new FlightMap();
                 inputParameters.fromJson(rs.getString("input_parameters"));
 
@@ -205,26 +201,27 @@ public class FlightDao {
                         .name(rs.getString("owner_email")));
                 flightContext.setFlightId(rs.getString("flightid"));
                 return flightContext;
-            }
-        });
+            });
 
-        // Loop through the linked list making a query for each flight. This may not be the most efficient.
-        // My reasoning is that the code is more obvious to understand and this is not
-        // a performance-critical part of the processing; it happens once at startup.
-        for (FlightContext flightContext : flightList) {
-
+        // Loop through the linked list making a query for each flight to fill in the FlightContext.
+        // This may not be the most efficient algorithm. My reasoning is that the code is more obvious
+        // to understand and this is not a performance-critical part of the processing; it happens once at startup.
+        for (FlightContext flightContext : activeFlights) {
             MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("flightid", flightContext.getFlightId())
                 .addValue("flightid2", flightContext.getFlightId());
 
-            jdbcTemplate.query(sqlLastFlightLog, params, new RowMapper<FlightContext>() {
-                public FlightContext mapRow(ResultSet rs, int rowNum) throws SQLException {
+            jdbcTemplate.query(
+                sqlLastFlightLog,
+                params,
+                (rs, rowNum) -> {
                     StepResult stepResult;
                     if (rs.getBoolean("succeeded")) {
                         stepResult = StepResult.getStepResultSuccess();
                     } else {
                         stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                            getExceptionFromJson(rs.getString("exception")));
+                            rs.getString("exception_class"),
+                            rs.getString("exception_message"));
                     }
 
                     flightContext.getWorkingMap().fromJson(rs.getString("working_parameters"));
@@ -235,25 +232,24 @@ public class FlightDao {
                     FlightStatus flightStatus = FlightStatus.valueOf(rs.getString("status"));
                     flightContext.setFlightStatus(flightStatus);
                     return flightContext;
-                }
-            });
+                });
             // There may not be any log entries for a given flight. That happens if we fail after
             // submit and before the first step. The defaults for flight context are correct for that
             // case, so there is nothing left to do here.
         }
 
-        return flightList;
+        return activeFlights;
     }
 
     /**
      * Return flight state for a single flight
      *
-     * @param flightId
+     * @param flightId flight to get
      * @return FlightState for the flight
      */
     public FlightState getFlightState(String flightId) throws DatabaseOperationException {
         final String sqlOneFlight = "SELECT flightid, submit_time, input_parameters," +
-            " completed_time, output_parameters, status, exception, owner_id, owner_email" +
+            " completed_time, output_parameters, status, exception_class, exception_message, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             " WHERE flightid = :flightid";
 
@@ -278,7 +274,7 @@ public class FlightDao {
 
     private List<FlightState> getFlights(int offset, int limit, String whereClause, Map<String, ?> whereParams) {
         final String sqlFlightRange = "SELECT flightid, submit_time, input_parameters," +
-            " completed_time, output_parameters, status, exception, owner_id, owner_email" +
+            " completed_time, output_parameters, status, exception_class, exception_message, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             whereClause +
             " ORDER BY submit_time" +  // should this be descending?
@@ -292,7 +288,6 @@ public class FlightDao {
         List<FlightState> flightStateList = jdbcTemplate.query(sqlFlightRange, params, new FlightStateMapper());
         return flightStateList;
     }
-
 
     private static class FlightStateMapper implements RowMapper<FlightState> {
         public FlightState mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -312,84 +307,23 @@ public class FlightDao {
 
 
             // Only populate the optional fields if the flight is done; that is, not RUNNING
-            if (flightState.getFlightStatus() == FlightStatus.RUNNING) {
-                flightState.setCompleted(Optional.empty());
-                flightState.setException(Optional.empty());
-                flightState.setResultMap(Optional.empty());
-            } else {
+            if (flightState.getFlightStatus() != FlightStatus.RUNNING) {
+                ExceptionFields exceptionFields = new ExceptionFields(
+                    rs.getString("exception_class"),
+                    rs.getString("exception_message"));
+
                 // If the optional flight data is present, then we fill it in
-                flightState.setCompleted(Optional.ofNullable(rs.getTimestamp("completed_time").toInstant()));
-                flightState.setException(Optional.ofNullable(
-                    getExceptionFromJson(rs.getString("exception"))));
+                flightState.setCompleted(rs.getTimestamp("completed_time").toInstant());
+                flightState.setException(exceptionFields.getException());
+
                 String outputParamsJson = rs.getString("output_parameters");
-                if (outputParamsJson == null) {
-                    flightState.setResultMap(Optional.empty());
-                } else {
+                if (outputParamsJson != null) {
                     FlightMap outputParameters = new FlightMap();
                     outputParameters.fromJson(outputParamsJson);
-                    flightState.setResultMap(Optional.of(outputParameters));
+                    flightState.setResultMap(outputParameters);
                 }
             }
             return flightState;
-        }
-    }
-
-    public String getExceptionJson(FlightContext flightContext) {
-        try {
-            String exceptionJson = null;
-            if (flightContext.getResult().getException().isPresent()) {
-                Exception exception = flightContext.getResult().getException().get();
-
-                if (!isSafeToDeserialize(exception)) {
-                    exception = rewriteException(exception);
-                }
-                exceptionJson = getObjectMapper().writeValueAsString(exception);
-            }
-            return exceptionJson;
-        } catch (JsonProcessingException ex) {
-            throw new JsonConversionException("Failed to convert exception to JSON", ex);
-        }
-    }
-
-    private boolean isSafeToDeserialize(Throwable inException) {
-        if (inException != null) {
-            if (!isSafeToDeserialize(inException.getCause())) {
-                // If someone under us isn't safe, it doesn't matter what we are.
-                return false;
-            }
-
-            if (inException instanceof StorageException ||
-                inException instanceof BigQueryException ||
-                inException instanceof PSQLException ||
-                inException instanceof URISyntaxException ||
-                inException instanceof AbortedException ||
-                inException instanceof FirestoreException) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    private Exception rewriteException(Throwable inException) {
-        // It turns out you cannot rewrite a cause in an existing exception
-        // stack, so to make the exception safe for serialize/deserialize, we
-        // have to rewrite the stack into flight exceptions.
-        if (inException != null) {
-            Exception under = rewriteException(inException.getCause());
-            return new FlightException(inException.toString(), under);
-        }
-        return null;
-    }
-
-    private static Exception getExceptionFromJson(String exceptionJson) {
-        try {
-            if (exceptionJson == null) {
-                return null;
-            }
-            return getObjectMapper().readValue(exceptionJson, Exception.class);
-        } catch (IOException ex) {
-            throw new JsonConversionException("Failed to convert JSON to exception", ex);
         }
     }
 

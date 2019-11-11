@@ -11,6 +11,7 @@ import bio.terra.service.job.exception.InternalStairwayException;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobResponseException;
+import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -18,14 +19,18 @@ import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.exception.StairwayException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Component
 public class JobService {
@@ -37,14 +42,18 @@ public class JobService {
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
 
     @Autowired
-    public JobService(Stairway stairway,
-                      IamService samService,
+    public JobService(IamService samService,
                       ApplicationConfiguration appConfig,
-                      StairwayJdbcConfiguration stairwayJdbcConfiguration) {
-        this.stairway = stairway;
+                      StairwayJdbcConfiguration stairwayJdbcConfiguration,
+                      ApplicationContext applicationContext,
+                      ObjectMapper objectMapper) {
         this.samService = samService;
         this.appConfig = appConfig;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
+
+        ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxStairwayThreads());
+        ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
+        stairway = new Stairway(executorService, applicationContext, serializer);
     }
 
     public static class JobResultWithStatus<T> {
@@ -94,13 +103,18 @@ public class JobService {
     protected <T> T submitAndWait(Class<? extends Flight> flightClass, FlightMap parameterMap,
                                   AuthenticatedUserRequest userReq, Class<T> resultClass) {
         String jobId = submit(flightClass, parameterMap, userReq);
+        waitForJob(jobId);
+        return retrieveJobResult(jobId, resultClass, userReq).getResult();
+    }
+
+    void waitForJob(String jobId) {
         try {
             stairway.waitForFlight(jobId);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
         }
-        return retrieveJobResult(jobId, resultClass, userReq).getResult();
     }
+
 
     /**
      * This method is called from StartupInitializer as part of the sequence of migrating databases

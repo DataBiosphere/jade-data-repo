@@ -128,7 +128,7 @@ class FlightDao {
                 " SET completed_time = CURRENT_TIMESTAMP," +
                 " output_parameters = :output_parameters," +
                 " status = :status," +
-                " serialized_exception = :serialized_exception," +
+                " serialized_exception = :serialized_exception" +
                 " WHERE flightid = :flightid AND status = 'RUNNING'";
 
         // The delete is harmless if it has been done before. We just won't find anything.
@@ -198,13 +198,16 @@ class FlightDao {
              NamedParameterPreparedStatement ownsFlight =
                  new NamedParameterPreparedStatement(connection, sqlFlight)) {
 
+            ownsFlight.setString("flightid", flightId);
+            ownsFlight.setString("ownerid", subject);
+
             try (ResultSet rs = ownsFlight.getPreparedStatement().executeQuery()) {
                 while (rs.next()) {
                     matches = rs.getLong("matches");
                 }
             }
         } catch (SQLException ex) {
-            throw new DatabaseOperationException("Failed to get incomplete flight list", ex);
+            throw new DatabaseOperationException("Failed to get flight list", ex);
         }
 
         return (matches == 1);
@@ -380,7 +383,7 @@ class FlightDao {
             if (flightState.getFlightStatus() != FlightStatus.RUNNING) {
                 // If the optional flight data is present, then we fill it in
                 flightState.setCompleted(rs.getTimestamp("completed_time").toInstant());
-                flightState.setException(exceptionSerializer.deserialize(rs.getString("exception")));
+                flightState.setException(exceptionSerializer.deserialize(rs.getString("serialized_exception")));
                 String outputParamsJson = rs.getString("output_parameters");
                 if (outputParamsJson != null) {
                     FlightMap outputParameters = new FlightMap();

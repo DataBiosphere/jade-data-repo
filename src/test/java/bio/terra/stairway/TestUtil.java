@@ -22,10 +22,10 @@ public final class TestUtil {
     static final String wskey = "wskey";
     static final String wfkey = "wfkey";
 
-    static Stairway setupStairway(StairwayJdbcConfiguration jdbcConfiguration) {
+    static Stairway setupStairway(StairwayJdbcConfiguration jdbcConfiguration) throws Exception {
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         Stairway stairway = new Stairway(executorService, null);
-        stairway.initialize(new FlightDao(jdbcConfiguration), true);
+        stairway.initialize(jdbcConfiguration.getDataSource(), true);
         return stairway;
     }
 

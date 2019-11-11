@@ -1,241 +1,288 @@
 package bio.terra.stairway;
 
-import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.stairway.exception.DatabaseOperationException;
+import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightNotFoundException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 /**
- * The general layout of the stairway database is:
- * flight table - records the flight, its inputs, and its outputs if any
- * flight log - records the steps of a running flight for recovery
+ * The general layout of the stairway database tables is:
+ * <ul>
+ * <li>flight - records the flight, its inputs, and its outputs if any</li>
+ * <li>flight log - records the steps of a running flight for recovery</li>
+ * </ul>
  * This code assumes that the database is created and matches this codes schema
  * expectations. If not, we will crash and burn.
  * <p>
  * May want to split this into an interface and an implementation. This implementation
  * assumes Postgres.
  * <p>
- * The constructor performs initialization, so it depends on the dataSource being configured
- * before this is constructed. Be aware of this if both Stairway and DataSource are created as
- * beans during Spring startup.
- * <p>
- * When the constructor completes, the database is ready for use. Note that recovery
- * is not part of construction. It just makes sure that the database is ready.
  */
-@Repository
-public class FlightDao {
+class FlightDao {
 
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
-    private static ObjectMapper objectMapper;
-    private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final StairwayJdbcConfiguration jdbcConfiguration;
+    private DataSource dataSource;
+    private ExceptionSerializer exceptionSerializer;
 
-    public FlightDao(StairwayJdbcConfiguration jdbcConfiguration) {
-        this.jdbcConfiguration = jdbcConfiguration;
-        jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
+    FlightDao(DataSource dataSource, ExceptionSerializer exceptionSerializer) {
+        this.dataSource = dataSource;
+        this.exceptionSerializer = exceptionSerializer;
     }
 
     /**
      * Truncate the tables
      */
-    public void startClean() {
+    public void startClean() throws DatabaseSetupException {
         final String sqlTruncateTables = "TRUNCATE TABLE " +
             FLIGHT_TABLE + "," +
             FLIGHT_LOG_TABLE;
-        new JdbcTemplate(jdbcConfiguration.getDataSource()).execute(sqlTruncateTables);
+
+        try (Connection connection = dataSource.getConnection();
+             Statement statement = connection.createStatement()) {
+
+            statement.executeUpdate(sqlTruncateTables);
+
+        } catch (SQLException ex) {
+            throw new DatabaseSetupException("Failed to truncate database tables", ex);
+        }
     }
 
     /**
      * Record a new flight
      */
-    public void submit(FlightContext flightContext) {
+    public void submit(FlightContext flightContext) throws DatabaseOperationException {
         final String sqlInsertFlight =
             "INSERT INTO " + FLIGHT_TABLE +
                 " (flightId, submit_time, class_name, input_parameters, status, owner_id, owner_email)" +
                 "VALUES (:flightid, CURRENT_TIMESTAMP, :class_name, :inputs, :status, :subject, :email)";
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("flightid", flightContext.getFlightId())
-            .addValue("class_name", flightContext.getFlightClassName())
-            .addValue("inputs", flightContext.getInputParameters().toJson())
-            .addValue("status", flightContext.getFlightStatus().name())
-            .addValue("subject", flightContext.getUser().getSubjectId())
-            .addValue("email", flightContext.getUser().getName());
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement statement =
+                 new NamedParameterPreparedStatement(connection, sqlInsertFlight)) {
 
+            statement.setString("flightid", flightContext.getFlightId());
+            statement.setString("class_name", flightContext.getFlightClassName());
+            statement.setString("inputs", flightContext.getInputParameters().toJson());
+            statement.setString("status", flightContext.getFlightStatus().name());
+            statement.setString("subject", flightContext.getUser().getSubjectId());
+            statement.setString("email", flightContext.getUser().getName());
+            statement.getPreparedStatement().executeUpdate();
 
-        jdbcTemplate.update(sqlInsertFlight, params);
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to create database tables", ex);
+        }
     }
 
     /**
      * Record the flight state right before a step
      */
-    public void step(FlightContext flightContext) {
+    public void step(FlightContext flightContext) throws DatabaseOperationException {
         final String sqlInsertFlightLog =
             "INSERT INTO " + FLIGHT_LOG_TABLE +
                 "(flightid, log_time, working_parameters, step_index, doing," +
-                " succeeded, exception_class, exception_message, status)" +
+                " succeeded, serialized_exception, status)" +
                 " VALUES (:flightid, CURRENT_TIMESTAMP, :working_map, :step_index, :doing," +
-                " :succeeded, :exception_class, :exception_message, :status)";
+                " :succeeded, :serialized_exception, :status)";
 
-        ExceptionFields exceptionFields = new ExceptionFields(flightContext.getResult().getException().orElse(null));
+        String serializedException =
+            exceptionSerializer.serialize(flightContext.getResult().getException().orElse(null));
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("flightid", flightContext.getFlightId())
-            .addValue("working_map", flightContext.getWorkingMap().toJson())
-            .addValue("step_index", flightContext.getStepIndex())
-            .addValue("doing", flightContext.isDoing())
-            .addValue("succeeded", flightContext.getResult().isSuccess())
-            .addValue("exception_class", exceptionFields.getExceptionClass())
-            .addValue("exception_message", exceptionFields.getExceptionMessage())
-            .addValue("status", flightContext.getFlightStatus().name());
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement statement =
+                 new NamedParameterPreparedStatement(connection, sqlInsertFlightLog)) {
 
-        jdbcTemplate.update(sqlInsertFlightLog, params);
+            statement.setString("flightid", flightContext.getFlightId());
+            statement.setString("working_map", flightContext.getWorkingMap().toJson());
+            statement.setInt("step_index", flightContext.getStepIndex());
+            statement.setBoolean("doing", flightContext.isDoing());
+            statement.setBoolean("succeeded", flightContext.getResult().isSuccess());
+            statement.setString("serialized_exception", serializedException);
+            statement.setString("status", flightContext.getFlightStatus().name());
+            statement.getPreparedStatement().executeUpdate();
 
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to log step", ex);
+        }
     }
 
     /**
      * Record completion of a flight and remove the data from the log
      * This is idempotent; repeated execution will work properly.
      */
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void complete(FlightContext flightContext) {
+    public void complete(FlightContext flightContext) throws DatabaseOperationException {
         // Make the update idempotent; that is, only do it if the status is RUNNING
         final String sqlUpdateFlight =
             "UPDATE " + FLIGHT_TABLE +
                 " SET completed_time = CURRENT_TIMESTAMP," +
                 " output_parameters = :output_parameters," +
                 " status = :status," +
-                " exception_class = :exception_class," +
-                " exception_message = :exception_message" +
+                " serialized_exception = :serialized_exception," +
                 " WHERE flightid = :flightid AND status = 'RUNNING'";
 
         // The delete is harmless if it has been done before. We just won't find anything.
         final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid";
 
-        ExceptionFields exceptionFields = new ExceptionFields(flightContext.getResult().getException().orElse(null));
+        String serializedException =
+            exceptionSerializer.serialize(flightContext.getResult().getException().orElse(null));
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("output_parameters", flightContext.getWorkingMap().toJson())
-            .addValue("status", flightContext.getFlightStatus().name())
-            .addValue("exception_class", exceptionFields.getExceptionClass())
-            .addValue("exception_message", exceptionFields.getExceptionMessage())
-            .addValue("flightid", flightContext.getFlightId());
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement statement =
+                 new NamedParameterPreparedStatement(connection, sqlUpdateFlight);
+             NamedParameterPreparedStatement deleteStatement =
+                 new NamedParameterPreparedStatement(connection, sqlDeleteFlightLog)) {
 
-        jdbcTemplate.update(sqlUpdateFlight, params);
+            connection.setAutoCommit(false);
 
-        params = new MapSqlParameterSource()
-            .addValue("flightid", flightContext.getFlightId());
-        jdbcTemplate.update(sqlDeleteFlightLog, params);
+            statement.setString("output_parameters", flightContext.getWorkingMap().toJson());
+            statement.setString("status", flightContext.getFlightStatus().name());
+            statement.setString("serialized_exception", serializedException);
+            statement.setString("flightid", flightContext.getFlightId());
+            statement.getPreparedStatement().executeUpdate();
+
+            deleteStatement.setString("flightid", flightContext.getFlightId());
+            deleteStatement.getPreparedStatement().executeUpdate();
+
+            connection.commit();
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to complete flight", ex);
+        }
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public void delete(String flightId) {
+    public void delete(String flightId) throws DatabaseOperationException {
         final String sqlDeleteFlightLog = "DELETE FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid";
         final String sqlDeleteFlight = "DELETE FROM " + FLIGHT_TABLE + " WHERE flightid = :flightid";
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("flightid", flightId);
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement deleteFlightStatement =
+                 new NamedParameterPreparedStatement(connection, sqlDeleteFlight);
+             NamedParameterPreparedStatement deleteLogStatement =
+                 new NamedParameterPreparedStatement(connection, sqlDeleteFlightLog)) {
 
-        jdbcTemplate.update(sqlDeleteFlightLog, params);
-        jdbcTemplate.update(sqlDeleteFlight, params);
+            connection.setAutoCommit(false);
+
+            deleteFlightStatement.setString("flightid", flightId);
+            deleteFlightStatement.getPreparedStatement().executeUpdate();
+
+            deleteLogStatement.setString("flightid", flightId);
+            deleteLogStatement.getPreparedStatement().executeUpdate();
+
+            connection.commit();
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to delete flight", ex);
+        }
     }
 
-    public boolean ownsFlight(String flightId, String subject) {
-        final String sqlFlight = "SELECT owner_id" +
+    boolean ownsFlight(String flightId, String subject) throws DatabaseOperationException {
+        final String sqlFlight = "SELECT COUNT(*) AS matches" +
             " FROM " + FLIGHT_TABLE +
-            " WHERE flightId = :flightid";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("flightid", flightId);
-        String flightSubject = jdbcTemplate.queryForObject(sqlFlight, params, String.class);
-        return subject.equals(flightSubject);
+            " WHERE flightId = :flightid" +
+            " AND owner_id = :ownerid";
+
+        long matches = 0;
+
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement ownsFlight =
+                 new NamedParameterPreparedStatement(connection, sqlFlight)) {
+
+            try (ResultSet rs = ownsFlight.getPreparedStatement().executeQuery()) {
+                while (rs.next()) {
+                    matches = rs.getLong("matches");
+                }
+            }
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get incomplete flight list", ex);
+        }
+
+        return (matches == 1);
     }
 
     /**
-     * Find all incomplete flights and return the context
+     * Find all active flights and return their flight contexts
      */
-    public List<FlightContext> recover() {
-
-        // todo add req_id
+    public List<FlightContext> recover() throws DatabaseOperationException {
+        // TODO: change owner_id and owner_email into a key-value list
         final String sqlActiveFlights = "SELECT flightid, class_name, input_parameters, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             " WHERE status = 'RUNNING'";
 
         final String sqlLastFlightLog = "SELECT working_parameters, step_index, doing," +
-            " succeeded, exception_class, exception_message, status" +
+            " succeeded, serialized_exception, status" +
             " FROM " + FLIGHT_LOG_TABLE +
             " WHERE flightid = :flightid AND log_time = " +
             " (SELECT MAX(log_time) FROM " + FLIGHT_LOG_TABLE + " WHERE flightid = :flightid2)";
 
-        List<FlightContext> activeFlights = jdbcTemplate.query(
-            sqlActiveFlights,
-            (rs, rowNum) -> {
-                FlightMap inputParameters = new FlightMap();
-                inputParameters.fromJson(rs.getString("input_parameters"));
+        List<FlightContext> activeFlights = new LinkedList<>();
 
-                FlightContext flightContext = new FlightContext(
-                    inputParameters,
-                    rs.getString("class_name"),
-                    new UserRequestInfo()
-                        .subjectId(rs.getString("owner_id"))
-                        .name(rs.getString("owner_email")));
-                flightContext.setFlightId(rs.getString("flightid"));
-                return flightContext;
-            });
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement activeFlightsStatement =
+                 new NamedParameterPreparedStatement(connection, sqlActiveFlights);
+             NamedParameterPreparedStatement lastFlightLogStatement =
+                 new NamedParameterPreparedStatement(connection, sqlLastFlightLog)) {
 
-        // Loop through the linked list making a query for each flight to fill in the FlightContext.
-        // This may not be the most efficient algorithm. My reasoning is that the code is more obvious
-        // to understand and this is not a performance-critical part of the processing; it happens once at startup.
-        for (FlightContext flightContext : activeFlights) {
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("flightid", flightContext.getFlightId())
-                .addValue("flightid2", flightContext.getFlightId());
+            try (ResultSet rs = activeFlightsStatement.getPreparedStatement().executeQuery()) {
+                while (rs.next()) {
+                    FlightMap inputParameters = new FlightMap();
+                    inputParameters.fromJson(rs.getString("input_parameters"));
 
-            jdbcTemplate.query(
-                sqlLastFlightLog,
-                params,
-                (rs, rowNum) -> {
-                    StepResult stepResult;
-                    if (rs.getBoolean("succeeded")) {
-                        stepResult = StepResult.getStepResultSuccess();
-                    } else {
-                        stepResult = new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                            rs.getString("exception_class"),
-                            rs.getString("exception_message"));
+                    FlightContext flightContext = new FlightContext(
+                        inputParameters,
+                        rs.getString("class_name"),
+                        new UserRequestInfo()
+                            .subjectId(rs.getString("owner_id"))
+                            .name(rs.getString("owner_email")));
+                    flightContext.setFlightId(rs.getString("flightid"));
+                    activeFlights.add(flightContext);
+                }
+            }
+
+            // Loop through the linked list making a query for each flight to fill in the FlightContext.
+            // This may not be the most efficient algorithm. My reasoning is that the code is more obvious
+            // to understand and this is not a performance-critical part of the processing; it happens once at startup.
+            for (FlightContext flightContext : activeFlights) {
+
+                lastFlightLogStatement.setString("flightid", flightContext.getFlightId());
+                lastFlightLogStatement.setString("flightid2", flightContext.getFlightId());
+
+                try (ResultSet rsflight = lastFlightLogStatement.getPreparedStatement().executeQuery()) {
+                    // There may not be any log entries for a given flight. That happens if we fail after
+                    // submit and before the first step. The defaults for flight context are correct for that
+                    // case, so there is nothing left to do here.
+                    if (rsflight.next()) {
+                        StepResult stepResult;
+                        if (rsflight.getBoolean("succeeded")) {
+                            stepResult = StepResult.getStepResultSuccess();
+                        } else {
+                            stepResult = new StepResult(exceptionSerializer.deserialize(
+                                rsflight.getString("serialized_exception")));
+                        }
+
+                        flightContext.getWorkingMap().fromJson(rsflight.getString("working_parameters"));
+
+                        flightContext.setStepIndex(rsflight.getInt("step_index"));
+                        flightContext.setDoing(rsflight.getBoolean("doing"));
+                        flightContext.setResult(stepResult);
+                        FlightStatus flightStatus = FlightStatus.valueOf(rsflight.getString("status"));
+                        flightContext.setFlightStatus(flightStatus);
                     }
+                }
+            }
 
-                    flightContext.getWorkingMap().fromJson(rs.getString("working_parameters"));
-
-                    flightContext.setStepIndex(rs.getInt("step_index"));
-                    flightContext.setDoing(rs.getBoolean("doing"));
-                    flightContext.setResult(stepResult);
-                    FlightStatus flightStatus = FlightStatus.valueOf(rs.getString("status"));
-                    flightContext.setFlightStatus(flightStatus);
-                    return flightContext;
-                });
-            // There may not be any log entries for a given flight. That happens if we fail after
-            // submit and before the first step. The defaults for flight context are correct for that
-            // case, so there is nothing left to do here.
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get active flight list", ex);
         }
 
         return activeFlights;
@@ -249,48 +296,73 @@ public class FlightDao {
      */
     public FlightState getFlightState(String flightId) throws DatabaseOperationException {
         final String sqlOneFlight = "SELECT flightid, submit_time, input_parameters," +
-            " completed_time, output_parameters, status, exception_class, exception_message, owner_id, owner_email" +
+            " completed_time, output_parameters, status, serialized_exception, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             " WHERE flightid = :flightid";
 
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("flightid", flightId);
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement oneFlightStatement =
+                 new NamedParameterPreparedStatement(connection, sqlOneFlight)) {
 
-        try {
-            return jdbcTemplate.queryForObject(sqlOneFlight, params, new FlightStateMapper());
-        } catch (EmptyResultDataAccessException emptyEx) {
-            throw new FlightNotFoundException("Flight not found: " + flightId, emptyEx);
-        } catch (IncorrectResultSizeDataAccessException sizeEx) {
-            throw new DatabaseOperationException("Multiple flights with the same id?! " + flightId, sizeEx);
+            oneFlightStatement.setString("flightid", flightId);
+
+            try (ResultSet rs = oneFlightStatement.getPreparedStatement().executeQuery()) {
+                List<FlightState> flightStateList = makeFlightStateList(rs);
+                if (flightStateList.size() == 0) {
+                    throw new FlightNotFoundException("Flight not found: " + flightId);
+                }
+                if (flightStateList.size() > 1) {
+                    throw new DatabaseOperationException("Multiple flights with the same id?!");
+                }
+                return flightStateList.get(0);
+            }
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get flight", ex);
         }
     }
 
-    public List<FlightState> getFlights(int offset, int limit) {
+    public List<FlightState> getFlights(int offset, int limit) throws DatabaseOperationException {
         return getFlights(offset, limit, "", Collections.EMPTY_MAP);
     }
 
-    public List<FlightState> getFlightsForUser(int offset, int limit, String subject) {
+    List<FlightState> getFlightsForUser(int offset, int limit, String subject) throws DatabaseOperationException {
         return getFlights(offset, limit, " WHERE owner_id = :subject ", Collections.singletonMap("subject", subject));
     }
 
-    private List<FlightState> getFlights(int offset, int limit, String whereClause, Map<String, ?> whereParams) {
+    private List<FlightState> getFlights(int offset, int limit, String whereClause, Map<String, String> whereParams)
+        throws DatabaseOperationException {
+
         final String sqlFlightRange = "SELECT flightid, submit_time, input_parameters," +
-            " completed_time, output_parameters, status, exception_class, exception_message, owner_id, owner_email" +
+            " completed_time, output_parameters, status, serialized_exception, owner_id, owner_email" +
             " FROM " + FLIGHT_TABLE +
             whereClause +
             " ORDER BY submit_time" +  // should this be descending?
             " LIMIT :limit OFFSET :offset";
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("limit", limit)
-            .addValue("offset", offset)
-            .addValues(whereParams);
+        try (Connection connection = dataSource.getConnection();
+             NamedParameterPreparedStatement flightRangeStatement =
+                 new NamedParameterPreparedStatement(connection, sqlFlightRange)) {
 
-        List<FlightState> flightStateList = jdbcTemplate.query(sqlFlightRange, params, new FlightStateMapper());
-        return flightStateList;
+            flightRangeStatement.setInt("limit", limit);
+            flightRangeStatement.setInt("offset", offset);
+            for (Map.Entry<String, String> entry : whereParams.entrySet()) {
+                flightRangeStatement.setString(entry.getKey(), entry.getValue());
+            }
+
+            try (ResultSet rs = flightRangeStatement.getPreparedStatement().executeQuery()) {
+                return makeFlightStateList(rs);
+            }
+
+        } catch (SQLException ex) {
+            throw new DatabaseOperationException("Failed to get flights", ex);
+        }
     }
 
-    private static class FlightStateMapper implements RowMapper<FlightState> {
-        public FlightState mapRow(ResultSet rs, int rowNum) throws SQLException {
+    private List<FlightState> makeFlightStateList(ResultSet rs) throws SQLException {
+        List<FlightState> flightStateList = new ArrayList<>();
+
+        while (rs.next()) {
             FlightState flightState = new FlightState();
 
             // Flight data that is always present
@@ -305,17 +377,10 @@ public class FlightDao {
             inputParameters.fromJson(rs.getString("input_parameters"));
             flightState.setInputParameters(inputParameters);
 
-
-            // Only populate the optional fields if the flight is done; that is, not RUNNING
             if (flightState.getFlightStatus() != FlightStatus.RUNNING) {
-                ExceptionFields exceptionFields = new ExceptionFields(
-                    rs.getString("exception_class"),
-                    rs.getString("exception_message"));
-
                 // If the optional flight data is present, then we fill it in
                 flightState.setCompleted(rs.getTimestamp("completed_time").toInstant());
-                flightState.setException(exceptionFields.getException());
-
+                flightState.setException(exceptionSerializer.deserialize(rs.getString("exception")));
                 String outputParamsJson = rs.getString("output_parameters");
                 if (outputParamsJson != null) {
                     FlightMap outputParameters = new FlightMap();
@@ -323,19 +388,10 @@ public class FlightDao {
                     flightState.setResultMap(outputParameters);
                 }
             }
-            return flightState;
-        }
-    }
 
-    private static ObjectMapper getObjectMapper() {
-        if (objectMapper == null) {
-            objectMapper = new ObjectMapper()
-                .registerModule(new ParameterNamesModule())
-                .registerModule(new Jdk8Module())
-                .registerModule(new JavaTimeModule())
-                .enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL)
-                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            flightStateList.add(flightState);
         }
-        return objectMapper;
+
+        return flightStateList;
     }
 }

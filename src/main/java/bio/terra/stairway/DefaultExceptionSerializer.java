@@ -1,13 +1,14 @@
 package bio.terra.stairway;
 
-import bio.terra.stairway.exception.UnmappableException;
+import bio.terra.stairway.exception.FlightException;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
 
 /**
- * This is a helper class for the FlightDao. It is used to convert to and from exceptions.
+ * This is the default implementation of ExceptionSerializer. It is used to convert to and from exceptions.
  * It accepts an Exception in and saves the class name and message.
  * It accepts name and message and carefully generates an exception result.
  *
@@ -21,24 +22,27 @@ import java.lang.reflect.InvocationTargetException;
  * If those requirements are not met, then we generate the UnmappableException to hold the
  * class name string and message string.
  */
-class ExceptionFields {
-    private String exceptionClass;
-    private String exceptionMessage;
+class DefaultExceptionSerializer implements ExceptionSerializer {
+    private static final String SEPARATOR = ";";
 
-    ExceptionFields(Exception exception) {
-        if (exception != null) {
-            exceptionClass = exception.getClass().getName();
-            exceptionMessage = exception.getMessage();
+    @Override
+    public String serialize(Exception exception) {
+        if (exception == null) {
+            return StringUtils.EMPTY;
         }
+        return exception.getClass().getName() + SEPARATOR + exception.getMessage();
     }
 
-    ExceptionFields(String exceptionClass, String exceptionMessage) {
-        this.exceptionClass = exceptionClass;
-        this.exceptionMessage = exceptionMessage;
-    }
+    @Override
+    public Exception deserialize(String serializedException) {
+        if (StringUtils.isEmpty(serializedException)) {
+            return null;
+        }
 
-    Exception getException() {
-        if (exceptionClass == null) {
+        String exceptionClass = StringUtils.substringBefore(serializedException, SEPARATOR);
+        String exceptionMessage = StringUtils.substringAfter(serializedException, SEPARATOR);
+
+        if (StringUtils.isEmpty(exceptionClass)) {
             return null;
         }
 
@@ -57,15 +61,7 @@ class ExceptionFields {
             InvocationTargetException ex) {
             // Fall through to common exit code
         }
-        return new UnmappableException("Exception class: " + exceptionClass +
+        return new FlightException("Exception class: " + exceptionClass +
             "; Exception message: " + exceptionMessage);
-    }
-
-    String getExceptionClass() {
-        return exceptionClass;
-    }
-
-    String getExceptionMessage() {
-        return exceptionMessage;
     }
 }

@@ -13,10 +13,7 @@ databaseChangeLog:
             tableName: flight
             columns:
               - column:
-                  name: exception_class
-                  type: text
-              - column:
-                  name: exception_message
+                  name: serialized_exception
                   type: text
         - dropColumn:
             tableName: flightlog
@@ -28,9 +25,6 @@ databaseChangeLog:
             tableName: flightlog
             columns:
               - column:
-                  name: exception_class
-                  type: text
-              - column:
-                  name: exception_message
+                  name: serialized_exception
                   type: text
 

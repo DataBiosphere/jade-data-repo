@@ -27,11 +27,10 @@ public class StepResult {
         }
     }
 
-    // This constructor is used in the DAO to silently reconstruct the exception from the class and message.
-    StepResult(StepStatus stepStatus, String exceptionClass, String exceptionMessage) {
-        this.stepStatus = stepStatus;
-        ExceptionFields exceptionFields = new ExceptionFields(exceptionClass, exceptionMessage);
-        this.exception = exceptionFields.getException();
+    // NOTE: This constructor is used in the DAO when deserializing the exception; we don't want to re-log it
+    StepResult(Exception exception) {
+        this.stepStatus = StepStatus.STEP_RESULT_FAILURE_FATAL;
+        this.exception = exception;
     }
 
     public StepResult(StepStatus stepStatus) {

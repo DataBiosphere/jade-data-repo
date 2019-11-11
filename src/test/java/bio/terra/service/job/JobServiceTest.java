@@ -24,6 +24,7 @@ import java.util.List;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
@@ -72,12 +73,17 @@ public class JobServiceTest {
             // Retrieve past the end; should get nothing
             testEnumCount(0, 22, 3, allowedIds);
         } finally {
-            fids.stream().forEach(fid -> stairway.deleteFlight(fid));
+            try {
+                for (String fid : fids) {
+                    stairway.deleteFlight(fid);
+                }
+            } catch (StairwayException stairwayEx) {
+                fail("Failed to delete flight: " +  stairwayEx);
+            }
         }
     }
 
     private void testSingleRetrieval(List<String> fids) {
-//        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
         JobModel response = jobService.retrieveJob(fids.get(2), null);
         Assert.assertNotNull(response);
         validateJobModel(response, 2, fids);

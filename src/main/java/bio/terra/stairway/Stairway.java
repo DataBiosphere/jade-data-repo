@@ -1,6 +1,7 @@
 package bio.terra.stairway;
 
 import bio.terra.stairway.exception.DatabaseOperationException;
+import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.MakeFlightException;
@@ -12,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 
+import javax.sql.DataSource;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
@@ -66,6 +68,7 @@ public class Stairway {
     private ExecutorService threadPool;
     private FlightDao flightDao;
     private Object applicationContext;
+    private ExceptionSerializer exceptionSerializer;
 
     /**
      * We do initialization in two steps. The constructor does the first step of constructing the object
@@ -76,21 +79,37 @@ public class Stairway {
      * any recovery needed.
      *
      * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
+     * @param applicationContext an object passed through to flights; otherwise unused by Stairway
+     * Note: the default exceptionSerializer is used in this form of the constructor.
      */
     public Stairway(ExecutorService threadPool, Object applicationContext) {
+        this(threadPool, applicationContext, new DefaultExceptionSerializer());
+    }
+
+    /**
+     * Alternate form of the Stairway constructor that allows the client to provide their own exception
+     * serializer class.
+     *
+     * @param threadPool a thread pool must be provided. The caller chooses the type of pool to use.
+     * @param applicationContext an object passed through to flights; otherwise unused by Stairway
+     * @param exceptionSerializer implementation of ExceptionSerializer interface used for exception serde.
+     */
+    public Stairway(ExecutorService threadPool, Object applicationContext, ExceptionSerializer exceptionSerializer) {
         this.threadPool = threadPool;
         this.applicationContext = applicationContext;
         this.taskContextMap = new ConcurrentHashMap<>();
+        this.exceptionSerializer = exceptionSerializer;
     }
 
     /**
      * Second step of initialization
      * @param forceCleanStart true will drop any existing stairway data. Otherwise existing flights are recovered.
      */
-    public void initialize(FlightDao flightDao, boolean forceCleanStart) {
-        this.flightDao = flightDao;
+    public void initialize(DataSource dataSource, boolean forceCleanStart)
+        throws DatabaseSetupException, DatabaseOperationException {
+
+        this.flightDao = new FlightDao(dataSource, exceptionSerializer);
         if (forceCleanStart) {
-            // Clean up if need be
             flightDao.startClean();
         } else {
             recoverFlights();
@@ -108,18 +127,16 @@ public class Stairway {
      * @param inputParameters key-value map of parameters to the flight
      * @return unique flight id of the submitted flight
      */
-    public void submit(
-        String flightId,
-        Class<? extends Flight> flightClass,
-        FlightMap inputParameters,
-        UserRequestInfo userRequestInfo) {
+    public void submit(String flightId,
+                       Class<? extends Flight> flightClass,
+                       FlightMap inputParameters,
+                       UserRequestInfo userRequestInfo) throws DatabaseOperationException {
+
         if (flightClass == null || inputParameters == null) {
             throw new MakeFlightException("Must supply non-null flightClass and inputParameters to submit");
         }
         Flight flight = makeFlight(flightClass, inputParameters, userRequestInfo);
 
-        // Generate the sequence id as a UUID. We have no dependency on flightDao id generation and no
-        // confusion with small integers that might be accidentally valid.
         flight.context().setFlightId(flightId);
         flightDao.submit(flight.context());
         launchFlight(flight);
@@ -151,7 +168,7 @@ public class Stairway {
     }
 
 
-    public void deleteFlight(String flightId) {
+    public void deleteFlight(String flightId) throws DatabaseOperationException {
         releaseFlight(flightId);
         flightDao.delete(flightId);
     }
@@ -200,15 +217,17 @@ public class Stairway {
      * Note that there can be "jitter" in the paging through flights, if new flights
      * are submitted.
      *
-     * @param offset
-     * @param limit
+     * @param offset offset of the row ordered by most recent flight first
+     * @param limit limit the number of rows returned
      * @return List of FlightState
      */
-    public List<FlightState> getFlights(int offset, int limit) {
+    public List<FlightState> getFlights(int offset, int limit) throws DatabaseOperationException {
         return flightDao.getFlights(offset, limit);
     }
 
-    public List<FlightState> getFlightsForUser(int offset, int limit, UserRequestInfo userReq) {
+    public List<FlightState> getFlightsForUser(int offset,
+                                               int limit,
+                                               UserRequestInfo userReq) throws DatabaseOperationException {
         return flightDao.getFlightsForUser(offset, limit, userReq.getSubjectId());
     }
 
@@ -239,7 +258,7 @@ public class Stairway {
      * The flightlog records the last operation performed; so we need to set the execution point to the next
      * step index.
      */
-    private void recoverFlights() {
+    private void recoverFlights() throws DatabaseOperationException {
         List<FlightContext> flightList = flightDao.recover();
         for (FlightContext flightContext : flightList) {
             Flight flight = makeFlightFromName(
@@ -254,8 +273,6 @@ public class Stairway {
      * Build the task context to keep track of the running flight.
      * Once it is launched, hook it into the {@link #taskContextMap} so other
      * calls can resolve it.
-     *
-     * @param flight
      */
     private void launchFlight(Flight flight) {
         // Give the flight the flightDao object so it can properly record its steps

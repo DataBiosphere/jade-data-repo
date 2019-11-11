@@ -12,7 +12,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -69,9 +68,6 @@ public class RecoveryTest {
 
     @Before
     public void setup() {
-        Properties props = new Properties();
-        props.setProperty("user", jdbcConfiguration.getUsername());
-        props.setProperty("password", jdbcConfiguration.getPassword());
         executorService = Executors.newFixedThreadPool(3);
     }
 
@@ -79,11 +75,11 @@ public class RecoveryTest {
     public void successTest() throws Exception {
         // Start with a clean and shiny database environment.
         Stairway stairway1 = new Stairway(executorService, null);
-        stairway1.initialize(new FlightDao(jdbcConfiguration), true);
+        stairway1.initialize(jdbcConfiguration.getDataSource(), true);
 
         FlightMap inputs = new FlightMap();
 
-        Integer initialValue = Integer.valueOf(0);
+        Integer initialValue = 0;
         inputs.put("initialValue", initialValue);
 
         TestStopController.setControl(0);
@@ -102,7 +98,7 @@ public class RecoveryTest {
         // Simulate a restart with a new thread pool and stairway. Set control so this one does not sleep
         TestStopController.setControl(1);
         Stairway stairway2 = new Stairway(executorService, null);
-        stairway2.initialize(new FlightDao(jdbcConfiguration), false);
+        stairway2.initialize(jdbcConfiguration.getDataSource(), false);
 
         // Wait for recovery to complete
         stairway2.waitForFlight(flightId);
@@ -117,7 +113,7 @@ public class RecoveryTest {
     public void undoTest() throws Exception {
         // Start with a clean and shiny database environment.
         Stairway stairway1 = new Stairway(executorService, null);
-        stairway1.initialize(new FlightDao(jdbcConfiguration), true);
+        stairway1.initialize(jdbcConfiguration.getDataSource(), true);
 
         FlightMap inputs = new FlightMap();
         Integer initialValue = Integer.valueOf(2);
@@ -140,7 +136,7 @@ public class RecoveryTest {
         // Simulate a restart with a new thread pool and stairway. Reset control so this one does not sleep
         TestStopController.setControl(1);
         Stairway stairway2 = new Stairway(executorService, null);
-        stairway2.initialize(new FlightDao(jdbcConfiguration), false);
+        stairway2.initialize(jdbcConfiguration.getDataSource(), false);
 
         // Wait for recovery to complete
         stairway2.waitForFlight(flightId);

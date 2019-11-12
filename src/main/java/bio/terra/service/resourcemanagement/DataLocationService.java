@@ -178,6 +178,9 @@ public class DataLocationService {
 
     /** Fetch existing DatasetDataProject for the Dataset.
      * Create a new one if none exists already.
+     * Note that there can be only one project for a Dataset. This is assumed throughout the application logic, most of
+     * which currently resides in the Flights, and they would not work correctly if this one-to-one mapping were ever
+     * violated. For this reason, the check for an existing project below needs to stay at the beginning of this method.
      * @param dataset
      * @return a populated and valid DatasetDataProject
      */

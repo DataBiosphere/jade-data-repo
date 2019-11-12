@@ -4,6 +4,7 @@ import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
@@ -21,6 +22,7 @@ public class DatasetCreateFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         IamService iamClient = (IamService) appContext.getBean("iamService");
 
@@ -32,7 +34,8 @@ public class DatasetCreateFlight extends Flight {
 
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         // TODO: create dataset data project step
-        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetService));
+        // right now the cloud project is created as part of the PrimaryDataStep below
+        addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dataLocationService));
         addStep(new CreateDatasetAuthzResource(iamClient, bigQueryPdao, datasetService, userReq));
     }
 

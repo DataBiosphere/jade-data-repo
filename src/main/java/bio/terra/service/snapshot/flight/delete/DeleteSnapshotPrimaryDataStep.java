@@ -44,7 +44,7 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Snapshot snapshot = snapshotService.retrieveSnapshot(snapshotId);
+            Snapshot snapshot = snapshotService.retrieve(snapshotId);
             bigQueryPdao.deleteSnapshot(snapshot);
 
             // Remove snapshot file references from the underlying datasets

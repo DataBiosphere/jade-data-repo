@@ -11,11 +11,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
 import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.firestore.FirestoreException;
 import com.google.cloud.storage.StorageException;
 import org.postgresql.util.PSQLException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -57,6 +60,7 @@ public class FlightDao {
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
+    private static Logger logger = LoggerFactory.getLogger(FlightDao.class);
     private static ObjectMapper objectMapper;
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final StairwayJdbcConfiguration jdbcConfiguration;
@@ -358,12 +362,14 @@ public class FlightDao {
                 return false;
             }
 
+            // these are exceptions that JACKSON fails to deserialize
             if (inException instanceof StorageException ||
                 inException instanceof BigQueryException ||
                 inException instanceof PSQLException ||
                 inException instanceof URISyntaxException ||
                 inException instanceof AbortedException ||
-                inException instanceof FirestoreException) {
+                inException instanceof FirestoreException ||
+                inException instanceof GoogleJsonResponseException) {
                 return false;
             }
         }
@@ -389,6 +395,7 @@ public class FlightDao {
             }
             return getObjectMapper().readValue(exceptionJson, Exception.class);
         } catch (IOException ex) {
+            logger.error("JACKSON deserialization failed. JSON:" + exceptionJson, ex);
             throw new JsonConversionException("Failed to convert JSON to exception", ex);
         }
     }

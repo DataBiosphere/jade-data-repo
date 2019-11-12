@@ -1,6 +1,12 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
+import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
+import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
@@ -14,20 +20,12 @@ import bio.terra.model.SnapshotRequestSourceModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
-import bio.terra.service.dataset.AssetColumn;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
-import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -40,8 +38,6 @@ import java.util.stream.Collectors;
 
 @Component
 public class SnapshotService {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.SnapshotService");
-
     private final JobService jobService;
     private final DatasetDao datasetDao;
     private final SnapshotDao snapshotDao;
@@ -124,35 +120,31 @@ public class SnapshotService {
         return makeSummaryModelFromSummary(snapshotSummary);
     }
 
-    /**
-     * Return the output form of snapshot
-     * @param id
-     * @return snapshot model
+    /** Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
+     * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
+     * @param id in UUID formant
+     * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
-    public SnapshotModel retrieveSnapshotModel(UUID id) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
-        return makeSnapshotModelFromSnapshot(snapshot);
+    public SnapshotModel retrieveModel(UUID id) {
+        Snapshot snapshot = retrieve(id);
+        SnapshotDataProject dataProject = dataLocationService.getProjectOrThrow(snapshot);
+        return populateSnapshotModelFromSnapshot(snapshot).dataProject(dataProject.getGoogleProjectId());
     }
 
-    /**
-     * Return the snapshot
-     * @param id
-     * @return snapshot
+    /** Fetch existing Snapshot object using the id.
+     * @param id in UUID format
+     * @return a Snapshot object
      */
-    public Snapshot retrieveSnapshot(UUID id) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshot(id);
-        return snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
+    public Snapshot retrieve(UUID id) {
+        return snapshotDao.retrieveSnapshot(id);
     }
 
-    /**
-     * Return the snapshot
+    /** Fetch existing Snapshot object using the name.
      * @param name
-     * @return snapshot
+     * @return a Snapshot object
      */
-    public Snapshot retrieveSnapshotByName(String name) {
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(name);
-        return snapshot.dataProject(dataLocationService.getProjectForSnapshot(snapshot));
+    public Snapshot retrieveByName(String name) {
+        return snapshotDao.retrieveSnapshotByName(name);
     }
 
     /**
@@ -263,7 +255,7 @@ public class SnapshotService {
         return summaryModel;
     }
 
-    private SnapshotModel makeSnapshotModelFromSnapshot(Snapshot snapshot) {
+    private SnapshotModel populateSnapshotModelFromSnapshot(Snapshot snapshot) {
         return new SnapshotModel()
                 .id(snapshot.getId().toString())
                 .name(snapshot.getName())
@@ -277,8 +269,7 @@ public class SnapshotService {
                 .tables(snapshot.getTables()
                         .stream()
                         .map(table -> makeTableModelFromTable(table))
-                        .collect(Collectors.toList()))
-                .dataProject(snapshot.getDataProjectId());
+                        .collect(Collectors.toList()));
     }
 
     private SnapshotSourceModel makeSourceModelFromSource(SnapshotSource source) {

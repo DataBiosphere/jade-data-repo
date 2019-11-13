@@ -192,6 +192,9 @@ class FlightDao {
             " WHERE flightId = :flightid" +
             " AND owner_id = :ownerid";
 
+        // We can assume correct functioning of the database system.
+        // flightId is a primary key, so there will be at most one returned
+        // and we know there will be one row returned in the row set containing the count.
         long matches = 0;
 
         try (Connection connection = dataSource.getConnection();
@@ -202,9 +205,8 @@ class FlightDao {
             ownsFlight.setString("ownerid", subject);
 
             try (ResultSet rs = ownsFlight.getPreparedStatement().executeQuery()) {
-                while (rs.next()) {
-                    matches = rs.getLong("matches");
-                }
+                rs.next();
+                matches = rs.getLong("matches");
             }
         } catch (SQLException ex) {
             throw new DatabaseOperationException("Failed to get flight list", ex);
@@ -349,6 +351,7 @@ class FlightDao {
 
             flightRangeStatement.setInt("limit", limit);
             flightRangeStatement.setInt("offset", offset);
+            // TODO: maybe add this as a method to NamedParameterPreparedStatement?
             for (Map.Entry<String, String> entry : whereParams.entrySet()) {
                 flightRangeStatement.setString(entry.getKey(), entry.getValue());
             }

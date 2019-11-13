@@ -2,7 +2,7 @@ package bio.terra.service.job;
 
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.service.job.exception.JobResponseException;
-import bio.terra.service.job.exception.SerDesException;
+import bio.terra.service.job.exception.ExceptionSerializerException;
 import bio.terra.stairway.ExceptionSerializer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,25 +31,23 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
             exception = new JobResponseException(exception.getMessage(), exception);
         }
 
-        StairwayExceptionFields fields = new StairwayExceptionFields();
+        StairwayExceptionFields fields = new StairwayExceptionFields()
+            .setClassName(exception.getClass().getName())
+            .setMessage(exception.getMessage());
 
         if (exception instanceof DataRepoException) {
-            fields
-                .setDataRepoException(true)
-                .setClassName(exception.getClass().getName())
-                .setMessage(exception.getMessage())
+            fields.setDataRepoException(true)
                 .setErrorDetails(((DataRepoException) exception).getErrorDetails());
         } else {
-            fields
-                .setDataRepoException(false)
-                .setClassName(exception.getClass().getName())
-                .setMessage(exception.getMessage());
+            fields.setDataRepoException(false);
         }
 
         try {
             return objectMapper.writeValueAsString(fields);
         } catch (JsonProcessingException ex) {
-            throw new SerDesException("This should never happen", ex);
+            // The StairwayExceptionFields object is a very simple POJO and should never cause
+            // JSON processing to fail.
+            throw new ExceptionSerializerException("This should never happen", ex);
         }
     }
 
@@ -65,7 +63,7 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
             fields = objectMapper.readValue(serializedException, StairwayExceptionFields.class);
         } catch (IOException ex) {
             // objectMapper exceptions
-            return new SerDesException("Failed to deserialize exception data: " + serializedException, ex);
+            return new ExceptionSerializerException("Failed to deserialize exception data: " + serializedException, ex);
         }
 
         // Find the class from the class name
@@ -73,7 +71,7 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
         try {
             clazz = Class.forName(fields.getClassName());
         } catch (ClassNotFoundException ex) {
-            return new SerDesException("Exception class not found: " + fields.getClassName() +
+            return new ExceptionSerializerException("Exception class not found: " + fields.getClassName() +
                 "; Exception message: " + fields.getMessage());
         }
 
@@ -108,7 +106,7 @@ public class StairwayExceptionSerializer implements ExceptionSerializer {
             // We didn't find a vanilla constructor or construction failed. Fall through
         }
 
-        return new SerDesException("Failed to construct exception: " + fields.getClassName() +
+        return new ExceptionSerializerException("Failed to construct exception: " + fields.getClassName() +
             "; Exception message: " + fields.getMessage());
     }
 }

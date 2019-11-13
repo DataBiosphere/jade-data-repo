@@ -3,7 +3,6 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightNotFoundException;
-
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -33,8 +32,8 @@ class FlightDao {
     private static String FLIGHT_TABLE = "flight";
     private static String FLIGHT_LOG_TABLE = "flightlog";
 
-    private DataSource dataSource;
-    private ExceptionSerializer exceptionSerializer;
+    private final DataSource dataSource;
+    private final ExceptionSerializer exceptionSerializer;
 
     FlightDao(DataSource dataSource, ExceptionSerializer exceptionSerializer) {
         this.dataSource = dataSource;

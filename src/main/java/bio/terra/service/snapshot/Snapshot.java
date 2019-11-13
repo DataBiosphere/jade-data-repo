@@ -17,7 +17,6 @@ public class Snapshot implements FSContainerInterface {
     private List<SnapshotTable> tables = Collections.emptyList();
     private List<SnapshotSource> snapshotSources = Collections.emptyList();
     private UUID profileId;
-    private SnapshotDataProject dataProject = new SnapshotDataProject();
 
     public UUID getId() {
         return id;
@@ -88,24 +87,6 @@ public class Snapshot implements FSContainerInterface {
 
     public Snapshot profileId(UUID profileId) {
         this.profileId = profileId;
-        return this;
-    }
-
-    public SnapshotDataProject getDataProject() {
-        return dataProject;
-    }
-
-    public Snapshot dataProject(SnapshotDataProject dataProject) {
-        this.dataProject = dataProject;
-        return this;
-    }
-
-    public String getDataProjectId() {
-        return dataProject.getGoogleProjectId();
-    }
-
-    public Snapshot dataProjectId(String projectId) {
-        dataProject.googleProjectId(projectId);
         return this;
     }
 }

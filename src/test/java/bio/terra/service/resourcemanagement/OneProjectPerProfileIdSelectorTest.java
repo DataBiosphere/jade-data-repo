@@ -119,7 +119,7 @@ public class OneProjectPerProfileIdSelectorTest {
             connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
         SnapshotSummaryModel snapshotSummaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
         SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummaryModel.getId());
-        Snapshot snapshot = snapshotService.retrieveSnapshot(UUID.fromString(snapshotModel.getId()));
+        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotModel.getId()));
 
         // TODO: we can test this once configuring firestore is programatic
 

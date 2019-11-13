@@ -6,6 +6,7 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
@@ -14,6 +15,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
 import com.google.cloud.bigquery.FieldValueList;
@@ -65,6 +67,7 @@ public class BigQueryPdaoTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private DatasetService datasetService;
+    @Autowired private DataLocationService dataLocationService;
 
     @MockBean
     private IamService samService;
@@ -88,7 +91,7 @@ public class BigQueryPdaoTest {
             .name(datasetName());
         dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
         UUID datasetId = datasetDao.create(dataset);
-        dataset = datasetService.retrieve(datasetId);
+        dataLocationService.getOrCreateProject(dataset);
         logger.info("Created dataset in setup: {}", datasetId);
     }
 
@@ -296,10 +299,11 @@ public class BigQueryPdaoTest {
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
 
             BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
+            DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
             String tableName = "participant";
             List<String> rowIds = getRowIds(dataset,
                 tableName,
-                dataset.getDataProjectId(),
+                dataProject.getGoogleProjectId(),
                 bigQueryProject);
             int originalNumOfRows = rowIds.size();
 
@@ -313,7 +317,7 @@ public class BigQueryPdaoTest {
             // assert the changed row is soft deleted
             List<String> softDeletedRowIds = getSoftDeletedRowIds(dataset,
                 tableName,
-                dataset.getDataProjectId(),
+                dataProject.getGoogleProjectId(),
                 bigQueryProject);
             Assert.assertThat("On upsert the changed row is soft deleted",
                 softDeletedRowIds.size(),
@@ -322,7 +326,7 @@ public class BigQueryPdaoTest {
             // assert only the new row is added
             rowIds = getRowIds(dataset,
                 tableName,
-                dataset.getDataProjectId(),
+                dataProject.getGoogleProjectId(),
                 bigQueryProject);
             // originalNumOfRows + 2 for the new row being added and the chnaged row being added
             Assert.assertThat("On upsert that # of rows being added accounts for the soft delete",

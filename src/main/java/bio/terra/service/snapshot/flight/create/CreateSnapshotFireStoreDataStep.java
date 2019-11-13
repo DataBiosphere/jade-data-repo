@@ -44,7 +44,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // We need a complete snapshot; use the snapshotService to get one.
-        Snapshot snapshot = snapshotService.retrieveSnapshotByName(snapshotReq.getName());
+        Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
 
         // Build the snapshot file system and record the file dependencies
         // The algorithm is:
@@ -82,7 +82,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // Remove the snapshot file system and any file dependencies created
-        Snapshot snapshot = snapshotService.retrieveSnapshotByName(snapshotReq.getName());
+        Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
         fileDao.deleteFilesFromSnapshot(snapshot);
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());

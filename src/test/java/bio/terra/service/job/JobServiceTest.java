@@ -1,11 +1,8 @@
 package bio.terra.service.job;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.Stairway;
-import bio.terra.stairway.UserRequestInfo;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
@@ -35,9 +32,6 @@ public class JobServiceTest {
         .email("stairway@unit.com");
 
     @Autowired
-    private Stairway stairway;
-
-    @Autowired
     private JobService jobService;
 
     @Test
@@ -45,26 +39,26 @@ public class JobServiceTest {
         // We perform 7 flights and then retrieve and enumerate them.
         // The fids list should be in exactly the same order as the database ordered by submit time.
 
-        List<String> fids = new ArrayList<>();
+        List<String> jobIds = new ArrayList<>();
         try {
             List<ResourceAndAccessPolicy> allowedIds = new ArrayList<>();
             for (int i = 0; i < 7; i++) {
-                String fid = runFlight(makeDescription(i));
-                fids.add(fid);
-                allowedIds.add(new ResourceAndAccessPolicy().resourceId(fid));
+                String jobId = runFlight(makeDescription(i));
+                jobIds.add(jobId);
+                allowedIds.add(new ResourceAndAccessPolicy().resourceId(jobId));
             }
 
             // Test single retrieval
-            testSingleRetrieval(fids);
+            testSingleRetrieval(jobIds);
 
             // Test result retrieval - the body should be the description string
-            testResultRetrieval(fids);
+            testResultRetrieval(jobIds);
 
             // Retrieve everything
-            testEnumRange(fids, 0, 100, allowedIds);
+            testEnumRange(jobIds, 0, 100, allowedIds);
 
             // Retrieve the middle 3; offset means skip 2 rows
-            testEnumRange(fids, 2, 3, allowedIds);
+            testEnumRange(jobIds, 2, 3, allowedIds);
 
             // Retrieve from the end; should only get the last one back
             testEnumCount(1, 6, 3, allowedIds);
@@ -72,12 +66,13 @@ public class JobServiceTest {
             // Retrieve past the end; should get nothing
             testEnumCount(0, 22, 3, allowedIds);
         } finally {
-            fids.stream().forEach(fid -> stairway.deleteFlight(fid));
+            for (String jobId : jobIds) {
+                jobService.releaseJob(jobId, null);
+            }
         }
     }
 
     private void testSingleRetrieval(List<String> fids) {
-//        RepositoryApiController.HttpStatusContainer statContainer = new RepositoryApiController.HttpStatusContainer();
         JobModel response = jobService.retrieveJob(fids.get(2), null);
         Assert.assertNotNull(response);
         validateJobModel(response, 2, fids);
@@ -127,19 +122,9 @@ public class JobServiceTest {
 
     // Submit a flight; wait for it to finish; return the flight id
     private String runFlight(String description) throws StairwayException {
-        FlightMap inputs = new FlightMap();
-        inputs.put(JobMapKeys.DESCRIPTION.getKeyName(), description);
-
-        String flightId = description;
-        stairway.submit(
-            flightId,
-            JobServiceTestFlight.class,
-            inputs,
-            new UserRequestInfo()
-                .subjectId(testUser.getSubjectId())
-                .name(testUser.getEmail()));
-        stairway.waitForFlight(flightId);
-        return flightId;
+        String jobId = jobService.newJob(description, JobServiceTestFlight.class, null, testUser).submit();
+        jobService.waitForJob(jobId);
+        return jobId;
     }
 
     private String makeDescription(int ii) {

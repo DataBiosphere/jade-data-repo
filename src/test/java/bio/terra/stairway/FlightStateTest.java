@@ -5,7 +5,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import static bio.terra.stairway.TestUtil.dubValue;
 import static bio.terra.stairway.TestUtil.errString;
@@ -41,9 +40,9 @@ public class FlightStateTest {
         result.setFlightStatus(FlightStatus.FATAL);
         result.setInputParameters(inputs);
         result.setSubmitted(timestamp);
-        result.setCompleted(Optional.of(timestamp));
-        result.setResultMap(Optional.of(outputs));
-        result.setException(Optional.of(new RuntimeException(errString)));
+        result.setCompleted(timestamp);
+        result.setResultMap(outputs);
+        result.setException(new RuntimeException(errString));
     }
 
     @Test

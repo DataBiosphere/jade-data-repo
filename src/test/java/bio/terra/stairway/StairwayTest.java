@@ -29,18 +29,18 @@ public class StairwayTest {
     private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         stairway = TestUtil.setupStairway(jdbcConfiguration);
     }
 
     @Test(expected = MakeFlightException.class)
-    public void testNullFlightClass() {
+    public void testNullFlightClass() throws Exception {
         FlightMap flightMap = new FlightMap();
         stairway.submit("nullflightclass", null, flightMap, testUser);
     }
 
     @Test(expected = MakeFlightException.class)
-    public void testNullInputParams() {
+    public void testNullInputParams() throws Exception {
         stairway.submit("nullinput", TestFlight.class, null, null);
     }
 

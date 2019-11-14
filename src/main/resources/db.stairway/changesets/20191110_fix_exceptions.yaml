@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: remove_exception
+      author: dd
+      changes:
+        - dropColumn:
+            tableName: flight
+            columns:
+              - column:
+                  name: exception
+                  type: text
+        - addColumn:
+            tableName: flight
+            columns:
+              - column:
+                  name: serialized_exception
+                  type: text
+        - dropColumn:
+            tableName: flightlog
+            columns:
+              - column:
+                  name: exception
+                  type: text
+        - addColumn:
+            tableName: flightlog
+            columns:
+              - column:
+                  name: serialized_exception
+                  type: text
+

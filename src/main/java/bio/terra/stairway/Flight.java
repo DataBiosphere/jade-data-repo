@@ -142,7 +142,7 @@ public class Flight implements Callable<FlightState> {
      * @return StepResult recording the success or failure of the most recent step
      * @throws InterruptedException
      */
-    private StepResult runSteps() throws InterruptedException, StairwayExecutionException {
+    private StepResult runSteps() throws InterruptedException, StairwayExecutionException, DatabaseOperationException {
         // Initialize with current result, in case we are all done already
         StepResult result = context().getResult();
 

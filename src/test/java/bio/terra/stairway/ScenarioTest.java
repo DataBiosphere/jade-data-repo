@@ -40,7 +40,7 @@ public class ScenarioTest {
     private StairwayJdbcConfiguration jdbcConfiguration;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         stairway = TestUtil.setupStairway(jdbcConfiguration);
     }
 

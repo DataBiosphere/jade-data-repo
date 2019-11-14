@@ -1,6 +1,7 @@
 package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -10,6 +11,7 @@ import bio.terra.service.job.exception.InternalStairwayException;
 import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobResponseException;
+import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -17,14 +19,18 @@ import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
 import bio.terra.stairway.UserRequestInfo;
 import bio.terra.stairway.exception.StairwayException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Component
 public class JobService {
@@ -33,12 +39,21 @@ public class JobService {
     private final Stairway stairway;
     private final IamService samService;
     private final ApplicationConfiguration appConfig;
+    private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
 
     @Autowired
-    public JobService(Stairway stairway, IamService samService, ApplicationConfiguration appConfig) {
-        this.stairway = stairway;
+    public JobService(IamService samService,
+                      ApplicationConfiguration appConfig,
+                      StairwayJdbcConfiguration stairwayJdbcConfiguration,
+                      ApplicationContext applicationContext,
+                      ObjectMapper objectMapper) {
         this.samService = samService;
         this.appConfig = appConfig;
+        this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
+
+        ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxStairwayThreads());
+        ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
+        stairway = new Stairway(executorService, applicationContext, serializer);
     }
 
     public static class JobResultWithStatus<T> {
@@ -75,7 +90,11 @@ public class JobService {
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap,
                             AuthenticatedUserRequest userReq) {
         String jobId = createJobId();
-        stairway.submit(jobId, flightClass, parameterMap, buildUserRequestInfo(userReq));
+        try {
+            stairway.submit(jobId, flightClass, parameterMap, buildUserRequestInfo(userReq));
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException(stairwayEx);
+        }
         return jobId;
     }
 
@@ -84,12 +103,30 @@ public class JobService {
     protected <T> T submitAndWait(Class<? extends Flight> flightClass, FlightMap parameterMap,
                                   AuthenticatedUserRequest userReq, Class<T> resultClass) {
         String jobId = submit(flightClass, parameterMap, userReq);
+        waitForJob(jobId);
+        return retrieveJobResult(jobId, resultClass, userReq).getResult();
+    }
+
+    void waitForJob(String jobId) {
         try {
             stairway.waitForFlight(jobId);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
         }
-        return retrieveJobResult(jobId, resultClass, userReq).getResult();
+    }
+
+
+    /**
+     * This method is called from StartupInitializer as part of the sequence of migrating databases
+     * and recovering any jobs; i.e., Stairway flights. It is moved here so that JobService encapsulates
+     * all of the Stairway interaction.
+     */
+    public void initialize() {
+        try {
+            stairway.initialize(stairwayJdbcConfiguration.getDataSource(), stairwayJdbcConfiguration.isForceClean());
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
+        }
     }
 
     // generate a new jobId
@@ -106,26 +143,25 @@ public class JobService {
     }
 
     public void releaseJob(String jobId, AuthenticatedUserRequest userReq) {
-        if (userReq != null) {
-            // currently, this check will be true for stewards only
-            boolean canDeleteAnyJob = samService.isAuthorized(
-                userReq,
-                IamResourceType.DATAREPO,
-                appConfig.getResourceId(),
-                IamAction.DELETE_JOBS);
+        try {
+            if (userReq != null) {
+                // currently, this check will be true for stewards only
+                boolean canDeleteAnyJob = samService.isAuthorized(
+                    userReq,
+                    IamResourceType.DATAREPO,
+                    appConfig.getResourceId(),
+                    IamAction.DELETE_JOBS);
 
-            // if the user has access to all jobs, no need to check for this one individually
-            // otherwise, check that the user has access to this job before deleting
-            if (!canDeleteAnyJob) {
-                // throws exception if no access
-                try {
+                // if the user has access to all jobs, no need to check for this one individually
+                // otherwise, check that the user has access to this job before deleting
+                if (!canDeleteAnyJob) {
                     stairway.verifyUserAccess(jobId, buildUserRequestInfo(userReq)); // jobId=flightId
-                } catch (StairwayException stairwayEx) {
-                    throw new InternalStairwayException(stairwayEx);
                 }
             }
+            stairway.deleteFlight(jobId);
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException(stairwayEx);
         }
-        stairway.deleteFlight(jobId);
     }
 
     public JobModel mapFlightStateToJobModel(FlightState flightState) {
@@ -182,10 +218,14 @@ public class JobService {
         // if the user has access to all jobs, then fetch everything
         // otherwise, filter the jobs on the user
         List<FlightState> flightStateList;
-        if (canListAnyJob) {
-            flightStateList = stairway.getFlights(offset, limit);
-        } else {
-            flightStateList = stairway.getFlightsForUser(offset, limit, buildUserRequestInfo(userReq));
+        try {
+            if (canListAnyJob) {
+                flightStateList = stairway.getFlights(offset, limit);
+            } else {
+                flightStateList = stairway.getFlightsForUser(offset, limit, buildUserRequestInfo(userReq));
+            }
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException(stairwayEx);
         }
 
         List<JobModel> jobModelList = new ArrayList<>();

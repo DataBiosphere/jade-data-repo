@@ -1,7 +1,6 @@
 package bio.terra.app.configuration;
 
 import bio.terra.app.utils.startup.StartupInitializer;
-import bio.terra.stairway.Stairway;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -13,9 +12,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Configuration
 @EnableConfigurationProperties
@@ -66,12 +62,6 @@ public class ApplicationConfiguration {
 
     public void setMaxStairwayThreads(int maxStairwayThreads) {
         this.maxStairwayThreads = maxStairwayThreads;
-    }
-
-    @Bean("stairway")
-    public Stairway getStairway(ApplicationContext applicationContext) {
-        ExecutorService executorService = Executors.newFixedThreadPool(getMaxStairwayThreads());
-        return new Stairway(executorService, applicationContext);
     }
 
     @Bean("jdbcTemplate")

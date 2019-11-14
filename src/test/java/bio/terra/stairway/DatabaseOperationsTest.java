@@ -129,8 +129,8 @@ public class DatabaseOperationsTest {
         Assert.assertThat(flightState.getException().get().toString(), containsString(errString));
     }
 
-    private FlightDao createFlightDao(boolean forceCleanStart) {
-        FlightDao db = new FlightDao(jdbcConfiguration);
+    private FlightDao createFlightDao(boolean forceCleanStart) throws Exception {
+        FlightDao db = new FlightDao(jdbcConfiguration.getDataSource(), new DefaultExceptionSerializer());
         if (forceCleanStart) {
             db.startClean();
         }

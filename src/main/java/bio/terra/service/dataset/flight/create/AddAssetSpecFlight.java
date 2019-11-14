@@ -12,7 +12,6 @@ public class AddAssetSpecFlight extends Flight {
 
     public AddAssetSpecFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
         super(inputParameters, applicationContext, userRequestInfo);
-
         // get the required daos and services to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         AssetDao assetDao = (AssetDao) appContext.getBean("assetDao");

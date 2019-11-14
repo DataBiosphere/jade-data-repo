@@ -5,6 +5,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.RepositoryApi;
+import bio.terra.model.AssetModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
@@ -194,6 +195,19 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             IamAction.INGEST_DATA);
         String jobId = datasetService.ingestDataset(id, ingest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") String id,
+                                                  @Valid @RequestBody AssetModel asset) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        iamService.verifyAuthorization(
+            userReq,
+            IamResourceType.DATASET,
+            id,
+            IamAction.EDIT_DATASET);
+        String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 

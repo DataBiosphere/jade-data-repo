@@ -74,69 +74,42 @@ public class SamIam implements IamService {
      * @return true if authorized, false otherwise
      */
     @Override
-    public boolean isAuthorized(
-        AuthenticatedUserRequest userReq,
-        IamResourceType iamResourceType,
-        String resourceId,
-        IamAction action) {
+    public boolean isAuthorized(AuthenticatedUserRequest userReq,
+                                IamResourceType iamResourceType,
+                                String resourceId,
+                                IamAction action) {
 
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return isAuthorizedInner(userReq, iamResourceType, resourceId, action);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(() -> isAuthorizedInner(userReq, iamResourceType, resourceId, action));
     }
 
-    private boolean isAuthorizedInner(
-        AuthenticatedUserRequest userReq,
-        IamResourceType iamResourceType,
-        String resourceId,
-        IamAction action) {
+    private boolean isAuthorizedInner(AuthenticatedUserRequest userReq,
+                                      IamResourceType iamResourceType,
+                                      String resourceId,
+                                      IamAction action) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            boolean authorized =
-                samResourceApi.resourceAction(iamResourceType.toString(), resourceId, action.toString());
-            logger.info("authorized is " + authorized);
-            return authorized;
-        } catch (ApiException ex) {
-            logger.warn("userReq token: {}", userReq.getToken());
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        boolean authorized = samResourceApi.resourceAction(iamResourceType.toString(), resourceId, action.toString());
+        logger.debug("authorized is " + authorized);
+        return authorized;
     }
 
     @Override
     public List<UUID> listAuthorizedResources(AuthenticatedUserRequest userReq,
                                               IamResourceType iamResourceType) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return listAuthorizedResourcesInner(userReq, iamResourceType);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(() -> listAuthorizedResourcesInner(userReq, iamResourceType));
     }
 
     private List<UUID> listAuthorizedResourcesInner(AuthenticatedUserRequest userReq,
-                                                    IamResourceType iamResourceType) {
+                                                    IamResourceType iamResourceType) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            List<ResourceAndAccessPolicy> resources =
-                samResourceApi.listResourcesAndPolicies(iamResourceType.toString());
+        List<ResourceAndAccessPolicy> resources =
+            samResourceApi.listResourcesAndPolicies(iamResourceType.toString());
 
-            return resources
-                .stream()
-                .map(resource -> UUID.fromString(resource.getResourceId()))
-                .collect(Collectors.toList());
-
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        return resources
+            .stream()
+            .map(resource -> UUID.fromString(resource.getResourceId()))
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -151,42 +124,26 @@ public class SamIam implements IamService {
 
     private void deleteResource(AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                deleteResourceInner(userReq, iamResourceType, resourceId);
-                return;
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        samRetry.perform(() -> deleteResourceInner(userReq, iamResourceType, resourceId));
     }
 
-    private void deleteResourceInner(AuthenticatedUserRequest userReq,
-                                     IamResourceType iamResourceType,
-                                     String resourceId) {
+    // Return useless boolean to match the SamFunction signature for retry
+    private boolean deleteResourceInner(AuthenticatedUserRequest userReq,
+                                        IamResourceType iamResourceType,
+                                        String resourceId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        samResourceApi.deleteResource(iamResourceType.toString(), resourceId);
+        return true;
     }
 
     @Override
     public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return createDatasetResourceInner(userReq, datasetId);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
-    private List<String> createDatasetResourceInner(AuthenticatedUserRequest userReq, UUID datasetId) {
+    private List<String> createDatasetResourceInner(AuthenticatedUserRequest userReq,
+                                                    UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
         req.addPoliciesItem(
@@ -202,25 +159,22 @@ public class SamIam implements IamService {
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
-        try {
-            // create the resource in sam
-            createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);
 
-            // we'll want all of these roles to have read access to the underlying data,
-            // so we sync and return the emails for the policies that get created by SAM
-            ArrayList<String> rolePolicies = new ArrayList<>();
-            for (IamRole role :
-                Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
-                Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-                    IamResourceType.DATASET.toString(),
-                    datasetId.toString(),
-                    role.toString());
-                rolePolicies.add(getPolicyGroupEmailFromResponse(results));
-            }
-            return rolePolicies;
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
+        // create the resource in sam
+        createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASET.toString(), req);
+
+        // we'll want all of these roles to have read access to the underlying data,
+        // so we sync and return the emails for the policies that get created by SAM
+        ArrayList<String> rolePolicies = new ArrayList<>();
+        for (IamRole role :
+            Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
+            Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
+                IamResourceType.DATASET.toString(),
+                datasetId.toString(),
+                role.toString());
+            rolePolicies.add(getPolicyGroupEmailFromResponse(results));
         }
+        return rolePolicies;
     }
 
     @Override
@@ -228,19 +182,12 @@ public class SamIam implements IamService {
                                          UUID snapshotId,
                                          List<String> readersList) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return createSnapshotResourceInner(userReq, snapshotId, readersList);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(() -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     }
 
     private String createSnapshotResourceInner(AuthenticatedUserRequest userReq,
                                                UUID snapshotId,
-                                               List<String> readersList) {
+                                               List<String> readersList) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
 
         if (readersList == null) {
@@ -264,20 +211,17 @@ public class SamIam implements IamService {
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
         logger.debug(req.toString());
-        try {
-            // create the resource in sam
-            createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
 
-            // sync the readers policy
-            // Map[WorkbenchEmail, Seq[SyncReportItem]]
-            Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-                IamResourceType.DATASNAPSHOT.toString(),
-                snapshotId.toString(),
-                IamRole.READER.toString());
-            return getPolicyGroupEmailFromResponse(results);
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        // create the resource in sam
+        createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
+
+        // sync the readers policy
+        // Map[WorkbenchEmail, Seq[SyncReportItem]]
+        Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
+            IamResourceType.DATASNAPSHOT.toString(),
+            snapshotId.toString(),
+            IamRole.READER.toString());
+        return getPolicyGroupEmailFromResponse(results);
     }
 
     @Override
@@ -285,30 +229,19 @@ public class SamIam implements IamService {
                                               IamResourceType iamResourceType,
                                               UUID resourceId) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return retrievePoliciesInner(userReq, iamResourceType, resourceId);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(() -> retrievePoliciesInner(userReq, iamResourceType, resourceId));
     }
 
     private List<PolicyModel> retrievePoliciesInner(AuthenticatedUserRequest userReq,
                                                     IamResourceType iamResourceType,
-                                                    UUID resourceId) {
+                                                    UUID resourceId) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            List<AccessPolicyResponseEntry> results =
-                samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString());
-            return results.stream().map(entry -> new PolicyModel()
-                .name(entry.getPolicyName())
-                .members(entry.getPolicy().getMemberEmails()))
-                .collect(Collectors.toList());
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        List<AccessPolicyResponseEntry> results =
+            samResourceApi.listResourcePolicies(iamResourceType.toString(), resourceId.toString());
+        return results.stream().map(entry -> new PolicyModel()
+            .name(entry.getPolicyName())
+            .members(entry.getPolicy().getMemberEmails()))
+            .collect(Collectors.toList());
     }
 
     @Override
@@ -318,33 +251,23 @@ public class SamIam implements IamService {
                                        String policyName,
                                        String userEmail) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(
+            () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
     }
 
     private PolicyModel addPolicyMemberInner(AuthenticatedUserRequest userReq,
                                              IamResourceType iamResourceType,
                                              UUID resourceId,
                                              String policyName,
-                                             String userEmail) {
+                                             String userEmail) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            samResourceApi.addUserToPolicy(iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
+        samResourceApi.addUserToPolicy(iamResourceType.toString(), resourceId.toString(), policyName, userEmail);
 
-            AccessPolicyMembership result =
-                samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
-            return new PolicyModel()
-                .name(policyName)
-                .members(result.getMemberEmails());
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        AccessPolicyMembership result =
+            samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
+        return new PolicyModel()
+            .name(policyName)
+            .members(result.getMemberEmails());
     }
 
     @Override
@@ -354,37 +277,27 @@ public class SamIam implements IamService {
                                           String policyName,
                                           String userEmail) {
         SamRetry samRetry = new SamRetry(samConfig);
-        while (true) {
-            try {
-                return deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail);
-            } catch (IamInternalServerErrorException ex) {
-                samRetry.caughtException(ex);
-            }
-            samRetry.retry();
-        }
+        return samRetry.perform(
+            () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
     }
 
     private PolicyModel deletePolicyMemberInner(AuthenticatedUserRequest userReq,
                                                 IamResourceType iamResourceType,
                                                 UUID resourceId,
                                                 String policyName,
-                                                String userEmail) {
+                                                String userEmail) throws ApiException {
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        try {
-            samResourceApi.removeUserFromPolicy(
-                iamResourceType.toString(),
-                resourceId.toString(),
-                policyName,
-                userEmail);
+        samResourceApi.removeUserFromPolicy(
+            iamResourceType.toString(),
+            resourceId.toString(),
+            policyName,
+            userEmail);
 
-            AccessPolicyMembership result =
-                samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
-            return new PolicyModel()
-                .name(policyName)
-                .members(result.getMemberEmails());
-        } catch (ApiException ex) {
-            throw convertSAMExToDataRepoEx(ex);
-        }
+        AccessPolicyMembership result =
+            samResourceApi.getPolicy(iamResourceType.toString(), resourceId.toString(), policyName);
+        return new PolicyModel()
+            .name(policyName)
+            .members(result.getMemberEmails());
     }
 
     @Override

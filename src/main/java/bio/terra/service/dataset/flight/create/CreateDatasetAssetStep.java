@@ -1,14 +1,10 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.model.AssetModel;
+import bio.terra.service.dataset.AssetDao;
+import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.DatasetJsonConversion;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
@@ -16,31 +12,27 @@ import java.util.UUID;
 
 public class CreateDatasetAssetStep implements Step {
 
-    private DatasetDao datasetDao;
-    private DatasetRequestModel datasetRequest;
+    private UUID datasetId;
+    private AssetDao assetDao;
+    private AssetModel assetModel;
 
-    public CreateDatasetAssetStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest) {
-        this.datasetDao = datasetDao;
-        this.datasetRequest = datasetRequest;
+    public CreateDatasetAssetStep(UUID datasetId, AssetDao assetDao, AssetModel assetModel) {
+        this.datasetId = datasetId;
+        this.assetDao = assetDao;
+        this.assetModel = assetModel;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Dataset newDataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
-        UUID datasetId = datasetDao.create(newDataset);
-        FlightMap workingMap = context.getWorkingMap();
-        workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
-
-        DatasetSummaryModel datasetSummary =
-            DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
+        // TODO this needs the dataset tables and relationships added in
+        AssetSpecification assetSpecification = DatasetJsonConversion.assetModelToAssetSpecification(assetModel);
+        assetDao.create(assetSpecification, datasetId);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        String datasetName = datasetRequest.getName();
-        datasetDao.deleteByName(datasetName);
+        // TODO is there a asset deletion method, or is that going to need to get added as well?
         return StepResult.getStepResultSuccess();
     }
 }

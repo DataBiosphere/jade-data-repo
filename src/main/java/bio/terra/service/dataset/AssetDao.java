@@ -34,7 +34,7 @@ public class AssetDao {
                 .collect(Collectors.toList());
     }
 
-    private UUID create(AssetSpecification assetSpecification, UUID datasetId) {
+    public UUID create(AssetSpecification assetSpecification, UUID datasetId) {
         String sql = "INSERT INTO asset_specification (dataset_id, name, root_table_id, root_column_id) " +
                 "VALUES (:dataset_id, :name, :root_table_id, :root_column_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -159,5 +159,11 @@ public class AssetDao {
                         .id(rs.getObject("id", UUID.class))
                         .datasetRelationship(allRelationships.get(
                                 rs.getObject("relationship_id", UUID.class))));
+    }
+
+    public boolean delete(UUID assetId) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM asset_specification WHERE id = :assetId CASCADE",
+            new MapSqlParameterSource().addValue("id", assetId));
+        return rowsAffected > 0;
     }
 }

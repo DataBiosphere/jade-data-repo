@@ -2,10 +2,11 @@ package bio.terra.service.dataset;
 
 import bio.terra.service.load.LoadService;
 import bio.terra.model.AssetModel;
-import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
+import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.DatasetModel;
@@ -17,12 +18,15 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -110,14 +114,43 @@ public class DatasetService {
     }
 
     public String addDatasetAssetSpecifications(
-        String datasetId,
-        AssetModel assetModel,
-        AuthenticatedUserRequest userReq
+        String datasetId, AssetModel assetModel, AuthenticatedUserRequest userReq
     ) {
-       String description = "Add dataset asset spec " + assetModel.getName();
+        String description = "Add dataset asset specification " + assetModel.getName();
+        Dataset dataset = retrieve(UUID.fromString(datasetId));
+
+        List<DatasetTable> datasetTables = dataset.getTables();
+        Map<String, DatasetTable> tablesMap = new HashMap<>();
+        datasetTables.forEach(table -> tablesMap.put(table.getName(), table));
+
+        List<DatasetRelationship> datasetRelationships = dataset.getRelationships();
+        Map<String, DatasetRelationship> relationshipMap = new HashMap<>();
+        datasetRelationships.forEach(relationship -> relationshipMap
+            .put(relationship.getId().toString(), relationship));
+
+       AssetSpecification assetSpecification = DatasetJsonConversion
+                .assetModelToAssetSpecification(assetModel, tablesMap, relationshipMap);
+
         return jobService
-            .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)
+            .newJob(description, AddAssetSpecFlight.class, assetSpecification, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .submit();
+    }
+
+    public String removeDatasetAssetSpecifications(
+        String datasetId, String assetId, AuthenticatedUserRequest userReq
+    ) {
+        Dataset dataset = retrieve(UUID.fromString(datasetId));
+        AssetSpecification assetSpecification = dataset
+            .getAssetSpecificationById(UUID.fromString(assetId)).orElseThrow(() ->
+                new AssetNotFoundException("This dataset does not have an asset specification with id: " + assetId)
+            );
+        String assetName = assetSpecification.getName();
+        String description = "Remove dataset asset specification " + assetName;
+
+        return jobService
+            .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
+            .addParameter(JobMapKeys.ASSET_ID.getKeyName(), datasetId)
             .submit();
     }
 }

@@ -203,7 +203,7 @@ public class RepositoryApiController implements RepositoryApi {
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
-    @Override // TODO does this not want an override here?
+    @Override
     public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") String id,
                                                   @Valid @RequestBody AssetModel asset) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
@@ -212,6 +212,9 @@ public class RepositoryApiController implements RepositoryApi {
             IamResourceType.DATASET,
             id,
             IamAction.EDIT_DATASET);
+        if (!ValidationUtils.isValidAsset(asset)) {
+            throw new ValidationException("InvalidAssetModel");
+        }
         String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }

@@ -1076,6 +1076,79 @@ paths:
           schema:
             type: object
 
+# -- Configuration Control Endpoints --
+
+  '/api/repository/v1/config/{name}':
+    get:
+      description: Get one configuration
+      operationId: getConfig
+      tags:
+        - repository
+      parameters:
+        - name: name
+          description: name of the configuration to get
+          required: true
+          in: path
+          type: string
+      responses:
+        200:
+          description: current configuration
+          schema:
+            $ref: '#/definitions/ConfigModel'
+        404:
+          description: unknown configuration name
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/config':
+    put:
+      description: Set the a group of configurations
+      operationId: setConfig
+      tags:
+        - repository
+      parameters:
+        - in: body
+          name: configModel
+          schema:
+            $ref: '#/definitions/ConfigGroupModel'
+      responses:
+        200:
+          description: previous settings
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ConfigModel'
+        400:
+          description: invalid configuration model
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: unknown configuration name(s) - see errorDetails
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+    get:
+      description: Get the named configuration
+      operationId: getConfigList
+      tags:
+        - repository
+      responses:
+        200:
+          description: all configurations
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/ConfigModel'
+
+  '/api/repository/v1/config/reset':
+    put:
+      description: Reset the configuration to original settings
+      operationId: resetConfig
+      tags:
+        - repository
+      responses:
+        204:
+          description: configuration reset
 
 ##########################################################################################
 # DRS PATHS
@@ -2056,6 +2129,51 @@ definitions:
         type: array
         items:
           type: string
+
+  ConfigModel:
+    description: |
+      There are three types of configurations: faults, parameters, and logging.
+      Due to the way swagger works, we make a property for each type, but only
+      the property that matches the type enumeration will be processed.
+    properties:
+      name:
+        type: string
+        description: name of the configuration
+      configType:
+        type: string
+        enum:
+          - fault
+          - parameter
+          - logging
+      parameter:
+        $ref: '#/definitions/ConfigParameterModel'
+  # TODO: add the other configuration types
+  #      fault:
+  #        $ref: '#/definitions/ConfigFaultModel'
+  #      logging:
+  #        $ref: '#/definitions/ConfigLoggingModel'
+
+  ConfigParameterModel:
+    description: The value of the parameter
+    properties:
+      value:
+        type: string
+        description: |
+          Configuration parameters are always passed as strings and converted within
+          the service. That keeps the JSON simple. Sending in specific types doesn't
+          help much, because there still might be a mismatch between the type passed in
+          and the type required.
+
+  ConfigGroupModel:
+    description: A group of ConfigModel with a label for logging
+    properties:
+      label:
+        type: string
+        description: string to be logged with the settings to identify this set
+      group:
+        type: array
+        items:
+          $ref: '#/definitions/ConfigModel'
 
 ##########################################################################################
 # DRS DEFINITIONS

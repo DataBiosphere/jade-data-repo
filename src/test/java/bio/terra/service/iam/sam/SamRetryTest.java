@@ -1,6 +1,10 @@
 package bio.terra.service.iam.sam;
 
 import bio.terra.common.category.Unit;
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigModel;
+import bio.terra.model.ConfigParameterModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -8,15 +12,23 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import static bio.terra.service.configuration.ConfigurationService.SAM_OPERATION_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigurationService.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigurationService.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class SamRetryTest {
+    @Autowired
+    private ConfigurationService configService;
+
     private int count;
 
     @Before
@@ -26,23 +38,15 @@ public class SamRetryTest {
 
     @Test(expected = IamInternalServerErrorException.class)
     public void testRetryTimeout() throws Exception {
-        SamConfiguration samConfig = new SamConfiguration();
-        samConfig.setOperationTimeoutSeconds(10);
-        samConfig.setRetryInitialWaitSeconds(1);
-        samConfig.setRetryMaximumWaitSeconds(3);
-
-        SamRetry samRetry = new SamRetry(samConfig);
+        setSamParams("testRetryTimeout", 1, 3, 10);
+        SamRetry samRetry = new SamRetry(configService);
         samRetry.perform(() -> testRetryFinishInner(100));
     }
 
     @Test
     public void testRetryFinish() throws Exception {
-        SamConfiguration samConfig = new SamConfiguration();
-        samConfig.setOperationTimeoutSeconds(10);
-        samConfig.setRetryInitialWaitSeconds(2);
-        samConfig.setRetryMaximumWaitSeconds(5);
-
-        SamRetry samRetry = new SamRetry(samConfig);
+        setSamParams("testRetryFinish", 2, 5, 10);
+        SamRetry samRetry = new SamRetry(configService);
         samRetry.perform(() -> testRetryFinishInner(2));
     }
 
@@ -54,6 +58,24 @@ public class SamRetryTest {
             throw new ApiException(HttpStatusCodes.STATUS_CODE_SERVER_ERROR, "testing");
         }
         return true;
+    }
+
+    private void setSamParams(String label, int initialWait, int maxWait, int operationTimeout) {
+        ConfigGroupModel groupModel = new ConfigGroupModel()
+            .label(label)
+            .addGroupItem(new ConfigModel()
+                .name(SAM_RETRY_INITIAL_WAIT_SECONDS)
+                .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+                .parameter(new ConfigParameterModel().value(String.valueOf(initialWait))))
+            .addGroupItem(new ConfigModel()
+                .name(SAM_RETRY_MAXIMUM_WAIT_SECONDS)
+                .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+                .parameter(new ConfigParameterModel().value(String.valueOf(maxWait))))
+            .addGroupItem(new ConfigModel()
+                .name(SAM_OPERATION_TIMEOUT_SECONDS)
+                .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
+                .parameter(new ConfigParameterModel().value(String.valueOf(operationTimeout))));
+        configService.setConfig(groupModel);
     }
 
 }

@@ -3,6 +3,7 @@ package bio.terra.service.iam.sam;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -40,10 +41,12 @@ import java.util.stream.Collectors;
 // Use @Profile to select when there is more than one IamService
 public class SamIam implements IamService {
     private final SamConfiguration samConfig;
+    private final ConfigurationService configurationService;
 
     @Autowired
-    public SamIam(SamConfiguration samConfig) {
+    public SamIam(SamConfiguration samConfig, ConfigurationService configurationService) {
         this.samConfig = samConfig;
+        this.configurationService = configurationService;
     }
 
     private static Logger logger = LoggerFactory.getLogger(SamIam.class);
@@ -79,7 +82,7 @@ public class SamIam implements IamService {
                                 String resourceId,
                                 IamAction action) {
 
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> isAuthorizedInner(userReq, iamResourceType, resourceId, action));
     }
 
@@ -96,7 +99,7 @@ public class SamIam implements IamService {
     @Override
     public List<UUID> listAuthorizedResources(AuthenticatedUserRequest userReq,
                                               IamResourceType iamResourceType) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> listAuthorizedResourcesInner(userReq, iamResourceType));
     }
 
@@ -123,7 +126,7 @@ public class SamIam implements IamService {
     }
 
     private void deleteResource(AuthenticatedUserRequest userReq, IamResourceType iamResourceType, String resourceId) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         samRetry.perform(() -> deleteResourceInner(userReq, iamResourceType, resourceId));
     }
 
@@ -138,7 +141,7 @@ public class SamIam implements IamService {
 
     @Override
     public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
@@ -181,7 +184,7 @@ public class SamIam implements IamService {
     public String createSnapshotResource(AuthenticatedUserRequest userReq,
                                          UUID snapshotId,
                                          List<String> readersList) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     }
 
@@ -228,7 +231,7 @@ public class SamIam implements IamService {
     public List<PolicyModel> retrievePolicies(AuthenticatedUserRequest userReq,
                                               IamResourceType iamResourceType,
                                               UUID resourceId) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> retrievePoliciesInner(userReq, iamResourceType, resourceId));
     }
 
@@ -250,7 +253,7 @@ public class SamIam implements IamService {
                                        UUID resourceId,
                                        String policyName,
                                        String userEmail) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(
             () -> addPolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
     }
@@ -276,7 +279,7 @@ public class SamIam implements IamService {
                                           UUID resourceId,
                                           String policyName,
                                           String userEmail) {
-        SamRetry samRetry = new SamRetry(samConfig);
+        SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(
             () -> deletePolicyMemberInner(userReq, iamResourceType, resourceId, policyName, userEmail));
     }

@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
@@ -13,14 +14,18 @@ import static java.time.Instant.now;
 
 class SamRetry {
     private static Logger logger = LoggerFactory.getLogger(SamRetry.class);
-    private final SamConfiguration samConfig;
     private final Instant operationTimeout;
+    private final int retryMaxWait;
     private int retrySeconds;
 
-    SamRetry(SamConfiguration samConfig) {
-        this.samConfig = samConfig;
-        this.operationTimeout = now().plusSeconds(samConfig.getOperationTimeoutSeconds());
-        this.retrySeconds = samConfig.getRetryInitialWaitSeconds();
+    SamRetry(ConfigurationService configService) {
+        this.retryMaxWait =
+            configService.getParameterValue(ConfigurationService.SAM_RETRY_MAXIMUM_WAIT_SECONDS);
+        this.retrySeconds =
+            configService.getParameterValue(ConfigurationService.SAM_RETRY_INITIAL_WAIT_SECONDS);
+        int operationTimeoutSeconds =
+            configService.getParameterValue(ConfigurationService.SAM_OPERATION_TIMEOUT_SECONDS);
+        this.operationTimeout = now().plusSeconds(operationTimeoutSeconds);
     }
 
     <T> T perform(SamFunction<T> function) {
@@ -51,8 +56,8 @@ class SamRetry {
             }
 
             retrySeconds = retrySeconds + retrySeconds;
-            if (retrySeconds > samConfig.getRetryMaximumWaitSeconds()) {
-                retrySeconds = samConfig.getRetryMaximumWaitSeconds();
+            if (retrySeconds > retryMaxWait) {
+                retrySeconds = retryMaxWait;
             }
         }
     }

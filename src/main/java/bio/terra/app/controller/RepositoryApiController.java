@@ -212,9 +212,6 @@ public class RepositoryApiController implements RepositoryApi {
             IamResourceType.DATASET,
             id,
             IamAction.EDIT_DATASET);
-        if (!ValidationUtils.isValidAsset(asset)) {
-            throw new ValidationException("InvalidAssetModel");
-        }
         String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }

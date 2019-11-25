@@ -1,7 +1,5 @@
 package bio.terra.common;
 
-import bio.terra.model.AssetModel;
-
 import java.util.HashSet;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -41,9 +39,5 @@ public final class ValidationUtils {
 
     public static boolean isValidPath(String path) {
         return Pattern.matches(VALID_PATH, path);
-    }
-
-    public static boolean isValidAsset(AssetModel asset) {
-        return VALID_EMAIL_REGEX.matcher(asset).matches(); // TODO this is not correct
     }
 }

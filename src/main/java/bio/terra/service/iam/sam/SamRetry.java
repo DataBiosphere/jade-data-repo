@@ -1,6 +1,7 @@
 package bio.terra.service.iam.sam;
 
 
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
@@ -20,11 +21,11 @@ class SamRetry {
 
     SamRetry(ConfigurationService configService) {
         this.retryMaxWait =
-            configService.getParameterValue(ConfigurationService.SAM_RETRY_MAXIMUM_WAIT_SECONDS);
+            configService.getParameterValue(ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS);
         this.retrySeconds =
-            configService.getParameterValue(ConfigurationService.SAM_RETRY_INITIAL_WAIT_SECONDS);
+            configService.getParameterValue(ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS);
         int operationTimeoutSeconds =
-            configService.getParameterValue(ConfigurationService.SAM_OPERATION_TIMEOUT_SECONDS);
+            configService.getParameterValue(ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS);
         this.operationTimeout = now().plusSeconds(operationTimeoutSeconds);
     }
 

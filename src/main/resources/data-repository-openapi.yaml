@@ -1103,7 +1103,7 @@ paths:
   '/api/repository/v1/config':
     put:
       description: Set the a group of configurations
-      operationId: setConfig
+      operationId: setConfigList
       tags:
         - repository
       parameters:

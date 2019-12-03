@@ -516,7 +516,7 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<ConfigModel>> setConfig(@Valid @RequestBody ConfigGroupModel configModel) {
+    public ResponseEntity<List<ConfigModel>> setConfigList(@Valid @RequestBody ConfigGroupModel configModel) {
         List<ConfigModel> configModelList = configurationService.setConfig(configModel);
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }

@@ -18,9 +18,10 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.List;
 
-import static bio.terra.service.configuration.ConfigurationService.SAM_OPERATION_TIMEOUT_SECONDS;
-import static bio.terra.service.configuration.ConfigurationService.SAM_RETRY_INITIAL_WAIT_SECONDS;
-import static bio.terra.service.configuration.ConfigurationService.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -47,26 +48,26 @@ public class ConfigServiceTest {
 
         // Retrieve all config and make sure initialization worked
         List<ConfigModel> configModelList = configService.getConfigList();
-        checkIntParamValue(configModelList, SAM_RETRY_INITIAL_WAIT_SECONDS, retryInitialWaitSeconds);
-        checkIntParamValue(configModelList, SAM_RETRY_MAXIMUM_WAIT_SECONDS, retryMaximumWaitSeconds);
-        checkIntParamValue(configModelList, SAM_OPERATION_TIMEOUT_SECONDS, operationTimeoutSeconds);
+        checkIntParamValue(configModelList, SAM_RETRY_INITIAL_WAIT_SECONDS.name(), retryInitialWaitSeconds);
+        checkIntParamValue(configModelList, SAM_RETRY_MAXIMUM_WAIT_SECONDS.name(), retryMaximumWaitSeconds);
+        checkIntParamValue(configModelList, SAM_OPERATION_TIMEOUT_SECONDS.name(), operationTimeoutSeconds);
 
         // Set some config
         ConfigGroupModel groupModel = new ConfigGroupModel()
             .label("configBasicTest")
             .addGroupItem(new ConfigModel()
-                .name(SAM_RETRY_INITIAL_WAIT_SECONDS)
+                .name(SAM_RETRY_INITIAL_WAIT_SECONDS.name())
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .parameter(new ConfigParameterModel().value(String.valueOf(retryInitialWaitSeconds + delta))))
             .addGroupItem(new ConfigModel()
-                .name(SAM_RETRY_MAXIMUM_WAIT_SECONDS)
+                .name(SAM_RETRY_MAXIMUM_WAIT_SECONDS.name())
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .parameter(new ConfigParameterModel().value(String.valueOf(retryMaximumWaitSeconds + delta))));
         configService.setConfig(groupModel);
 
         // Retrieve specific config
         Integer expectedValue = retryInitialWaitSeconds + delta;
-        ConfigModel configModel = configService.getConfig(SAM_RETRY_INITIAL_WAIT_SECONDS);
+        ConfigModel configModel = configService.getConfig(SAM_RETRY_INITIAL_WAIT_SECONDS.name());
         assertThat(configModel.getConfigType(), equalTo(ConfigModel.ConfigTypeEnum.PARAMETER));
         assertThat("Int param matches", configModel.getParameter().getValue(),
             equalTo(expectedValue.toString()));
@@ -75,9 +76,9 @@ public class ConfigServiceTest {
         configService.reset();
 
         configModelList = configService.getConfigList();
-        checkIntParamValue(configModelList, SAM_RETRY_INITIAL_WAIT_SECONDS, retryInitialWaitSeconds);
-        checkIntParamValue(configModelList, SAM_RETRY_MAXIMUM_WAIT_SECONDS, retryMaximumWaitSeconds);
-        checkIntParamValue(configModelList, SAM_OPERATION_TIMEOUT_SECONDS, operationTimeoutSeconds);
+        checkIntParamValue(configModelList, SAM_RETRY_INITIAL_WAIT_SECONDS.name(), retryInitialWaitSeconds);
+        checkIntParamValue(configModelList, SAM_RETRY_MAXIMUM_WAIT_SECONDS.name(), retryMaximumWaitSeconds);
+        checkIntParamValue(configModelList, SAM_OPERATION_TIMEOUT_SECONDS.name(), operationTimeoutSeconds);
     }
 
     @Test(expected = DuplicateConfigNameException.class)

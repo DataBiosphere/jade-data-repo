@@ -5,23 +5,27 @@ import bio.terra.service.configuration.exception.InvalidConfigTypeException;
 
 public abstract class ConfigBase {
     private final ConfigModel.ConfigTypeEnum configType;
-    private final String name;
+    private final ConfigEnum configEnum;
 
-    ConfigBase(ConfigModel.ConfigTypeEnum configType, String name) {
+    ConfigBase(ConfigModel.ConfigTypeEnum configType, ConfigEnum configEnum) {
         this.configType = configType;
-        this.name = name;
+        this.configEnum = configEnum;
     }
 
     public ConfigModel.ConfigTypeEnum getConfigType() {
         return configType;
     }
 
+    public ConfigEnum getConfigEnum() {
+        return configEnum;
+    }
+
     public String getName() {
-        return name;
+        return configEnum.name();
     }
 
     public <T> T getCurrentValue() {
-        throw new InvalidConfigTypeException("Config is not a parameter: " + name);
+        throw new InvalidConfigTypeException("Config is not a parameter: " + configEnum.name());
     }
 
     abstract void reset();

@@ -17,9 +17,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static bio.terra.service.configuration.ConfigurationService.SAM_OPERATION_TIMEOUT_SECONDS;
-import static bio.terra.service.configuration.ConfigurationService.SAM_RETRY_INITIAL_WAIT_SECONDS;
-import static bio.terra.service.configuration.ConfigurationService.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -64,15 +64,15 @@ public class SamRetryTest {
         ConfigGroupModel groupModel = new ConfigGroupModel()
             .label(label)
             .addGroupItem(new ConfigModel()
-                .name(SAM_RETRY_INITIAL_WAIT_SECONDS)
+                .name(SAM_RETRY_INITIAL_WAIT_SECONDS.name())
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .parameter(new ConfigParameterModel().value(String.valueOf(initialWait))))
             .addGroupItem(new ConfigModel()
-                .name(SAM_RETRY_MAXIMUM_WAIT_SECONDS)
+                .name(SAM_RETRY_MAXIMUM_WAIT_SECONDS.name())
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .parameter(new ConfigParameterModel().value(String.valueOf(maxWait))))
             .addGroupItem(new ConfigModel()
-                .name(SAM_OPERATION_TIMEOUT_SECONDS)
+                .name(SAM_OPERATION_TIMEOUT_SECONDS.name())
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .parameter(new ConfigParameterModel().value(String.valueOf(operationTimeout))));
         configService.setConfig(groupModel);

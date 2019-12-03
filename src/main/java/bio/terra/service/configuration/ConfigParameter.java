@@ -14,8 +14,8 @@ public class ConfigParameter<T> extends ConfigBase {
     private T currentValue;
 
     // -- Instance methods --
-    ConfigParameter(String name, T value) {
-        super(ConfigModel.ConfigTypeEnum.PARAMETER, name);
+    ConfigParameter(ConfigEnum configEnum, T value) {
+        super(ConfigModel.ConfigTypeEnum.PARAMETER, configEnum);
         this.originalValue = value;
         this.currentValue = value;
     }

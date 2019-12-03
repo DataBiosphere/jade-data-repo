@@ -15,13 +15,17 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+
 @Component
 public class ConfigurationService {
     private final Logger logger = LoggerFactory.getLogger(ConfigurationService.class);
 
     private final SamConfiguration samConfiguration;
 
-    private Map<String, ConfigBase> configuration = new HashMap<>();
+    private Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
 
     @Autowired
     public ConfigurationService(SamConfiguration samConfiguration) {
@@ -42,7 +46,8 @@ public class ConfigurationService {
 
         List<ConfigModel> priorConfigList = new LinkedList<>();
         for (ConfigModel configModel : groupModel.getGroup()) {
-            ConfigBase config = configuration.get(configModel.getName());
+            ConfigEnum configEnum = ConfigEnum.lookupByApiName(configModel.getName());
+            ConfigBase config = configuration.get(configEnum);
             ConfigModel prior = config.set(configModel);
             priorConfigList.add(prior);
         }
@@ -70,31 +75,33 @@ public class ConfigurationService {
     }
 
     // Exposed for use in unit test
-    <T> void addParameter(String name, T value) {
-        if (configuration.containsKey(name)) {
-            throw new DuplicateConfigNameException("Duplicate config name: " + name);
+    <T> void addParameter(ConfigEnum configEnum, T value) {
+        if (configuration.containsKey(configEnum)) {
+            throw new DuplicateConfigNameException("Duplicate config name: " + configEnum.name());
         }
 
-        ConfigParameter param = new ConfigParameter(name, value);
-        configuration.put(param.getName(), param);
+        ConfigParameter param = new ConfigParameter(configEnum, value);
+        configuration.put(param.getConfigEnum(), param);
     }
 
-    public <T> T getParameterValue(String name) {
-        return lookup(name).getCurrentValue();
+    public <T> T getParameterValue(ConfigEnum configEnum) {
+        return lookupByEnum(configEnum).getCurrentValue();
     }
 
     private ConfigBase lookup(String name) {
-        ConfigBase config = configuration.get(name);
+        ConfigEnum configEnum = ConfigEnum.lookupByApiName(name);
+        return lookupByEnum(configEnum);
+    }
+
+    private ConfigBase lookupByEnum(ConfigEnum configEnum) {
+        ConfigBase config = configuration.get(configEnum);
         if (config == null) {
-            throw new ConfigNotFoundException("Unknown configuration name: " + name);
+            throw new ConfigNotFoundException("Unknown configuration name: " + configEnum.name());
         }
         return config;
     }
 
     // -- Configuration Setup --
-    public static final String SAM_RETRY_INITIAL_WAIT_SECONDS = "param.sam.retryInitialWaitSeconds";
-    public static final String SAM_RETRY_MAXIMUM_WAIT_SECONDS = "param.sam.retryMaximumWaitSeconds";
-    public static final String SAM_OPERATION_TIMEOUT_SECONDS = "param.sam.operationTimeoutSeconds";
 
     // Setup the configuration. This is done once during construction.
     private void setConfiguration() {

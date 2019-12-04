@@ -5,6 +5,8 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.RepositoryApi;
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -21,6 +23,7 @@ import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.UserStatusInfo;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -75,6 +78,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final FileService fileService;
     private final PolicyMemberValidator policyMemberValidator;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
+    private final ConfigurationService configurationService;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -93,7 +97,8 @@ public class RepositoryApiController implements RepositoryApi {
             ApplicationConfiguration appConfig,
             FileService fileService,
             PolicyMemberValidator policyMemberValidator,
-            AuthenticatedUserRequestFactory authenticatedUserRequestFactory
+            AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
+            ConfigurationService configurationService
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -108,6 +113,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.fileService = fileService;
         this.policyMemberValidator = policyMemberValidator;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
+        this.configurationService = configurationService;
     }
 
     @InitBinder
@@ -489,6 +495,30 @@ public class RepositoryApiController implements RepositoryApi {
     public ResponseEntity<Void> deleteJob(@PathVariable("id") String id) {
         jobService.releaseJob(id, getAuthenticatedInfo());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<ConfigModel> getConfig(@PathVariable("name") String name) {
+        ConfigModel configModel = configurationService.getConfig(name);
+        return new ResponseEntity<>(configModel, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<List<ConfigModel>> getConfigList() {
+        List<ConfigModel> configModelList = configurationService.getConfigList();
+        return new ResponseEntity<>(configModelList, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Void> resetConfig() {
+        configurationService.reset();
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @Override
+    public ResponseEntity<List<ConfigModel>> setConfigList(@Valid @RequestBody ConfigGroupModel configModel) {
+        List<ConfigModel> configModelList = configurationService.setConfig(configModel);
+        return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
 
     private void validiateOffsetAndLimit(Integer offset, Integer limit) {

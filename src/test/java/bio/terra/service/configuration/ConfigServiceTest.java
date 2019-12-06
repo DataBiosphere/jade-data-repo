@@ -1,6 +1,9 @@
 package bio.terra.service.configuration;
 
+import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.category.Unit;
+import bio.terra.model.ConfigFaultCountedModel;
+import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.ConfigParameterModel;
@@ -21,9 +24,15 @@ import java.util.List;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
-
+import static bio.terra.service.configuration.ConfigEnum.UNIT_TEST_COUNTED_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.UNIT_TEST_SIMPLE_FAULT;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.lessThan;
+import static org.hamcrest.Matchers.allOf;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
@@ -112,6 +121,135 @@ public class ConfigServiceTest {
             }
         }
         fail("Failed to find config param " + name);
+    }
+
+    @Test
+    public void testFaultSimple() throws Exception {
+        configService.addFaultSimple(UNIT_TEST_SIMPLE_FAULT);
+
+        boolean simpleTest = configService.testInsertFault(UNIT_TEST_SIMPLE_FAULT);
+        assertFalse("Simple fault is disabled", simpleTest);
+
+        configService.setFault(UNIT_TEST_SIMPLE_FAULT.name(), true);
+        simpleTest = configService.testInsertFault(UNIT_TEST_SIMPLE_FAULT);
+        assertTrue("Simple fault is enabled", simpleTest);
+    }
+
+    @Test
+    public void testCountedFixed() throws Exception {
+        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 5, 3, 20, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        configService.setFault(UNIT_TEST_COUNTED_FAULT.name(), true);
+
+        // These should be the skip 5
+        tryCountedN(5, false);
+        // first round of 20%: 4 off, 1 on
+        tryCountedN(4, false);
+        tryCountedN(1, true);
+        // second round of 20%: 4 off, 1 on
+        tryCountedN(4, false);
+        tryCountedN(1, true);
+        // third (last) round of 20%: 4 off, 1 on
+        tryCountedN(4, false);
+        tryCountedN(1, true);
+        // now the fault should be done and not inserted again
+        tryCountedN(10, false);
+
+        // Update the fault definition to be always on for 10
+        updateCountedFault(0, 10, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        tryCountedN(10, true);
+        tryCountedN(10, false);
+
+        // Check that the math works
+        updateCountedFault(0, 10, 222, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        tryCountedN(10, true);
+        tryCountedN(10, false);
+
+        // Check that insert forever works
+        updateCountedFault(0, -1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        tryCountedN(100, true);
+    }
+
+    @Test
+    public void testCountedRandom() throws Exception {
+        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        configService.setFault(UNIT_TEST_COUNTED_FAULT.name(), true);
+
+        // It is problematic to get a consistent result from a probabilistic test.
+        // Let's try this: 10,000 tests at 10% should do 1000 inserts. Test if it
+        // is within 1%, so between 900 and 1100.
+        int inserted = 0;
+        for (int i = 0; i < 10000; i++) {
+            if (configService.testInsertFault(UNIT_TEST_COUNTED_FAULT)) {
+                inserted++;
+            }
+        }
+        assertThat(inserted, allOf(greaterThan(900),lessThan(1000)));
+    }
+
+    @Test(expected = DuplicateConfigNameException.class)
+    public void testDuplicateFaultConfigException() throws Exception {
+        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void testMismatchedFaultTypeSet() throws Exception {
+        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        ConfigFaultModel faultModel = new ConfigFaultModel()
+            .faultType(ConfigFaultModel.FaultTypeEnum.SIMPLE)
+            .counted(null)
+            .enabled(true);
+        ConfigGroupModel groupModel = new ConfigGroupModel()
+            .label("testMismatchedFaultTypeSet")
+            .addGroupItem(new ConfigModel()
+                .name(UNIT_TEST_COUNTED_FAULT.name())
+                .configType(ConfigModel.ConfigTypeEnum.FAULT)
+                .fault(faultModel));
+        configService.setConfig(groupModel);
+    }
+
+    @Test(expected = ValidationException.class)
+    public void testMissingCountedModelSet() throws Exception {
+        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        ConfigFaultModel faultModel = new ConfigFaultModel()
+            .faultType(ConfigFaultModel.FaultTypeEnum.COUNTED)
+            .counted(null)
+            .enabled(true);
+        ConfigGroupModel groupModel = new ConfigGroupModel()
+            .label("testMissingCountedModelSet")
+            .addGroupItem(new ConfigModel()
+                .name(UNIT_TEST_COUNTED_FAULT.name())
+                .configType(ConfigModel.ConfigTypeEnum.FAULT)
+                .fault(faultModel));
+        configService.setConfig(groupModel);
+    }
+
+
+    private void tryCountedN(int iterations, boolean expected) {
+        for (int i = 0; i < iterations; i++) {
+            boolean test = configService.testInsertFault(UNIT_TEST_COUNTED_FAULT);
+            assertThat("Correct fault insert result", test, equalTo(expected));
+        }
+    }
+
+    private void updateCountedFault(int skipFor, int insert, int rate,
+                                    ConfigFaultCountedModel.RateStyleEnum rateStyle) {
+        ConfigFaultCountedModel countedModel = new ConfigFaultCountedModel()
+            .skipFor(skipFor)
+            .insert(insert)
+            .rate(rate)
+            .rateStyle(rateStyle);
+        ConfigFaultModel faultModel = new ConfigFaultModel()
+            .faultType(ConfigFaultModel.FaultTypeEnum.COUNTED)
+            .counted(countedModel)
+            .enabled(true);
+        ConfigGroupModel groupModel = new ConfigGroupModel()
+            .label("updateCountedFault")
+            .addGroupItem(new ConfigModel()
+                .name(UNIT_TEST_COUNTED_FAULT.name())
+                .configType(ConfigModel.ConfigTypeEnum.FAULT)
+                .fault(faultModel));
+        configService.setConfig(groupModel);
     }
 
 }

@@ -7,7 +7,11 @@ import org.apache.commons.lang3.StringUtils;
 public enum ConfigEnum {
     SAM_RETRY_INITIAL_WAIT_SECONDS,
     SAM_RETRY_MAXIMUM_WAIT_SECONDS,
-    SAM_OPERATION_TIMEOUT_SECONDS;
+    SAM_OPERATION_TIMEOUT_SECONDS,
+
+    // Faults to test the fault system
+    UNIT_TEST_SIMPLE_FAULT,
+    UNIT_TEST_COUNTED_FAULT;
 
     public static ConfigEnum lookupByApiName(String apiName) {
         for (ConfigEnum config : values()) {

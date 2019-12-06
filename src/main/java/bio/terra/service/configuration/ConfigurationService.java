@@ -1,5 +1,7 @@
 package bio.terra.service.configuration;
 
+import bio.terra.model.ConfigFaultCountedModel;
+import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
@@ -74,18 +76,54 @@ public class ConfigurationService {
         }
     }
 
+    public void setFault(String name, boolean enable) {
+        ConfigBase configBase = lookup(name);
+        configBase.validateType(ConfigModel.ConfigTypeEnum.FAULT);
+
+        ConfigFault fault = (ConfigFault)configBase;
+        fault.setEnabled(enable);
+    }
+
     // Exposed for use in unit test
     <T> void addParameter(ConfigEnum configEnum, T value) {
-        if (configuration.containsKey(configEnum)) {
-            throw new DuplicateConfigNameException("Duplicate config name: " + configEnum.name());
-        }
-
+        checkDuplicate(configEnum);
         ConfigParameter param = new ConfigParameter(configEnum, value);
-        configuration.put(param.getConfigEnum(), param);
+        configuration.put(configEnum, param);
     }
 
     public <T> T getParameterValue(ConfigEnum configEnum) {
         return lookupByEnum(configEnum).getCurrentValue();
+    }
+
+    void addFaultCounted(ConfigEnum configEnum,
+                         int skipFor,
+                         int insert,
+                         int rate,
+                         ConfigFaultCountedModel.RateStyleEnum rateStyle) {
+        checkDuplicate(configEnum);
+        ConfigFaultCountedModel countedModel = new ConfigFaultCountedModel()
+            .skipFor(skipFor)
+            .insert(insert)
+            .rate(rate)
+            .rateStyle(rateStyle);
+        ConfigFaultCounted fault = new ConfigFaultCounted(configEnum,
+            ConfigFaultModel.FaultTypeEnum.COUNTED,
+            false,
+            countedModel);
+        configuration.put(configEnum, fault);
+    }
+
+    void addFaultSimple(ConfigEnum configEnum) {
+        checkDuplicate(configEnum);
+        ConfigFaultSimple fault = new ConfigFaultSimple(configEnum, ConfigFaultModel.FaultTypeEnum.SIMPLE, false);
+        configuration.put(configEnum, fault);
+    }
+
+    public boolean testInsertFault(ConfigEnum configEnum) {
+        ConfigBase configBase = lookupByEnum(configEnum);
+        configBase.validateType(ConfigModel.ConfigTypeEnum.FAULT);
+        ConfigFault fault = (ConfigFault)configBase;
+        return fault.testInsertFault();
     }
 
     private ConfigBase lookup(String name) {
@@ -99,6 +137,12 @@ public class ConfigurationService {
             throw new ConfigNotFoundException("Unknown configuration name: " + configEnum.name());
         }
         return config;
+    }
+
+    private void checkDuplicate(ConfigEnum configEnum) {
+        if (configuration.containsKey(configEnum)) {
+            throw new DuplicateConfigNameException("Duplicate config name: " + configEnum.name());
+        }
     }
 
     // -- Configuration Setup --

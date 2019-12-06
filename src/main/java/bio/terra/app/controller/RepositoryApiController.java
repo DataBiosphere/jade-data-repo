@@ -521,6 +521,14 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
 
+    @Override
+    public ResponseEntity<Void> setFault(@PathVariable("name") String name,
+                                         @Valid @RequestParam(value = "enable", required = false, defaultValue = "true")
+                                             Boolean enable) {
+        configurationService.setFault(name, enable);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     private void validiateOffsetAndLimit(Integer offset, Integer limit) {
         String errors = "";
         offset = (offset == null) ? offset = 0 : offset;

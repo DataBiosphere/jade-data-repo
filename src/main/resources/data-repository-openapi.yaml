@@ -834,7 +834,6 @@ paths:
       - application/json
       parameters:
       - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/AssetModel'
       - in: body
         name: assetModel
         description: Asset definition to add to the dataset
@@ -869,7 +868,7 @@ paths:
   '/api/repository/v1/datasets/{id}/assets/{assetId}':
     delete:
       description: Remove an asset definiion from a dataset
-      operationId: addDatasetAssetSpecifications
+      operationId: removeDatasetAssetSpecifications
       tags:
       - repository
       consumes:

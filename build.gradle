@@ -16,7 +16,7 @@ import io.swagger.codegen.DefaultGenerator
 
 buildscript {
     ext {
-        springBootVersion = '2.1.7.RELEASE'
+        springBootVersion = '2.2.2.RELEASE'
     }
     repositories {
         mavenCentral()

@@ -6,6 +6,7 @@ import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.RepositoryApi;
 import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -504,8 +505,8 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<ConfigModel>> getConfigList() {
-        List<ConfigModel> configModelList = configurationService.getConfigList();
+    public ResponseEntity<ConfigListModel> getConfigList() {
+        ConfigListModel configModelList = configurationService.getConfigList();
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
 
@@ -516,8 +517,8 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<List<ConfigModel>> setConfigList(@Valid @RequestBody ConfigGroupModel configModel) {
-        List<ConfigModel> configModelList = configurationService.setConfig(configModel);
+    public ResponseEntity<ConfigListModel> setConfigList(@Valid @RequestBody ConfigGroupModel configModel) {
+        ConfigListModel configModelList = configurationService.setConfig(configModel);
         return new ResponseEntity<>(configModelList, HttpStatus.OK);
     }
 

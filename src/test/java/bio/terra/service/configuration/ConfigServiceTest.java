@@ -56,7 +56,7 @@ public class ConfigServiceTest {
         int operationTimeoutSeconds = samConfiguration.getOperationTimeoutSeconds();
 
         // Retrieve all config and make sure initialization worked
-        List<ConfigModel> configModelList = configService.getConfigList();
+        List<ConfigModel> configModelList = configService.getConfigList().getItems();
         checkIntParamValue(configModelList, SAM_RETRY_INITIAL_WAIT_SECONDS.name(), retryInitialWaitSeconds);
         checkIntParamValue(configModelList, SAM_RETRY_MAXIMUM_WAIT_SECONDS.name(), retryMaximumWaitSeconds);
         checkIntParamValue(configModelList, SAM_OPERATION_TIMEOUT_SECONDS.name(), operationTimeoutSeconds);
@@ -84,7 +84,7 @@ public class ConfigServiceTest {
         // Reset config and check result
         configService.reset();
 
-        configModelList = configService.getConfigList();
+        configModelList = configService.getConfigList().getItems();
         checkIntParamValue(configModelList, SAM_RETRY_INITIAL_WAIT_SECONDS.name(), retryInitialWaitSeconds);
         checkIntParamValue(configModelList, SAM_RETRY_MAXIMUM_WAIT_SECONDS.name(), retryMaximumWaitSeconds);
         checkIntParamValue(configModelList, SAM_OPERATION_TIMEOUT_SECONDS.name(), operationTimeoutSeconds);
@@ -137,7 +137,7 @@ public class ConfigServiceTest {
 
     @Test
     public void testCountedFixed() throws Exception {
-        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 5, 3, 20, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        setFaultCounted(5, 3, 20, ConfigFaultCountedModel.RateStyleEnum.FIXED);
         configService.setFault(UNIT_TEST_COUNTED_FAULT.name(), true);
 
         // These should be the skip 5
@@ -171,7 +171,7 @@ public class ConfigServiceTest {
 
     @Test
     public void testCountedRandom() throws Exception {
-        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        setFaultCounted(0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
         configService.setFault(UNIT_TEST_COUNTED_FAULT.name(), true);
 
         // It is problematic to get a consistent result from a probabilistic test.
@@ -183,7 +183,7 @@ public class ConfigServiceTest {
                 inserted++;
             }
         }
-        assertThat(inserted, allOf(greaterThan(900),lessThan(1000)));
+        assertThat(inserted, allOf(greaterThan(900), lessThan(1100)));
     }
 
     @Test(expected = DuplicateConfigNameException.class)
@@ -194,7 +194,7 @@ public class ConfigServiceTest {
 
     @Test(expected = ValidationException.class)
     public void testMismatchedFaultTypeSet() throws Exception {
-        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        setFaultCounted(0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
         ConfigFaultModel faultModel = new ConfigFaultModel()
             .faultType(ConfigFaultModel.FaultTypeEnum.SIMPLE)
             .counted(null)
@@ -210,7 +210,7 @@ public class ConfigServiceTest {
 
     @Test(expected = ValidationException.class)
     public void testMissingCountedModelSet() throws Exception {
-        configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, 0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        setFaultCounted(0, -1, 10, ConfigFaultCountedModel.RateStyleEnum.RANDOM);
         ConfigFaultModel faultModel = new ConfigFaultModel()
             .faultType(ConfigFaultModel.FaultTypeEnum.COUNTED)
             .counted(null)
@@ -250,6 +250,18 @@ public class ConfigServiceTest {
                 .configType(ConfigModel.ConfigTypeEnum.FAULT)
                 .fault(faultModel));
         configService.setConfig(groupModel);
+    }
+
+    // Use the get interface to detect if the fault has been defined. If not, define it.
+    // If so, update it.
+    private void setFaultCounted(int skipFor, int insert, int rate,
+                                 ConfigFaultCountedModel.RateStyleEnum rateStyle) {
+        try {
+            ConfigModel configModel = configService.getConfig("UNIT_TEST_COUNTED_FAULT");
+            updateCountedFault(skipFor, insert, rate, rateStyle);
+        } catch (DuplicateConfigNameException ex) {
+            configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, skipFor, insert, rate, rateStyle);
+        }
     }
 
 }

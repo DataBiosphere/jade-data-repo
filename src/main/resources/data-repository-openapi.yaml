@@ -1078,7 +1078,7 @@ paths:
 
 # -- Configuration Control Endpoints --
 
-  '/api/repository/v1/config/{name}':
+  '/api/repository/v1/configs/{name}':
     get:
       description: Get one configuration
       operationId: getConfig
@@ -1130,7 +1130,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/config':
+  '/api/repository/v1/configs':
     put:
       description: Set the a group of configurations
       operationId: setConfigList
@@ -1145,9 +1145,7 @@ paths:
         200:
           description: previous settings
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/ConfigModel'
+            $ref: '#/definitions/ConfigListModel'
         400:
           description: invalid configuration model
           schema:
@@ -1158,7 +1156,7 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
     get:
-      description: Get the named configuration
+      description: Get all configurations
       operationId: getConfigList
       tags:
         - repository
@@ -1166,11 +1164,9 @@ paths:
         200:
           description: all configurations
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/ConfigModel'
+            $ref: '#/definitions/ConfigListModel'
 
-  '/api/repository/v1/config/reset':
+  '/api/repository/v1/configs/reset':
     put:
       description: Reset the configuration to original settings
       operationId: resetConfig
@@ -2263,6 +2259,18 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/ConfigModel'
+
+  ConfigListModel:
+    description: Result list of configuration settings
+    properties:
+      total:
+        type: integer
+        description: Total number of configs
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/ConfigModel'
+
 
 ##########################################################################################
 # DRS DEFINITIONS

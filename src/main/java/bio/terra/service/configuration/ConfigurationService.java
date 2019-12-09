@@ -3,6 +3,7 @@ package bio.terra.service.configuration;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
@@ -20,6 +21,7 @@ import java.util.Map;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 
 @Component
 public class ConfigurationService {
@@ -37,7 +39,7 @@ public class ConfigurationService {
 
     // -- repository API methods --
 
-    public List<ConfigModel> setConfig(ConfigGroupModel groupModel) {
+    public ConfigListModel setConfig(ConfigGroupModel groupModel) {
         logger.info("Setting configuration - label: " + groupModel.getLabel());
 
         // Validate before setting any values
@@ -54,7 +56,7 @@ public class ConfigurationService {
             priorConfigList.add(prior);
         }
 
-        return priorConfigList;
+        return new ConfigListModel().items(priorConfigList).total(priorConfigList.size());
     }
 
     public ConfigModel getConfig(String name) {
@@ -62,12 +64,12 @@ public class ConfigurationService {
         return config.get();
     }
 
-    public List<ConfigModel> getConfigList() {
+    public ConfigListModel getConfigList() {
         List<ConfigModel> configList = new LinkedList<>();
         for (ConfigBase config : configuration.values()) {
             configList.add(config.get());
         }
-        return configList;
+        return new ConfigListModel().items(configList).total(configList.size());
     }
 
     public void reset() {
@@ -126,6 +128,12 @@ public class ConfigurationService {
         return fault.testInsertFault();
     }
 
+    public void fault(ConfigEnum configEnum, FaultFunction fn) throws Exception {
+        if (testInsertFault(configEnum)) {
+            fn.apply();
+        }
+    }
+
     private ConfigBase lookup(String name) {
         ConfigEnum configEnum = ConfigEnum.lookupByApiName(name);
         return lookupByEnum(configEnum);
@@ -152,6 +160,8 @@ public class ConfigurationService {
         addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.getRetryInitialWaitSeconds());
         addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.getRetryMaximumWaitSeconds());
         addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.getOperationTimeoutSeconds());
+
+        addFaultCounted(SAM_TIMEOUT_FAULT, 0, -1, 25, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     }
 
 

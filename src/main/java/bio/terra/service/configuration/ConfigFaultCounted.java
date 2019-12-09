@@ -26,6 +26,7 @@ public class ConfigFaultCounted extends ConfigFault {
     private Random random;
     private int every;
     private int everyCounter;
+    private int testCounter;
 
     // -- Instance methods --
     ConfigFaultCounted(ConfigEnum configEnum,
@@ -81,15 +82,18 @@ public class ConfigFaultCounted extends ConfigFault {
         }
 
         if (!doneInserting) {
+            testCounter++;
             switch (countedModel.getRateStyle()) {
                 case RANDOM:
                     if (random.nextInt(100) < countedModel.getRate()) {
+                        logger.debug("Fault: random insert - insert=" + insertCounter + " test=" + testCounter);
                         return doInsert();
                     }
                     break;
 
                 case FIXED:
                     everyCounter++;
+                    logger.debug("Fault: fixed insert - every=" + every + " everyCounter=" + everyCounter);
                     if (everyCounter >= every) {
                         everyCounter = 0;
                         return doInsert();
@@ -101,9 +105,18 @@ public class ConfigFaultCounted extends ConfigFault {
     }
 
     private boolean doInsert() {
-        if (countedModel.getInsert() < 0 || insertCounter < countedModel.getInsert()) {
+        if (countedModel.getInsert() < 0) {
             insertCounter++;
             return true;
+        } else {
+            if (insertCounter < countedModel.getInsert()) {
+                insertCounter++;
+                return true;
+            } else {
+                doneInserting = true;
+                logger.debug("Fault: done inserting " + getConfigEnum() +
+                    "; inserted " + insertCounter + " of " +  testCounter + " tests");
+            }
         }
         return false;
     }
@@ -113,6 +126,7 @@ public class ConfigFaultCounted extends ConfigFault {
         skippedCounter = 0;
         doneInserting = false;
         insertCounter = 0;
+        testCounter = 0;
         switch (countedModel.getRateStyle()) {
             case RANDOM:
                 if (random == null) {

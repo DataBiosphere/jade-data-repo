@@ -36,7 +36,7 @@ public abstract class ConfigFault extends ConfigBase {
         return enabled;
     }
 
-    void setEnabled(boolean enabled) {
+    synchronized void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 

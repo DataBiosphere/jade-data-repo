@@ -3,11 +3,19 @@ package bio.terra.service.configuration;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 
-// TODO: when we move to OpenAPI V3, we can put this an enum in the swagger and get it out of here.
+
+/**
+ * NOTE: the string form of the enumerations are used in tests. A simple IntelliJ rename will not work properly.
+ */
+// TODO: when we move to OpenAPI V3, we can put this an enum in the swagger and use the enums in the caller
 public enum ConfigEnum {
+    // -- parameters --
     SAM_RETRY_INITIAL_WAIT_SECONDS,
     SAM_RETRY_MAXIMUM_WAIT_SECONDS,
     SAM_OPERATION_TIMEOUT_SECONDS,
+
+    // -- faults --
+    SAM_TIMEOUT_FAULT,
 
     // Faults to test the fault system
     UNIT_TEST_SIMPLE_FAULT,

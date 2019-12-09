@@ -1,12 +1,15 @@
 package bio.terra.integration;
 
 import bio.terra.common.TestUtils;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigListModel;
+import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -23,9 +26,9 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import bio.terra.service.filedata.DrsResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -439,4 +442,56 @@ public class DataRepoFixtures {
         return dataRepoClient.delete(
             user, "/api/resources/v1/profiles/" + profileId, DeleteResponseModel.class);
     }
+
+    // Configuration methods
+
+    public DataRepoResponse<ConfigModel> getConfig(TestConfiguration.User user, String configName) throws Exception {
+        return dataRepoClient.get(
+            user, "/api/repository/v1/configs/" + configName, ConfigModel.class);
+    }
+
+    public DataRepoResponse<ConfigModel> setFault(TestConfiguration.User user,
+                                                  String configName,
+                                                  boolean enable) throws Exception {
+        return dataRepoClient.put(user,
+            "/api/repository/v1/configs/" + configName + "?enable=" + enable,
+            null,
+            null);
+    }
+
+    public DataRepoResponse<Void> resetConfig(TestConfiguration.User user) throws Exception {
+        return dataRepoClient.put(user,
+            "/api/repository/v1/configs/reset",
+            null,
+            null);
+    }
+
+    public DataRepoResponse<ConfigListModel> setConfigListRaw(TestConfiguration.User user,
+                                                              ConfigGroupModel configGroup) throws Exception {
+        String json = objectMapper.writeValueAsString(configGroup);
+        return dataRepoClient.put(user,
+            "/api/repository/v1/configs",
+            json,
+            ConfigListModel.class);
+    }
+
+    public ConfigListModel setConfigList(TestConfiguration.User user,
+                                           ConfigGroupModel configGroup) throws Exception {
+        DataRepoResponse<ConfigListModel> response = setConfigListRaw(user, configGroup);
+        assertThat("setConfigList is successfully", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("setConfigList response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public DataRepoResponse<ConfigListModel> getConfigListRaw(TestConfiguration.User user) throws Exception {
+        return dataRepoClient.get(user, "/api/repository/v1/configs", ConfigListModel.class);
+    }
+
+    public ConfigListModel getConfigList(TestConfiguration.User user) throws Exception {
+        DataRepoResponse<ConfigListModel> response = getConfigListRaw(user);
+        assertThat("getConfigList is successfully", response.getStatusCode(), equalTo(HttpStatus.OK));
+        assertTrue("getConfigList response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
 }

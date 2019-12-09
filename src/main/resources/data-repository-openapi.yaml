@@ -1188,7 +1188,7 @@ paths:
         - repository
       parameters:
         - name: name
-          description: name of the configuration to 
+          description: name of the configuration to
           required: true
           in: path
           type: string
@@ -1459,6 +1459,12 @@ parameters:
   LoadTag:
     name: loadtag
     description: a load tag
+    required: true
+    type: string
+    in: path
+  AssetId:
+    name: assetid
+    description: An asset id
     required: true
     type: string
     in: path
@@ -2302,7 +2308,7 @@ definitions:
       Counted fault is used to insert a fixed number of faults. A "fault test" is one
       call to the fault manager for a named fault. The skipFor lets you get the system to
       a certain stable point where you want to begin inserting faults. Insert gives the
-      total number of faults to trigger. The rate gives the percentage of the time to 
+      total number of faults to trigger. The rate gives the percentage of the time to
       insert the fault. A value of 50 would insert the fault half
       the time. A value of 20 would insert the fault 20% of the time . The rateStyle
       describes whether the fault will be fixed or random. In our 20 example, if the rate style

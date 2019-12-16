@@ -53,10 +53,15 @@ public class ConfigFaultCounted extends ConfigFault {
     }
 
     @Override
-    synchronized void setFaultConfig(ConfigFaultModel faultModel) {
-        if (faultModel.getCounted() == null) {
+    void validate(ConfigModel configModel) {
+        super.validate(configModel);
+        if (configModel.getFault().getCounted() == null) {
             throw new ValidationException("Set of a counted fault requires a counted fault model");
         }
+    }
+
+    @Override
+    synchronized void setFaultConfig(ConfigFaultModel faultModel) {
         countedModel = faultModel.getCounted();
         initCounters();
     }

@@ -6,9 +6,6 @@ import bio.terra.model.ConfigModel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// Sub-classes must implement:
-// get()
-// setFaultConfig()
 public abstract class ConfigFault extends ConfigBase {
     private final Logger logger = LoggerFactory.getLogger(ConfigFault.class);
 
@@ -57,10 +54,7 @@ public abstract class ConfigFault extends ConfigBase {
 
     @Override
     void validate(ConfigModel configModel) {
-        if (configModel.getConfigType() != ConfigModel.ConfigTypeEnum.FAULT) {
-            throw new ValidationException("Mismatched config: " + getName() +
-                " is a FAULT; request is a " + configModel.getConfigType().name());
-        }
+        super.validateType(ConfigModel.ConfigTypeEnum.FAULT);
 
         if (configModel.getFault() == null) {
             throw new ValidationException("ConfigFaultModel must be specified");

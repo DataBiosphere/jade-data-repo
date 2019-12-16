@@ -29,7 +29,7 @@ public abstract class ConfigBase {
         throw new InvalidConfigTypeException("Config is not a parameter: " + configEnum.name());
     }
 
-    public void validateType(ConfigModel.ConfigTypeEnum expectedConfigType) {
+    void validateType(ConfigModel.ConfigTypeEnum expectedConfigType) {
         if (configType != expectedConfigType) {
             throw new ValidationException("Mismatched config type: " + getName() +
                 " is a " + configType.name() +

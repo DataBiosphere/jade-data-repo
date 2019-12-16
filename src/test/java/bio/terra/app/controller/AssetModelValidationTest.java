@@ -1,6 +1,6 @@
 package bio.terra.app.controller;
 
-import bio.terra.category.Unit;
+import bio.terra.common.category.Unit;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import com.fasterxml.jackson.databind.ObjectMapper;

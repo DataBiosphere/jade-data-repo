@@ -1,6 +1,8 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
@@ -16,12 +18,14 @@ import java.util.UUID;
 
 public class CreateDatasetAssetStep implements Step {
 
-    private DatasetService datasetService;
-    private AssetDao assetDao;
+    private final ConfigurationService configService;
+    private final AssetDao assetDao;
+    private final DatasetService datasetService;
 
-    public CreateDatasetAssetStep(DatasetService datasetService, AssetDao assetDao) {
-        this.datasetService = datasetService;
+    public CreateDatasetAssetStep(AssetDao assetDao, ConfigurationService configService, DatasetService datasetService) {
         this.assetDao = assetDao;
+        this.configService = configService;
+        this.datasetService = datasetService;
     }
 
     private Dataset getDataset(FlightContext context) {
@@ -51,6 +55,14 @@ public class CreateDatasetAssetStep implements Step {
             throw new ValidationException("Can not add an asset to a dataset with a duplicate name");
         }
         assetDao.create(newAssetSpecification, getDataset(context).getId());
+        // add a fault that forces an exception to make sure the undo works
+        try {
+            configService.fault(ConfigEnum.CREATE_ASSET_FAULT, () -> {
+                throw new RuntimeException("fault insertion");
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return StepResult.getStepResultSuccess();
     }
 

@@ -128,7 +128,7 @@ public class DatasetService {
         datasetRelationships.forEach(relationship -> relationshipMap
             .put(relationship.getId().toString(), relationship));
 
-       AssetSpecification assetSpecification = DatasetJsonConversion
+        AssetSpecification assetSpecification = DatasetJsonConversion
                 .assetModelToAssetSpecification(assetModel, tablesMap, relationshipMap);
 
         return jobService

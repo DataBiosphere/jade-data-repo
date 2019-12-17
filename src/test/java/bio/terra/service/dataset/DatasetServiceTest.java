@@ -1,6 +1,5 @@
 package bio.terra.service.dataset;
 
-import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.category.Unit;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -9,7 +8,6 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -128,7 +126,7 @@ public class DatasetServiceTest {
 
 
         // remove asset from dataset
-        datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetModel.getName(),null);
+        datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetModel.getName(), null);
 
         // get dataset
         Dataset dataset = datasetDao.retrieve(datasetId);

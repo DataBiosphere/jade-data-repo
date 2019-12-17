@@ -4,6 +4,7 @@ package bio.terra.service.iam.sam;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.exception.IamInternalServerErrorException;
+import com.google.api.client.http.HttpStatusCodes;
 import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,9 +18,11 @@ class SamRetry {
     private static Logger logger = LoggerFactory.getLogger(SamRetry.class);
     private final Instant operationTimeout;
     private final int retryMaxWait;
+    private final ConfigurationService configService;
     private int retrySeconds;
 
     SamRetry(ConfigurationService configService) {
+        this.configService = configService;
         this.retryMaxWait =
             configService.getParameterValue(ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS);
         this.retrySeconds =
@@ -32,9 +35,15 @@ class SamRetry {
     <T> T perform(SamFunction<T> function) {
         while (true) {
             try {
+                // Simulate a socket timeout for testing
+                configService.fault(ConfigEnum.SAM_TIMEOUT_FAULT, () -> {
+                    throw new ApiException("fault insertion", HttpStatusCodes.STATUS_CODE_SERVER_ERROR, null, null);
+                });
+
                 return function.apply();
+
             } catch (ApiException ex) {
-                RuntimeException rex = SamIam.convertSAMExToDataRepoEx(ex);
+                RuntimeException rex = SamIam.convertSAMExToDataRepoEx((ApiException) ex);
                 if (!(rex instanceof IamInternalServerErrorException)) {
                     throw rex;
                 }
@@ -45,6 +54,8 @@ class SamRetry {
                     logger.error("SamRetry: operation timed out after " + operationTimeout.toString());
                     throw rex;
                 }
+            } catch (Exception ex) {
+                throw new IamInternalServerErrorException("Unexpected exception type: " + ex.toString(), ex);
             }
 
             // Retry

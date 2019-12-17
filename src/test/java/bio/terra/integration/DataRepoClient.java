@@ -73,6 +73,12 @@ public class DataRepoClient {
         return makeDataRepoRequest(path, HttpMethod.POST, entity, responseClass);
     }
 
+    public <T> DataRepoResponse<T> put(TestConfiguration.User user, String path, String json, Class<T> responseClass)
+        throws Exception {
+        HttpEntity<String> entity = new HttpEntity<>(json, getHeaders(user));
+        return makeDataRepoRequest(path, HttpMethod.PUT, entity, responseClass);
+    }
+
     public <T> DataRepoResponse<T> delete(TestConfiguration.User user, String path, Class<T> responseClass)
         throws Exception {
         HttpEntity<String> entity = new HttpEntity<>(getHeaders(user));
@@ -167,7 +173,6 @@ public class DataRepoClient {
             }
             drResponse.setErrorModel(Optional.empty());
         } else {
-
             S errorObject = objectMapper.readValue(response.getBody(), errorClass);
             drResponse.setErrorModel(Optional.of(errorObject));
             drResponse.setResponseObject(Optional.empty());

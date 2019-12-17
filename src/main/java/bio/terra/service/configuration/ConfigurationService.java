@@ -1,6 +1,9 @@
 package bio.terra.service.configuration;
 
+import bio.terra.model.ConfigFaultCountedModel;
+import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.ConfigNotFoundException;
 import bio.terra.service.configuration.exception.DuplicateConfigNameException;
@@ -18,6 +21,7 @@ import java.util.Map;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 
 @Component
 public class ConfigurationService {
@@ -35,7 +39,7 @@ public class ConfigurationService {
 
     // -- repository API methods --
 
-    public List<ConfigModel> setConfig(ConfigGroupModel groupModel) {
+    public ConfigListModel setConfig(ConfigGroupModel groupModel) {
         logger.info("Setting configuration - label: " + groupModel.getLabel());
 
         // Validate before setting any values
@@ -52,7 +56,7 @@ public class ConfigurationService {
             priorConfigList.add(prior);
         }
 
-        return priorConfigList;
+        return new ConfigListModel().items(priorConfigList).total(priorConfigList.size());
     }
 
     public ConfigModel getConfig(String name) {
@@ -60,12 +64,12 @@ public class ConfigurationService {
         return config.get();
     }
 
-    public List<ConfigModel> getConfigList() {
+    public ConfigListModel getConfigList() {
         List<ConfigModel> configList = new LinkedList<>();
         for (ConfigBase config : configuration.values()) {
             configList.add(config.get());
         }
-        return configList;
+        return new ConfigListModel().items(configList).total(configList.size());
     }
 
     public void reset() {
@@ -74,18 +78,60 @@ public class ConfigurationService {
         }
     }
 
+    public void setFault(String name, boolean enable) {
+        ConfigBase configBase = lookup(name);
+        configBase.validateType(ConfigModel.ConfigTypeEnum.FAULT);
+
+        ConfigFault fault = (ConfigFault)configBase;
+        fault.setEnabled(enable);
+    }
+
     // Exposed for use in unit test
     <T> void addParameter(ConfigEnum configEnum, T value) {
-        if (configuration.containsKey(configEnum)) {
-            throw new DuplicateConfigNameException("Duplicate config name: " + configEnum.name());
-        }
-
+        checkDuplicate(configEnum);
         ConfigParameter param = new ConfigParameter(configEnum, value);
-        configuration.put(param.getConfigEnum(), param);
+        configuration.put(configEnum, param);
     }
 
     public <T> T getParameterValue(ConfigEnum configEnum) {
         return lookupByEnum(configEnum).getCurrentValue();
+    }
+
+    void addFaultCounted(ConfigEnum configEnum,
+                         int skipFor,
+                         int insert,
+                         int rate,
+                         ConfigFaultCountedModel.RateStyleEnum rateStyle) {
+        checkDuplicate(configEnum);
+        ConfigFaultCountedModel countedModel = new ConfigFaultCountedModel()
+            .skipFor(skipFor)
+            .insert(insert)
+            .rate(rate)
+            .rateStyle(rateStyle);
+        ConfigFaultCounted fault = new ConfigFaultCounted(configEnum,
+            ConfigFaultModel.FaultTypeEnum.COUNTED,
+            false,
+            countedModel);
+        configuration.put(configEnum, fault);
+    }
+
+    void addFaultSimple(ConfigEnum configEnum) {
+        checkDuplicate(configEnum);
+        ConfigFaultSimple fault = new ConfigFaultSimple(configEnum, ConfigFaultModel.FaultTypeEnum.SIMPLE, false);
+        configuration.put(configEnum, fault);
+    }
+
+    public boolean testInsertFault(ConfigEnum configEnum) {
+        ConfigBase configBase = lookupByEnum(configEnum);
+        configBase.validateType(ConfigModel.ConfigTypeEnum.FAULT);
+        ConfigFault fault = (ConfigFault)configBase;
+        return fault.testInsertFault();
+    }
+
+    public void fault(ConfigEnum configEnum, FaultFunction fn) throws Exception {
+        if (testInsertFault(configEnum)) {
+            fn.apply();
+        }
     }
 
     private ConfigBase lookup(String name) {
@@ -101,6 +147,12 @@ public class ConfigurationService {
         return config;
     }
 
+    private void checkDuplicate(ConfigEnum configEnum) {
+        if (configuration.containsKey(configEnum)) {
+            throw new DuplicateConfigNameException("Duplicate config name: " + configEnum.name());
+        }
+    }
+
     // -- Configuration Setup --
 
     // Setup the configuration. This is done once during construction.
@@ -108,6 +160,8 @@ public class ConfigurationService {
         addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.getRetryInitialWaitSeconds());
         addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.getRetryMaximumWaitSeconds());
         addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.getOperationTimeoutSeconds());
+
+        addFaultCounted(SAM_TIMEOUT_FAULT, 0, -1, 25, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     }
 
 

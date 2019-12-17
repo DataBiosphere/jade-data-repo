@@ -1,5 +1,6 @@
 package bio.terra.service.configuration;
 
+import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.model.ConfigModel;
 import bio.terra.service.configuration.exception.InvalidConfigTypeException;
 
@@ -26,6 +27,14 @@ public abstract class ConfigBase {
 
     public <T> T getCurrentValue() {
         throw new InvalidConfigTypeException("Config is not a parameter: " + configEnum.name());
+    }
+
+    void validateType(ConfigModel.ConfigTypeEnum expectedConfigType) {
+        if (configType != expectedConfigType) {
+            throw new ValidationException("Mismatched config type: " + getName() +
+                " is a " + configType.name() +
+                "; and is not a " + expectedConfigType.name());
+        }
     }
 
     abstract void reset();

@@ -54,8 +54,7 @@ public class IngestTest extends UsersBase {
         super.setup();
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
-        dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
+        dataRepoFixtures.addDatasetPolicyMember(steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @After

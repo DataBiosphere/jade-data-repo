@@ -1078,7 +1078,7 @@ paths:
 
 # -- Configuration Control Endpoints --
 
-  '/api/repository/v1/config/{name}':
+  '/api/repository/v1/configs/{name}':
     get:
       description: Get one configuration
       operationId: getConfig
@@ -1100,7 +1100,37 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/config':
+    put:
+      description: |
+        Enable or disable the named fault. Performing the put on a config that
+        is not a fault is an error.
+      operationId: setFault
+      tags:
+        - repository
+      parameters:
+        - name: name
+          description: name of the configuration to 
+          required: true
+          in: path
+          type: string
+        - in: query
+          name: enable
+          type: boolean
+          default: true
+          description: whether to enable (default) or disable the fault
+      responses:
+        204:
+          description: fault was en/dis-abled successfully - no content
+        400:
+          description: configuration name is not a fault
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: unknown configuration name
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/configs':
     put:
       description: Set the a group of configurations
       operationId: setConfigList
@@ -1115,9 +1145,7 @@ paths:
         200:
           description: previous settings
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/ConfigModel'
+            $ref: '#/definitions/ConfigListModel'
         400:
           description: invalid configuration model
           schema:
@@ -1128,7 +1156,7 @@ paths:
             $ref: '#/definitions/ErrorModel'
 
     get:
-      description: Get the named configuration
+      description: Get all configurations
       operationId: getConfigList
       tags:
         - repository
@@ -1136,11 +1164,9 @@ paths:
         200:
           description: all configurations
           schema:
-            type: array
-            items:
-              $ref: '#/definitions/ConfigModel'
+            $ref: '#/definitions/ConfigListModel'
 
-  '/api/repository/v1/config/reset':
+  '/api/repository/v1/configs/reset':
     put:
       description: Reset the configuration to original settings
       operationId: resetConfig
@@ -2145,13 +2171,72 @@ definitions:
           - fault
           - parameter
           - logging
+      fault:
+        $ref: '#/definitions/ConfigFaultModel'
       parameter:
         $ref: '#/definitions/ConfigParameterModel'
+
   # TODO: add the other configuration types
-  #      fault:
-  #        $ref: '#/definitions/ConfigFaultModel'
   #      logging:
   #        $ref: '#/definitions/ConfigLoggingModel'
+
+  ConfigFaultModel:
+    description: Fault control parameters
+    properties:
+      enabled:
+        type: boolean
+        description: |
+          If the fault is enabled, then is in effect. Fault points cause insert
+          faults. Typical usage is that faults are disabled on system start and explicitly
+          enabled by test code or via the setFault endpoint.
+      faultType:
+        type: string
+        enum:
+          - simple
+          - counted
+        description: |
+          A simple fault has no parameters. It is just enabled or disabled. This type of
+          fault is typically used when the desired behavior of the fault is too complex
+          for expression in the fault types and custom code is needed to get the right
+          failure behavior.
+
+          A counted fault is used to insert some number of faults in a pattern. See the
+          ConfigFaultCountedModel for details.
+      counted:
+        $ref: '#/definitions/ConfigFaultCountedModel'
+
+  ConfigFaultCountedModel:
+    description: |
+      Counted fault is used to insert a fixed number of faults. A "fault test" is one
+      call to the fault manager for a named fault. The skipFor lets you get the system to
+      a certain stable point where you want to begin inserting faults. Insert gives the
+      total number of faults to trigger. The rate gives the percentage of the time to 
+      insert the fault. A value of 50 would insert the fault half
+      the time. A value of 20 would insert the fault 20% of the time . The rateStyle
+      describes whether the fault will be fixed or random. In our 20 example, if the rate style
+      is fixed, the fault would be skipped 4 times, inserted once, skipped 4 times, inserted once, etc.
+      It uses integer math - you've been warned. If the rate style is random, a random number
+      is generated to determine whether the fault is inserted with a probability of 0.2.
+    properties:
+      skipFor:
+        type: integer
+        description: number of fault tests to skip before beginning fault insertion
+      insert:
+        type: integer
+        description: total number of times to insert the fault; -1 means insert forever
+      rate:
+        type: integer
+        description: |
+          insert a fault rate percent of the time. If rate is 100, the
+          fault will always be inserted regardless of rate.
+      rateStyle:
+        type: string
+        enum:
+          - fixed
+          - random
+        description: |
+          fixed style means insert the fault; skip for rate-1; ...
+          random style means randomly insert the fault with probability of 1:<rate>
 
   ConfigParameterModel:
     description: The value of the parameter
@@ -2174,6 +2259,18 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/ConfigModel'
+
+  ConfigListModel:
+    description: Result list of configuration settings
+    properties:
+      total:
+        type: integer
+        description: Total number of configs
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/ConfigModel'
+
 
 ##########################################################################################
 # DRS DEFINITIONS

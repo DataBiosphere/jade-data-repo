@@ -5,6 +5,7 @@ import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
 import com.google.cloud.firestore.Firestore;
+import com.google.cloud.firestore.QueryDocumentSnapshot;
 import com.google.cloud.firestore.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -101,8 +102,19 @@ class FireStoreFileDao {
             document -> {
                 FireStoreFile fireStoreFile = document.toObject(FireStoreFile.class);
                 func.accept(fireStoreFile);
-                document.getReference().delete();
+                doDelete(document);
             });
+    }
+
+    private void doDelete(QueryDocumentSnapshot document) {
+        try {
+            document.getReference().delete().get();
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new FileSystemExecutionException("doDelete - execution interrupted", ex);
+        } catch (ExecutionException ex) {
+            throw fireStoreUtils.handleExecutionException(ex, "doDelete");
+        }
     }
 
     private String makeCollectionId(String datasetId) {

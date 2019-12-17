@@ -23,47 +23,52 @@ import java.util.function.Consumer;
 
 @Component
 public class FireStoreUtils {
+
     private final Logger logger = LoggerFactory.getLogger(FireStoreUtils.class);
 
-    public <T> T transactionGet(String op, ApiFuture<T> transaction) {
+    <T> T transactionGet(String op, ApiFuture<T> transaction) {
         try {
             return transaction.get();
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException(op + " - execution interrupted", ex);
         } catch (ExecutionException ex) {
-            // The ExecutionException wraps the underlying exception caught in the Future, so we need
-            // to examine the properties of the cause to understand what to do.
-            // Possible outcomes:
-            // - throw FileSystemAbortTransactionException for retryable firestore exceptions to ask the step to retry
-            // - throw FileSystemExecutionException for other firestore exceptions (not retryable)
-            // - rethrow RuntimeExceptions to expose other unexpected exceptions
-            // - throw FileSystemExecutionException to wrap non-Runtime (oddball) exceptions
-
-            Throwable throwable = ex.getCause();
-            while (throwable instanceof ExecutionException) {
-                throwable = throwable.getCause();
-            }
-            if (throwable instanceof AbortedException) {
-                AbortedException aex = (AbortedException)throwable;
-                // TODO: in general, log + rethrow is bad form. For now, I want to make sure we see these in
-                //  the log as they happen. Once we are comfortable that retry is working properly, we can
-                //  rely on the Stairway debug logging as needed.
-                String msg = "Retrying aborted exception: " + aex;
-                logger.info(msg);
-                throw new FileSystemAbortTransactionException(msg, aex);
-            }
-            if (throwable instanceof FirestoreException) {
-                FirestoreException fex = (FirestoreException)throwable;
-                String msg = "Retrying firestore exception: " + fex;
-                logger.info(msg);
-                throw new FileSystemAbortTransactionException(msg, fex);
-            }
-            if (throwable instanceof RuntimeException) {
-                throw (RuntimeException)throwable;
-            }
-            throw new FileSystemExecutionException(op + " - execution exception wrapping: " + throwable.toString());
+            throw handleExecutionException(ex, op);
         }
+    }
+
+    RuntimeException handleExecutionException(ExecutionException ex, String op) {
+        // The ExecutionException wraps the underlying exception caught in the FireStore Future, so we need
+        // to examine the properties of the cause to understand what to do.
+        // Possible outcomes:
+        // - FileSystemAbortTransactionException for retryable firestore exceptions to ask the step to retry
+        // - FileSystemExecutionException for other firestore exceptions
+        // - RuntimeExceptions to expose other unexpected exceptions
+        // - FileSystemExecutionException to wrap non-Runtime (oddball) exceptions
+
+        Throwable throwable = ex.getCause();
+        while (throwable instanceof ExecutionException) {
+            throwable = throwable.getCause();
+        }
+        if (throwable instanceof AbortedException) {
+            AbortedException aex = (AbortedException) throwable;
+            // TODO: in general, log + rethrow is bad form. For now, I want to make sure we see these in
+            //  the log as they happen. Once we are comfortable that retry is working properly, we can
+            //  rely on the Stairway debug logging as needed.
+            String msg = "Retrying aborted exception: " + aex;
+            logger.info(msg);
+            return new FileSystemAbortTransactionException(msg, aex);
+        }
+        if (throwable instanceof FirestoreException) {
+            FirestoreException fex = (FirestoreException) throwable;
+            String msg = "Retrying firestore exception: " + fex;
+            logger.info(msg);
+            return new FileSystemAbortTransactionException(msg, fex);
+        }
+        if (throwable instanceof RuntimeException) {
+            return (RuntimeException) throwable;
+        }
+        return new FileSystemExecutionException(op + " - execution exception wrapping: " + throwable, throwable);
     }
 
     public String getName(String path) {
@@ -84,7 +89,7 @@ public class FireStoreUtils {
         return '/' + StringUtils.join(pathParts, '/', 0, endIndex);
     }
 
-    public String getFullPath(String dirPath, String name) {
+    String getFullPath(String dirPath, String name) {
         // Originally, this was a method in FireStoreDirectoryEntry, but the Firestore client complained about it,
         // because it was not a set/get for an actual class member. Very picky, that!
         // There are three cases here:
@@ -105,11 +110,11 @@ public class FireStoreUtils {
      * <li>There is no operation that atomically deletes a collection.</li>
      * <li>Deleting a document does not delete the documents in its subcollections.</li>
      * <li>If your documents have dynamic subcollections, (we don't do this!)
-     *     it can be hard to know what data to delete for a given path.</li>
+     * it can be hard to know what data to delete for a given path.</li>
      * <li>Deleting a collection of more than 500 documents requires multiple batched
-     *     write operations or hundreds of single deletes.</li>
+     * write operations or hundreds of single deletes.</li>
      * </ul>
-     *
+     * <p>
      * Our objects are small, so I think we can use the maximum batch size without
      * concern for using too much memory.
      */

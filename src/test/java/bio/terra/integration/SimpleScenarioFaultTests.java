@@ -76,28 +76,41 @@ public class SimpleScenarioFaultTests extends UsersBase {
 
     @Test
     public void testSamTimeout() throws Exception {
-        dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
+        ConfigGroupModel configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        List<ConfigModel> configList = dataRepoFixtures.setConfigList(steward(), configGroup).getItems();
+        printConfigList("pre-fixed", configList);
+        printConfigList("fixed", configGroup.getGroup());
+
         simpleScenario();
 
         // The rest of this is here not so much to test the fault as to validate the configuration test
         // infrastructure in a live environment.
         dataRepoFixtures.resetConfig(steward());
+        configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.RANDOM);
+        dataRepoFixtures.setConfigList(steward(), configGroup);
+        printConfigList("random", configGroup.getGroup());
 
+        simpleScenario();
+
+        configList = dataRepoFixtures.getConfigList(steward()).getItems();
+        printConfigList("final", configList);
+    }
+
+    private ConfigGroupModel buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum rateStyle) {
         ConfigGroupModel configGroupModel = new ConfigGroupModel()
-            .label("simpleScenarioFaultTests - random SAM timeout fault");
-
+            .label("simpleScenarioFaultTests - SAM timeout fault - " + rateStyle);
 
         configGroupModel.addGroupItem(
             new ConfigModel()
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .name("SAM_RETRY_INITIAL_WAIT_SECONDS")
-                .parameter(new ConfigParameterModel().value("10")));
+                .parameter(new ConfigParameterModel().value("1")));
 
         configGroupModel.addGroupItem(
             new ConfigModel()
                 .configType(ConfigModel.ConfigTypeEnum.PARAMETER)
                 .name("SAM_RETRY_MAXIMUM_WAIT_SECONDS")
-                .parameter(new ConfigParameterModel().value("30")));
+                .parameter(new ConfigParameterModel().value("3")));
 
         configGroupModel.addGroupItem(
             new ConfigModel()
@@ -115,16 +128,10 @@ public class SimpleScenarioFaultTests extends UsersBase {
                     .counted(new ConfigFaultCountedModel()
                         .insert(-1)
                         .rate(20)
-                        .rateStyle(ConfigFaultCountedModel.RateStyleEnum.RANDOM)
+                        .rateStyle(rateStyle)
                         .skipFor(0))));
 
-        List<ConfigModel> configList = dataRepoFixtures.setConfigList(steward(), configGroupModel).getItems();
-        printConfigList("prior", configList);
-
-        simpleScenario();
-
-        configList = dataRepoFixtures.getConfigList(steward()).getItems();
-        printConfigList("current", configList);
+        return configGroupModel;
     }
 
     private void printConfigList(String label, List<ConfigModel> configModelList) {

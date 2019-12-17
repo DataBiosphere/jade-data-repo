@@ -42,7 +42,7 @@ public class ConfigFaultCounted extends ConfigFault {
     @Override
     synchronized ConfigModel get() {
         ConfigFaultModel faultCounted = new ConfigFaultModel()
-            .faultType(ConfigFaultModel.FaultTypeEnum.SIMPLE)
+            .faultType(ConfigFaultModel.FaultTypeEnum.COUNTED)
             .enabled(isEnabled())
             .counted(countedModel);
 

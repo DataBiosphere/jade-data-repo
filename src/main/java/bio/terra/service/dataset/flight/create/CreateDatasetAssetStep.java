@@ -11,12 +11,7 @@ import bio.terra.service.dataset.DatasetRelationship;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.service.dataset.AssetDao;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -91,6 +86,14 @@ public class CreateDatasetAssetStep implements Step {
         }
         assetDao.create(newAssetSpecification, getDataset(context).getId());
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
+        // add a fault that forces an exception to make sure the undo works
+        try {
+            configService.fault(ConfigEnum.CREATE_ASSET_FAULT, () -> {
+                throw new RuntimeException("fault insertion");
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
         return StepResult.getStepResultSuccess();
     }
 

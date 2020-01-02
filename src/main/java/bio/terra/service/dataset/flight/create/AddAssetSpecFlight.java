@@ -16,7 +16,7 @@ public class AddAssetSpecFlight extends Flight {
         // get the required daos and services to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         AssetDao assetDao = (AssetDao) appContext.getBean("assetDao");
-        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");;
+        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         // create job to add the assetspec to the dataset

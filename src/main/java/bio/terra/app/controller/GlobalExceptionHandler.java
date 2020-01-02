@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.ConflictException;
 import bio.terra.common.exception.DataRepoException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
@@ -49,6 +50,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(NotImplementedException.class)
     @ResponseStatus(HttpStatus.NOT_IMPLEMENTED)
     public ErrorModel notImplementedHandler(DataRepoException ex) {
+        return buildErrorModel(ex, ex.getErrorDetails());
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorModel conflictHandler(DataRepoException ex) {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 

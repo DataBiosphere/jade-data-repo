@@ -29,7 +29,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public class SnapshotDao {
+public class  SnapshotDao {
     private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.SnapshotDao");
 
     private final NamedParameterJdbcTemplate jdbcTemplate;

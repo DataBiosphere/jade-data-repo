@@ -318,7 +318,8 @@ public class FireStoreDao {
             .description(fireStoreFile.getDescription())
             .gspath(fireStoreFile.getGspath())
             .mimeType(fireStoreFile.getMimeType())
-            .bucketResourceId(fireStoreFile.getBucketResourceId());
+            .bucketResourceId(fireStoreFile.getBucketResourceId())
+            .loadTag(fireStoreFile.getLoadTag());
 
         return fsFile;
     }

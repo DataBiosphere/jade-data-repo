@@ -22,7 +22,10 @@ public class CreateDatasetAssetStep implements Step {
     private final AssetDao assetDao;
     private final DatasetService datasetService;
 
-    public CreateDatasetAssetStep(AssetDao assetDao, ConfigurationService configService, DatasetService datasetService) {
+    public CreateDatasetAssetStep(
+        AssetDao assetDao,
+        ConfigurationService configService,
+        DatasetService datasetService) {
         this.assetDao = assetDao;
         this.configService = configService;
         this.datasetService = datasetService;

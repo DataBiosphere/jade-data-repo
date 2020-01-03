@@ -64,7 +64,7 @@ public class LoadDao {
             return; // nothing to unlock
         }
 
-        if (StringUtils.equals(load.getLockingFlightId(), flightId)) {
+        if (!StringUtils.equals(load.getLockingFlightId(), flightId)) {
             conflictThrow(load);
         }
         updateLoad(load.getId(), false, null);

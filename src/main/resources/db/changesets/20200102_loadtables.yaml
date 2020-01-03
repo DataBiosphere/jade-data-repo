@@ -40,8 +40,8 @@ databaseChangeLog:
                   type: ${uuid_type}
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_load_file_load_tag
-                    references: load_tag(id)
+                    foreignKeyName: fk_load_file_load
+                    references: load(id)
                     deleteCascade: true
               - column:
                   name: sourcePath

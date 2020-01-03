@@ -8,6 +8,7 @@ import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
@@ -66,6 +67,7 @@ public class FileService {
         return jobService
             .newJob(description, FileIngestFlight.class, fileLoad, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
             .submit();
     }
 

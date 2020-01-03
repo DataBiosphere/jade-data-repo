@@ -1377,6 +1377,12 @@ parameters:
     type: integer
     default: 0
     in: query
+  LoadTag:
+    name: loadtag
+    description: a load tag
+    required: true
+    type: string
+    in: path
 
 ##########################################################################################
 # DEFINITIONS

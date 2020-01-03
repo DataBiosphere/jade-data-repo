@@ -1,28 +1,28 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.common.category.Connected;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.common.category.Connected;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.StringListCompare;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
-import bio.terra.model.FileLoadModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.tabulardata.google.BigQueryProject;
-import bio.terra.common.exception.PdaoException;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotDataProject;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.FieldValue;
@@ -98,6 +98,7 @@ public class EncodeFileTest {
 
     private BillingProfileModel profileModel;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
+    private String loadTag;
 
     @Before
     public void setup() throws Exception {
@@ -105,6 +106,7 @@ public class EncodeFileTest {
         connectedOperations.stubOutSamCalls(samService);
         String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
+        loadTag = "encodeLoadTag" + UUID.randomUUID();
     }
 
     @After
@@ -118,14 +120,16 @@ public class EncodeFileTest {
     public void encodeFileTest() throws Exception {
         DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
             "encodefiletest-dataset.json");
-        String targetPath = loadFiles(datasetSummary.getId(), false, false);
-        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
 
+        // Load all of the files into the dataset
+        String targetPath = loadFiles(datasetSummary.getId(), false, false);
+
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .table("file")
-            .path(gsPath);
-        ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
+            .path(gsPath)
+            .strategy(IngestRequestModel.StrategyEnum.APPEND);
 
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
@@ -158,6 +162,7 @@ public class EncodeFileTest {
         FileModel fsObjByPath =
             connectedOperations.lookupSnapshotFileByPath(snapshotSummary.getId(), filePath, 0);
         assertThat("Retrieve snapshot file objects match", fsObjById, equalTo(fsObjByPath));
+        assertThat("Load tag is stored", fsObjById.getFileDetail().getLoadTag(), equalTo(loadTag));
 
         // Build the reference directory name map
         String datasetPath = "/" + datasetSummary.getName();
@@ -452,7 +457,8 @@ public class EncodeFileTest {
             .profileId(profileModel.getId())
             .description(null)
             .mimeType("application/octet-string")
-            .targetPath(uri.getPath());
+            .targetPath(uri.getPath())
+            .loadTag(loadTag);
 
         return fileLoadModel;
     }

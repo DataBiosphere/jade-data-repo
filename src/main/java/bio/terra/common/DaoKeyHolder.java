@@ -25,6 +25,10 @@ public class DaoKeyHolder extends GeneratedKeyHolder {
         return null;
     }
 
+    public String getString(String fieldName) {
+        return getField(fieldName, String.class);
+    }
+
     public <T> T getField(String fieldName, Class<T> type) {
         Map<String, Object> keys = getKeys();
         if (keys != null) {

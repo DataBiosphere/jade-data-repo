@@ -1,13 +1,16 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileService;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.firestore.FireStoreUtils;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.load.LoadService;
+import bio.terra.service.load.flight.LoadLockStep;
+import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
@@ -32,6 +35,7 @@ public class FileIngestFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
+        LoadService loadService = (LoadService)appContext.getBean("loadService");
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
 
@@ -48,6 +52,7 @@ public class FileIngestFlight extends Flight {
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
+        // 0. Lock the load tag - only one flight operating on a load tag at a time
         // 1. Generate the new file id and store it in the working map. We need to allocate the file id before any
         //    other operation so that it is persisted in the working map. In particular, IngestFileDirectoryStep undo
         //    needs to know the file id in order to clean up.
@@ -63,11 +68,14 @@ public class FileIngestFlight extends Flight {
         //    time of the actual file in GCS. That ensures that the file info we return on REST API (and DRS) lookups
         //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
+        // 6. Unlock the load tag
+        addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep());
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
         addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService));
         addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
+        addStep(new LoadUnlockStep(loadService));
     }
 
 }

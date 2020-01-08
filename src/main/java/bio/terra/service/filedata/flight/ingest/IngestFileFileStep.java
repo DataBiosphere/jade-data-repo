@@ -48,7 +48,8 @@ public class IngestFileFileStep implements Step {
             .gspath(fsFileInfo.getGspath())
             .checksumCrc32c(fsFileInfo.getChecksumCrc32c())
             .checksumMd5(fsFileInfo.getChecksumMd5())
-            .size(fsFileInfo.getSize());
+            .size(fsFileInfo.getSize())
+            .loadTag(fileLoadModel.getLoadTag());
 
         try {
             fileDao.createFileMetadata(dataset, newFile);

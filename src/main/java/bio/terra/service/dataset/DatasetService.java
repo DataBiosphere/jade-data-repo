@@ -1,9 +1,6 @@
 package bio.terra.service.dataset;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
-import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
-import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.load.LoadService;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
@@ -11,18 +8,18 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
+import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,14 +31,17 @@ public class DatasetService {
     private final DatasetDao datasetDao;
     private final JobService jobService; // for handling flight response
     private final DataLocationService dataLocationService;
+    private final LoadService loadService;
 
     @Autowired
     public DatasetService(DatasetDao datasetDao,
                           JobService jobService,
-                          DataLocationService dataLocationService) {
+                          DataLocationService dataLocationService,
+                          LoadService loadService) {
         this.datasetDao = datasetDao;
         this.jobService = jobService;
         this.dataLocationService = dataLocationService;
+        this.loadService = loadService;
     }
 
     public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
@@ -95,10 +95,8 @@ public class DatasetService {
 
     public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
         // Fill in a default load id if the caller did not provide one in the ingest request.
-        if (StringUtils.isEmpty(ingestRequestModel.getLoadTag())) {
-            String loadTag = "load-at-" + Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT);
-            ingestRequestModel.setLoadTag(loadTag);
-        }
+        String loadTag = loadService.computeLoadTag(ingestRequestModel.getLoadTag());
+        ingestRequestModel.setLoadTag(loadTag);
         String description =
             "Ingest from " + ingestRequestModel.getPath() +
                 " to " + ingestRequestModel.getTable() +

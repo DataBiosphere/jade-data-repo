@@ -1377,6 +1377,12 @@ parameters:
     type: integer
     default: 0
     in: query
+  LoadTag:
+    name: loadtag
+    description: a load tag
+    required: true
+    type: string
+    in: path
 
 ##########################################################################################
 # DEFINITIONS
@@ -1727,10 +1733,7 @@ definitions:
           - upsert
           - append
       load_tag:
-        type: string
-        description: |
-          client-specified tag for this load. If no id is specified, we use the
-          string form of the job create time as the tag.
+        $ref: '#/definitions/LoadTagModel'
       max_bad_records:
         type: integer
         default: 0
@@ -1779,7 +1782,7 @@ definitions:
       path:
         type: string
       load_tag:
-        type: string
+        $ref: '#/definitions/LoadTagModel'
       row_count:
         type: integer
         format: int64
@@ -1818,6 +1821,8 @@ definitions:
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: The profile id to use for this file
+      loadTag:
+        $ref: '#/definitions/LoadTagModel'
       description:
         type: string
         description: |-
@@ -1881,6 +1886,8 @@ definitions:
       accessUrl:
         type: string
         description: URL of the file in cloud storage
+      loadTag:
+        $ref: '#/definitions/LoadTagModel'
 
   DirectoryDetailModel:
     description: Directory in the data repository
@@ -1897,6 +1904,12 @@ definitions:
         description: Array of directory contents
         items:
           $ref: '#/definitions/FileModel'
+
+  LoadTagModel:
+    type: string
+    description: |
+      client-specified tag for a data or file load. If no id is specified, we use the
+      string form of the job create time as the tag.
 
   ## Snapshot Definitions ##
 

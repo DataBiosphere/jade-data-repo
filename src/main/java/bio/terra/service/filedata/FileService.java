@@ -1,5 +1,6 @@
 package bio.terra.service.filedata;
 
+import bio.terra.service.load.LoadService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -7,6 +8,7 @@ import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
@@ -34,16 +36,19 @@ public class FileService {
     private final FireStoreDao fileDao;
     private final DatasetService datasetService;
     private final SnapshotService snapshotService;
+    private final LoadService loadService;
 
     @Autowired
     public FileService(JobService jobService,
                        FireStoreDao fileDao,
                        DatasetService datasetService,
-                       SnapshotService snapshotService) {
+                       SnapshotService snapshotService,
+                       LoadService loadService) {
         this.fileDao = fileDao;
         this.datasetService = datasetService;
         this.jobService = jobService;
         this.snapshotService = snapshotService;
+        this.loadService = loadService;
     }
 
     public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
@@ -56,10 +61,13 @@ public class FileService {
     }
 
     public String ingestFile(String datasetId, FileLoadModel fileLoad, AuthenticatedUserRequest userReq) {
+        String loadTag = loadService.computeLoadTag(fileLoad.getLoadTag());
+        fileLoad.setLoadTag(loadTag);
         String description = "Ingest file " + fileLoad.getTargetPath();
         return jobService
             .newJob(description, FileIngestFlight.class, fileLoad, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
             .submit();
     }
 
@@ -123,7 +131,8 @@ public class FileService {
             fileModel.fileDetail(new FileDetailModel()
                 .datasetId(fsFile.getDatasetId().toString())
                 .accessUrl(fsFile.getGspath())
-                .mimeType(fsFile.getMimeType()));
+                .mimeType(fsFile.getMimeType())
+                .loadTag(fsFile.getLoadTag()));
         } else if (fsItem instanceof FSDir) {
             fileModel.fileType(FileModelType.DIRECTORY);
             FSDir fsDir = (FSDir)fsItem;

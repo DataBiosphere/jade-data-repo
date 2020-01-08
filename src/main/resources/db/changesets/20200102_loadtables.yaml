@@ -1,0 +1,69 @@
+databaseChangeLog:
+  - changeSet:
+      id: load_tables
+      author: dd
+      changes:
+        - createTable:
+            tableName: load
+            remarks: |
+              One row per unique load tag. Used to lock the load; only one thread operating on a load tag at a time.
+            columns:
+              - column:
+                  name: id
+                  type: ${uuid_type}
+                  defaultValueComputed: ${uuid_function}
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: load_tag
+                  type: text
+                  constraints:
+                    unique: true
+                    nullable: false
+              - column:
+                  name: locked
+                  type: boolean
+                  constraints:
+                    nullable: false
+              - column:
+                  name: locking_flight_id
+                  type: text
+
+        - createTable:
+            tableName: load_file
+            remarks: |
+              One row per file in a load tag. Maintains state of the file load.
+            columns:
+              - column:
+                  name: load_id
+                  type: ${uuid_type}
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_load_file_load
+                    references: load(id)
+                    deleteCascade: true
+              - column:
+                  name: sourcePath
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: targetPath
+                  type: text
+                  constraints:
+                    nullable: false
+              - column:
+                  name: state
+                  type: text
+                  remarks: NOT_TRIED, SUCCEEDED, FAILED
+              - column:
+                  name: fileId
+                  type: text
+                  remarks: if the state is SUCCEEDED, this column will contain the loaded file id
+              - column:
+                  name: error
+                  type: text
+                  remarks: if state is FAILED, this column will contain the error message
+
+

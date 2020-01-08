@@ -19,7 +19,7 @@ import java.util.UUID;
 
 @Repository
 public class LoadDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.SnapshotDao");
+    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.LoadDao");
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 

@@ -1,11 +1,18 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.common.fixtures.ConnectedOperations;
+import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamService;
+import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import org.junit.After;
@@ -16,12 +23,13 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -32,6 +40,9 @@ import static org.junit.Assert.assertThat;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class DatasetServiceTest {
+    private AuthenticatedUserRequest testUser = new AuthenticatedUserRequest()
+        .subjectId("DatasetUnit")
+        .email("dataset@unit.com");
 
     @Autowired
     private JsonLoader jsonLoader;
@@ -41,6 +52,15 @@ public class DatasetServiceTest {
 
     @Autowired
     private DatasetService datasetService;
+
+    @Autowired
+    private JobService jobService;
+
+    @MockBean
+    private IamService samService;
+
+    @Autowired
+    private ConnectedOperations connectedOperations;
 
     @Autowired
     private ProfileDao profileDao;
@@ -65,6 +85,8 @@ public class DatasetServiceTest {
         billingProfile = ProfileFixtures.randomBillingProfile();
         UUID profileId = profileDao.createBillingProfile(billingProfile);
         billingProfile.id(profileId);
+        // Setup mock sam service
+        connectedOperations.stubOutSamCalls(samService);
     }
 
     @After
@@ -74,29 +96,39 @@ public class DatasetServiceTest {
 
     @Test(expected = DatasetNotFoundException.class)
     public void datasetDeleteTest() throws IOException {
-        UUID datasetId = createDataset("dataset-minimal.json");
+        UUID datasetId = createDataset("dataset-create-test.json");
         assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
         datasetDao.retrieve(datasetId);
     }
 
     @Test
     public void addDatasetAssetSpecifications() throws Exception {
-        UUID datasetId = createDataset("dataset-minimal.json");
-        List<UUID> datasetIds = new ArrayList<>();
-        datasetIds.add(datasetId);
+        UUID datasetId = createDataset("dataset-create-test.json");
+        String assetName = "assetName";
+        // get created dataset
+        Dataset createdDataset = datasetDao.retrieve(datasetId);
+        assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
 
-        String assetName = "asset name";
 
-        AssetModel assetModel = new AssetModel().name(assetName);
+        AssetModel assetModel = new AssetModel()
+            .name(assetName)
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(DatasetFixtures.buildAssetParticipantTable(), DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
 
         // add asset to dataset
-        datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, null);
+        String jobId = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
+
+        TestUtils.eventualExpect(5, 60, true, () ->
+          jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
 
         // get dataset
         Dataset dataset = datasetDao.retrieve(datasetId);
 
         // make sure the dataset has the expected asset
-        assertThat("dataset has one asset spec", dataset.getAssetSpecifications().size(), equalTo(1));
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
         assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
             equalTo(true));
 
@@ -104,35 +136,60 @@ public class DatasetServiceTest {
     }
 
     @Test
-    public void removeDatasetAssetSpecifications() throws Exception {
-        UUID datasetId = createDataset("dataset-minimal.json");
-        List<UUID> datasetIds = new ArrayList<>();
-        datasetIds.add(datasetId);
+    public void addDatasetBadAssetSpecification() throws Exception {
+        UUID datasetId = createDataset("dataset-create-test.json");
+        String assetName = "sample";
+        // get created dataset
+        Dataset createdDataset = datasetDao.retrieve(datasetId);
+        assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
 
-        String assetName = "asset name";
-
-        AssetModel assetModel = new AssetModel().name(assetName);
+        AssetModel assetModel = new AssetModel()
+            .name(assetName)
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(DatasetFixtures.buildAssetParticipantTable(), DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
 
         // add asset to dataset
-        datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, null);
+        String jobId = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
 
-        // get dataset
-        Dataset datasetWAsset = datasetDao.retrieve(datasetId);
-
-        // make sure the dataset has the expected asset
-        assertThat("dataset has one asset spec", datasetWAsset.getAssetSpecifications().size(), equalTo(1));
-        assertThat("dataset has expected asset", datasetWAsset.getAssetSpecificationByName(assetName).isPresent(),
-            equalTo(true));
-
-
-        // remove asset from dataset
-        datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetModel.getName(), null);
+        TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
 
         // get dataset
         Dataset dataset = datasetDao.retrieve(datasetId);
 
         // make sure the dataset has the expected asset
-        assertThat("dataset has one asset spec", dataset.getAssetSpecifications().size(), equalTo(0));
+        assertThat("dataset has no additional asset spec", dataset.getAssetSpecifications().size(), equalTo(2));
+        datasetDao.delete(datasetId);
+    }
+
+    @Test
+    public void removeDatasetAssetSpecifications() throws Exception {
+        UUID datasetId = createDataset("dataset-create-test.json");
+        String assetName = "sample";
+
+        // get dataset
+        Dataset datasetWAssets = datasetDao.retrieve(datasetId);
+
+        // make sure the dataset has the expected asset
+        assertThat(
+            "dataset has two asset specs already",
+            datasetWAssets.getAssetSpecifications().size(),
+            equalTo(2));
+        assertThat("dataset has expected assets", datasetWAssets.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+
+        // remove asset from dataset
+        datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetName, testUser);
+
+        // get dataset
+        Dataset dataset = datasetDao.retrieve(datasetId);
+
+        // make sure the dataset has the expected asset
+        assertThat("dataset has one less asset spec", dataset.getAssetSpecifications().size(), equalTo(1));
 
         datasetDao.delete(datasetId);
     }

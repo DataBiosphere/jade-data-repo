@@ -24,9 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -117,40 +115,26 @@ public class DatasetService {
         String datasetId, AssetModel assetModel, AuthenticatedUserRequest userReq
     ) {
         String description = "Add dataset asset specification " + assetModel.getName();
-        Dataset dataset = retrieve(UUID.fromString(datasetId));
-
-        List<DatasetTable> datasetTables = dataset.getTables();
-        Map<String, DatasetTable> tablesMap = new HashMap<>();
-        datasetTables.forEach(table -> tablesMap.put(table.getName(), table));
-
-        List<DatasetRelationship> datasetRelationships = dataset.getRelationships();
-        Map<String, DatasetRelationship> relationshipMap = new HashMap<>();
-        datasetRelationships.forEach(relationship -> relationshipMap
-            .put(relationship.getId().toString(), relationship));
-
-        AssetSpecification assetSpecification = DatasetJsonConversion
-                .assetModelToAssetSpecification(assetModel, tablesMap, relationshipMap);
-
         return jobService
-            .newJob(description, AddAssetSpecFlight.class, assetSpecification, userReq)
+            .newJob(description, AddAssetSpecFlight.class, assetModel, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .submit();
     }
 
     public String removeDatasetAssetSpecifications(
-        String datasetId, String assetId, AuthenticatedUserRequest userReq
+        String datasetId, String assetName, AuthenticatedUserRequest userReq
     ) {
         Dataset dataset = retrieve(UUID.fromString(datasetId));
-        AssetSpecification assetSpecification = dataset
-            .getAssetSpecificationById(UUID.fromString(assetId)).orElseThrow(() ->
-                new AssetNotFoundException("This dataset does not have an asset specification with id: " + assetId)
+        AssetSpecification asset = dataset
+            .getAssetSpecificationByName(assetName).orElseThrow(() ->
+                new AssetNotFoundException("This dataset does not have an asset specification with name: " + assetName)
             );
-        String assetName = assetSpecification.getName();
         String description = "Remove dataset asset specification " + assetName;
+        String assetId = asset.getId().toString();
 
         return jobService
             .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
-            .addParameter(JobMapKeys.ASSET_ID.getKeyName(), datasetId)
+            .addParameter(JobMapKeys.ASSET_ID.getKeyName(), assetId)
             .submit();
     }
 }

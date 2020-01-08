@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -161,9 +162,10 @@ public class AssetDao {
                                 rs.getObject("relationship_id", UUID.class))));
     }
 
-    public boolean delete(UUID assetId) {
-        int rowsAffected = jdbcTemplate.update("DELETE FROM asset_specification WHERE id = :assetId CASCADE",
-            new MapSqlParameterSource().addValue("id", assetId));
+    @Transactional
+    public boolean delete(UUID id) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM asset_specification WHERE id = :id ",
+        new MapSqlParameterSource().addValue("id", id));
         return rowsAffected > 0;
     }
 }

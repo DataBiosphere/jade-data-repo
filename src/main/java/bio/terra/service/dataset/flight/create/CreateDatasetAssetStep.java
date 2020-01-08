@@ -84,8 +84,6 @@ public class CreateDatasetAssetStep implements Step {
                 new ErrorModel().message("Asset already exists: " + newAssetSpecification.getName()));
             return StepResult.getStepResultSuccess();
         }
-        assetDao.create(newAssetSpecification, getDataset(context).getId());
-        map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
         // add a fault that forces an exception to make sure the undo works
         try {
             configService.fault(ConfigEnum.CREATE_ASSET_FAULT, () -> {
@@ -94,6 +92,8 @@ public class CreateDatasetAssetStep implements Step {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+        assetDao.create(newAssetSpecification, getDataset(context).getId());
+        map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
         return StepResult.getStepResultSuccess();
     }
 

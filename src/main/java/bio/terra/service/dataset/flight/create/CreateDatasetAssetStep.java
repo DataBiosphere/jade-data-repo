@@ -1,18 +1,24 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.model.AssetModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetRelationship;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import org.springframework.http.HttpStatus;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,9 +46,24 @@ public class CreateDatasetAssetStep implements Step {
     }
 
     private AssetSpecification getNewAssetSpec(FlightContext context) {
-        // validate the assetspec
-        AssetSpecification assetSpecification = context.getInputParameters().get(
-            JobMapKeys.REQUEST.getKeyName(), AssetSpecification.class);
+        // get Asset Model and convert it to a spec
+        AssetModel assetModel = context.getInputParameters().get(
+            JobMapKeys.REQUEST.getKeyName(), AssetModel.class);
+
+        Dataset dataset = getDataset(context);
+        List<DatasetTable> datasetTables = dataset.getTables();
+        Map<String, DatasetRelationship> relationshipMap = new HashMap<>();
+        Map<String, DatasetTable> tablesMap = new HashMap<>();
+
+        datasetTables.forEach(datasetTable ->
+            tablesMap.put(datasetTable.getName(), datasetTable));
+
+        List<DatasetRelationship> datasetRelationships = dataset.getRelationships();
+
+        datasetRelationships.forEach(relationship -> relationshipMap
+            .put(relationship.getName(), relationship));
+        AssetSpecification assetSpecification = DatasetJsonConversion
+            .assetModelToAssetSpecification(assetModel, tablesMap, relationshipMap);
         return assetSpecification;
     }
 
@@ -50,22 +71,17 @@ public class CreateDatasetAssetStep implements Step {
     public StepResult doStep(FlightContext context) {
         // TODO: Asset columns and tables need to match things in the dataset schema
         Dataset dataset = getDataset(context);
+        FlightMap map = context.getWorkingMap();
         // get the dataset assets that already exist --asset name needs to be unique
         AssetSpecification newAssetSpecification = getNewAssetSpec(context);
         List<AssetSpecification> datasetAssetSpecificationList = dataset.getAssetSpecifications();
         if (datasetAssetSpecificationList.stream()
             .anyMatch(asset -> asset.getName().equalsIgnoreCase(newAssetSpecification.getName()))) {
-            throw new ValidationException("Can not add an asset to a dataset with a duplicate name");
+            map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.BAD_REQUEST);
+            return StepResult.getStepResultSuccess(); // TODO add error model
         }
         assetDao.create(newAssetSpecification, getDataset(context).getId());
-        // add a fault that forces an exception to make sure the undo works
-        try {
-            configService.fault(ConfigEnum.CREATE_ASSET_FAULT, () -> {
-                throw new RuntimeException("fault insertion");
-            });
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
         return StepResult.getStepResultSuccess();
     }
 

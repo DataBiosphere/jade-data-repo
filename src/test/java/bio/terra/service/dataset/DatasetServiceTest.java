@@ -114,14 +114,16 @@ public class DatasetServiceTest {
             .name(assetName)
             .rootTable("sample")
             .rootColumn("participant_id")
-            .tables(Arrays.asList(DatasetFixtures.buildAssetParticipantTable(), DatasetFixtures.buildAssetSampleTable()))
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
             .follow(Collections.singletonList("participant_sample"));
 
         // add asset to dataset
         String jobId = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
 
         TestUtils.eventualExpect(5, 60, true, () ->
-          jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
         );
 
         // get dataset
@@ -147,7 +149,9 @@ public class DatasetServiceTest {
             .name(assetName)
             .rootTable("sample")
             .rootColumn("participant_id")
-            .tables(Arrays.asList(DatasetFixtures.buildAssetParticipantTable(), DatasetFixtures.buildAssetSampleTable()))
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
             .follow(Collections.singletonList("participant_sample"));
 
         // add asset to dataset

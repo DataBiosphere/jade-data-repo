@@ -165,7 +165,7 @@ public class AssetDao {
     @Transactional
     public boolean delete(UUID id) {
         int rowsAffected = jdbcTemplate.update("DELETE FROM asset_specification WHERE id = :id ",
-        new MapSqlParameterSource().addValue("id", id));
+            new MapSqlParameterSource().addValue("id", id));
         return rowsAffected > 0;
     }
 }

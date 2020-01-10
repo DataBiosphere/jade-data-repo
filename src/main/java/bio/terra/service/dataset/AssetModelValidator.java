@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.common.ValidationUtils;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -23,7 +24,7 @@ import java.util.List;
 public class AssetModelValidator implements Validator {
 
     @Override
-    public boolean supports(Class<?> clazz) {
+    public boolean supports(@NotNull Class<?> clazz) {
         return true;
     }
 
@@ -38,7 +39,6 @@ public class AssetModelValidator implements Validator {
 
     private void validateTables(List<AssetTableModel> assetTables, Errors errors) {
         if (assetTables != null) {
-            boolean hasRootTable = false;
             for (AssetTableModel assetTable : assetTables) {
                 String tableName = assetTable.getName();
                 List<String> columns = assetTable.getColumns();
@@ -49,13 +49,12 @@ public class AssetModelValidator implements Validator {
                     }
                 }
             }
-            if (!hasRootTable) {
-                errors.rejectValue("schema", "NoRootTable");
-            }
+            errors.rejectValue("schema", "NoRootTable");
         }
     }
 
     @Override
+    @SuppressFBWarnings("UC_USELESS_VOID_METHOD")
     public void validate(@NotNull Object target, Errors errors) {
         if (target != null && target instanceof AssetModel) {
             AssetModel assetModel = (AssetModel) target;

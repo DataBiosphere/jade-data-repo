@@ -1,26 +1,24 @@
 package bio.terra.service.dataset;
 
-import bio.terra.service.load.LoadService;
-import bio.terra.model.AssetModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
-import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
-import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
-import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
-import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.model.AssetModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
+import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
+import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
+import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.load.LoadService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -30,8 +28,6 @@ import java.util.stream.Collectors;
 
 @Component
 public class DatasetService {
-    private static Logger logger = LoggerFactory.getLogger(DatasetService.class);
-
     private final DatasetDao datasetDao;
     private final JobService jobService; // for handling flight response
     private final DataLocationService dataLocationService;

@@ -28,6 +28,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
@@ -70,6 +71,8 @@ public class DatasetServiceTest {
 
     private BillingProfile billingProfile;
 
+    private ArrayList<String> flightIdsList;
+
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         return datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
@@ -87,11 +90,15 @@ public class DatasetServiceTest {
         billingProfile.id(profileId);
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
+        flightIdsList = new ArrayList<>();
     }
 
     @After
     public void teardown() {
         profileDao.deleteBillingProfileById(billingProfile.getId());
+        for (String flightId : flightIdsList) {
+            jobService.releaseJob(flightId, testUser);
+        }
     }
 
     @Test(expected = DatasetNotFoundException.class)
@@ -109,7 +116,6 @@ public class DatasetServiceTest {
         Dataset createdDataset = datasetDao.retrieve(datasetId);
         assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
 
-
         AssetModel assetModel = new AssetModel()
             .name(assetName)
             .rootTable("sample")
@@ -121,6 +127,7 @@ public class DatasetServiceTest {
 
         // add asset to dataset
         String jobId = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
+        flightIdsList.add(jobId);
 
         TestUtils.eventualExpect(5, 60, true, () ->
             jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
@@ -156,6 +163,7 @@ public class DatasetServiceTest {
 
         // add asset to dataset
         String jobId = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel, testUser);
+        flightIdsList.add(jobId);
 
         TestUtils.eventualExpect(5, 60, true, () ->
             jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
@@ -187,7 +195,12 @@ public class DatasetServiceTest {
 
 
         // remove asset from dataset
-        datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetName, testUser);
+        String jobId = datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetName, testUser);
+        flightIdsList.add(jobId);
+
+        TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
 
         // get dataset
         Dataset dataset = datasetDao.retrieve(datasetId);

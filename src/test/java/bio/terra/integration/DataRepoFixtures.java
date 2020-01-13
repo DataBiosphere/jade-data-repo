@@ -170,7 +170,7 @@ public class DataRepoFixtures {
     public DataRepoResponse<JobModel> addDatasetAssetRaw(TestConfiguration.User user,
                                    String datasetId,
                                    AssetModel assetModel) throws Exception {
-        return dataRepoClient.post(user, "/api/repository/v1/datasets/" + datasetId + "/" + "/assets",
+        return dataRepoClient.post(user, "/api/repository/v1/datasets/" + datasetId + "/assets",
             objectMapper.writeValueAsString(assetModel), JobModel.class);
     }
 
@@ -180,7 +180,7 @@ public class DataRepoFixtures {
         // TODO add the assetModel as a builder object
         DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
         assertThat(assetModel + " asset specification is successfully added",
-            response.getStatusCode(), equalTo(HttpStatus.OK));
+            response.getStatusCode(), equalTo(HttpStatus.OK)); // this is a 500 for some reason 500 INTERNAL_SERVER_ERROR
     }
 
     // snapshots

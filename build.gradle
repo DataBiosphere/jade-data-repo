@@ -114,7 +114,7 @@ dependencies {
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.91.0'
     compile 'com.google.cloud:google-cloud-storage:1.92.0'
-    compile 'com.google.cloud:google-cloud-firestore:1.22.0'
+    compile 'com.google.cloud:google-cloud-firestore:1.32.2'
     compile 'io.springfox:springfox-swagger-ui:2.9.2'
     compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support

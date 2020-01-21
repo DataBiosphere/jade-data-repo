@@ -8,6 +8,7 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -24,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -147,7 +149,7 @@ public class DatasetServiceTest {
     @Test
     public void addDatasetBadAssetSpecification() throws Exception {
         UUID datasetId = createDataset("dataset-create-test.json");
-        String assetName = "sample";
+        String assetName = "sample"; // This asset name already exists
         // get created dataset
         Dataset createdDataset = datasetDao.retrieve(datasetId);
         assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
@@ -168,6 +170,14 @@ public class DatasetServiceTest {
         TestUtils.eventualExpect(5, 60, true, () ->
             jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
         );
+
+        JobService.JobResultWithStatus<ErrorModel> resultWithStatus =
+            jobService.retrieveJobResult(jobId, ErrorModel.class, testUser);
+
+        assertThat("error message is correct", resultWithStatus.getResult().getMessage(),
+            equalTo("Asset already exists: sample"));
+        assertThat("error status is correct", resultWithStatus.getStatusCode(),
+            equalTo(HttpStatus.BAD_REQUEST));
 
         // get dataset
         Dataset dataset = datasetDao.retrieve(datasetId);

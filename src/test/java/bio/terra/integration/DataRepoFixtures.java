@@ -180,7 +180,7 @@ public class DataRepoFixtures {
         // TODO add the assetModel as a builder object
         DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
         assertThat(assetModel + " asset specification is successfully added",
-            response.getStatusCode(), equalTo(HttpStatus.OK)); // this is a 500 for some reason 500 INTERNAL_SERVER_ERROR
+            response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
     // snapshots

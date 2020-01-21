@@ -2,18 +2,19 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Integration;
+import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
+import bio.terra.model.ConfigModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,6 +29,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -163,34 +166,4 @@ public class DatasetTest extends UsersBase {
                 dataRepoFixtures.deleteDataset(steward(), summaryModel.getId());
         }
     }
-
-    @Test
-    public void testAssetCreationUndo() throws Exception {
-        // create a dataset
-        DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
-        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
-        AssetModel assetModel = new AssetModel();
-
-        // add an asset spec
-        dataRepoFixtures.addDatasetAsset(
-            steward(), datasetModel.getId(), assetModel);
-
-        // have the asset creation fail
-        // by calling the fault insertion
-        dataRepoFixtures.setFault(steward(), ConfigEnum.CREATE_ASSET_FAULT.name(), true);
-
-        // make sure undo is completed successfully
-        DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward(), datasetModel.getId());
-        DatasetSpecificationModel datasetSpecificationModel = datasetModelWAsset.getSchema();
-        List<AssetModel> assetList = datasetSpecificationModel.getAssets();
-
-        // assert that the asset isn't there
-        assertThat("Asset specification has never been added",
-            assetList.size(),
-            equalTo(0));
-        // delete the dataset
-        dataRepoFixtures.deleteDataset(steward(), summaryModel.getId());
-
-    }
-
 }

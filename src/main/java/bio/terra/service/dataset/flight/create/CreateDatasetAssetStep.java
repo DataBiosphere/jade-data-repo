@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.model.AssetModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
@@ -78,7 +79,9 @@ public class CreateDatasetAssetStep implements Step {
         if (datasetAssetSpecificationList.stream()
             .anyMatch(asset -> asset.getName().equalsIgnoreCase(newAssetSpecification.getName()))) {
             map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.BAD_REQUEST);
-            return StepResult.getStepResultSuccess(); // TODO add error model
+            map.put(JobMapKeys.RESPONSE.getKeyName(),
+                new ErrorModel().message("Asset already exists: " + newAssetSpecification.getName()));
+            return StepResult.getStepResultSuccess();
         }
         assetDao.create(newAssetSpecification, getDataset(context).getId());
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);

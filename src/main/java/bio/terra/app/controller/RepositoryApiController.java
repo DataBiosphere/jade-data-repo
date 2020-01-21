@@ -25,6 +25,8 @@ import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.PolicyModel;
 import bio.terra.model.PolicyResponse;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
+import bio.terra.model.SnapshotProvidedIdsRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
@@ -65,6 +67,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
@@ -352,24 +355,39 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
     // -- snapshot --
+    private List<SnapshotSource> getUnauthorizedSources(Snapshot snapshot, AuthenticatedUserRequest userReq) {
+        return snapshot.getSnapshotSources()
+            .stream()
+            .filter(source -> !iamService.isAuthorized(
+                userReq,
+                IamResourceType.DATASET,
+                source.getDataset().getId().toString(),
+                IamAction.CREATE_DATASNAPSHOT))
+            .collect(Collectors.toList());
+    }
+
     @Override
     public ResponseEntity<JobModel> createSnapshot(@Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
-        List<SnapshotSource> sources = snapshot.getSnapshotSources();
-        List<SnapshotSource> unauthorized = new ArrayList();
-        sources.forEach(source -> {
-                if (!iamService.isAuthorized(
-                    userReq,
-                    IamResourceType.DATASET,
-                    source.getDataset().getId().toString(),
-                    IamAction.CREATE_DATASNAPSHOT)) {
-                    unauthorized.add(source);
-                }
-            }
-        );
+        List<SnapshotSource> unauthorized = getUnauthorizedSources(snapshot, userReq);
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
+            // we can retrieve the job we just created
+            return jobToResponse(jobService.retrieveJob(jobId, userReq));
+        }
+        throw new IamUnauthorizedException(
+            "User is not authorized to create snapshots for these datasets " + unauthorized);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> createSnapshotWithProvidedIds(
+        @Valid @RequestBody SnapshotProvidedIdsRequestModel spiRequestModel) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotProvidedIdsRequest(spiRequestModel);
+        List<SnapshotSource> unauthorized = getUnauthorizedSources(snapshot, userReq);
+        if (unauthorized.isEmpty()) {
+            String jobId = snapshotService.createSnapshotWithProvidedIds(spiRequestModel, userReq);
             // we can retrieve the job we just created
             return jobToResponse(jobService.retrieveJob(jobId, userReq));
         }

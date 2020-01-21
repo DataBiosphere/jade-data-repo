@@ -3,7 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.snapshot.SnapshotRequestContainer;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -12,20 +12,20 @@ import bio.terra.stairway.StepResult;
 public class CreateSnapshotFireStoreComputeStep implements Step {
 
     private SnapshotService snapshotService;
-    private SnapshotRequestModel snapshotReq;
+    private SnapshotRequestContainer snapshotRequestContainer;
     private FireStoreDao fileDao;
 
     public CreateSnapshotFireStoreComputeStep(SnapshotService snapshotService,
-                                              SnapshotRequestModel snapshotReq,
+                                              SnapshotRequestContainer snapshotRequestContainer,
                                               FireStoreDao fileDao) {
         this.snapshotService = snapshotService;
-        this.snapshotReq = snapshotReq;
+        this.snapshotRequestContainer = snapshotRequestContainer;
         this.fileDao = fileDao;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
+        Snapshot snapshot = snapshotService.retrieveByName(snapshotRequestContainer.getName());
         fileDao.snapshotCompute(snapshot);
         return StepResult.getStepResultSuccess();
     }

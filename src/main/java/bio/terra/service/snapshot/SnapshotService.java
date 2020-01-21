@@ -1,8 +1,12 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.app.controller.exception.ValidationException;
+import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
+import bio.terra.model.SnapshotProvidedIdsRequestModel;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateWithProvidedIdsFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
@@ -29,6 +33,8 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -65,6 +71,15 @@ public class SnapshotService {
         String description = "Create snapshot " + snapshotRequestModel.getName();
         return jobService
             .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
+            .submit();
+    }
+
+    public String createSnapshotWithProvidedIds(
+        SnapshotProvidedIdsRequestModel spiRequestModel,
+        AuthenticatedUserRequest userReq) {
+        String description = "Create snapshot using provided ids:" + spiRequestModel.getName();
+        return jobService
+            .newJob(description, SnapshotCreateWithProvidedIdsFlight.class, spiRequestModel, userReq)
             .submit();
     }
 
@@ -177,6 +192,56 @@ public class SnapshotService {
                 .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
 
         return snapshot;
+    }
+
+    public Snapshot makeSnapshotFromSnapshotProvidedIdsRequest(SnapshotProvidedIdsRequestModel spiRequestModel) {
+        Snapshot snapshot = new Snapshot();
+        if (spiRequestModel.getContents().size() > 1) {
+            throw new ValidationException("Only a single snapshot contents entry is currently allowed.");
+        }
+        SnapshotSource source = makeSourceFromProvidedIdsContentsModel(spiRequestModel.getContents().get(0), snapshot);
+        List<SnapshotTable> tableList = new ArrayList<>();
+        List<SnapshotMapTable> mapTableList = new ArrayList<>();
+        Dataset dataset = source.getDataset();
+        for (DatasetTable datasetTable : dataset.getTables()) {
+            SnapshotTable snapshotTable = new SnapshotTable();
+            List<Column> columnList = new ArrayList<>();
+            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
+
+            for (Column datasetColumn : datasetTable.getColumns()) {
+                columnList.add(datasetColumn);
+                mapColumnList.add(new SnapshotMapColumn()
+                    .fromColumn(datasetColumn)
+                    .toColumn(datasetColumn));
+            }
+
+            snapshotTable
+                .name(datasetTable.getName())
+                .columns(columnList);
+            tableList.add(snapshotTable);
+            mapTableList.add(new SnapshotMapTable()
+                .fromTable(datasetTable)
+                .toTable(snapshotTable)
+                .snapshotMapColumns(mapColumnList));
+        }
+
+        source.snapshotMapTables(mapTableList);
+        return snapshot
+            .snapshotTables(tableList)
+            .name(spiRequestModel.getName())
+            .description(spiRequestModel.getDescription())
+            .snapshotSources(Collections.singletonList(source))
+            .profileId(UUID.fromString(spiRequestModel.getProfileId()));
+    }
+
+    private SnapshotSource makeSourceFromProvidedIdsContentsModel(
+        SnapshotProvidedIdsRequestContentsModel spiRequestContentsModel,
+        Snapshot snapshot) {
+        Dataset dataset = datasetDao.retrieveByName(spiRequestContentsModel.getDatasetName());
+        // we are leaving the asset spec null since this is intended for when we do not want to walk the relationships
+        return new SnapshotSource()
+            .snapshot(snapshot)
+            .dataset(dataset);
     }
 
     private SnapshotSource makeSourceFromRequestContents(

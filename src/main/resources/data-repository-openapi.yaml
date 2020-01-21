@@ -244,6 +244,50 @@ paths:
 
   ## Repository Interface
 
+  '/api/repository/v1/snapshots/ids':
+    post:
+      description: Create a new snapshot by providing ids for the tables
+      operationId: createSnapshotWithProvidedIds
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: snapshot
+        description: Snapshot to create
+        schema:
+          $ref: '#/definitions/SnapshotProvidedIdsRequestModel'
+      responses:
+        202:
+          description: Job status of snapshot creation job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for snapshot successful creation
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid name, badly formed or user email not found
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to create snapshots
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Snapshot with this name already exists
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
   '/api/repository/v1/snapshots':
     get:  ## enumerate
       description: |
@@ -2387,6 +2431,69 @@ definitions:
         $ref: '#/definitions/ObjectNameProperty'
       assetName:
         $ref: '#/definitions/ObjectNameProperty'
+
+  SnapshotProvidedIdsRequestContentsModel:
+    description: |
+      Identifies a dataset and list of tables + columns from that dataset along with
+      the row ids to be included in the snapshot.
+    type: object
+    required:
+      - datasetName
+      - tables
+    properties:
+      datasetName:
+        $ref: '#/definitions/ObjectNameProperty'
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/SnapshotProvidedIdsRequestTableModel'
+
+  SnapshotProvidedIdsRequestTableModel:
+    description: |
+      A specification of a table, columns, and row ids to go into a snapshot.
+    type: object
+    required:
+      - tableName
+      - columns
+      - rowIds
+    properties:
+      tableName:
+        $ref: '#/definitions/ObjectNameProperty'
+      columns:
+        type: array
+        items:
+          $ref: '#/definitions/ObjectNameProperty'
+      rowIds:
+        type: array
+        items:
+          $ref: '#/definitions/UniqueIdProperty'
+
+  SnapshotProvidedIdsRequestModel:
+    description: |
+      Request for creating a snapshot without walking relationships and instead
+      providing row ids and tables. An optional list
+      of users can be provided to set as readers on the snapshot.
+    type: object
+    required:
+    - name
+    - contents
+    properties:
+      name:
+        $ref: '#/definitions/ObjectNameProperty'
+      description:
+        type: string
+        description: Description of the snapshot
+      contents:
+        type: array
+        items:
+          $ref: '#/definitions/SnapshotProvidedIdsRequestContentsModel'
+      readers:
+        type: array
+        items:
+          type: string
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id to use for this snapshot
 
   SnapshotSummaryModel:
     description: |

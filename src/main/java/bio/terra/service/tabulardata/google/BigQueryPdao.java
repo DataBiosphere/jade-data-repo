@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
@@ -21,6 +22,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -256,6 +258,80 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // walk and populate relationship table row ids
             List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
             walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+
+            // create the views
+            List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+
+            // set authorization on views
+            List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
+            bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+        } catch (Exception ex) {
+            throw new PdaoException("createSnapshot failed", ex);
+        }
+    }
+
+    public void createSnapshotWithProvidedIds(
+        Snapshot snapshot,
+        SnapshotProvidedIdsRequestContentsModel contentsModel) {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String projectId = bigQueryProject.getProjectId();
+        String snapshotName = snapshot.getName();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        try {
+            // Idempotency: delete possibly partial create.
+            if (bigQueryProject.datasetExists(snapshotName)) {
+                bigQueryProject.deleteDataset(snapshotName);
+            }
+            bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+
+            // create the row id table
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+            // populate root row ids. Must happen before the relationship walk.
+            // NOTE: when we have multiple sources, we can put this into a loop
+            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            String datasetBqDatasetName = prefixName(source.getDataset().getName());
+
+
+            contentsModel.getTables().forEach(table -> {
+                String tableName = table.getTableName();
+                Table sourceTable = source
+                    .reverseTableLookup(tableName)
+                    .orElseThrow(() -> new CorruptMetadataException("cannot find destination table: " + tableName));
+
+                List<String> rowIds = table.getRowIds();
+
+                    if (rowIds.size() > 0) {
+                        ST sqlTemplate = new ST(loadRootRowIdsTemplate);
+                        sqlTemplate.add("project", projectId);
+                        sqlTemplate.add("snapshot", snapshotName);
+                        sqlTemplate.add("dataset", datasetBqDatasetName);
+                        sqlTemplate.add("tableId", sourceTable.getId().toString());
+                        sqlTemplate.add("rowIds", rowIds);
+                        sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(sourceTable.getName()));
+                        bigQueryProject.query(sqlTemplate.render());
+                    }
+
+                    ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
+                    sqlTemplate.add("project", projectId);
+                    sqlTemplate.add("snapshot", snapshotName);
+                    sqlTemplate.add("dataset", datasetBqDatasetName);
+                    sqlTemplate.add("table", sourceTable.getName());
+
+                    TableResult result = bigQueryProject.query(sqlTemplate.render());
+                    FieldValueList row = result.iterateAll().iterator().next();
+                    FieldValue countValue = row.get(0);
+                    if (countValue.getLongValue() != rowIds.size()) {
+                        logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
+                            " count=" + countValue.getLongValue());
+                        for (String rowId : rowIds) {
+                            logger.error(" rowIdIn: " + rowId);
+                        }
+                        throw new PdaoException("Invalid row ids supplied");
+                    }
+
+            });
 
             // create the views
             List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
@@ -567,6 +643,85 @@ public class BigQueryPdao implements PrimaryDataAccess {
         fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
         fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         return Schema.of(fieldList);
+    }
+
+    // Load row ids
+    // We load row ids by building a SQL INSERT statement with the row ids as data.
+    // This is more expensive than streaming the input, but does not introduce visibility
+    // issues with the new data. It has the same number of values limitation as the
+    // validate row ids.
+    private String loadRowIdsSql(String snapshotName,
+                                 String tableId,
+                                 List<String> rowIds,
+                                 String projectId,
+                                 String softDeletesTableName,
+                                 String bqDatasetName) {
+        if (rowIds.size() == 0) {
+            return null;
+        }
+
+        /*
+        INSERT INTO `projectId.snapshotName.PDAO_ROW_ID_TABLE` (PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN)
+            SELECT 'tableId' AS table_id, T.PDAO_TABLE_ID_COLUMN AS row_id
+            FROM (
+                SELECT rowid
+                FROM UNNEST ([row_id1,row_id2,..,row_idn]) AS rowid
+                EXCEPT DISTINCT (
+                    SELECT PDAO_ROW_ID_COLUMN FROM softDeletesTableName
+                )
+            ) AS T
+        */
+
+        StringBuilder builder = new StringBuilder();
+        builder.append("INSERT INTO `")
+            .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
+            .append("` (").append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
+            .append(") SELECT ").append("'").append(tableId).append("' AS ").append(PDAO_TABLE_ID_COLUMN)
+            .append(", T.rowid AS ").append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM (SELECT rowid FROM UNNEST([");
+
+        // Put all of the rowids into an array that is unnested into a table
+        String prefix = "";
+        for (String rowId : rowIds) {
+            builder.append(prefix).append("'").append(rowId).append("'");
+            prefix = ",";
+        }
+
+        builder.append("]) AS rowid EXCEPT DISTINCT ( SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId).append(".").append(bqDatasetName).append(".").append(softDeletesTableName)
+            .append("`)) AS T");
+        return builder.toString();
+    }
+
+    /**
+     * Check that the incoming row ids actually exist in the root table.
+     *
+     * Even though these are currently generated within the create snapshot flight, they may
+     * be exposed externally in the future, so validating seemed like a good idea.
+     * At this point, the only thing we have stored into the row id table are the incoming row ids.
+     * We make the equi-join of row id table and root table over row id. We should get one root table row
+     * for each row id table row. So we validate by comparing the count of the joined rows against the
+     * count of incoming row ids. This will catch duplicate and mismatched row ids.
+     *
+     * @param datasetBqDatasetName
+     * @param snapshotName
+     * @param rootTableName
+     * @param projectId
+     */
+    private String validateRowIdsForRootSql(String datasetBqDatasetName,
+                                          String snapshotName,
+                                          String rootTableName,
+                                          String projectId) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("SELECT COUNT(*) FROM `")
+                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(rootTableName)
+                .append("` AS T, `")
+                .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
+                .append("` AS R WHERE R.")
+                .append(PDAO_ROW_ID_COLUMN).append(" = T.").append(PDAO_ROW_ID_COLUMN);
+        return builder.toString();
     }
 
     /**

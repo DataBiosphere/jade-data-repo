@@ -17,7 +17,7 @@ spec:
       serviceAccountName: jade-sa
       initContainers:
       - name: check-db-ready
-        image: postgres:9.6.5
+        image: postgres:11
         command: ['sh', '-c','until pg_isready -h {{ .Data.ip }} -p 5432;do echo waiting for database; sleep 2; done;']
       containers:
         - name: cloudsql-proxy

@@ -16,7 +16,7 @@ spec:
       serviceAccountName: jade-sa
       initContainers:
       - name: check-db-ready
-        image: postgres:9.6.5
+        image: postgres:11
         env:
           - name: DB_DATAREPO_USERNAME
             valueFrom:

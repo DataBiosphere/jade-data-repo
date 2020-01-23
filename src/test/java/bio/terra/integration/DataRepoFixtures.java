@@ -474,7 +474,7 @@ public class DataRepoFixtures {
         return dataRepoClient.put(user,
             "/api/repository/v1/configs/" + configName + "?enable=" + enable,
             null,
-            null);
+            null); // TODO should this validation on returned value?
     }
 
     public DataRepoResponse<Void> resetConfig(TestConfiguration.User user) throws Exception {

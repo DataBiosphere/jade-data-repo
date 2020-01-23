@@ -16,7 +16,7 @@ jdk:
   - openjdk8
 
 addons:
-  postgresql: "9.6"
+  postgresql: "11"
 
 services:
   - docker

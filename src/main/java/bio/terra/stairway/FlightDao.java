@@ -3,6 +3,8 @@ package bio.terra.stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.DatabaseSetupException;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -27,6 +29,9 @@ import java.util.Map;
  * assumes Postgres.
  * <p>
  */
+@SuppressFBWarnings(
+    value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+    justification = "Spurious RCN check; related to Java 11")
 class FlightDao {
 
     private static String FLIGHT_TABLE = "flight";

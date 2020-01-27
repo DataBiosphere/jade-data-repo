@@ -142,6 +142,7 @@ dependencies {
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
+    testCompile 'com.google.code.findbugs:annotations:3.0.1u2'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'

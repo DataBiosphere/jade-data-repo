@@ -27,6 +27,7 @@ import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -56,6 +57,9 @@ import static org.junit.Assert.fail;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "integrationtest"})
 @Category(Integration.class)
+@SuppressFBWarnings(
+    value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",
+    justification = "Spurious RCN check; related to Java 11")
 public class AccessTest extends UsersBase {
     private static final Logger logger = LoggerFactory.getLogger(AccessTest.class);
 

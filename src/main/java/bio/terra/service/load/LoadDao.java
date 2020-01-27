@@ -2,6 +2,8 @@ package bio.terra.service.load;
 
 
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileState;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import org.apache.commons.codec.binary.StringUtils;
@@ -9,12 +11,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -27,6 +34,8 @@ public class LoadDao {
     public LoadDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
+
+    // -- load tags public methods --
 
     @Transactional(propagation = Propagation.REQUIRED)
     public Load lockLoad(String loadTag, String flightId) {
@@ -74,6 +83,126 @@ public class LoadDao {
         }
     }
 
+    // -- load files methods --
+
+    // TODO: REVIEWERS: note that counter to our usual practice, I am using the interface datatype instead of
+    //  insulating the innards from the interface. That seems justified in this case, because I don't want to
+    //  use memory making another big array.
+    //  Also, I am a tiny bit concerned about insert performance. This code is implemented in the obvious
+    //  way using JdbcTemplate. JdbcTemplate documentation says that it uses JDBC batchUpdate if it is supported
+    //  by the underlying database system. However, some posts in StackOverflow claim that it is not using the
+    //  batch, but issuing an insert for each row.
+    //  I created DR-738 to track performance measurement of file load to decide if this method should get
+    //  more clever.
+
+    // Insert one batch of file load instructions into the load_file table
+    @Transactional
+    public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
+        final String sql = "INSERT INTO load_file " +
+            " (load_id, source_path, target_path, mime_type, description, state)" +
+            " VALUES(?,?,?,?,?,?)";
+
+        JdbcTemplate baseJdbcTemplate = jdbcTemplate.getJdbcTemplate();
+        baseJdbcTemplate.batchUpdate(sql,
+            new BatchPreparedStatementSetter() {
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    ps.setObject(1, loadId);
+                    ps.setString(2, loadFileModelList.get(i).getSourcePath());
+                    ps.setString(3, loadFileModelList.get(i).getTargetPath());
+                    ps.setString(4, loadFileModelList.get(i).getMimeType());
+                    ps.setString(5, loadFileModelList.get(i).getDescription());
+                    ps.setString(6, BulkLoadFileState.NOT_TRIED.toString());
+                }
+
+                public int getBatchSize() {
+                    return loadFileModelList.size();
+                }
+            });
+    }
+
+    // Remove all file load instructions for a given loadId from the load_file table
+    public void cleanFiles(UUID loadId) {
+        jdbcTemplate.update("DELETE FROM load_file WHERE load_id = :load_id",
+                new MapSqlParameterSource().addValue("load_id", loadId));
+    }
+
+    public LoadCandidates findCandidates(UUID loadId, int candidatesToFind) {
+        final String countFailedSql = "SELECT count(*) AS failed FROM load_file" +
+            " WHERE load_id = :load_id AND state = :state";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("load_id", loadId);
+        params.addValue("state", BulkLoadFileState.FAILED.toString());
+        Integer failedFiles = jdbcTemplate.queryForObject(countFailedSql, params, Integer.class);
+        if (failedFiles == null) {
+            failedFiles = 0;
+        }
+
+        List<LoadFile> runningLoads = queryByState(loadId, BulkLoadFileState.RUNNING, null);
+        List<LoadFile> candidateFiles = queryByState(loadId, BulkLoadFileState.NOT_TRIED, candidatesToFind);
+
+        return new LoadCandidates()
+            .runningLoads(runningLoads)
+            .candidateFiles(candidateFiles)
+            .failedLoads(failedFiles);
+    }
+
+    public void setLoadFileRunning(UUID loadId, String targetPath, String flightId) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null, flightId);
+    }
+
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, null, null);
+    }
+
+    public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null, error, null);
+    }
+
+    // -- private methods --
+    private List<LoadFile> queryByState(UUID loadId, BulkLoadFileState state, Integer limit) {
+        String sql = "SELECT source_path, target_path, mime_type, description, state, flight_id, file_id, error" +
+            " FROM load_file WHERE load_id = :load_id AND state = :state";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("load_id", loadId)
+            .addValue("state", state.toString());
+
+        if (limit != null) {
+            sql = sql + " LIMIT :limit";
+            params.addValue("limit", limit);
+        }
+
+        return jdbcTemplate.query(sql, params, (rs, rowNum) ->
+            new LoadFile()
+                .loadId(loadId)
+                .sourcePath(rs.getString("source_path"))
+                .targetPath(rs.getString("target_path"))
+                .mimeType(rs.getString("mime_type"))
+                .description(rs.getString("description"))
+                .state(BulkLoadFileState.fromValue(rs.getString("state")))
+                .flightId(rs.getString("flight_id"))
+                .fileId(rs.getString("file_id"))
+                .error(rs.getString("error")));
+    }
+
+    private void updateLoadFile(UUID loadId,
+                                String targetPath,
+                                BulkLoadFileState state,
+                                String fileId,
+                                String error,
+                                String flightId) {
+        final String sql = "UPDATE load_file" +
+            " SET state = :state, file_id = :file_id, error = :error, flight_id = :flight_id" +
+            " WHERE load_id = :load_id AND target_path = :target_path";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("state", state.toString())
+            .addValue("flight_id", flightId)
+            .addValue("file_id", fileId)
+            .addValue("error", error)
+            .addValue("load_id", loadId)
+            .addValue("target_path", targetPath);
+        jdbcTemplate.update(sql, params);
+    }
+
     private void conflictThrow(Load load) {
         throw new LoadLockedException("Load " + load.getLoadTag() +
             " is locked by flight " + load.getLockingFlightId());
@@ -106,7 +235,6 @@ public class LoadDao {
             .addValue("id", loadId);
         jdbcTemplate.update(sql, params);
     }
-
 
     // Returns null if not found
     private Load lookupLoadByTag(String loadTag) {

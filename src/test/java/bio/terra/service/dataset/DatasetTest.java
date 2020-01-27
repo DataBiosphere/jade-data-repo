@@ -199,5 +199,5 @@ public class DatasetTest extends UsersBase {
             equalTo(0));
         // delete the dataset
         dataRepoFixtures.deleteDataset(steward(), summaryModel.getId());
-     }
+    }
 }

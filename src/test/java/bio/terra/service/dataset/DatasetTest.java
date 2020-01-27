@@ -180,14 +180,13 @@ public class DatasetTest extends UsersBase {
                 DatasetFixtures.buildAssetSampleTable()))
             .follow(Collections.singletonList("fpk_visit_person"));
 
-        // add an asset spec
-        dataRepoFixtures.addDatasetAsset(
-            steward(), datasetModel.getId(), assetModel);
-
         // have the asset creation fail
         // by calling the fault insertion
         dataRepoFixtures.setFault(steward(), ConfigEnum.CREATE_ASSET_FAULT.name(), true);
 
+        // add an asset spec
+        dataRepoFixtures.addDatasetAsset(
+            steward(), datasetModel.getId(), assetModel);
         // make sure undo is completed successfully
         DatasetModel datasetModelWAsset = dataRepoFixtures.getDataset(steward(), datasetModel.getId());
         DatasetSpecificationModel datasetSpecificationModel = datasetModelWAsset.getSchema();

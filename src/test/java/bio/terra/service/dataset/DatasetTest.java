@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Integration;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
@@ -29,6 +28,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -170,7 +171,14 @@ public class DatasetTest extends UsersBase {
         // create a dataset
         DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
         DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
-        AssetModel assetModel = new AssetModel();
+        AssetModel assetModel = new AssetModel()
+            .name("assetName")
+            .rootTable("person")
+            .rootColumn("person_id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("fpk_visit_person"));
 
         // add an asset spec
         dataRepoFixtures.addDatasetAsset(

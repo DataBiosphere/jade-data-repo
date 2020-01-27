@@ -16,6 +16,7 @@ public enum ConfigEnum {
 
     // -- faults --
     SAM_TIMEOUT_FAULT,
+    CREATE_ASSET_FAULT,
 
     // Faults to test the fault system
     UNIT_TEST_SIMPLE_FAULT,

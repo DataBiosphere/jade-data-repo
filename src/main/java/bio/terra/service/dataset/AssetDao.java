@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +35,7 @@ public class AssetDao {
                 .collect(Collectors.toList());
     }
 
-    private UUID create(AssetSpecification assetSpecification, UUID datasetId) {
+    public UUID create(AssetSpecification assetSpecification, UUID datasetId) {
         String sql = "INSERT INTO asset_specification (dataset_id, name, root_table_id, root_column_id) " +
                 "VALUES (:dataset_id, :name, :root_table_id, :root_column_id)";
         MapSqlParameterSource params = new MapSqlParameterSource();
@@ -159,5 +160,12 @@ public class AssetDao {
                         .id(rs.getObject("id", UUID.class))
                         .datasetRelationship(allRelationships.get(
                                 rs.getObject("relationship_id", UUID.class))));
+    }
+
+    @Transactional
+    public boolean delete(UUID id) {
+        int rowsAffected = jdbcTemplate.update("DELETE FROM asset_specification WHERE id = :id ",
+            new MapSqlParameterSource().addValue("id", id));
+        return rowsAffected > 0;
     }
 }

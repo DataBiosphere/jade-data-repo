@@ -5,6 +5,7 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.ConfigGroupModel;
@@ -163,6 +164,23 @@ public class DataRepoFixtures {
                                      IamRole role,
                                      String newMemberEmail) throws Exception {
         addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
+    }
+
+    // adding dataset asset
+    public DataRepoResponse<JobModel> addDatasetAssetRaw(TestConfiguration.User user,
+                                   String datasetId,
+                                   AssetModel assetModel) throws Exception {
+        return dataRepoClient.post(user, "/api/repository/v1/datasets/" + datasetId + "/assets",
+            objectMapper.writeValueAsString(assetModel), JobModel.class);
+    }
+
+    public void addDatasetAsset(TestConfiguration.User user,
+                                String datasetId,
+                                AssetModel assetModel) throws Exception {
+        // TODO add the assetModel as a builder object
+        DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
+        assertThat(assetModel + " asset specification is successfully added",
+            response.getStatusCode(), equalTo(HttpStatus.OK));
     }
 
     // snapshots

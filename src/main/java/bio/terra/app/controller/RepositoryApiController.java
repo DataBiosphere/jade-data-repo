@@ -5,6 +5,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.RepositoryApi;
+import bio.terra.model.AssetModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
@@ -25,6 +26,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.UserStatusInfo;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.AssetModelValidator;
 import bio.terra.service.dataset.DatasetRequestValidator;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.IngestRequestValidator;
@@ -80,6 +82,7 @@ public class RepositoryApiController implements RepositoryApi {
     private final PolicyMemberValidator policyMemberValidator;
     private final AuthenticatedUserRequestFactory authenticatedUserRequestFactory;
     private final ConfigurationService configurationService;
+    private final AssetModelValidator assetModelValidator;
 
     // needed for local testing w/o proxy
     private final ApplicationConfiguration appConfig;
@@ -99,7 +102,8 @@ public class RepositoryApiController implements RepositoryApi {
             FileService fileService,
             PolicyMemberValidator policyMemberValidator,
             AuthenticatedUserRequestFactory authenticatedUserRequestFactory,
-            ConfigurationService configurationService
+            ConfigurationService configurationService,
+            AssetModelValidator assetModelValidator
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
@@ -115,6 +119,7 @@ public class RepositoryApiController implements RepositoryApi {
         this.policyMemberValidator = policyMemberValidator;
         this.authenticatedUserRequestFactory = authenticatedUserRequestFactory;
         this.configurationService = configurationService;
+        this.assetModelValidator = assetModelValidator;
     }
 
     @InitBinder
@@ -123,6 +128,7 @@ public class RepositoryApiController implements RepositoryApi {
         binder.addValidators(snapshotRequestValidator);
         binder.addValidators(ingestRequestValidator);
         binder.addValidators(policyMemberValidator);
+        binder.addValidators(assetModelValidator);
     }
 
     @Override
@@ -194,6 +200,32 @@ public class RepositoryApiController implements RepositoryApi {
             id,
             IamAction.INGEST_DATA);
         String jobId = datasetService.ingestDataset(id, ingest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> addDatasetAssetSpecifications(@PathVariable("id") String id,
+                                                  @Valid @RequestBody AssetModel asset) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        iamService.verifyAuthorization(
+            userReq,
+            IamResourceType.DATASET,
+            id,
+            IamAction.EDIT_DATASET);
+        String jobId = datasetService.addDatasetAssetSpecifications(id, asset, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> removeDatasetAssetSpecifications(@PathVariable("id") String id,
+                                                                     @PathVariable("assetId") String assetId) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        iamService.verifyAuthorization(
+            userReq,
+            IamResourceType.DATASET,
+            id,
+            IamAction.EDIT_DATASET);
+        String jobId = datasetService.removeDatasetAssetSpecifications(id, assetId, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 

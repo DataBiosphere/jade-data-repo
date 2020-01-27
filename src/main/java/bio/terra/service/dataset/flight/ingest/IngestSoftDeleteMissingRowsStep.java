@@ -8,11 +8,11 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class IngestSoftDeleteChangedRowsService implements Step {
+public class IngestSoftDeleteMissingRowsStep implements Step {
     private DatasetService datasetService;
     private BigQueryPdao bigQueryPdao;
 
-    public IngestSoftDeleteChangedRowsService(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+    public IngestSoftDeleteMissingRowsStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
         this.datasetService = datasetService;
         this.bigQueryPdao = bigQueryPdao;
     }
@@ -20,19 +20,20 @@ public class IngestSoftDeleteChangedRowsService implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
-        Table targetTable = IngestUtils.getDatasetTable(context, dataset);
-        String overlappingTableName = IngestUtils.getOverlappingTableName(context);
+        Table targetTable  = IngestUtils.getDatasetTable(context, dataset);
+        String stagingTableName = IngestUtils.getStagingTableName(context);
 
-        bigQueryPdao.softDeleteChangedOverlappingRows(dataset,
-            targetTable,
-            overlappingTableName);
-
+        // TODO: How to record the number of affected rows, for reporting?
+        bigQueryPdao.softDeleteRowsWithNoOverlap(dataset, targetTable, stagingTableName);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // TODO: Add undo for softdeleted rows
+        // We still don't have a way to undo soft-deletes...
+        // Could we use partitioning & clustering on the SD tables
+        // so DML statements to delete rows don't need to scan the
+        // entire table?
         return StepResult.getStepResultSuccess();
     }
 }

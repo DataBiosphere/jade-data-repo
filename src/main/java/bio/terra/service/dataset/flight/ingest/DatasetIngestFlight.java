@@ -28,13 +28,15 @@ public class DatasetIngestFlight extends Flight {
         addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
         addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
         addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
-        if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
-            addStep(new IngestEvaluateOverlapStep(datasetService, bigQueryPdao));
-            addStep(new IngestSoftDeleteChangedRowsService(datasetService, bigQueryPdao));
-            addStep(new IngestUpsertIntoDatasetTableStep(datasetService, bigQueryPdao));
-        } else {
-            // 'append' strategy.
+        if (ingestStrategy == IngestRequestModel.StrategyEnum.APPEND) {
             addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
+        } else {
+            addStep(new IngestEvaluateOverlapStep(datasetService, bigQueryPdao));
+            addStep(new IngestSoftDeleteChangedRowsStep(datasetService, bigQueryPdao));
+            if (ingestStrategy == IngestRequestModel.StrategyEnum.OVERWRITE) {
+                addStep(new IngestSoftDeleteMissingRowsStep(datasetService, bigQueryPdao));
+            }
+            addStep(new IngestUpsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         }
         addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
     }

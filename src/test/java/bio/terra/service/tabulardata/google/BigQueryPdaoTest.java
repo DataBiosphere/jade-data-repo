@@ -257,6 +257,9 @@ public class BigQueryPdaoTest {
         BlobInfo updatedParticipantBlob = BlobInfo
             .newBuilder(bucket, targetPath + "ingest-test-updated-participant.json")
             .build();
+        BlobInfo updatedSampleBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-updated-sample.json")
+            .build();
 
         try {
             storage.create(participantBlob, readFile("ingest-test-participant.json"));
@@ -328,13 +331,34 @@ public class BigQueryPdaoTest {
                 tableName,
                 dataProject.getGoogleProjectId(),
                 bigQueryProject);
-            // originalNumOfRows + 2 for the new row being added and the chnaged row being added
+            // originalNumOfRows + 2 for the new row being added and the changed row being added
             Assert.assertThat("On upsert that # of rows being added accounts for the soft delete",
                 rowIds.size(),
                 is(equalTo(originalNumOfRows + 2 - numOfRowsSoftDeleted)));
+
+            // Overwrite sample data.
+            // HERE
+            storage.create(updatedSampleBlob, readFile("ingest-test-updated-sample.json"));
+            ingestRequest = new IngestRequestModel()
+                .format(IngestRequestModel.FormatEnum.JSON)
+                .strategy(IngestRequestModel.StrategyEnum.OVERWRITE)
+                .table("sample")
+                .path(gsPath(updatedSampleBlob));
+            connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
+            softDeletedRowIds = getSoftDeletedRowIds(dataset, "sample",
+                dataProject.getGoogleProjectId(), bigQueryProject);
+            Assert.assertThat("On overwrite the changed and missing rows are soft deleted",
+                softDeletedRowIds.size(),
+                is(equalTo(3)));
+            rowIds = getRowIds(dataset, "sample",
+                dataProject.getGoogleProjectId(), bigQueryProject);
+            Assert.assertThat("On overwrite the # of rows matches the last ingest",
+                rowIds.size(),
+                is(equalTo(5)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
-                fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
+                fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId(),
+                updatedParticipantBlob.getBlobId(), updatedSampleBlob.getBlobId());
         }
     }
 

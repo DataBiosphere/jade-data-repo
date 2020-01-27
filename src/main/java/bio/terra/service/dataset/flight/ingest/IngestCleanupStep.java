@@ -39,7 +39,7 @@ public class IngestCleanupStep implements Step {
         try {
             Dataset dataset = IngestUtils.getDataset(context, datasetService);
 
-            // overlappingTableName is null when the ingest strategy is not upsert.
+            // overlappingTableName is null when the ingest strategy is `append`.
             // Don't try to delete the table name if it is null
             overlappingTableName = IngestUtils.getOverlappingTableName(context);
             if (overlappingTableName != null && bigQueryPdao.tableExists(dataset, overlappingTableName)) {

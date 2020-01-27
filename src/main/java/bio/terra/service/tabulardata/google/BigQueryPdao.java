@@ -504,7 +504,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
          * (PDAO_ROW_ID_COLUMN)
          * SELECT TARGET_TABLE_ROW_ID_COLUMN
          * FROM overLappingTableName
-         * Where TARGET_TABLE_ROW_ID_COLUMN IS NOT NULL
+         * WHERE TARGET_TABLE_ROW_ID_COLUMN IS NOT NULL
          */
         String softDeleteTableName = prefixSoftDeleteTableName(targetTable.getName());
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
@@ -530,6 +530,53 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .append("` WHERE ")
             .append(TARGET_TABLE_ROW_ID_COLUMN)
             .append(" IS NOT NULL");
+
+        String sql = builder.toString();
+        bigQueryProject.query(sql);
+    }
+
+    public void softDeleteRowsWithNoOverlap(Dataset dataset,
+                                            Table targetTable,
+                                            String stagingTableName) {
+        /*
+         * INSERT INTO softDeleteTableName
+         * (PDAO_ROW_ID_COLUMN)
+         * SELECT PDAO_ROW_ID_COLUMN
+         * FROM targetTable
+         * EXCEPT DISTINCT
+         * (SELECT PDAO_ROW_ID_COLUMN from stagingTableName)
+         */
+        String softDeleteTableName = prefixSoftDeleteTableName(targetTable.getName());
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String projectId = bigQueryProject.getProjectId();
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("INSERT INTO`")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(softDeleteTableName)
+            .append("` (")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(") SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(targetTable.getName())
+            .append("` EXCEPT DISTINCT (")
+            .append("SELECT ")
+            .append(PDAO_ROW_ID_COLUMN)
+            .append(" FROM `")
+            .append(projectId)
+            .append(".")
+            .append(prefixName(dataset.getName()))
+            .append(".")
+            .append(stagingTableName)
+            .append("`)");
 
         String sql = builder.toString();
         bigQueryProject.query(sql);

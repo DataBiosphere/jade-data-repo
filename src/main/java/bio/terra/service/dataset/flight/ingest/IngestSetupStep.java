@@ -64,13 +64,16 @@ public class IngestSetupStep implements Step {
 
         IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
 
-        if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
+        if (ingestStrategy != IngestRequestModel.StrategyEnum.APPEND) {
             List<Column> primaryKey = dataset
                 .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
                 .getPrimaryKey();
             if (primaryKey.size() < 1) {
                 throw new InvalidIngestStrategyException(
-                    "Cannot use ingestStrategy `upsert` on table with no primary key: " + targetTable.getName());
+                    new StringBuilder().append("Cannot use ingestStrategy `")
+                        .append(ingestStrategy.name())
+                        .append("` on table with no primary key: ")
+                        .append(targetTable.getName()).toString());
             }
 
             Schema overlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();

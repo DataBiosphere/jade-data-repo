@@ -12,7 +12,6 @@ import bio.terra.service.dataset.DatasetRelationship;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

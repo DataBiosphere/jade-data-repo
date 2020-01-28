@@ -172,6 +172,11 @@ public class DatasetTest extends UsersBase {
         // create a dataset
         DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
         DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), summaryModel.getId());
+        List<AssetModel> originalAssetList = datasetModel.getSchema().getAssets();
+
+        assertThat("Asset specification is as originally expected",
+            originalAssetList.size(),
+            equalTo(1));
         AssetModel assetModel = new AssetModel()
             .name("assetName")
             .rootTable("person")
@@ -194,9 +199,9 @@ public class DatasetTest extends UsersBase {
         List<AssetModel> assetList = datasetSpecificationModel.getAssets();
 
         // assert that the asset isn't there
-        assertThat("Asset specification has never been added",
+        assertThat("Additional asset specification has never been added",
             assetList.size(),
-            equalTo(0));
+            equalTo(1));
         // delete the dataset
         dataRepoFixtures.deleteDataset(steward(), summaryModel.getId());
     }

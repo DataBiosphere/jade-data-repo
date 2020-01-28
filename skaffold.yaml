@@ -1,16 +1,13 @@
-apiVersion: skaffold/v1beta10
+apiVersion: skaffold/v2alpha2
 kind: Config
 build:
   artifacts:
   - image: gcr.io/broad-jade-dev/jade-data-repo
-    jibGradle:
+    jib:
       args:
       - jib
+      type: gradle
 deploy:
   kubectl:
     manifests:
-    - ops/k8s/deployments/api-deployment.yaml
-    flags:
-      global:
-        - --namespace=data-repo
-
+    - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/ms/msHelmOperator.yaml

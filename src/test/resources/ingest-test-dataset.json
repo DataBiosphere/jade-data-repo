@@ -34,7 +34,7 @@
     "relationships": [
       {
         "name": "sample_derived_from",
-        "from": {"table": "sample", "column": "derived_from",},
+        "from": {"table": "sample", "column": "derived_from"},
         "to":   {"table": "sample", "column": "id"}
       },
       {

@@ -34,28 +34,28 @@
     "relationships": [
       {
         "name": "sample_derived_from",
-        "from": {"table": "sample", "column": "derived_from", "cardinality": "one"},
-        "to":   {"table": "sample", "column": "id", "cardinality": "one"}
+        "from": {"table": "sample", "column": "derived_from"},
+        "to":   {"table": "sample", "column": "id"}
       },
       {
         "name": "participant_samples",
-        "from": {"table": "participant", "column": "donated", "cardinality": "many"},
-        "to":   {"table": "sample", "column": "id", "cardinality": "many"}
+        "from": {"table": "participant", "column": "donated"},
+        "to":   {"table": "sample", "column": "id"}
       },
       {
         "name": "sample_participants",
-        "from": {"table": "sample", "column": "participant_ids", "cardinality": "many"},
-        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+        "from": {"table": "sample", "column": "participant_ids"},
+        "to":   {"table": "participant", "column": "id"}
       },
       {
         "name": "participant_children",
-        "from": {"table": "participant", "column": "children", "cardinality": "many"},
-        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+        "from": {"table": "participant", "column": "children"},
+        "to":   {"table": "participant", "column": "id"}
       },
       {
         "name": "participant_files",
-        "from": {"table": "participant", "column": "donated", "cardinality": "many"},
-        "to":   {"table": "file", "column": "derived_from", "cardinality": "many"}
+        "from": {"table": "participant", "column": "donated"},
+        "to":   {"table": "file", "column": "derived_from"}
       }
     ],
     "assets":        [

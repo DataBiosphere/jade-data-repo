@@ -3,7 +3,6 @@ package bio.terra.service.dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Table;
 import bio.terra.common.Column;
-import bio.terra.model.RelationshipTermModel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -33,12 +32,10 @@ public class RelationshipDao {
 
     protected void create(DatasetRelationship datasetRelationship) {
         String sql = "INSERT INTO dataset_relationship " +
-                "(name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column) VALUES " +
-                "(:name, :from_cardinality, :to_cardinality, :from_table, :from_column, :to_table, :to_column)";
+                "(name, from_table, from_column, to_table, to_column) VALUES " +
+                "(:name, :from_table, :from_column, :to_table, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", datasetRelationship.getName())
-                .addValue("from_cardinality", datasetRelationship.getFromCardinality().toString())
-                .addValue("to_cardinality", datasetRelationship.getToCardinality().toString())
                 .addValue("from_table", datasetRelationship.getFromTable().getId())
                 .addValue("from_column", datasetRelationship.getFromColumn().getId())
                 .addValue("to_table", datasetRelationship.getToTable().getId())
@@ -61,17 +58,13 @@ public class RelationshipDao {
             List<UUID> columnIds,
             Map<UUID, Table> tables,
             Map<UUID, Column> columns) {
-        String sql = "SELECT id, name, from_cardinality, to_cardinality, from_table, from_column, to_table, to_column "
+        String sql = "SELECT id, name, from_table, from_column, to_table, to_column "
                 + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new DatasetRelationship()
                         .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name"))
-                        .fromCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
-                                rs.getString("from_cardinality")))
-                        .toCardinality(RelationshipTermModel.CardinalityEnum.fromValue(
-                                rs.getString("to_cardinality")))
                         .fromTable(tables.get(rs.getObject("from_table", UUID.class)))
                         .fromColumn(columns.get(rs.getObject("from_column", UUID.class)))
                         .toTable(tables.get(rs.getObject("to_table", UUID.class)))

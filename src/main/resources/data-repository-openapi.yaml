@@ -1685,31 +1685,21 @@ definitions:
           $ref: '#/definitions/ObjectNameProperty'
 
   RelationshipTermModel:
-    description: Describes a table, columns and cardinality for a relationship
+    description: Describes a table and columns for a relationship
     type: object
     required:
       - table
       - column
-      - cardinality
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
       column:
         type: string
-      cardinality:
-        type: string
-        enum:
-          - one
-          - many
-          - zero_or_one
-          - one_or_many
-          - zero_or_many
 
   RelationshipModel:
     description: |
       One relationship between two tables. Captures a specific relationship between two tables. By naming the
-      relationships, we can define assets. It should allow us to use the cardinality of the relationships to form
-      proper views (INNER vs OUTER) and implement data validation.
+      relationships, we can define assets.
     type: object
     required:
       - name

@@ -238,8 +238,7 @@ public class DatasetValidationsTest {
         // participant_id is part of the sample table, not participant
         RelationshipTermModel mismatchedTerm = new RelationshipTermModel()
             .table("participant")
-            .column("participant_id")
-            .cardinality(RelationshipTermModel.CardinalityEnum.ONE);
+            .column("participant_id");
 
         RelationshipModel mismatchedRelationship = new RelationshipModel()
             .name("participant_sample")

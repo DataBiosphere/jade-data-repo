@@ -25,13 +25,13 @@
     "relationships": [
       {
         "name": "participant_sample",
-        "from": {"table": "participant", "column": "id", "cardinality": "one"},
-        "to":   {"table": "sample", "column": "participant_id", "cardinality": "many"}
+        "from": {"table": "participant", "column": "id"},
+        "to":   {"table": "sample", "column": "participant_id"}
       },
       {
         "name": "parent",
-        "from": {"table": "participant", "column": "id", "cardinality": "one"},
-        "to":   {"table": "participant", "column": "id", "cardinality": "many"}
+        "from": {"table": "participant", "column": "id"},
+        "to":   {"table": "participant", "column": "id"}
       }
     ],
     "assets":        [

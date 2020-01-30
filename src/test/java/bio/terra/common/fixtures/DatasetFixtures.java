@@ -46,15 +46,13 @@ public final class DatasetFixtures {
     public static RelationshipTermModel buildParticipantTerm() {
         return new RelationshipTermModel()
             .table("participant")
-            .column("id")
-            .cardinality(RelationshipTermModel.CardinalityEnum.ONE);
+            .column("id");
     }
 
     public static RelationshipTermModel buildSampleTerm() {
         return new RelationshipTermModel()
             .table("sample")
-            .column("participant_id")
-            .cardinality(RelationshipTermModel.CardinalityEnum.MANY);
+            .column("participant_id");
     }
 
     public static RelationshipModel buildParticipantSampleRelationship() {

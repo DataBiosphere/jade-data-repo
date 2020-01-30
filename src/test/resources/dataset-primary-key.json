@@ -38,13 +38,13 @@
     "relationships": [
       {
         "name": "variant_frequency",
-        "from": {"table": "frequency_analysis", "column": "variant_id", "cardinality": "many"},
-        "to":   {"table": "variant", "column": "id", "cardinality": "one"}
+        "from": {"table": "frequency_analysis", "column": "variant_id"},
+        "to":   {"table": "variant", "column": "id"}
       },
       {
         "name": "variant_meta",
-        "from": {"table": "meta_analysis", "column": "variant_id", "cardinality": "many"},
-        "to": {"table": "variant", "column": "id", "cardinality": "one"}
+        "from": {"table": "meta_analysis", "column": "variant_id"},
+        "to": {"table": "variant", "column": "id"}
       }
     ],
     "assets":        [

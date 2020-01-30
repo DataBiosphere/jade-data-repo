@@ -1916,2262 +1916,1914 @@
                 "name": "fpk_concept_domain",
                 "from": {
                     "table": "domain",
-                    "column": "domain_id",
-                    "cardinality": "one"
+                    "column": "domain_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "domain_id",
-                    "cardinality": "one_or_many"
+                    "column": "domain_id"
                 }
             },
             {
                 "name": "fpk_concept_vocabulary",
                 "from": {
                     "table": "vocabulary",
-                    "column": "vocabulary_id",
-                    "cardinality": "one"
+                    "column": "vocabulary_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "vocabulary_id",
-                    "cardinality": "one_or_many"
+                    "column": "vocabulary_id"
                 }
             },
             {
                 "name": "fpk_concept_class",
                 "from": {
                     "table": "concept",
-                    "column": "concept_class_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_class_id"
                 },
                 "to": {
                     "table": "concept_class",
-                    "column": "concept_class_id",
-                    "cardinality": "one"
+                    "column": "concept_class_id"
                 }
             },
             {
                 "name": "fpk_vocabulary_concept",
                 "from": {
                     "table": "vocabulary",
-                    "column": "vocabulary_concept_id",
-                    "cardinality": "one"
+                    "column": "vocabulary_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_domain_concept",
                 "from": {
                     "table": "domain",
-                    "column": "domain_concept_id",
-                    "cardinality": "one"
+                    "column": "domain_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_class_concept",
                 "from": {
                     "table": "concept_class",
-                    "column": "concept_class_concept_id",
-                    "cardinality": "one"
+                    "column": "concept_class_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_relationship_c_1",
                 "from": {
                     "table": "concept_relationship",
-                    "column": "concept_id_1",
-                    "cardinality": "one"
+                    "column": "concept_id_1"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_relationship_c_2",
                 "from": {
                     "table": "concept_relationship",
-                    "column": "concept_id_2",
-                    "cardinality": "one"
+                    "column": "concept_id_2"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_relationship_id",
                 "from": {
                     "table": "concept_relationship",
-                    "column": "relationship_id",
-                    "cardinality": "one"
+                    "column": "relationship_id"
                 },
                 "to": {
                     "table": "relationship",
-                    "column": "relationship_id",
-                    "cardinality": "one_or_many"
+                    "column": "relationship_id"
                 }
             },
             {
                 "name": "fpk_relationship_concept",
                 "from": {
                     "table": "relationship",
-                    "column": "relationship_concept_id",
-                    "cardinality": "one"
+                    "column": "relationship_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_relationship_reverse",
                 "from": {
                     "table": "relationship",
-                    "column": "reverse_relationship_id",
-                    "cardinality": "one"
+                    "column": "reverse_relationship_id"
                 },
                 "to": {
                     "table": "relationship",
-                    "column": "relationship_id",
-                    "cardinality": "one_or_many"
+                    "column": "relationship_id"
                 }
             },
             {
                 "name": "fpk_concept_synonym_concept",
                 "from": {
                     "table": "concept_synonym",
-                    "column": "concept_id",
-                    "cardinality": "one"
+                    "column": "concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_synonym_language_concept",
                 "from": {
                     "table": "concept_synonym",
-                    "column": "language_concept_id",
-                    "cardinality": "one"
+                    "column": "language_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_ancestor_concept_1",
                 "from": {
                     "table": "concept_ancestor",
-                    "column": "ancestor_concept_id",
-                    "cardinality": "one"
+                    "column": "ancestor_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_concept_ancestor_concept_2",
                 "from": {
                     "table": "concept_ancestor",
-                    "column": "descendant_concept_id",
-                    "cardinality": "one"
+                    "column": "descendant_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_source_to_concept_map_v_1",
                 "from": {
                     "table": "source_to_concept_map",
-                    "column": "source_vocabulary_id",
-                    "cardinality": "one"
+                    "column": "source_vocabulary_id"
                 },
                 "to": {
                     "table": "vocabulary",
-                    "column": "vocabulary_id",
-                    "cardinality": "one_or_many"
+                    "column": "vocabulary_id"
                 }
             },
             {
                 "name": "fpk_source_to_concept_map_v_2",
                 "from": {
                     "table": "source_to_concept_map",
-                    "column": "target_vocabulary_id",
-                    "cardinality": "one"
+                    "column": "target_vocabulary_id"
                 },
                 "to": {
                     "table": "vocabulary",
-                    "column": "vocabulary_id",
-                    "cardinality": "one_or_many"
+                    "column": "vocabulary_id"
                 }
             },
             {
                 "name": "fpk_source_to_concept_map_c_1",
                 "from": {
                     "table": "source_to_concept_map",
-                    "column": "target_concept_id",
-                    "cardinality": "one"
+                    "column": "target_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_strength_concept_1",
                 "from": {
                     "table": "drug_strength",
-                    "column": "drug_concept_id",
-                    "cardinality": "one"
+                    "column": "drug_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_strength_concept_2",
                 "from": {
                     "table": "drug_strength",
-                    "column": "ingredient_concept_id",
-                    "cardinality": "one"
+                    "column": "ingredient_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_strength_unit_1",
                 "from": {
                     "table": "drug_strength",
-                    "column": "amount_unit_concept_id",
-                    "cardinality": "one"
+                    "column": "amount_unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_strength_unit_2",
                 "from": {
                     "table": "drug_strength",
-                    "column": "numerator_unit_concept_id",
-                    "cardinality": "one"
+                    "column": "numerator_unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_strength_unit_3",
                 "from": {
                     "table": "drug_strength",
-                    "column": "denominator_unit_concept_id",
-                    "cardinality": "one"
+                    "column": "denominator_unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_metadata_concept",
                 "from": {
                     "table": "metadata",
-                    "column": "metadata_concept_id",
-                    "cardinality": "one"
+                    "column": "metadata_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_metadata_type_concept",
                 "from": {
                     "table": "metadata",
-                    "column": "metadata_type_concept_id",
-                    "cardinality": "one"
+                    "column": "metadata_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_gender_concept",
                 "from": {
                     "table": "person",
-                    "column": "gender_concept_id",
-                    "cardinality": "one"
+                    "column": "gender_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_race_concept",
                 "from": {
                     "table": "person",
-                    "column": "race_concept_id",
-                    "cardinality": "one"
+                    "column": "race_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_ethnicity_concept",
                 "from": {
                     "table": "person",
-                    "column": "ethnicity_concept_id",
-                    "cardinality": "one"
+                    "column": "ethnicity_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_gender_concept_s",
                 "from": {
                     "table": "person",
-                    "column": "gender_source_concept_id",
-                    "cardinality": "one"
+                    "column": "gender_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_race_concept_s",
                 "from": {
                     "table": "person",
-                    "column": "race_source_concept_id",
-                    "cardinality": "one"
+                    "column": "race_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_ethnicity_concept_s",
                 "from": {
                     "table": "person",
-                    "column": "ethnicity_source_concept_id",
-                    "cardinality": "one"
+                    "column": "ethnicity_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_person_location",
                 "from": {
                     "table": "person",
-                    "column": "location_id",
-                    "cardinality": "one"
+                    "column": "location_id"
                 },
                 "to": {
                     "table": "location",
-                    "column": "location_id",
-                    "cardinality": "one_or_many"
+                    "column": "location_id"
                 }
             },
             {
                 "name": "fpk_person_provider",
                 "from": {
                     "table": "person",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_person_care_site",
                 "from": {
                     "table": "person",
-                    "column": "care_site_id",
-                    "cardinality": "one"
+                    "column": "care_site_id"
                 },
                 "to": {
                     "table": "care_site",
-                    "column": "care_site_id",
-                    "cardinality": "one_or_many"
+                    "column": "care_site_id"
                 }
             },
             {
                 "name": "fpk_observation_period_person",
                 "from": {
                     "table": "observation_period",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_observation_period_concept",
                 "from": {
                     "table": "observation_period",
-                    "column": "period_type_concept_id",
-                    "cardinality": "one"
+                    "column": "period_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_specimen_person",
                 "from": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "specimen",
-                    "column": "person_id",
-                    "cardinality": "zero_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_specimen_concept",
                 "from": {
                     "table": "specimen",
-                    "column": "specimen_concept_id",
-                    "cardinality": "one"
+                    "column": "specimen_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_specimen_type_concept",
                 "from": {
                     "table": "specimen",
-                    "column": "specimen_type_concept_id",
-                    "cardinality": "one"
+                    "column": "specimen_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_specimen_unit_concept",
                 "from": {
                     "table": "specimen",
-                    "column": "unit_concept_id",
-                    "cardinality": "one"
+                    "column": "unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_specimen_site_concept",
                 "from": {
                     "table": "specimen",
-                    "column": "anatomic_site_concept_id",
-                    "cardinality": "one"
+                    "column": "anatomic_site_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_specimen_status_concept",
                 "from": {
                     "table": "specimen",
-                    "column": "disease_status_concept_id",
-                    "cardinality": "one"
+                    "column": "disease_status_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_visit_person",
                 "from": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "person_id",
-                    "cardinality": "zero_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_visit_concept",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_concept_id",
-                    "cardinality": "one"
+                    "column": "visit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_visit_type_concept",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_type_concept_id",
-                    "cardinality": "one"
+                    "column": "visit_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_visit_provider",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "zero_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_visit_care_site",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "care_site_id",
-                    "cardinality": "one"
+                    "column": "care_site_id"
                 },
                 "to": {
                     "table": "care_site",
-                    "column": "care_site_id",
-                    "cardinality": "zero_or_many"
+                    "column": "care_site_id"
                 }
             },
             {
                 "name": "fpk_visit_concept_s",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_source_concept_id",
-                    "cardinality": "one"
+                    "column": "visit_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_visit_discharge",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "discharge_to_concept_id",
-                    "cardinality": "one"
+                    "column": "discharge_to_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_visit_preceding",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "preceding_visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "preceding_visit_occurrence_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_v_detail_person",
                 "from": {
                     "table": "visit_detail",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_v_detail_concept",
                 "from": {
                     "table": "visit_detail",
-                    "column": "visit_detail_concept_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_v_detail_type_concept",
                 "from": {
                     "table": "visit_detail",
-                    "column": "visit_detail_type_concept_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_v_detail_provider",
                 "from": {
                     "table": "visit_detail",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_v_detail_care_site",
                 "from": {
                     "table": "visit_detail",
-                    "column": "care_site_id",
-                    "cardinality": "one"
+                    "column": "care_site_id"
                 },
                 "to": {
                     "table": "care_site",
-                    "column": "care_site_id",
-                    "cardinality": "one_or_many"
+                    "column": "care_site_id"
                 }
             },
             {
                 "name": "fpk_v_detail_discharge",
                 "from": {
                     "table": "visit_detail",
-                    "column": "discharge_to_concept_id",
-                    "cardinality": "one"
+                    "column": "discharge_to_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_v_detail_concept_s",
                 "from": {
                     "table": "visit_detail",
-                    "column": "visit_detail_source_concept_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_v_detail_preceding",
                 "from": {
                     "table": "visit_detail",
-                    "column": "preceding_visit_detail_id",
-                    "cardinality": "one"
+                    "column": "preceding_visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_v_detail_parent",
                 "from": {
                     "table": "visit_detail",
-                    "column": "visit_detail_parent_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_parent_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpd_v_detail_visit",
                 "from": {
                     "table": "visit_detail",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_procedure_person",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_procedure_concept",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "procedure_concept_id",
-                    "cardinality": "one"
+                    "column": "procedure_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_procedure_type_concept",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "procedure_type_concept_id",
-                    "cardinality": "one"
+                    "column": "procedure_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_procedure_modifier",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "modifier_concept_id",
-                    "cardinality": "one"
+                    "column": "modifier_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_procedure_provider",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_procedure_visit",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "procedure_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_procedure_v_detail",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_procedure_concept_s",
                 "from": {
                     "table": "procedure_occurrence",
-                    "column": "procedure_source_concept_id",
-                    "cardinality": "one"
+                    "column": "procedure_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_person",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_drug_concept",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "drug_concept_id",
-                    "cardinality": "one"
+                    "column": "drug_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_type_concept",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "drug_type_concept_id",
-                    "cardinality": "one"
+                    "column": "drug_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_route_concept",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "route_concept_id",
-                    "cardinality": "one"
+                    "column": "route_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drug_provider",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_drug_visit",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "drug_exposure",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_drug_v_detail",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_drug_concept_s",
                 "from": {
                     "table": "drug_exposure",
-                    "column": "drug_source_concept_id",
-                    "cardinality": "one"
+                    "column": "drug_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_device_person",
                 "from": {
                     "table": "device_exposure",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_device_concept",
                 "from": {
                     "table": "device_exposure",
-                    "column": "device_concept_id",
-                    "cardinality": "one"
+                    "column": "device_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_device_type_concept",
                 "from": {
                     "table": "device_exposure",
-                    "column": "device_type_concept_id",
-                    "cardinality": "one"
+                    "column": "device_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_device_provider",
                 "from": {
                     "table": "device_exposure",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_device_visit",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "device_exposure",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_device_v_detail",
                 "from": {
                     "table": "device_exposure",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_device_concept_s",
                 "from": {
                     "table": "device_exposure",
-                    "column": "device_source_concept_id",
-                    "cardinality": "one"
+                    "column": "device_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_condition_person",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_condition_concept",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "condition_concept_id",
-                    "cardinality": "one"
+                    "column": "condition_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_condition_type_concept",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "condition_type_concept_id",
-                    "cardinality": "one"
+                    "column": "condition_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_condition_status_concept",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "condition_status_concept_id",
-                    "cardinality": "one"
+                    "column": "condition_status_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_condition_provider",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_condition_visit",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "condition_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_condition_v_detail",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_condition_concept_s",
                 "from": {
                     "table": "condition_occurrence",
-                    "column": "condition_source_concept_id",
-                    "cardinality": "one"
+                    "column": "condition_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_measurement_person",
                 "from": {
                     "table": "measurement",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_measurement_concept",
                 "from": {
                     "table": "measurement",
-                    "column": "measurement_concept_id",
-                    "cardinality": "one"
+                    "column": "measurement_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_measurement_type_concept",
                 "from": {
                     "table": "measurement",
-                    "column": "measurement_type_concept_id",
-                    "cardinality": "one"
+                    "column": "measurement_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_measurement_operator",
                 "from": {
                     "table": "measurement",
-                    "column": "operator_concept_id",
-                    "cardinality": "one"
+                    "column": "operator_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_measurement_value",
                 "from": {
                     "table": "measurement",
-                    "column": "value_as_concept_id",
-                    "cardinality": "one"
+                    "column": "value_as_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_measurement_unit",
                 "from": {
                     "table": "measurement",
-                    "column": "unit_concept_id",
-                    "cardinality": "one"
+                    "column": "unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_measurement_provider",
                 "from": {
                     "table": "measurement",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_measurement_visit",
                 "from": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "measurement",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_measurement_v_detail",
                 "from": {
                     "table": "measurement",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_measurement_concept_s",
                 "from": {
                     "table": "measurement",
-                    "column": "measurement_source_concept_id",
-                    "cardinality": "one"
+                    "column": "measurement_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_note_person",
                 "from": {
                     "table": "note",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_note_type_concept",
                 "from": {
                     "table": "note",
-                    "column": "note_type_concept_id",
-                    "cardinality": "one"
+                    "column": "note_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_note_class_concept",
                 "from": {
                     "table": "note",
-                    "column": "note_class_concept_id",
-                    "cardinality": "one"
+                    "column": "note_class_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_note_encoding_concept",
                 "from": {
                     "table": "note",
-                    "column": "encoding_concept_id",
-                    "cardinality": "one"
+                    "column": "encoding_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_language_concept",
                 "from": {
                     "table": "note",
-                    "column": "language_concept_id",
-                    "cardinality": "one"
+                    "column": "language_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_note_provider",
                 "from": {
                     "table": "note",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_note_visit",
                 "from": {
                     "table": "note",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_one"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_note_v_detail",
                 "from": {
                     "table": "note",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_note_nlp_note",
                 "from": {
                     "table": "note_nlp",
-                    "column": "note_id",
-                    "cardinality": "one"
+                    "column": "note_id"
                 },
                 "to": {
                     "table": "note",
-                    "column": "note_id",
-                    "cardinality": "one_or_many"
+                    "column": "note_id"
                 }
             },
             {
                 "name": "fpk_note_nlp_section_concept",
                 "from": {
                     "table": "note_nlp",
-                    "column": "section_concept_id",
-                    "cardinality": "one"
+                    "column": "section_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_note_nlp_concept",
                 "from": {
                     "table": "note_nlp",
-                    "column": "note_nlp_concept_id",
-                    "cardinality": "one"
+                    "column": "note_nlp_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_note_nlp_concept_s",
                 "from": {
                     "table": "note_nlp",
-                    "column": "note_nlp_source_concept_id",
-                    "cardinality": "one"
+                    "column": "note_nlp_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_observation_person",
                 "from": {
                     "table": "observation",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_observation_concept",
                 "from": {
                     "table": "observation",
-                    "column": "observation_concept_id",
-                    "cardinality": "one"
+                    "column": "observation_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_observation_type_concept",
                 "from": {
                     "table": "observation",
-                    "column": "observation_type_concept_id",
-                    "cardinality": "one"
+                    "column": "observation_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_observation_value",
                 "from": {
                     "table": "observation",
-                    "column": "value_as_concept_id",
-                    "cardinality": "one"
+                    "column": "value_as_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_observation_qualifier",
                 "from": {
                     "table": "observation",
-                    "column": "qualifier_concept_id",
-                    "cardinality": "one"
+                    "column": "qualifier_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_observation_unit",
                 "from": {
                     "table": "observation",
-                    "column": "unit_concept_id",
-                    "cardinality": "one"
+                    "column": "unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_observation_provider",
                 "from": {
                     "table": "observation",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_observation_visit",
                 "from": {
                     "table": "observation",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "zero_or_many"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_observation_v_detail",
                 "from": {
                     "table": "observation",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_observation_concept_s",
                 "from": {
                     "table": "observation",
-                    "column": "observation_source_concept_id",
-                    "cardinality": "one"
+                    "column": "observation_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_survey_person",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_survey_concept",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "survey_concept_id",
-                    "cardinality": "one"
+                    "column": "survey_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_survey_provider",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "provider_id",
-                    "cardinality": "one"
+                    "column": "provider_id"
                 },
                 "to": {
                     "table": "provider",
-                    "column": "provider_id",
-                    "cardinality": "one_or_many"
+                    "column": "provider_id"
                 }
             },
             {
                 "name": "fpk_survey_assist",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "assisted_concept_id",
-                    "cardinality": "one"
+                    "column": "assisted_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_respondent_type",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "respondent_type_concept_id",
-                    "cardinality": "one"
+                    "column": "respondent_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_survey_timing",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "timing_concept_id",
-                    "cardinality": "one"
+                    "column": "timing_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_collection_method",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "collection_method_concept_id",
-                    "cardinality": "one"
+                    "column": "collection_method_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_survey_source",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "survey_source_concept_id",
-                    "cardinality": "one"
+                    "column": "survey_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_validation",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "validated_survey_concept_id",
-                    "cardinality": "one"
+                    "column": "validated_survey_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_survey_visit",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "visit_occurrence_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_survey_v_detail",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "visit_detail_id",
-                    "cardinality": "one"
+                    "column": "visit_detail_id"
                 },
                 "to": {
                     "table": "visit_detail",
-                    "column": "visit_detail_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_detail_id"
                 }
             },
             {
                 "name": "fpk_response_visit",
                 "from": {
                     "table": "survey_conduct",
-                    "column": "response_visit_occurrence_id",
-                    "cardinality": "one"
+                    "column": "response_visit_occurrence_id"
                 },
                 "to": {
                     "table": "visit_occurrence",
-                    "column": "visit_occurrence_id",
-                    "cardinality": "one_or_many"
+                    "column": "visit_occurrence_id"
                 }
             },
             {
                 "name": "fpk_fact_domain_1",
                 "from": {
                     "table": "fact_relationship",
-                    "column": "domain_concept_id_1",
-                    "cardinality": "one"
+                    "column": "domain_concept_id_1"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_fact_domain_2",
                 "from": {
                     "table": "fact_relationship",
-                    "column": "domain_concept_id_2",
-                    "cardinality": "one"
+                    "column": "domain_concept_id_2"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_fact_relationship",
                 "from": {
                     "table": "fact_relationship",
-                    "column": "relationship_concept_id",
-                    "cardinality": "one"
+                    "column": "relationship_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_location_history",
                 "from": {
                     "table": "location_history",
-                    "column": "location_id",
-                    "cardinality": "one"
+                    "column": "location_id"
                 },
                 "to": {
                     "table": "location",
-                    "column": "location_id",
-                    "cardinality": "one_or_many"
+                    "column": "location_id"
                 }
             },
             {
                 "name": "fpk_relationship_type",
                 "from": {
                     "table": "location_history",
-                    "column": "relationship_type_concept_id",
-                    "cardinality": "one"
+                    "column": "relationship_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_care_site_place",
                 "from": {
                     "table": "care_site",
-                    "column": "place_of_service_concept_id",
-                    "cardinality": "one"
+                    "column": "place_of_service_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_care_site_location",
                 "from": {
                     "table": "care_site",
-                    "column": "location_id",
-                    "cardinality": "one"
+                    "column": "location_id"
                 },
                 "to": {
                     "table": "location",
-                    "column": "location_id",
-                    "cardinality": "one_or_many"
+                    "column": "location_id"
                 }
             },
             {
                 "name": "fpk_provider_specialty",
                 "from": {
                     "table": "provider",
-                    "column": "specialty_concept_id",
-                    "cardinality": "one"
+                    "column": "specialty_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_provider_care_site",
                 "from": {
                     "table": "provider",
-                    "column": "care_site_id",
-                    "cardinality": "one"
+                    "column": "care_site_id"
                 },
                 "to": {
                     "table": "care_site",
-                    "column": "care_site_id",
-                    "cardinality": "one_or_many"
+                    "column": "care_site_id"
                 }
             },
             {
                 "name": "fpk_provider_gender",
                 "from": {
                     "table": "provider",
-                    "column": "gender_concept_id",
-                    "cardinality": "one"
+                    "column": "gender_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_provider_specialty_s",
                 "from": {
                     "table": "provider",
-                    "column": "specialty_source_concept_id",
-                    "cardinality": "one"
+                    "column": "specialty_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_provider_gender_s",
                 "from": {
                     "table": "provider",
-                    "column": "gender_source_concept_id",
-                    "cardinality": "one"
+                    "column": "gender_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_payer_plan_period",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_contract_person",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "contract_person_id",
-                    "cardinality": "one"
+                    "column": "contract_person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_payer_concept",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "payer_concept_id",
-                    "cardinality": "one"
+                    "column": "payer_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_plan_concept_id",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "plan_concept_id",
-                    "cardinality": "one"
+                    "column": "plan_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_contract_concept",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "contract_concept_id",
-                    "cardinality": "one"
+                    "column": "contract_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_sponsor_concept",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "sponsor_concept_id",
-                    "cardinality": "one"
+                    "column": "sponsor_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_stop_reason_concept",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "stop_reason_concept_id",
-                    "cardinality": "one"
+                    "column": "stop_reason_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_payer_s",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "payer_source_concept_id",
-                    "cardinality": "one"
+                    "column": "payer_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_plan_s",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "plan_source_concept_id",
-                    "cardinality": "one"
+                    "column": "plan_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_contract_s",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "contract_source_concept_id",
-                    "cardinality": "one"
+                    "column": "contract_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_sponsor_s",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "sponsor_source_concept_id",
-                    "cardinality": "one"
+                    "column": "sponsor_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_stop_reason_s",
                 "from": {
                     "table": "payer_plan_period",
-                    "column": "stop_reason_source_concept_id",
-                    "cardinality": "one"
+                    "column": "stop_reason_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_cost_person",
                 "from": {
                     "table": "cost",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_cost_concept",
                 "from": {
                     "table": "cost",
-                    "column": "cost_concept_id",
-                    "cardinality": "one"
+                    "column": "cost_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_cost_type",
                 "from": {
                     "table": "cost",
-                    "column": "cost_type_concept_id",
-                    "cardinality": "one"
+                    "column": "cost_type_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_cost_currency",
                 "from": {
                     "table": "cost",
-                    "column": "currency_concept_id",
-                    "cardinality": "one"
+                    "column": "currency_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_revenue_concept",
                 "from": {
                     "table": "cost",
-                    "column": "revenue_code_concept_id",
-                    "cardinality": "one"
+                    "column": "revenue_code_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_drg_concept",
                 "from": {
                     "table": "cost",
-                    "column": "drg_concept_id",
-                    "cardinality": "one"
+                    "column": "drg_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_cost_s",
                 "from": {
                     "table": "cost",
-                    "column": "cost_source_concept_id",
-                    "cardinality": "one"
+                    "column": "cost_source_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_cost_period",
                 "from": {
                     "table": "cost",
-                    "column": "payer_plan_period_id",
-                    "cardinality": "one"
+                    "column": "payer_plan_period_id"
                 },
                 "to": {
                     "table": "payer_plan_period",
-                    "column": "payer_plan_period_id",
-                    "cardinality": "one_or_many"
+                    "column": "payer_plan_period_id"
                 }
             },
             {
                 "name": "fpk_drug_era_person",
                 "from": {
                     "table": "drug_era",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_drug_era_concept",
                 "from": {
                     "table": "drug_era",
-                    "column": "drug_concept_id",
-                    "cardinality": "one"
+                    "column": "drug_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_dose_era_person",
                 "from": {
                     "table": "dose_era",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_dose_era_concept",
                 "from": {
                     "table": "dose_era",
-                    "column": "drug_concept_id",
-                    "cardinality": "one"
+                    "column": "drug_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_dose_era_unit_concept",
                 "from": {
                     "table": "dose_era",
-                    "column": "unit_concept_id",
-                    "cardinality": "one"
+                    "column": "unit_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             },
             {
                 "name": "fpk_condition_era_person",
                 "from": {
                     "table": "condition_era",
-                    "column": "person_id",
-                    "cardinality": "one"
+                    "column": "person_id"
                 },
                 "to": {
                     "table": "person",
-                    "column": "person_id",
-                    "cardinality": "one_or_many"
+                    "column": "person_id"
                 }
             },
             {
                 "name": "fpk_condition_era_concept",
                 "from": {
                     "table": "condition_era",
-                    "column": "condition_concept_id",
-                    "cardinality": "one"
+                    "column": "condition_concept_id"
                 },
                 "to": {
                     "table": "concept",
-                    "column": "concept_id",
-                    "cardinality": "one_or_many"
+                    "column": "concept_id"
                 }
             }
         ],

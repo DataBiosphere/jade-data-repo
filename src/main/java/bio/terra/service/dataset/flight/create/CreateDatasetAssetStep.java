@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.model.AssetModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
@@ -82,6 +83,14 @@ public class CreateDatasetAssetStep implements Step {
             map.put(JobMapKeys.RESPONSE.getKeyName(),
                 new ErrorModel().message("Asset already exists: " + newAssetSpecification.getName()));
             return StepResult.getStepResultSuccess();
+        }
+        // add a fault that forces an exception to make sure the undo works
+        try {
+            configService.fault(ConfigEnum.CREATE_ASSET_FAULT, () -> {
+                throw new RuntimeException("fault insertion");
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         assetDao.create(newAssetSpecification, getDataset(context).getId());
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);

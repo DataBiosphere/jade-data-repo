@@ -45,11 +45,11 @@ public class AssetModelValidator implements Validator {
 
                 if (tableName != null && columns != null) {
                     if (ValidationUtils.hasDuplicates(columns)) {
-                        errors.rejectValue("schema", "DuplicateColumnNames");
+                        errors.rejectValue("columns", "DuplicateColumnNames");
                     }
                 }
             }
-            errors.rejectValue("schema", "NoRootTable");
+            //errors.rejectValue("rootTable", "NoRootTable"); // breaking here!
         }
     }
 

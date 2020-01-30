@@ -180,7 +180,7 @@ public class DataRepoFixtures {
         // TODO add the assetModel as a builder object
         DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
         assertThat(assetModel + " asset specification is successfully added",
-            response.getStatusCode(), equalTo(HttpStatus.OK));
+            response.getStatusCode(), equalTo(HttpStatus.ACCEPTED));
     }
 
     // snapshots
@@ -474,7 +474,7 @@ public class DataRepoFixtures {
         return dataRepoClient.put(user,
             "/api/repository/v1/configs/" + configName + "?enable=" + enable,
             null,
-            null);
+            null); // TODO should this validation on returned value?
     }
 
     public DataRepoResponse<Void> resetConfig(TestConfiguration.User user) throws Exception {

@@ -203,7 +203,6 @@ public class DatasetServiceTest {
         assertThat("dataset has expected assets", datasetWAssets.getAssetSpecificationByName(assetName).isPresent(),
             equalTo(true));
 
-
         // remove asset from dataset
         String jobId = datasetService.removeDatasetAssetSpecifications(datasetId.toString(), assetName, testUser);
         flightIdsList.add(jobId);

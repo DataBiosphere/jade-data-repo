@@ -4,6 +4,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.AssetModel;
 import bio.terra.model.ErrorModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -21,6 +22,7 @@ import java.util.List;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -46,8 +48,8 @@ public class AssetModelValidationTest {
         MockHttpServletResponse response = result.getResponse();
         String responseBody = response.getContentAsString();
 
-//        assertTrue("Error model was returned on failure",
-  //          StringUtils.contains(responseBody, "message"));
+        assertTrue("Error model was returned on failure",
+            StringUtils.contains(responseBody, "message"));
 
         ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
         return errorModel;

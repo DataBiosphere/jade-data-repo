@@ -4,18 +4,22 @@ package bio.terra.service.load;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileState;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import org.apache.commons.codec.binary.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,21 +27,28 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Repository
 public class LoadDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.LoadDao");
+    private final Logger logger = LoggerFactory.getLogger(LoadDao.class);
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate jdbcTemplate;
+    private ConfigurationService configService;
 
     @Autowired
-    public LoadDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public LoadDao(NamedParameterJdbcTemplate jdbcTemplate, ConfigurationService configService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.configService = configService;
     }
 
     // -- load tags public methods --
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    // This must be serializable so that conflicting updates of the locked state and flightid
+    // are detected. The default isolation level for Postgres is READ_COMMITTED; that will allow
+    // the second updater to overwrite the first updater's data. Serialization means the second
+    // updater will throw a PSQLException.
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.SERIALIZABLE)
     public Load lockLoad(String loadTag, String flightId) {
         Load load = lookupLoadByTag(loadTag);
         if (load == null) {
@@ -46,16 +57,41 @@ public class LoadDao {
 
         if (load.isLocked()) {
             if (StringUtils.equals(flightId, load.getLockingFlightId())) {
+                System.out.println("SUCCESS: we have it locked");
                 // we already have it locked
                 return load;
             } else {
+                System.out.println("CONFLICT: already locked");
                 // another flight has it locked
                 conflictThrow(load);
             }
         }
 
-        // Lock the load for our use and validate
-        updateLoad(load.getId(), true, flightId);
+        // FAULT: see LoadDaoUnitTest for the rationale for this code.
+        System.out.println("TESTING FAULT");
+        if (configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT)) {
+            try {
+                logger.info("LOAD_LOCK_CONFLICT_STOP");
+                System.out.println("LOAD_LOCK_CONFLICT_STOP");
+                while (!configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                    logger.info("Sleeping for CONTINUE FAULT");
+                    TimeUnit.SECONDS.sleep(2);
+                }
+                System.out.println("LOAD_LOCK_CONFLICT_CONTINUE");
+                logger.info("LOAD_LOCK_CONFLICT_CONTINUE");
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new LoadLockFailureException("Unexpected interrupt during load lock fault");
+            }
+        }
+
+        try {
+            // Lock the load for our use and validate
+            updateLoad(load.getId(), true, flightId);
+        } catch (CannotSerializeTransactionException ex) {
+            conflictThrow(load);
+        }
+
         load = lookupLoadByTag(loadTag);
         if (load != null && load.isLocked() && StringUtils.equals(load.getLockingFlightId(), flightId)) {
             return load;
@@ -66,7 +102,7 @@ public class LoadDao {
     // To support idempotent steps, this method will not complain if the load no longer exists or if
     // it is already unlocked. It throws if the lock is held by a different flight or if the unlock operation
     // fails for some reason.
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void unlockLoad(String loadTag, String flightId) {
         Load load = lookupLoadByTag(loadTag);
         if (load == null || !load.isLocked()) {
@@ -227,6 +263,7 @@ public class LoadDao {
     }
 
     // Updates the load to either lock or unlock it
+    @Transactional(propagation = Propagation.MANDATORY, isolation = Isolation.SERIALIZABLE)
     private void updateLoad(UUID loadId, boolean lock, String flightId) {
         String sql = "UPDATE load SET locked = :locked, locking_flight_id = :flight_id WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource()

@@ -159,6 +159,11 @@ public class ConfigServiceTest {
         tryCountedN(10, true);
         tryCountedN(10, false);
 
+        // Update the fault definition to be always on for 1
+        updateCountedFault(0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        tryCountedN(1, true);
+        tryCountedN(10, false);
+
         // Check that the math works
         updateCountedFault(0, 10, 222, ConfigFaultCountedModel.RateStyleEnum.FIXED);
         tryCountedN(10, true);
@@ -257,9 +262,9 @@ public class ConfigServiceTest {
     private void setFaultCounted(int skipFor, int insert, int rate,
                                  ConfigFaultCountedModel.RateStyleEnum rateStyle) {
         try {
-            ConfigModel configModel = configService.getConfig("UNIT_TEST_COUNTED_FAULT");
+            configService.getConfig("UNIT_TEST_COUNTED_FAULT");
             updateCountedFault(skipFor, insert, rate, rateStyle);
-        } catch (DuplicateConfigNameException ex) {
+        } catch (ConfigNotFoundException ex) {
             configService.addFaultCounted(UNIT_TEST_COUNTED_FAULT, skipFor, insert, rate, rateStyle);
         }
     }

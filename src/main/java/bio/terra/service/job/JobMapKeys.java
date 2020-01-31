@@ -13,6 +13,7 @@ public enum JobMapKeys {
     DATASET_ID("datasetId"),
     SNAPSHOT_ID("snapshotId"),
     FILE_ID("fileId"),
+    ASSET_ID("assetId"),
 
     // parameter for the job
     FLIGHT_CLASS("flight_class");

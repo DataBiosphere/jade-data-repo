@@ -824,6 +824,162 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/datasets/{id}/assets':
+    post:
+      description: Add an asset definiion to a dataset
+      operationId: addDatasetAssetSpecifications
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: assetModel
+        description: Asset definition to add to the dataset
+        schema:
+          $ref: '#/definitions/AssetModel'
+      responses:
+        202:
+          description: Job status of ingest job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to add an asset to a dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/assets/{assetId}':
+    delete:
+      description: Remove an asset definiion from a dataset
+      operationId: removeDatasetAssetSpecifications
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/AssetId'
+      responses:
+        202:
+          description: Add new assets to a dataset
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to remove an asset from a dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/assets':
+    post:
+      description: Add an asset definiion to a dataset
+      operationId: addDatasetAssetSpecifications
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: assetModel
+        description: Asset definition to add to the dataset
+        schema:
+          $ref: '#/definitions/AssetModel'
+      responses:
+        202:
+          description: Job status of ingest job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to add an asset to a dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/assets/{assetId}':
+    delete:
+      description: Remove an asset definiion from a dataset
+      operationId: removeDatasetAssetSpecifications
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - $ref: '#/parameters/AssetId'
+      responses:
+        202:
+          description: Add new assets to a dataset
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to remove an asset from a dataset
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
   '/api/repository/v1/register/user':
     get:
       description: |
@@ -1529,6 +1685,12 @@ parameters:
     required: true
     type: string
     in: path
+  AssetId:
+    name: assetid
+    description: An asset id
+    required: true
+    type: string
+    in: path
 
 ##########################################################################################
 # DEFINITIONS
@@ -1747,31 +1909,21 @@ definitions:
           $ref: '#/definitions/ObjectNameProperty'
 
   RelationshipTermModel:
-    description: Describes a table, columns and cardinality for a relationship
+    description: Describes a table and columns for a relationship
     type: object
     required:
       - table
       - column
-      - cardinality
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
       column:
         type: string
-      cardinality:
-        type: string
-        enum:
-          - one
-          - many
-          - zero_or_one
-          - one_or_many
-          - zero_or_many
 
   RelationshipModel:
     description: |
       One relationship between two tables. Captures a specific relationship between two tables. By naming the
-      relationships, we can define assets. It should allow us to use the cardinality of the relationships to form
-      proper views (INNER vs OUTER) and implement data validation.
+      relationships, we can define assets.
     type: object
     required:
       - name

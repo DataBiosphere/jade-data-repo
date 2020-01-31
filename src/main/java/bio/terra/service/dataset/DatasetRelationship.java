@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.common.Table;
-import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
 import java.util.UUID;
 
@@ -12,10 +11,8 @@ public class DatasetRelationship {
     private String name;
     private Column fromColumn;
     private Table fromTable;
-    private CardinalityEnum fromCardinality;
     private Column toColumn;
     private Table toTable;
-    private CardinalityEnum toCardinality;
 
     public UUID getId() {
         return id;
@@ -53,15 +50,6 @@ public class DatasetRelationship {
         return this;
     }
 
-    public CardinalityEnum getFromCardinality() {
-        return fromCardinality;
-    }
-
-    public DatasetRelationship fromCardinality(CardinalityEnum fromCardinality) {
-        this.fromCardinality = fromCardinality;
-        return this;
-    }
-
     public Table getToTable() {
         return toTable;
     }
@@ -77,15 +65,6 @@ public class DatasetRelationship {
 
     public DatasetRelationship toColumn(Column to) {
         this.toColumn = to;
-        return this;
-    }
-
-    public CardinalityEnum getToCardinality() {
-        return toCardinality;
-    }
-
-    public DatasetRelationship toCardinality(CardinalityEnum toCardinality) {
-        this.toCardinality = toCardinality;
         return this;
     }
 }

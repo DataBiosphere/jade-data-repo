@@ -3,7 +3,6 @@ package bio.terra.service.dataset;
 import bio.terra.common.Table;
 import bio.terra.common.Column;
 import bio.terra.model.*;
-import bio.terra.model.RelationshipTermModel.CardinalityEnum;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -141,29 +140,25 @@ public final class DatasetJsonConversion {
                 .name(relationshipModel.getName())
                 .fromTable(fromTable)
                 .fromColumn(fromTable.getColumnsMap().get(relationshipModel.getFrom().getColumn()))
-                .fromCardinality(relationshipModel.getFrom().getCardinality())
                 .toTable(toTable)
-                .toColumn(toTable.getColumnsMap().get(relationshipModel.getTo().getColumn()))
-                .toCardinality(relationshipModel.getTo().getCardinality());
+                .toColumn(toTable.getColumnsMap().get(relationshipModel.getTo().getColumn()));
     }
 
     public static RelationshipModel relationshipModelFromDatasetRelationship(DatasetRelationship datasetRel) {
         return new RelationshipModel()
                 .name(datasetRel.getName())
                 .from(relationshipTermModelFromColumn(
-                        datasetRel.getFromTable(), datasetRel.getFromColumn(), datasetRel.getFromCardinality()))
+                        datasetRel.getFromTable(), datasetRel.getFromColumn()))
                 .to(relationshipTermModelFromColumn(
-                        datasetRel.getToTable(), datasetRel.getToColumn(), datasetRel.getToCardinality()));
+                        datasetRel.getToTable(), datasetRel.getToColumn()));
     }
 
     protected static RelationshipTermModel relationshipTermModelFromColumn(
             Table table,
-            Column col,
-            CardinalityEnum cardinality) {
+            Column col) {
         return new RelationshipTermModel()
                 .table(table.getName())
-                .column(col.getName())
-                .cardinality(cardinality);
+                .column(col.getName());
     }
 
     public static AssetSpecification assetModelToAssetSpecification(

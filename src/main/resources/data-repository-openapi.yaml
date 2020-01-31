@@ -865,85 +865,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/datasets/{id}/assets/{assetId}':
-    delete:
-      description: Remove an asset definiion from a dataset
-      operationId: removeDatasetAssetSpecifications
-      tags:
-      - repository
-      consumes:
-      - application/json
-      parameters:
-      - $ref: '#/parameters/Id'
-      - $ref: '#/parameters/AssetId'
-      responses:
-        202:
-          description: Add new assets to a dataset
-          schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job polling
-        200:
-          description: Redirect for ingest complete
-          schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job result
-        400:
-          description: Bad request - invalid ingest request, badly formed
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to remove an asset from a dataset
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-  '/api/repository/v1/datasets/{id}/assets':
-    post:
-      description: Add an asset definiion to a dataset
-      operationId: addDatasetAssetSpecifications
-      tags:
-      - repository
-      consumes:
-      - application/json
-      parameters:
-      - $ref: '#/parameters/Id'
-      - in: body
-        name: assetModel
-        description: Asset definition to add to the dataset
-        schema:
-          $ref: '#/definitions/AssetModel'
-      responses:
-        202:
-          description: Job status of ingest job & url for polling in the response header
-          schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job polling
-        200:
-          description: Redirect for ingest complete
-          schema:
-            $ref: '#/definitions/JobModel'
-          headers:
-            location:
-              type: string
-              description: url for the job result
-        400:
-          description: Bad request - invalid ingest request, badly formed
-          schema:
-            $ref: '#/definitions/ErrorModel'
-        403:
-          description: No permission to add an asset to a dataset
-          schema:
-            $ref: '#/definitions/ErrorModel'
-
-  '/api/repository/v1/datasets/{id}/assets/{assetId}':
+  '/api/repository/v1/datasets/{id}/assets/{assetid}':
     delete:
       description: Remove an asset definiion from a dataset
       operationId: removeDatasetAssetSpecifications
@@ -1054,7 +976,9 @@ paths:
       - $ref: '#/parameters/Id'
       - in: body
         name: bulkFileLoad
-        description: Bulk file load request
+        description: |-
+          Bulk file load request with file list in an external file. Load summary results
+          are returned in the async response.
         schema:
           $ref: '#/definitions/BulkLoadRequestModel'
       responses:
@@ -1087,7 +1011,7 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
-  '/api/repository/v1/datasets/{id}/files/bulk/{loadTag}':
+  '/api/repository/v1/datasets/{id}/files/bulk/{loadtag}':
     get:
       description: |-
         Retrieve the results of a bulk file load. The results of each bulk load are stored
@@ -1181,6 +1105,57 @@ paths:
             $ref: '#/definitions/ErrorModel'
         403:
           description: No permission to access bulk file results
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+  '/api/repository/v1/datasets/{id}/files/bulk/array':
+    post:
+      description: |-
+        Load many files into the dataset file system; async returns a BulkLoadArrayResultModel
+        Note that this endpoint is not a single transaction. Some files may be loaded and
+        others may fail. Each file load is atomic; the file will either be loaded into the
+        dataset file system or it will not exist.
+      operationId: bulkFileLoadArray
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: bulkFileLoadArray
+        description: |-
+          Bulk file load request with file list in the body of the request and load
+          results returned in the async response.
+        schema:
+          $ref: '#/definitions/BulkLoadArrayRequestModel'
+      responses:
+        202:
+          description: Job status of bulk load job & url for polling in the response header
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for bulk load complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
+        400:
+          description: Bad request - invalid ingest request, badly formed
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to ingest
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        409:
+          description: Someone else is using the load tag
           schema:
             $ref: '#/definitions/ErrorModel'
 
@@ -2211,19 +2186,17 @@ definitions:
 
   BulkLoadRequestModel:
     description: |-
-      Body of a bulk file load request. We provide two ways of specifying the files to
-      load. One is to include an array of BulkLoadFileModel objects in this
-      object. The other is to provide a file containing the JSON form of a
-      BulkLoadFileModel. While we expect users to pick one or the other, the code will
-      process both inputs and load all of the files. If neither is specified, it runs
-      really, really fast!
-      The results of a bulk load are always stored into the dataset tabular data store
+      Body of a bulk file load request. This variant of a bulk load provides the set of
+      files to be loaded in a file containing the JSON form of a BulkLoadFileModel.
+      A summary of the load results is returned in the async response (BulkLoadResponseModel)
+      Per-file details of a bulk load are always stored into the dataset tabular data store
       and can be retrieved directly from there, or via the GET .../bulk/{loadTag}
       They can be cleaned up with the DELETE .../bulk/{loadTag}
     type: object
     required:
       - profileId
       - loadTag
+      - loadControlFile
     properties:
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
@@ -2234,13 +2207,6 @@ definitions:
         type: integer
         default: 0
         description: max number of failed file loads before stopping
-      returnArrayResults:
-        type: boolean
-        default: false
-        description: |-
-          If true, return the load results in an array in the result model.
-          Otherwise, only return the summary statistics. It is always possible
-          to get the results from the
       loadControlFile:
         type: string
         description: |-
@@ -2248,6 +2214,30 @@ definitions:
           Manager. Each line of the file is interpreted as the JSON form of one
           BulkLoadFileModel. For example, one line might look like
             '{ "sourcePath":"gs:/bucket/path/file", "targetPath":"/target/path/file" }'
+
+  BulkLoadArrayRequestModel:
+    description: |-
+      Body of a bulk file load request. This variant of a bulk load provides the set of
+      files to be loaded in the body of the request. Both the summary of the load and the
+      per-file details of the bulk load returned in the async response (BulkLoadArrayResponseModel)
+      Per-file details of a bulk load are also stored into the dataset tabular data store
+      and can be retrieved directly from there, or via the GET .../bulk/{loadTag}
+      They can be cleaned up with the DELETE .../bulk/{loadTag}
+    type: object
+    required:
+      - profileId
+      - loadTag
+      - loadArray
+    properties:
+      profileId:
+        $ref: '#/definitions/UniqueIdProperty'
+        description: The profile id to use for these files
+      loadTag:
+        $ref: '#/definitions/LoadTagModel'
+      maxFailedFileLoads:
+        type: integer
+        default: 0
+        description: max number of failed file loads before stopping
       loadArray:
         type: array
         description: Array files to load
@@ -2296,13 +2286,18 @@ definitions:
         type: integer
       notTriedFiles:
         type: integer
+
+  BulkLoadArrayResultModel:
+    description: |-
+      Returned when the bulk file load job finishes. 
+    type: object
+    properties:
+      loadSummary:
+        $ref: '#/definitions/BulkLoadResultModel'
       loadFileResults:
         type: array
         items:
           $ref: '#/definitions/BulkLoadFileResultModel'
-        description: |-
-          This array is present only if requested by setting returnArrayResults true in
-          the BulkLoadRequestModel.
 
   BulkLoadFileResultModel:
     description: Describes the status result of one file within a bulk file load

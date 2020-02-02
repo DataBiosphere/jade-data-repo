@@ -23,6 +23,8 @@ public class ApplicationConfiguration {
     private String resourceId;
     private String userId;
     private int maxStairwayThreads;
+    private int maxBulkFileLoadArray;
+    private int maxBulkFileLoad;
 
     public String getUserEmail() {
         return userEmail;
@@ -62,6 +64,22 @@ public class ApplicationConfiguration {
 
     public void setMaxStairwayThreads(int maxStairwayThreads) {
         this.maxStairwayThreads = maxStairwayThreads;
+    }
+
+    public int getMaxBulkFileLoadArray() {
+        return maxBulkFileLoadArray;
+    }
+
+    public void setMaxBulkFileLoadArray(int maxBulkFileLoadArray) {
+        this.maxBulkFileLoadArray = maxBulkFileLoadArray;
+    }
+
+    public int getMaxBulkFileLoad() {
+        return maxBulkFileLoad;
+    }
+
+    public void setMaxBulkFileLoad(int maxBulkFileLoad) {
+        this.maxBulkFileLoad = maxBulkFileLoad;
     }
 
     @Bean("jdbcTemplate")

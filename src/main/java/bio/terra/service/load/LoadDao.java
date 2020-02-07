@@ -57,27 +57,22 @@ public class LoadDao {
 
         if (load.isLocked()) {
             if (StringUtils.equals(flightId, load.getLockingFlightId())) {
-                System.out.println("SUCCESS: we have it locked");
                 // we already have it locked
                 return load;
             } else {
-                System.out.println("CONFLICT: already locked");
                 // another flight has it locked
                 conflictThrow(load);
             }
         }
 
         // FAULT: see LoadDaoUnitTest for the rationale for this code.
-        System.out.println("TESTING FAULT");
         if (configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT)) {
             try {
                 logger.info("LOAD_LOCK_CONFLICT_STOP");
-                System.out.println("LOAD_LOCK_CONFLICT_STOP");
                 while (!configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT)) {
                     logger.info("Sleeping for CONTINUE FAULT");
                     TimeUnit.SECONDS.sleep(2);
                 }
-                System.out.println("LOAD_LOCK_CONFLICT_CONTINUE");
                 logger.info("LOAD_LOCK_CONFLICT_CONTINUE");
             } catch (InterruptedException ex) {
                 Thread.currentThread().interrupt();

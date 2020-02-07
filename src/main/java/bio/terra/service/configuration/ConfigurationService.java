@@ -19,6 +19,8 @@ import java.util.List;
 import java.util.Map;
 
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
@@ -85,6 +87,7 @@ public class ConfigurationService {
 
         ConfigFault fault = (ConfigFault)configBase;
         fault.setEnabled(enable);
+        logger.info("Set fault " + name + " to " + enable);
     }
 
     // Exposed for use in unit test
@@ -163,6 +166,10 @@ public class ConfigurationService {
         addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.getOperationTimeoutSeconds());
         addFaultSimple(CREATE_ASSET_FAULT);
         addFaultCounted(SAM_TIMEOUT_FAULT, 0, -1, 25, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+
+        // Load Lock faults: these next two go together and are used by LoadDaoUnitTest
+        addFaultCounted(LOAD_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(LOAD_LOCK_CONFLICT_CONTINUE_FAULT);
     }
 
 

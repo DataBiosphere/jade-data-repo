@@ -2,33 +2,53 @@ package bio.terra.service.load;
 
 
 import bio.terra.common.DaoKeyHolder;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import org.apache.commons.codec.binary.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Repository
 public class LoadDao {
-    private final Logger logger = LoggerFactory.getLogger("bio.terra.service.snapshot.LoadDao");
+    private final Logger logger = LoggerFactory.getLogger(LoadDao.class);
 
-    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate jdbcTemplate;
+    private ConfigurationService configService;
 
     @Autowired
-    public LoadDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public LoadDao(NamedParameterJdbcTemplate jdbcTemplate, ConfigurationService configService) {
         this.jdbcTemplate = jdbcTemplate;
+        this.configService = configService;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
+    // -- load tags public methods --
+
+    // This must be serializable so that conflicting updates of the locked state and flightid
+    // are detected. The default isolation level for Postgres is READ_COMMITTED; that will allow
+    // the second updater to overwrite the first updater's data. Serialization means the second
+    // updater will throw a PSQLException.
+    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.SERIALIZABLE)
     public Load lockLoad(String loadTag, String flightId) {
         Load load = lookupLoadByTag(loadTag);
         if (load == null) {
@@ -45,8 +65,28 @@ public class LoadDao {
             }
         }
 
-        // Lock the load for our use and validate
-        updateLoad(load.getId(), true, flightId);
+        // FAULT: see LoadDaoUnitTest for the rationale for this code.
+        if (configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT)) {
+            try {
+                logger.info("LOAD_LOCK_CONFLICT_STOP");
+                while (!configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                    logger.info("Sleeping for CONTINUE FAULT");
+                    TimeUnit.SECONDS.sleep(2);
+                }
+                logger.info("LOAD_LOCK_CONFLICT_CONTINUE");
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new LoadLockFailureException("Unexpected interrupt during load lock fault");
+            }
+        }
+
+        try {
+            // Lock the load for our use and validate
+            updateLoad(load.getId(), true, flightId);
+        } catch (CannotSerializeTransactionException ex) {
+            conflictThrow(load);
+        }
+
         load = lookupLoadByTag(loadTag);
         if (load != null && load.isLocked() && StringUtils.equals(load.getLockingFlightId(), flightId)) {
             return load;
@@ -57,7 +97,7 @@ public class LoadDao {
     // To support idempotent steps, this method will not complain if the load no longer exists or if
     // it is already unlocked. It throws if the lock is held by a different flight or if the unlock operation
     // fails for some reason.
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void unlockLoad(String loadTag, String flightId) {
         Load load = lookupLoadByTag(loadTag);
         if (load == null || !load.isLocked()) {
@@ -72,6 +112,126 @@ public class LoadDao {
         if (load == null || load.isLocked() || load.getLockingFlightId() != null) {
             throw new LoadLockFailureException("Internal error: failed to unlock a load!");
         }
+    }
+
+    // -- load files methods --
+
+    // TODO: REVIEWERS: note that counter to our usual practice, I am using the interface datatype instead of
+    //  insulating the innards from the interface. That seems justified in this case, because I don't want to
+    //  use memory making another big array.
+    //  Also, I am a tiny bit concerned about insert performance. This code is implemented in the obvious
+    //  way using JdbcTemplate. JdbcTemplate documentation says that it uses JDBC batchUpdate if it is supported
+    //  by the underlying database system. However, some posts in StackOverflow claim that it is not using the
+    //  batch, but issuing an insert for each row.
+    //  I created DR-738 to track performance measurement of file load to decide if this method should get
+    //  more clever.
+
+    // Insert one batch of file load instructions into the load_file table
+    @Transactional
+    public void populateFiles(UUID loadId, List<BulkLoadFileModel> loadFileModelList) {
+        final String sql = "INSERT INTO load_file " +
+            " (load_id, source_path, target_path, mime_type, description, state)" +
+            " VALUES(?,?,?,?,?,?)";
+
+        JdbcTemplate baseJdbcTemplate = jdbcTemplate.getJdbcTemplate();
+        baseJdbcTemplate.batchUpdate(sql,
+            new BatchPreparedStatementSetter() {
+                public void setValues(PreparedStatement ps, int i) throws SQLException {
+                    ps.setObject(1, loadId);
+                    ps.setString(2, loadFileModelList.get(i).getSourcePath());
+                    ps.setString(3, loadFileModelList.get(i).getTargetPath());
+                    ps.setString(4, loadFileModelList.get(i).getMimeType());
+                    ps.setString(5, loadFileModelList.get(i).getDescription());
+                    ps.setString(6, BulkLoadFileState.NOT_TRIED.toString());
+                }
+
+                public int getBatchSize() {
+                    return loadFileModelList.size();
+                }
+            });
+    }
+
+    // Remove all file load instructions for a given loadId from the load_file table
+    public void cleanFiles(UUID loadId) {
+        jdbcTemplate.update("DELETE FROM load_file WHERE load_id = :load_id",
+                new MapSqlParameterSource().addValue("load_id", loadId));
+    }
+
+    public LoadCandidates findCandidates(UUID loadId, int candidatesToFind) {
+        final String countFailedSql = "SELECT count(*) AS failed FROM load_file" +
+            " WHERE load_id = :load_id AND state = :state";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("load_id", loadId);
+        params.addValue("state", BulkLoadFileState.FAILED.toString());
+        Integer failedFiles = jdbcTemplate.queryForObject(countFailedSql, params, Integer.class);
+        if (failedFiles == null) {
+            failedFiles = 0;
+        }
+
+        List<LoadFile> runningLoads = queryByState(loadId, BulkLoadFileState.RUNNING, null);
+        List<LoadFile> candidateFiles = queryByState(loadId, BulkLoadFileState.NOT_TRIED, candidatesToFind);
+
+        return new LoadCandidates()
+            .runningLoads(runningLoads)
+            .candidateFiles(candidateFiles)
+            .failedLoads(failedFiles);
+    }
+
+    public void setLoadFileRunning(UUID loadId, String targetPath, String flightId) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null, flightId);
+    }
+
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, null, null);
+    }
+
+    public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null, error, null);
+    }
+
+    // -- private methods --
+    private List<LoadFile> queryByState(UUID loadId, BulkLoadFileState state, Integer limit) {
+        String sql = "SELECT source_path, target_path, mime_type, description, state, flight_id, file_id, error" +
+            " FROM load_file WHERE load_id = :load_id AND state = :state";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("load_id", loadId)
+            .addValue("state", state.toString());
+
+        if (limit != null) {
+            sql = sql + " LIMIT :limit";
+            params.addValue("limit", limit);
+        }
+
+        return jdbcTemplate.query(sql, params, (rs, rowNum) ->
+            new LoadFile()
+                .loadId(loadId)
+                .sourcePath(rs.getString("source_path"))
+                .targetPath(rs.getString("target_path"))
+                .mimeType(rs.getString("mime_type"))
+                .description(rs.getString("description"))
+                .state(BulkLoadFileState.fromValue(rs.getString("state")))
+                .flightId(rs.getString("flight_id"))
+                .fileId(rs.getString("file_id"))
+                .error(rs.getString("error")));
+    }
+
+    private void updateLoadFile(UUID loadId,
+                                String targetPath,
+                                BulkLoadFileState state,
+                                String fileId,
+                                String error,
+                                String flightId) {
+        final String sql = "UPDATE load_file" +
+            " SET state = :state, file_id = :file_id, error = :error, flight_id = :flight_id" +
+            " WHERE load_id = :load_id AND target_path = :target_path";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("state", state.toString())
+            .addValue("flight_id", flightId)
+            .addValue("file_id", fileId)
+            .addValue("error", error)
+            .addValue("load_id", loadId)
+            .addValue("target_path", targetPath);
+        jdbcTemplate.update(sql, params);
     }
 
     private void conflictThrow(Load load) {
@@ -98,6 +258,7 @@ public class LoadDao {
     }
 
     // Updates the load to either lock or unlock it
+    @Transactional(propagation = Propagation.MANDATORY, isolation = Isolation.SERIALIZABLE)
     private void updateLoad(UUID loadId, boolean lock, String flightId) {
         String sql = "UPDATE load SET locked = :locked, locking_flight_id = :flight_id WHERE id = :id";
         MapSqlParameterSource params = new MapSqlParameterSource()
@@ -106,7 +267,6 @@ public class LoadDao {
             .addValue("id", loadId);
         jdbcTemplate.update(sql, params);
     }
-
 
     // Returns null if not found
     private Load lookupLoadByTag(String loadTag) {

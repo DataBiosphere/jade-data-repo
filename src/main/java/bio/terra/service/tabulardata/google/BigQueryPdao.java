@@ -379,27 +379,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     public void addRowIdsToStagingTable(Dataset dataset, String stagingTableName) {
-        /*
-         * UPDATE `project.dataset.stagingtable`
-         * SET datarepo_row_id = GENERATE_UUID()
-         * WHERE datarepo_row_id IS NULL
-         */
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        StringBuilder sql = new StringBuilder();
-        sql.append("UPDATE ")
-            .append("`")
-            .append(bigQueryProject.getProjectId())
-            .append(".")
-            .append(prefixName(dataset.getName()))
-            .append(".")
-            .append(stagingTableName)
-            .append("` SET ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" = GENERATE_UUID() WHERE ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" IS NULL");
-
-        bigQueryProject.query(sql.toString());
+        String sql = BigQuerySqlGenerator.addRowIdsToStagingTable(
+            bigQueryProject.getProjectId(), dataset, stagingTableName);
+        bigQueryProject.query(sql);
     }
 
     public void loadOverlapTable(Dataset dataset,
@@ -584,35 +567,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public void insertIntoDatasetTable(Dataset dataset,
                                      Table targetTable,
                                      String stagingTableName) {
-        /*
-         * INSERT INTO `project.dataset.datasettable`
-         * (<column names...>)
-         * SELECT <column names...>
-         * FROM stagingTableName
-         */
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String projectId = bigQueryProject.getProjectId();
-        StringBuilder sql = new StringBuilder();
-        sql.append("INSERT ")
-            .append("`")
-            .append(projectId)
-            .append(".")
-            .append(prefixName(dataset.getName()))
-            .append(".")
-            .append(targetTable.getName())
-            .append("` (");
-        buildColumnList(sql, targetTable, true);
-        sql.append(") SELECT ");
-        buildColumnList(sql, targetTable, true);
-        sql.append(" FROM `")
-            .append(projectId)
-            .append(".")
-            .append(prefixName(dataset.getName()))
-            .append(".")
-            .append(stagingTableName)
-            .append("`");
-
-        bigQueryProject.query(sql.toString());
+        String sql = BigQuerySqlGenerator.insertIntoDatasetTable(
+            bigQueryProject.getProjectId(), dataset, targetTable, stagingTableName);
+        bigQueryProject.query(sql);
     }
 
     private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {
@@ -757,10 +715,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
 
         return refIdArray;
-    }
-
-    public String prefixName(String name) {
-        return PDAO_PREFIX + name;
     }
 
     public String prefixSoftDeleteTableName(String tableName) {

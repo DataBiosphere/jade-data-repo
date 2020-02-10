@@ -175,6 +175,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return rowIdMatch;
     }
 
+    private static final String loadRootRowIdsTemplate =
+        "INSERT `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
+            "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
+            "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
+            "SELECT row_id FROM UNNEST([<rowIds:{id|'<id>'}; separator=\",\">]) AS row_id " +
+            "EXCEPT DISTINCT (SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<softDelTable>`)" +
+            ") AS T";
+
+    private static final String validateRowIdsForRootTemplate =
+        "SELECT COUNT(1) FROM `<project>.<dataset>.<table>` AS T, " +
+            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` AS R " +
+            "WHERE R." + PDAO_ROW_ID_COLUMN + " = T." + PDAO_ROW_ID_COLUMN;
+
     @Override
     public void createSnapshot(Snapshot snapshot, List<String> rowIds) {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
@@ -199,18 +212,25 @@ public class BigQueryPdao implements PrimaryDataAccess {
             AssetSpecification asset = source.getAssetSpecification();
             Table rootTable = asset.getRootTable().getTable();
             String rootTableId = rootTable.getId().toString();
-            String sql = loadRootRowIdsSql(snapshotName,
-                rootTableId,
-                rowIds,
-                projectId,
-                prefixSoftDeleteTableName(rootTable.getName()),
-                datasetBqDatasetName);
-            if (sql != null) {
-                bigQueryProject.query(sql);
-            }
-            sql = validateRowIdsForRootSql(datasetBqDatasetName, snapshotName, rootTable.getName(), projectId);
 
-            TableResult result = bigQueryProject.query(sql);
+            if (rowIds.size() > 0) {
+                ST sqlTemplate = new ST(loadRootRowIdsTemplate);
+                sqlTemplate.add("project", projectId);
+                sqlTemplate.add("snapshot", snapshotName);
+                sqlTemplate.add("dataset", datasetBqDatasetName);
+                sqlTemplate.add("tableId", rootTableId);
+                sqlTemplate.add("rowIds", rowIds);
+                sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(rootTable.getName()));
+                bigQueryProject.query(sqlTemplate.render());
+            }
+
+            ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
+            sqlTemplate.add("project", projectId);
+            sqlTemplate.add("snapshot", snapshotName);
+            sqlTemplate.add("dataset", datasetBqDatasetName);
+            sqlTemplate.add("table", rootTable.getName());
+
+            TableResult result = bigQueryProject.query(sqlTemplate.render());
             FieldValueList row = result.iterateAll().iterator().next();
             FieldValue countValue = row.get(0);
             if (countValue.getLongValue() != rowIds.size()) {
@@ -504,37 +524,23 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.deleteTable(prefixName(dataset.getName()), prefixSoftDeleteTableName(tableName));
     }
 
+    private static final String getRefIdsTemplate =
+        "SELECT <refCol> FROM `<project>.<dataset>.<table>`" +
+            "<if(array)> CROSS JOIN UNNEST(<refCol>) AS <refCol><else><end>";
+
     public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) {
-        /*
-          For simple columns:
-            SELECT refColumnName FROM stagingTable
-          For repeating columns this flattens all of the arrays into one result column:
-            SELECT x
-            FROM stagingTable
-            CROSS JOIN UNNEST(refColumnName) AS x
-         */
+
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String projectId = bigQueryProject.getProjectId();
+
+        ST sqlTemplate = new ST(getRefIdsTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("table", tableName);
+        sqlTemplate.add("refCol", refColumn.getName());
+        sqlTemplate.add("array", refColumn.isArrayOf());
+
+        TableResult result = bigQueryProject.query(sqlTemplate.render());
         List<String> refIdArray = new ArrayList<>();
-
-        String datasetBqDatasetName = prefixName(dataset.getName());
-        StringBuilder builder = new StringBuilder();
-
-        if (refColumn.isArrayOf()) {
-            builder.append("SELECT x FROM `")
-                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
-                .append("` CROSS JOIN UNNEST(")
-                .append(refColumn.getName())
-                .append(") AS x");
-        } else {
-            builder.append("SELECT ")
-                .append(refColumn.getName())
-                .append(" FROM `")
-                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
-                .append("`");
-        }
-        String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
                 String refId = row.get(0).getStringValue();
@@ -545,61 +551,31 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
+    private static final String getSnapshotRefIdsTemplate =
+        "SELECT <refCol> FROM `<project>.<dataset>.<table>` S, " +
+            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
+            "<if(array)>CROSS JOIN UNNEST(S.<refCol>) AS <refCol><else><end>" +
+            "WHERE S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
+            "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
+
     public List<String> getSnapshotRefIds(Dataset dataset,
                                          String snapshotName,
                                          String tableName,
                                          String tableId,
                                          Column refColumn) {
-        /*
-          For scalar columns we do this:
-            SELECT refColumnName
-            FROM <dataset table> S, datarepo_row_ids R
-            WHERE S.datarepo_row_id = R.datarepo_row_id
-            AND R.datarepo_table_id = '<dataset table id>'
-
-          For array columns we flatten the ref column by adding the cross join:
-            SELECT refColumnName
-            FROM <dataset table> S, datarepo_row_ids R
-
-            CROSS JOIN UNNEST(S.refColumnName) AS refColumnName
-
-            WHERE S.datarepo_row_id = R.datarepo_row_id
-            AND R.datarepo_table_id = '<dataset table id>'
-         */
-        List<String> refIdArray = new ArrayList<>();
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String projectId = bigQueryProject.getProjectId();
-        String datasetBqDatasetName = prefixName(dataset.getName());
-        String refColumnName = refColumn.getName();
-        StringBuilder builder = new StringBuilder();
-        builder.append("SELECT ")
-            .append(refColumnName)
-            .append(" FROM `")
-            .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(tableName)
-            .append("` S, `")
-            .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
-            .append("` R");
 
-        if (refColumn.isArrayOf()) {
-            builder.append(" CROSS JOIN UNNEST(S.")
-                .append(refColumnName)
-                .append(") ")
-                .append(refColumnName);
-        }
+        ST sqlTemplate = new ST(getSnapshotRefIdsTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("table", tableName);
+        sqlTemplate.add("tableId", tableId);
+        sqlTemplate.add("refCol", refColumn.getName());
+        sqlTemplate.add("array", refColumn.isArrayOf());
 
-        builder.append(" WHERE S.")
-            // where row_id matches and table_id matches
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" = R.")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" AND R.")
-            .append(PDAO_TABLE_ID_COLUMN)
-            .append(" = '")
-            .append(tableId)
-            .append("'");
-
-        String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
+        TableResult result = bigQueryProject.query(sqlTemplate.render());
+        List<String> refIdArray = new ArrayList<>();
         for (FieldValueList row : result.iterateAll()) {
             if (!row.get(0).isNull()) {
                 String refId = row.get(0).getStringValue();
@@ -666,85 +642,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
         fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         return Schema.of(fieldList);
-    }
-
-    // Load row ids
-    // We load row ids by building a SQL INSERT statement with the row ids as data.
-    // This is more expensive than streaming the input, but does not introduce visibility
-    // issues with the new data. It has the same number of values limitation as the
-    // validate row ids.
-    private String loadRootRowIdsSql(String snapshotName,
-                                     String tableId,
-                                     List<String> rowIds,
-                                     String projectId,
-                                     String softDeletesTableName,
-                                     String bqDatasetName) {
-        if (rowIds.size() == 0) {
-            return null;
-        }
-
-        /*
-        INSERT INTO `projectId.snapshotName.PDAO_ROW_ID_TABLE` (PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN)
-            SELECT 'tableId' AS table_id, T.PDAO_TABLE_ID_COLUMN AS row_id
-            FROM (
-                SELECT rowid
-                FROM UNNEST ([row_id1,row_id2,..,row_idn]) AS rowid
-                EXCEPT DISTINCT (
-                    SELECT PDAO_ROW_ID_COLUMN FROM softDeletesTableName
-                )
-            ) AS T
-        */
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("INSERT INTO `")
-            .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
-            .append("` (").append(PDAO_TABLE_ID_COLUMN).append(",").append(PDAO_ROW_ID_COLUMN)
-            .append(") SELECT ").append("'").append(tableId).append("' AS ").append(PDAO_TABLE_ID_COLUMN)
-            .append(", T.rowid AS ").append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM (SELECT rowid FROM UNNEST([");
-
-        // Put all of the rowids into an array that is unnested into a table
-        String prefix = "";
-        for (String rowId : rowIds) {
-            builder.append(prefix).append("'").append(rowId).append("'");
-            prefix = ",";
-        }
-
-        builder.append("]) AS rowid EXCEPT DISTINCT ( SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(projectId).append(".").append(bqDatasetName).append(".").append(softDeletesTableName)
-            .append("`)) AS T");
-        return builder.toString();
-    }
-
-    /**
-     * Check that the incoming row ids actually exist in the root table.
-     *
-     * Even though these are currently generated within the create snapshot flight, they may
-     * be exposed externally in the future, so validating seemed like a good idea.
-     * At this point, the only thing we have stored into the row id table are the incoming row ids.
-     * We make the equi-join of row id table and root table over row id. We should get one root table row
-     * for each row id table row. So we validate by comparing the count of the joined rows against the
-     * count of incoming row ids. This will catch duplicate and mismatched row ids.
-     *
-     * @param datasetBqDatasetName
-     * @param snapshotName
-     * @param rootTableName
-     * @param projectId
-     */
-    private String validateRowIdsForRootSql(String datasetBqDatasetName,
-                                          String snapshotName,
-                                          String rootTableName,
-                                          String projectId) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("SELECT COUNT(*) FROM `")
-                .append(projectId).append('.').append(datasetBqDatasetName).append('.').append(rootTableName)
-                .append("` AS T, `")
-                .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
-                .append("` AS R WHERE R.")
-                .append(PDAO_ROW_ID_COLUMN).append(" = T.").append(PDAO_ROW_ID_COLUMN);
-        return builder.toString();
     }
 
     /**

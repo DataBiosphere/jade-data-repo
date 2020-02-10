@@ -46,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
+import org.stringtemplate.v4.ST;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -378,11 +379,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return pdaoLoadStatistics;
     }
 
+    private static final String addRowIdsToStagingTableTemplate =
+        "UPDATE `<project>.<dataset>.<stagingTable>` SET " +
+            PDAO_ROW_ID_COLUMN + " = GENERATE_UUID() WHERE " +
+            PDAO_ROW_ID_COLUMN + " IS NULL";
+
     public void addRowIdsToStagingTable(Dataset dataset, String stagingTableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String sql = BigQuerySqlGenerator.addRowIdsToStagingTable(
-            bigQueryProject.getProjectId(), dataset, stagingTableName);
-        bigQueryProject.query(sql);
+
+        ST sqlTemplate = new ST(addRowIdsToStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("stagingTable", stagingTableName);
+
+        bigQueryProject.query(sqlTemplate.render());
     }
 
     public void loadOverlapTable(Dataset dataset,
@@ -564,13 +574,24 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sql.toString());
     }
 
+    private static final String insertIntoDatasetTableTemplate =
+        "INSERT `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
+            "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>`";
+
     public void insertIntoDatasetTable(Dataset dataset,
                                      Table targetTable,
                                      String stagingTableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String sql = BigQuerySqlGenerator.insertIntoDatasetTable(
-            bigQueryProject.getProjectId(), dataset, targetTable, stagingTableName);
-        bigQueryProject.query(sql);
+
+        ST sqlTemplate = new ST(insertIntoDatasetTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("targetTable", targetTable.getName());
+        sqlTemplate.add("stagingTable", stagingTableName);
+        sqlTemplate.add("columns", PDAO_ROW_ID_COLUMN);
+        targetTable.getColumns().forEach(column -> sqlTemplate.add("columns", column.getName()));
+
+        bigQueryProject.query(sqlTemplate.render());
     }
 
     private FormatOptions buildFormatOptions(IngestRequestModel ingestRequest) {

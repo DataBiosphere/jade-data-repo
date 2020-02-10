@@ -830,6 +830,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    private static final String createViewsTemplate =
+        "SELECT <columns; separator=\",\"> FROM (<source>)";
+
     private List<String> createViews(
         String datasetBqDatasetName,
         String snapshotName,
@@ -837,54 +840,36 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId,
         BigQuery bigQuery) {
         return snapshot.getTables().stream().map(table -> {
-                StringBuilder builder = new StringBuilder();
+            ST sqlTemplate = new ST(createViewsTemplate);
+            table.getColumns().forEach(c -> sqlTemplate.add("columns", c.getName()));
 
-                /*
-                  Building this SQL:
-                    SELECT <column list from snapshot table> FROM
-                      (SELECT <column list mapping dataset to snapshot columns>
-                       FROM <dataset table> S, datarepo_row_ids R
-                       WHERE S.datarepo_row_id = R.datarepo_row_id
-                         AND R.datarepo_table_id = '<dataset table id>')
-                 */
+            // Build the FROM clause from the source
+            // NOTE: we can put this in a loop when we do multiple sources
+            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            String sourceQuery = buildSource(
+                projectId, datasetBqDatasetName, snapshotName, table, source, snapshot);
+            sqlTemplate.add("source", sourceQuery);
 
-                builder.append("SELECT ");
-                buildColumnList(builder, table, false);
-                builder.append(" FROM ");
+            // create the view
+            String tableName = table.getName();
+            String sql = sqlTemplate.render();
 
-                // Build the FROM clause from the source
-                // NOTE: we can put this in a loop when we do multiple sources
-                SnapshotSource source = snapshot.getSnapshotSources().get(0);
-                buildSource(builder, projectId, datasetBqDatasetName, snapshotName, table, source, snapshot);
+            logger.info("Creating view" + snapshotName + "." + tableName + " as " + sql);
+            TableId tableId = TableId.of(snapshotName, tableName);
+            TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
+            bigQuery.create(tableInfo);
 
-                // create the view
-                String tableName = table.getName();
-                String sql = builder.toString();
-
-                logger.info("Creating view" + snapshotName + "." + tableName + " as " + sql);
-                TableId tableId = TableId.of(snapshotName, tableName);
-                TableInfo tableInfo = TableInfo.of(tableId, ViewDefinition.of(sql));
-                com.google.cloud.bigquery.Table bqTable = bigQuery.create(tableInfo);
-                return tableName;
-            }
-        ).collect(Collectors.toList());
+            return tableName;
+        }).collect(Collectors.toList());
     }
 
-    private void buildColumnList(StringBuilder builder, Table table, boolean addRowIdColumn) {
-        String prefix = "";
-        if (addRowIdColumn) {
-            builder.append(PDAO_ROW_ID_COLUMN);
-            prefix = ",";
-        }
+    private static final String sourceTemplate =
+        "SELECT <mappedColumns; separator=\",\"> FROM `<project>.<dataset>.<mapTable>` S, " +
+            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R WHERE " +
+            "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
+            "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
 
-        for (Column column : table.getColumns()) {
-            builder.append(prefix).append(column.getName());
-            prefix = ",";
-        }
-    }
-
-    private void buildSource(StringBuilder builder,
-                             String projectId,
+    private String buildSource(String projectId,
                              String datasetBqDatasetName,
                              String snapshotName,
                              Table table,
@@ -899,92 +884,54 @@ public class BigQueryPdao implements PrimaryDataAccess {
             throw new PdaoException("No matching map table for snapshot table " + table.getName());
         }
 
-        // Build this as a sub-select so it is easily extended to multiple sources in the future.
-        builder.append("(SELECT ");
-        buildSourceSelectList(builder, table, mapTable, snapshot, source);
+        ST sqlTemplate = new ST(sourceTemplate);
+        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("dataset", datasetBqDatasetName);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("mapTable", mapTable.getFromTable().getName());
+        sqlTemplate.add("tableId", mapTable.getFromTable().getId().toString());
 
-        builder.append(" FROM `")
-                // base dataset table
-                .append(projectId)
-                .append('.')
-                .append(datasetBqDatasetName)
-                .append('.')
-                .append(mapTable.getFromTable().getName())
-                .append('`')
-                // joined with the row id table
-                .append(" S, `")
-                .append(projectId)
-                .append('.')
-                .append(snapshotName)
-                .append('.')
-                .append(PDAO_ROW_ID_TABLE)
-                .append("` R WHERE S.")
-                // where row_id matches and table_id matches
-                .append(PDAO_ROW_ID_COLUMN)
-                .append(" = R.")
-                .append(PDAO_ROW_ID_COLUMN)
-                .append(" AND R.")
-                .append(PDAO_TABLE_ID_COLUMN)
-                .append(" = '")
-                .append(mapTable.getFromTable().getId().toString())
-                .append("')");
+        String snapshotId = snapshot.getId().toString();
+        table.getColumns().forEach(c ->
+            sqlTemplate.add("mappedColumns", sourceSelectSql(snapshotId, c, mapTable)));
+
+        return sqlTemplate.render();
     }
 
-    private void buildSourceSelectList(StringBuilder builder,
-                                       Table targetTable,
-                                       SnapshotMapTable mapTable,
-                                       Snapshot snapshot,
-                                       SnapshotSource source) {
-        String prefix = "";
+    private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {
+        // In the future, there may not be a column map for a given target column; it might not exist
+        // in the table. The logic here covers these cases:
+        // 1) no source column: supply NULL
+        // 2) source is simple datatype FILEREF or DIRREF:
+        //       generate the expression to construct the DRS URI: supply AS target name
+        // 3) source is a repeating FILEREF or DIRREF:
+        //       generate the unnest/re-nest to construct array of DRS URI: supply AS target name
+        // 4) source and target column with same name, just list source name
+        // 5) If source and target column with different names: supply AS target name
+        String targetColumnName = targetColumn.getName();
 
-        for (Column targetColumn : targetTable.getColumns()) {
-            builder.append(prefix);
-            prefix = ",";
+        SnapshotMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
+        if (mapColumn == null) {
+            return "NULL AS " + targetColumnName;
+        } else {
+            String colType = mapColumn.getFromColumn().getType();
+            String mapName = mapColumn.getFromColumn().getName();
 
-            // In the future, there may not be a column map for a given target column; it might not exist
-            // in the table. The logic here covers these cases:
-            // 1) no source column: supply NULL
-            // 2) source is simple datatype FILEREF or DIRREF:
-            //       generate the expression to construct the DRS URI: supply AS target name
-            // 3) source is a repeating FILEREF or DIRREF:
-            //       generate the unnest/re-nest to construct array of DRS URI: supply AS target name
-            // 4) source and target column with same name, just list source name
-            // 5) If source and target column with different names: supply AS target name
-            String targetColumnName = targetColumn.getName();
+            if (StringUtils.equalsIgnoreCase(colType, "FILEREF") ||
+                StringUtils.equalsIgnoreCase(colType, "DIRREF")) {
 
-            SnapshotMapColumn mapColumn = lookupMapColumn(targetColumn, mapTable);
-            if (mapColumn == null) {
-                builder.append("NULL AS ").append(targetColumnName);
-            } else if (StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "FILEREF") ||
-                StringUtils.equalsIgnoreCase(mapColumn.getFromColumn().getType(), "DIRREF")) {
+                String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
+
                 if (targetColumn.isArrayOf()) {
-                    // ARRAY( SELECT CONCAT('drs://datarepodnsname/v1_datasetid_snapshotid_', x)
-                    //        FROM UNNEST(fromColumnName) AS x ) AS target
-                    builder.append("ARRAY( SELECT CONCAT('drs://")
-                        .append(datarepoDnsName)
-                        .append("/v1_")
-                        .append(snapshot.getId().toString())
-                        .append("_',x) FROM UNNEST(")
-                        .append(mapColumn.getFromColumn().getName())
-                        .append(") AS x ) AS ")
-                        .append(targetColumnName);
+                    return "ARRAY(SELECT CONCAT(" + drsPrefix + ", x " +
+                        "FROM UNNEST(" + mapName + ") AS x) AS " + targetColumnName;
                 } else {
-                    // CONCAT('drs://datarepodnsname/v1_datasetid_snapshotid_', fromColumnName) AS target
-                    builder.append("CONCAT('drs://")
-                        .append(datarepoDnsName)
-                        .append("/v1_")
-                        .append(snapshot.getId().toString())
-                        .append("_',")
-                        .append(mapColumn.getFromColumn().getName())
-                        .append(") AS ")
-                        .append(targetColumnName);
+                    return "CONCAT(" + drsPrefix + ", " + mapName + ") AS " + targetColumnName;
                 }
-            } else if (StringUtils.equals(mapColumn.getFromColumn().getName(), targetColumnName)) {
-                builder.append(targetColumnName);
+            } else if (StringUtils.equalsIgnoreCase(mapName, targetColumnName)) {
+                return targetColumnName;
             } else {
-                builder.append(mapColumn.getFromColumn().getName())
-                        .append(" AS ")
-                        .append(targetColumnName);
+                return mapName + " AS " + targetColumnName;
             }
         }
     }
@@ -1005,36 +952,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
         }
         return null;
-    }
-
-    public void softDeleteRows(Dataset dataset,
-                               String tableName,
-                               String projectId,
-                               List<String> softDeleteRowIds) {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String softDeletesTableName = prefixSoftDeleteTableName(tableName);
-
-        // TODO: Validate rowIDs exist in given table
-        StringBuilder rowIdValues = new StringBuilder();
-        String prefix = "";
-        for (String rowId : softDeleteRowIds) {
-            rowIdValues.append(prefix).append("('").append(rowId).append("')");
-            prefix = ",";
-        }
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("INSERT INTO `")
-            .append(projectId).append(".")
-            .append(prefixName(dataset.getName()))
-            .append(".")
-            .append(softDeletesTableName)
-            .append("` (")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(") VALUES ")
-            .append(rowIdValues.toString());
-
-        String sql = builder.toString();
-        bigQueryProject.query(sql);
     }
 
     // TODO: Make an enum for the datatypes in swagger

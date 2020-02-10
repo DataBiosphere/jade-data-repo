@@ -12,6 +12,9 @@ build:
       type: gradle
 deploy:
   helm:
+    flags:
+      upgrade:
+        - --install
     releases:
     - name: ms-secrets
       chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.4/create-secret-manager-secret-0.0.4.tgz

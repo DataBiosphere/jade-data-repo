@@ -81,7 +81,7 @@ public class IngestSetupStep implements Step {
             IngestUtils.putOverlappingTableName(context, olName);
             String overlappingTableName = IngestUtils.getOverlappingTableName(context);
 
-            bigQueryProject.createTable(PdaoConstant.prefixName(dataset.getName()),
+            bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
                 overlappingTableName,
                 overlappingTableSchema);
         }

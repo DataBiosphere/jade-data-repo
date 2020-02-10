@@ -41,7 +41,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static bio.terra.common.PdaoConstant.*;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -160,7 +160,7 @@ public class BigQueryPdaoTest {
             .append(" FROM `")
             .append(projectId)
             .append(".")
-            .append(prefixName(dataset.getName()))
+            .append(bigQueryPdao.prefixName(dataset.getName()))
             .append(".")
             .append(bigQueryPdao.prefixSoftDeleteTableName(tableName))
             .append("`");
@@ -187,7 +187,7 @@ public class BigQueryPdaoTest {
             .append(" FROM `")
             .append(projectId)
             .append(".")
-            .append(prefixName(dataset.getName()))
+            .append(bigQueryPdao.prefixName(dataset.getName()))
             .append(".")
             .append(tableName)
             .append("` EXCEPT DISTINCT (SELECT ")
@@ -195,7 +195,7 @@ public class BigQueryPdaoTest {
             .append(" FROM `")
             .append(projectId)
             .append(".")
-            .append(prefixName(dataset.getName()))
+            .append(bigQueryPdao.prefixName(dataset.getName()))
             .append(".")
             .append(bigQueryPdao.prefixSoftDeleteTableName(tableName))
             .append("`)");

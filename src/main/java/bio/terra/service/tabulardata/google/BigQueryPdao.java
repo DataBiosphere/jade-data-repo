@@ -738,6 +738,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
+    public String prefixName(String name) {
+        return PDAO_PREFIX + name;
+    }
+
     public String prefixSoftDeleteTableName(String tableName) {
         return PDAO_PREFIX + "sd_" + tableName;
     }

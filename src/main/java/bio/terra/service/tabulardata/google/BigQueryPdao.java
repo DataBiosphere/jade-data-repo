@@ -700,6 +700,33 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    // NOTE: this will have to be re-written when we support relationships that include
+    // more than one column.
+    private static final String storeRowIdsForRelatedTableTemplate =
+        "WITH merged_table AS (SELECT DISTINCT '<toTableId>' AS " + PDAO_TABLE_ID_COLUMN + ", " +
+            "T." + PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<toTableName>` T, " +
+            "`<project>.<dataset>.<fromTableName>` F, `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
+            "WHERE R." + PDAO_TABLE_ID_COLUMN + " = '<fromTableId>' AND " +
+            "R." + PDAO_ROW_ID_COLUMN + " = F." + PDAO_ROW_ID_COLUMN + " AND <joinClause>) " +
+            "SELECT " + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + " FROM merged_table " +
+            "WHERE " + PDAO_ROW_ID_COLUMN + " NOT IN " +
+            "(SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<softDelTable>`)";
+
+    private static final String matchNonArrayTemplate =
+        "T.<toColumn> = F.<fromColumn>";
+
+    private static final String matchFromArrayTemplate =
+        "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from " +
+            "WHERE flat_from = T.<toColumn>)";
+
+    private static final String matchToArrayTemplate =
+        "EXISTS (SELECT 1 FROM UNNEST(T.<toColumn>) AS flat_to " +
+            "WHERE flat_to = F.<fromColumn>)";
+
+    private static final String matchCrossArraysTemplate =
+        "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from " +
+            "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
+
     /**
      * Given a relationship, join from the start table to the target table.
      * This may be walking the relationship from the from table to the to table,
@@ -718,112 +745,36 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                             String projectId,
                                             BigQuery bigQuery,
                                             String softDeletesTableName) {
-        // NOTE: this will have to be re-written when we support relationships that include
-        // more than one column.
-        /*
-            The constructed SQL varies depending on if the from/to column is an array.
 
-            Common SQL is:
-              WITH merged_table AS (
-                    SELECT DISTINCT 'toTableId' AS PDAO_TABLE_ID_COLUMN, T.PDAO_ROW_ID_COLUMN
-                    FROM toTableName T, fromTableName F, ROW_ID_TABLE_NAME R
-                    WHERE R.PDAO_TABLE_ID_COLUMN = 'fromTableId'
-                        AND R.PDAO_ROW_ID_COLUMN = F.PDAO_ROW_ID_COLUMN
-                        If neither column is an array, add:
-                            AND T.toColumnName = F.fromColumnName
-
-                        If 'from' is an array, add:
-                            AND EXISTS (SELECT 1
-                                FROM UNNEST(F.fromColumnName) AS flat_from
-                                WHERE flat_from = T.toColumnName)
-
-                        If 'to' is an array, add:
-                            AND EXISTS (SELECT 1
-                                FROM UNNEST(T.toColumnName) AS flat_to
-                                 WHERE flat_to = F.fromColumnName)
-
-                        If both are an array, add:
-                              AND EXISTS (SELECT 1
-                                  FROM UNNEST(F.fromColumnName) AS flat_from
-                                  JOIN UNNEST(T.toColumnName) AS flat_to
-                                  ON flat_from = flat_to)
-              )
-
-               SELECT PDAO_TABLE_ID_COLUMN, PDAO_ROW_ID_COLUMN
-               FROM 'merged_table'
-               WHERE PDAO_ROW_ID_COLUMN NOT IN (
-                    SELECT PDAO_ROW_ID_COLUMN FROM <table>_soft_deleted
-               )
-         */
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("WITH merged_table AS (SELECT DISTINCT '")
-                .append(relationship.getToTableId())
-                .append("' AS ")
-                .append(PDAO_TABLE_ID_COLUMN)
-                .append(", T.")
-                .append(PDAO_ROW_ID_COLUMN)
-                .append(" FROM `")
-                .append(projectId).append('.')
-                .append(datasetBqDatasetName).append('.')
-                .append(relationship.getToTableName())
-                .append("` AS T, `")
-                .append(projectId).append('.')
-                .append(datasetBqDatasetName).append('.')
-                .append(relationship.getFromTableName())
-                .append("` AS F, `")
-                .append(projectId).append('.').append(snapshotName).append('.').append(PDAO_ROW_ID_TABLE)
-                .append("` AS R WHERE R.")
-                .append(PDAO_TABLE_ID_COLUMN).append(" = '").append(relationship.getFromTableId())
-                .append("' AND R.")
-                .append(PDAO_ROW_ID_COLUMN).append(" = F.").append(PDAO_ROW_ID_COLUMN);
-
-        String fromColumn = relationship.getFromColumnName();
-        String toColumn = relationship.getToColumnName();
-        Boolean fromArray = relationship.getFromColumnIsArray();
-        Boolean toArray = relationship.getToColumnIsArray();
-
-        if (fromArray && toArray) {
-            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(F.")
-                    .append(fromColumn)
-                    .append(") AS flat_from JOIN UNNEST(T.")
-                    .append(toColumn)
-                    .append(") AS flat_to ON flat_from = flat_to)");
-        } else if (fromArray) {
-            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(F.")
-                    .append(fromColumn)
-                    .append(") AS flat_from WHERE flat_from = T.")
-                    .append(toColumn)
-                    .append(")");
-        } else if (toArray) {
-            builder.append(" AND EXISTS (SELECT 1 FROM UNNEST(T.")
-                    .append(toColumn)
-                    .append(") AS flat_to WHERE flat_to = F.")
-                    .append(fromColumn)
-                    .append(")");
+        ST joinClauseTemplate;
+        if (relationship.getFromColumnIsArray() && relationship.getToColumnIsArray()) {
+            joinClauseTemplate = new ST(matchCrossArraysTemplate);
+        } else if (relationship.getFromColumnIsArray()) {
+            joinClauseTemplate = new ST(matchFromArrayTemplate);
+        } else if (relationship.getToColumnIsArray()) {
+            joinClauseTemplate = new ST(matchToArrayTemplate);
         } else {
-            builder.append(" AND T.").append(toColumn).append(" = F.").append(fromColumn);
+            joinClauseTemplate = new ST(matchNonArrayTemplate);
         }
-        builder.append(") SELECT ")
-            .append(PDAO_TABLE_ID_COLUMN)
-            .append(", ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM merged_table WHERE ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" NOT IN (SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(projectId).append(".").append(datasetBqDatasetName).append(".").append(softDeletesTableName)
-            .append("`)");
+        joinClauseTemplate.add("fromColumn", relationship.getFromColumnName());
+        joinClauseTemplate.add("toColumn", relationship.getToColumnName());
 
-        String sql = builder.toString();
+        ST sqlTemplate = new ST(storeRowIdsForRelatedTableTemplate);
+        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("dataset", datasetBqDatasetName);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("fromTableId", relationship.getFromTableId());
+        sqlTemplate.add("fromTableName", relationship.getFromTableName());
+        sqlTemplate.add("toTableId", relationship.getToTableId());
+        sqlTemplate.add("toTableName", relationship.getToTableName());
+        sqlTemplate.add("softDelTable", softDeletesTableName);
+        sqlTemplate.add("joinClause", joinClauseTemplate.render());
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render())
+            .setDestinationTable(TableId.of(snapshotName, PDAO_ROW_ID_TABLE))
+            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .build();
         try {
-            QueryJobConfiguration queryConfig =
-                    QueryJobConfiguration.newBuilder(sql)
-                            .setDestinationTable(TableId.of(snapshotName, PDAO_ROW_ID_TABLE))
-                            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
-                            .build();
-
             bigQuery.query(queryConfig);
         } catch (InterruptedException ie) {
             throw new PdaoException("Append query unexpectedly interrupted", ie);
@@ -831,7 +782,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String createViewsTemplate =
-        "SELECT <columns; separator=\",\"> FROM (<source>)";
+        "SELECT <columns; separator=\",\"> FROM (" +
+            "SELECT <mappedColumns; separator=\",\"> FROM `<project>.<dataset>.<mapTable>` S, " +
+            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R WHERE " +
+            "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
+            "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>')";
 
     private List<String> createViews(
         String datasetBqDatasetName,
@@ -840,15 +795,29 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId,
         BigQuery bigQuery) {
         return snapshot.getTables().stream().map(table -> {
-            ST sqlTemplate = new ST(createViewsTemplate);
-            table.getColumns().forEach(c -> sqlTemplate.add("columns", c.getName()));
-
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
             SnapshotSource source = snapshot.getSnapshotSources().get(0);
-            String sourceQuery = buildSource(
-                projectId, datasetBqDatasetName, snapshotName, table, source, snapshot);
-            sqlTemplate.add("source", sourceQuery);
+
+            // Find the table map for the table. If there is none, we skip it.
+            // NOTE: for now, we know that there will be one, because we generate it directly.
+            // In the future when we have more than one, we can just return.
+            SnapshotMapTable mapTable = lookupMapTable(table, source);
+            if (mapTable == null) {
+                throw new PdaoException("No matching map table for snapshot table " + table.getName());
+            }
+            String snapshotId = snapshot.getId().toString();
+
+            ST sqlTemplate = new ST(createViewsTemplate);
+            sqlTemplate.add("project", projectId);
+            sqlTemplate.add("dataset", datasetBqDatasetName);
+            sqlTemplate.add("snapshot", snapshotName);
+            sqlTemplate.add("mapTable", mapTable.getFromTable().getName());
+            sqlTemplate.add("tableId", mapTable.getFromTable().getId().toString());
+            table.getColumns().forEach(c -> {
+                sqlTemplate.add("columns", c.getName());
+                sqlTemplate.add("mappedColumns", sourceSelectSql(snapshotId, c, mapTable));
+            });
 
             // create the view
             String tableName = table.getName();
@@ -861,41 +830,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             return tableName;
         }).collect(Collectors.toList());
-    }
-
-    private static final String sourceTemplate =
-        "SELECT <mappedColumns; separator=\",\"> FROM `<project>.<dataset>.<mapTable>` S, " +
-            "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R WHERE " +
-            "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
-            "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
-
-    private String buildSource(String projectId,
-                             String datasetBqDatasetName,
-                             String snapshotName,
-                             Table table,
-                             SnapshotSource source,
-                             Snapshot snapshot) {
-
-        // Find the table map for the table. If there is none, we skip it.
-        // NOTE: for now, we know that there will be one, because we generate it directly.
-        // In the future when we have more than one, we can just return.
-        SnapshotMapTable mapTable = lookupMapTable(table, source);
-        if (mapTable == null) {
-            throw new PdaoException("No matching map table for snapshot table " + table.getName());
-        }
-
-        ST sqlTemplate = new ST(sourceTemplate);
-        sqlTemplate.add("project", projectId);
-        sqlTemplate.add("dataset", datasetBqDatasetName);
-        sqlTemplate.add("snapshot", snapshotName);
-        sqlTemplate.add("mapTable", mapTable.getFromTable().getName());
-        sqlTemplate.add("tableId", mapTable.getFromTable().getId().toString());
-
-        String snapshotId = snapshot.getId().toString();
-        table.getColumns().forEach(c ->
-            sqlTemplate.add("mappedColumns", sourceSelectSql(snapshotId, c, mapTable)));
-
-        return sqlTemplate.render();
     }
 
     private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {

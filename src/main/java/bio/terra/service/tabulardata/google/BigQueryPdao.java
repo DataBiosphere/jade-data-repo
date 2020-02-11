@@ -526,7 +526,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private static final String getRefIdsTemplate =
         "SELECT <refCol> FROM `<project>.<dataset>.<table>`" +
-            "<if(array)> CROSS JOIN UNNEST(<refCol>) AS <refCol><else><end>";
+            "<if(array)> CROSS JOIN UNNEST(<refCol>) AS <refCol><endif>";
 
     public List<String> getRefIds(Dataset dataset, String tableName, Column refColumn) {
 
@@ -554,7 +554,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final String getSnapshotRefIdsTemplate =
         "SELECT <refCol> FROM `<project>.<dataset>.<table>` S, " +
             "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
-            "<if(array)>CROSS JOIN UNNEST(S.<refCol>) AS <refCol><else><end>" +
+            "<if(array)>CROSS JOIN UNNEST(S.<refCol>) AS <refCol> <endif>" +
             "WHERE S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>'";
 
@@ -857,7 +857,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 String drsPrefix = "'drs://" + datarepoDnsName + "/v1_" + snapshotId + "_'";
 
                 if (targetColumn.isArrayOf()) {
-                    return "ARRAY(SELECT CONCAT(" + drsPrefix + ", x " +
+                    return "ARRAY(SELECT CONCAT(" + drsPrefix + ", x) " +
                         "FROM UNNEST(" + mapName + ") AS x) AS " + targetColumnName;
                 } else {
                     return "CONCAT(" + drsPrefix + ", " + mapName + ") AS " + targetColumnName;

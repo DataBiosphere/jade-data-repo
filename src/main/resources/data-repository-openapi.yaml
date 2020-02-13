@@ -2289,7 +2289,7 @@ definitions:
 
   BulkLoadArrayResultModel:
     description: |-
-      Returned when the bulk file load job finishes. 
+      Returned when the bulk file load job finishes.
     type: object
     properties:
       loadSummary:
@@ -2381,6 +2381,8 @@ definitions:
         type: array
         items:
           type: string
+      rootValueQuery:
+        type: string
 
   SnapshotRequestSourceModel:
     description: |

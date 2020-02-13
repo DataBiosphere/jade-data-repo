@@ -44,9 +44,21 @@ public class SnapshotRequestValidator implements Validator {
         } else {
             contentsList.forEach(contents -> {
                 List<String> rootValues = contents.getRootValues();
-                if (rootValues == null || rootValues.isEmpty()) {
-                    errors.rejectValue("contents", "SnapshotRootValuesListEmpty");
+                String rootValueQuery = contents.getRootValueQuery();
+
+                boolean hasRootValues = false;
+                boolean hasQuery = false;
+                if (!(rootValues == null) && !rootValues.isEmpty()) {
+                    hasRootValues = true;
                 }
+                if (rootValueQuery != null) {
+                    hasQuery = true;
+                }
+
+                if (hasRootValues && hasQuery || !hasRootValues && !hasQuery) {
+                    errors.rejectValue("contents", "SnapshotRootValuesInvalid", "A snapshot request can only have rootValues or a query, not both");
+                }
+
                 SnapshotRequestSourceModel source = contents.getSource();
                 String datasetName = source.getDatasetName();
                 String assetName = source.getAssetName();

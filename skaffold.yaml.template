@@ -28,7 +28,7 @@ deploy:
       version: 0.0.4
       namespace: TEMP
       remote: true
-      setValues:
-        datarepo-api.image.version: '{{.IMAGE_TAG}}'
+      setValueTemplates:
+        datarepo-api.image.version: "{{.IMAGE_TAG}}"
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPDeployment.yaml

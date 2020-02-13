@@ -3,7 +3,7 @@ kind: Config
 build:
   tagPolicy:
     envTemplate:
-      template: "{{.IMAGE_NAME}}:TEMP"
+      template: "{{.IMAGE_NAME}}:{{.IMAGE_TAG}}"
   artifacts:
   - image: gcr.io/broad-jade-dev/jade-data-repo
     jib:
@@ -29,6 +29,6 @@ deploy:
       namespace: TEMP
       remote: true
       setValues:
-        datarepo-api.image.version: TEMP
+        datarepo-api.image.version: '{{.IMAGE_TAG}}'
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPDeployment.yaml

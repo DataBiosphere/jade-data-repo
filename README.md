@@ -145,3 +145,9 @@ in a directory other than a git cloned workspace, run:
 `swagger-codegen generate -i path/to/data-repository-openapi.yaml -l spring -c path/to/config.json`
 
 Then copy the files you want into the source tree
+
+## skaffold
+To render your own local skffold.yaml run the following with your initials
+```
+sed -e 's/TEMP/<initials>/g' skaffold.yaml.template > skaffold.yaml
+```

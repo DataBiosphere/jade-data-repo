@@ -176,7 +176,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String loadRootRowIdsTemplate =
-        "INSERT `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
+        "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
             "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
             "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
             "SELECT row_id FROM UNNEST([<rowIds:{id|'<id>'}; separator=\",\">]) AS row_id " +
@@ -395,7 +395,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String loadOverlapTableTemplate =
-        "INSERT `<project>.<dataset>.<overlapTable>` " +
+        "INSERT INTO `<project>.<dataset>.<overlapTable>` " +
             "(" + STAGING_TABLE_ROW_ID_COLUMN + "," + TARGET_TABLE_ROW_ID_COLUMN + ") " +
             "SELECT S." + PDAO_ROW_ID_COLUMN + " AS " + STAGING_TABLE_ROW_ID_COLUMN + ", T." +
             PDAO_ROW_ID_COLUMN + " AS " + TARGET_TABLE_ROW_ID_COLUMN + " FROM " +
@@ -424,7 +424,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String softDeleteChangedOverlappingRowsTemplate =
-        "INSERT `<project>.<dataset>.<softDelTable>` (" + PDAO_ROW_ID_COLUMN + ") " +
+        "INSERT INTO `<project>.<dataset>.<softDelTable>` (" + PDAO_ROW_ID_COLUMN + ") " +
             "SELECT " + TARGET_TABLE_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<overlapTable>` " +
             "WHERE " + TARGET_TABLE_ROW_ID_COLUMN + " IS NOT NULL";
 
@@ -443,7 +443,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String upsertIntoDatasetTableTemplate =
-        "INSERT `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
+        "INSERT INTO `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
             "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>` S " +
             "INNER JOIN `<project>.<dataset>.<overlapTable>` O ON " +
             "S." + PDAO_ROW_ID_COLUMN + " = " + "O." + STAGING_TABLE_ROW_ID_COLUMN;
@@ -467,7 +467,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String insertIntoDatasetTableTemplate =
-        "INSERT `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
+        "INSERT INTO `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
             "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>`";
 
     public void insertIntoDatasetTable(Dataset dataset,

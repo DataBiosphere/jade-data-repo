@@ -694,6 +694,28 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return refIdArray;
     }
 
+    public List<String> getRowIdsFromQuery(String query, Snapshot snapshot, AssetSpecification asset) {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        TableResult tableResult = bigQueryProject.query(query);
+        String rootColumnName = asset.getRootColumn().getDatasetColumn().getName();
+        List<String> rootColumnIds = iterateTableResult(tableResult, rootColumnName, new ArrayList<String>());
+
+        // TODO need to test that this actually gets all of the pages
+        while (tableResult.hasNextPage()) {
+            tableResult = tableResult.getNextPage();
+            iterateTableResult(tableResult, rootColumnName, rootColumnIds);
+        }
+        return rootColumnIds;
+    }
+
+    private List<String> iterateTableResult(TableResult tableResult, String columnName, List<String> resultArray) {
+        for (FieldValueList valueList : tableResult.getValues()) {
+            FieldValue value = valueList.get(columnName);
+            resultArray.add(value.getStringValue());
+        }
+        return resultArray;
+    }
+
     public List<String> getSnapshotRefIds(Dataset dataset,
                                          String snapshotName,
                                          String tableName,

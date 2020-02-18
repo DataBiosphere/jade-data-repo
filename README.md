@@ -153,6 +153,5 @@ sed -e 's/TEMP/<initials>/g' skaffold.yaml.template > skaffold.yaml
 ```
 Run a deployment you must set env var `IMAGE_TAG`
 ```
-export IMAGE_TAG=$(git log -1 --pretty=%h)
 skaffold run
 ```

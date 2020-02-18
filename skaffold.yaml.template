@@ -2,8 +2,8 @@ apiVersion: skaffold/v2alpha2
 kind: Config
 build:
   tagPolicy:
-    envTemplate:
-      template: "{{.IMAGE_NAME}}:{{.IMAGE_TAG}}"
+    gitCommit:
+      variant: AbbrevCommitSha
   artifacts:
   - image: gcr.io/broad-jade-dev/jade-data-repo
     jib:
@@ -15,6 +15,7 @@ deploy:
     flags:
       upgrade:
         - --install
+        - --debug
     releases:
     - name: TEMP-secrets
       chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.4/create-secret-manager-secret-0.0.4.tgz
@@ -24,11 +25,11 @@ deploy:
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPSecrets.yaml
     - name: TEMP-jade
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.0.4/datarepo-0.0.4.tgz
-      version: 0.0.4
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.0.5/datarepo-0.0.5.tgz
+      version: 0.0.5
       namespace: TEMP
       remote: true
-      setValueTemplates:
-        datarepo-api.image.version: "{{.IMAGE_TAG}}"
+      values:
+        datarepo-api.imageName: gcr.io/broad-jade-dev/jade-data-repo
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPDeployment.yaml

@@ -106,9 +106,9 @@ public class GcsPdao {
             // so I changed exported the timeouts to application.properties to allow for tuning
             // and I am changing this to copy chunks.
             CopyWriter writer = sourceBlob.copyTo(BlobId.of(bucketResource.getName(), targetPath));
-            while (!writer.isDone()) {
-                writer.copyChunk();
-            }
+//            while (!writer.isDone()) {
+//                writer.copyChunk();
+//            }
             Blob targetBlob = writer.getResult();
 
             // MD5 is computed per-component. So if there are multiple components, the MD5 here is

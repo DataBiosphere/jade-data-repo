@@ -241,8 +241,7 @@ def getGitHash = { ->
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     to {
-        image = "gcr.io/broad-jade-dev/jade-data-repo"
-        tags = [(System.env.GCR_TAG ?: getGitHash())]
+        image = "gcr.io/broad-jade-dev/jade-data-repo:"+(System.env.GCR_TAG ?: getGitHash())
     }
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories

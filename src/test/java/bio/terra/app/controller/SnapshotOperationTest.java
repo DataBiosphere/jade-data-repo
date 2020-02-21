@@ -15,6 +15,8 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
+import bio.terra.model.SnapshotProvidedIdsRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -145,6 +147,25 @@ public class SnapshotOperationTest {
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
         SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        deleteTestSnapshot(snapshotModel.getId());
+
+        getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
+    public void testProvidedIdsHappyPath() throws Exception {
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+
+        SnapshotProvidedIdsRequestModel snapshotRequest =
+            makeSnapshotProvidedIdsTestRequest(datasetSummary, "snapshot-provided-ids-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshotProvidedIds(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = handleCreateSnapshotProvidedIdsSuccessCase(snapshotRequest, response);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
@@ -346,8 +367,19 @@ public class SnapshotOperationTest {
         return snapshotRequest;
     }
 
+    private SnapshotProvidedIdsRequestModel makeSnapshotProvidedIdsTestRequest(DatasetSummaryModel datasetSummaryModel,
+                                                                    String resourcePath) throws Exception {
+        SnapshotProvidedIdsRequestModel snapshotRequest = jsonLoader
+            .loadObject(resourcePath, SnapshotProvidedIdsRequestModel.class);
+        snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
+        List<SnapshotProvidedIdsRequestContentsModel> snapshotContents = snapshotRequest.getContents();
+        snapshotContents.get(0).setDatasetName(datasetSummaryModel.getName());
+        snapshotRequest.setContents(snapshotContents);
+        return snapshotRequest;
+    }
+
     private MvcResult launchCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
-            throws Exception {
+        throws Exception {
         snapshotOriginalName = snapshotRequest.getName();
         String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
         snapshotRequest.setName(snapshotName);
@@ -355,11 +387,26 @@ public class SnapshotOperationTest {
         String jsonRequest = TestUtils.mapToJson(snapshotRequest);
 
         return mvc.perform(post("/api/repository/v1/snapshots")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
 // TODO: swagger field validation errors do not set content type; they log and return nothing
 //                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
+            .andReturn();
+    }
+
+    private MvcResult launchCreateSnapshotProvidedIds(SnapshotProvidedIdsRequestModel snapshotRequest, String infix)
+        throws Exception {
+        snapshotOriginalName = snapshotRequest.getName();
+
+        String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
+        snapshotRequest.setName(snapshotName);
+
+        String jsonRequest = objectMapper.writeValueAsString(snapshotRequest);
+
+        return mvc.perform(post("/api/repository/v1/snapshots/ids")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
     }
 
     private MockHttpServletResponse performCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
@@ -369,8 +416,48 @@ public class SnapshotOperationTest {
         return response;
     }
 
+    private MockHttpServletResponse performCreateSnapshotProvidedIds(
+        SnapshotProvidedIdsRequestModel snapshotRequest,
+        String infix)
+        throws Exception {
+        MvcResult result = launchCreateSnapshotProvidedIds(snapshotRequest, infix);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return response;
+    }
+
+
     private SnapshotSummaryModel handleCreateSnapshotSuccessCase(SnapshotRequestModel snapshotRequest,
-                                                               MockHttpServletResponse response) throws Exception {
+                                                                 MockHttpServletResponse response) throws Exception {
+        String responseBody = response.getContentAsString();
+        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
+        if (!responseStatus.is2xxSuccessful()) {
+            String failMessage = "createTestSnapshot failed: status=" + responseStatus.toString();
+            if (StringUtils.contains(responseBody, "message")) {
+                // If the responseBody contains the word 'message', then we try to decode it as an ErrorModel
+                // so we can generate good failure information.
+                ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+                failMessage += " msg=" + errorModel.getMessage();
+            } else {
+                failMessage += " responseBody=" + responseBody;
+            }
+            fail(failMessage);
+        }
+
+        SnapshotSummaryModel summaryModel = objectMapper.readValue(responseBody, SnapshotSummaryModel.class);
+        createdSnapshotIds.add(summaryModel.getId());
+
+        assertThat(summaryModel.getDescription(), equalTo(snapshotRequest.getDescription()));
+        assertThat(summaryModel.getName(), equalTo(snapshotRequest.getName()));
+
+        // Reset the name in the snapshot request
+        snapshotRequest.setName(snapshotOriginalName);
+
+        return summaryModel;
+    }
+
+    private SnapshotSummaryModel handleCreateSnapshotProvidedIdsSuccessCase(
+        SnapshotProvidedIdsRequestModel snapshotRequest,
+        MockHttpServletResponse response) throws Exception {
         String responseBody = response.getContentAsString();
         HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
         if (!responseStatus.is2xxSuccessful()) {
@@ -459,6 +546,28 @@ public class SnapshotOperationTest {
         SnapshotSourceModel sourceModel = snapshotModel.getSource().get(0);
         assertThat("snapshot dataset summary is the same as from dataset",
                 sourceModel.getDataset(), equalTo(datasetSummary));
+
+        return snapshotModel;
+    }
+
+    private SnapshotModel getTestSnapshot(String id,
+                                          SnapshotProvidedIdsRequestModel snapshotRequest,
+                                          DatasetSummaryModel datasetSummary) throws Exception {
+        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
+            .andReturn();
+
+        MockHttpServletResponse response = result.getResponse();
+        SnapshotModel snapshotModel = objectMapper.readValue(response.getContentAsString(), SnapshotModel.class);
+
+        assertThat(snapshotModel.getDescription(), equalTo(snapshotRequest.getDescription()));
+        assertThat(snapshotModel.getName(), startsWith(snapshotRequest.getName()));
+
+        assertThat("source array has one element",
+            snapshotModel.getSource().size(), equalTo(1));
+        SnapshotSourceModel sourceModel = snapshotModel.getSource().get(0);
+        assertThat("snapshot dataset summary is the same as from dataset",
+            sourceModel.getDataset(), equalTo(datasetSummary));
 
         return snapshotModel;
     }

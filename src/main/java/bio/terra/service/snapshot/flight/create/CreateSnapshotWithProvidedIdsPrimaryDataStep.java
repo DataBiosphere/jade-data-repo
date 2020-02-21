@@ -3,8 +3,6 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
 import bio.terra.model.SnapshotProvidedIdsRequestModel;
 import bio.terra.model.SnapshotProvidedIdsRequestTableModel;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -24,19 +22,13 @@ public class CreateSnapshotWithProvidedIdsPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
-    private FireStoreDependencyDao dependencyDao;
-    private DatasetService datasetService;
     private SnapshotProvidedIdsRequestModel snapshotReq;
 
     public CreateSnapshotWithProvidedIdsPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                                         SnapshotDao snapshotDao,
-                                                        FireStoreDependencyDao dependencyDao,
-                                                        DatasetService datasetService,
                                                         SnapshotProvidedIdsRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
-        this.dependencyDao = dependencyDao;
-        this.datasetService = datasetService;
         this.snapshotReq = snapshotReq;
     }
 

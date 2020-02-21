@@ -48,8 +48,7 @@ public class SnapshotCreateWithProvidedIdsFlight extends Flight {
         // 4. firestore compute step - calculate checksums and sizes for all directories in the snapshot
         // 5. authorize snapshot - set permissions on BQ and files to enable access
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, spiReq));
-        addStep(new CreateSnapshotWithProvidedIdsPrimaryDataStep(
-            bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReqModel));
+        addStep(new CreateSnapshotWithProvidedIdsPrimaryDataStep(bigQueryPdao, snapshotDao, snapshotReqModel));
         addStep(new CreateSnapshotFireStoreDataStep(
             bigQueryPdao, snapshotService, dependencyDao, datasetService, spiReq, fileDao));
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, spiReq, fileDao));

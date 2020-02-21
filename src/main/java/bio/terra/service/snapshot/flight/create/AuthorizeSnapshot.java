@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.exception.UnauthorizedException;
-import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;

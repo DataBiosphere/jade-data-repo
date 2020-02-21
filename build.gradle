@@ -229,11 +229,19 @@ jar {
     from sourceSets.generated.output
 }
 
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     to {
-        image = "gcr.io/broad-jade-dev/jade-data-repo"
-        tags = [(System.env.GCR_TAG ?: "latest")]
+        image = "gcr.io/broad-jade-dev/jade-data-repo:"+(System.env.GCR_TAG ?: getGitHash())
     }
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
@@ -261,15 +269,6 @@ liquibase {
             logLevel 'debug'
         }
     }
-}
-
-def getGitHash = { ->
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'rev-parse', '--short', 'HEAD'
-        standardOutput = stdout
-    }
-    return stdout.toString().trim()
 }
 
 

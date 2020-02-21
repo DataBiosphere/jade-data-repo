@@ -99,6 +99,9 @@ public class GcsPdao {
         String targetPath = dataset.getId().toString() + "/" + fileId;
 
         try {
+            // mariko timing start
+            long nsStart = System.nanoTime();
+
             // The documentation is vague whether or not it is important to copy by chunk. One set of
             // examples does it and another doesn't.
             //
@@ -106,10 +109,15 @@ public class GcsPdao {
             // so I changed exported the timeouts to application.properties to allow for tuning
             // and I am changing this to copy chunks.
             CopyWriter writer = sourceBlob.copyTo(BlobId.of(bucketResource.getName(), targetPath));
-//            while (!writer.isDone()) {
-//                writer.copyChunk();
-//            }
+            while (!writer.isDone()) {
+                writer.copyChunk();
+            }
             Blob targetBlob = writer.getResult();
+
+            // mariko timing end
+            long nsEnd = System.nanoTime();
+            long nsElapsed = (nsEnd - nsStart);
+            System.out.println("mariko nsElapsed = " + nsElapsed);
 
             // MD5 is computed per-component. So if there are multiple components, the MD5 here is
             // not useful for validating the contents of the file on access. Therefore, we only

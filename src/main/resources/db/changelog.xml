@@ -18,5 +18,6 @@
     <include file="changesets/20190801_primarykey.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20200102_loadtables.yaml" relativeToChangelogFile="true"/>
     <include file="changesets/20200130_dropcardinality.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20200221_nullablesnapshotassetid.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200305_trackliveviews.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

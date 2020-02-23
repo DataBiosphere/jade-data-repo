@@ -2,6 +2,9 @@ package bio.terra.app.controller;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
+import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
+import bio.terra.model.SnapshotProvidedIdsRequestModel;
+import bio.terra.model.SnapshotProvidedIdsRequestTableModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestSourceModel;
@@ -22,6 +25,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,10 +45,13 @@ public class SnapshotValidationTest {
 
     private SnapshotRequestModel snapshotRequest;
 
+    private SnapshotProvidedIdsRequestModel snapshotProvidedIdsRequestModel;
+
 
     @Before
     public void setup() {
         snapshotRequest = makeSnapshotRequest();
+        snapshotProvidedIdsRequestModel = makeSnapshotProvidedIdsRequest();
     }
 
     private void expectBadSnapshotCreateRequest(SnapshotRequestModel snapshotRequest) throws Exception {
@@ -52,6 +59,13 @@ public class SnapshotValidationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(TestUtils.mapToJson(snapshotRequest)))
                 .andExpect(status().is4xxClientError());
+    }
+
+    private void expectBadSPIdsCreateRequest(SnapshotProvidedIdsRequestModel snapshotRequest) throws Exception {
+        mvc.perform(post("/api/repository/v1/snapshots/ids")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(snapshotRequest)))
+            .andExpect(status().is4xxClientError());
     }
 
     public SnapshotRequestModel makeSnapshotRequest() {
@@ -65,6 +79,25 @@ public class SnapshotValidationTest {
                 .name("snapshot")
                 .description("snapshot description")
                 .addContentsItem(snapshotRequestContentsModel);
+        return snapshotRequestModel;
+    }
+
+    public SnapshotProvidedIdsRequestModel makeSnapshotProvidedIdsRequest() {
+        List<String> columns = new ArrayList<>();
+        List<String> rowIds = new ArrayList<>();
+        List<SnapshotProvidedIdsRequestContentsModel> contents = new ArrayList<>();
+        List<SnapshotProvidedIdsRequestTableModel> tables = new ArrayList<>();
+        SnapshotProvidedIdsRequestTableModel snapshotRequestTableModel = new SnapshotProvidedIdsRequestTableModel()
+            .tableName("snapshot")
+            .columns(columns)
+            .rowIds(rowIds);
+        tables.add(snapshotRequestTableModel);
+        SnapshotProvidedIdsRequestContentsModel snapshotRequestContentsModel = new SnapshotProvidedIdsRequestContentsModel()
+            .datasetName("dataset")
+            .tables(tables);
+        contents.add(snapshotRequestContentsModel);
+        SnapshotProvidedIdsRequestModel snapshotRequestModel = new SnapshotProvidedIdsRequestModel()
+            .contents(contents);
         return snapshotRequestModel;
     }
 
@@ -188,6 +221,23 @@ public class SnapshotValidationTest {
         snapshotRequestContentsModel.source(snapshotRequestSourceModel);
         snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
         expectBadSnapshotCreateRequest(snapshotRequest);
+    }
+
+    @Test
+    public void testSnapshotProvidedIdsMismatch() throws Exception {
+        // Test that missing columns and row ids do not succeed
+        ArrayList empty = new ArrayList<String>();
+        SnapshotProvidedIdsRequestTableModel snapshotProvidedIdsRequestTableModel = new SnapshotProvidedIdsRequestTableModel()
+            .tableName("table")
+            .columns(empty)
+            .rowIds(empty);
+        ArrayList tables = new ArrayList<SnapshotProvidedIdsRequestTableModel>();
+        tables.add(snapshotProvidedIdsRequestTableModel);
+        SnapshotProvidedIdsRequestContentsModel snapshotRequestContentsModel = new SnapshotProvidedIdsRequestContentsModel()
+            .datasetName("dataset")
+            .tables(tables);
+        snapshotProvidedIdsRequestModel.contents(Collections.singletonList(snapshotRequestContentsModel));
+        expectBadSPIdsCreateRequest(snapshotProvidedIdsRequestModel);
     }
 
     @Test

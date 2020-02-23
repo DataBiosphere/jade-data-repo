@@ -77,8 +77,13 @@ public class SnapshotDao {
                 " VALUES (:snapshot_id, :dataset_id, :asset_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("snapshot_id", snapshotSource.getSnapshot().getId())
-                .addValue("dataset_id", snapshotSource.getDataset().getId())
+                .addValue("dataset_id", snapshotSource.getDataset().getId());
+        if (snapshotSource.getAssetSpecification() != null) {
+            params
                 .addValue("asset_id", snapshotSource.getAssetSpecification().getId());
+        } else {
+            params.addValue("asset_id", null);
+        }
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID id = keyHolder.getId();

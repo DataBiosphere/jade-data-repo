@@ -14,7 +14,9 @@ jobs:
       with:
         java-version: 8
     - name: 'Configure gradlew'
-      run: chmod +x gradlew
+      run: |
+        chmod +x gradlew
+        ls
     - name: 'Install gradle'
       uses: eskatos/gradle-command-action@v1
       with:

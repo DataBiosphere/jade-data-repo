@@ -13,11 +13,12 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 8
+    - name: 'Configure gradlew'
+      run: chmod +x gradlew
     - name: 'Install gradle'
       uses: eskatos/gradle-command-action@v1
       with:
         wrapper-directory: ./gradle/wrapper
     - name: 'Run gradlew'
       run: |
-        chmod +x gradlew
         ./gradlew assemble

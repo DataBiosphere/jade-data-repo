@@ -16,7 +16,7 @@ jobs:
     - name: 'Install gradle'
       uses: eskatos/gradle-command-action@v1
       with:
-        wrapper-directory: $GITHUB_WORKSPACE/gradle/wrapper
+        wrapper-directory: ./gradle/wrapper
     - name: 'Run gradlew'
       run: |
         chmod +x gradlew

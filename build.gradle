@@ -123,7 +123,8 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.boot:spring-boot-starter-web:2.2.4.RELEASE"
+
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating

@@ -14,9 +14,12 @@ import bio.terra.common.exception.PdaoSourceFileNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.DataLocationService;
+import com.google.cloud.ReadChannel;
+import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.CopyWriter;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageException;
@@ -27,8 +30,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -99,25 +106,53 @@ public class GcsPdao {
         String targetPath = dataset.getId().toString() + "/" + fileId;
 
         try {
-            // mariko timing start
-            long nsStart = System.nanoTime();
-
             // The documentation is vague whether or not it is important to copy by chunk. One set of
             // examples does it and another doesn't.
             //
             // I have been seeing timeouts and I think they are due to particularly large files,
             // so I changed exported the timeouts to application.properties to allow for tuning
             // and I am changing this to copy chunks.
-            CopyWriter writer = sourceBlob.copyTo(BlobId.of(bucketResource.getName(), targetPath));
-            while (!writer.isDone()) {
-                writer.copyChunk();
+
+            // mariko timing start
+            long nsStart = System.nanoTime();
+
+            int mb = 1024*1024;
+            Runtime runtime = Runtime.getRuntime();
+            System.out.println("##### Heap utilization statistics [MB] #####");
+            System.out.println("Used Memory:" + (runtime.totalMemory() - runtime.freeMemory()) / mb);
+            System.out.println("Free Memory:" + runtime.freeMemory() / mb);
+            System.out.println("Total Memory:" + runtime.totalMemory() / mb);
+            System.out.println("Max Memory:" + runtime.maxMemory() / mb);
+
+            Long megabytesPerChunk = Long.valueOf(8);
+            Storage.CopyRequest request =
+                Storage.CopyRequest.newBuilder()
+                    .setSource(sourceBlob.getBlobId())
+                    .setTarget(BlobId.of(bucketResource.getName(), targetPath))
+                    .setMegabytesCopiedPerChunk(megabytesPerChunk)
+                    .build();
+            CopyWriter copyWriter = storage.copy(request);
+
+            System.out.println("##### Heap utilization statistics [MB] #####");
+            System.out.println("Used Memory:" + (runtime.totalMemory() - runtime.freeMemory()) / mb);
+            System.out.println("Free Memory:" + runtime.freeMemory() / mb);
+            System.out.println("Total Memory:" + runtime.totalMemory() / mb);
+            System.out.println("Max Memory:" + runtime.maxMemory() / mb);
+
+            int rpcCtr = 0;
+            while (!copyWriter.isDone()) {
+                copyWriter.copyChunk();
+                rpcCtr++;
             }
-            Blob targetBlob = writer.getResult();
+            Blob targetBlob = copyWriter.getResult();
 
             // mariko timing end
             long nsEnd = System.nanoTime();
             long nsElapsed = (nsEnd - nsStart);
-            System.out.println("mariko nsElapsed = " + nsElapsed);
+            System.out.println("nsElapsed = " + nsElapsed);
+            System.out.println("secElapsed = " + nsElapsed/Math.pow(10,9));
+            System.out.println("rpcCtr = " + rpcCtr);
+            System.out.println("megabytesPerChunk = " + megabytesPerChunk);
 
             // MD5 is computed per-component. So if there are multiple components, the MD5 here is
             // not useful for validating the contents of the file on access. Therefore, we only

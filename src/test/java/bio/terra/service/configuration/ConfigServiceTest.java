@@ -50,6 +50,9 @@ public class ConfigServiceTest {
 
     @Test
     public void configBasicTest() throws Exception {
+        // Order of tests can cause config state to change, so ensure config is reset otherwise tests may fail
+        configService.reset();
+
         final int delta = 10;
         int retryInitialWaitSeconds = samConfiguration.getRetryInitialWaitSeconds();
         int retryMaximumWaitSeconds = samConfiguration.getRetryMaximumWaitSeconds();

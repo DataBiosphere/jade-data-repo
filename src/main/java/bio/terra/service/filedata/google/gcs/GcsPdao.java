@@ -113,9 +113,6 @@ public class GcsPdao {
             // so I changed exported the timeouts to application.properties to allow for tuning
             // and I am changing this to copy chunks.
 
-            // mariko timing start
-            long nsStart = System.nanoTime();
-
             int mb = 1024*1024;
             Runtime runtime = Runtime.getRuntime();
             System.out.println("##### Heap utilization statistics [MB] #####");
@@ -124,7 +121,10 @@ public class GcsPdao {
             System.out.println("Total Memory:" + runtime.totalMemory() / mb);
             System.out.println("Max Memory:" + runtime.maxMemory() / mb);
 
-            Long megabytesPerChunk = Long.valueOf(8);
+            // mariko timing start
+            long nsStart = System.nanoTime();
+
+            Long megabytesPerChunk = Long.valueOf(20);
             Storage.CopyRequest request =
                 Storage.CopyRequest.newBuilder()
                     .setSource(sourceBlob.getBlobId())
@@ -132,12 +132,6 @@ public class GcsPdao {
                     .setMegabytesCopiedPerChunk(megabytesPerChunk)
                     .build();
             CopyWriter copyWriter = storage.copy(request);
-
-            System.out.println("##### Heap utilization statistics [MB] #####");
-            System.out.println("Used Memory:" + (runtime.totalMemory() - runtime.freeMemory()) / mb);
-            System.out.println("Free Memory:" + runtime.freeMemory() / mb);
-            System.out.println("Total Memory:" + runtime.totalMemory() / mb);
-            System.out.println("Max Memory:" + runtime.maxMemory() / mb);
 
             int rpcCtr = 0;
             while (!copyWriter.isDone()) {

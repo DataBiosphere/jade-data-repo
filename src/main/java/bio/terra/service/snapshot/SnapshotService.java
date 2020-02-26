@@ -192,12 +192,26 @@ public class SnapshotService {
         return snapshot;
     }
 
+
+    /**
+     * Make a Snapshot structure with all of its parts from an incoming provided ids snapshot request.
+     *
+     *
+     *
+     * Note that the structure does not have UUIDs or created dates filled in. Those are
+     * updated by the DAO when it stores the snapshot in the repository metadata.
+     *
+     * @param SnapshotProvidedIdsRequestModel
+     * @return Snapshot
+     */
     public Snapshot makeSnapshotFromSnapshotProvidedIdsRequest(SnapshotProvidedIdsRequestModel spiRequestModel) {
         Snapshot snapshot = new Snapshot();
         if (spiRequestModel.getContents().size() > 1) {
             throw new ValidationException("Only a single snapshot contents entry is currently allowed.");
         }
+        // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
         SnapshotSource source = makeSourceFromProvidedIdsContentsModel(spiRequestModel.getContents().get(0), snapshot);
+
         List<SnapshotTable> tableList = new ArrayList<>();
         List<SnapshotMapTable> mapTableList = new ArrayList<>();
         Dataset dataset = source.getDataset();
@@ -207,10 +221,12 @@ public class SnapshotService {
             List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
 
             for (Column datasetColumn : datasetTable.getColumns()) {
-                columnList.add(datasetColumn);
+                // the mapped snapshot column will have the same name as the dataset column
+                Column snapshotColumn = new Column().name(datasetColumn.getName());
+                columnList.add(snapshotColumn);
                 mapColumnList.add(new SnapshotMapColumn()
                     .fromColumn(datasetColumn)
-                    .toColumn(datasetColumn));
+                    .toColumn(snapshotColumn));
             }
 
             snapshotTable

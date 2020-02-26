@@ -25,6 +25,7 @@ import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.PolicyMemberRequest;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotProvidedIdsRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsResponse;
@@ -208,10 +209,45 @@ public class DataRepoFixtures {
             JobModel.class);
     }
 
+
+    public DataRepoResponse<JobModel> createSnapshotProvidedIdsLaunch(
+        TestConfiguration.User user,
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotProvidedIdsRequestModel requestModel) throws Exception {
+        BillingProfileModel billingProfileModel = this.createBillingProfile(user);
+        requestModel.setName(Names.randomizeName(requestModel.getName()));
+        requestModel.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+        // set tables
+        requestModel.setProfileId(billingProfileModel.getId());
+        String json = objectMapper.writeValueAsString(requestModel);
+
+        return dataRepoClient.post(
+            user,
+            "/api/repository/v1/snapshots/ids",
+            json,
+            JobModel.class);
+    }
+
     public SnapshotSummaryModel createSnapshot(
         TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
         DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
             user, datasetSummaryModel, filename);
+        assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<SnapshotSummaryModel> snapshotResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, SnapshotSummaryModel.class);
+        assertThat("snapshot create is successful", snapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("snapshot create response is present", snapshotResponse.getResponseObject().isPresent());
+        return snapshotResponse.getResponseObject().get();
+    }
+
+    public SnapshotSummaryModel createSnapshotProvidedIds(
+        TestConfiguration.User user,
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotProvidedIdsRequestModel snapshotProvidedIdsRequestModel) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createSnapshotProvidedIdsLaunch(
+            user, datasetSummaryModel, snapshotProvidedIdsRequestModel);
         assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
 

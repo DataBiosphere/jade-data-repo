@@ -1,23 +1,25 @@
 package bio.terra.service.filedata;
 
-import bio.terra.service.load.LoadService;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
-import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.load.flight.LoadMapKeys;
-import bio.terra.service.snapshot.Snapshot;
+import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
 import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.exception.FileSystemCorruptException;
+import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
+import bio.terra.service.filedata.flight.ingest.FileArrayIngestFlight;
+import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
+import bio.terra.service.load.LoadService;
+import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +68,20 @@ public class FileService {
         String description = "Ingest file " + fileLoad.getTargetPath();
         return jobService
             .newJob(description, FileIngestFlight.class, fileLoad, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+            .submit();
+    }
+
+    public String ingestBulkFileArray(String datasetId,
+                                      BulkLoadArrayRequestModel loadArray,
+                                      AuthenticatedUserRequest userReq) {
+        String loadTag = loadArray.getLoadTag();
+        loadArray.setLoadTag(loadTag);
+        String description = "Ingest file array of " + loadArray.getLoadArray().size() +
+            "files. LoadTag: " + loadTag;
+        return jobService
+            .newJob(description, FileArrayIngestFlight.class, loadArray, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
             .submit();

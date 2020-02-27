@@ -5,4 +5,5 @@ public final class LoadMapKeys {
 
     }
     public static final String LOAD_TAG = "loadTag";
+    public static final String LOAD_ID = "loadId";
 }

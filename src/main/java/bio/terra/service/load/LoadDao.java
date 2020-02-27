@@ -162,6 +162,10 @@ public class LoadDao {
                 new MapSqlParameterSource().addValue("load_id", loadId));
     }
 
+    public List<LoadFile> findLoadsByState(UUID loadId, BulkLoadFileState state, Integer limit) {
+        return queryByState(loadId, state, limit);
+    }
+
     public LoadCandidates findCandidates(UUID loadId, int candidatesToFind) {
         final String countFailedSql = "SELECT count(*) AS failed FROM load_file" +
             " WHERE load_id = :load_id AND state = :state";
@@ -180,6 +184,10 @@ public class LoadDao {
             .runningLoads(runningLoads)
             .candidateFiles(candidateFiles)
             .failedLoads(failedFiles);
+    }
+
+    public void setLoadFileNotTried(UUID loadId, String targetPath) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.NOT_TRIED, null, null, null);
     }
 
     public void setLoadFileRunning(UUID loadId, String targetPath, String flightId) {

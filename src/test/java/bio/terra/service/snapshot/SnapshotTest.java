@@ -134,7 +134,7 @@ public class SnapshotTest extends UsersBase {
     @Test
     public void snapshotProvidedIdsHappyPathTest() throws Exception {
         SnapshotProvidedIdsRequestModel requestModel =
-            jsonLoader.loadObject("snapshot-provided-ids-test-snapshot.json", SnapshotProvidedIdsRequestModel.class);
+            jsonLoader.loadObject("ingest-test-snapshot-provided-ids-test.json", SnapshotProvidedIdsRequestModel.class);
         // chqnge out rowids to fit with the ingested dataset
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
         String datasetProject = dataset.getDataProject();

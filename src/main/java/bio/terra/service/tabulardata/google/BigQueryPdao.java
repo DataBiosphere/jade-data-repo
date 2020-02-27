@@ -949,6 +949,50 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    // for each table in a dataset (source), collect row id matches ON the row id
+    public RowIdMatch matchRowIds(Snapshot snapshot, SnapshotSource source, String tableName, List<String> rowIds) {
+        // One source: grab it and navigate to the relevant parts
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+
+        Optional<SnapshotMapTable> optTable = source.getSnapshotMapTables()
+            .stream()
+            .filter(table -> table.getFromTable().getName().equals(tableName))
+            .findFirst();
+        // create a column to point to the row id column in the source table to check that passed row ids exist in it
+        Column rowIdColumn = new Column()
+            .table(optTable.get().getFromTable())
+            .name(PDAO_ROW_ID_COLUMN);
+
+
+        ST sqlTemplate = new ST(mapValuesToRowsTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
+        sqlTemplate.add("table", tableName);
+        sqlTemplate.add("column", rowIdColumn);
+        sqlTemplate.add("inputVals", rowIds);
+
+        // Execute the query building the row id match structure that tracks the matching
+        // ids and the mismatched ids
+        RowIdMatch rowIdMatch = new RowIdMatch();
+        String sql = sqlTemplate.render();
+        logger.debug("mapValuesToRows sql: " + sql);
+        TableResult result = bigQueryProject.query(sql);
+        for (FieldValueList row : result.iterateAll()) {
+            // Test getting these by name
+            FieldValue rowId = row.get(0);
+            FieldValue inputValue = row.get(1);
+            if (rowId.isNull()) {
+                rowIdMatch.addMismatch(inputValue.getStringValue());
+                logger.debug("rowId=<NULL>" + "  inVal=" + inputValue.getStringValue());
+            } else {
+                rowIdMatch.addMatch(inputValue.getStringValue(), rowId.getStringValue());
+                logger.debug("rowId=" + rowId.getStringValue() + "  inVal=" + inputValue.getStringValue());
+            }
+        }
+
+        return rowIdMatch;
+    }
+
     private SnapshotMapTable lookupMapTable(Table toTable, SnapshotSource source) {
         for (SnapshotMapTable tryMapTable : source.getSnapshotMapTables()) {
             if (tryMapTable.getToTable().getId().equals(toTable.getId())) {

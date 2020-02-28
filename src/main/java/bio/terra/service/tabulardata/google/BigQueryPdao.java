@@ -968,7 +968,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         sqlTemplate.add("project", bigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(source.getDataset().getName()));
         sqlTemplate.add("table", tableName);
-        sqlTemplate.add("column", rowIdColumn);
+        sqlTemplate.add("column", rowIdColumn.getName());
         sqlTemplate.add("inputVals", rowIds);
 
         // Execute the query building the row id match structure that tracks the matching

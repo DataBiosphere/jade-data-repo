@@ -41,7 +41,7 @@ script:
   - psql -U postgres -f ./db/create-data-repo-db
   - GCR_TAG=$(git rev-parse --short HEAD) ./gradlew jib
   - kubectl --namespace temp set image
-    deployments/temp-jade-datarepo-api
+    deployment/temp-jade-datarepo-api
     "temp-jade-datarepo-api=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
   - ./gradlew assemble
   - ./gradlew check --scan

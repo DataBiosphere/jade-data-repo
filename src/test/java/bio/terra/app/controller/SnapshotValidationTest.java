@@ -194,4 +194,10 @@ public class SnapshotValidationTest {
         snapshotRequest.name(null);
         expectBadSnapshotCreateRequest(snapshotRequest);
     }
+
+    @Test
+    public void testMissingProfileId() throws Exception {
+        snapshotRequest.profileId(null);
+        expectBadSnapshotCreateRequest(snapshotRequest);
+    }
 }

@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;
@@ -9,7 +10,6 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotRequestContainer;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -31,8 +31,8 @@ public class AuthorizeSnapshot implements Step {
     private SnapshotService snapshotService;
     private GcsPdao gcsPdao;
     private DatasetService datasetService;
+    private SnapshotRequestModel snapshotRequestModel;
     private AuthenticatedUserRequest userReq;
-    private SnapshotRequestContainer snapshotRequestContainer;
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
     public AuthorizeSnapshot(BigQueryPdao bigQueryPdao,
@@ -41,7 +41,7 @@ public class AuthorizeSnapshot implements Step {
                              SnapshotService snapshotService,
                              GcsPdao gcsPdao,
                              DatasetService datasetService,
-                             SnapshotRequestContainer snapshotRequestContainer,
+                             SnapshotRequestModel snapshotRequestModel,
                              AuthenticatedUserRequest userReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
@@ -49,7 +49,7 @@ public class AuthorizeSnapshot implements Step {
         this.snapshotService = snapshotService;
         this.gcsPdao = gcsPdao;
         this.datasetService = datasetService;
-        this.snapshotRequestContainer = snapshotRequestContainer;
+        this.snapshotRequestModel = snapshotRequestModel;
         this.userReq = userReq;
     }
 
@@ -61,7 +61,7 @@ public class AuthorizeSnapshot implements Step {
 
         // This returns the policy email created by Google to correspond to the readers list in SAM
         String readersPolicyEmail = sam.createSnapshotResource(
-            userReq, snapshotId, snapshotRequestContainer.getReaders());
+            userReq, snapshotId, snapshotRequestModel.getReaders());
         bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);
 
         // Each dataset may keep its dependencies in its own scope. Therefore,

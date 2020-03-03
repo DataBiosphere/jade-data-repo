@@ -1,14 +1,14 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.SnapshotRequestContainer;
+import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotSummary;
-import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -20,21 +20,21 @@ import java.util.UUID;
 public class CreateSnapshotMetadataStep implements Step {
     private final SnapshotDao snapshotDao;
     private final SnapshotService snapshotService;
-    private final SnapshotRequestContainer snapshotRequestContainer;
+    private final SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotMetadataStep(
         SnapshotDao snapshotDao,
         SnapshotService snapshotService,
-        SnapshotRequestContainer snapshotRequestContainer) {
+        SnapshotRequestModel snapshotReq) {
         this.snapshotDao = snapshotDao;
         this.snapshotService = snapshotService;
-        this.snapshotRequestContainer = snapshotRequestContainer;
+        this.snapshotReq = snapshotReq;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Snapshot snapshot = snapshotRequestContainer.getSnapshot(snapshotService);
+            Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
             UUID snapshotId = snapshotDao.create(snapshot);
             context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
             SnapshotSummary snapshotSummary = snapshotDao.retrieveSnapshotSummary(snapshot.getId());
@@ -49,7 +49,7 @@ public class CreateSnapshotMetadataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        String snapshotName = snapshotRequestContainer.getName();
+        String snapshotName = snapshotReq.getName();
         snapshotDao.deleteByName(snapshotName);
         return StepResult.getStepResultSuccess();
     }

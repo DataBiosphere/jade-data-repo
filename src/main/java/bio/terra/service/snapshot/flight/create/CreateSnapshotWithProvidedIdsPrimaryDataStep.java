@@ -1,8 +1,9 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
-import bio.terra.model.SnapshotProvidedIdsRequestModel;
-import bio.terra.model.SnapshotProvidedIdsRequestTableModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
@@ -22,11 +23,11 @@ public class CreateSnapshotWithProvidedIdsPrimaryDataStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
-    private SnapshotProvidedIdsRequestModel snapshotReq;
+    private SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotWithProvidedIdsPrimaryDataStep(BigQueryPdao bigQueryPdao,
                                                         SnapshotDao snapshotDao,
-                                                        SnapshotProvidedIdsRequestModel snapshotReq) {
+                                                        SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
         this.snapshotReq = snapshotReq;
@@ -35,12 +36,13 @@ public class CreateSnapshotWithProvidedIdsPrimaryDataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
-        SnapshotProvidedIdsRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
+        SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         SnapshotSource source = snapshot.getSnapshotSources().get(0);
+        SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
         // for each table, make sure all of the row ids match
-        for (SnapshotProvidedIdsRequestTableModel table : contentsModel.getTables()) {
+        for (SnapshotRequestRowIdTableModel table : rowIdModel.getTables()) {
             List<String> rowIds = table.getRowIds();
             if (!rowIds.isEmpty()) {
                 RowIdMatch rowIdMatch = bigQueryPdao.matchRowIds(snapshot, source, table.getTableName(), rowIds);

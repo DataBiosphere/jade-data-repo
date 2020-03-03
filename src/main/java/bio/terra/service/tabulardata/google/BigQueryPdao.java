@@ -1,27 +1,28 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
-import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
+import bio.terra.common.Column;
+import bio.terra.common.PdaoLoadStatistics;
+import bio.terra.common.PrimaryDataAccess;
+import bio.terra.common.Table;
+import bio.terra.common.exception.PdaoException;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDataProject;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.common.Column;
-import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.RowIdMatch;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.common.Table;
-import bio.terra.service.snapshot.SnapshotDataProject;
-import bio.terra.service.dataset.DatasetDataProject;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.common.PdaoLoadStatistics;
-import bio.terra.common.PrimaryDataAccess;
-import bio.terra.common.exception.PdaoException;
-import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
@@ -52,11 +53,18 @@ import org.stringtemplate.v4.ST;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static bio.terra.common.PdaoConstant.*;
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.STAGING_TABLE_ROW_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.TARGET_TABLE_ROW_ID_COLUMN;
 
 @Component
 @Profile("google")
@@ -272,11 +280,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void createSnapshotWithProvidedIds(
         Snapshot snapshot,
-        SnapshotProvidedIdsRequestContentsModel contentsModel) {
+        SnapshotRequestContentsModel contentsModel) {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String projectId = bigQueryProject.getProjectId();
         String snapshotName = snapshot.getName();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
+        SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
+
 
         try {
             // Idempotency: delete possibly partial create.
@@ -294,7 +304,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             String datasetBqDatasetName = prefixName(source.getDataset().getName());
 
 
-            contentsModel.getTables().forEach(table -> {
+            rowIdModel.getTables().forEach(table -> {
                 String tableName = table.getTableName();
                 Table sourceTable = source
                     .reverseTableLookup(tableName)

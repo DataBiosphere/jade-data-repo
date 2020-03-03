@@ -52,7 +52,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Arrays;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.*;
@@ -394,78 +393,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sqlTemplate.render());
     }
 
-    private static final String loadOverlapTableTemplate =
-        "INSERT INTO `<project>.<dataset>.<overlapTable>` " +
-            "(" + STAGING_TABLE_ROW_ID_COLUMN + "," + TARGET_TABLE_ROW_ID_COLUMN + ") " +
-            "SELECT S." + PDAO_ROW_ID_COLUMN + " AS " + STAGING_TABLE_ROW_ID_COLUMN + ", T." +
-            PDAO_ROW_ID_COLUMN + " AS " + TARGET_TABLE_ROW_ID_COLUMN + " FROM " +
-            "`<project>.<dataset>.<stagingTable>` S LEFT JOIN `<project>.<dataset>.<targetTable>` T " +
-            "USING (<primaryKeys; separator=\",\">) WHERE T." + PDAO_ROW_ID_COLUMN + " IS NULL OR " +
-            "<compareCols:{c|TO_JSON_STRING(T.<c>) != TO_JSON_STRING(S.<c>)}; separator=\" OR \">";
-
-    public void loadOverlapTable(Dataset dataset,
-                                 Table targetTable,
-                                 String stagingTableName,
-                                 String overlappingTableName) {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-
-        ST sqlTemplate = new ST(loadOverlapTableTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
-        sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("overlapTable", overlappingTableName);
-        sqlTemplate.add("stagingTable", stagingTableName);
-        sqlTemplate.add("targetTable", targetTable.getName());
-        dataset.getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
-            .getPrimaryKey()
-            .forEach(pk -> sqlTemplate.add("primaryKeys", pk.getName()));
-        targetTable.getColumns().forEach(c -> sqlTemplate.add("compareCols", c.getName()));
-
-        bigQueryProject.query(sqlTemplate.render());
-    }
-
-    private static final String softDeleteChangedOverlappingRowsTemplate =
-        "INSERT INTO `<project>.<dataset>.<softDelTable>` (" + PDAO_ROW_ID_COLUMN + ") " +
-            "SELECT " + TARGET_TABLE_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<overlapTable>` " +
-            "WHERE " + TARGET_TABLE_ROW_ID_COLUMN + " IS NOT NULL";
-
-    public void softDeleteChangedOverlappingRows(Dataset dataset,
-                                                 Table targetTable,
-                                                 String overlappingTableName) {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-
-        ST sqlTemplate = new ST(softDeleteChangedOverlappingRowsTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
-        sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(targetTable.getName()));
-        sqlTemplate.add("overlapTable", overlappingTableName);
-
-        bigQueryProject.query(sqlTemplate.render());
-    }
-
-    private static final String upsertIntoDatasetTableTemplate =
-        "INSERT INTO `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
-            "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>` S " +
-            "INNER JOIN `<project>.<dataset>.<overlapTable>` O ON " +
-            "S." + PDAO_ROW_ID_COLUMN + " = " + "O." + STAGING_TABLE_ROW_ID_COLUMN;
-
-    public void upsertIntoDatasetTable(Dataset dataset,
-                                       Table targetTable,
-                                       String stagingTableName,
-                                       String overlappingTableName) {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-
-        ST sqlTemplate = new ST(upsertIntoDatasetTableTemplate);
-        sqlTemplate.add("project", bigQueryProject.getProjectId());
-        sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("targetTable", targetTable.getName());
-        sqlTemplate.add("stagingTable", stagingTableName);
-        sqlTemplate.add("overlapTable", overlappingTableName);
-        sqlTemplate.add("columns", PDAO_ROW_ID_COLUMN);
-        targetTable.getColumns().forEach(c -> sqlTemplate.add("columns", c.getName()));
-
-        bigQueryProject.query(sqlTemplate.render());
-    }
-
     private static final String insertIntoDatasetTableTemplate =
         "INSERT INTO `<project>.<dataset>.<targetTable>` (<columns; separator=\",\">) " +
             "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>`";
@@ -592,15 +519,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public String prefixSoftDeleteTableName(String tableName) {
         return PDAO_PREFIX + "sd_" + tableName;
-    }
-
-    public Schema buildOverlappingTableSchema() {
-        List<Field> fieldList =  Arrays.asList(
-            Field.of(STAGING_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING),
-            Field.of(TARGET_TABLE_ROW_ID_COLUMN, LegacySQLTypeName.STRING)
-        );
-
-        return Schema.of(fieldList);
     }
 
     private Schema buildSoftDeletesSchema() {

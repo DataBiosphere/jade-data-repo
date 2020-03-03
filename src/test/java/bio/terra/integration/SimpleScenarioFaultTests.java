@@ -153,17 +153,17 @@ public class SimpleScenarioFaultTests extends UsersBase {
         dataRepoFixtures.setFault(steward(), "SAM_TIMEOUT_FAULT", true);
 
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
         ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+            "sample", "ingest-test/ingest-test-sample.json");
         ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
         ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "file", "ingest-test/ingest-test-file.json", IngestRequestModel.StrategyEnum.APPEND);
+            "file", "ingest-test/ingest-test-file.json");
         ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
 

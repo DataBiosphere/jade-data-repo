@@ -442,16 +442,14 @@ public class DataRepoFixtures {
         return storageOptions.getService();
     }
 
-    public IngestRequestModel buildSimpleIngest(
-        String table, String filename, IngestRequestModel.StrategyEnum strategy) throws Exception {
+    public IngestRequestModel buildSimpleIngest(String table, String filename) throws Exception {
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + filename;
         return new IngestRequestModel()
             .format(IngestRequestModel.FormatEnum.JSON)
             .ignoreUnknownValues(false)
             .maxBadRecords(0)
             .table(table)
-            .path(gsPath)
-            .strategy(strategy);
+            .path(gsPath);
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteProfile(

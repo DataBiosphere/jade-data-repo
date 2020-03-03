@@ -1987,7 +1987,6 @@ definitions:
       - table
       - path
       - format
-      - strategy
     properties:
       table:
         $ref: '#/definitions/ObjectNameProperty'
@@ -2000,11 +1999,6 @@ definitions:
         enum:
           - csv
           - json
-      strategy:
-        type: string
-        enum:
-          - upsert
-          - append
       load_tag:
         $ref: '#/definitions/LoadTagModel'
       max_bad_records:
@@ -2289,7 +2283,7 @@ definitions:
 
   BulkLoadArrayResultModel:
     description: |-
-      Returned when the bulk file load job finishes. 
+      Returned when the bulk file load job finishes.
     type: object
     properties:
       loadSummary:

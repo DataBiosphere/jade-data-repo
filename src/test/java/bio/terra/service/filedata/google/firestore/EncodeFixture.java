@@ -70,10 +70,10 @@ public class EncodeFixture {
 
         // Load the tables
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
+            "file", targetPath);
         dataRepoFixtures.ingestJsonData(steward, datasetId, request);
         request = dataRepoFixtures.buildSimpleIngest(
-            "donor", "encodetest/donor.json", IngestRequestModel.StrategyEnum.APPEND);
+            "donor", "encodetest/donor.json");
         dataRepoFixtures.ingestJsonData(steward, datasetId, request);
 
         // Delete the scratch blob

@@ -1,23 +1,23 @@
-package bio.terra.service.dataset.exception;
+package bio.terra.service.snapshot.exception;
 
 import bio.terra.common.exception.BadRequestException;
 
 import java.util.List;
 
-public class InvalidDatasetException extends BadRequestException {
-    public InvalidDatasetException(String message) {
+public class InvalidSnapshotException extends BadRequestException {
+    public InvalidSnapshotException(String message) {
         super(message);
     }
 
-    public InvalidDatasetException(String message, Throwable cause) {
+    public InvalidSnapshotException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public InvalidDatasetException(Throwable cause) {
+    public InvalidSnapshotException(Throwable cause) {
         super(cause);
     }
 
-    public InvalidDatasetException(String message, Throwable cause, List<String> errorDetails) {
+    public InvalidSnapshotException(String message, Throwable cause, List<String> errorDetails) {
         super(message, cause, errorDetails);
     }
 }

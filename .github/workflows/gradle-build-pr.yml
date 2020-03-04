@@ -6,6 +6,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    # run a local Postgres container in Docker for the basic check tests
     services:
       postgres:
         image: postgres:9.6
@@ -34,7 +35,9 @@ jobs:
         uses: broadinstitute/setup-vault@v1
         with:
           version: "1.3"
+      # the vault token and private key are used for connected and integration tests
       - name: "Get Vault token"
+        # pull in GitHub secrets as environment variables
         env:
           ROLE_ID: ${{ secrets.ROLE_ID }}
           SECRET_ID: ${{ secrets.SECRET_ID }}
@@ -57,14 +60,19 @@ jobs:
           CLUSTER_NAME: integration-master
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
+          # authenticate against google cloud with the vault token json
           gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
 
+          # configure integration prerequisites
           gcloud config set compute/zone ${INTEGRATION_ZONE}
           gcloud config set project ${INTEGRATION_PROJECT}
 
           gcloud auth configure-docker
           gcloud components install kubectl
 
+          # get the current authorized list of IPs from kubernetes and add the
+          # GitHub Action runner IP to the list as unknown IPs cannot otherwise
+          # interact with kubernetes
           CUR_IPS=$(gcloud container clusters describe ${CLUSTER_NAME} --format json | \
             jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
           RUNNER_IP=$(curl https://api.ipify.org/?format=text | xargs printf '[ "%s/32" ]')
@@ -74,11 +82,15 @@ jobs:
             --enable-master-authorized-networks \
             --master-authorized-networks ${NEW_IPS}
 
+          # necessary to be able to push containers into kubernetes
           gcloud container clusters get-credentials ${CLUSTER_NAME}
+          # export CLUSTER_NAME so it can be used during cleanup
           echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
 
+          # export the original IP list so it can be restored during cleanup
           RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -s -r 'add | unique | join(",")')
           echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
+      # build and push container to integration
       - name: "Set up integration environment"
         env:
           DEV_PROJECT: broad-jade-dev
@@ -96,8 +108,10 @@ jobs:
           GOOGLE_CLOUD_PROJECT: broad-jade-integration
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
+          # required for tests
           GCR_TAG=$(git rev-parse --short HEAD)
           psql -U postgres -f ./db/create-data-repo-db
+
           ./gradlew assemble
           ./gradlew check --scan
           ./gradlew testConnected --scan
@@ -105,6 +119,7 @@ jobs:
       - name: "Post test cleanup"
         if: always()
         run: |
+          # restore the original list of authorized IPs
           gcloud container clusters update ${CLUSTER_NAME} \
             --enable-master-authorized-networks \
             --master-authorized-networks ${RESTORE_IPS}

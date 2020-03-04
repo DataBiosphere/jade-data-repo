@@ -297,7 +297,6 @@ public class ConnectedOperations {
             .content(jsonRequest))
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-
         return handleAsyncFailureCase(response);
     }
 
@@ -330,27 +329,23 @@ public class ConnectedOperations {
     }
 
     public BulkLoadArrayResultModel ingestArraySuccess(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
-        String jsonRequest = objectMapper.writeValueAsString(loadModel);
-        String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array";
-        MvcResult result = mvc.perform(post(url)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(jsonRequest))
-            .andReturn();
-
+        MvcResult result = ingestArrayRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleAsyncSuccessCase(response, BulkLoadArrayResultModel.class);
     }
 
     public ErrorModel ingestArrayFailure(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
+        MvcResult result = ingestArrayRaw(datasetId, loadModel);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleAsyncFailureCase(response);
+    }
+    public MvcResult ingestArrayRaw(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
         String jsonRequest = objectMapper.writeValueAsString(loadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array";
-        MvcResult result = mvc.perform(post(url)
+        return mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
             .andReturn();
-
-        MockHttpServletResponse response = validateJobModelAndWait(result);
-        return handleAsyncFailureCase(response);
     }
 
     public ErrorModel ingestFileFailure(String datasetId, FileLoadModel fileLoadModel) throws Exception {

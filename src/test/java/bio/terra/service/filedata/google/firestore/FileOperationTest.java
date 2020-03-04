@@ -46,6 +46,7 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -66,14 +67,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class FileOperationTest {
-    @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper objectMapper;
-    @Autowired private JsonLoader jsonLoader;
-    @Autowired private ConnectedTestConfiguration testConfig;
-    @Autowired private DrsIdService drsService;
-    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-    @Autowired private ConnectedOperations connectedOperations;
-    @Autowired private ConfigurationService configService;
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private ObjectMapper objectMapper;
+    @Autowired
+    private JsonLoader jsonLoader;
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+    @Autowired
+    private DrsIdService drsService;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired
+    private ConnectedOperations connectedOperations;
+    @Autowired
+    private ConfigurationService configService;
 
     @MockBean
     private IamService samService;
@@ -106,12 +115,16 @@ public class FileOperationTest {
         //  load threads hit the lack of thread-safe-ness in bucket allocation, causing loads to fail randomly.
         //  In order to make progress developing the tests and debugging error conditions, we force the concurrent
         //  loads to 1 in the configuration. Kinda defeats the purpose of the bulk load, but it does mean I can
-        //  complete more of the development work.
+        //  complete more of the development work. Also reduced the load driver wait to hit other error paths and
+        //  not have the test run so long.
         ConfigModel concurrentConfig = configService.getConfig(ConfigEnum.LOAD_CONCURRENT_FILES.name());
         concurrentConfig.setParameter(new ConfigParameterModel().value("1"));
+        ConfigModel driverWaitConfig = configService.getConfig(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS.name());
+        driverWaitConfig.setParameter(new ConfigParameterModel().value("30"));
         ConfigGroupModel configGroupModel = new ConfigGroupModel()
             .label("FileOperationTest")
-            .addGroupItem(concurrentConfig);
+            .addGroupItem(concurrentConfig)
+            .addGroupItem(driverWaitConfig);
         configService.setConfig(configGroupModel);
     }
 
@@ -232,12 +245,10 @@ public class FileOperationTest {
     }
 
     // TESTS TO WRITE
-    // - multi file load - success case
     // - two multi file loads in parallel - success case
-    // - multi file load with failure; make sure re-run with fix succeeds without reloading files or erroring
-    // - exceed max failures
-    // - set max to -1 and allow all to fail??
+    // - set max to allow all to fail?
     // - exceed number of files in array load
+    // - exceed max failures (after DR-643 fix)
 
     // -- array bulk load --
 
@@ -258,9 +269,7 @@ public class FileOperationTest {
 
         Map<String, String> fileIdMap = new HashMap<>();
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
-            assertNull("Error is null", fileResult.getError());
-            assertNotNull("FileId is not null", fileResult.getFileId());
-            assertThat("State is SUCCEEDED", fileResult.getState(), equalTo(BulkLoadFileState.SUCCEEDED));
+            checkFileResultSuccess(fileResult);
             fileIdMap.put(fileResult.getTargetPath(), fileResult.getFileId());
         }
 
@@ -269,11 +278,78 @@ public class FileOperationTest {
         checkLoadSummary(result2.getLoadSummary(), loadTag, 3, 3, 0, 0);
 
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
-            assertNull("Error is null", fileResult.getError());
-            assertNotNull("FileId is not null", fileResult.getFileId());
-            assertThat("State is SUCCEEDED", fileResult.getSourcePath(), equalTo(BulkLoadFileState.SUCCEEDED));
+            checkFileResultSuccess(fileResult);
             assertThat("FileId matches", fileResult.getFileId(), equalTo(fileIdMap.get(fileResult.getTargetPath())));
         }
+    }
+
+    @Test
+    public void arrayMultiFileLoadFailRetryTest() throws Exception {
+        String testId = Names.randomizeName("test");
+        String loadTag = "arrayMultiFileLoadFileRetryTest" + testId;
+        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
+            .profileId(profileModel.getId())
+            .loadTag(loadTag)
+            .maxFailedFileLoads(2);
+        arrayLoad.addLoadArrayItem(getFileModel(true, 2, testId));
+        arrayLoad.addLoadArrayItem(getFileModel(false, 3, testId));
+        arrayLoad.addLoadArrayItem(getFileModel(true, 4, testId));
+
+        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        checkLoadSummary(result.getLoadSummary(), loadTag, 3, 2, 1, 0);
+
+        Map<String, BulkLoadFileResultModel> resultMap = new HashMap<>();
+        for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
+            resultMap.put(fileResult.getTargetPath(), fileResult);
+        }
+        List<BulkLoadFileModel> loadArray = arrayLoad.getLoadArray();
+        BulkLoadFileResultModel fileResult = resultMap.get(loadArray.get(0).getTargetPath());
+        checkFileResultSuccess(fileResult);
+        fileResult = resultMap.get(loadArray.get(1).getTargetPath());
+        checkFileResultFailed(fileResult);
+        fileResult = resultMap.get(loadArray.get(2).getTargetPath());
+        checkFileResultSuccess(fileResult);
+
+        // fix the bad file and retry load
+        loadArray.set(1, getFileModel(true, 3, testId));
+        BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        checkLoadSummary(result2.getLoadSummary(),loadTag, 3,3,0,0);
+    }
+
+    @Test
+    public void arrayMultiFileLoadExceedMaxTest() throws Exception {
+        // Set the allowed array files to a very small value so we can easily hit the error
+        ConfigModel bulkArrayMaxConfig = configService.getConfig(ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX.name());
+        bulkArrayMaxConfig.setParameter(new ConfigParameterModel().value("5"));
+        ConfigGroupModel configGroupModel = new ConfigGroupModel()
+            .label("FileOperationTest:loadExceedMax")
+            .addGroupItem(bulkArrayMaxConfig);
+        configService.setConfig(configGroupModel);
+
+        String testId = Names.randomizeName("test");
+        String loadTag = "arrayMultiFileLoadExceedMaxTest" + testId;
+        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
+            .profileId(profileModel.getId())
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0);
+        for (int i = 0; i < 8; i++) {
+            arrayLoad.addLoadArrayItem(getFileModel(true, i, testId));
+        }
+
+        MvcResult result = connectedOperations.ingestArrayRaw(datasetSummary.getId(), arrayLoad);
+        assertThat("Got bad request", result.getResponse().getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
+    }
+
+    private static void checkFileResultFailed(BulkLoadFileResultModel fileResult) {
+        assertNotNull("Error is not null", fileResult.getError());
+        assertNull("FileId is null", fileResult.getFileId());
+        assertThat("State is FAILED", fileResult.getState(), equalTo(BulkLoadFileState.FAILED));
+    }
+
+    private static void checkFileResultSuccess(BulkLoadFileResultModel fileResult) {
+        assertNull("Error is null", fileResult.getError());
+        assertNotNull("FileId is not null", fileResult.getFileId());
+        assertThat("State is SUCCEEDED", fileResult.getState(), equalTo(BulkLoadFileState.SUCCEEDED));
     }
 
     private static void checkLoadSummary(BulkLoadResultModel summary,

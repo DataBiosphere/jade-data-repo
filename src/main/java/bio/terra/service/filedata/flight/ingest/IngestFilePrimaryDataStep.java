@@ -33,13 +33,15 @@ public class IngestFilePrimaryDataStep implements Step {
 
         FlightMap workingMap = context.getWorkingMap();
         String fileId = workingMap.get(FileMapKeys.FILE_ID, String.class);
+        Boolean loadComplete = workingMap.get(FileMapKeys.LOAD_COMPLETED, Boolean.class);
+        if (loadComplete == null || !loadComplete) {
+            // In the previous step a bucket was selected for this file to go into and stored in the working map. Here, we
+            // store the bucket resource id on the fsFile metadata to let the gcsPdao know where to copy the file.
+            GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
-        // In the previous step a bucket was selected for this file to go into and stored in the working map. Here, we
-        // store the bucket resource id on the fsFile metadata to let the gcsPdao know where to copy the file.
-        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
-
-        FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
-        workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
+            FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+            workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
+        }
         return StepResult.getStepResultSuccess();
     }
 

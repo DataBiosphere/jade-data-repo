@@ -48,6 +48,11 @@ public class ApplicationConfiguration {
      */
     private int loadConcurrentIngests;
 
+    /**
+     * Number of seconds for the bulk file load driver thread to wait to check on completed load flights
+     */
+    private int loadDriverWaitSeconds;
+
     public String getUserEmail() {
         return userEmail;
     }
@@ -118,6 +123,14 @@ public class ApplicationConfiguration {
 
     public void setLoadConcurrentIngests(int loadConcurrentIngests) {
         this.loadConcurrentIngests = loadConcurrentIngests;
+    }
+
+    public int getLoadDriverWaitSeconds() {
+        return loadDriverWaitSeconds;
+    }
+
+    public void setLoadDriverWaitSeconds(int loadDriverWaitSeconds) {
+        this.loadDriverWaitSeconds = loadDriverWaitSeconds;
     }
 
     @Bean("jdbcTemplate")

@@ -9,7 +9,6 @@ public final class FileMapKeys {
     public static final String FILE_INFO = "fileInfo";
     public static final String BUCKET_INFO = "bucketInfo";
     public static final String FIRESTORE_FILE = "fireStoreFile";
-    public static final String PROFILE_ID = "profileId";
-    public static final String MAX_FAILED_FILE_LOADS = "maxFailedFileLoads";
     public static final String REQUEST = "request";
+    public static final String LOAD_COMPLETED = "loadCompleted";
 }

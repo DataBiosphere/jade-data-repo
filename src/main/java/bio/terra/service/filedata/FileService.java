@@ -11,6 +11,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
 import bio.terra.service.filedata.flight.ingest.FileArrayIngestFlight;
@@ -86,6 +87,12 @@ public class FileService {
         String description = "Ingest file array of " + loadArray.getLoadArray().size() +
             "files. LoadTag: " + loadTag;
 
+        int filesMax = configService.getParameterValue(ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX);
+        int inArraySize = loadArray.getLoadArray().size();
+        if (inArraySize > filesMax) {
+            throw new BulkLoadFileMaxExceededException("Maximum number of files in a bulk load array is " +
+                filesMax + "; request array contains " + inArraySize);
+        }
         return jobService
             .newJob(description, FileArrayIngestFlight.class, loadArray, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)

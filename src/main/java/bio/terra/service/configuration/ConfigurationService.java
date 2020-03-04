@@ -24,6 +24,7 @@ import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_M
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_DRIVER_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
@@ -177,6 +178,7 @@ public class ConfigurationService {
         addParameter(LOAD_BULK_FILES_MAX, appConfiguration.getMaxBulkFileLoad());
         addParameter(LOAD_CONCURRENT_FILES, appConfiguration.getLoadConcurrentFiles());
         addParameter(LOAD_CONCURRENT_INGESTS, appConfiguration.getLoadConcurrentIngests());
+        addParameter(LOAD_DRIVER_WAIT_SECONDS, appConfiguration.getLoadDriverWaitSeconds());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);

@@ -94,16 +94,6 @@ public class IngestTest extends UsersBase {
     }
 
     @Test
-    public void ingestUpdatedParticipants() throws Exception {
-        ingestParticipants();
-        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-updated-participant.json");
-        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-        // FIXME: Ideally we'd be able to assert on the # of rows added, updated, and left unchanged.
-        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
-    }
-
-    @Test
     public void ingestBuildSnapshot() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");

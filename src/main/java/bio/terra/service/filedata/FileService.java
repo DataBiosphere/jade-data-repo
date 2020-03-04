@@ -7,6 +7,8 @@ import bio.terra.model.FileDetailModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.FileModelType;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
@@ -39,18 +41,21 @@ public class FileService {
     private final DatasetService datasetService;
     private final SnapshotService snapshotService;
     private final LoadService loadService;
+    private final ConfigurationService configService;
 
     @Autowired
     public FileService(JobService jobService,
                        FireStoreDao fileDao,
                        DatasetService datasetService,
                        SnapshotService snapshotService,
-                       LoadService loadService) {
+                       LoadService loadService,
+                       ConfigurationService configService) {
         this.fileDao = fileDao;
         this.datasetService = datasetService;
         this.jobService = jobService;
         this.snapshotService = snapshotService;
         this.loadService = loadService;
+        this.configService = configService;
     }
 
     public String deleteFile(String datasetId, String fileId, AuthenticatedUserRequest userReq) {
@@ -80,10 +85,15 @@ public class FileService {
         loadArray.setLoadTag(loadTag);
         String description = "Ingest file array of " + loadArray.getLoadArray().size() +
             "files. LoadTag: " + loadTag;
+
         return jobService
             .newJob(description, FileArrayIngestFlight.class, loadArray, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+            .addParameter(LoadMapKeys.CONCURRENT_INGESTS,
+                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_INGESTS))
+            .addParameter(LoadMapKeys.CONCURRENT_FILES,
+                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
             .submit();
     }
 

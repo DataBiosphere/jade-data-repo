@@ -3,11 +3,14 @@ package bio.terra.service.load;
 
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.apache.commons.codec.binary.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +19,7 @@ import org.springframework.dao.CannotSerializeTransactionException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -200,6 +204,65 @@ public class LoadDao {
 
     public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
         updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null, error, null);
+    }
+
+    public BulkLoadResultModel makeBulkLoadResult(UUID loadId) {
+        final String bulkLoadResultSql = "SELECT state, count(*) AS statecount FROM load_file" +
+            " WHERE load_id = :load_id GROUP BY state";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("load_id", loadId);
+        // Note: the cast of `rs` is needed because ResultSetExtractor and RowCallbackHandler have duplicate signatures
+        return jdbcTemplate.query(bulkLoadResultSql, params,
+            (ResultSetExtractor<BulkLoadResultModel>) rs -> {
+                BulkLoadResultModel result = new BulkLoadResultModel()
+                    .succeededFiles(0)
+                    .failedFiles(0)
+                    .notTriedFiles(0)
+                    .totalFiles(0);
+
+                while (rs.next()) {
+                    BulkLoadFileState state = BulkLoadFileState.fromValue(rs.getString("state"));
+                    if (state == null) {
+                        throw new CorruptMetadataException("Invalid file state");
+                    }
+                    switch (state) {
+                        case RUNNING:
+                            throw new CorruptMetadataException("No loads should be running!");
+
+                        case FAILED:
+                            result.setFailedFiles(rs.getInt("statecount"));
+                            break;
+
+                        case NOT_TRIED:
+                            result.setNotTriedFiles(rs.getInt("statecount"));
+                            break;
+
+                        case SUCCEEDED:
+                            result.setSucceededFiles(rs.getInt("statecount"));
+                            break;
+                    }
+                    result.setTotalFiles(result.getFailedFiles() +
+                        result.getNotTriedFiles() +
+                        result.getSucceededFiles());
+                }
+                return result;
+        });
+    }
+
+    public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {
+        final String sql = "SELECT source_path, target_path, state, file_id, error" +
+            " FROM load_file WHERE load_id = :load_id";
+        return jdbcTemplate.query(
+            sql,
+            new MapSqlParameterSource().addValue("load_id", loadId),
+            (rs, rowNum) -> {
+                return new BulkLoadFileResultModel()
+                    .sourcePath(rs.getString("source_path"))
+                    .targetPath(rs.getString("target_path"))
+                    .state(BulkLoadFileState.fromValue(rs.getString("state")))
+                    .fileId(rs.getString("file_id"))
+                    .error(rs.getString("error"));
+            });
     }
 
     // -- private methods --

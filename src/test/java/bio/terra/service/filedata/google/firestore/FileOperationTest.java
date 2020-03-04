@@ -1,19 +1,30 @@
 package bio.terra.service.filedata.google.firestore;
 
-import bio.terra.common.category.Connected;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigModel;
+import bio.terra.model.ConfigParameterModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
-import bio.terra.model.FileModel;
 import bio.terra.model.FileLoadModel;
-import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.model.FileModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
@@ -34,10 +45,14 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -58,6 +73,7 @@ public class FileOperationTest {
     @Autowired private DrsIdService drsService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private ConfigurationService configService;
 
     @MockBean
     private IamService samService;
@@ -66,12 +82,37 @@ public class FileOperationTest {
     private DataLocationSelector dataLocationSelector;
 
     private int validFileCounter;
+    private String coreBillingAccountId;
+    private BillingProfileModel profileModel;
+    private DatasetSummaryModel datasetSummary;
 
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
+
+        // File generator indices
         validFileCounter = 0;
+
+        // Retrieve billing info
+        coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
+        profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
+
+        datasetSummary = connectedOperations.createDatasetWithFlight(profileModel, "snapshot-test-dataset.json");
+
+        // Make sure we start from a known configuration
+        configService.reset();
+        // TODO: NOTE: during initial testing, I ran into DR-643. The effect of the bug is that parallel
+        //  load threads hit the lack of thread-safe-ness in bucket allocation, causing loads to fail randomly.
+        //  In order to make progress developing the tests and debugging error conditions, we force the concurrent
+        //  loads to 1 in the configuration. Kinda defeats the purpose of the bulk load, but it does mean I can
+        //  complete more of the development work.
+        ConfigModel concurrentConfig = configService.getConfig(ConfigEnum.LOAD_CONCURRENT_FILES.name());
+        concurrentConfig.setParameter(new ConfigParameterModel().value("1"));
+        ConfigGroupModel configGroupModel = new ConfigGroupModel()
+            .label("FileOperationTest")
+            .addGroupItem(concurrentConfig);
+        configService.setConfig(configGroupModel);
     }
 
     @After
@@ -85,10 +126,6 @@ public class FileOperationTest {
 
     @Test
     public void fileOperationsTest() throws Exception {
-        String coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
-        BillingProfileModel profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
-        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
-            "snapshot-test-dataset.json");
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
@@ -192,6 +229,141 @@ public class FileOperationTest {
         errorModel = connectedOperations.ingestFileFailure(datasetSummary.getId(), fileLoadModel);
         assertThat("No bucket or path", errorModel.getMessage(),
             containsString("gs path"));
+    }
+
+    // TESTS TO WRITE
+    // - multi file load - success case
+    // - two multi file loads in parallel - success case
+    // - multi file load with failure; make sure re-run with fix succeeds without reloading files or erroring
+    // - exceed max failures
+    // - set max to -1 and allow all to fail??
+    // - exceed number of files in array load
+
+    // -- array bulk load --
+
+    @Test
+    public void arrayMultiFileLoadSuccessTest() throws Exception {
+        String testId = Names.randomizeName("test");
+        String loadTag = "arrayMultiFileLoadSuccessTest" + testId;
+        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
+            .profileId(profileModel.getId())
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0);
+        for (int index = 0; index < 3; index++) {
+            arrayLoad.addLoadArrayItem(getFileModel(true, index, testId));
+        }
+
+        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        checkLoadSummary(result.getLoadSummary(), loadTag, 3, 3, 0, 0);
+
+        Map<String, String> fileIdMap = new HashMap<>();
+        for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
+            assertNull("Error is null", fileResult.getError());
+            assertNotNull("FileId is not null", fileResult.getFileId());
+            assertThat("State is SUCCEEDED", fileResult.getState(), equalTo(BulkLoadFileState.SUCCEEDED));
+            fileIdMap.put(fileResult.getTargetPath(), fileResult.getFileId());
+        }
+
+        // retry successful load to make sure it still succeeds and does nothing
+        BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        checkLoadSummary(result2.getLoadSummary(), loadTag, 3, 3, 0, 0);
+
+        for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
+            assertNull("Error is null", fileResult.getError());
+            assertNotNull("FileId is not null", fileResult.getFileId());
+            assertThat("State is SUCCEEDED", fileResult.getSourcePath(), equalTo(BulkLoadFileState.SUCCEEDED));
+            assertThat("FileId matches", fileResult.getFileId(), equalTo(fileIdMap.get(fileResult.getTargetPath())));
+        }
+    }
+
+    private static void checkLoadSummary(BulkLoadResultModel summary,
+                                         String loadTag,
+                                         int total,
+                                         int succeeded,
+                                         int failed,
+                                         int notTried) {
+        assertThat("correct load tag", summary.getLoadTag(), equalTo(loadTag));
+        assertThat("correct total files", summary.getTotalFiles(), equalTo(total));
+        assertThat("correct succeeded files", summary.getSucceededFiles(), equalTo(succeeded));
+        assertThat("correct failed files", summary.getFailedFiles(), equalTo(failed));
+        assertThat("correct notTried files", summary.getNotTriedFiles(), equalTo(notTried));
+    }
+
+
+    // We have a static array of good paths and bad paths with their associated
+    // target. That lets us build arrays with various numbers of failures and
+    // adjust arrays to "fix" broken loads.
+    private static String[] goodFileSource = new String[]{
+            "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam",
+            "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam.bai",
+            "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.bam",
+            "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.bam.bai",
+            "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.bam",
+            "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.bam.bai",
+            "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.bam",
+            "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.bam.bai",
+            "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.bam",
+            "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.bam.bai",
+            "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.bam",
+            "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.bam.bai",
+            "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.bam",
+            "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.bam.bai",
+            "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.bam",
+            "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.bam.bai",
+            "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam",
+            "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam.bai"
+        };
+    private static String[] badFileSource = new String[]{
+            "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.x",
+            "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.i",
+            "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.x",
+            "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.i",
+            "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.x",
+            "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.i",
+            "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.x",
+            "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.i",
+            "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.x",
+            "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.i",
+            "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.x",
+            "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.i",
+            "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.x",
+            "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.i",
+            "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.x",
+            "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.i",
+            "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.x",
+            "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.i"
+        };
+    private static String[] fileTarget = new String[]{
+            "/encodefiles/20160707/ENCFF580QIE.bam",
+            "/encodefiles/20160707/ENCFF580QIE.bam.bai",
+            "/encodefiles/20170824/ENCFF180PCI.bam",
+            "/encodefiles/20170824/ENCFF180PCI.bam.bai",
+            "/encodefiles/20170824/ENCFF774RTX.bam",
+            "/encodefiles/20170824/ENCFF774RTX.bam.bai",
+            "/encodefiles/20170824/ENCFF678JJZ.bam",
+            "/encodefiles/20170824/ENCFF678JJZ.bam.bai",
+            "/encodefiles/20170824/ENCFF591XCX.bam",
+            "/encodefiles/20170824/ENCFF591XCX.bam.bai",
+            "/encodefiles/20170824/ENCFF912JKA.bam",
+            "/encodefiles/20170824/ENCFF912JKA.bam.bai",
+            "/encodefiles/20170824/ENCFF097NAZ.bam",
+            "/encodefiles/20170824/ENCFF097NAZ.bam.bai",
+            "/encodefiles/20180118/ENCFF538GKX.bam",
+            "/encodefiles/20180118/ENCFF538GKX.bam.bai",
+            "/encodefiles/20180504/ENCFF823AJQ.bam",
+            "/encodefiles/20180504/ENCFF823AJQ.bam.bai"
+        };
+
+    private BulkLoadFileModel getFileModel(boolean getGood, int index, String testId) {
+        assertTrue("test bug: file index not in range", index < fileTarget.length);
+
+        BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
+
+        String infile = (getGood ? goodFileSource[index] : badFileSource[index]);
+        model.description("bulk load file " + index)
+            .sourcePath(infile)
+            .targetPath(testId + fileTarget[index]);
+        return model;
     }
 
     private String makeValidUniqueFilePath() {

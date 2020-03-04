@@ -15,6 +15,8 @@ public enum ConfigEnum {
     SAM_OPERATION_TIMEOUT_SECONDS,
     LOAD_BULK_ARRAY_FILES_MAX,
     LOAD_BULK_FILES_MAX,
+    LOAD_CONCURRENT_FILES, // number of concurrent files to load in parallel in one load job
+    LOAD_CONCURRENT_INGESTS, // number of concurrent ingests to run in parallel; (files + 1) * ingests = max load threads used
 
     // -- faults --
     SAM_TIMEOUT_FAULT,

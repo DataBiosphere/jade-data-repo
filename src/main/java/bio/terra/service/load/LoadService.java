@@ -1,7 +1,9 @@
 package bio.terra.service.load;
 
 import bio.terra.model.BulkLoadFileModel;
+import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -89,5 +91,13 @@ public class LoadService {
 
     public void setLoadFileNotTried(UUID loadId, String targetPath) {
         loadDao.setLoadFileNotTried(loadId, targetPath);
+    }
+
+    public BulkLoadResultModel makeBulkLoadResult(UUID loadId) {
+        return loadDao.makeBulkLoadResult(loadId);
+    }
+
+    public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {
+        return loadDao.makeBulkLoadFileArray(loadId);
     }
 }

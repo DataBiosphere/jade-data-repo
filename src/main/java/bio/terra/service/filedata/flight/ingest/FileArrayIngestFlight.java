@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -18,6 +19,8 @@ import org.springframework.context.ApplicationContext;
  * Required input parameters:
  * - DATASET_ID dataset we are loading into
  * - LOAD_TAG is the load tag for this ingest
+ * - CONCURRENT_INGESTS is the number of ingests to allow to run in parallel
+ * - CONCURRENT_FILES is the number of file loads to run in parallel
  * - REQUEST is a BulkLoadArrayRequestModel
  */
 
@@ -35,6 +38,16 @@ public class FileArrayIngestFlight extends Flight {
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
+        BulkLoadArrayRequestModel loadRequest =
+            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
+        int maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
+        String profileId = loadRequest.getProfileId();
+
+        int concurrentFiles = inputParameters.get(LoadMapKeys.CONCURRENT_FILES, Integer.class);
+
+        // TODO: for reserving a bulk load slot:
+        //    int concurrentIngests = inputParameters.get(LoadMapKeys.CONCURRENT_INGESTS, Integer.class);
+        //  We can maybe just use the load tag lock table to know how many are active.
 
         // The flight plan:
         // 0. Verify authorization to do the ingest
@@ -43,15 +56,17 @@ public class FileArrayIngestFlight extends Flight {
         // 3. Put the array into the load_file table for processing
         // 4. Main loading loop - shared with bulk ingest from a file in a bucket
         // 5. TODO: Copy results into the database BigQuery (DR-694)
-        // 6. TODO: release the bulk load slot (DR-754)
-        // 7. Unlock the load tag
+        // 6. Clean load_file table
+        // 7. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
+        // 8. Unlock the load tag
         addStep(new VerifyAuthorizationStep(iamService, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
         addStep(new LoadLockStep(loadService));
         // 2. reserve a bulk load slot
         addStep(new IngestPopulateFileStateFromArrayStep(loadService));
-        addStep(new IngestDriverStep(loadService, datasetId, loadTag));
-        // copy results into BigQuery
-        // release bulk load slot
+        addStep(new IngestDriverStep(loadService, datasetId, loadTag, concurrentFiles, maxFailedFileLoads, profileId));
+        // 5. copy results into BigQuery
+        addStep(new IngestCleanFileStateStep(loadService));
+        // 7. release bulk load slot
         addStep(new LoadUnlockStep(loadService));
     }
 

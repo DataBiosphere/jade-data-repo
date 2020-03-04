@@ -1,9 +1,13 @@
 package bio.terra.service.filedata.flight.ingest;
 
+import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadFileResultModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.filedata.exception.MaxFailedFileLoadsException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
@@ -35,9 +39,6 @@ import java.util.concurrent.TimeUnit;
 //
 // It expects the following working map data:
 // - LOAD_ID - load id we are working on
-// - PROFILE_ID - profile to use for files being loaded
-// - MAX_FAILED_FILE_LOADS - maximum number of failed loads; -1 means no maximum
-// - CONCURRENT_LOADS - number of loads to run simultaneously
 //
 public class IngestDriverStep implements Step {
     private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
@@ -45,11 +46,22 @@ public class IngestDriverStep implements Step {
     private final LoadService loadService;
     private final String datasetId;
     private final String loadTag;
+    private final int concurrentFiles;
+    private final int maxFailedFileLoads;
+    private final String profileId;
 
-    public IngestDriverStep(LoadService loadService, String datasetId, String loadTag) {
+    public IngestDriverStep(LoadService loadService,
+                            String datasetId,
+                            String loadTag,
+                            int concurrentFiles,
+                            int maxFailedFileLoads,
+                            String profileId) {
         this.loadService = loadService;
         this.datasetId = datasetId;
         this.loadTag = loadTag;
+        this.concurrentFiles = concurrentFiles;
+        this.maxFailedFileLoads = maxFailedFileLoads;
+        this.profileId = profileId;
     }
 
     @Override
@@ -58,9 +70,6 @@ public class IngestDriverStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
         UUID loadId = UUID.fromString(loadIdString);
-        String profileId = workingMap.get(FileMapKeys.PROFILE_ID, String.class);
-        int maxFailedFileLoads = workingMap.get(FileMapKeys.MAX_FAILED_FILE_LOADS, Integer.class);
-        int concurrentLoads = workingMap.get(FileMapKeys.CONCURRENT_LOADS, Integer.class);
 
         try {
             // Check for launch orphans - these are loads in the RUNNING state that never
@@ -70,26 +79,25 @@ public class IngestDriverStep implements Step {
             // Load Loop
             while (true) {
                 // Get the state of active and failed loads
-                LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentLoads);
-
-                // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
-                if (candidates.getFailedLoads() > maxFailedFileLoads) {
-                    waitForAll(context, loadId, concurrentLoads);
-                    return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                        new MaxFailedFileLoadsException("Exceeded maximum failed file loads"));
-                }
+                LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentFiles);
 
                 int currentRunning = candidates.getRunningLoads().size();
                 int candidateCount = candidates.getCandidateFiles().size();
                 if (currentRunning == 0 && candidateCount == 0) {
                     // Nothing doing and nothing to do
-                    return StepResult.getStepResultSuccess();
+                    break;
+                }
+
+                // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
+                if (candidates.getFailedLoads() > maxFailedFileLoads) {
+                    waitForAll(context, loadId, concurrentFiles);
+                    break;
                 }
 
                 // Launch new loads
-                if (currentRunning < concurrentLoads) {
+                if (currentRunning < concurrentFiles) {
                     // Compute how many loads to launch
-                    int launchCount = concurrentLoads - currentRunning;
+                    int launchCount = concurrentFiles - currentRunning;
                     if (candidateCount < launchCount) {
                         launchCount = candidateCount;
                     }
@@ -99,19 +107,37 @@ public class IngestDriverStep implements Step {
                 }
 
                 // Wait until some loads complete
-                waitForAny(context, loadId, concurrentLoads, currentRunning);
+                waitForAny(context, loadId, concurrentFiles, currentRunning);
             }
         } catch (DatabaseOperationException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
 
+        BulkLoadArrayResultModel result = makeLoadResult(loadId, context);
+        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result);
+
+        return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-
         return StepResult.getStepResultSuccess();
     }
+
+    private BulkLoadArrayResultModel makeLoadResult(UUID loadId, FlightContext context) {
+        // Get the summary stats and fill in our specific information
+        BulkLoadResultModel summary = loadService.makeBulkLoadResult(loadId);
+        summary.loadTag(loadTag).jobId(context.getFlightId());
+
+        // Get the file load results
+        List<BulkLoadFileResultModel> fileResults = loadService.makeBulkLoadFileArray(loadId);
+
+        return new BulkLoadArrayResultModel()
+            .loadSummary(summary)
+            .loadFileResults(fileResults);
+    }
+
+
 
     private void waitForAny(FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
         throws DatabaseOperationException {
@@ -197,9 +223,15 @@ public class IngestDriverStep implements Step {
                     break;
                 }
 
-                case SUCCESS:
-                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), loadFile.getFileId());
+                case SUCCESS: {
+                    FlightMap resultMap = flightState.getResultMap().orElse(null);
+                    if (resultMap == null) {
+                        throw new FileSystemCorruptException("no result map in flight state");
+                    }
+                    String fileId = resultMap.get(FileMapKeys.FILE_ID, String.class);
+                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId);
                     break;
+                }
             }
         }
 

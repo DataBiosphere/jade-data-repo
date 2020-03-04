@@ -6,7 +6,6 @@ import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
@@ -254,10 +253,6 @@ public class BigQueryPdaoTest {
             .newBuilder(bucket, targetPath + "ingest-test-sample-null-id.json")
             .build();
 
-        BlobInfo updatedParticipantBlob = BlobInfo
-            .newBuilder(bucket, targetPath + "ingest-test-updated-participant.json")
-            .build();
-
         try {
             storage.create(participantBlob, readFile("ingest-test-participant.json"));
             storage.create(sampleBlob, readFile("ingest-test-sample.json"));
@@ -268,7 +263,6 @@ public class BigQueryPdaoTest {
             // Ingest staged data into the new dataset.
             IngestRequestModel ingestRequest = new IngestRequestModel()
                 .format(IngestRequestModel.FormatEnum.JSON);
-            ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.APPEND);
 
             String datasetId = dataset.getId().toString();
             connectedOperations.ingestTableSuccess(datasetId,
@@ -297,41 +291,6 @@ public class BigQueryPdaoTest {
             // TODO: Assert that the snapshot contains the rows we expect.
             // Skipping that for now because there's no REST API to query table contents.
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
-
-            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-            DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
-            String tableName = "participant";
-            List<String> rowIds = getRowIds(dataset,
-                tableName,
-                dataProject.getGoogleProjectId(),
-                bigQueryProject);
-            int originalNumOfRows = rowIds.size();
-
-            // Ingest updated data into the new dataset.
-            storage.create(updatedParticipantBlob, readFile("ingest-test-updated-participant.json"));
-            ingestRequest.setStrategy(IngestRequestModel.StrategyEnum.UPSERT);
-            connectedOperations.ingestTableSuccess(datasetId,
-                ingestRequest.table(tableName).path(gsPath(updatedParticipantBlob)));
-            int numOfRowsSoftDeleted = 1;
-
-            // assert the changed row is soft deleted
-            List<String> softDeletedRowIds = getSoftDeletedRowIds(dataset,
-                tableName,
-                dataProject.getGoogleProjectId(),
-                bigQueryProject);
-            Assert.assertThat("On upsert the changed row is soft deleted",
-                softDeletedRowIds.size(),
-                is(equalTo(numOfRowsSoftDeleted)));
-
-            // assert only the new row is added
-            rowIds = getRowIds(dataset,
-                tableName,
-                dataProject.getGoogleProjectId(),
-                bigQueryProject);
-            // originalNumOfRows + 2 for the new row being added and the chnaged row being added
-            Assert.assertThat("On upsert that # of rows being added accounts for the soft delete",
-                rowIds.size(),
-                is(equalTo(originalNumOfRows + 2 - numOfRowsSoftDeleted)));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());

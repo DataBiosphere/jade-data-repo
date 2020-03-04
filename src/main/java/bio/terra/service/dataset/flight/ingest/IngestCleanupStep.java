@@ -25,7 +25,6 @@ public class IngestCleanupStep implements Step {
         // We do not want to fail the insert because we fail to cleanup the staging table.
         // We log the failure and move on.
         String stagingTableName = "<unknown>";
-        String overlappingTableName = "<unknown>";
 
         try {
             Dataset dataset = IngestUtils.getDataset(context, datasetService);
@@ -36,18 +35,6 @@ public class IngestCleanupStep implements Step {
             logger.error("Failure deleting ingest staging table: " + stagingTableName, ex);
         }
 
-        try {
-            Dataset dataset = IngestUtils.getDataset(context, datasetService);
-
-            // overlappingTableName is null when the ingest strategy is not upsert.
-            // Don't try to delete the table name if it is null
-            overlappingTableName = IngestUtils.getOverlappingTableName(context);
-            if (overlappingTableName != null && bigQueryPdao.tableExists(dataset, overlappingTableName)) {
-                bigQueryPdao.deleteDatasetTable(dataset, overlappingTableName);
-            }
-        } catch (Exception ex) {
-            logger.error("Failure deleting overlapping table: " + overlappingTableName, ex);
-        }
         return StepResult.getStepResultSuccess();
     }
 

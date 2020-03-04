@@ -94,11 +94,11 @@ public class AccessTest extends UsersBase {
     @Test
     public void checkShared() throws  Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         request = dataRepoFixtures.buildSimpleIngest(
-            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+            "sample", "ingest-test/ingest-test-sample.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -194,7 +194,7 @@ public class AccessTest extends UsersBase {
         }
 
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
+            "file", targetPath);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
             steward(), datasetSummaryModel.getId(), request);
 

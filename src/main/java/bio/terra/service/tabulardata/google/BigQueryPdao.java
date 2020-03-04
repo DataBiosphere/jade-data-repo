@@ -700,7 +700,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String createViewsTemplate =
-        "SELECT <columns; separator=\",\"> FROM (" +
+        "SELECT S." + PDAO_ROW_ID_COLUMN + ", <columns; separator=\",\"> FROM (" +
             "SELECT <mappedColumns; separator=\",\"> FROM `<project>.<dataset>.<mapTable>` S, " +
             "`<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R WHERE " +
             "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +

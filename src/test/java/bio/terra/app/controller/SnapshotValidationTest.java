@@ -2,12 +2,11 @@ package bio.terra.app.controller;
 
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
-import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
-import bio.terra.model.SnapshotProvidedIdsRequestModel;
-import bio.terra.model.SnapshotProvidedIdsRequestTableModel;
+import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestSourceModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
@@ -22,10 +21,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,15 +40,15 @@ public class SnapshotValidationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    private SnapshotRequestModel snapshotRequest;
+    private SnapshotRequestModel snapshotByAssetRequest;
 
-    private SnapshotProvidedIdsRequestModel snapshotProvidedIdsRequestModel;
+    private SnapshotRequestModel snapshotByRowIdsRequestModel;
 
 
     @Before
     public void setup() {
-        snapshotRequest = makeSnapshotRequest();
-        snapshotProvidedIdsRequestModel = makeSnapshotProvidedIdsRequest();
+        snapshotByAssetRequest = makeSnapshotAssetRequest();
+        snapshotByRowIdsRequestModel = makeSnapshotRowIdsRequest();
     }
 
     private void expectBadSnapshotCreateRequest(SnapshotRequestModel snapshotRequest) throws Exception {
@@ -61,62 +58,58 @@ public class SnapshotValidationTest {
                 .andExpect(status().is4xxClientError());
     }
 
-    private void expectBadSPIdsCreateRequest(SnapshotProvidedIdsRequestModel snapshotRequest) throws Exception {
-        mvc.perform(post("/api/repository/v1/snapshots/ids")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(snapshotRequest)))
-            .andExpect(status().is4xxClientError());
-    }
+    // Generate a valid snapshot-by-asset request, we will tweak individual pieces to test validation below
+    public SnapshotRequestModel makeSnapshotAssetRequest() {
+        SnapshotRequestAssetModel assetSpec = new SnapshotRequestAssetModel()
+            .assetName("asset")
+            .rootValues(Arrays.asList("sample 1", "sample 2", "sample 3"));
 
-    public SnapshotRequestModel makeSnapshotRequest() {
-        SnapshotRequestSourceModel snapshotRequestSourceModel = new SnapshotRequestSourceModel()
-                .datasetName("dataset")
-                .assetName("asset");
         SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
-                .source(snapshotRequestSourceModel)
-                .rootValues(Arrays.asList("sample 1", "sample 2", "sample 3"));
-        SnapshotRequestModel snapshotRequestModel = new SnapshotRequestModel()
-                .name("snapshot")
-                .description("snapshot description")
-                .addContentsItem(snapshotRequestContentsModel);
-        return snapshotRequestModel;
+            .datasetName("dataset")
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYASSET)
+            .assetSpec(assetSpec);
+
+        return new SnapshotRequestModel()
+            .name("snapshot")
+            .description("snapshot description")
+            .addContentsItem(snapshotRequestContentsModel);
     }
 
-    public SnapshotProvidedIdsRequestModel makeSnapshotProvidedIdsRequest() {
-        List<String> columns = new ArrayList<>();
-        List<String> rowIds = new ArrayList<>();
-        List<SnapshotProvidedIdsRequestContentsModel> contents = new ArrayList<>();
-        List<SnapshotProvidedIdsRequestTableModel> tables = new ArrayList<>();
-        SnapshotProvidedIdsRequestTableModel snapshotRequestTableModel = new SnapshotProvidedIdsRequestTableModel()
+    // Generate a valid snapshot-by-rowId request, we will tweak individual pieces to test validation below
+    public SnapshotRequestModel makeSnapshotRowIdsRequest() {
+        SnapshotRequestRowIdTableModel snapshotRequestTableModel = new SnapshotRequestRowIdTableModel()
             .tableName("snapshot")
-            .columns(columns)
-            .rowIds(rowIds);
-        tables.add(snapshotRequestTableModel);
-        SnapshotProvidedIdsRequestContentsModel snapshotRequestContentsModel = new SnapshotProvidedIdsRequestContentsModel()
+            .columns(Arrays.asList("col1", "col2", "col3"))
+            .rowIds(Arrays.asList("row1", "row2", "row3"));
+
+        SnapshotRequestRowIdModel rowIdSpec = new SnapshotRequestRowIdModel()
+            .tables(Collections.singletonList(snapshotRequestTableModel));
+
+        SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
             .datasetName("dataset")
-            .tables(tables);
-        contents.add(snapshotRequestContentsModel);
-        SnapshotProvidedIdsRequestModel snapshotRequestModel = new SnapshotProvidedIdsRequestModel()
-            .contents(contents);
-        return snapshotRequestModel;
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYROWID)
+            .rowIdSpec(rowIdSpec);
+
+        return new SnapshotRequestModel()
+            .contents(Collections.singletonList(snapshotRequestContentsModel));
     }
 
 
     @Test
     public void testSnapshotNameInvalid() throws Exception {
-        snapshotRequest.name("no spaces");
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.name("no spaces");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequest.name("no-dashes");
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.name("no-dashes");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequest.name("");
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.name("");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        snapshotRequest.name(tooLong);
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.name(tooLong);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 
     @Test
@@ -144,106 +137,84 @@ public class SnapshotValidationTest {
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good, " +
                 "People = Good, People = Good, People = Good, People = Good, People = Good, People = Good";
-        snapshotRequest.description(tooLongDescription);
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.description(tooLongDescription);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequest.description(null);
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.description(null);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 
     @Test
     public void testSnapshotValuesListEmpty() throws Exception {
-        ArrayList empty = new ArrayList<String>();
-        SnapshotRequestSourceModel snapshotRequestSourceModel = new SnapshotRequestSourceModel()
-                .datasetName("dataset")
-                .assetName("asset");
+        SnapshotRequestAssetModel assetSpec = new SnapshotRequestAssetModel()
+            .assetName("asset")
+            .rootValues(Collections.emptyList());
+
         SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
-                .source(snapshotRequestSourceModel)
-                .rootValues(empty);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+            .datasetName("dataset")
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYASSET)
+            .assetSpec(assetSpec);
+
+        snapshotByAssetRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 
     @Test
     public void testSnapshotDatasetNameInvalid() throws Exception {
-        SnapshotRequestSourceModel snapshotRequestSourceModel = new SnapshotRequestSourceModel()
-                .datasetName("no spaces")
-                .assetName("asset");
-        SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
-                .source(snapshotRequestSourceModel)
-                .rootValues(Collections.singletonList("root"));
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        // snapshotByAssetRequest is assumed to be valid, we will just mess with the dataset name in the contents
+        SnapshotRequestContentsModel contents = snapshotByAssetRequest.getContents().get(0);
+        contents.setDatasetName("no spaces");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequestSourceModel.datasetName("no-dashes");
-        snapshotRequestContentsModel.source(snapshotRequestSourceModel);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        contents.setDatasetName("no-dashes");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequestSourceModel.datasetName("");
-        snapshotRequestContentsModel.source(snapshotRequestSourceModel);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        contents.setDatasetName("");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        snapshotRequestSourceModel.datasetName(tooLong);
-        snapshotRequestContentsModel.source(snapshotRequestSourceModel);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        contents.setDatasetName(tooLong);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 
 
     @Test
     public void testSnapshotAssetNameInvalid() throws Exception {
-        SnapshotRequestSourceModel snapshotRequestSourceModel = new SnapshotRequestSourceModel()
-                .datasetName("dataset")
-                .assetName("no spaces");
-        SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
-                .source(snapshotRequestSourceModel)
-                .rootValues(Collections.singletonList("root"));
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        SnapshotRequestAssetModel assetSpec = snapshotByAssetRequest.getContents().get(0).getAssetSpec();
+        assetSpec.setAssetName("no spaces");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequestSourceModel.assetName("no-dashes");
-        snapshotRequestContentsModel.source(snapshotRequestSourceModel);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        assetSpec.setAssetName("no-dashes");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
-        snapshotRequestSourceModel.assetName("");
-        snapshotRequestContentsModel.source(snapshotRequestSourceModel);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        assetSpec.setAssetName("");
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
-        snapshotRequestSourceModel.assetName(tooLong);
-        snapshotRequestContentsModel.source(snapshotRequestSourceModel);
-        snapshotRequest.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        assetSpec.setAssetName(tooLong);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 
     @Test
-    public void testSnapshotProvidedIdsMismatch() throws Exception {
-        // Test that missing columns and row ids do not succeed
-        ArrayList empty = new ArrayList<String>();
-        SnapshotProvidedIdsRequestTableModel snapshotProvidedIdsRequestTableModel = new SnapshotProvidedIdsRequestTableModel()
-            .tableName("table")
-            .columns(empty)
-            .rowIds(empty);
-        ArrayList tables = new ArrayList<SnapshotProvidedIdsRequestTableModel>();
-        tables.add(snapshotProvidedIdsRequestTableModel);
-        SnapshotProvidedIdsRequestContentsModel snapshotRequestContentsModel = new SnapshotProvidedIdsRequestContentsModel()
-            .datasetName("dataset")
-            .tables(tables);
-        snapshotProvidedIdsRequestModel.contents(Collections.singletonList(snapshotRequestContentsModel));
-        expectBadSPIdsCreateRequest(snapshotProvidedIdsRequestModel);
+    public void testSnapshotRowIdsEmptyColumns() throws Exception {
+        SnapshotRequestRowIdModel rowIdSpec = snapshotByRowIdsRequestModel.getContents().get(0).getRowIdSpec();
+        rowIdSpec.getTables().get(0).setColumns(Collections.emptyList());
+        expectBadSnapshotCreateRequest(snapshotByRowIdsRequestModel);
     }
 
     @Test
-    public void testDatasetNameMissing() throws Exception {
-        snapshotRequest.name(null);
-        expectBadSnapshotCreateRequest(snapshotRequest);
+    public void testSnapshotRowIdsEmptyRowIds() throws Exception {
+        SnapshotRequestRowIdModel rowIdSpec = snapshotByRowIdsRequestModel.getContents().get(0).getRowIdSpec();
+        rowIdSpec.getTables().get(0).setRowIds(Collections.emptyList());
+        expectBadSnapshotCreateRequest(snapshotByRowIdsRequestModel);
+    }
+
+    @Test
+    public void testSnapshotNameMissing() throws Exception {
+        snapshotByAssetRequest.name(null);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 
     @Test

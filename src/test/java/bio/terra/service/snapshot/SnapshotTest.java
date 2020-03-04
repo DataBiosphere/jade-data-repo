@@ -15,9 +15,10 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
-import bio.terra.model.SnapshotProvidedIdsRequestModel;
-import bio.terra.model.SnapshotProvidedIdsRequestTableModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.bigquery.BigQuery;
@@ -132,38 +133,48 @@ public class SnapshotTest extends UsersBase {
     }
 
     @Test
-    public void snapshotProvidedIdsHappyPathTest() throws Exception {
-        SnapshotProvidedIdsRequestModel requestModel =
-            jsonLoader.loadObject("ingest-test-snapshot-provided-ids-test.json", SnapshotProvidedIdsRequestModel.class);
-        // chqnge out rowids to fit with the ingested dataset
+    public void snapshotRowIdsHappyPathTest() throws Exception {
+        // fetch rowIds from the ingested dataset by querying the participant table
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
         String datasetProject = dataset.getDataProject();
-        String datasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
+        String bqDatasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
         String datasetTable = "participant";
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
         String sql = String.format("SELECT %s FROM `%s.%s.%s`",
             PdaoConstant.PDAO_ROW_ID_COLUMN,
             datasetProject,
-            datasetName,
+            bqDatasetName,
             datasetTable);
         TableResult ids = BigQueryFixtures.query(sql, bigQuery);
         List<String> idList = StreamSupport.stream(ids.getValues().spliterator(), false)
             .map(v -> v.get(0).getStringValue())
             .collect(Collectors.toList());
-        SnapshotProvidedIdsRequestTableModel table = new SnapshotProvidedIdsRequestTableModel()
+
+        // build a snapshot-by-rowId request
+        SnapshotRequestRowIdTableModel table = new SnapshotRequestRowIdTableModel()
             .rowIds(idList)
             .tableName(datasetTable);
-        List<SnapshotProvidedIdsRequestTableModel> tables = Collections.singletonList(table);
-        SnapshotProvidedIdsRequestContentsModel content = new SnapshotProvidedIdsRequestContentsModel().tables(tables);
-        requestModel.contents(Collections.singletonList(content));
+        List<SnapshotRequestRowIdTableModel> tables = Collections.singletonList(table);
+
+        SnapshotRequestRowIdModel rowIdSpec = new SnapshotRequestRowIdModel()
+            .tables(tables);
+
+        SnapshotRequestContentsModel contents = new SnapshotRequestContentsModel()
+            .datasetName(dataset.getName())
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYROWID)
+            .rowIdSpec(rowIdSpec);
+
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot-row-ids-test.json", SnapshotRequestModel.class);
+        requestModel.setContents(Collections.singletonList(contents));
 
         SnapshotSummaryModel snapshotSummary =
-            dataRepoFixtures.createSnapshotProvidedIds(steward(),
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
                 datasetSummaryModel,
                 requestModel);
         createdSnapshotIds.add(snapshotSummary.getId());
         TimeUnit.SECONDS.sleep(10);
 
-        // get the snapshot and make sure the number of rows matches with the row ids input
+        // TODO: get the snapshot and make sure the number of rows matches with the row ids input
     }
 }

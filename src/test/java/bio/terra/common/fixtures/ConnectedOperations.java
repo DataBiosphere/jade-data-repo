@@ -176,7 +176,7 @@ public class ConnectedOperations {
         snapshotRequest.setName(snapshotName);
 
         // TODO: the next two lines assume SingleDatasetSnapshot
-        snapshotRequest.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
+        snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
         snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
 
         MvcResult result = mvc.perform(post("/api/repository/v1/snapshots")

@@ -19,15 +19,15 @@ import org.springframework.http.HttpStatus;
 
 import java.util.List;
 
-public class CreateSnapshotWithProvidedIdsPrimaryDataStep implements Step {
+public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
     private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotWithProvidedIdsPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                                        SnapshotDao snapshotDao,
-                                                        SnapshotRequestModel snapshotReq) {
+    public CreateSnapshotPrimaryDataRowIdsStep(BigQueryPdao bigQueryPdao,
+                                               SnapshotDao snapshotDao,
+                                               SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
         this.snapshotReq = snapshotReq;

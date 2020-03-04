@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
@@ -18,7 +19,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.springframework.http.HttpStatus;
 
-public class CreateSnapshotPrimaryDataStep implements Step {
+public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
@@ -26,11 +27,11 @@ public class CreateSnapshotPrimaryDataStep implements Step {
     private DatasetService datasetService;
     private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotPrimaryDataStep(BigQueryPdao bigQueryPdao,
-                                         SnapshotDao snapshotDao,
-                                         FireStoreDependencyDao dependencyDao,
-                                         DatasetService datasetService,
-                                         SnapshotRequestModel snapshotReq) {
+    public CreateSnapshotPrimaryDataAssetStep(BigQueryPdao bigQueryPdao,
+                                              SnapshotDao snapshotDao,
+                                              FireStoreDependencyDao dependencyDao,
+                                              DatasetService datasetService,
+                                              SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
         this.dependencyDao = dependencyDao;
@@ -45,10 +46,11 @@ public class CreateSnapshotPrimaryDataStep implements Step {
          * then pass the row id array into create snapshot
          */
         SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
+        SnapshotRequestAssetModel assetSpec = contentsModel.getAssetSpec();
 
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         SnapshotSource source = snapshot.getSnapshotSources().get(0);
-        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(snapshot, source, contentsModel.getRootValues());
+        RowIdMatch rowIdMatch = bigQueryPdao.mapValuesToRows(snapshot, source, assetSpec.getRootValues());
         if (rowIdMatch.getUnmatchedInputValues().size() != 0) {
             String unmatchedValues = String.join("', '", rowIdMatch.getUnmatchedInputValues());
             String message = String.format("Mismatched input values: '%s'", unmatchedValues);

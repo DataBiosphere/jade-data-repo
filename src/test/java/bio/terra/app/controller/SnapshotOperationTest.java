@@ -15,8 +15,6 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotProvidedIdsRequestContentsModel;
-import bio.terra.model.SnapshotProvidedIdsRequestModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;

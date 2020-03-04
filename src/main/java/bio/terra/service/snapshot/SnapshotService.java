@@ -194,12 +194,10 @@ public class SnapshotService {
                 throw new InvalidSnapshotException("Snapshot does not have required mode information");
         }
 
-        snapshot.name(snapshotRequestModel.getName())
-                .description(snapshotRequestModel.getDescription())
-                .snapshotSources(Collections.singletonList(snapshotSource))
-                .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
-
-        return snapshot;
+        return snapshot.name(snapshotRequestModel.getName())
+            .description(snapshotRequestModel.getDescription())
+            .snapshotSources(Collections.singletonList(snapshotSource))
+            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
     }
 
     public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
@@ -274,47 +272,46 @@ public class SnapshotService {
                                                 SnapshotSource snapshotSource) {
         // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
         List<SnapshotTable> tableList = new ArrayList<>();
+        snapshot.snapshotTables(tableList);
         List<SnapshotMapTable> mapTableList = new ArrayList<>();
+        snapshotSource.snapshotMapTables(mapTableList);
         Dataset dataset = snapshotSource.getDataset();
-        Map<String, SnapshotRequestRowIdTableModel> requestTableLookup =
-            requestRowIdModel.getTables()
+
+        // create a lookup from tableName -> table spec from the request
+        Map<String, SnapshotRequestRowIdTableModel> requestTableLookup = requestRowIdModel.getTables()
                 .stream()
                 .collect(Collectors.toMap(SnapshotRequestRowIdTableModel::getTableName, Function.identity()));
-        for (DatasetTable datasetTable : dataset.getTables()) {
 
+        // for each dataset table specified in the request, create a table in the snapshot with the same name
+        for (DatasetTable datasetTable : dataset.getTables()) {
             if (!requestTableLookup.containsKey(datasetTable.getName())) {
                 continue; // only capture the dataset tables in the request model
             }
-            SnapshotTable snapshotTable = new SnapshotTable();
             List<Column> columnList = new ArrayList<>();
-            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
-
-            Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
-
-
-            for (Column datasetColumn : datasetTable.getColumns()) {
-                if (!requestColumns.contains(datasetColumn.getName())) {
-                    continue; // only capture the dataset columns in the request model
-                }
-                // the mapped snapshot column will have the same name as the dataset column
-                Column snapshotColumn = new Column().name(datasetColumn.getName());
-                columnList.add(snapshotColumn);
-                mapColumnList.add(new SnapshotMapColumn()
-                    .fromColumn(datasetColumn)
-                    .toColumn(snapshotColumn));
-            }
-
-            snapshotTable
+            SnapshotTable snapshotTable = new SnapshotTable()
                 .name(datasetTable.getName())
                 .columns(columnList);
             tableList.add(snapshotTable);
+            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
             mapTableList.add(new SnapshotMapTable()
                 .fromTable(datasetTable)
                 .toTable(snapshotTable)
                 .snapshotMapColumns(mapColumnList));
+
+            // for each dataset column specified in the request, create a column in the snapshot with the same name
+            Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
+            datasetTable.getColumns()
+                .stream()
+                .filter(c -> requestColumns.contains(c.getName()))
+                .forEach(datasetColumn -> {
+                    Column snapshotColumn = new Column().name(datasetColumn.getName());
+                    SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
+                        .fromColumn(datasetColumn)
+                        .toColumn(snapshotColumn);
+                    columnList.add(snapshotColumn);
+                    mapColumnList.add(snapshotMapColumn);
+                });
         }
-        snapshotSource.snapshotMapTables(mapTableList);
-        snapshot.snapshotTables(tableList);
     }
 
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {

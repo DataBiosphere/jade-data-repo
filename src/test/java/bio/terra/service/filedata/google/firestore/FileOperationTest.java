@@ -247,25 +247,16 @@ public class FileOperationTest {
     // TESTS TO WRITE
     // - two multi file loads in parallel - success case
     // - set max to allow all to fail?
-    // - exceed number of files in array load
     // - exceed max failures (after DR-643 fix)
 
     // -- array bulk load --
 
     @Test
     public void arrayMultiFileLoadSuccessTest() throws Exception {
-        String testId = Names.randomizeName("test");
-        String loadTag = "arrayMultiFileLoadSuccessTest" + testId;
-        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
-            .profileId(profileModel.getId())
-            .loadTag(loadTag)
-            .maxFailedFileLoads(0);
-        for (int index = 0; index < 3; index++) {
-            arrayLoad.addLoadArrayItem(getFileModel(true, index, testId));
-        }
+        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, 3);
 
         BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
-        checkLoadSummary(result.getLoadSummary(), loadTag, 3, 3, 0, 0);
+        checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), 3, 3, 0, 0);
 
         Map<String, String> fileIdMap = new HashMap<>();
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
@@ -275,11 +266,42 @@ public class FileOperationTest {
 
         // retry successful load to make sure it still succeeds and does nothing
         BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
-        checkLoadSummary(result2.getLoadSummary(), loadTag, 3, 3, 0, 0);
+        checkLoadSummary(result2.getLoadSummary(), arrayLoad.getLoadTag(), 3, 3, 0, 0);
 
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
             assertThat("FileId matches", fileResult.getFileId(), equalTo(fileIdMap.get(fileResult.getTargetPath())));
+        }
+    }
+
+    @Test
+    public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
+        BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 0, 3);
+        BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 3, 3);
+        String loadTag1 = arrayLoad1.getLoadTag();
+        String loadTag2 = arrayLoad2.getLoadTag();
+        String datasetId = datasetSummary.getId();
+
+        MvcResult result1 = connectedOperations.ingestArrayRaw(datasetId, arrayLoad1);
+        MvcResult result2 = connectedOperations.ingestArrayRaw(datasetId, arrayLoad2);
+
+        MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
+
+        BulkLoadArrayResultModel resultModel1 =
+            connectedOperations.handleAsyncSuccessCase(response1, BulkLoadArrayResultModel.class);
+
+        BulkLoadArrayResultModel resultModel2 =
+            connectedOperations.handleAsyncSuccessCase(response2, BulkLoadArrayResultModel.class);
+
+        checkLoadSummary(resultModel1.getLoadSummary(), loadTag1, 3, 3, 0, 0);
+        checkLoadSummary(resultModel2.getLoadSummary(), loadTag2, 3, 3, 0, 0);
+
+        for (BulkLoadFileResultModel fileResult : resultModel1.getLoadFileResults()) {
+            checkFileResultSuccess(fileResult);
+        }
+        for (BulkLoadFileResultModel fileResult : resultModel2.getLoadFileResults()) {
+            checkFileResultSuccess(fileResult);
         }
     }
 
@@ -365,6 +387,18 @@ public class FileOperationTest {
         assertThat("correct notTried files", summary.getNotTriedFiles(), equalTo(notTried));
     }
 
+    private BulkLoadArrayRequestModel makeSuccessArrayLoad(String tagBase, int startIndex, int fileCount) {
+        String testId = Names.randomizeName("test");
+        String loadTag = tagBase + testId;
+        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
+            .profileId(profileModel.getId())
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0);
+        for (int index = startIndex; index < startIndex + fileCount; index++) {
+            arrayLoad.addLoadArrayItem(getFileModel(true, index, testId));
+        }
+        return arrayLoad;
+    }
 
     // We have a static array of good paths and bad paths with their associated
     // target. That lets us build arrays with various numbers of failures and

@@ -111,7 +111,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final String liveViewTemplate =
         "SELECT R.* FROM `<project>.<dataset>.<rawTable>` R " +
             "LEFT OUTER JOIN `<project>.<dataset>.<sdTable>` S USING (" + PDAO_ROW_ID_COLUMN + ") " +
-            "WHERE D." + PDAO_ROW_ID_COLUMN + " IS NULL";
+            "WHERE S." + PDAO_ROW_ID_COLUMN + " IS NULL";
 
     private TableInfo buildLiveView(String bigQueryProject, String datasetName, DatasetTable table) {
         ST liveViewSql = new ST(liveViewTemplate);
@@ -410,14 +410,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "SELECT <columns; separator=\",\"> FROM `<project>.<dataset>.<stagingTable>`";
 
     public void insertIntoDatasetTable(Dataset dataset,
-                                     Table targetTable,
+                                     DatasetTable targetTable,
                                      String stagingTableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
 
         ST sqlTemplate = new ST(insertIntoDatasetTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("targetTable", targetTable.getName());
+        sqlTemplate.add("targetTable", targetTable.getRawTableName());
         sqlTemplate.add("stagingTable", stagingTableName);
         sqlTemplate.add("columns", PDAO_ROW_ID_COLUMN);
         targetTable.getColumns().forEach(column -> sqlTemplate.add("columns", column.getName()));

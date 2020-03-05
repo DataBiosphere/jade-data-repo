@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Table;
 import bio.terra.common.Column;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;

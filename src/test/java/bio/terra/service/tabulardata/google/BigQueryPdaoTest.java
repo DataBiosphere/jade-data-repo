@@ -22,8 +22,6 @@ import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.FieldValue;
-import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableId;

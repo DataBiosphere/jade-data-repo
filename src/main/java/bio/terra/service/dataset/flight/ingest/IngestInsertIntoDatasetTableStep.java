@@ -1,7 +1,6 @@
 package bio.terra.service.dataset.flight.ingest;
 
 import bio.terra.service.dataset.Dataset;
-import bio.terra.common.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.common.PdaoLoadStatistics;

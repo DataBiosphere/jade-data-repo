@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.common.Table;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;

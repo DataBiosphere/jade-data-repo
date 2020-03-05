@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.common.Table;
 
 import java.time.Instant;
 import java.util.Collections;

@@ -328,7 +328,8 @@ public class ConnectedOperations {
         return fileModel;
     }
 
-    public BulkLoadArrayResultModel ingestArraySuccess(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
+    public BulkLoadArrayResultModel ingestArraySuccess(String datasetId,
+                                                       BulkLoadArrayRequestModel loadModel) throws Exception {
         MvcResult result = ingestArrayRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleAsyncSuccessCase(response, BulkLoadArrayResultModel.class);

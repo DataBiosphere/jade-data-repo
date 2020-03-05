@@ -246,7 +246,7 @@ public class LoadDao {
                         result.getSucceededFiles());
                 }
                 return result;
-        });
+            });
     }
 
     public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {

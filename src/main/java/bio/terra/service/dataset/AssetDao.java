@@ -89,7 +89,7 @@ public class AssetDao {
 
     // also retrieves dependent objects
     public List<AssetSpecification> retrieveAssetSpecifications(Dataset dataset) {
-        Map<UUID, Table> allTables = dataset.getTablesById();
+        Map<UUID, DatasetTable> allTables = dataset.getTablesById();
         Map<UUID, Column> allColumns = dataset.getAllColumnsById();
         Map<UUID, DatasetRelationship> allRelationships = dataset.getRelationshipsById();
 
@@ -119,7 +119,7 @@ public class AssetDao {
     private Collection<AssetTable> retrieveAssetTablesAndColumns(AssetSpecification spec,
                                                                  UUID rootTableId,
                                                                  UUID rootColumnId,
-                                                                 Map<UUID, Table> allTables,
+                                                                 Map<UUID, DatasetTable> allTables,
                                                                  Map<UUID, Column> allColumns) {
         Map<UUID, AssetTable> tables = new HashMap<>();
         String sql = "SELECT asset_column.id, asset_column.dataset_column_id, dataset_column.table_id " +

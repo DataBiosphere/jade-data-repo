@@ -72,8 +72,8 @@ public class Snapshot implements FSContainerInterface {
         return this;
     }
 
-    public Optional<Table> getTableById(UUID id) {
-        for (Table tryTable : getTables()) {
+    public Optional<SnapshotTable> getTableById(UUID id) {
+        for (SnapshotTable tryTable : getTables()) {
             if (tryTable.getId().equals(id)) {
                 return Optional.of(tryTable);
             }

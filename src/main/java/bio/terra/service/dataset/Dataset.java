@@ -79,8 +79,8 @@ public class Dataset implements FSContainerInterface {
         return columns;
     }
 
-    public Map<UUID, Table> getTablesById() {
-        Map<UUID, Table> tables = new HashMap<>();
+    public Map<UUID, DatasetTable> getTablesById() {
+        Map<UUID, DatasetTable> tables = new HashMap<>();
         getTables().forEach(table -> tables.put(table.getId(), table));
         return tables;
     }

@@ -734,7 +734,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             sqlTemplate.add("project", projectId);
             sqlTemplate.add("dataset", datasetBqDatasetName);
             sqlTemplate.add("snapshot", snapshotName);
-            sqlTemplate.add("mapTable", mapTable.getFromTable().getName());
+            sqlTemplate.add("mapTable", mapTable.getFromTable().getRawTableName());
             sqlTemplate.add("tableId", mapTable.getFromTable().getId().toString());
             table.getColumns().forEach(c -> {
                 sqlTemplate.add("columns", c.getName());

@@ -67,7 +67,12 @@ public class SnapshotDaoTest {
         datasetRequest
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
-        datasetId = datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+        dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
+        dataset.getTables().forEach(t -> {
+            t.softDeleteTableName(t.getName() + "_sd");
+            t.rawTableName(t.getName() + "_raw");
+        });
+        datasetId = datasetDao.create(dataset);
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)

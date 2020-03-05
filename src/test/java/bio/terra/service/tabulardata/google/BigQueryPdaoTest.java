@@ -13,12 +13,12 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.flight.create.CreateDatasetMetadataStep;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
-import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -40,12 +40,10 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -88,7 +86,8 @@ public class BigQueryPdaoTest {
         datasetRequest
             .defaultProfileId(profileModel.getId())
             .name(datasetName());
-        dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
+        dataset = CreateDatasetMetadataStep.setUtilityTableNames(
+            DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
         UUID datasetId = datasetDao.create(dataset);
         dataLocationService.getOrCreateProject(dataset);
         logger.info("Created dataset in setup: {}", datasetId);
@@ -104,6 +103,11 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
+    private DatasetTable getTable(String name) {
+        return dataset.getTableByName(name)
+            .orElseThrow(() -> new IllegalStateException("Expected table " + name + " not found!"));
+    }
+
     private void assertThatDatasetAndTablesShouldExist(boolean shouldExist) {
         boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
         assertThat(
@@ -111,108 +115,19 @@ public class BigQueryPdaoTest {
             datasetExists,
             equalTo(shouldExist));
 
-        boolean participantTableExists = bigQueryPdao.tableExists(dataset, "participant");
-        assertThat(
-            String.format("Table: %s.participant, exists", dataset.getName()),
-            participantTableExists,
-            equalTo(shouldExist));
-        String participantSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("participant");
-        boolean participantSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, participantSoftDeleteTableName);
-        assertThat(
-            String.format("Table: %s.%s, exists", dataset.getName(), participantSoftDeleteTableName),
-            participantSoftDeleteTableExists,
-            equalTo(shouldExist));
-
-        boolean sampleTableExists =  bigQueryPdao.tableExists(dataset, "sample");
-        assertThat(
-            String.format("Table: %s.sample, exists", dataset.getName()),
-            sampleTableExists,
-            equalTo(shouldExist));
-        String sampleSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("sample");
-        boolean sampleSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, sampleSoftDeleteTableName);
-        assertThat(
-            String.format("Table: %s.%s, exists", dataset.getName(), sampleSoftDeleteTableName),
-            sampleSoftDeleteTableExists,
-            equalTo(shouldExist));
-
-        boolean fileTableExists =  bigQueryPdao.tableExists(dataset, "file");
-        assertThat(
-            String.format("Table: %s.file, exists", dataset.getName()),
-            fileTableExists,
-            equalTo(shouldExist));
-        String fileSoftDeleteTableName =  bigQueryPdao.prefixSoftDeleteTableName("file");
-        boolean fileSoftDeleteTableExists =  bigQueryPdao.tableExists(dataset, fileSoftDeleteTableName);
-        assertThat(
-            String.format("Table: %s.%s, exists", dataset.getName(), fileSoftDeleteTableName),
-            fileSoftDeleteTableExists,
-            equalTo(shouldExist));
-    }
-
-    private List<String> getSoftDeletedRowIds(Dataset dataset,
-                                           String tableName,
-                                           String projectId,
-                                           BigQueryProject bigQueryProject) {
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(projectId)
-            .append(".")
-            .append(bigQueryPdao.prefixName(dataset.getName()))
-            .append(".")
-            .append(bigQueryPdao.prefixSoftDeleteTableName(tableName))
-            .append("`");
-
-        String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
-
-        List<String> rowIds = new ArrayList<>();
-        for (FieldValueList row : result.iterateAll()) {
-            String rowId = row.get(0).getStringValue();
-            rowIds.add(rowId);
-        }
-
-        return rowIds;
-    }
-
-    private List<String> getRowIds(Dataset dataset,
-                                   String tableName,
-                                   String projectId,
-                                   BigQueryProject bigQueryProject) {
-        StringBuilder builder = new StringBuilder();
-        builder.append("SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(projectId)
-            .append(".")
-            .append(bigQueryPdao.prefixName(dataset.getName()))
-            .append(".")
-            .append(tableName)
-            .append("` EXCEPT DISTINCT (SELECT ")
-            .append(PDAO_ROW_ID_COLUMN)
-            .append(" FROM `")
-            .append(projectId)
-            .append(".")
-            .append(bigQueryPdao.prefixName(dataset.getName()))
-            .append(".")
-            .append(bigQueryPdao.prefixSoftDeleteTableName(tableName))
-            .append("`)");
-
-        String sql = builder.toString();
-        TableResult result = bigQueryProject.query(sql);
-
-        List<String> rowIds = new ArrayList<>();
-        for (FieldValueList row : result.iterateAll()) {
-            String rowId = row.get(0).getStringValue();
-            rowIds.add(rowId);
-        }
-
-        return rowIds;
+        Arrays.asList("participant", "sample", "file").forEach(name -> {
+            DatasetTable table = getTable(name);
+            Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName()).forEach(t -> {
+                assertThat(
+                    "Table: " + dataset.getName() + "." + t + ", exists",
+                    bigQueryPdao.tableExists(dataset, t),
+                    equalTo(shouldExist));
+            });
+        });
     }
 
     @Test
-    public void basicTest() throws Exception {
+    public void basicTest() {
         assertThatDatasetAndTablesShouldExist(false);
 
         bigQueryPdao.createDataset(dataset);

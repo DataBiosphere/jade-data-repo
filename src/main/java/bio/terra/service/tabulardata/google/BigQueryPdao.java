@@ -85,6 +85,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     @Override
     public void createDataset(Dataset dataset) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         // Keep the dataset name from colliding with a snapshot name by prefixing it.
         // TODO: validate against people using the prefix for snapshots
@@ -98,16 +99,29 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
             for (DatasetTable table : dataset.getTables()) {
-                Schema schema = buildSchema(table, true);
-                bigQueryProject.createTable(datasetName, table.getName(), schema);
-                bigQueryProject.createTable(
-                    datasetName,
-                    prefixSoftDeleteTableName(table.getName()),
-                    buildSoftDeletesSchema());
+                bigQueryProject.createTable(datasetName, table.getRawTableName(), buildSchema(table, true));
+                bigQueryProject.createTable(datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+                bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
         } catch (Exception ex) {
             throw new PdaoException("create dataset failed for " + datasetName, ex);
         }
+    }
+
+    private static final String liveViewTemplate =
+        "SELECT R.* FROM `<project>.<dataset>.<rawTable>` R " +
+            "LEFT OUTER JOIN `<project>.<dataset>.<sdTable>` S USING (" + PDAO_ROW_ID_COLUMN + ") " +
+            "WHERE D." + PDAO_ROW_ID_COLUMN + " IS NULL";
+
+    private TableInfo buildLiveView(String bigQueryProject, String datasetName, DatasetTable table) {
+        ST liveViewSql = new ST(liveViewTemplate);
+        liveViewSql.add("project", bigQueryProject);
+        liveViewSql.add("dataset", datasetName);
+        liveViewSql.add("rawTable", table.getRawTableName());
+        liveViewSql.add("sdTable", table.getSoftDeleteTableName());
+
+        TableId liveViewId = TableId.of(datasetName, table.getName());
+        return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
     }
 
     @Override
@@ -178,8 +192,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
             "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
             "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
-            "SELECT row_id FROM UNNEST([<rowIds:{id|'<id>'}; separator=\",\">]) AS row_id " +
-            "EXCEPT DISTINCT (SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<softDelTable>`)" +
+            "SELECT row_id FROM UNNEST([<rowIds:{id|'<id>'}; separator=\",\">]) AS row_id" +
             ") AS T";
 
     private static final String validateRowIdsForRootTemplate =
@@ -219,7 +232,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 sqlTemplate.add("dataset", datasetBqDatasetName);
                 sqlTemplate.add("tableId", rootTableId);
                 sqlTemplate.add("rowIds", rowIds);
-                sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(rootTable.getName()));
                 bigQueryProject.query(sqlTemplate.render());
             }
 
@@ -447,8 +459,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public boolean deleteDatasetTable(Dataset dataset, String tableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName) &&
-            bigQueryProject.deleteTable(prefixName(dataset.getName()), prefixSoftDeleteTableName(tableName));
+        return bigQueryProject.deleteTable(prefixName(dataset.getName()), tableName);
     }
 
     private static final String getRefIdsTemplate =
@@ -515,10 +526,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public String prefixName(String name) {
         return PDAO_PREFIX + name;
-    }
-
-    public String prefixSoftDeleteTableName(String tableName) {
-        return PDAO_PREFIX + "sd_" + tableName;
     }
 
     private Schema buildSoftDeletesSchema() {
@@ -602,12 +609,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             relationship.setVisited();
-            storeRowIdsForRelatedTable(datasetBqDatasetName,
+            storeRowIdsForRelatedTable(
+                datasetBqDatasetName,
                 snapshotName,
                 relationship,
                 projectId,
-                bigQuery,
-                prefixSoftDeleteTableName(relationship.getToTableName()));
+                bigQuery);
             walkRelationships(
                 datasetBqDatasetName,
                 snapshotName,
@@ -626,9 +633,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "`<project>.<dataset>.<fromTableName>` F, `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` R " +
             "WHERE R." + PDAO_TABLE_ID_COLUMN + " = '<fromTableId>' AND " +
             "R." + PDAO_ROW_ID_COLUMN + " = F." + PDAO_ROW_ID_COLUMN + " AND <joinClause>) " +
-            "SELECT " + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + " FROM merged_table " +
-            "WHERE " + PDAO_ROW_ID_COLUMN + " NOT IN " +
-            "(SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<softDelTable>`)";
+            "SELECT " + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + " FROM merged_table";
 
     private static final String matchNonArrayTemplate =
         "T.<toColumn> = F.<fromColumn>";
@@ -661,8 +666,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                                             String snapshotName,
                                             WalkRelationship relationship,
                                             String projectId,
-                                            BigQuery bigQuery,
-                                            String softDeletesTableName) {
+                                            BigQuery bigQuery) {
 
         ST joinClauseTemplate;
         if (relationship.getFromColumnIsArray() && relationship.getToColumnIsArray()) {
@@ -685,7 +689,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         sqlTemplate.add("fromTableName", relationship.getFromTableName());
         sqlTemplate.add("toTableId", relationship.getToTableId());
         sqlTemplate.add("toTableName", relationship.getToTableName());
-        sqlTemplate.add("softDelTable", softDeletesTableName);
         sqlTemplate.add("joinClause", joinClauseTemplate.render());
 
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render())

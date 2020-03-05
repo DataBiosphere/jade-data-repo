@@ -109,7 +109,7 @@ configurations.all {
 dependencies {
     // TODO: Unpack the "starter" and include just what we use
     compile 'ch.qos.logback:logback-classic:1.2.3'       // Logger
-    compile 'com.google.apis:google-api-services-cloudbilling:v1-rev20190805-1.30.1'
+    compile 'com.google.apis:google-api-services-cloudbilling:v1-rev20200106-1.30.3'
     compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.91.0'
@@ -123,9 +123,11 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-    compile "org.springframework.boot:spring-boot-starter-web"
+    compile "org.springframework.boot:spring-boot-starter-web:2.2.4.RELEASE"
+
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
+    compile 'org.antlr:ST4:4.3'                          // String templating
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
@@ -228,11 +230,19 @@ jar {
     from sourceSets.generated.output
 }
 
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 jib {
     extraDirectories.paths = ['build/gen-expanded']
     to {
-        image = "gcr.io/broad-jade-dev/jade-data-repo"
-        tags = [(System.env.GCR_TAG ?: "latest")]
+        image = "gcr.io/broad-jade-dev/jade-data-repo:"+(System.env.GCR_TAG ?: getGitHash())
     }
 }
 // jib expects all classes to be under app/classes in the resulting image. this, combined with the extraDirectories
@@ -260,15 +270,6 @@ liquibase {
             logLevel 'debug'
         }
     }
-}
-
-def getGitHash = { ->
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'rev-parse', '--short', 'HEAD'
-        standardOutput = stdout
-    }
-    return stdout.toString().trim()
 }
 
 

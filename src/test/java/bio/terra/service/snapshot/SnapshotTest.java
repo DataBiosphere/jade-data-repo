@@ -62,10 +62,10 @@ public class SnapshotTest extends UsersBase {
             steward(), datasetId, IamRole.CUSTODIAN, custodian().getEmail());
 
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "participant", "ingest-test/ingest-test-participant.json", IngestRequestModel.StrategyEnum.APPEND);
+            "participant", "ingest-test/ingest-test-participant.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
         request = dataRepoFixtures.buildSimpleIngest(
-            "sample", "ingest-test/ingest-test-sample.json", IngestRequestModel.StrategyEnum.APPEND);
+            "sample", "ingest-test/ingest-test-sample.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
     }
 

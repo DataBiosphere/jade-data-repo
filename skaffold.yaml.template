@@ -1,0 +1,35 @@
+apiVersion: skaffold/v2alpha2
+kind: Config
+build:
+  tagPolicy:
+    gitCommit:
+      variant: AbbrevCommitSha
+  artifacts:
+  - image: gcr.io/broad-jade-dev/jade-data-repo
+    jib:
+      args:
+      - jib
+      type: gradle
+deploy:
+  helm:
+    flags:
+      upgrade:
+        - --install
+        - --debug
+    releases:
+    - name: TEMP-secrets
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.4/create-secret-manager-secret-0.0.4.tgz
+      version: 0.0.4
+      namespace: TEMP
+      remote: true
+      valuesFiles:
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPSecrets.yaml
+    - name: TEMP-jade
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.0.6/datarepo-0.0.6.tgz
+      version: 0.0.6
+      namespace: TEMP
+      remote: true
+      values:
+        datarepo-api.imageName: gcr.io/broad-jade-dev/jade-data-repo
+      valuesFiles:
+      - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPDeployment.yaml

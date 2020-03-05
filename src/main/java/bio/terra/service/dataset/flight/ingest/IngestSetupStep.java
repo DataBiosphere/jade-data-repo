@@ -1,22 +1,16 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.common.Column;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.Table;
-import bio.terra.service.dataset.exception.InvalidIngestStrategyException;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.tabulardata.google.BigQueryProject;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import com.google.cloud.bigquery.Schema;
 import liquibase.util.StringUtils;
 
-import java.util.List;
 
 /**
  * The setup step required to generate the staging file name.
@@ -40,11 +34,9 @@ import java.util.List;
  */
 public class IngestSetupStep implements Step {
     private DatasetService datasetService;
-    private BigQueryPdao bigQueryPdao;
 
-    public IngestSetupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+    public IngestSetupStep(DatasetService datasetService) {
         this.datasetService = datasetService;
-        this.bigQueryPdao = bigQueryPdao;
     }
 
     @Override
@@ -61,30 +53,6 @@ public class IngestSetupStep implements Step {
         String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
         String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
         IngestUtils.putStagingTableName(context, sgName);
-
-        IngestRequestModel.StrategyEnum ingestStrategy = ingestRequestModel.getStrategy();
-
-        if (ingestStrategy == IngestRequestModel.StrategyEnum.UPSERT) {
-            List<Column> primaryKey = dataset
-                .getTableByName(targetTable.getName()).orElseThrow(IllegalStateException::new)
-                .getPrimaryKey();
-            if (primaryKey.size() < 1) {
-                throw new InvalidIngestStrategyException(
-                    "Cannot use ingestStrategy `upsert` on table with no primary key: " + targetTable.getName());
-            }
-
-            Schema overlappingTableSchema = bigQueryPdao.buildOverlappingTableSchema();
-            BigQueryProject bigQueryProject = bigQueryPdao.bigQueryProjectForDataset(dataset);
-
-            String olName = FlightUtils.randomizeNameInfix(baseName, "_ol_");
-
-            IngestUtils.putOverlappingTableName(context, olName);
-            String overlappingTableName = IngestUtils.getOverlappingTableName(context);
-
-            bigQueryProject.createTable(bigQueryPdao.prefixName(dataset.getName()),
-                overlappingTableName,
-                overlappingTableSchema);
-        }
 
         return StepResult.getStepResultSuccess();
     }

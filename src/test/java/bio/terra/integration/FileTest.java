@@ -146,8 +146,7 @@ public class FileTest extends UsersBase {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
 
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", targetPath, IngestRequestModel.StrategyEnum.APPEND);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
             steward(), datasetId, request);
 

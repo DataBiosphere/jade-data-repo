@@ -1,12 +1,14 @@
 package bio.terra.service.iam;
 
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Optional;
 
+@Primary
 @Profile({"terra", "dev", "integration"})
 @Component
 public class ProxiedAuthenticatedUserRequestFactory implements AuthenticatedUserRequestFactory {

@@ -1,5 +1,6 @@
 package bio.terra.service.tabulardata.google;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Connected;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.service.dataset.DatasetDao;
@@ -9,6 +10,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
@@ -19,6 +21,13 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.FieldValue;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.JobInfo;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableId;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -39,11 +48,17 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.stringtemplate.v4.ST;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -203,12 +218,59 @@ public class BigQueryPdaoTest {
                 connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-            // TODO: Assert that the snapshot contains the rows we expect.
-            // Skipping that for now because there's no REST API to query table contents.
+            BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(dataset.getName());
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
+            List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
+            List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
+            List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+
+            System.err.println(participantIds.toString());
+            System.err.println(sampleIds.toString());
+            System.err.println(fileIds.toString());
+
+            Assert.assertThat(participantIds, containsInAnyOrder(
+                "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
+            Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+            Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+
+            // Simulate soft-deleting some rows.
+            // TODO: Replace this with a call to the soft-delete API once it exists?
+            softDeleteRows(bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable("participant"),
+                Arrays.asList("participant_3", "participant_4"));
+            softDeleteRows(
+                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable("sample"),
+                Collections.singletonList("sample5"));
+            softDeleteRows(
+                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable("file"),
+                Collections.singletonList("file1"));
+
+            // Create another snapshot.
+            snapshotResponse = connectedOperations.launchCreateSnapshot(
+                datasetSummaryModel, "ingest-test-snapshot.json", "");
+            snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
+            SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
+            Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
+
+            participantIds = queryForIds(snapshot2.getName(), "participant", bigQueryProject);
+            sampleIds = queryForIds(snapshot2.getName(), "sample", bigQueryProject);
+            fileIds = queryForIds(snapshot2.getName(), "file", bigQueryProject);
+            Assert.assertThat(participantIds, containsInAnyOrder(
+                "participant_1", "participant_2", "participant_5"));
+            Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2"));
+            Assert.assertThat(fileIds, is(empty()));
+
+            // Make sure the old snapshot wasn't changed.
+            participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
+            sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
+            fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+            Assert.assertThat(participantIds, containsInAnyOrder(
+                "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
+            Assert.assertThat(sampleIds, containsInAnyOrder("sample1", "sample2", "sample5"));
+            Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
+            bigQueryPdao.deleteDataset(dataset);
         }
     }
 
@@ -218,5 +280,59 @@ public class BigQueryPdaoTest {
 
     private String gsPath(BlobInfo blob) {
         return "gs://" + blob.getBucket() + "/" + blob.getName();
+    }
+
+    private static final String queryAllRowIdsTemplate =
+        "SELECT " + PdaoConstant.PDAO_ROW_ID_COLUMN + " FROM `<project>.<dataset>.<table>` " +
+        "WHERE id IN UNNEST([<ids:{id|'<id>'}; separator=\",\">])";
+
+    private void softDeleteRows(BigQueryProject bq,
+                                String datasetName,
+                                DatasetTable table,
+                                List<String> ids) throws Exception {
+
+        ST sqlTemplate = new ST(queryAllRowIdsTemplate);
+        sqlTemplate.add("project", bq.getProjectId());
+        sqlTemplate.add("dataset", datasetName);
+        sqlTemplate.add("table", table.getRawTableName());
+        sqlTemplate.add("ids", ids);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render())
+            .setDestinationTable(TableId.of(datasetName, table.getSoftDeleteTableName()))
+            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .build();
+
+        bq.getBigQuery().query(queryConfig);
+    }
+
+    private BigQueryProject bigQueryProjectForDatasetName(String datasetName) {
+        Dataset dataset = datasetDao.retrieveByName(datasetName);
+        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
+        return BigQueryProject.get(dataProject.getGoogleProjectId());
+    }
+
+    private static final String queryForIdsTemplate =
+        "SELECT id FROM `<project>.<snapshot>.<table>` ORDER BY id";
+
+    // Get the count of rows in a table or view
+    private List<String> queryForIds(
+        String snapshotName,
+        String tableName,
+        BigQueryProject bigQueryProject) throws Exception {
+        String bigQueryProjectId = bigQueryProject.getProjectId();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        ST sqlTemplate = new ST(queryForIdsTemplate);
+        sqlTemplate.add("project", bigQueryProjectId);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("table", tableName);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        TableResult result = bigQuery.query(queryConfig);
+
+        ArrayList<String> ids = new ArrayList<>();
+        result.iterateAll().forEach(r -> ids.add(r.get("id").getStringValue()));
+
+        return ids;
     }
 }

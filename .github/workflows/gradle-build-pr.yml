@@ -119,7 +119,9 @@ jobs:
       - name: "Post test cleanup"
         if: always()
         run: |
-          # restore the original list of authorized IPs
-          gcloud container clusters update ${CLUSTER_NAME} \
-            --enable-master-authorized-networks \
-            --master-authorized-networks ${RESTORE_IPS}
+          # restore the original list of authorized IPs if they exist
+          if [ ! -z "${RESTORE_IPS}"]; then
+            gcloud container clusters update ${CLUSTER_NAME} \
+              --enable-master-authorized-networks \
+              --master-authorized-networks ${RESTORE_IPS}
+          fi

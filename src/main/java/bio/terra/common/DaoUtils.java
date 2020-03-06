@@ -1,6 +1,8 @@
 package bio.terra.common;
 
 import org.apache.commons.lang3.StringUtils;
+import org.postgresql.util.PSQLException;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 
 import java.sql.Array;
@@ -76,5 +78,31 @@ public final class DaoUtils {
             return null;
         }
         return Arrays.asList((String[]) sqlArray.getArray());
+    }
+
+    /**
+     * Check if the JDBC exception is due to a particular constraint violation.
+     *
+     * Note that the SQL code for this is hard-coded here because it's not currently included in the PSQLState enum:
+     * https://github.com/pgjdbc/pgjdbc/blob/master/pgjdbc/src/main/java/org/postgresql/util/PSQLState.java
+     * The full list of codes is on the web here: https://www.postgresql.org/docs/9.2/errcodes-appendix.html
+     * There is an enhancement request pending to update their enum class to include all the codes:
+     * https://github.com/pgjdbc/pgjdbc/issues/534
+     *
+     * @param daEx the exception to check
+     * @param constraintName the name of the database constraint
+     */
+    private static int PSQL_STATE_UNIQUE_VIOLATION = 23505;
+    public static boolean isUniqueViolationException(DataAccessException daEx, String constraintName) {
+        try {
+            // DataAccessException is the Spring wrapper exception for JDBC exceptions
+            PSQLException psqlEx = (PSQLException) daEx.getRootCause();
+
+            return (psqlEx != null
+                && psqlEx.getSQLState().equals(Integer.toString(PSQL_STATE_UNIQUE_VIOLATION))
+                && psqlEx.getServerErrorMessage().getConstraint().equals(constraintName));
+        } catch (Exception ex) {
+            return false;
+        }
     }
 }

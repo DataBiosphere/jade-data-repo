@@ -516,7 +516,7 @@ public class SnapshotOperationTest {
         }
     }
 
-    private static final String queryForCountTemlate =
+    private static final String queryForCountTemplate =
         "SELECT COUNT(*) FROM `<project>.<snapshot>.<table>`";
 
     // Get the count of rows in a table or view
@@ -527,7 +527,7 @@ public class SnapshotOperationTest {
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
-        ST sqlTemplate = new ST(queryForCountTemlate);
+        ST sqlTemplate = new ST(queryForCountTemplate);
         sqlTemplate.add("project", bigQueryProjectId);
         sqlTemplate.add("snapshot", snapshotName);
         sqlTemplate.add("table", tableName);

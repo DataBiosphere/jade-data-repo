@@ -219,7 +219,7 @@ public class SnapshotValidationTest {
 
     @Test
     public void testMissingProfileId() throws Exception {
-        snapshotRequest.profileId(null);
-        expectBadSnapshotCreateRequest(snapshotRequest);
+        snapshotByAssetRequest.profileId(null);
+        expectBadSnapshotCreateRequest(snapshotByAssetRequest);
     }
 }

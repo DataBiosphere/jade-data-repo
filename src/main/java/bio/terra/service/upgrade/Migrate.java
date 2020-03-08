@@ -1,7 +1,6 @@
 package bio.terra.service.upgrade;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.service.upgrade.exception.MigrateException;
 import liquibase.Contexts;
 import liquibase.Liquibase;
@@ -27,21 +26,17 @@ import java.sql.SQLException;
 public class Migrate {
     private Logger logger = LoggerFactory.getLogger("bio.terra.service.upgrade");
     private DataRepoJdbcConfiguration dataRepoJdbcConfiguration;
-    private StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private MigrateConfiguration migrateConfiguration;
 
     @Autowired
     public Migrate(DataRepoJdbcConfiguration dataRepoJdbcConfiguration,
-                   StairwayJdbcConfiguration stairwayJdbcConfiguration,
                    MigrateConfiguration migrateConfiguration) {
         this.dataRepoJdbcConfiguration = dataRepoJdbcConfiguration;
-        this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
     }
 
     public void migrateAllDatabases() {
         migrateDatabase(dataRepoJdbcConfiguration.getChangesetFile(), dataRepoJdbcConfiguration.getDataSource());
-        migrateDatabase(stairwayJdbcConfiguration.getChangesetFile(), stairwayJdbcConfiguration.getDataSource());
     }
 
     private void migrateDatabase(String changesetFile, DataSource dataSource) {

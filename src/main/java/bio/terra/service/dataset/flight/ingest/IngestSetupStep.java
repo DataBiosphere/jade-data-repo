@@ -6,7 +6,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightUtils;
+import bio.terra.common.FlightUtils;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import liquibase.util.StringUtils;

@@ -11,15 +11,14 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
 
 public class SnapshotDeleteFlight extends Flight {
 
-    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+    public SnapshotDeleteFlight(FlightMap inputParameters, Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;

@@ -53,7 +53,6 @@ import org.stringtemplate.v4.ST;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -63,8 +62,6 @@ import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.STAGING_TABLE_ROW_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.TARGET_TABLE_ROW_ID_COLUMN;
 
 @Component
 @Profile("google")
@@ -311,36 +308,33 @@ public class BigQueryPdao implements PrimaryDataAccess {
                     .orElseThrow(() -> new CorruptMetadataException("cannot find destination table: " + tableName));
 
                 List<String> rowIds = table.getRowIds();
-
-                    if (rowIds.size() > 0) {
-                        ST sqlTemplate = new ST(loadRootRowIdsTemplate);
-                        sqlTemplate.add("project", projectId);
-                        sqlTemplate.add("snapshot", snapshotName);
-                        sqlTemplate.add("dataset", datasetBqDatasetName);
-                        sqlTemplate.add("tableId", sourceTable.getId().toString());
-                        sqlTemplate.add("rowIds", rowIds);
-                        sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(sourceTable.getName()));
-                        bigQueryProject.query(sqlTemplate.render());
-                    }
-
-                    ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
+                if (rowIds.size() > 0) {
+                    ST sqlTemplate = new ST(loadRootRowIdsTemplate);
                     sqlTemplate.add("project", projectId);
                     sqlTemplate.add("snapshot", snapshotName);
                     sqlTemplate.add("dataset", datasetBqDatasetName);
-                    sqlTemplate.add("table", sourceTable.getName());
+                    sqlTemplate.add("tableId", sourceTable.getId().toString());
+                    sqlTemplate.add("rowIds", rowIds);
+                    sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(sourceTable.getName()));
+                    bigQueryProject.query(sqlTemplate.render());
+                }
+                ST sqlTemplate = new ST(validateRowIdsForRootTemplate);
+                sqlTemplate.add("project", projectId);
+                sqlTemplate.add("snapshot", snapshotName);
+                sqlTemplate.add("dataset", datasetBqDatasetName);
+                sqlTemplate.add("table", sourceTable.getName());
 
-                    TableResult result = bigQueryProject.query(sqlTemplate.render());
-                    FieldValueList row = result.iterateAll().iterator().next();
-                    FieldValue countValue = row.get(0);
-                    if (countValue.getLongValue() != rowIds.size()) {
-                        logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
-                            " count=" + countValue.getLongValue());
-                        for (String rowId : rowIds) {
-                            logger.error(" rowIdIn: " + rowId);
-                        }
-                        throw new PdaoException("Invalid row ids supplied");
+                TableResult result = bigQueryProject.query(sqlTemplate.render());
+                FieldValueList row = result.iterateAll().iterator().next();
+                FieldValue countValue = row.get(0);
+                if (countValue.getLongValue() != rowIds.size()) {
+                    logger.error("Invalid row ids supplied: rowIds=" + rowIds.size() +
+                        " count=" + countValue.getLongValue());
+                    for (String rowId : rowIds) {
+                        logger.error(" rowIdIn: " + rowId);
                     }
-
+                    throw new PdaoException("Invalid row ids supplied");
+                }
             });
 
             // create the views

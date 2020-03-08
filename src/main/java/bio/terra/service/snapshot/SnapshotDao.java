@@ -179,7 +179,7 @@ public class SnapshotDao {
                 .snapshot(snapshot)
                 .dataset(dataset);
 
-            if (raw.assetId != null) {// if there is no assetId, then dont check for a spec
+            if (raw.assetId != null) { // if there is no assetId, then dont check for a spec
                 // Find the matching asset in the dataset
                 Optional<AssetSpecification> assetSpecification = dataset.getAssetSpecificationById(raw.assetId);
                 if (!assetSpecification.isPresent()) {

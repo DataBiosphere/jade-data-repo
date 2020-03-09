@@ -34,7 +34,15 @@ before_install:
   - gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
   - gcloud auth configure-docker
   - gcloud components install kubectl
+  - export CUR_IPS=$(gcloud container clusters describe ${CLUSTER_NAME} --format json | \
+      jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
+  - export RUNNER_IP=$(curl https://api.ipify.org/?format=text | xargs printf '[ "%s/32" ]')
+  - export NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
+  - gcloud container clusters update ${CLUSTER_NAME} \
+              --enable-master-authorized-networks \
+              --master-authorized-networks ${NEW_IPS}
   - gcloud container clusters get-credentials $CLUSTER_NAME
+  - export RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -s -r 'add | unique | join(",")')
 
 script:
   - set -e
@@ -47,3 +55,10 @@ script:
   - ./gradlew check --scan
   - ./gradlew testConnected --scan
   - ./gradlew testIntegration --scan
+
+after_script:
+  - if [ ! -z "${RESTORE_IPS}"]; then \
+      gcloud container clusters update ${CLUSTER_NAME} \
+      --enable-master-authorized-networks \
+      --master-authorized-networks ${RESTORE_IPS} \
+    fi

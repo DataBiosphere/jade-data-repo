@@ -49,9 +49,8 @@ public class CreateSnapshotMetadataStep implements Step {
             // snapshot creation failed because of a PK violation
             // this happens when trying to create a snapshot with the same name as one that already exists
             // in this case, we don't want to delete the metadata in the undo step
-            // so, set the SNAPSHOT_ID key in the context map to true, indicating to the undo step that the
-            // snapshot already exists.
-            context.getWorkingMap().put(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.TRUE);
+            // so, set the SNAPSHOT_EXISTS key in the context map to true, to pass this information to the undo step
+            context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.TRUE);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, duplicateKeyEx);
         } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
@@ -62,7 +61,7 @@ public class CreateSnapshotMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // if this step failed because there is already a snapshot with this name, then don't delete the metadata
-        Boolean snapshotIdExists = context.getWorkingMap().get(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.class);
+        Boolean snapshotIdExists = context.getWorkingMap().get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class);
         if (snapshotIdExists != null && snapshotIdExists.booleanValue()) {
             logger.debug("Snapshot creation failed because of a PK violation. Not deleting metadata.");
         } else {

@@ -21,7 +21,7 @@ jobs:
       - name: "Checkout code"
         uses: actions/checkout@v2
       - name: "Turnstyle Queue to check for other running jobs"
-        uses: softprops/turnstyle@v1
+        uses: broadinstitute/turnstyle@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Install Java"

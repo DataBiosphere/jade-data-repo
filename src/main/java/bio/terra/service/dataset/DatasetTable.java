@@ -8,12 +8,18 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Specific class for modeling dataset tables. Includes primary key info.
+ * Specific class for modeling dataset tables.
+ *
+ * Includes extra info to capture:
+ *   1. Primary keys
+ *   2. Names of helper tables used when building "live views"
  */
 public class DatasetTable implements Table {
 
     private UUID id;
     private String name;
+    private String rawTableName;
+    private String softDeleteTableName;
     private List<Column> columns = Collections.emptyList();
     private List<Column> primaryKey = Collections.emptyList();
 
@@ -32,6 +38,24 @@ public class DatasetTable implements Table {
 
     public DatasetTable name(String name) {
         this.name = name;
+        return this;
+    }
+
+    public String getRawTableName() {
+        return rawTableName;
+    }
+
+    public DatasetTable rawTableName(String name) {
+        this.rawTableName = name;
+        return this;
+    }
+
+    public String getSoftDeleteTableName() {
+        return softDeleteTableName;
+    }
+
+    public DatasetTable softDeleteTableName(String name) {
+        this.softDeleteTableName = name;
         return this;
     }
 

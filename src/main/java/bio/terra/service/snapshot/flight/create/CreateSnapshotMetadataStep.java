@@ -2,7 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.SnapshotAlreadyExistsException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -47,13 +46,11 @@ public class CreateSnapshotMetadataStep implements Step {
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
         } catch (DuplicateKeyException duplicateKeyEx) {
-
-//        } catch (SnapshotAlreadyExistsException snapshotExistsEx) {
-//            // snapshot creation failed because of a PK violation
-//            // this happens when trying to create a snapshot with the same name as one that already exists
-//            // in this case, we don't want to delete the metadata in the undo step
-//            // so, set the SNAPSHOT_ID key in the context map to true, indicating to the undo step that the
-//            // snapshot already exists.
+            // snapshot creation failed because of a PK violation
+            // this happens when trying to create a snapshot with the same name as one that already exists
+            // in this case, we don't want to delete the metadata in the undo step
+            // so, set the SNAPSHOT_ID key in the context map to true, indicating to the undo step that the
+            // snapshot already exists.
             context.getWorkingMap().put(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.TRUE);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, duplicateKeyEx);
         } catch (SnapshotNotFoundException ex) {

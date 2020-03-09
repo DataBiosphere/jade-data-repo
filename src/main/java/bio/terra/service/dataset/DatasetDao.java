@@ -9,7 +9,6 @@ import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -67,7 +66,7 @@ public class DatasetDao {
             relationshipDao.createDatasetRelationships(dataset);
             assetDao.createAssets(dataset);
             return datasetId;
-        } catch (DuplicateKeyException | SQLException e) {
+        } catch (SQLException e) {
             throw new InvalidDatasetException("Cannot create dataset: " + dataset.getName(), e);
         }
     }

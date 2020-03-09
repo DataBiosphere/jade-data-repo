@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.exception.SnapshotAlreadyExistsException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -46,16 +47,18 @@ public class CreateSnapshotMetadataStep implements Step {
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
-        } catch (DataAccessException daEx) {
-            // check if the metadata creation failed because of a PK violation
-            // this happens when trying to create a snapshot with the same name as one that already exists
-            if (DaoUtils.isUniqueViolationException(daEx, "snapshot_name_key")) {
-                // in this case, we don't want to delete the metadata in the undo step
-                // so, set the SNAPSHOT_ID key in the context map to true, indicating to the undo step that the
-                // snapshot already exists.
-                context.getWorkingMap().put(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.TRUE);
-            }
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, daEx);
+        } catch (SnapshotAlreadyExistsException snapshotExistsEx) {
+
+//        } catch (DataAccessException daEx) {
+//            // check if the metadata creation failed because of a PK violation
+//            // this happens when trying to create a snapshot with the same name as one that already exists
+//            if (DaoUtils.isUniqueViolationException(daEx, "snapshot_name_key")) {
+            // in this case, we don't want to delete the metadata in the undo step
+            // so, set the SNAPSHOT_ID key in the context map to true, indicating to the undo step that the
+            // snapshot already exists.
+            context.getWorkingMap().put(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.TRUE);
+//            }
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, snapshotExistsEx);
         } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
@@ -68,10 +71,12 @@ public class CreateSnapshotMetadataStep implements Step {
         Boolean snapshotIdExists = context.getWorkingMap().get(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.class);
         if (snapshotIdExists != null && snapshotIdExists.booleanValue()) {
             logger.debug("Snapshot creation failed because of a PK violation. Not deleting metadata.");
+            System.out.println("Snapshot creation failed because of a PK violation. Not deleting metadata.");
         } else {
             logger.debug("Snapshot creation failed for a reason other than a PK violation. Deleting metadata.");
-            String snapshotName = snapshotReq.getName();
-            snapshotDao.deleteByName(snapshotName);
+            System.out.println("Snapshot creation failed for a reason other than a PK violation. Deleting metadata.");
+//            String snapshotName = snapshotReq.getName();
+//            snapshotDao.deleteByName(snapshotName);
         }
         return StepResult.getStepResultSuccess();
     }

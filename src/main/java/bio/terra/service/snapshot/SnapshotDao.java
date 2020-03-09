@@ -7,6 +7,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.snapshot.exception.SnapshotAlreadyExistsException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -52,13 +53,18 @@ public class SnapshotDao {
     public UUID create(Snapshot snapshot) {
         logger.debug("create snapshot " + snapshot.getName());
         String sql = "INSERT INTO snapshot (name, description, profile_id)" +
-                " VALUES (:name, :description, :profile_id)";
+                " VALUES (:name, :description, :profile_id)" +
+                " ON CONSTRAINT snapshot_name_key" +
+                " DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", snapshot.getName())
                 .addValue("description", snapshot.getDescription())
                 .addValue("profile_id", snapshot.getProfileId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        int numRowsAffected = jdbcTemplate.update(sql, params, keyHolder);
+        if (numRowsAffected == 0) {
+            throw new SnapshotAlreadyExistsException("Unique constraint violation for snapshot_name_key");
+        }
         UUID snapshotId = keyHolder.getId();
         snapshot
             .id(snapshotId)

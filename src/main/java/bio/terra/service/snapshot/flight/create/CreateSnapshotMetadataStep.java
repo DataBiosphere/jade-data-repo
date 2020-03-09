@@ -60,8 +60,8 @@ public class CreateSnapshotMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // if this step failed because there is already a snapshot with this name, then don't delete the metadata
-        Boolean snapshotIdExists = context.getWorkingMap().get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class);
-        if (snapshotIdExists != null && snapshotIdExists.booleanValue()) {
+        Boolean snapshotExists = context.getWorkingMap().get(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.class);
+        if (snapshotExists != null && snapshotExists.booleanValue()) {
             logger.debug("Snapshot creation failed because of a PK violation. Not deleting metadata.");
         } else {
             logger.debug("Snapshot creation failed for a reason other than a PK violation. Deleting metadata.");

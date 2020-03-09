@@ -55,8 +55,8 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         // if this step failed because there is already a dataset with this name, then don't delete the metadata
-        Boolean datasetIdExists = context.getWorkingMap().get(DatasetWorkingMapKeys.DATASET_EXISTS, Boolean.class);
-        if (datasetIdExists != null && datasetIdExists.booleanValue()) {
+        Boolean datasetExists = context.getWorkingMap().get(DatasetWorkingMapKeys.DATASET_EXISTS, Boolean.class);
+        if (datasetExists != null && datasetExists.booleanValue()) {
             logger.debug("Dataset creation failed because of a PK violation. Not deleting metadata.");
         } else {
             logger.debug("Dataset creation failed for a reason other than a PK violation. Deleting metadata.");

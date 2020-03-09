@@ -92,6 +92,7 @@ public class DatasetConnectedTest {
 
     @Test
     public void testDuplicateName() throws Exception {
+        // create a dataset and check that it succeeds
         DatasetRequestModel datasetRequest = jsonLoader
             .loadObject("snapshot-test-dataset.json", DatasetRequestModel.class);
         datasetRequest
@@ -103,6 +104,7 @@ public class DatasetConnectedTest {
         DatasetSummaryModel datasetSummaryModel =
             objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
 
+        // try to create the same dataset again and check that it fails
         response = createDataset(datasetRequest, status().is5xxServerError());
         assertThat("duplicate create dataset failed", response.getStatus(),
             equalTo(HttpStatus.INTERNAL_SERVER_ERROR.value()));
@@ -110,6 +112,7 @@ public class DatasetConnectedTest {
         assertThat(errorModel.getMessage(),
             containsString("duplicate key value violates unique constraint \"dataset_name_key\""));
 
+        // delete the dataset
         response = deleteDataset(datasetSummaryModel.getId());
         checkDeleteSuccessful(response);
     }

@@ -271,6 +271,32 @@ public class SnapshotOperationTest {
         assertThat(errorModel.getMessage(), containsString("Fred"));
     }
 
+    @Test
+    public void testDuplicateName() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+
+        // fetch the snapshot and confirm the metadata matches the request
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        // try to create the same snapshot again
+        snapshotRequest.setName(snapshotModel.getName());
+        response = performCreateSnapshot(snapshotRequest, null);
+        ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
+        assertThat(errorModel.getMessage(),
+            containsString("duplicate key value violates unique constraint \"snapshot_name_key\""));
+
+        // delete and confirm deleted
+        deleteTestSnapshot(snapshotModel.getId());
+        getNonexistentSnapshot(snapshotModel.getId());
+    }
+
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("dataset-minimal.json");
         loadCsvData(datasetSummary.getName(), "participant", "dataset-minimal-participant.csv");
@@ -369,9 +395,11 @@ public class SnapshotOperationTest {
 
     private MvcResult launchCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
             throws Exception {
-        snapshotOriginalName = snapshotRequest.getName();
-        String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
-        snapshotRequest.setName(snapshotName);
+        if (infix != null) {
+            snapshotOriginalName = snapshotRequest.getName();
+            String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
+            snapshotRequest.setName(snapshotName);
+        }
 
         String jsonRequest = objectMapper.writeValueAsString(snapshotRequest);
 

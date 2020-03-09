@@ -8,10 +8,15 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -26,10 +31,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.util.UUID;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -51,36 +59,93 @@ public class DatasetConnectedTest {
 
     @MockBean private IamService samService;
 
+    private BillingProfile billingProfile;
+
+    @Before
+    public void setup() throws Exception {
+        connectedOperations.stubOutSamCalls(samService);
+        billingProfile = ProfileFixtures.billingProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+        UUID profileId = profileDao.createBillingProfile(billingProfile);
+        billingProfile.id(profileId);
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        profileDao.deleteBillingProfileById(billingProfile.getId());
+    }
+
     @Test
     public void testCreateOmopDataset() throws Exception {
-        connectedOperations.stubOutSamCalls(samService);
-        String accountId = googleResourceConfiguration.getCoreBillingAccount();
-
         DatasetRequestModel datasetRequest = jsonLoader.loadObject("it-dataset-omop.json", DatasetRequestModel.class);
-        UUID profileId = profileDao.createBillingProfile(ProfileFixtures.billingProfileForAccount(accountId));
         datasetRequest
             .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(profileId.toString());
+            .defaultProfileId(billingProfile.getId().toString());
 
-        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(datasetRequest)))
-            .andExpect(status().isCreated())
-            .andReturn();
-        MockHttpServletResponse response = result.getResponse();
+        MockHttpServletResponse response = createDataset(datasetRequest, status().isCreated());
         assertThat("create omop dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
         DatasetSummaryModel datasetSummaryModel =
             objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
 
-        result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetSummaryModel.getId())).andReturn();
-        response = result.getResponse();
-        assertThat("delete omop dataset successfully", response.getStatus(), equalTo(HttpStatus.OK.value()));
+        response = deleteDataset(datasetSummaryModel.getId());
+        checkDeleteSuccessful(response);
+    }
+
+    @Test
+    public void testDuplicateName() throws Exception {
+        DatasetRequestModel datasetRequest = jsonLoader
+            .loadObject("snapshot-test-dataset.json", DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId().toString());
+
+        MockHttpServletResponse response = createDataset(datasetRequest, status().isCreated());
+        assertThat("created test dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
+        DatasetSummaryModel datasetSummaryModel =
+            objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
+
+        response = createDataset(datasetRequest, status().is5xxServerError());
+        assertThat("duplicate create dataset failed", response.getStatus(),
+            equalTo(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+        ErrorModel errorModel = checkResponseIsError(response);
+        assertThat(errorModel.getMessage(),
+            containsString("duplicate key value violates unique constraint \"dataset_name_key\""));
+
+        response = deleteDataset(datasetSummaryModel.getId());
+        checkDeleteSuccessful(response);
+    }
+
+    private MockHttpServletResponse createDataset(DatasetRequestModel datasetRequest, ResultMatcher expectedStatus)
+        throws Exception {
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(datasetRequest)))
+            .andExpect(expectedStatus)
+            .andReturn();
+        return result.getResponse();
+    }
+
+    private MockHttpServletResponse deleteDataset(String datasetId) throws Exception {
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        return result.getResponse();
+    }
+
+    private void checkDeleteSuccessful(MockHttpServletResponse deleteResponse) throws Exception {
+        assertThat("deleted dataset successfully", deleteResponse.getStatus(), equalTo(HttpStatus.OK.value()));
         DeleteResponseModel responseModel =
-            objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
+            objectMapper.readValue(deleteResponse.getContentAsString(), DeleteResponseModel.class);
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
-        profileDao.deleteBillingProfileById(profileId);
     }
 
+    private ErrorModel checkResponseIsError(MockHttpServletResponse response) throws Exception {
+        String responseBody = response.getContentAsString();
+        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
+        assertFalse("Expect HTTP failure status", responseStatus.is2xxSuccessful());
+
+        assertTrue("Error model was returned on failure",
+            StringUtils.contains(responseBody, "message"));
+
+        return objectMapper.readValue(responseBody, ErrorModel.class);
+    }
 }

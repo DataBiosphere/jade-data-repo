@@ -59,12 +59,10 @@ public class CreateDatasetMetadataStep implements Step {
         Boolean datasetIdExists = context.getWorkingMap().get(JobMapKeys.DATASET_ID.getKeyName(), Boolean.class);
         if (datasetIdExists != null && datasetIdExists.booleanValue()) {
             logger.debug("Dataset creation failed because of a PK violation. Not deleting metadata.");
-            System.out.println("Dataset creation failed because of a PK violation. Not deleting metadata.");
         } else {
             logger.debug("Dataset creation failed for a reason other than a PK violation. Deleting metadata.");
-            System.out.println("Dataset creation failed for a reason other than a PK violation. Deleting metadata.");
-//            String datasetName = datasetRequest.getName();
-//            datasetDao.deleteByName(datasetName);
+            String datasetName = datasetRequest.getName();
+            datasetDao.deleteByName(datasetName);
         }
         return StepResult.getStepResultSuccess();
     }

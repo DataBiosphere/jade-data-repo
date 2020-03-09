@@ -65,12 +65,10 @@ public class CreateSnapshotMetadataStep implements Step {
         Boolean snapshotIdExists = context.getWorkingMap().get(JobMapKeys.SNAPSHOT_ID.getKeyName(), Boolean.class);
         if (snapshotIdExists != null && snapshotIdExists.booleanValue()) {
             logger.debug("Snapshot creation failed because of a PK violation. Not deleting metadata.");
-            System.out.println("Snapshot creation failed because of a PK violation. Not deleting metadata.");
         } else {
             logger.debug("Snapshot creation failed for a reason other than a PK violation. Deleting metadata.");
-            System.out.println("Snapshot creation failed for a reason other than a PK violation. Deleting metadata.");
-//            String snapshotName = snapshotReq.getName();
-//            snapshotDao.deleteByName(snapshotName);
+            String snapshotName = snapshotReq.getName();
+            snapshotDao.deleteByName(snapshotName);
         }
         return StepResult.getStepResultSuccess();
     }

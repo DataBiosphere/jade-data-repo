@@ -53,9 +53,9 @@ public class SnapshotDao {
     public UUID create(Snapshot snapshot) {
         logger.debug("create snapshot " + snapshot.getName());
         String sql = "INSERT INTO snapshot (name, description, profile_id)" +
-                " VALUES (:name, :description, :profile_id)" +
-                " ON CONFLICT ON CONSTRAINT snapshot_name_key" +
-                " DO NOTHING";
+                " VALUES (:name, :description, :profile_id)"; // +
+//                " ON CONFLICT ON CONSTRAINT snapshot_name_key" +
+//                " DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("name", snapshot.getName())
                 .addValue("description", snapshot.getDescription())

@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightUtils;

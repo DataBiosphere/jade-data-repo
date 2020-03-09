@@ -1,6 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.common.PdaoConstant;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.service.dataset.DatasetDao;
@@ -10,13 +11,12 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.flight.create.CreateDatasetMetadataStep;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -99,8 +99,7 @@ public class BigQueryPdaoTest {
         datasetRequest
             .defaultProfileId(profileModel.getId())
             .name(datasetName());
-        dataset = CreateDatasetMetadataStep.setUtilityTableNames(
-            DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         UUID datasetId = datasetDao.create(dataset);
         dataLocationService.getOrCreateProject(dataset);
         logger.info("Created dataset in setup: {}", datasetId);
@@ -216,15 +215,12 @@ public class BigQueryPdaoTest {
                 connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
-            BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(dataset.getName());
+            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+                datasetDao, dataLocationService, dataset.getName());
             Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
             List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
             List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
             List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
-
-            System.err.println(participantIds.toString());
-            System.err.println(sampleIds.toString());
-            System.err.println(fileIds.toString());
 
             Assert.assertThat(participantIds, containsInAnyOrder(
                 "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
@@ -301,12 +297,6 @@ public class BigQueryPdaoTest {
             .build();
 
         bq.getBigQuery().query(queryConfig);
-    }
-
-    private BigQueryProject bigQueryProjectForDatasetName(String datasetName) {
-        Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
-        return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
 
     private static final String queryForIdsTemplate =

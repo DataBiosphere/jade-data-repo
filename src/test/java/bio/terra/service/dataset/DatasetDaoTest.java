@@ -56,11 +56,7 @@ public class DatasetDaoTest {
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
-        Dataset dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
-        dataset.getTables().forEach(t -> {
-            t.rawTableName(t.getName() + "_raw");
-            t.softDeleteTableName(t.getName() + "_sd");
-        });
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         return datasetDao.create(dataset);
     }
 

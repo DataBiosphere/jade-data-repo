@@ -77,11 +77,7 @@ public class DatasetServiceTest {
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
-        Dataset dataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
-        dataset.getTables().forEach(t -> {
-            t.softDeleteTableName(t.getName() + "_sd");
-            t.rawTableName(t.getName() + "_raw");
-        });
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         return datasetDao.create(dataset);
     }
 

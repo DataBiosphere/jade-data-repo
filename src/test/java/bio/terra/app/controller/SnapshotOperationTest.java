@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -17,9 +18,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -160,7 +159,8 @@ public class SnapshotOperationTest {
     public void testMinimal() throws Exception {
         DatasetSummaryModel datasetSummary = setupMinimalDataset();
         String datasetName = PDAO_PREFIX + datasetSummary.getName();
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetSummary.getName());
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -182,7 +182,8 @@ public class SnapshotOperationTest {
     public void testArrayStruct() throws Exception {
         DatasetSummaryModel datasetSummary = setupArrayStructDataset();
         String datasetName = PDAO_PREFIX + datasetSummary.getName();
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetSummary.getName());
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -308,12 +309,6 @@ public class SnapshotOperationTest {
 
     private void loadJsonData(String datasetId, String tableName, String resourcePath) throws Exception {
         loadData(datasetId, tableName, resourcePath, IngestRequestModel.FormatEnum.JSON);
-    }
-
-    private BigQueryProject bigQueryProjectForDatasetName(String datasetName) {
-        Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
-        return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
 
     private void loadData(String datasetId,

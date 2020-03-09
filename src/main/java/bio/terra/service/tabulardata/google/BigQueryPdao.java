@@ -634,8 +634,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "WHERE R." + PDAO_TABLE_ID_COLUMN + " = '<fromTableId>' AND " +
             "R." + PDAO_ROW_ID_COLUMN + " = F." + PDAO_ROW_ID_COLUMN + " AND <joinClause>) " +
             "SELECT " + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + " FROM merged_table WHERE " +
-            PDAO_ROW_ID_COLUMN + " NOT IN (SELECT " + PDAO_ROW_ID_COLUMN +
-            " FROM `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "`)";
+            PDAO_ROW_ID_COLUMN + " NOT IN " +
+            "(SELECT " + PDAO_ROW_ID_COLUMN + " FROM `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "`)";
 
     private static final String matchNonArrayTemplate =
         "T.<toColumn> = F.<fromColumn>";

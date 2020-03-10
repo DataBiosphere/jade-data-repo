@@ -352,8 +352,12 @@ public class SnapshotService {
                 .createdDate(dataset.getCreatedDate().toString());
 
         SnapshotSourceModel sourceModel = new SnapshotSourceModel()
-                .asset(source.getAssetSpecification().getName())
                 .dataset(summaryModel);
+
+        AssetSpecification assetSpec = source.getAssetSpecification();
+        if (assetSpec != null) {
+            sourceModel.asset(assetSpec.getName());
+        }
 
         return sourceModel;
     }

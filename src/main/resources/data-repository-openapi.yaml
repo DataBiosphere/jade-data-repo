@@ -2695,6 +2695,10 @@ definitions:
     description: |
       a container holding a specification for how to delete tabular data
     type: object
+    required:
+      - deleteType
+      - tableName
+      - specType
     properties:
       deleteType:
         type: string
@@ -2716,6 +2720,9 @@ definitions:
     description: |
       a specification of a file containing row ids to delete
     type: object
+    required:
+      - fileType
+      - path
     properties:
       fileType:
         type: string

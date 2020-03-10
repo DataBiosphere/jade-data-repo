@@ -164,6 +164,7 @@ public class SnapshotOperationTest {
             makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
         SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+        //TimeUnit.SECONDS.sleep(10);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
@@ -226,9 +227,8 @@ public class SnapshotOperationTest {
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
                 "dataset-minimal-snapshot-bad-asset.json");
         MvcResult result = launchCreateSnapshot(snapshotRequest, "");
-        ErrorModel errorModel = handleCreateSnapshotFailureCase(result.getResponse());
-        assertThat(errorModel.getMessage(), containsString("Asset"));
-        assertThat(errorModel.getMessage(), containsString("NotARealAsset"));
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test

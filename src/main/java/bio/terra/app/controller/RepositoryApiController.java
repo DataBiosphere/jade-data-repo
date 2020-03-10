@@ -11,6 +11,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DeleteResponseModel;
@@ -461,6 +462,12 @@ public class RepositoryApiController implements RepositoryApi {
             policyMember.getEmail());
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> applyDatasetDataDeletion(
+        @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
+        return null;
     }
 
     @Override

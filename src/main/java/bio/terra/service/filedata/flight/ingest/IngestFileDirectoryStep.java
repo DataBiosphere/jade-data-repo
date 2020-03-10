@@ -55,7 +55,7 @@ public class IngestFileDirectoryStep implements Step {
             //         the entry fileId:
             //           i. If that is successful, then we already loaded this file. We store "completed=true"
             //              in the working map, so other steps do nothing.
-            //          ii. If that fails, then we are recovering: we leave "completed=false" in the working map.
+            //          ii. If that fails, then we are recovering: we leave completed unset (=false) in the working map.
             //
             // Lookup the file - on a recovery, we may have already created it, but not
             // finished. Or it might already exist, created by someone else.
@@ -86,6 +86,7 @@ public class IngestFileDirectoryStep implements Step {
                         // (c)(i) We successfully loaded this file already
                         workingMap.put(FileMapKeys.LOAD_COMPLETED, true);
                     }
+                    // (c)(ii) We are recovering and should continue this load; leave load completed false/unset
                 }
 
             }

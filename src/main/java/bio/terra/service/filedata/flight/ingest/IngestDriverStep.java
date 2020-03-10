@@ -169,7 +169,7 @@ public class IngestDriverStep implements Step {
             TimeUnit.SECONDS.sleep(waitSeconds);
         } catch (InterruptedException iex) {
             Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("Bulk ingest driver interruped!");
+            throw new FileSystemExecutionException("Bulk ingest driver interruped!", iex);
         }
     }
 

@@ -61,11 +61,9 @@ public class LoadDao {
 
         if (load.isLocked()) {
             if (StringUtils.equals(flightId, load.getLockingFlightId())) {
-                System.out.println("SUCCESS: we have it locked");
                 // we already have it locked
                 return load;
             } else {
-                System.out.println("CONFLICT: already locked");
                 // another flight has it locked
                 conflictThrow(load);
             }
@@ -237,6 +235,9 @@ public class LoadDao {
                         case SUCCEEDED:
                             result.setSucceededFiles(rs.getInt("statecount"));
                             break;
+
+                        default:
+                            throw new CorruptMetadataException("Invalid load state");
                     }
                     result.setTotalFiles(result.getFailedFiles() +
                         result.getNotTriedFiles() +

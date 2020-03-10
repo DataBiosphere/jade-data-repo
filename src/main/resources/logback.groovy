@@ -28,7 +28,6 @@ appender("File-Appender", FileAppender) {
 logger("org.springframework", WARN)
 logger("liquibase.executor", WARN)
 logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)
-// logger("log4j.category.org.springframework.jdbc.core", DEBUG)
 
 // root sets the default logging level and appenders
 root(INFO, ["Console-Appender", "File-Appender"])

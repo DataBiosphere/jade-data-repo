@@ -10,9 +10,9 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-// This step is meant to be shared by dataset and filesystem flights for locking the load tag.
-// It expects to find LoadMapKeys.LOAD_TAG in the working map.
-
+/**
+ * Shareable step for running authz checks inside flights
+ */
 public class VerifyAuthorizationStep implements Step {
     private final IamService iamService;
     private final IamResourceType iamResourceType;

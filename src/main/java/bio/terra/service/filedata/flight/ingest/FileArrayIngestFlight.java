@@ -32,7 +32,6 @@ public class FileArrayIngestFlight extends Flight {
         super(inputParameters, applicationContext, userRequestInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        //ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         IamService iamService = (IamService)appContext.getBean("iamService");
         LoadService loadService = (LoadService)appContext.getBean("loadService");
 

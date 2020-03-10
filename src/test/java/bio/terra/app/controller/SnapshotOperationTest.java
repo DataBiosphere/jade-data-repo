@@ -1,5 +1,7 @@
 package bio.terra.app.controller;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -10,14 +12,13 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -26,19 +27,13 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
-import com.google.cloud.bigquery.BigQueryError;
-import com.google.cloud.bigquery.CsvOptions;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.FormatOptions;
-import com.google.cloud.bigquery.Job;
-import com.google.cloud.bigquery.JobId;
-import com.google.cloud.bigquery.JobStatus;
 import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.TableDataWriteChannel;
-import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.bigquery.WriteChannelConfiguration;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
@@ -57,10 +52,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.stringtemplate.v4.ST;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -108,6 +101,7 @@ public class SnapshotOperationTest {
     @Autowired private DataLocationService dataLocationService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
+    @Autowired private ConnectedTestConfiguration testConfig;
 
     @MockBean
     private IamService samService;
@@ -116,6 +110,7 @@ public class SnapshotOperationTest {
     private List<String> createdDatasetIds;
     private String snapshotOriginalName;
     private BillingProfile billingProfile;
+    private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Before
     public void setup() throws Exception {
@@ -145,7 +140,7 @@ public class SnapshotOperationTest {
     @Test
     public void testHappyPath() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
 
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
@@ -164,7 +159,8 @@ public class SnapshotOperationTest {
     public void testMinimal() throws Exception {
         DatasetSummaryModel datasetSummary = setupMinimalDataset();
         String datasetName = PDAO_PREFIX + datasetSummary.getName();
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetSummary.getName());
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -186,7 +182,8 @@ public class SnapshotOperationTest {
     public void testArrayStruct() throws Exception {
         DatasetSummaryModel datasetSummary = setupArrayStructDataset();
         String datasetName = PDAO_PREFIX + datasetSummary.getName();
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetSummary.getName());
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
@@ -218,7 +215,7 @@ public class SnapshotOperationTest {
     @Test
     public void testEnumeration() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
 
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
@@ -262,7 +259,7 @@ public class SnapshotOperationTest {
     @Test
     public void testBadData() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
         SnapshotRequestModel badDataRequest = makeSnapshotTestRequest(datasetSummary,
                 "snapshot-test-snapshot-baddata.json");
 
@@ -300,15 +297,15 @@ public class SnapshotOperationTest {
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("dataset-minimal.json");
-        loadCsvData(datasetSummary.getName(), "participant", "dataset-minimal-participant.csv");
-        loadCsvData(datasetSummary.getName(), "sample", "dataset-minimal-sample.csv");
+        loadCsvData(datasetSummary.getId(), "participant", "dataset-minimal-participant.csv");
+        loadCsvData(datasetSummary.getId(), "sample", "dataset-minimal-sample.csv");
         return  datasetSummary;
     }
 
     private DatasetSummaryModel setupArrayStructDataset() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("dataset-array-struct.json");
-        loadJsonData(datasetSummary.getName(), "participant", "dataset-array-struct-participant.json");
-        loadJsonData(datasetSummary.getName(), "sample", "dataset-array-struct-sample.json");
+        loadJsonData(datasetSummary.getId(), "participant", "dataset-array-struct-participant.json");
+        loadJsonData(datasetSummary.getId(), "sample", "dataset-array-struct-sample.json");
         return  datasetSummary;
     }
 
@@ -333,55 +330,37 @@ public class SnapshotOperationTest {
         return datasetSummaryModel;
     }
 
-    private void loadCsvData(String datasetName, String tableName, String resourcePath) throws Exception {
-        FormatOptions csvOptions = CsvOptions.newBuilder().setSkipLeadingRows(1).build();
-        loadData(datasetName, tableName, resourcePath, csvOptions);
+    private void loadCsvData(String datasetId, String tableName, String resourcePath) throws Exception {
+        loadData(datasetId, tableName, resourcePath, IngestRequestModel.FormatEnum.CSV);
     }
 
-    private void loadJsonData(String datasetName, String tableName, String resourcePath) throws Exception {
-        loadData(datasetName, tableName, resourcePath, FormatOptions.json());
+    private void loadJsonData(String datasetId, String tableName, String resourcePath) throws Exception {
+        loadData(datasetId, tableName, resourcePath, IngestRequestModel.FormatEnum.JSON);
     }
 
-    private BigQueryProject bigQueryProjectForDatasetName(String datasetName) {
-        Dataset dataset = datasetDao.retrieveByName(datasetName);
-        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
-        return BigQueryProject.get(dataProject.getGoogleProjectId());
-    }
-
-    private void loadData(String datasetName,
+    private void loadData(String datasetId,
                           String tableName,
                           String resourcePath,
-                          FormatOptions options) throws Exception {
-        String snapshotName = PDAO_PREFIX + datasetName;
-        String location = "US";
-        TableId tableId = TableId.of(snapshotName, tableName);
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(datasetName);
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
+                          IngestRequestModel.FormatEnum format) throws Exception {
 
-        WriteChannelConfiguration writeChannelConfiguration =
-            WriteChannelConfiguration.newBuilder(tableId).setFormatOptions(options).build();
+        String bucket = testConfig.getIngestbucket();
+        BlobInfo stagingBlob = BlobInfo.newBuilder(bucket, resourcePath).build();
+        byte[] data = IOUtils.toByteArray(jsonLoader.getClassLoader().getResource(resourcePath));
 
-        // The location must be specified; other fields can be auto-detected.
-        JobId jobId = JobId.newBuilder().setLocation(location).build();
-        TableDataWriteChannel writer = bigQuery.writer(jobId, writeChannelConfiguration);
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .table(tableName)
+            .format(format)
+            .path("gs://" + stagingBlob.getBucket() + "/" + stagingBlob.getName());
 
-        // Write data to writer
-        try (OutputStream stream = Channels.newOutputStream(writer);
-             InputStream csvStream = jsonLoader.getClassLoader().getResourceAsStream(resourcePath)) {
-            IOUtils.copy(csvStream, stream);
+        if (format.equals(IngestRequestModel.FormatEnum.CSV)) {
+            ingestRequest.csvSkipLeadingRows(1);
         }
 
-        // Get load job
-        Job job = writer.getJob();
-        job = job.waitFor();
-        JobStatus jobStatus = job.getStatus();
-        List<BigQueryError> jobErrors = jobStatus.getExecutionErrors();
-        if (jobErrors != null && jobErrors.size() != 0) {
-            System.out.println("Errors loading dataset data: ");
-            for (BigQueryError bqError : jobErrors) {
-                System.out.println(bqError.toString());
-            }
-            fail("Failed to load dataset data");
+        try {
+            storage.create(stagingBlob, data);
+            connectedOperations.ingestTableSuccess(datasetId, ingestRequest);
+        } finally {
+            storage.delete(stagingBlob.getBlobId());
         }
     }
 
@@ -561,6 +540,9 @@ public class SnapshotOperationTest {
         }
     }
 
+    private static final String queryForCountTemplate =
+        "SELECT COUNT(*) FROM `<project>.<snapshot>.<table>`";
+
     // Get the count of rows in a table or view
     private long queryForCount(
         String snapshotName,
@@ -568,11 +550,13 @@ public class SnapshotOperationTest {
         BigQueryProject bigQueryProject) throws Exception {
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
-        StringBuilder builder = new StringBuilder();
-        builder.append("SELECT COUNT(*) FROM `")
-                .append(bigQueryProjectId).append('.').append(snapshotName).append('.').append(tableName).append('`');
-        String sql = builder.toString();
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+
+        ST sqlTemplate = new ST(queryForCountTemplate);
+        sqlTemplate.add("project", bigQueryProjectId);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("table", tableName);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
         TableResult result = bigQuery.query(queryConfig);
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue countValue = row.get(0);

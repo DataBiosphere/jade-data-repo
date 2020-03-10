@@ -2,10 +2,7 @@ package bio.terra.stairway;
 
 import bio.terra.model.ErrorModel;
 import bio.terra.service.job.JobMapKeys;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpStatus;
-
-import java.util.UUID;
 
 /**
  * Common methods for building flights
@@ -37,15 +34,6 @@ public final class FlightUtils {
         FlightMap workingMap = context.getWorkingMap();
         workingMap.put(JobMapKeys.RESPONSE.getKeyName(), responseObject);
         workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), responseStatus);
-    }
-
-    public static String randomizeName(String baseName) {
-        String name = baseName + UUID.randomUUID().toString();
-        return StringUtils.replaceChars(name, '-', '_');
-    }
-
-    public static String randomizeNameInfix(String baseName, String infix) {
-        return randomizeName(baseName + infix);
     }
 }
 

@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetJsonConversion;
@@ -19,6 +20,7 @@ import org.springframework.dao.DuplicateKeyException;
 
 import java.util.UUID;
 
+
 public class CreateDatasetMetadataStep implements Step {
 
     private DatasetDao datasetDao;
@@ -34,7 +36,7 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            Dataset newDataset = DatasetJsonConversion.datasetRequestToDataset(datasetRequest);
+            Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
             UUID datasetId = datasetDao.create(newDataset);
             FlightMap workingMap = context.getWorkingMap();
             workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);

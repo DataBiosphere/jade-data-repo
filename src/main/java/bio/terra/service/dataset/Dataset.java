@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.common.Table;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.Instant;
@@ -79,8 +78,8 @@ public class Dataset implements FSContainerInterface {
         return columns;
     }
 
-    public Map<UUID, Table> getTablesById() {
-        Map<UUID, Table> tables = new HashMap<>();
+    public Map<UUID, DatasetTable> getTablesById() {
+        Map<UUID, DatasetTable> tables = new HashMap<>();
         getTables().forEach(table -> tables.put(table.getId(), table));
         return tables;
     }

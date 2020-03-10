@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.service.filedata.FSContainerInterface;
-import bio.terra.common.Table;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -72,8 +71,8 @@ public class Snapshot implements FSContainerInterface {
         return this;
     }
 
-    public Optional<Table> getTableById(UUID id) {
-        for (Table tryTable : getTables()) {
+    public Optional<SnapshotTable> getTableById(UUID id) {
+        for (SnapshotTable tryTable : getTables()) {
             if (tryTable.getId().equals(id)) {
                 return Optional.of(tryTable);
             }

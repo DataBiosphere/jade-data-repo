@@ -75,7 +75,7 @@ public class SnapshotMapTableDao {
                 }
 
                 UUID toTableId = UUID.fromString(rs.getString("to_table_id"));
-                Optional<Table> snapshotTable = snapshot.getTableById(toTableId);
+                Optional<SnapshotTable> snapshotTable = snapshot.getTableById(toTableId);
                 if (!snapshotTable.isPresent()) {
                     throw new CorruptMetadataException(
                             "Snapshot table referenced by snapshot source map table was not found!");

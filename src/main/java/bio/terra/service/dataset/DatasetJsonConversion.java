@@ -180,7 +180,7 @@ public final class DatasetJsonConversion {
         assetModel.getTables().forEach(tblMod -> {
             boolean processingRootTable = false;
             String tableName = tblMod.getName();
-            Table datasetTable = tables.get(tableName);
+            DatasetTable datasetTable = tables.get(tableName);
             //not sure if we need to set the id on the new table
             AssetTable newAssetTable = new AssetTable().datasetTable(datasetTable);
             if (assetModel.getRootTable().equals(tableName)) {

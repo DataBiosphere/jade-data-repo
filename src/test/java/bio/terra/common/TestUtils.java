@@ -1,7 +1,12 @@
 package bio.terra.common;
 
 import bio.terra.model.DRSAccessMethod;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +80,14 @@ public final class TestUtils {
         }
 
         return httpPathString;
+    }
+
+    public static BigQueryProject bigQueryProjectForDatasetName(
+        DatasetDao datasetDao, DataLocationService dataLocationService, String datasetName) {
+
+        Dataset dataset = datasetDao.retrieveByName(datasetName);
+        DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
+        return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
 }
 

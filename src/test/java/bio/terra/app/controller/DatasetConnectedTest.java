@@ -110,7 +110,7 @@ public class DatasetConnectedTest {
             equalTo(HttpStatus.BAD_REQUEST.value()));
         ErrorModel errorModel = checkResponseIsError(response);
         assertThat(errorModel.getMessage(),
-            containsString("duplicate key value violates unique constraint \"dataset_name_key\""));
+            containsString("Dataset already exists"));
 
         // delete the dataset
         response = deleteDataset(datasetSummaryModel.getId());

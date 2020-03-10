@@ -1,13 +1,15 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
-import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -21,8 +23,11 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Repository
@@ -33,6 +38,8 @@ public class DatasetDao {
     private final DatasetTableDao tableDao;
     private final RelationshipDao relationshipDao;
     private final AssetDao assetDao;
+
+    private static Logger logger = LoggerFactory.getLogger(DatasetDao.class);
 
     @Autowired
     public DatasetDao(DataRepoJdbcConfiguration jdbcConfiguration,
@@ -46,29 +53,91 @@ public class DatasetDao {
         this.assetDao = assetDao;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public UUID create(Dataset dataset) {
-        try {
-            String sql = "INSERT INTO dataset (name, description, default_profile_id, additional_profile_ids) VALUES " +
-                "(:name, :description, :default_profile_id, :additional_profile_ids)";
-            Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());
-            MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", dataset.getName())
-                .addValue("description", dataset.getDescription())
-                .addValue("default_profile_id", dataset.getDefaultProfileId())
-                .addValue("additional_profile_ids", additionalProfileIds);
-            DaoKeyHolder keyHolder = new DaoKeyHolder();
-            jdbcTemplate.update(sql, params, keyHolder);
-            UUID datasetId = keyHolder.getId();
-            dataset.id(datasetId);
-            dataset.createdDate(keyHolder.getCreatedDate());
-            tableDao.createTables(dataset.getId(), dataset.getTables());
-            relationshipDao.createDatasetRelationships(dataset);
-            assetDao.createAssets(dataset);
-            return datasetId;
-        } catch (SQLException e) {
-            throw new InvalidDatasetException("Cannot create dataset: " + dataset.getName(), e);
+    @Transactional(propagation =  Propagation.REQUIRED)
+    public void lock(String datasetName, UUID defaultProfileId, String flightId, LockBehaviorFlags lockFlag) {
+        // check if the dataset exists and is locked
+        String sql = "SELECT flightid FROM dataset WHERE name = :name";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", datasetName);
+        List<String> selectResult = jdbcTemplate.query(sql, params,
+            (rs, rowNum) -> rs.getString(1));
+        String foundFlightId = selectResult.size() == 0 ? null : selectResult.get(0);
+        logger.debug("foundflightid: " + foundFlightId);
+
+        // check the lock behavior flag and return here depending on whether the dataset exists or not
+        boolean datasetExists = (selectResult.size() == 1);
+        logger.debug("datasetExists: " + datasetExists);
+        if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST) && datasetExists) {
+            throw new DatasetLockException("Dataset already exists. Not creating new record to lock.");
+        } else if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_EXISTS) && !datasetExists) {
+            throw new DatasetLockException("Dataset does not exist. Not creating new record to lock.");
         }
+
+        if (foundFlightId == null) {
+            // dataset name either does not exist or is not locked
+            logger.debug("dataset name either does not exist or is not locked: " + datasetName);
+
+            // if the dataset name does not exist, then create a new dataset entry and set the flight id
+            // if the dataset name does exist and is not locked, then update the entry to set the flight id
+            sql = "INSERT INTO dataset (name, default_profile_id, flightid) " +
+                "VALUES (:name, :default_profile_id, :flightid) " +
+                "ON CONFLICT (name) " +
+                "DO UPDATE SET flightid = :flightid";
+            params = new MapSqlParameterSource()
+                .addValue("name", datasetName)
+                .addValue("default_profile_id", defaultProfileId)
+                .addValue("flightid", flightId);
+            int numRowsUpdated = jdbcTemplate.update(sql, params);
+            logger.debug("numRowsUpdated=" + numRowsUpdated);
+        } else if (!foundFlightId.equals(flightId)) {
+            // dataset name does exist and is locked by another flight
+            throw new DatasetLockException("Dataset is locked by another flight");
+        }
+
+        // if we get to here, we know the dataset name already exists and is locked by the current flight
+        return;
+    }
+
+    @Transactional(propagation =  Propagation.REQUIRED)
+    public boolean unlock(String datasetName, String flightId) {
+        // update the dataset entry to remove the flightid IF it is currently set to this flightid
+        String sql = " UPDATE dataset SET flightid = NULL " +
+            "WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", datasetName)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        logger.debug("numRowsUpdated=" + numRowsUpdated);
+        return (numRowsUpdated == 1);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public UUID create(Dataset dataset) throws SQLException {
+        String sql = "UPDATE dataset " +
+            "SET description = :description, additional_profile_ids = :additional_profile_ids " +
+            "WHERE name = :name";
+        Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", dataset.getName())
+            .addValue("description", dataset.getDescription())
+            .addValue("additional_profile_ids", additionalProfileIds);
+        jdbcTemplate.update(sql, params);
+
+        sql = "SELECT id, created_date FROM dataset WHERE name = :name";
+        params = new MapSqlParameterSource().addValue("name", dataset.getName());
+        List<Map<String, Object>> selectResult = jdbcTemplate.query(sql, params,
+            (rs, rowNum) -> {
+                Map<String, Object> rowMap = new HashMap<>();
+                rowMap.put("id", rs.getObject("id", UUID.class));
+                rowMap.put("created_date", rs.getTimestamp("created_date").toInstant());
+                return rowMap;
+            });
+        dataset.id((UUID)selectResult.get(0).get("id"));
+        dataset.createdDate((Instant)selectResult.get(0).get("created_date"));
+
+        tableDao.createTables(dataset.getId(), dataset.getTables());
+        relationshipDao.createDatasetRelationships(dataset);
+        assetDao.createAssets(dataset);
+        return dataset.getId();
     }
 
     @Transactional

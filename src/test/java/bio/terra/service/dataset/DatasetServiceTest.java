@@ -30,6 +30,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -75,13 +76,13 @@ public class DatasetServiceTest {
 
     private ArrayList<String> flightIdsList;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws SQLException {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         return datasetDao.create(dataset);
     }
 
-    private UUID createDataset(String datasetFile) throws IOException {
+    private UUID createDataset(String datasetFile) throws IOException, SQLException {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
@@ -105,7 +106,7 @@ public class DatasetServiceTest {
     }
 
     @Test(expected = DatasetNotFoundException.class)
-    public void datasetDeleteTest() throws IOException {
+    public void datasetDeleteTest() throws IOException, SQLException {
         UUID datasetId = createDataset("dataset-create-test.json");
         assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
         datasetDao.retrieve(datasetId);

@@ -147,20 +147,6 @@ public class DatasetValidationsTest {
     }
 
     @Test
-    public void testMissingAssets() throws Exception {
-        DatasetRequestModel req = buildDatasetRequest();
-        req.getSchema().assets(null);
-        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("missingAssets", errorModel,
-            new String[]{"NotNull"});
-
-        req.getSchema().assets(Collections.emptyList());
-        errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("missingAssets", errorModel,
-            new String[]{"NoAssets"});
-    }
-
-    @Test
     public void testDuplicateAssetNames() throws Exception {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));
@@ -319,7 +305,7 @@ public class DatasetValidationsTest {
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
         checkValidationErrorModel("primaryKeyColumnMissing", errorModel,
-            new String[]{"MissingPrimaryKeyColumn", "NoAssets"});
+            new String[]{"MissingPrimaryKeyColumn"});
     }
 
     @Test
@@ -340,7 +326,7 @@ public class DatasetValidationsTest {
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
         checkValidationErrorModel("primaryKeyColumnMissing", errorModel,
-            new String[]{"PrimaryKeyArrayColumn", "NoAssets"});
+            new String[]{"PrimaryKeyArrayColumn"});
     }
 
     private void checkValidationErrorModel(String context,

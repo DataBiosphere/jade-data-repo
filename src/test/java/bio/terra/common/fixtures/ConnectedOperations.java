@@ -1,5 +1,7 @@
 package bio.terra.common.fixtures;
 
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.model.BillingProfileModel;
@@ -295,7 +297,6 @@ public class ConnectedOperations {
             .content(jsonRequest))
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-
         return handleAsyncFailureCase(response);
     }
 
@@ -325,6 +326,27 @@ public class ConnectedOperations {
         addFile(datasetId, fileModel.getFileId());
 
         return fileModel;
+    }
+
+    public BulkLoadArrayResultModel ingestArraySuccess(String datasetId,
+                                                       BulkLoadArrayRequestModel loadModel) throws Exception {
+        MvcResult result = ingestArrayRaw(datasetId, loadModel);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleAsyncSuccessCase(response, BulkLoadArrayResultModel.class);
+    }
+
+    public ErrorModel ingestArrayFailure(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
+        MvcResult result = ingestArrayRaw(datasetId, loadModel);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleAsyncFailureCase(response);
+    }
+    public MvcResult ingestArrayRaw(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
+        String jsonRequest = objectMapper.writeValueAsString(loadModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array";
+        return mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
     }
 
     public ErrorModel ingestFileFailure(String datasetId, FileLoadModel fileLoadModel) throws Exception {

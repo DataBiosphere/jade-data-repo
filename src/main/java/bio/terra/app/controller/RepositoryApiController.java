@@ -6,6 +6,8 @@ import bio.terra.app.utils.ControllerUtils;
 import bio.terra.common.ValidationUtils;
 import bio.terra.controller.RepositoryApi;
 import bio.terra.model.AssetModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
@@ -255,6 +257,20 @@ public class RepositoryApiController implements RepositoryApi {
             IamAction.INGEST_DATA);
         String jobId = fileService.ingestFile(id, ingestFile, userReq);
         // we can retrieve the job we just created
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
+    }
+
+    @Override
+    public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
+                                                 @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity<JobModel> bulkFileLoadArray(@PathVariable("id") String id,
+                                                      @Valid @RequestBody BulkLoadArrayRequestModel bulkFileLoadArray) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = fileService.ingestBulkFileArray(id, bulkFileLoadArray, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 

@@ -56,7 +56,8 @@ public class DatasetDaoTest {
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
-        return datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        return datasetDao.create(dataset);
     }
 
     private UUID createDataset(String datasetFile) throws IOException {

@@ -28,10 +28,12 @@ public class DatasetTableDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetTableDao.class);
 
     private static final String sqlInsertTable = "INSERT INTO dataset_table " +
-        "(name, dataset_id, primary_key) VALUES (:name, :dataset_id, :primary_key)";
+        "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key) " +
+        "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key)";
     private static final String sqlInsertColumn = "INSERT INTO dataset_column " +
         "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
-    private static final String sqlSelectTable = "SELECT id, name, primary_key FROM dataset_table " +
+    private static final String sqlSelectTable =
+        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key FROM dataset_table " +
         "WHERE dataset_id = :dataset_id";
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM dataset_column " +
         "WHERE table_id = :table_id";
@@ -53,6 +55,8 @@ public class DatasetTableDao {
 
         for (DatasetTable table : tableList) {
             params.addValue("name", table.getName());
+            params.addValue("raw_table_name", table.getRawTableName());
+            params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
 
             List<String> naturalKeyStringList = table.getPrimaryKey()
                 .stream()
@@ -92,7 +96,9 @@ public class DatasetTableDao {
         return jdbcTemplate.query(sqlSelectTable, params, (rs, rowNum) -> {
             DatasetTable table = new DatasetTable()
                 .id(rs.getObject("id", UUID.class))
-                .name(rs.getString("name"));
+                .name(rs.getString("name"))
+                .rawTableName(rs.getString("raw_table_name"))
+                .softDeleteTableName(rs.getString("soft_delete_table_name"));
 
             List<String> primaryKey = DaoUtils.getStringList(rs, "primary_key");
             List<Column> columns = retrieveColumns(table);

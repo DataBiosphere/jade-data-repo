@@ -9,8 +9,8 @@ import bio.terra.common.MetadataEnumeration;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.common.Table;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import org.junit.After;
 import org.junit.Before;
@@ -67,7 +67,8 @@ public class SnapshotDaoTest {
         datasetRequest
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
-        datasetId = datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        datasetId = datasetDao.create(dataset);
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)

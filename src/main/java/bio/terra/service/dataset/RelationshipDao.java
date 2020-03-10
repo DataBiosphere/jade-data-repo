@@ -1,7 +1,6 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.DaoKeyHolder;
-import bio.terra.common.Table;
 import bio.terra.common.Column;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -56,7 +55,7 @@ public class RelationshipDao {
 
     private List<DatasetRelationship> retrieveDatasetRelationships(
             List<UUID> columnIds,
-            Map<UUID, Table> tables,
+            Map<UUID, DatasetTable> tables,
             Map<UUID, Column> columns) {
         String sql = "SELECT id, name, from_table, from_column, to_table, to_column "
                 + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";

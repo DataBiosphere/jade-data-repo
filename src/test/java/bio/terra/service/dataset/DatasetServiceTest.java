@@ -79,7 +79,8 @@ public class DatasetServiceTest {
 
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
-        UUID datasetId = datasetDao.create(DatasetJsonConversion.datasetRequestToDataset(datasetRequest));
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        UUID datasetId = datasetDao.create(dataset);
         datasetIdList.add(datasetId);
         return datasetId;
     }

@@ -17,7 +17,7 @@ You'll want to follow all the steps below and stop once you have updated to the 
 ### Create the data repo db and user
 
     psql -f db/create-data-repo-db
-    
+
 ### Clear the database
 
     psql -f db/truncate-tables datarepo drmanager
@@ -33,8 +33,8 @@ part of the build, but are handy during development:
 To remove all database tables and clear liquibase history, run:
 
     ./gradlew dropAll
-    
-To perform an upgrade to your current schema, run: 
+
+To perform an upgrade to your current schema, run:
 
     ./gradlew update
 

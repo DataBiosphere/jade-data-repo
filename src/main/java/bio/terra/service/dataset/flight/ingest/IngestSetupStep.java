@@ -1,15 +1,13 @@
 package bio.terra.service.dataset.flight.ingest;
 
-import bio.terra.common.PdaoConstant;
-import bio.terra.common.Table;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.stairway.FlightContext;
-import bio.terra.common.FlightUtils;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import liquibase.util.StringUtils;
 
 
 /**
@@ -49,9 +47,8 @@ public class IngestSetupStep implements Step {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         IngestUtils.putDatasetName(context, dataset.getName());
 
-        Table targetTable = IngestUtils.getDatasetTable(context, dataset);
-        String baseName = PdaoConstant.PDAO_PREFIX + StringUtils.substring(targetTable.getName(), 0, 10);
-        String sgName = FlightUtils.randomizeNameInfix(baseName, "_st_");
+        DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
+        String sgName = DatasetUtils.generateAuxTableName(targetTable, "st");
         IngestUtils.putStagingTableName(context, sgName);
 
         return StepResult.getStepResultSuccess();

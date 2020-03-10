@@ -1,11 +1,14 @@
 name: Run Gradle on PRs
 on: pull_request
 jobs:
-  gradle:
+  deploy_to_integration:
+    timeout-minutes: 180
     strategy:
       matrix:
         os: [ubuntu-latest]
     runs-on: ${{ matrix.os }}
+    # skips if pr label is 'skip-ci'
+    if: "!contains(github.event.pull_request.labels, 'skip-ci')"
     # run a local Postgres container in Docker for the basic check tests
     services:
       postgres:
@@ -20,12 +23,6 @@ jobs:
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
-      - name: "Turnstyle Queue to check for other running jobs"
-        uses: broadinstitute/turnstyle@v1
-        with:
-          poll-interval-seconds: 10
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Install Java"
         uses: actions/setup-java@v1
         with:
@@ -37,6 +34,16 @@ jobs:
         with:
           version: "279.0.0"
           export_default_credentials: true
+      - name: Install Helm v3 on runner
+        uses: azure/setup-helm@v1
+        with:
+          version: 'v3.1.1'
+        id: install
+      - name: Install helm plugins and repos for charts
+        run: |
+          helm plugin install https://github.com/thomastaylor312/helm-namespace
+          helm repo add datarepo-helm https://broadinstitute.github.io/datarepo-helm
+          helm repo update
       - name: "Install Vault"
         uses: broadinstitute/setup-vault@v1
         with:
@@ -96,16 +103,50 @@ jobs:
           # export the original IP list so it can be restored during cleanup
           RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -s -r 'add | unique | join(",")')
           echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
-      # build and push container to integration
-      - name: "Set up integration environment"
+      - name: Check for available namespace to run tests in
+        run: |
+          NAMESPACES=("integration-1" "integration-2" "integration-3" "integration-4" "integration-5")
+          find_namespace ()
+          {
+            for i in "${NAMESPACES[@]}"
+            do
+              if kubectl get secrets -n ${i} ${i}-inuse > /dev/null 2>&1; then
+                printf "Namespace ${i} in use Skipping\n"
+              else
+                printf "Namespace ${i} not in use Deploying integration test to ${i}\n"
+                kubectl create secret generic ${i}-inuse --from-literal=inuse=${i} -n ${i}
+                tail=$(echo $i | awk -F- {'print $2'})
+                echo "::set-env name=IT_JADE_API_URL::https://jade-${tail}.datarepo-integration.broadinstitute.org"
+                echo "::set-env name=NAMESPACEINUSE::${i}"
+                return 0
+              fi
+            done
+            sleep 60
+            find_namespace
+          }
+          find_namespace
+      # Build the Docker image
+      - name: Build new api container and push to gcr
         env:
           DEV_PROJECT: broad-jade-dev
-          INTEGRATION_API: integration-jade-datarepo-api
         run: |
+          GCR_TAG=$(git rev-parse --short HEAD)
+          echo "::set-env name=GCR_TAG::${GCR_TAG}"
           ./gradlew jib
-          kubectl --namespace integration --record deployment/${INTEGRATION_API} \
-            set image deployment/${INTEGRATION_API} \
-            "${INTEGRATION_API}=gcr.io/${DEV_PROJECT}/jade-data-repo:$(git rev-parse --short HEAD)"
+      - name: Deploying new image to kubernetes
+        env:
+          DEV_PROJECT: broad-jade-dev
+          SECRET_CHART_VERSION: 0.0.4
+          DEPLOY_CHART_VERSION: 0.0.6
+        run: |
+          helm namespace upgrade ${NAMESPACEINUSE}-secrets datarepo-helm/create-secret-manager-secret --version=${SECRET_CHART_VERSION} \
+            --install --namespace ${NAMESPACEINUSE} -f \
+            "https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/${NAMESPACEINUSE}/${NAMESPACEINUSE}Secrets.yaml"
+          helm namespace upgrade ${NAMESPACEINUSE}-jade datarepo-helm/datarepo --version=${DEPLOY_CHART_VERSION} --install \
+            --namespace ${NAMESPACEINUSE} -f \
+            "https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/${NAMESPACEINUSE}/${NAMESPACEINUSE}Deployment.yaml" \
+            --set "datarepo-api.image.tag=${GCR_TAG}"
+      # build and push container to integration
       - name: "Build and test code"
         env:
           PGHOST: localhost
@@ -115,7 +156,6 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           # required for tests
-          GCR_TAG=$(git rev-parse --short HEAD)
           psql -U postgres -f ./db/create-data-repo-db
 
           ./gradlew assemble
@@ -131,3 +171,4 @@ jobs:
               --enable-master-authorized-networks \
               --master-authorized-networks ${RESTORE_IPS}
           fi
+          kubectl delete secret -n ${NAMESPACEINUSE} "${NAMESPACEINUSE}-inuse"

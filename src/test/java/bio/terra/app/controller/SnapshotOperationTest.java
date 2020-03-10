@@ -289,6 +289,7 @@ public class SnapshotOperationTest {
         snapshotRequest.setName(snapshotModel.getName());
         response = performCreateSnapshot(snapshotRequest, null);
         ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
+        assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
         assertThat(errorModel.getMessage(),
             containsString("duplicate key value violates unique constraint \"snapshot_name_key\""));
 

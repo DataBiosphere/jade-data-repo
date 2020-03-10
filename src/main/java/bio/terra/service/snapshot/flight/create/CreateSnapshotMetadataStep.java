@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -50,7 +51,7 @@ public class CreateSnapshotMetadataStep implements Step {
             // in this case, we don't want to delete the metadata in the undo step
             // so, set the SNAPSHOT_EXISTS key in the context map to true, to pass this information to the undo step
             context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_EXISTS, Boolean.TRUE);
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, duplicateKeyEx);
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new InvalidSnapshotException(duplicateKeyEx));
         } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

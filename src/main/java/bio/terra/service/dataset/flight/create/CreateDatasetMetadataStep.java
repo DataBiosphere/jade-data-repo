@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetJsonConversion;
@@ -48,7 +49,7 @@ public class CreateDatasetMetadataStep implements Step {
             // in this case, we don't want to delete the metadata in the undo step
             // so, set the DATASET_EXISTS key in the context map to true, to pass this information to the undo step
             context.getWorkingMap().put(DatasetWorkingMapKeys.DATASET_EXISTS, Boolean.TRUE);
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, duplicateKeyEx);
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new InvalidDatasetException(duplicateKeyEx));
         }
     }
 

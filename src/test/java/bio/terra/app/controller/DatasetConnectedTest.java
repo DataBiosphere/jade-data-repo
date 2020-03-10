@@ -105,9 +105,9 @@ public class DatasetConnectedTest {
             objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
 
         // try to create the same dataset again and check that it fails
-        response = createDataset(datasetRequest, status().is5xxServerError());
+        response = createDataset(datasetRequest, status().is4xxClientError());
         assertThat("duplicate create dataset failed", response.getStatus(),
-            equalTo(HttpStatus.INTERNAL_SERVER_ERROR.value()));
+            equalTo(HttpStatus.BAD_REQUEST.value()));
         ErrorModel errorModel = checkResponseIsError(response);
         assertThat(errorModel.getMessage(),
             containsString("duplicate key value violates unique constraint \"dataset_name_key\""));

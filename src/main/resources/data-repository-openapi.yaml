@@ -914,6 +914,39 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/datasets/{id}/deletes':
+    post:
+      description: Applies deletes to primary tabular data in a dataset
+      operationId: applyDatasetDataDeletion
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: dataDeletionRequest
+        description: Description of the data in the dataset to delete
+        schema:
+          $ref: '#/definitions/DataDeletionRequest'
+      responses:
+        201:
+          description: Response
+          schema:
+            $ref: '#/definitions/JobModel'
+        400:
+          description: Bad request - invalid tableName, bad row ids, badly formed, etc.
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to delete data
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
   '/api/repository/v1/register/user':
     get:
       description: |
@@ -2657,6 +2690,41 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/PolicyModel'
+
+  DataDeletionRequest:
+    description: |
+      a container holding a specification for how to delete tabular data
+    type: object
+    properties:
+      deleteType:
+        type: string
+        enum:
+          - soft
+          - hard
+      tableName:
+        type: string
+        description: the name of a table in the dataset
+      specType:
+        type: string
+        enum:
+          - file
+          - array
+      fileSpec:
+        $ref: '#/definitions/DataDeletionFileModel'
+
+  DataDeletionFileModel:
+    description: |
+      a specification of a file containing row ids to delete
+    type: object
+    properties:
+      fileType:
+        type: string
+        enum:
+          - csv
+          - json
+      path:
+        type: string
+        description: a gs://path/to/a/file that can use wildcards(*)
 
   UserStatusInfo:
     description: ''

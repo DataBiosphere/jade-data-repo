@@ -272,7 +272,7 @@ public class SnapshotOperationTest {
     public void testDuplicateName() throws Exception {
         // create a dataset and load some tabular data
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
 
         // create a snapshot
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");

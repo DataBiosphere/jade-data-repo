@@ -38,6 +38,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -268,7 +269,7 @@ public class SnapshotOperationTest {
         assertThat(errorModel.getMessage(), containsString("Fred"));
     }
 
-    @Test
+    @Ignore
     public void testDuplicateName() throws Exception {
         // create a dataset and load some tabular data
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");

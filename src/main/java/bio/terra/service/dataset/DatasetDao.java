@@ -53,6 +53,21 @@ public class DatasetDao {
         this.assetDao = assetDao;
     }
 
+    /**
+     * Lock the dataset object before doing something with it (e.g. create, delete, bulk file load).
+     * This method returns successfully when there is a dataset object locked by this flight, and throws an exception
+     * in all other cases. Below is an outline of the logic flow of this method.
+     *     1. Check if the dataset object already exists.
+     *     2. Depending on the LockBehaviorFlag specified, throw an exception if the dataset does/not already exist.
+     *     3. Check if the dataset is locked by another flight. If so, throw an exception.
+     *     4. Either create a new dataset object or update the existing one, and give this flight the lock.
+     * @param datasetName name of the dataset to lock, this is a unique column
+     * @param defaultProfileId default profile id of the dataset, this is a required column for creating a new dataset
+     * @param flightId flight id that wants to lock the dataset
+     * @param lockFlag flag specifying the lock behavior (i.e. whether to throw an exception if dataset does/not exist)
+     * @throws DatasetLockException if the dataset is locked by another flight,
+     *                              or if it does/not exist according to the LockBehaviorFlag specified
+     */
     @Transactional(propagation =  Propagation.REQUIRED)
     public void lock(String datasetName, UUID defaultProfileId, String flightId, LockBehaviorFlags lockFlag) {
         // check if the dataset exists and is locked
@@ -67,7 +82,7 @@ public class DatasetDao {
         boolean datasetExists = (selectResult.size() == 1);
         logger.debug("datasetExists: " + datasetExists);
         if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST) && datasetExists) {
-            throw new DatasetLockException("Dataset already exists. Not creating new record to lock.");
+            throw new DatasetLockException("Dataset already exists. Not locking existing record.");
         } else if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_EXISTS) && !datasetExists) {
             throw new DatasetLockException("Dataset does not exist. Not creating new record to lock.");
         }
@@ -97,6 +112,15 @@ public class DatasetDao {
         return;
     }
 
+    /**
+     * Unlock the dataset object when finished doing something with it (e.g. create, delete, bulk file load).
+     * If the dataset is not locked by this flight, then the method is a no-op. It does not throw an exception in this
+     * case. So, multiple unlocks can succeed with no errors. The method does return a boolean indicating whether any
+     * rows were updated or not. So, callers can decide to throw an error if the unlock was a no-op.
+     * @param datasetName name of the dataset to unlock, this is a unique column
+     * @param flightId flight id that wants to unlock the dataset
+     * @return true if a dataset was unlocked, false otherwise
+     */
     @Transactional(propagation =  Propagation.REQUIRED)
     public boolean unlock(String datasetName, String flightId) {
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
@@ -110,6 +134,14 @@ public class DatasetDao {
         return (numRowsUpdated == 1);
     }
 
+    /**
+     * Create a new dataset object. The dataset must already be locked or an exception is thrown.
+     * The correct order to call the DatasetDao methods when creating a dataset is: lock, create, unlock.
+     * @param dataset the dataset object to create
+     * @return the id of the new dataset
+     * @throws SQLException
+     * @throws DatasetLockException if the dataset object has not been locked before calling this method
+     */
     @Transactional(propagation = Propagation.REQUIRED)
     public UUID create(Dataset dataset) throws SQLException {
         String sql = "UPDATE dataset " +

@@ -137,7 +137,7 @@ jobs:
         env:
           DEV_PROJECT: broad-jade-dev
           SECRET_CHART_VERSION: 0.0.4
-          DEPLOY_CHART_VERSION: 0.0.6
+          DEPLOY_CHART_VERSION: 0.0.7
         run: |
           helm namespace upgrade ${NAMESPACEINUSE}-secrets datarepo-helm/create-secret-manager-secret --version=${SECRET_CHART_VERSION} \
             --install --namespace ${NAMESPACEINUSE} -f \
@@ -146,7 +146,6 @@ jobs:
             --namespace ${NAMESPACEINUSE} -f \
             "https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/integration/${NAMESPACEINUSE}/${NAMESPACEINUSE}Deployment.yaml" \
             --set "datarepo-api.image.tag=${GCR_TAG}"
-      # build and push container to integration
       - name: "Build and test code"
         env:
           PGHOST: localhost

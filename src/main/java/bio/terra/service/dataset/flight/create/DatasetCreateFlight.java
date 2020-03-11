@@ -35,7 +35,7 @@ public class DatasetCreateFlight extends Flight {
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
 
-        addStep(new LockDatasetStep(datasetDao, datasetRequest, LockBehaviorFlags.LOCK_REGARDLESS));
+        addStep(new LockDatasetStep(datasetDao, datasetRequest, LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST));
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         // TODO: create dataset data project step
         // right now the cloud project is created as part of the PrimaryDataStep below

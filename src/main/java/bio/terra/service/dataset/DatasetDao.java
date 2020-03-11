@@ -57,10 +57,11 @@ public class DatasetDao {
      * Lock the dataset object before doing something with it (e.g. create, delete, bulk file load).
      * This method returns successfully when there is a dataset object locked by this flight, and throws an exception
      * in all other cases. Below is an outline of the logic flow of this method.
-     *     1. Check if the dataset object already exists.
+     *     1. Check if the dataset is already locked.
+     *         a. If it's locked by THIS flight, then this must be a flight recovery, so return without error.
+     *         b. If it's locked by ANOTHER flight, then throw an exception.
      *     2. Depending on the LockBehaviorFlag specified, throw an exception if the dataset does/not already exist.
-     *     3. Check if the dataset is locked by another flight. If so, throw an exception.
-     *     4. Either create a new dataset object or update the existing one, and give this flight the lock.
+     *     3. Either create a new dataset or update the existing one, and give this flight the lock.
      * @param datasetName name of the dataset to lock, this is a unique column
      * @param defaultProfileId default profile id of the dataset, this is a required column for creating a new dataset
      * @param flightId flight id that wants to lock the dataset
@@ -70,45 +71,61 @@ public class DatasetDao {
      */
     @Transactional(propagation =  Propagation.REQUIRED)
     public void lock(String datasetName, UUID defaultProfileId, String flightId, LockBehaviorFlags lockFlag) {
-        // check if the dataset exists and is locked
+        if (flightId == null) {
+            throw new DatasetLockException("Locking flight id cannot be null");
+        }
+
+        // lookup the dataset
         String sql = "SELECT flightid FROM dataset WHERE name = :name";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", datasetName);
         List<String> selectResult = jdbcTemplate.query(sql, params,
             (rs, rowNum) -> rs.getString(1));
-        String foundFlightId = selectResult.size() == 0 ? null : selectResult.get(0);
-        logger.debug("foundflightid: " + foundFlightId);
 
-        // check the lock behavior flag and return here depending on whether the dataset exists or not
         boolean datasetExists = (selectResult.size() == 1);
-        logger.debug("datasetExists: " + datasetExists);
+        String foundFlightId = datasetExists ? selectResult.get(0) : null;
+        boolean datasetLocked = foundFlightId != null;
+
+        // if the dataset is already locked...
+        if (datasetLocked && flightId.equals(foundFlightId)) {
+            // ...by THIS flight, then this must be a flight recovery
+            logger.debug("dataset already locked by THIS flight, must be a flight recovery");
+            return; // return without error
+        } else if (datasetLocked && !flightId.equals(foundFlightId)) {
+            // ...by ANOTHER flight, then throw an exception
+            logger.debug("dataset already locked by ANOTHER flight, error");
+            throw new DatasetLockException("Dataset is locked by another flight: " + foundFlightId);
+        }
+
+        // at this point, we know that the dataset is not locked by anyone
+        logger.debug("dataset not locked by anyone");
+
+        // check the lock behavior flag and...
         if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST) && datasetExists) {
+            // ...if we only want to lock a new object, throw an exception if one already exists
             throw new DatasetLockException("Dataset already exists. Not locking existing record.");
         } else if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_EXISTS) && !datasetExists) {
+            // ...if we only want to lock an existing object, throw an exception if one doesn't exist
             throw new DatasetLockException("Dataset does not exist. Not creating new record to lock.");
         }
 
-        if (foundFlightId == null) {
-            // dataset name either does not exist or is not locked
-            logger.debug("dataset name either does not exist or is not locked: " + datasetName);
-
-            // if the dataset name does not exist, then create a new dataset entry and set the flight id
-            // if the dataset name does exist and is not locked, then update the entry to set the flight id
-            sql = "INSERT INTO dataset (name, default_profile_id, flightid) " +
-                "VALUES (:name, :default_profile_id, :flightid) " +
-                "ON CONFLICT (name) " +
-                "DO UPDATE SET flightid = :flightid";
-            params = new MapSqlParameterSource()
-                .addValue("name", datasetName)
-                .addValue("default_profile_id", defaultProfileId)
-                .addValue("flightid", flightId);
-            int numRowsUpdated = jdbcTemplate.update(sql, params);
+        // either create or update the dataset entry and lock it by setting the flight id
+        sql = "INSERT INTO dataset (name, default_profile_id, flightid) " +
+            "VALUES (:name, :default_profile_id, :flightid) " +
+            "ON CONFLICT (name) " +
+            "DO UPDATE SET flightid = :flightid";
+        params = new MapSqlParameterSource()
+            .addValue("name", datasetName)
+            .addValue("default_profile_id", defaultProfileId)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        if (numRowsUpdated != 1) {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
-        } else if (!foundFlightId.equals(flightId)) {
-            // dataset name does exist and is locked by another flight
-            throw new DatasetLockException("Dataset is locked by another flight");
+            throw new DatasetLockException("Failed to lock the dataset");
         }
 
-        // if we get to here, we know the dataset name already exists and is locked by the current flight
+        // at this point, we know the dataset exists and is locked by the current flight
+        logger.debug("dataset locked by current flight");
+
         return;
     }
 

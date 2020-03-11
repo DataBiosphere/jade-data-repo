@@ -1,14 +1,17 @@
-name: Run Gradle on PRs
-on: pull_request
+name: Run Gradle Integration test on PRs
+on:
+  pull_request:
+    branches:
+      - develop
 jobs:
   deploy_to_integration:
     timeout-minutes: 180
     strategy:
       matrix:
         os: [ubuntu-latest]
+    if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
     runs-on: ${{ matrix.os }}
-    # skips if pr label is 'skip-ci'
-    if: "!contains(github.event.pull_request.labels, 'skip-ci')"
+    ## skips if pr label is 'skip-ci'
     # run a local Postgres container in Docker for the basic check tests
     services:
       postgres:
@@ -88,8 +91,9 @@ jobs:
           # interact with kubernetes
           CUR_IPS=$(gcloud container clusters describe ${CLUSTER_NAME} --format json | \
             jq -r '[.masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock]')
-          RUNNER_IP=$(curl https://api.ipify.org/?format=text | xargs printf '[ "%s/32" ]')
+          RUNNER_IP=$(curl 'https://api.ipify.org/?format=text' | xargs printf '[ "%s/32" ]')
           NEW_IPS=$(printf '%s\n' $CUR_IPS $RUNNER_IP | jq -s -r 'add | unique | join(",")')
+          echo "::set-env name=RUNNER_IP::${RUNNER_IP}"
 
           gcloud container clusters update ${CLUSTER_NAME} \
             --enable-master-authorized-networks \
@@ -99,10 +103,6 @@ jobs:
           gcloud container clusters get-credentials ${CLUSTER_NAME}
           # export CLUSTER_NAME so it can be used during cleanup
           echo "::set-env name=CLUSTER_NAME::${CLUSTER_NAME}"
-
-          # export the original IP list so it can be restored during cleanup
-          RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -s -r 'add | unique | join(",")')
-          echo "::set-env name=RESTORE_IPS::${RESTORE_IPS}"
       - name: Check for available namespace to run tests in
         run: |
           NAMESPACES=("integration-1" "integration-2" "integration-3" "integration-4" "integration-5")
@@ -161,13 +161,20 @@ jobs:
           ./gradlew check --scan
           ./gradlew testConnected --scan
           ./gradlew testIntegration --scan
-      - name: "Post test cleanup"
+      - name: "Post test cleanup namespace lock"
+        if: always()
+        run: kubectl delete secret -n ${NAMESPACEINUSE} "${NAMESPACEINUSE}-inuse"
+      - name: "Post test cleanup whitelistips"
         if: always()
         run: |
+          # export the original IP list so it can be restored during cleanup
+          CUR_IPS=$(gcloud container clusters describe ${CLUSTER_NAME} --format json | \
+            jq -r '[ .masterAuthorizedNetworksConfig.cidrBlocks[] | .cidrBlock ]')
+          RUNNER_IP=$(echo ${RUNNER_IP}| jq -r '.[0]')
+          RESTORE_IPS=$(printf '%s\n' $CUR_IPS | jq -r --arg RUNNER_IP "$RUNNER_IP" '. - [ $RUNNER_IP ] | unique | join(",")')
           # restore the original list of authorized IPs if they exist
-          if [ ! -z "${RESTORE_IPS}"]; then
+          if [ ! -z "${RESTORE_IPS}" ]; then
             gcloud container clusters update ${CLUSTER_NAME} \
               --enable-master-authorized-networks \
               --master-authorized-networks ${RESTORE_IPS}
           fi
-          kubectl delete secret -n ${NAMESPACEINUSE} "${NAMESPACEINUSE}-inuse"

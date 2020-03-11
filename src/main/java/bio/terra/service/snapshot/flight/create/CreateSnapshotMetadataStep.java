@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -16,7 +15,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 
 import java.util.UUID;

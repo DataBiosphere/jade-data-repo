@@ -18,6 +18,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
@@ -100,7 +101,11 @@ public class BigQueryPdaoTest {
             .defaultProfileId(profileModel.getId())
             .name(datasetName());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetDao.lock(dataset.getName(), dataset.getDefaultProfileId(),
+            createFlightId, LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST);
         UUID datasetId = datasetDao.create(dataset);
+        datasetDao.unlock(dataset.getName(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);
         logger.info("Created dataset in setup: {}", datasetId);
     }

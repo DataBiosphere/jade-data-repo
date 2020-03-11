@@ -4,6 +4,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
+import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
@@ -58,7 +59,12 @@ public class DatasetDaoTest {
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws SQLException {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        return datasetDao.create(dataset);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetDao.lock(dataset.getName(), dataset.getDefaultProfileId(),
+            createFlightId, LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST);
+        UUID datasetId = datasetDao.create(dataset);
+        datasetDao.unlock(dataset.getName(), createFlightId);
+        return datasetId;
     }
 
     private UUID createDataset(String datasetFile) throws IOException, SQLException {

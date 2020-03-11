@@ -4,6 +4,7 @@ import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
@@ -100,7 +101,7 @@ public class DatasetDao {
     @Transactional(propagation =  Propagation.REQUIRED)
     public boolean unlock(String datasetName, String flightId) {
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
-        String sql = " UPDATE dataset SET flightid = NULL " +
+        String sql = "UPDATE dataset SET flightid = NULL " +
             "WHERE name = :name AND flightid = :flightid";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", datasetName)
@@ -120,7 +121,10 @@ public class DatasetDao {
             .addValue("name", dataset.getName())
             .addValue("description", dataset.getDescription())
             .addValue("additional_profile_ids", additionalProfileIds);
-        jdbcTemplate.update(sql, params);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        if (numRowsUpdated == 0) {
+            throw new DatasetLockException("Dataset must be locked before creating it.");
+        }
 
         sql = "SELECT id, created_date FROM dataset WHERE name = :name";
         params = new MapSqlParameterSource().addValue("name", dataset.getName());

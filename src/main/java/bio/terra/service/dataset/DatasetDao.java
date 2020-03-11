@@ -16,6 +16,7 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,7 +70,7 @@ public class DatasetDao {
      * @throws DatasetLockException if the dataset is locked by another flight,
      *                              or if it does/not exist according to the LockBehaviorFlag specified
      */
-    @Transactional(propagation =  Propagation.REQUIRED)
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void lock(String datasetName, UUID defaultProfileId, String flightId, LockBehaviorFlags lockFlag) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
@@ -138,7 +139,7 @@ public class DatasetDao {
      * @param flightId flight id that wants to unlock the dataset
      * @return true if a dataset was unlocked, false otherwise
      */
-    @Transactional(propagation =  Propagation.REQUIRED)
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlock(String datasetName, String flightId) {
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE dataset SET flightid = NULL " +
@@ -159,7 +160,7 @@ public class DatasetDao {
      * @throws SQLException
      * @throws DatasetLockException if the dataset object has not been locked before calling this method
      */
-    @Transactional(propagation = Propagation.REQUIRED)
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID create(Dataset dataset) throws SQLException {
         String sql = "UPDATE dataset " +
             "SET description = :description, additional_profile_ids = :additional_profile_ids " +

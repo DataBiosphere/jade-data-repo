@@ -4,7 +4,6 @@ import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;

@@ -8,6 +8,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
  * It is what is held in the database for the flight and it is passed into the steps
  */
 public class FlightContext {
+    private Stairway stairway;
     private String flightId; // unique id for the flight
     private String flightClassName; // class name of the flight; sufficient for recreating the flight object
     private FlightMap inputParameters; // allows for reconstructing the flight; set unmodifiable
@@ -92,6 +93,14 @@ public class FlightContext {
 
     public void setResult(StepResult result) {
         this.result = result;
+    }
+
+    public Stairway getStairway() {
+        return stairway;
+    }
+
+    public void setStairway(Stairway stairway) {
+        this.stairway = stairway;
     }
 
     /**

@@ -1,5 +1,6 @@
 package bio.terra.service.configuration;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.ConfigFaultCountedModel;
 import bio.terra.model.ConfigFaultModel;
 import bio.terra.model.ConfigGroupModel;
@@ -19,6 +20,11 @@ import java.util.List;
 import java.util.Map;
 
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_DRIVER_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
@@ -30,12 +36,15 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 public class ConfigurationService {
     private final Logger logger = LoggerFactory.getLogger(ConfigurationService.class);
 
+    private final ApplicationConfiguration appConfiguration;
     private final SamConfiguration samConfiguration;
 
     private Map<ConfigEnum, ConfigBase> configuration = new HashMap<>();
 
     @Autowired
-    public ConfigurationService(SamConfiguration samConfiguration) {
+    public ConfigurationService(SamConfiguration samConfiguration,
+                                ApplicationConfiguration appConfiguration) {
+        this.appConfiguration = appConfiguration;
         this.samConfiguration = samConfiguration;
         setConfiguration();
     }
@@ -161,9 +170,17 @@ public class ConfigurationService {
 
     // Setup the configuration. This is done once during construction.
     private void setConfiguration() {
+        // -- Parameters --
         addParameter(SAM_RETRY_INITIAL_WAIT_SECONDS, samConfiguration.getRetryInitialWaitSeconds());
         addParameter(SAM_RETRY_MAXIMUM_WAIT_SECONDS, samConfiguration.getRetryMaximumWaitSeconds());
         addParameter(SAM_OPERATION_TIMEOUT_SECONDS, samConfiguration.getOperationTimeoutSeconds());
+        addParameter(LOAD_BULK_ARRAY_FILES_MAX, appConfiguration.getMaxBulkFileLoadArray());
+        addParameter(LOAD_BULK_FILES_MAX, appConfiguration.getMaxBulkFileLoad());
+        addParameter(LOAD_CONCURRENT_FILES, appConfiguration.getLoadConcurrentFiles());
+        addParameter(LOAD_CONCURRENT_INGESTS, appConfiguration.getLoadConcurrentIngests());
+        addParameter(LOAD_DRIVER_WAIT_SECONDS, appConfiguration.getLoadDriverWaitSeconds());
+
+        // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);
         addFaultCounted(SAM_TIMEOUT_FAULT, 0, -1, 25, ConfigFaultCountedModel.RateStyleEnum.FIXED);
 

@@ -214,9 +214,6 @@ public class DatasetRequestValidator implements Validator {
             if (ValidationUtils.hasDuplicates(assetNames)) {
                 errors.rejectValue("schema", "DuplicateAssetNames");
             }
-            if (assets.size() == 0) {
-                errors.rejectValue("schema", "NoAssets");
-            }
             assets.forEach((asset) -> validateAsset(asset, errors, context));
         }
     }

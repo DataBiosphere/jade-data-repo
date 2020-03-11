@@ -20,6 +20,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
@@ -166,14 +167,14 @@ public class DataRepoClient {
 
         if (response.getStatusCode().is2xxSuccessful()) {
             if (responseClass != null) {
-                T responseObject = objectMapper.readValue(response.getBody(), responseClass);
+                T responseObject = mapFromJson(response.getBody(), responseClass);
                 drResponse.setResponseObject(Optional.of(responseObject));
             } else {
                 drResponse.setResponseObject(Optional.empty());
             }
             drResponse.setErrorModel(Optional.empty());
         } else {
-            S errorObject = objectMapper.readValue(response.getBody(), errorClass);
+            S errorObject = mapFromJson(response.getBody(), errorClass);
             drResponse.setErrorModel(Optional.of(errorObject));
             drResponse.setResponseObject(Optional.empty());
         }
@@ -188,6 +189,14 @@ public class DataRepoClient {
         return copy;
     }
 
-
+    private <T> T mapFromJson(String content, Class<T> valueType) throws IOException {
+        try {
+            return objectMapper.readValue(content, valueType);
+        } catch (IOException ex) {
+            logger.error("DataRepoClient unable to map JSON response to " +
+                valueType.getName() + "JSON: " + content, ex);
+            throw ex;
+        }
+    }
 
 }

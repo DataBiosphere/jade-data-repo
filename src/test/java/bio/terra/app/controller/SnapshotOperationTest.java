@@ -158,13 +158,12 @@ public class SnapshotOperationTest {
     @Test
     public void testRowIdsHappyPath() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getName(), "thetable", "snapshot-test-dataset-data.csv");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
 
         SnapshotRequestModel snapshotRequest =
             makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
         SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
-        //TimeUnit.SECONDS.sleep(10);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 

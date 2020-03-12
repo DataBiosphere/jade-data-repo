@@ -6,6 +6,7 @@ import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -23,44 +24,65 @@ import static org.junit.Assert.assertThat;
 @AutoConfigureMockMvc
 @Category(Unit.class)
 public class LoadUnitTest {
-    private static final String tag1 = "myLoadTag1";
-    private static final String tag2 = "myLoadTag2";
-    private static final String flight1 = "myFlightId1";
-    private static final String flight2 = "myFlightId2";
-
     @Autowired
     private LoadService loadService;
 
+    private enum LoadTagsUsedByTest {
+        LOADTAG_1("myLoadTag1"), LOADTAG_2("myLoadTag2");
+        private String tag;
+        public String getTag() { return tag; }
+        LoadTagsUsedByTest(String tag) { this.tag = tag; }
+    }
+    private enum FlightIdsUsedByTest {
+        FLIGHT_1("myFlightId1"), FLIGHT_2("myFlightId2");
+        private String id;
+        public String getId() { return id; }
+        FlightIdsUsedByTest(String id) { this.id = id; }
+    }
+
+    @Before
+    public void setup() throws Exception {
+        // try to unlock all load tags in the enum
+        for (LoadTagsUsedByTest loadTag : LoadTagsUsedByTest.values()) {
+            // loop through all flight ids in the enum, since any one could have successfully locked the load last
+            for (FlightIdsUsedByTest flightId : FlightIdsUsedByTest.values()) {
+                try {
+                    loadService.unlockLoad(loadTag.getTag(), flightId.getId());
+                } catch (RuntimeException rEx) { }
+            }
+        }
+    }
+
     @Test
     public void loadLocKTest() throws Exception {
-        loadService.lockLoad(tag1, flight1);
+        loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
         // Relock of the same (tag, flight) should work
-        loadService.lockLoad(tag1, flight1);
-        loadService.lockLoad(tag2, flight2);
-        loadService.unlockLoad(tag2, flight2);
-        loadService.unlockLoad(tag1, flight1);
+        loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
+        loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_2.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
+        loadService.unlockLoad(LoadTagsUsedByTest.LOADTAG_2.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
+        loadService.unlockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
         // Duplicate unlock should work
-        loadService.unlockLoad(tag1, flight1);
+        loadService.unlockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
     }
 
     @Test(expected = LoadLockedException.class)
     public void alreadyLockedTest() throws Exception {
-        loadService.lockLoad(tag1, flight1);
-        loadService.lockLoad(tag1, flight2);
+        loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
+        loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
     }
 
     @Test(expected = LoadLockedException.class)
     public void cannotUnlockTest() throws Exception {
-        loadService.lockLoad(tag1, flight1);
-        loadService.unlockLoad(tag1, flight2);
+        loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
+        loadService.unlockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
     }
 
     @Test
     public void computeLoadTagTest() throws Exception {
         String loadTag = loadService.computeLoadTag(null);
         assertThat("generated load tag", loadTag, startsWith("load-at-"));
-        loadTag = loadService.computeLoadTag(tag1);
-        assertThat("pass through load tag", loadTag, equalTo(tag1));
+        loadTag = loadService.computeLoadTag(LoadTagsUsedByTest.LOADTAG_1.getTag());
+        assertThat("pass through load tag", loadTag, equalTo(LoadTagsUsedByTest.LOADTAG_1.getTag()));
     }
 
     @Test
@@ -69,20 +91,20 @@ public class LoadUnitTest {
         FlightMap inputParams = new FlightMap();
         FlightContext flightContext = new FlightContext(inputParams, null, null);
         FlightMap workingMap = flightContext.getWorkingMap();
-        workingMap.put(LoadMapKeys.LOAD_TAG, tag1);
+        workingMap.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_1.getTag());
 
         String loadTag = loadService.getLoadTag(flightContext);
-        assertThat("working map load tag", loadTag, equalTo(tag1));
+        assertThat("working map load tag", loadTag, equalTo(LoadTagsUsedByTest.LOADTAG_1.getTag()));
 
         // Should get from input Params
         FlightMap inputParams1 = new FlightMap();
-        inputParams1.put(LoadMapKeys.LOAD_TAG, tag1);
+        inputParams1.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_1.getTag());
         flightContext = new FlightContext(inputParams1, null, null);
         workingMap = flightContext.getWorkingMap();
-        workingMap.put(LoadMapKeys.LOAD_TAG, tag2);
+        workingMap.put(LoadMapKeys.LOAD_TAG, LoadTagsUsedByTest.LOADTAG_2.getTag());
 
         loadTag = loadService.getLoadTag(flightContext);
-        assertThat("input params load tag", loadTag, equalTo(tag1));
+        assertThat("input params load tag", loadTag, equalTo(LoadTagsUsedByTest.LOADTAG_1.getTag()));
     }
 
     @Test(expected = LoadLockFailureException.class)

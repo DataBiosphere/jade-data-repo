@@ -5,6 +5,8 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.load.exception.LoadLockedException;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -38,6 +40,50 @@ public class LoadDaoUnitTest {
     @Autowired
     private ConfigurationService configService;
 
+    private enum LoadTagsUsedByTest {
+        LOADTAG_MY("myLoadTag"), LOADTAG_SERIAL("serialLoadTag"), LOADTAG_CONCURRENT("concurrentLoadTag");
+        private String tag;
+        public String getTag() { return tag; }
+        LoadTagsUsedByTest(String tag) { this.tag = tag; }
+    }
+    private enum FlightIdsUsedByTest {
+        FLIGHT_MY("myFlightId"), FLIGHT_INIT("initFlightId"), FLIGHT_A("flightIdA"), FLIGHT_B("flightIdB"),
+        FLIGHT_C("flightIdC"), FLIGHT_D("flightIdD"), FLIGHT_E("flightIdE"), FLIGHT_F("flightIdF"),
+        FLIGHT_G("flightIdG"), FLIGHT_H("flightIdH"), FLIGHT_X("flightIdX"), FLIGHT_Y("flightIdY");
+        private String id;
+        public String getId() { return id; }
+        FlightIdsUsedByTest(String id) { this.id = id; }
+    }
+    private List<UUID> loadIdsWithFilesUsedByTest;
+
+    @Before
+    public void setup() throws Exception {
+        // try to unlock all load tags in the enum
+        for (LoadTagsUsedByTest loadTag : LoadTagsUsedByTest.values()) {
+            // loop through all flight ids in the enum, since any one could have successfully locked the load last
+            for (FlightIdsUsedByTest flightId : FlightIdsUsedByTest.values()) {
+                try {
+                    loadDao.unlockLoad(loadTag.getTag(), flightId.getId());
+                } catch (RuntimeException rEx) { }
+            }
+        }
+
+        // initialize the load id list to an empty list
+        loadIdsWithFilesUsedByTest = new ArrayList<>();
+    }
+
+    @After
+    public void teardown() {
+        // try to clean files for all load ids in the list
+        for (UUID loadId : loadIdsWithFilesUsedByTest) {
+            try {
+                loadDao.cleanFiles(loadId);
+            } catch (RuntimeException rEx) {
+                logger.error("Error cleaning files for load id: " + loadId, rEx);
+            }
+        }
+    }
+
     @Test
     public void loadFilesTest() throws Exception {
         UUID loadId = populateFiles(8);
@@ -50,7 +96,7 @@ public class LoadDaoUnitTest {
 
         loadDao.setLoadFileSucceeded(loadId, loadSet1.get(0).getTargetPath(), "fileidA");
         loadDao.setLoadFileFailed(loadId, loadSet1.get(1).getTargetPath(), "failureB");
-        loadDao.setLoadFileRunning(loadId, loadSet1.get(2).getTargetPath(), "flightC");
+        loadDao.setLoadFileRunning(loadId, loadSet1.get(2).getTargetPath(), FlightIdsUsedByTest.FLIGHT_C.getId());
 
         // Second set of candidates - set prior running to succeeded
         candidates = loadDao.findCandidates(loadId, 3);
@@ -59,9 +105,9 @@ public class LoadDaoUnitTest {
 
         loadDao.setLoadFileSucceeded(loadId, loadSet1.get(2).getTargetPath(), "fileidC");
 
-        loadDao.setLoadFileRunning(loadId, loadSet2.get(0).getTargetPath(), "flightD");
-        loadDao.setLoadFileRunning(loadId, loadSet2.get(1).getTargetPath(), "flightE");
-        loadDao.setLoadFileRunning(loadId, loadSet2.get(2).getTargetPath(), "flightF");
+        loadDao.setLoadFileRunning(loadId, loadSet2.get(0).getTargetPath(), FlightIdsUsedByTest.FLIGHT_D.getId());
+        loadDao.setLoadFileRunning(loadId, loadSet2.get(1).getTargetPath(), FlightIdsUsedByTest.FLIGHT_E.getId());
+        loadDao.setLoadFileRunning(loadId, loadSet2.get(2).getTargetPath(), FlightIdsUsedByTest.FLIGHT_F.getId());
 
         // Third set of candidates - set all 3 prior to failed
         candidates = loadDao.findCandidates(loadId, 3);
@@ -72,8 +118,8 @@ public class LoadDaoUnitTest {
         loadDao.setLoadFileFailed(loadId, loadSet2.get(1).getTargetPath(), "errorE");
         loadDao.setLoadFileFailed(loadId, loadSet2.get(2).getTargetPath(), "errorF");
 
-        loadDao.setLoadFileRunning(loadId, loadSet3.get(0).getTargetPath(), "flightG");
-        loadDao.setLoadFileRunning(loadId, loadSet3.get(1).getTargetPath(), "flightH");
+        loadDao.setLoadFileRunning(loadId, loadSet3.get(0).getTargetPath(), FlightIdsUsedByTest.FLIGHT_G.getId());
+        loadDao.setLoadFileRunning(loadId, loadSet3.get(1).getTargetPath(), FlightIdsUsedByTest.FLIGHT_H.getId());
 
         // No more candidates, but things are still running
         candidates = loadDao.findCandidates(loadId, 3);
@@ -94,9 +140,9 @@ public class LoadDaoUnitTest {
 
     @Test
     public void serialLockTest() throws Exception {
-        final String loadTag = "serialLoadTag";
-        final String flightX = "flightIdX";
-        final String flightY = "flightIdY";
+        final String loadTag = LoadTagsUsedByTest.LOADTAG_SERIAL.getTag();
+        final String flightX = FlightIdsUsedByTest.FLIGHT_X.getId();
+        final String flightY = FlightIdsUsedByTest.FLIGHT_Y.getId();
 
         boolean xlocks = tryLockLoad(loadTag, flightX);
         assertTrue("x gets lock", xlocks);
@@ -128,17 +174,17 @@ public class LoadDaoUnitTest {
         // through. Since thread A did the select first, when thread B tries the update, it gets a serialization
         // failure. When thread B completes, the test code enables the CONTINUE fault allowing thread A
         // to continue and make its update to the load tag.
-        final String loadTag = "concurrentLoadTag";
-
-        configService.setFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT.name(), true);
+        final String loadTag = LoadTagsUsedByTest.LOADTAG_CONCURRENT.getTag();
 
         // Initialize the load tag by locking and unlocking it, so neither thread will perform the creation
         // and miss the faults.
-        loadDao.lockLoad(loadTag, "initFlight");
-        loadDao.unlockLoad(loadTag, "initFlight");
+        loadDao.lockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
+        loadDao.unlockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
 
-        LoadLockTester loadLockA = new LoadLockTester(loadDao, loadTag, "flightIdA");
-        LoadLockTester loadLockB = new LoadLockTester(loadDao, loadTag, "flightIdB");
+        configService.setFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        LoadLockTester loadLockA = new LoadLockTester(loadDao, loadTag, FlightIdsUsedByTest.FLIGHT_A.getId());
+        LoadLockTester loadLockB = new LoadLockTester(loadDao, loadTag, FlightIdsUsedByTest.FLIGHT_B.getId());
 
         Thread threadA = new Thread(loadLockA);
 
@@ -162,7 +208,8 @@ public class LoadDaoUnitTest {
     }
 
     private UUID populateFiles(int n) {
-        Load load = loadDao.lockLoad("myLoadTag", "myFlightId");
+        Load load = loadDao.lockLoad(LoadTagsUsedByTest.LOADTAG_MY.getTag(), FlightIdsUsedByTest.FLIGHT_MY.getId());
+        loadIdsWithFilesUsedByTest.add(load.getId()); // add load id to test class list, for cleanup afterwards
 
         List<BulkLoadFileModel> loadList = new ArrayList<>();
 

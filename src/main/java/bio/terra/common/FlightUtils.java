@@ -1,7 +1,9 @@
-package bio.terra.stairway;
+package bio.terra.common;
 
 import bio.terra.model.ErrorModel;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import org.springframework.http.HttpStatus;
 
 /**
@@ -36,4 +38,3 @@ public final class FlightUtils {
         workingMap.put(JobMapKeys.STATUS_CODE.getKeyName(), responseStatus);
     }
 }
-

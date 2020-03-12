@@ -1,22 +1,21 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetCreateFlight extends Flight {
 
-    public DatasetCreateFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+    public DatasetCreateFlight(FlightMap inputParameters, Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         // get the required daos and services to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;

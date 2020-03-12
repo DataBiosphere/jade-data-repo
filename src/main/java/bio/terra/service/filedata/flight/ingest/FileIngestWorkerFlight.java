@@ -12,7 +12,6 @@ import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
@@ -28,9 +27,8 @@ import java.util.UUID;
 public class FileIngestWorkerFlight extends Flight {
 
     public FileIngestWorkerFlight(FlightMap inputParameters,
-                                  Object applicationContext,
-                                  UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+                                  Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");

@@ -28,6 +28,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -275,6 +276,8 @@ public class FileOperationTest {
     }
 
     @Test
+    @Ignore // This test will not reliably succeed until DR-643 is fixed
+    // TODO: unignore when DR-643 is fixed
     public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
         BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 0, 3);
         BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 3, 3);

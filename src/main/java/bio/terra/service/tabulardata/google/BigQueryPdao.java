@@ -315,7 +315,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
                     sqlTemplate.add("dataset", datasetBqDatasetName);
                     sqlTemplate.add("tableId", sourceTable.getId().toString());
                     sqlTemplate.add("rowIds", rowIds);
-                    sqlTemplate.add("softDelTable", prefixSoftDeleteTableName(sourceTable.getName()));
                     bigQueryProject.query(sqlTemplate.render());
                 }
                 ST sqlTemplate = new ST(validateRowIdsForRootTemplate);

@@ -43,19 +43,34 @@ public class LoadDaoUnitTest {
     private enum LoadTagsUsedByTest {
         LOADTAG_MY("myLoadTag"), LOADTAG_SERIAL("serialLoadTag"), LOADTAG_CONCURRENT("concurrentLoadTag");
         private String tag;
-        public String getTag() { return tag; }
-        LoadTagsUsedByTest(String tag) { this.tag = tag; }
+        public String getTag() {
+            return tag;
+        }
+        LoadTagsUsedByTest(String tag) {
+            this.tag = tag;
+        }
     }
     private enum FlightIdsUsedByTest {
         FLIGHT_MY("myFlightId"), FLIGHT_INIT("initFlightId"), FLIGHT_A("flightIdA"), FLIGHT_B("flightIdB"),
         FLIGHT_C("flightIdC"), FLIGHT_D("flightIdD"), FLIGHT_E("flightIdE"), FLIGHT_F("flightIdF"),
         FLIGHT_G("flightIdG"), FLIGHT_H("flightIdH"), FLIGHT_X("flightIdX"), FLIGHT_Y("flightIdY");
         private String id;
-        public String getId() { return id; }
-        FlightIdsUsedByTest(String id) { this.id = id; }
+        public String getId() {
+            return id;
+        }
+        FlightIdsUsedByTest(String id) {
+            this.id = id;
+        }
     }
     private List<UUID> loadIdsWithFilesUsedByTest;
 
+    /**
+     * Any load tags and flight ids used in this class should be added to the enums above.
+     * Before each test method is run, we try to unlock each combination of load tag + flight id.
+     * This is to prevent leftover state from impacting the test results, so that the tests are repeatable.
+     * The loop below is exhaustive in trying to unlock every combination, but this allows each
+     * test method to not worry about lock cleanup, and not worry about interactions with other test methods.
+     */
     @Before
     public void setup() throws Exception {
         // try to unlock all load tags in the enum
@@ -72,6 +87,11 @@ public class LoadDaoUnitTest {
         loadIdsWithFilesUsedByTest = new ArrayList<>();
     }
 
+    /**
+     * Any load ids that add files should be added to the list above.
+     * After each test method is run, we try to clear all the files for each load id in the list.
+     * This is to prevent leftover state from impacting test results, so that the tests are repeatable.
+     */
     @After
     public void teardown() {
         // try to clean files for all load ids in the list

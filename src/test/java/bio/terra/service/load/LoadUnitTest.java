@@ -30,16 +30,31 @@ public class LoadUnitTest {
     private enum LoadTagsUsedByTest {
         LOADTAG_1("myLoadTag1"), LOADTAG_2("myLoadTag2");
         private String tag;
-        public String getTag() { return tag; }
-        LoadTagsUsedByTest(String tag) { this.tag = tag; }
+        public String getTag() {
+            return tag;
+        }
+        LoadTagsUsedByTest(String tag) {
+            this.tag = tag;
+        }
     }
     private enum FlightIdsUsedByTest {
         FLIGHT_1("myFlightId1"), FLIGHT_2("myFlightId2");
         private String id;
-        public String getId() { return id; }
-        FlightIdsUsedByTest(String id) { this.id = id; }
+        public String getId() {
+            return id;
+        }
+        FlightIdsUsedByTest(String id) {
+            this.id = id;
+        }
     }
 
+    /**
+     * Any load tags and flight ids used in this class should be added to the enums above.
+     * Before each test method is run, we try to unlock each combination of load tag + flight id.
+     * This is to prevent leftover state from impacting the test results, so that the tests are repeatable.
+     * The loop below is exhaustive in trying to unlock every combination, but this allows each
+     * test method to not worry about lock cleanup, and not worry about interactions with other test methods.
+     */
     @Before
     public void setup() throws Exception {
         // try to unlock all load tags in the enum

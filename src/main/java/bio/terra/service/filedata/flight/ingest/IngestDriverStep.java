@@ -272,7 +272,7 @@ public class IngestDriverStep implements Step {
             // table, but it has not yet been launched. A failure in this window leaves "orphan"
             // loads that are marked running, but not actually started. We handle this
             // with the check for launch orphans at the beginning of the do() method.
-            stairway.submit(flightId, FileIngestWorkerFlight.class, inputParameters, context.getUser());
+            stairway.submit(flightId, FileIngestWorkerFlight.class, inputParameters);
         }
     }
 

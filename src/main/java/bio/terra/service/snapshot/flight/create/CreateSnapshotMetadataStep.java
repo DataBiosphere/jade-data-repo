@@ -2,7 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.stairway.FlightUtils;
+import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotSummary;

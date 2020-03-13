@@ -1,5 +1,6 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -49,7 +50,7 @@ public class SnapshotValidationTest {
     private void expectBadSnapshotCreateRequest(SnapshotRequestModel snapshotRequest) throws Exception {
         mvc.perform(post("/api/repository/v1/snapshots")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(snapshotRequest)))
+                .content(TestUtils.mapToJson(snapshotRequest)))
                 .andExpect(status().is4xxClientError());
     }
 

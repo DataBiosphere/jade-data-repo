@@ -291,13 +291,13 @@ public class SnapshotOperationTest {
 
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(datasetRequest)))
+                .content(TestUtils.mapToJson(datasetRequest)))
                 .andExpect(status().isCreated())
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
         DatasetSummaryModel datasetSummaryModel =
-                objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
+                TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
         createdDatasetIds.add(datasetSummaryModel.getId());
 
         return datasetSummaryModel;
@@ -352,7 +352,7 @@ public class SnapshotOperationTest {
         String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
         snapshotRequest.setName(snapshotName);
 
-        String jsonRequest = objectMapper.writeValueAsString(snapshotRequest);
+        String jsonRequest = TestUtils.mapToJson(snapshotRequest);
 
         return mvc.perform(post("/api/repository/v1/snapshots")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -378,7 +378,7 @@ public class SnapshotOperationTest {
             if (StringUtils.contains(responseBody, "message")) {
                 // If the responseBody contains the word 'message', then we try to decode it as an ErrorModel
                 // so we can generate good failure information.
-                ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+                ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
                 failMessage += " msg=" + errorModel.getMessage();
             } else {
                 failMessage += " responseBody=" + responseBody;
@@ -386,7 +386,7 @@ public class SnapshotOperationTest {
             fail(failMessage);
         }
 
-        SnapshotSummaryModel summaryModel = objectMapper.readValue(responseBody, SnapshotSummaryModel.class);
+        SnapshotSummaryModel summaryModel = TestUtils.mapFromJson(responseBody, SnapshotSummaryModel.class);
         createdSnapshotIds.add(summaryModel.getId());
 
         assertThat(summaryModel.getDescription(), equalTo(snapshotRequest.getDescription()));
@@ -406,7 +406,7 @@ public class SnapshotOperationTest {
         assertTrue("Error model was returned on failure",
                 StringUtils.contains(responseBody, "message"));
 
-        return objectMapper.readValue(responseBody, ErrorModel.class);
+        return TestUtils.mapFromJson(responseBody, ErrorModel.class);
     }
 
     private void deleteTestSnapshot(String id) throws Exception {
@@ -424,7 +424,7 @@ public class SnapshotOperationTest {
 
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
-            objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
@@ -437,7 +437,7 @@ public class SnapshotOperationTest {
 
         MockHttpServletResponse response = result.getResponse();
         EnumerateSnapshotModel summary =
-                objectMapper.readValue(response.getContentAsString(), EnumerateSnapshotModel.class);
+                TestUtils.mapFromJson(response.getContentAsString(), EnumerateSnapshotModel.class);
         return summary;
     }
 
@@ -449,7 +449,7 @@ public class SnapshotOperationTest {
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        SnapshotModel snapshotModel = objectMapper.readValue(response.getContentAsString(), SnapshotModel.class);
+        SnapshotModel snapshotModel = TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
 
         assertThat(snapshotModel.getDescription(), equalTo(snapshotRequest.getDescription()));
         assertThat(snapshotModel.getName(), startsWith(snapshotRequest.getName()));
@@ -469,7 +469,7 @@ public class SnapshotOperationTest {
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        ErrorModel errorModel = objectMapper.readValue(response.getContentAsString(), ErrorModel.class);
+        ErrorModel errorModel = TestUtils.mapFromJson(response.getContentAsString(), ErrorModel.class);
         assertThat("proper not found error", errorModel.getMessage(), startsWith("Snapshot not found"));
     }
 
@@ -482,7 +482,7 @@ public class SnapshotOperationTest {
             assertTrue("received expected jobs polling status",
                     (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
 
-            JobModel jobModel = objectMapper.readValue(response.getContentAsString(), JobModel.class);
+            JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
             String jobId = jobModel.getId();
             String locationUrl = response.getHeader("Location");
             assertNotNull("location URL was specified", locationUrl);

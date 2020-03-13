@@ -3,6 +3,12 @@ on:
   pull_request:
     branches:
       - develop
+    paths:
+      - !.gradle
+      - !.github
+      - !ops
+      - !travis
+      - !skaffold.yaml.template
 jobs:
   deploy_to_integration:
     timeout-minutes: 180

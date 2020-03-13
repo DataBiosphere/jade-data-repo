@@ -5,6 +5,7 @@ import bio.terra.app.controller.exception.ApiException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.DatasetFixtures;
+import bio.terra.common.TestUtils;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.model.AssetModel;
 import bio.terra.service.dataset.DatasetJsonConversion;
@@ -73,7 +74,7 @@ public class DatasetTest {
         mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(DatasetFixtures.buildDatasetRequest())))
+            .content(TestUtils.mapToJson(DatasetFixtures.buildDatasetRequest())))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.name").value("Minimal"))
             .andExpect(jsonPath("$.description")
@@ -101,7 +102,7 @@ public class DatasetTest {
         when(datasetService.createDataset(any(), any())).thenThrow(ApiException.class);
         mvc.perform(post("/api/repository/v1/datasets")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(DatasetFixtures.buildDatasetRequest())))
+                .content(TestUtils.mapToJson(DatasetFixtures.buildDatasetRequest())))
                 .andExpect(status().isInternalServerError());
     }
 
@@ -138,7 +139,7 @@ public class DatasetTest {
         mvc.perform(get("/api/repository/v1/datasets/{id}", id.toString()))
             .andDo((result) -> {
                 DatasetModel datasetModel =
-                    objectMapper.readValue(result.getResponse().getContentAsString(), DatasetModel.class);
+                    TestUtils.mapFromJson(result.getResponse().getContentAsString(), DatasetModel.class);
                 assertThat("Dataset retrieve returns a Dataset Model with schema",
                     datasetModel.getName(),
                     equalTo(req.getName()));
@@ -151,7 +152,7 @@ public class DatasetTest {
             });
 
         assertThat("Dataset retrieve returns a Dataset Model with schema",
-                objectMapper.readValue(
+                TestUtils.mapFromJson(
                         mvc.perform(get("/api/repository/v1/datasets/{id}", id))
                                 .andReturn()
                                 .getResponse()

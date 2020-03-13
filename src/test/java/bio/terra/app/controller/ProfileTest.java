@@ -1,6 +1,7 @@
 package bio.terra.app.controller;
 
 import bio.terra.common.category.Unit;
+import bio.terra.common.TestUtils;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.BillingProfileModel;
@@ -68,7 +69,7 @@ public class ProfileTest {
         String responseJson = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(billingProfileRequest)))
+            .content(TestUtils.mapToJson(billingProfileRequest)))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.profileName").value("Test billing account"))
             .andExpect(jsonPath("$.biller").value("direct"))
@@ -119,7 +120,7 @@ public class ProfileTest {
         String responseJson = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer: faketoken")
-            .content(objectMapper.writeValueAsString(billingProfileRequest)))
+            .content(TestUtils.mapToJson(billingProfileRequest)))
             .andExpect(status().is4xxClientError())
             .andReturn().getResponse().getContentAsString();
         ErrorModel errors = objectMapper.readerFor(ErrorModel.class).readValue(responseJson);

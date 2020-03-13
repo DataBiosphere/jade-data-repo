@@ -30,8 +30,6 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
@@ -59,13 +57,10 @@ public class DataRepoFixtures {
     @Autowired
     private TestConfiguration testConfig;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest();
-        String json = mapToJson(billingProfileRequestModel);
+        String json = TestUtils.mapToJson(billingProfileRequestModel);
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
             user,
             "/api/resources/v1/profiles",
@@ -87,7 +82,7 @@ public class DataRepoFixtures {
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setDefaultProfileId(billingProfileModel.getId());
         requestModel.setName(Names.randomizeName(requestModel.getName()));
-        String json = mapToJson(requestModel);
+        String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
             user,
@@ -148,7 +143,7 @@ public class DataRepoFixtures {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
-            mapToJson(req), null);
+            TestUtils.mapToJson(req), null);
     }
 
     public void addPolicyMember(TestConfiguration.User user,
@@ -175,7 +170,7 @@ public class DataRepoFixtures {
                                    String datasetId,
                                    AssetModel assetModel) throws Exception {
         return dataRepoClient.post(user, "/api/repository/v1/datasets/" + datasetId + "/assets",
-            mapToJson(assetModel), JobModel.class);
+            TestUtils.mapToJson(assetModel), JobModel.class);
     }
 
     public void addDatasetAsset(TestConfiguration.User user,
@@ -204,7 +199,7 @@ public class DataRepoFixtures {
         requestModel.setName(Names.randomizeName(requestModel.getName()));
         requestModel.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
         requestModel.setProfileId(billingProfileModel.getId());
-        String json = mapToJson(requestModel);
+        String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
             user,
@@ -280,7 +275,7 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
         TestConfiguration.User user, String datasetId, IngestRequestModel request) throws Exception {
-        String ingestBody = mapToJson(request);
+        String ingestBody = TestUtils.mapToJson(request);
         return dataRepoClient.post(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/ingest",
@@ -319,7 +314,7 @@ public class DataRepoFixtures {
             .mimeType("application/octet-string")
             .targetPath(targetPath);
 
-        String json = mapToJson(fileLoadModel);
+        String json = TestUtils.mapToJson(fileLoadModel);
 
         return dataRepoClient.post(
             user,
@@ -488,7 +483,7 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<ConfigListModel> setConfigListRaw(TestConfiguration.User user,
                                                               ConfigGroupModel configGroup) throws Exception {
-        String json = mapToJson(configGroup);
+        String json = TestUtils.mapToJson(configGroup);
         return dataRepoClient.put(user,
             "/api/repository/v1/configs",
             json,
@@ -512,15 +507,6 @@ public class DataRepoFixtures {
         assertThat("getConfigList is successfully", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("getConfigList response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
-    }
-
-    private String mapToJson(Object value) {
-        try {
-            return objectMapper.writeValueAsString(value);
-        } catch (JsonProcessingException ex) {
-            logger.error("DataRepoFixture unable to map value to JSON. Value is: " + value, ex);
-        }
-        return null;
     }
 
 }

@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -163,7 +164,7 @@ public class FileOperationTest {
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
-        FileModel lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        FileModel lookupModel = TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
@@ -179,7 +180,7 @@ public class FileOperationTest {
             .andReturn();
         response = result.getResponse();
         assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
-        lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        lookupModel = TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again

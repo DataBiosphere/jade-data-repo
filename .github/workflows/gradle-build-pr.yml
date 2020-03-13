@@ -34,6 +34,8 @@ jobs:
           PGHOST: localhost
           PGPORT: ${{ job.services.postgres.ports[5432] }}
           PGPASSWORD: postgres
+          GOOGLE_CLOUD_PROJECT: broad-jade-integration
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
         run: |
           # required for tests
           psql -U postgres -f ./db/create-data-repo-db

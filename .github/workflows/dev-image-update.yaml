@@ -95,7 +95,7 @@ jobs:
         uses: broadinstitute/action-slack@v2
         with:
           status: ${{ job.status }}
-          author_name: Integration Test
+          author_name: Develop image tag update
           only_mention_fail: smark,jhert
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

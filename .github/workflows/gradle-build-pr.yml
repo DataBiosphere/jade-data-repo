@@ -29,6 +29,43 @@ jobs:
           java-version: 8
       - name: "Install Gradle"
         uses: broadinstitute/gradle-command-action@v1
+      - name: "Install Vault"
+        uses: broadinstitute/setup-vault@v1
+        with:
+          version: "1.3"
+      # the vault token and private key are used for connected and integration tests
+      - name: "Get Vault token"
+        # pull in GitHub secrets as environment variables
+        env:
+          ROLE_ID: ${{ secrets.ROLE_ID }}
+          SECRET_ID: ${{ secrets.SECRET_ID }}
+          VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          GOOGLE_SA_CERT: ${{ secrets.GOOGLE_SA_CERT }}
+        run: |
+          export VAULT_TOKEN=$(curl \
+            --request POST \
+            --data '{"role_id":"'"${ROLE_ID}"'","secret_id":"'"${SECRET_ID}"'"}' \
+            ${VAULT_ADDR}/v1/auth/approle/login | jq -r .auth.client_token)
+          vault read -format=json secret/dsde/datarepo/dev/sa-key.json | \
+            jq .data > $GOOGLE_APPLICATION_CREDENTIALS
+          jq -r .private_key $GOOGLE_APPLICATION_CREDENTIALS > $GOOGLE_SA_CERT
+          chmod 600 $GOOGLE_SA_CERT
+      - name: "Configure Google Cloud SDK"
+        env:
+          INTEGRATION_ZONE: us-central1
+          INTEGRATION_PROJECT: broad-jade-integration
+          CLUSTER_NAME: integration-master
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+        run: |
+          # authenticate against google cloud with the vault token json
+          gcloud auth activate-service-account --key-file $GOOGLE_APPLICATION_CREDENTIALS
+
+          # configure integration prerequisites
+          gcloud config set compute/zone ${INTEGRATION_ZONE}
+          gcloud config set project ${INTEGRATION_PROJECT}
+
+          gcloud auth configure-docker
       - name: "Build and test code"
         env:
           PGHOST: localhost

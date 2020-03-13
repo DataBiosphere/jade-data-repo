@@ -3,11 +3,6 @@ on:
   pull_request:
     branches:
       - develop
-    paths:
-      - !.gradle
-      - !ops
-      - !travis
-      - !skaffold.yaml.template
 jobs:
   connected_test:
     timeout-minutes: 180

@@ -75,15 +75,21 @@ public class DatasetServiceTest {
 
     private ArrayList<String> flightIdsList;
 
+    private ArrayList<UUID> datasetIdList;
+
     private UUID createDataset(DatasetRequestModel datasetRequest, String newName) {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        return datasetDao.create(dataset);
+        UUID datasetId = datasetDao.create(dataset);
+        datasetIdList.add(datasetId);
+        return datasetId;
     }
 
     private UUID createDataset(String datasetFile) throws IOException {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
-        return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
+        UUID datasetId = createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
+        datasetIdList.add(datasetId);
+        return datasetId;
     }
 
     @Before
@@ -94,14 +100,23 @@ public class DatasetServiceTest {
         // Setup mock sam service
         connectedOperations.stubOutSamCalls(samService);
         flightIdsList = new ArrayList<>();
+        datasetIdList = new ArrayList<>();
     }
 
     @After
     public void teardown() {
+        for (UUID datasetId : datasetIdList) {
+            datasetDao.delete(datasetId);
+        }
         profileDao.deleteBillingProfileById(billingProfile.getId());
         for (String flightId : flightIdsList) {
             jobService.releaseJob(flightId, testUser);
         }
+    }
+
+    @Test
+    public void datasetOmopTest() throws Exception {
+        createDataset("it-dataset-omop.json");
     }
 
     @Test(expected = DatasetNotFoundException.class)

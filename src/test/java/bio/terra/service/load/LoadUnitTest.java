@@ -67,7 +67,7 @@ public class LoadUnitTest {
     public void getLoadTagTest() throws Exception {
         // Should get tag from working map
         FlightMap inputParams = new FlightMap();
-        FlightContext flightContext = new FlightContext(inputParams, null, null);
+        FlightContext flightContext = new FlightContext(inputParams, null);
         FlightMap workingMap = flightContext.getWorkingMap();
         workingMap.put(LoadMapKeys.LOAD_TAG, tag1);
 
@@ -77,7 +77,7 @@ public class LoadUnitTest {
         // Should get from input Params
         FlightMap inputParams1 = new FlightMap();
         inputParams1.put(LoadMapKeys.LOAD_TAG, tag1);
-        flightContext = new FlightContext(inputParams1, null, null);
+        flightContext = new FlightContext(inputParams1, null);
         workingMap = flightContext.getWorkingMap();
         workingMap.put(LoadMapKeys.LOAD_TAG, tag2);
 
@@ -88,7 +88,7 @@ public class LoadUnitTest {
     @Test(expected = LoadLockFailureException.class)
     public void getLoadTagFailTest() throws Exception {
         FlightMap inputParams = new FlightMap();
-        FlightContext flightContext = new FlightContext(inputParams, null, null);
+        FlightContext flightContext = new FlightContext(inputParams, null);
         loadService.getLoadTag(flightContext);
     }
 }

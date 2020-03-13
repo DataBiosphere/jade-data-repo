@@ -5,13 +5,12 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 public class DatasetIngestFlight extends Flight {
 
-    public DatasetIngestFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+    public DatasetIngestFlight(FlightMap inputParameters, Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;

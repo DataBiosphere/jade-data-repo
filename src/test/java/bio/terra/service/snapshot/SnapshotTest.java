@@ -150,23 +150,14 @@ public class SnapshotTest extends UsersBase {
             .map(v -> v.get(0).getStringValue())
             .collect(Collectors.toList());
 
-        // build a snapshot-by-rowId request
-        SnapshotRequestRowIdTableModel table = new SnapshotRequestRowIdTableModel()
-            .rowIds(idList)
-            .tableName(datasetTable);
-        List<SnapshotRequestRowIdTableModel> tables = Collections.singletonList(table);
-
-        SnapshotRequestRowIdModel rowIdSpec = new SnapshotRequestRowIdModel()
-            .tables(tables);
-
-        SnapshotRequestContentsModel contents = new SnapshotRequestContentsModel()
-            .datasetName(dataset.getName())
-            .mode(SnapshotRequestContentsModel.ModeEnum.BYROWID)
-            .rowIdSpec(rowIdSpec);
-
+        // swap in these row ids in the request
         SnapshotRequestModel requestModel =
             jsonLoader.loadObject("ingest-test-snapshot-row-ids-test.json", SnapshotRequestModel.class);
-        requestModel.setContents(Collections.singletonList(contents));
+        requestModel
+            .getContents().get(0)
+            .getRowIdSpec()
+            .getTables().get(0)
+            .setRowIds(idList);
 
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),

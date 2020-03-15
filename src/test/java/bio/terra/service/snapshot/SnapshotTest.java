@@ -15,10 +15,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestRowIdModel;
-import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.bigquery.BigQuery;
@@ -38,7 +35,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;

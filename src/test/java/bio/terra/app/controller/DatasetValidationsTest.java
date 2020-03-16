@@ -255,18 +255,18 @@ public class DatasetValidationsTest {
     @Test
     public void testDatasetNameInvalid() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no spaces"));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Pattern"});
 
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no-dashes"));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Pattern"});
 
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(""));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Size", "Pattern"});
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Size"});
     }
 
     @Test
@@ -339,7 +339,7 @@ public class DatasetValidationsTest {
             errorModel.getMessage(), containsString("Validation errors - see error details"));
         for (int i = 0; i < messageCodes.length; i++) {
             String code = messageCodes[i];
-            assertThat(context + ": correct message code (" + i + ")",
+            assertThat(context + ": correct message code (" + code + ")",
                 /**
                  * The global exception handler logs in this format:
                  *

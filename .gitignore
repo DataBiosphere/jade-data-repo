@@ -40,6 +40,7 @@ build/
 src/generated/
 .swagger-codegen/
 .swagger-codegen-ignore
+pom.xml
 
 # gradle files
 .gradle/

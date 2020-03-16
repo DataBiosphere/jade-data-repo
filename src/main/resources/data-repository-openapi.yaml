@@ -2581,6 +2581,9 @@ definitions:
         type: array
         items:
           type: string
+      googleProjectId:
+        description: the project id that is set for this deployment
+        type: string
 
   ConfigModel:
     description: |

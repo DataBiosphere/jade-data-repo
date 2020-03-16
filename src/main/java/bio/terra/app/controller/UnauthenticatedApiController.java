@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -24,6 +25,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
 
     private final OauthConfiguration oauthConfig;
 
+    private final GoogleResourceConfiguration googleResourceConfiguration;
+
     @Autowired
     private Environment env;
 
@@ -31,11 +34,13 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     public UnauthenticatedApiController(
         ObjectMapper objectMapper,
         HttpServletRequest request,
-        OauthConfiguration oauthConfig
+        OauthConfiguration oauthConfig,
+        GoogleResourceConfiguration googleResourceConfiguration
     ) {
         this.objectMapper = objectMapper;
         this.request = request;
         this.oauthConfig = oauthConfig;
+        this.googleResourceConfiguration = googleResourceConfiguration;
     }
 
     @Override
@@ -57,7 +62,8 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     public ResponseEntity<RepositoryConfigurationModel> retrieveRepositoryConfig() {
         RepositoryConfigurationModel configurationModel = new RepositoryConfigurationModel()
             .clientId(oauthConfig.getClientId())
-            .activeProfiles(Arrays.asList(env.getActiveProfiles()));
+            .activeProfiles(Arrays.asList(env.getActiveProfiles()))
+            .googleProjectId(googleResourceConfiguration.getProjectId());
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
     }
 

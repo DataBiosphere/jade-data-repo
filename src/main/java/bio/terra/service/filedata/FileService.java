@@ -1,6 +1,7 @@
 package bio.terra.service.filedata;
 
 import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DirectoryDetailModel;
 import bio.terra.model.FileDetailModel;
@@ -14,7 +15,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
-import bio.terra.service.filedata.flight.ingest.FileArrayIngestFlight;
+import bio.terra.service.filedata.flight.ingest.FileIngestBulkArrayFlight;
+import bio.terra.service.filedata.flight.ingest.FileIngestBulkFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -79,12 +81,32 @@ public class FileService {
             .submit();
     }
 
+    public String ingestBulkFile(String datasetId,
+                                 BulkLoadRequestModel loadModel,
+                                 AuthenticatedUserRequest userReq) {
+        String loadTag = loadModel.getLoadTag();
+        loadModel.setLoadTag(loadTag);
+        String description = "Bulk ingest from control file: " + loadModel.getLoadControlFile() +
+            "  LoadTag: " + loadTag;
+
+        return jobService
+            .newJob(description, FileIngestBulkFlight.class, loadModel, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
+            .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
+            .addParameter(LoadMapKeys.CONCURRENT_INGESTS,
+                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_INGESTS))
+            .addParameter(LoadMapKeys.CONCURRENT_FILES,
+                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
+            .submit();
+
+    }
+
     public String ingestBulkFileArray(String datasetId,
                                       BulkLoadArrayRequestModel loadArray,
                                       AuthenticatedUserRequest userReq) {
         String loadTag = loadArray.getLoadTag();
         loadArray.setLoadTag(loadTag);
-        String description = "Ingest file array of " + loadArray.getLoadArray().size() +
+        String description = "Bulk ingest from array of " + loadArray.getLoadArray().size() +
             "files. LoadTag: " + loadTag;
 
         int filesMax = configService.getParameterValue(ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX);
@@ -94,7 +116,7 @@ public class FileService {
                 filesMax + "; request array contains " + inArraySize);
         }
         return jobService
-            .newJob(description, FileArrayIngestFlight.class, loadArray, userReq)
+            .newJob(description, FileIngestBulkArrayFlight.class, loadArray, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
             .addParameter(LoadMapKeys.CONCURRENT_INGESTS,

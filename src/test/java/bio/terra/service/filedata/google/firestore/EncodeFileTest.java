@@ -78,7 +78,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-public class EncodeFileTest {
+public class
+
+EncodeFileTest {
     private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 
     @Autowired private MockMvc mvc;

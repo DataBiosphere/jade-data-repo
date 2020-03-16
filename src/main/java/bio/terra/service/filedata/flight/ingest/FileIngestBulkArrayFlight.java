@@ -24,11 +24,11 @@ import org.springframework.context.ApplicationContext;
  * - REQUEST is a BulkLoadArrayRequestModel
  */
 
-public class FileArrayIngestFlight extends Flight {
+public class FileIngestBulkArrayFlight extends Flight {
 
-    public FileArrayIngestFlight(FlightMap inputParameters,
-                                 Object applicationContext,
-                                 UserRequestInfo userRequestInfo) {
+    public FileIngestBulkArrayFlight(FlightMap inputParameters,
+                                     Object applicationContext,
+                                     UserRequestInfo userRequestInfo) {
         super(inputParameters, applicationContext, userRequestInfo);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -54,18 +54,20 @@ public class FileArrayIngestFlight extends Flight {
         // 2. TODO: reserve a bulk load slot to make sure we have the threads to do the flight; abort otherwise (DR-754)
         // 3. Put the array into the load_file table for processing
         // 4. Main loading loop - shared with bulk ingest from a file in a bucket
-        // 5. TODO: Copy results into the database BigQuery (DR-694)
-        // 6. Clean load_file table
-        // 7. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
-        // 8. Unlock the load tag
+        // 5. Generate the bulk array response: summary and array of results
+        // 6. TODO: Copy results into the database BigQuery (DR-694)
+        // 7. Clean load_file table
+        // 8. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
+        // 9. Unlock the load tag
         addStep(new VerifyAuthorizationStep(iamService, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
         addStep(new LoadLockStep(loadService));
         // 2. reserve a bulk load slot
         addStep(new IngestPopulateFileStateFromArrayStep(loadService));
         addStep(new IngestDriverStep(loadService, datasetId, loadTag, concurrentFiles, maxFailedFileLoads, profileId));
-        // 5. copy results into BigQuery
+        addStep(new IngestBulkArrayResponseStep(loadService, loadTag));
+        // 6. copy results into BigQuery
         addStep(new IngestCleanFileStateStep(loadService));
-        // 7. release bulk load slot
+        // 8. release bulk load slot
         addStep(new LoadUnlockStep(loadService));
     }
 

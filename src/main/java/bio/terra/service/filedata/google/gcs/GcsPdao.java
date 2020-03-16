@@ -63,37 +63,10 @@ public class GcsPdao {
                                FileLoadModel fileLoadModel,
                                String fileId,
                                GoogleBucketResource bucketResource) {
-        String sourceBucket;
-        String sourcePath;
 
-        try {
-            URI sourceUri = URI.create(fileLoadModel.getSourcePath());
-            if (!StringUtils.equals(sourceUri.getScheme(), "gs")) {
-                throw new PdaoInvalidUriException("Source path is not a gs path: '" +
-                    fileLoadModel.getSourcePath() + "'");
-            }
-            if (sourceUri.getPort() != -1) {
-                throw new PdaoInvalidUriException("Source path must not have a port specified: '" +
-                    fileLoadModel.getSourcePath() + "'");
-            }
-            sourceBucket = sourceUri.getAuthority();
-            sourcePath = StringUtils.removeStart(sourceUri.getPath(), "/");
-        } catch (IllegalArgumentException ex) {
-            throw new PdaoInvalidUriException("Invalid gs path: '" +
-                fileLoadModel.getSourcePath() + "'", ex);
-        }
-
-        if (sourceBucket == null || sourcePath == null) {
-            throw new PdaoInvalidUriException("Invalid gs path: '" +
-                fileLoadModel.getSourcePath() + "'");
-        }
 
         Storage storage = storageForBucket(bucketResource);
-        Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));
-        if (sourceBlob == null) {
-            throw new PdaoSourceFileNotFoundException("Source file not found: '" +
-                fileLoadModel.getSourcePath() + "'");
-        }
+        Blob sourceBlob = getBlobFromGsPath(storage, fileLoadModel.getSourcePath());
 
         // Our path is /<dataset-id>/<file-id>
         String targetPath = dataset.getId().toString() + "/" + fileId;
@@ -202,6 +175,36 @@ public class GcsPdao {
 
     public void removeAclOnFiles(Dataset dataset, List<String> fileIds, String readersPolicyEmail) {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
+    }
+
+    static Blob getBlobFromGsPath(Storage storage, String gspath) {
+        String sourceBucket;
+        String sourcePath;
+
+        try {
+            URI sourceUri = URI.create(gspath);
+            if (!StringUtils.equals(sourceUri.getScheme(), "gs")) {
+                throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
+            }
+            if (sourceUri.getPort() != -1) {
+                throw new PdaoInvalidUriException("Path must not have a port specified: '" + gspath + "'");
+            }
+            sourceBucket = sourceUri.getAuthority();
+            sourcePath = StringUtils.removeStart(sourceUri.getPath(), "/");
+        } catch (IllegalArgumentException ex) {
+            throw new PdaoInvalidUriException("Invalid gs path: '" + gspath + "'", ex);
+        }
+
+        if (sourceBucket == null || sourcePath == null) {
+            throw new PdaoInvalidUriException("Invalid gs path: '" + gspath + "'");
+        }
+
+        Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));
+        if (sourceBlob == null) {
+            throw new PdaoSourceFileNotFoundException("Source file not found: '" + gspath + "'");
+        }
+
+        return sourceBlob;
     }
 
     private void fileAclOp(AclOp op, Dataset dataset, List<String> fileIds, String readersPolicyEmail) {

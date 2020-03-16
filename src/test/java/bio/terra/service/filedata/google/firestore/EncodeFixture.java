@@ -1,5 +1,6 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
@@ -125,7 +126,7 @@ public class EncodeFixture {
 
             String line = null;
             while ((line = reader.readLine()) != null) {
-                EncodeFileIn encodeFileIn = objectMapper.readValue(line, EncodeFileIn.class);
+                EncodeFileIn encodeFileIn = TestUtils.mapFromJson(line, EncodeFileIn.class);
 
                 String bamFileId = null;
                 String bamiFileId = null;
@@ -139,7 +140,7 @@ public class EncodeFixture {
                 }
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
-                String fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
+                String fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
                 writer.write(fileLine);
             }
         }

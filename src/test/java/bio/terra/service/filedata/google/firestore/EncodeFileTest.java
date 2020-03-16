@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
@@ -78,9 +79,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-public class
-
-EncodeFileTest {
+public class EncodeFileTest {
     private static final Logger logger = LoggerFactory.getLogger(EncodeFileTest.class);
 
     @Autowired private MockMvc mvc;
@@ -289,7 +288,7 @@ EncodeFileTest {
             .table("file")
             .path(gsPath);
 
-        String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
+        String jsonRequest = TestUtils.mapToJson(ingestRequest);
         String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
@@ -325,7 +324,7 @@ EncodeFileTest {
             .table("file")
             .path(gsPath);
 
-        String jsonRequest = objectMapper.writeValueAsString(ingestRequest);
+        String jsonRequest = TestUtils.mapToJson(ingestRequest);
         String url = "/api/repository/v1/datasets/" + datasetSummary.getId() + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
@@ -386,7 +385,7 @@ EncodeFileTest {
             boolean badRowInserted = false;
             String line = null;
             while ((line = reader.readLine()) != null) {
-                EncodeFileIn encodeFileIn = objectMapper.readValue(line, EncodeFileIn.class);
+                EncodeFileIn encodeFileIn = TestUtils.mapFromJson(line, EncodeFileIn.class);
 
                 String bamFileId = null;
                 String bamiFileId = null;
@@ -414,7 +413,7 @@ EncodeFileTest {
                 if (insertBadRow && !badRowInserted) {
                     fileLine = "{\"fribbitz\";\"ABCDEFG\"}\n";
                 } else {
-                    fileLine = objectMapper.writeValueAsString(encodeFileOut) + "\n";
+                    fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
                 }
                 writer.write(ByteBuffer.wrap(fileLine.getBytes("UTF-8")));
             }

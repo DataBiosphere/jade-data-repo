@@ -15,7 +15,6 @@ import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 import java.util.UUID;
@@ -25,8 +24,8 @@ import java.util.UUID;
 // TODO: Refactor flights when we do the cloud refactor work.
 public class FileIngestFlight extends Flight {
 
-    public FileIngestFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+    public FileIngestFlight(FlightMap inputParameters, Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");

@@ -24,8 +24,8 @@ import java.util.UUID;
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileStep implements Step {
     // TODO: MAYBE make these configuration items?
-    private final int BATCH_SIZE = 50;
-    private final int MAX_BAD_LINES = 5;
+    private static final int BATCH_SIZE = 50;
+    private static final int MAX_BAD_LINES = 5;
 
     private final LoadService loadService;
     private final ObjectMapper objectMapper;
@@ -47,7 +47,7 @@ public class IngestPopulateFileStateFromFileStep implements Step {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         List<String> errorDetails = new ArrayList<>();
 
-        try(BufferedReader reader = new GcsBufferedReader(storage, loadRequest.getLoadControlFile())) {
+        try (BufferedReader reader = new GcsBufferedReader(storage, loadRequest.getLoadControlFile())) {
             long lineCount = 0;
             List<BulkLoadFileModel> fileList = new ArrayList<>();
 

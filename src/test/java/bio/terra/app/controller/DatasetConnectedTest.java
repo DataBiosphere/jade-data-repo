@@ -1,17 +1,17 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -43,7 +43,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Category(Connected.class)
 public class DatasetConnectedTest {
     @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ProfileDao profileDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
@@ -64,19 +63,19 @@ public class DatasetConnectedTest {
 
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(datasetRequest)))
+            .content(TestUtils.mapToJson(datasetRequest)))
             .andExpect(status().isCreated())
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
         assertThat("create omop dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
         DatasetSummaryModel datasetSummaryModel =
-            objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
 
         result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetSummaryModel.getId())).andReturn();
         response = result.getResponse();
         assertThat("delete omop dataset successfully", response.getStatus(), equalTo(HttpStatus.OK.value()));
         DeleteResponseModel responseModel =
-            objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));

@@ -1,6 +1,7 @@
 package bio.terra.common.fixtures;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.TestUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
@@ -23,7 +24,6 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.sam.SamConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
@@ -66,7 +66,6 @@ public class ConnectedOperations {
     private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
 
     private MockMvc mvc;
-    private ObjectMapper objectMapper;
     private JsonLoader jsonLoader;
     private SamConfiguration samConfiguration;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
@@ -82,12 +81,10 @@ public class ConnectedOperations {
 
     @Autowired
     public ConnectedOperations(MockMvc mvc,
-                               ObjectMapper objectMapper,
                                JsonLoader jsonLoader,
                                SamConfiguration samConfiguration,
                                ConnectedTestConfiguration testConfig) {
         this.mvc = mvc;
-        this.objectMapper = objectMapper;
         this.jsonLoader = jsonLoader;
         this.samConfiguration = samConfiguration;
         this.testConfig = testConfig;
@@ -127,13 +124,13 @@ public class ConnectedOperations {
 
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(datasetRequest)))
+            .content(TestUtils.mapToJson(datasetRequest)))
             .andExpect(status().isCreated())
             .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
         DatasetSummaryModel datasetSummaryModel =
-            objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
 
         addDataset(datasetSummaryModel.getId());
         return datasetSummaryModel;
@@ -148,7 +145,7 @@ public class ConnectedOperations {
     public BillingProfileModel createProfile(BillingProfileRequestModel profileRequestModel) throws Exception {
         MvcResult result = mvc.perform(post("/api/resources/v1/profiles")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(profileRequestModel)))
+            .content(TestUtils.mapToJson(profileRequestModel)))
             .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
@@ -156,11 +153,11 @@ public class ConnectedOperations {
 
         if (response.getStatus() == HttpStatus.CREATED.value()) {
             BillingProfileModel billingProfileModel =
-                objectMapper.readValue(responseContent, BillingProfileModel.class);
+                TestUtils.mapFromJson(responseContent, BillingProfileModel.class);
             addProfile(billingProfileModel.getId());
             return billingProfileModel;
         }
-        ErrorModel errorModel = objectMapper.readValue(responseContent, ErrorModel.class);
+        ErrorModel errorModel = TestUtils.mapFromJson(responseContent, ErrorModel.class);
         List<String> errorDetail = errorModel.getErrorDetail();
         String message = String.format("couldn't create profile: %s (%s)",
             errorModel.getMessage(), String.join(", ", errorDetail));
@@ -172,7 +169,7 @@ public class ConnectedOperations {
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
 
-        return objectMapper.readValue(result.getResponse().getContentAsString(), BillingProfileModel.class);
+        return TestUtils.mapFromJson(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
     public MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
@@ -189,7 +186,7 @@ public class ConnectedOperations {
 
         MvcResult result = mvc.perform(post("/api/repository/v1/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(snapshotRequest)))
+            .content(TestUtils.mapToJson(snapshotRequest)))
             .andReturn();
 
         return validateJobModelAndWait(result);
@@ -198,7 +195,7 @@ public class ConnectedOperations {
     public SnapshotModel getSnapshot(String snapshotId) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + snapshotId)).andReturn();
         MockHttpServletResponse response = result.getResponse();
-        return objectMapper.readValue(response.getContentAsString(), SnapshotModel.class);
+        return TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
     }
 
     public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {
@@ -216,7 +213,7 @@ public class ConnectedOperations {
             if (StringUtils.contains(responseBody, "message")) {
                 // If the responseBody contains the word 'message', then we try to decode it as an ErrorModel
                 // so we can generate good failure information.
-                ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+                ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
                 failMessage += " msg=" + errorModel.getMessage();
             } else {
                 failMessage += " responseBody=" + responseBody;
@@ -224,7 +221,7 @@ public class ConnectedOperations {
             fail(failMessage);
         }
 
-        return objectMapper.readValue(responseBody, returnClass);
+        return TestUtils.mapFromJson(responseBody, returnClass);
     }
 
     public ErrorModel handleAsyncFailureCase(MockHttpServletResponse response) throws Exception {
@@ -235,7 +232,7 @@ public class ConnectedOperations {
         assertTrue("Error model was returned on failure",
             StringUtils.contains(responseBody, "message"));
 
-        return objectMapper.readValue(responseBody, ErrorModel.class);
+        return TestUtils.mapFromJson(responseBody, ErrorModel.class);
     }
 
     public void deleteTestDataset(String id) throws Exception {
@@ -280,7 +277,7 @@ public class ConnectedOperations {
 
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
-            objectMapper.readValue(response.getContentAsString(), DeleteResponseModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
@@ -290,7 +287,7 @@ public class ConnectedOperations {
         String datasetId,
         IngestRequestModel ingestRequestModel) throws Exception {
 
-        String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
+        String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
 
         MvcResult result = mvc.perform(post(url)
@@ -307,7 +304,7 @@ public class ConnectedOperations {
     }
 
     public ErrorModel ingestTableFailure(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
-        String jsonRequest = objectMapper.writeValueAsString(ingestRequestModel);
+        String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -318,7 +315,7 @@ public class ConnectedOperations {
     }
 
     public FileModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
-        String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
+        String jsonRequest = TestUtils.mapToJson(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -359,7 +356,7 @@ public class ConnectedOperations {
     }
 
     public MvcResult ingestArrayRaw(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
-        String jsonRequest = objectMapper.writeValueAsString(loadModel);
+        String jsonRequest = TestUtils.mapToJson(loadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array";
         return mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -381,7 +378,7 @@ public class ConnectedOperations {
     }
 
     public MvcResult ingestBulkFileRaw(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
-        String jsonRequest = objectMapper.writeValueAsString(loadModel);
+        String jsonRequest = TestUtils.mapToJson(loadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk";
         return mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -389,7 +386,7 @@ public class ConnectedOperations {
             .andReturn();
     }
     public ErrorModel ingestFileFailure(String datasetId, FileLoadModel fileLoadModel) throws Exception {
-        String jsonRequest = objectMapper.writeValueAsString(fileLoadModel);
+        String jsonRequest = TestUtils.mapToJson(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
         MvcResult result = mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
@@ -407,7 +404,7 @@ public class ConnectedOperations {
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
 
-        return objectMapper.readValue(result.getResponse().getContentAsString(), FileModel.class);
+        return TestUtils.mapFromJson(result.getResponse().getContentAsString(), FileModel.class);
     }
 
     public FileModel lookupSnapshotFileByPath(String snapshotId, String path, long depth) throws Exception {
@@ -418,7 +415,7 @@ public class ConnectedOperations {
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
 
-        return objectMapper.readValue(result.getResponse().getContentAsString(), FileModel.class);
+        return TestUtils.mapFromJson(result.getResponse().getContentAsString(), FileModel.class);
     }
 
     public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {
@@ -429,7 +426,7 @@ public class ConnectedOperations {
             .andExpect(status().isOk())
             .andReturn();
 
-        return objectMapper.readValue(result.getResponse().getContentAsString(), DRSObject.class);
+        return TestUtils.mapFromJson(result.getResponse().getContentAsString(), DRSObject.class);
     }
 
     public MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
@@ -440,7 +437,7 @@ public class ConnectedOperations {
             assertTrue("expected jobs polling status, got " + status.toString(),
                 (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
 
-            JobModel jobModel = objectMapper.readValue(response.getContentAsString(), JobModel.class);
+            JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
             String jobId = jobModel.getId();
             String locationUrl = response.getHeader("Location");
             assertNotNull("location URL was specified", locationUrl);

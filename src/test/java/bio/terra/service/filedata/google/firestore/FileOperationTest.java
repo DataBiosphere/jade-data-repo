@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.google.firestore;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
@@ -171,7 +172,7 @@ public class FileOperationTest {
         MockHttpServletResponse response = result.getResponse();
         assertThat("Lookup file succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
 
-        FileModel lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        FileModel lookupModel = TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Error: Duplicate target file
@@ -187,7 +188,7 @@ public class FileOperationTest {
             .andReturn();
         response = result.getResponse();
         assertThat("Lookup file by path succeeds", HttpStatus.valueOf(response.getStatus()), equalTo(HttpStatus.OK));
-        lookupModel = objectMapper.readValue(response.getContentAsString(), FileModel.class);
+        lookupModel = TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
@@ -278,7 +279,8 @@ public class FileOperationTest {
     }
 
     @Test
-    @Ignore // TODO: can run once DR-643 is fixed
+    @Ignore // This test will not reliably succeed until DR-643 is fixed
+    // TODO: unignore when DR-643 is fixed
     public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
         BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 0, 3);
         BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 3, 3);
@@ -403,7 +405,6 @@ public class FileOperationTest {
         BulkLoadRequestModel loadRequest =
             makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, new boolean[]{true, false, true, false});
         loadRequest.maxFailedFileLoads(4);
-        String loadTag = loadRequest.getLoadTag();
 
         ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
         assertThat("Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
@@ -414,13 +415,12 @@ public class FileOperationTest {
         loadRequest =
             makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, new boolean[]{true, true, true, true});
         loadRequest.maxFailedFileLoads(4);
-        loadTag = loadRequest.getLoadTag();
 
         errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
         assertThat("Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
         assertThat("Expected error", errorModel.getMessage(), containsString("More than"));
-        assertThat("Expected number of error details", errorModel.getErrorDetail().size(), greaterThan(5)); }
-
+        assertThat("Expected number of error details", errorModel.getErrorDetail().size(), greaterThan(5));
+    }
 
     private static void checkFileResultFailed(BulkLoadFileResultModel fileResult) {
         assertNotNull("Error is not null", fileResult.getError());
@@ -460,7 +460,10 @@ public class FileOperationTest {
         return arrayLoad;
     }
 
-    private BulkLoadRequestModel makeBulkFileLoad(String tagBase, int startIndex, int badLines, boolean[] validPattern) {
+    private BulkLoadRequestModel makeBulkFileLoad(String tagBase,
+                                                  int startIndex,
+                                                  int badLines,
+                                                  boolean[] validPattern) {
         int fileCount = validPattern.length;
         String testId = Names.randomizeName("test");
         String loadTag = tagBase + testId;

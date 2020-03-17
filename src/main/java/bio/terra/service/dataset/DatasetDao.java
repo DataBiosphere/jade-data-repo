@@ -1,10 +1,10 @@
 package bio.terra.service.dataset;
 
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
+import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
@@ -24,11 +24,8 @@ import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Repository
@@ -58,74 +55,32 @@ public class DatasetDao {
      * Lock the dataset object before doing something with it (e.g. create, delete, bulk file load).
      * This method returns successfully when there is a dataset object locked by this flight, and throws an exception
      * in all other cases. Below is an outline of the logic flow of this method.
-     *     1. Check if the dataset is already locked.
-     *         a. If it's locked by THIS flight, then this must be a flight recovery, so return without error.
-     *         b. If it's locked by ANOTHER flight, then throw an exception.
-     *     2. Depending on the LockBehaviorFlag specified, throw an exception if the dataset does/not already exist.
-     *     3. Either create a new dataset or update the existing one, and give this flight the lock.
+     *     1. Update the dataset record to give this flight the lock.
+     *     2. Throw an exception if no records were updated.
      * @param datasetName name of the dataset to lock, this is a unique column
-     * @param defaultProfileId default profile id of the dataset, this is a required column for creating a new dataset
      * @param flightId flight id that wants to lock the dataset
-     * @param lockFlag flag specifying the lock behavior (i.e. whether to throw an exception if dataset does/not exist)
      * @throws DatasetLockException if the dataset is locked by another flight,
      *                              or if it does/not exist according to the LockBehaviorFlag specified
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lock(String datasetName, UUID defaultProfileId, String flightId, LockBehaviorFlags lockFlag) {
+    public void lock(String datasetName, String flightId) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
 
-        // lookup the dataset
-        String sql = "SELECT flightid FROM dataset WHERE name = :name";
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", datasetName);
-        List<String> selectResult = jdbcTemplate.query(sql, params,
-            (rs, rowNum) -> rs.getString(1));
-
-        boolean datasetExists = (selectResult.size() == 1);
-        String foundFlightId = datasetExists ? selectResult.get(0) : null;
-        boolean datasetLocked = foundFlightId != null;
-
-        // if the dataset is already locked...
-        if (datasetLocked && flightId.equals(foundFlightId)) {
-            // ...by THIS flight, then this must be a flight recovery
-            logger.debug("dataset already locked by THIS flight, must be a flight recovery");
-            return; // return without error
-        } else if (datasetLocked && !flightId.equals(foundFlightId)) {
-            // ...by ANOTHER flight, then throw an exception
-            logger.debug("dataset already locked by ANOTHER flight, error");
-            throw new DatasetLockException("Dataset is locked by another flight: " + foundFlightId);
-        }
-
-        // at this point, we know that the dataset is not locked by anyone
-        logger.debug("dataset not locked by anyone");
-
-        // check the lock behavior flag and...
-        if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST) && datasetExists) {
-            // ...if we only want to lock a new object, throw an exception if one already exists
-            throw new DatasetLockException("Dataset already exists. Not locking existing record.");
-        } else if (lockFlag.equals(LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_EXISTS) && !datasetExists) {
-            // ...if we only want to lock an existing object, throw an exception if one doesn't exist
-            throw new DatasetLockException("Dataset does not exist. Not creating new record to lock.");
-        }
-
-        // either create or update the dataset entry and lock it by setting the flight id
-        sql = "INSERT INTO dataset (name, default_profile_id, flightid) " +
-            "VALUES (:name, :default_profile_id, :flightid) " +
-            "ON CONFLICT (name) " +
-            "DO UPDATE SET flightid = :flightid";
-        params = new MapSqlParameterSource()
+        // update the dataset entry and lock it by setting the flight id
+        String sql = "UPDATE dataset SET flightid = :flightid " +
+            "WHERE name = :name AND (flightid IS NULL OR flightid = :flightid)";
+        MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", datasetName)
-            .addValue("default_profile_id", defaultProfileId)
             .addValue("flightid", flightId);
         int numRowsUpdated = jdbcTemplate.update(sql, params);
-        if (numRowsUpdated != 1) {
+
+        // if no rows were updated, then throw an exception
+        if (numRowsUpdated == 0) {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to lock the dataset");
         }
-
-        // at this point, we know the dataset exists and is locked by the current flight
-        logger.debug("dataset locked by current flight");
 
         return;
     }
@@ -153,39 +108,28 @@ public class DatasetDao {
     }
 
     /**
-     * Create a new dataset object. The dataset must already be locked or an exception is thrown.
-     * The correct order to call the DatasetDao methods when creating a dataset is: lock, create, unlock.
+     * Create a new dataset object and lock it. An exception is thrown if the dataset already exists.
+     * The correct order to call the DatasetDao methods when creating a dataset is: createAndLock, unlock.
      * @param dataset the dataset object to create
      * @return the id of the new dataset
      * @throws SQLException
-     * @throws DatasetLockException if the dataset object has not been locked before calling this method
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID create(Dataset dataset) throws SQLException {
-        String sql = "UPDATE dataset " +
-            "SET description = :description, additional_profile_ids = :additional_profile_ids " +
-            "WHERE name = :name";
+    public UUID createAndLock(Dataset dataset, String flightId) throws SQLException {
+        String sql = "INSERT INTO dataset (name, default_profile_id, flightid, description, additional_profile_ids) " +
+            "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids) ";
         Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
+            .addValue("default_profile_id", dataset.getDefaultProfileId())
+            .addValue("flightid", flightId)
             .addValue("description", dataset.getDescription())
             .addValue("additional_profile_ids", additionalProfileIds);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
-        if (numRowsUpdated == 0) {
-            throw new DatasetLockException("Dataset must be locked before creating it.");
-        }
-
-        sql = "SELECT id, created_date FROM dataset WHERE name = :name";
-        params = new MapSqlParameterSource().addValue("name", dataset.getName());
-        List<Map<String, Object>> selectResult = jdbcTemplate.query(sql, params,
-            (rs, rowNum) -> {
-                Map<String, Object> rowMap = new HashMap<>();
-                rowMap.put("id", rs.getObject("id", UUID.class));
-                rowMap.put("created_date", rs.getTimestamp("created_date").toInstant());
-                return rowMap;
-            });
-        dataset.id((UUID)selectResult.get(0).get("id"));
-        dataset.createdDate((Instant)selectResult.get(0).get("created_date"));
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        jdbcTemplate.update(sql, params, keyHolder);
+        UUID datasetId = keyHolder.getId();
+        dataset.id(datasetId);
+        dataset.createdDate(keyHolder.getCreatedDate());
 
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
@@ -200,10 +144,16 @@ public class DatasetDao {
         return rowsAffected > 0;
     }
 
-    @Transactional
-    public boolean deleteByName(String datasetName) {
-        int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE name = :name",
-                new MapSqlParameterSource().addValue("name", datasetName));
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean deleteByNameAndFlight(String datasetName, String flightId) {
+        String sql = "DELETE FROM dataset WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", datasetName)
+            .addValue("flightid", flightId);
+        int rowsAffected = jdbcTemplate.update(sql, params);
+
+        // TODO: shouldn't we also be deleting from the auxiliary daos for this dataset (table, relationship, asset)?
+
         return rowsAffected > 0;
     }
 

@@ -14,7 +14,6 @@ import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobService;
-import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import org.junit.After;
@@ -81,9 +80,7 @@ public class DatasetServiceTest {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
-        datasetDao.lock(dataset.getName(), dataset.getDefaultProfileId(),
-            createFlightId, LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST);
-        UUID datasetId = datasetDao.create(dataset);
+        UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlock(dataset.getName(), createFlightId);
         return datasetId;
     }

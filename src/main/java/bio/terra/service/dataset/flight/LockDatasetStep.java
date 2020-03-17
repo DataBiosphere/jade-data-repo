@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -12,29 +11,24 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.UUID;
-
 
 public class LockDatasetStep implements Step {
 
     private DatasetDao datasetDao;
     private DatasetRequestModel datasetRequest;
-    private LockBehaviorFlags lockFlag;
 
     private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
 
-    public LockDatasetStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest, LockBehaviorFlags lockFlag) {
+    public LockDatasetStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest) {
         this.datasetDao = datasetDao;
         this.datasetRequest = datasetRequest;
-        this.lockFlag = lockFlag;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         try {
             String datasetName = datasetRequest.getName();
-            UUID defaultProfileId = UUID.fromString(datasetRequest.getDefaultProfileId());
-            datasetDao.lock(datasetName, defaultProfileId, context.getFlightId(), lockFlag);
+            datasetDao.lock(datasetName, context.getFlightId());
 
             FlightMap workingMap = context.getWorkingMap();
             workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, datasetName);

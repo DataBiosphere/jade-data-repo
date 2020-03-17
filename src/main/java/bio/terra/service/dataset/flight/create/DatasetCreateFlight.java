@@ -1,12 +1,10 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
@@ -35,7 +33,6 @@ public class DatasetCreateFlight extends Flight {
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
 
-        addStep(new LockDatasetStep(datasetDao, datasetRequest, LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST));
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         // TODO: create dataset data project step
         // right now the cloud project is created as part of the PrimaryDataStep below

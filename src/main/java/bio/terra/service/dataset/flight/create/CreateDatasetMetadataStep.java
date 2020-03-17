@@ -16,6 +16,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.sql.SQLException;
 import java.util.UUID;
@@ -37,7 +38,7 @@ public class CreateDatasetMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             Dataset newDataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-            UUID datasetId = datasetDao.create(newDataset);
+            UUID datasetId = datasetDao.createAndLock(newDataset, context.getFlightId());
             FlightMap workingMap = context.getWorkingMap();
             workingMap.put(DatasetWorkingMapKeys.DATASET_ID, datasetId);
 
@@ -45,6 +46,9 @@ public class CreateDatasetMetadataStep implements Step {
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
             workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
             return StepResult.getStepResultSuccess();
+        } catch (DuplicateKeyException dkEx) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                new InvalidDatasetException("Dataset name already exists: " + datasetRequest.getName(), dkEx));
         } catch (SQLException sqlEx) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                 new InvalidDatasetException("Cannot create dataset: " + datasetRequest.getName(), sqlEx));
@@ -54,7 +58,7 @@ public class CreateDatasetMetadataStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         logger.debug("Dataset creation failed. Deleting metadata.");
-        datasetDao.deleteByName(datasetRequest.getName());
+        datasetDao.deleteByNameAndFlight(datasetRequest.getName(), context.getFlightId());
         return StepResult.getStepResultSuccess();
     }
 }

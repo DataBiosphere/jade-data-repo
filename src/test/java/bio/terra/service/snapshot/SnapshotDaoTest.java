@@ -11,7 +11,6 @@ import bio.terra.common.Table;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.job.LockBehaviorFlags;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import org.junit.After;
 import org.junit.Before;
@@ -70,9 +69,7 @@ public class SnapshotDaoTest {
             .defaultProfileId(profileId.toString());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
-        datasetDao.lock(dataset.getName(), dataset.getDefaultProfileId(),
-            createFlightId, LockBehaviorFlags.LOCK_ONLY_IF_OBJECT_DOES_NOT_EXIST);
-        datasetId = datasetDao.create(dataset);
+        datasetId = datasetDao.createAndLock(dataset, createFlightId);
         datasetDao.unlock(dataset.getName(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
 

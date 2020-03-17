@@ -109,7 +109,7 @@ public class DatasetConnectedTest {
             equalTo(HttpStatus.BAD_REQUEST.value()));
         ErrorModel errorModel = checkResponseIsError(response);
         assertThat(errorModel.getMessage(),
-            containsString("Dataset already exists"));
+            containsString("Dataset name already exists"));
 
         // delete the dataset
         response = deleteDataset(datasetSummaryModel.getId());
@@ -121,12 +121,9 @@ public class DatasetConnectedTest {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(datasetRequest)))
-            .andExpect(status().isCreated())
+            .andExpect(expectedStatus)
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
-        assertThat("create omop dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
-//        DatasetSummaryModel datasetSummaryModel =
-//            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
         return result.getResponse();
     }
 

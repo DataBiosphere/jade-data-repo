@@ -119,7 +119,7 @@ public class DataRepoFixtures {
             assertThat("correct dataset create error", response.getStatusCode(), equalTo(checkStatus));
         }
         assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
-        return response.getResponseObject().get();
+        return response.getErrorObject().get();
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)

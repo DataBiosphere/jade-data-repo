@@ -1,9 +1,9 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.AssetModel;
 import bio.terra.model.ErrorModel;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -35,13 +35,10 @@ public class AssetModelValidationTest {
     @Autowired
     private MockMvc mvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     private ErrorModel expectBadAssetModel(AssetModel asset) throws Exception {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets/assets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(asset)))
+            .content(TestUtils.mapToJson(asset)))
             .andExpect(status().is4xxClientError())
             .andReturn();
 
@@ -51,7 +48,7 @@ public class AssetModelValidationTest {
         assertTrue("Error model was returned on failure",
             StringUtils.contains(responseBody, "message"));
 
-        ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+        ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
         return errorModel;
     }
 

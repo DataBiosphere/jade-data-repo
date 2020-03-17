@@ -1,12 +1,6 @@
 package bio.terra.service.snapshot;
 
 import bio.terra.app.controller.exception.ValidationException;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
-import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
-import bio.terra.service.dataset.AssetColumn;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.AssetTable;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
@@ -14,26 +8,40 @@ import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.model.SnapshotRequestSourceModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
+import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
+import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
@@ -158,45 +166,59 @@ public class SnapshotService {
     public Snapshot makeSnapshotFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
         // Make this early so we can hook up back links to it
         Snapshot snapshot = new Snapshot();
-
         List<SnapshotRequestContentsModel> requestContentsList = snapshotRequestModel.getContents();
         // TODO: for MVM we only allow one source list
         if (requestContentsList.size() > 1) {
             throw new ValidationException("Only a single snapshot contents entry is currently allowed.");
         }
+
         SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
-        SnapshotSource snapshotSource = makeSourceFromRequestContents(requestContents, snapshot);
-
-        // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
-        // For now, we generate the snapshot tables directly from the asset tables of the one source
-        // allowed in a snapshot.
-        conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
-        snapshot.name(snapshotRequestModel.getName())
-                .description(snapshotRequestModel.getDescription())
-                .snapshotSources(Collections.singletonList(snapshotSource))
-                .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
-
-        return snapshot;
-    }
-
-    private SnapshotSource makeSourceFromRequestContents(
-        SnapshotRequestContentsModel requestContents,
-        Snapshot snapshot) {
-        SnapshotRequestSourceModel requestSource = requestContents.getSource();
-        Dataset dataset = datasetDao.retrieveByName(requestSource.getDatasetName());
-
-        Optional<AssetSpecification> optAsset = dataset.getAssetSpecificationByName(requestSource.getAssetName());
-        if (!optAsset.isPresent()) {
-            throw new AssetNotFoundException("Asset specification not found: " + requestSource.getAssetName());
+        Dataset dataset = datasetDao.retrieveByName(requestContents.getDatasetName());
+        SnapshotSource snapshotSource = new SnapshotSource()
+            .snapshot(snapshot)
+            .dataset(dataset);
+        switch (snapshotRequestModel.getContents().get(0).getMode()) {
+            case BYASSET:
+                // TODO: When we implement explicit definition of snapshot tables, we will handle that here.
+                // For now, we generate the snapshot tables directly from the asset tables of the one source
+                // allowed in a snapshot.
+                AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
+                snapshotSource.assetSpecification(assetSpecification);
+                conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+                break;
+            case BYROWID:
+                SnapshotRequestRowIdModel requestRowIdModel = requestContents.getRowIdSpec();
+                conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+                break;
+            default:
+                throw new InvalidSnapshotException("Snapshot does not have required mode information");
         }
 
-        // TODO: When we implement explicit definition of the snapshot tables and mapping to dataset tables,
-        // the map construction will go here. For MVM, we generate the mapping data directly from the asset spec.
+        return snapshot.name(snapshotRequestModel.getName())
+            .description(snapshotRequestModel.getDescription())
+            .snapshotSources(Collections.singletonList(snapshotSource))
+            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
+    }
 
-        return new SnapshotSource()
-               .snapshot(snapshot)
-               .dataset(dataset)
-               .assetSpecification(optAsset.get());
+    public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
+        return snapshotRequestModel.getContents()
+            .stream()
+            .map(c -> datasetDao.retrieveByName(c.getDatasetName()).getId())
+            .collect(Collectors.toList());
+    }
+
+    private AssetSpecification getAssetSpecificationFromRequest(
+        SnapshotRequestContentsModel requestContents) {
+        SnapshotRequestAssetModel requestAssetModel = requestContents.getAssetSpec();
+        Dataset dataset = datasetDao.retrieveByName(requestContents.getDatasetName());
+
+        Optional<AssetSpecification> optAsset = dataset.getAssetSpecificationByName(requestAssetModel.getAssetName());
+        if (!optAsset.isPresent()) {
+            throw new AssetNotFoundException("Asset specification not found: " + requestAssetModel.getAssetName());
+        }
+
+        // the map construction will go here. For MVM, we generate the mapping data directly from the asset spec.
+        return optAsset.get();
     }
 
     /**
@@ -245,6 +267,53 @@ public class SnapshotService {
         snapshot.snapshotTables(tableList);
     }
 
+    private void conjureSnapshotTablesFromRowIds(SnapshotRequestRowIdModel requestRowIdModel,
+                                                Snapshot snapshot,
+                                                SnapshotSource snapshotSource) {
+        // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
+        List<SnapshotTable> tableList = new ArrayList<>();
+        snapshot.snapshotTables(tableList);
+        List<SnapshotMapTable> mapTableList = new ArrayList<>();
+        snapshotSource.snapshotMapTables(mapTableList);
+        Dataset dataset = snapshotSource.getDataset();
+
+        // create a lookup from tableName -> table spec from the request
+        Map<String, SnapshotRequestRowIdTableModel> requestTableLookup = requestRowIdModel.getTables()
+                .stream()
+                .collect(Collectors.toMap(SnapshotRequestRowIdTableModel::getTableName, Function.identity()));
+
+        // for each dataset table specified in the request, create a table in the snapshot with the same name
+        for (DatasetTable datasetTable : dataset.getTables()) {
+            if (!requestTableLookup.containsKey(datasetTable.getName())) {
+                continue; // only capture the dataset tables in the request model
+            }
+            List<Column> columnList = new ArrayList<>();
+            SnapshotTable snapshotTable = new SnapshotTable()
+                .name(datasetTable.getName())
+                .columns(columnList);
+            tableList.add(snapshotTable);
+            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
+            mapTableList.add(new SnapshotMapTable()
+                .fromTable(datasetTable)
+                .toTable(snapshotTable)
+                .snapshotMapColumns(mapColumnList));
+
+            // for each dataset column specified in the request, create a column in the snapshot with the same name
+            Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
+            datasetTable.getColumns()
+                .stream()
+                .filter(c -> requestColumns.contains(c.getName()))
+                .forEach(datasetColumn -> {
+                    Column snapshotColumn = new Column().name(datasetColumn.getName());
+                    SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
+                        .fromColumn(datasetColumn)
+                        .toColumn(snapshotColumn);
+                    columnList.add(snapshotColumn);
+                    mapColumnList.add(snapshotMapColumn);
+                });
+        }
+    }
+
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {
         SnapshotSummaryModel summaryModel = new SnapshotSummaryModel()
                 .id(snapshotSummary.getId().toString())
@@ -283,8 +352,12 @@ public class SnapshotService {
                 .createdDate(dataset.getCreatedDate().toString());
 
         SnapshotSourceModel sourceModel = new SnapshotSourceModel()
-                .asset(source.getAssetSpecification().getName())
                 .dataset(summaryModel);
+
+        AssetSpecification assetSpec = source.getAssetSpecification();
+        if (assetSpec != null) {
+            sourceModel.asset(assetSpec.getName());
+        }
 
         return sourceModel;
     }

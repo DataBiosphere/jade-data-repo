@@ -1,13 +1,14 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Unit;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
@@ -30,9 +31,9 @@ import java.util.List;
 import static bio.terra.common.fixtures.DatasetFixtures.buildAsset;
 import static bio.terra.common.fixtures.DatasetFixtures.buildAssetParticipantTable;
 import static bio.terra.common.fixtures.DatasetFixtures.buildAssetSampleTable;
+import static bio.terra.common.fixtures.DatasetFixtures.buildDatasetRequest;
 import static bio.terra.common.fixtures.DatasetFixtures.buildParticipantSampleRelationship;
 import static bio.terra.common.fixtures.DatasetFixtures.buildSampleTerm;
-import static bio.terra.common.fixtures.DatasetFixtures.buildDatasetRequest;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertArrayEquals;
@@ -57,7 +58,7 @@ public class DatasetValidationsTest {
     private ErrorModel expectBadDatasetCreateRequest(DatasetRequestModel datasetRequest) throws Exception {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(datasetRequest)))
+            .content(TestUtils.mapToJson(datasetRequest)))
             .andExpect(status().is4xxClientError())
             .andReturn();
 
@@ -67,7 +68,7 @@ public class DatasetValidationsTest {
         assertTrue("Error model was returned on failure",
             StringUtils.contains(responseBody, "message"));
 
-        ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+        ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
         return errorModel;
     }
 
@@ -85,7 +86,7 @@ public class DatasetValidationsTest {
             .param("sort", sort)
             .param("direction", direction)
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(buildDatasetRequest())))
+            .content(TestUtils.mapToJson(buildDatasetRequest())))
             .andExpect(status().is4xxClientError())
             .andReturn();
 
@@ -95,7 +96,7 @@ public class DatasetValidationsTest {
         assertTrue("Error model was returned on failure",
             StringUtils.contains(responseBody, "message"));
 
-        ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
+        ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
         assertThat("correct error message", errorModel.getMessage(), equalTo(expectedMessage));
         List<String> responseErrors = errorModel.getErrorDetail();
         if (errors == null || errors.isEmpty()) {

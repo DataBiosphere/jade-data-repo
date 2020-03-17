@@ -77,8 +77,13 @@ public class SnapshotDao {
                 " VALUES (:snapshot_id, :dataset_id, :asset_id)";
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("snapshot_id", snapshotSource.getSnapshot().getId())
-                .addValue("dataset_id", snapshotSource.getDataset().getId())
+                .addValue("dataset_id", snapshotSource.getDataset().getId());
+        if (snapshotSource.getAssetSpecification() != null) {
+            params
                 .addValue("asset_id", snapshotSource.getAssetSpecification().getId());
+        } else {
+            params.addValue("asset_id", null);
+        }
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID id = keyHolder.getId();
@@ -169,18 +174,19 @@ public class SnapshotDao {
         List<SnapshotSource> snapshotSources = new ArrayList<>();
         for (RawSourceData raw : rawList) {
             Dataset dataset = datasetDao.retrieve(raw.datasetId);
-
-            // Find the matching asset in the dataset
-            Optional<AssetSpecification> assetSpecification = dataset.getAssetSpecificationById(raw.assetId);
-            if (!assetSpecification.isPresent()) {
-                throw new CorruptMetadataException("Asset referenced by snapshot source was not found!");
-            }
-
             SnapshotSource snapshotSource = new SnapshotSource()
-                    .id(raw.id)
-                    .snapshot(snapshot)
-                    .dataset(dataset)
-                    .assetSpecification(assetSpecification.get());
+                .id(raw.id)
+                .snapshot(snapshot)
+                .dataset(dataset);
+
+            if (raw.assetId != null) { // if there is no assetId, then dont check for a spec
+                // Find the matching asset in the dataset
+                Optional<AssetSpecification> assetSpecification = dataset.getAssetSpecificationById(raw.assetId);
+                if (!assetSpecification.isPresent()) {
+                    throw new CorruptMetadataException("Asset referenced by snapshot source was not found!");
+                }
+                snapshotSource.assetSpecification(assetSpecification.get());
+            }
 
             // Now that we have access to all of the parts, build the map structure
             snapshotSource.snapshotMapTables(snapshotMapTableDao.retrieveMapTables(snapshot, snapshotSource));

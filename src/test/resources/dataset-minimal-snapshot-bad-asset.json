@@ -2,8 +2,17 @@
   "name":"demo",
   "description":"desc",
   "contents":[
-    { "source": {"datasetName":"Minimal", "assetName":"NotARealAsset"},
-      "rootValues":["sample1","sample2"]
+    {
+      "datasetName":"Minimal",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "NotARealAsset",
+        "rootValues": [
+          "sample1",
+          "sample2"
+        ]
+      }
     }
   ]
 }
+

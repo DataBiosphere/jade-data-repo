@@ -42,6 +42,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -113,11 +114,11 @@ public class DataRepoFixtures {
 
         DataRepoResponse<ErrorModel> response = dataRepoClient.waitForResponse(user, jobResponse, ErrorModel.class);
         if (checkStatus == null) {
-            assertTrue("dataset create is failure", !response.getStatusCode().is2xxSuccessful());
+            assertFalse("dataset create is failure", response.getStatusCode().is2xxSuccessful());
         } else {
             assertThat("correct dataset create error", response.getStatusCode(), equalTo(checkStatus));
         }
-        assertTrue("dataset create error response is present", response.getResponseObject().isPresent());
+        assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
         return response.getResponseObject().get();
     }
 

@@ -1,0 +1,23 @@
+databaseChangeLog:
+  - changeSet:
+      id: addpartitions
+      author: danmoran
+      changes:
+        - addColumn:
+            tableName: dataset_table
+            columns:
+              - column:
+                  name: partition_strategy
+                  type: text
+              - column:
+                  name: partition_column
+                  type: ${identifier_type}
+              - column:
+                  name: int_partition_min_value
+                  type: bigint
+              - column:
+                  name: int_partition_max_value
+                  type: bigint
+              - column:
+                  name: int_partition_interval
+                  type: bigint

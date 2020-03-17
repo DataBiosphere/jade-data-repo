@@ -3,6 +3,8 @@ package bio.terra.service.dataset;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.IntPartitionOptionsModel;
+import bio.terra.model.PartitionStrategy;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.DatasetRequestModel;
@@ -17,6 +19,7 @@ import javax.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
@@ -97,7 +100,92 @@ public class DatasetRequestValidator implements Validator {
                     }
                 }
             }
+
             context.addTable(tableName, columnNames);
+        }
+
+        Optional<PartitionStrategy> strategy = Optional.ofNullable(table.getPartitionStrategy());
+        Optional<String> partitionColumnName = Optional.ofNullable(table.getPartitionColumn());
+        Optional<ColumnModel> partitionColumn = partitionColumnName.flatMap(colName ->
+            columns.stream().filter(col -> colName.equals(col.getName())).findFirst());
+        Optional<IntPartitionOptionsModel> intOptions = Optional.ofNullable(table.getIntPartitionOptions());
+
+        if (strategy.isPresent()) {
+            PartitionStrategy strat = strategy.get();
+            if (strat == PartitionStrategy.INGEST_TIME) {
+                if (partitionColumnName.isPresent()) {
+                    errors.rejectValue("schema", "PartitionColumn",
+                        "Cannot specify a partitionColumn with the 'ingest_time' partitionStrategy");
+                }
+                if (intOptions.isPresent()) {
+                    errors.rejectValue("schema", "IntPartitionOptions",
+                        "intPartitionOptions are only valid with the 'int_column' partitionStrategy");
+                }
+            } else if (strat == PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN) {
+                if (partitionColumnName.isPresent()) {
+                    if (partitionColumn.isPresent()) {
+                        String type = partitionColumn.get().getDatatype();
+                        if (!"DATE".equalsIgnoreCase(type) && !"TIMESTAMP".equalsIgnoreCase(type)) {
+                            errors.rejectValue("schema", "InvalidPartitionColumnType",
+                                "partitionColumn must refer to a DATE or TIMESTAMP column when " +
+                                    "using the 'date_or_timestamp_column' partitionStrategy");
+                        }
+                    } else {
+                        errors.rejectValue("schema", "InvalidPartitionColumnName",
+                            partitionColumnName.get() + " is not a valid column");
+                    }
+                } else {
+                    errors.rejectValue("schema", "MissingPartitionColumn",
+                        "partitionColumn must be specified when using the 'date_or_time_column' partitionStrategy");
+                }
+                if (intOptions.isPresent()) {
+                    errors.rejectValue("schema", "IntPartitionOptions",
+                        "intPartitionOptions are only valid with the 'int_column' partitionStrategy");
+                }
+            } else {
+                if (partitionColumnName.isPresent()) {
+                    if (partitionColumn.isPresent()) {
+                        String type = partitionColumn.get().getDatatype();
+                        if (!"INTEGER".equalsIgnoreCase(type) && !"INT64".equalsIgnoreCase(type)) {
+                            errors.rejectValue("schema", "InvalidPartitionColumnType",
+                                "partitionColumn must refer to an INTEGER or INT64 column when " +
+                                    "using the 'int_column' partitionStrategy");
+                        }
+                    } else {
+                        errors.rejectValue("schema", "InvalidPartitionColumnName",
+                            partitionColumnName.get() + " is not a valid column");
+                    }
+                } else {
+                    errors.rejectValue("schema", "MissingPartitionColumn",
+                        "partitionColumn must be specified when using the 'int_column' partitionStrategy");
+                }
+                if (intOptions.isPresent()) {
+                    long min = intOptions.get().getMin();
+                    long max = intOptions.get().getMax();
+                    long interval = intOptions.get().getInterval();
+
+                    if (max <= min) {
+                        errors.rejectValue("schema", "InvalidIntPartitionRange",
+                            "Max partition value must be larger than min partition value");
+                    }
+                    if (interval <= 0) {
+                        errors.rejectValue("schema", "InvalidIntPartitionInterval",
+                            "Partition interval must be >= 1");
+                    }
+                } else {
+                    errors.rejectValue("schema", "MissingIntPartitionOptions",
+                        "intPartitionOptions must be specified when using the 'int_column' partitionStrategy");
+                }
+            }
+        } else {
+            if (partitionColumnName.isPresent()) {
+                errors.rejectValue("schema", "PartitionColumn",
+                    "partitionColumn not allowed when partitionStrategy is null");
+            }
+            if (intOptions.isPresent()) {
+                errors.rejectValue("schema", "IntPartitionOptions",
+                    "intPartitionOptions not allowed when partitionStrategy is null");
+            }
         }
     }
 

@@ -2,6 +2,8 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.common.Table;
+import bio.terra.model.IntPartitionOptionsModel;
+import bio.terra.model.PartitionStrategy;
 
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.UUID;
  * Includes extra info to capture:
  *   1. Primary keys
  *   2. Names of helper tables used when building "live views"
+ *   3. Configuration for partitioning the table in BigQuery
  */
 public class DatasetTable implements Table {
 
@@ -22,6 +25,9 @@ public class DatasetTable implements Table {
     private String softDeleteTableName;
     private List<Column> columns = Collections.emptyList();
     private List<Column> primaryKey = Collections.emptyList();
+    private PartitionStrategy partitionStrategy;
+    private Column partitionColumn;
+    private IntPartitionOptionsModel intPartitionSettings;
 
     public UUID getId() {
         return id;
@@ -74,6 +80,33 @@ public class DatasetTable implements Table {
 
     public DatasetTable primaryKey(List<Column> primaryKey) {
         this.primaryKey = primaryKey;
+        return this;
+    }
+
+    public PartitionStrategy getPartitionStrategy() {
+        return partitionStrategy;
+    }
+
+    public DatasetTable partitionStrategy(PartitionStrategy strategy) {
+        this.partitionStrategy = strategy;
+        return this;
+    }
+
+    public Column getPartitionColumn() {
+        return partitionColumn;
+    }
+
+    public DatasetTable partitionColumn(Column column) {
+        this.partitionColumn = column;
+        return this;
+    }
+
+    public IntPartitionOptionsModel getIntPartitionSettings() {
+        return intPartitionSettings;
+    }
+
+    public DatasetTable intPartitionSettings(IntPartitionOptionsModel settings) {
+        this.intPartitionSettings = settings;
         return this;
     }
 }

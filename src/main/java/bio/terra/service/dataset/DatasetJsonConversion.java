@@ -34,8 +34,11 @@ public final class DatasetJsonConversion {
                             relationship.getName(),
                             relationshipModelToDatasetRelationship(relationship, tablesMap)));
         }
-        datasetSpecification.getAssets().forEach(asset ->
+        List<AssetModel> assets = datasetSpecification.getAssets();
+        if (assets != null) {
+            assets.forEach(asset ->
                 assetSpecifications.add(assetModelToAssetSpecification(asset, tablesMap, relationshipsMap)));
+        }
 
         return new Dataset(new DatasetSummary()
                 .name(datasetRequest.getName())
@@ -101,6 +104,12 @@ public final class DatasetJsonConversion {
             .map(columnMap::get)
             .collect(Collectors.toList());
         datasetTable.primaryKey(primaryKeyColumns);
+
+        datasetTable.partitionStrategy(tableModel.getPartitionStrategy());
+        Optional<Column> partitionColumn = Optional.ofNullable(tableModel.getPartitionColumn())
+            .map(columnMap::get);
+        datasetTable.partitionColumn(partitionColumn.orElse(null));
+        datasetTable.intPartitionSettings(tableModel.getIntPartitionOptions());
 
         return datasetTable.columns(columns);
     }

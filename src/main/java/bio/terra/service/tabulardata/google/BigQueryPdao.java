@@ -7,6 +7,8 @@ import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IntPartitionOptionsModel;
+import bio.terra.model.PartitionStrategy;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.service.dataset.AssetSpecification;
@@ -38,10 +40,12 @@ import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.ViewDefinition;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -58,6 +62,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -106,8 +111,36 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
             for (DatasetTable table : dataset.getTables()) {
-                bigQueryProject.createTable(datasetName, table.getRawTableName(), buildSchema(table, true));
-                bigQueryProject.createTable(datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+                PartitionStrategy partitionStrategy = table.getPartitionStrategy();
+                Column partitionColumn = table.getPartitionColumn();
+                Schema rawSchema = buildSchema(table, true);
+
+                if (partitionStrategy == null) {
+                    bigQueryProject.createUnpartitionedTable(datasetName, table.getRawTableName(), rawSchema);
+                } else {
+                    if (partitionStrategy == PartitionStrategy.INT_COLUMN) {
+                        IntPartitionOptionsModel options = table.getIntPartitionSettings();
+                        RangePartitioning.Range range = RangePartitioning.Range.newBuilder()
+                            .setStart(options.getMin())
+                            .setEnd(options.getMax())
+                            .setInterval(options.getInterval())
+                            .build();
+                        RangePartitioning partitioning = RangePartitioning.newBuilder()
+                            .setField(partitionColumn.getName())
+                            .setRange(range)
+                            .build();
+                        bigQueryProject.createRangePartitionedTable(
+                            datasetName, table.getRawTableName(), rawSchema, partitioning);
+                    } else {
+                        TimePartitioning partitioning = TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
+                            .setField(partitionColumn == null ? null : partitionColumn.getName())
+                            .build();
+                        bigQueryProject.createTimePartitionedTable(
+                            datasetName, table.getRawTableName(), rawSchema, partitioning);
+                    }
+                }
+                bigQueryProject.createUnpartitionedTable(
+                    datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
                 bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
         } catch (Exception ex) {
@@ -116,7 +149,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String liveViewTemplate =
-        "SELECT R.* FROM `<project>.<dataset>.<rawTable>` R " +
+        "SELECT <columns:{c|R.<c>}; separator=\",\"> FROM `<project>.<dataset>.<rawTable>` R " +
             "LEFT OUTER JOIN `<project>.<dataset>.<sdTable>` S USING (" + PDAO_ROW_ID_COLUMN + ") " +
             "WHERE S." + PDAO_ROW_ID_COLUMN + " IS NULL";
 
@@ -126,6 +159,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         liveViewSql.add("dataset", datasetName);
         liveViewSql.add("rawTable", table.getRawTableName());
         liveViewSql.add("sdTable", table.getSoftDeleteTableName());
+
+        liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
+        liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
+        if (table.getPartitionStrategy() == PartitionStrategy.INGEST_TIME) {
+            liveViewSql.add("columns", "_PARTITIONDATE AS " + PDAO_INGEST_DATE_COLUMN_ALIAS);
+        }
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
@@ -221,7 +260,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
 
             // create the row id table
-            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+            bigQueryProject.createUnpartitionedTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
@@ -293,7 +332,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
 
             // create the row id table
-            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+            bigQueryProject.createUnpartitionedTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop

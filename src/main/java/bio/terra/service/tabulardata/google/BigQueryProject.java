@@ -9,6 +9,7 @@ import com.google.cloud.bigquery.Dataset;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.Table;
@@ -16,6 +17,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.bigquery.TimePartitioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,9 +99,28 @@ public final class BigQueryProject {
         }
     }
 
-    public void createTable(String datasetName, String tableName, Schema schema) {
+    public void createUnpartitionedTable(String datasetName, String tableName, Schema schema) {
+        createTable(datasetName, tableName, schema, null, null);
+    }
+
+    public void createTimePartitionedTable(String datasetName, String tableName,
+                                           Schema schema, TimePartitioning timePartitioning) {
+        createTable(datasetName, tableName, schema, timePartitioning, null);
+    }
+
+    public void createRangePartitionedTable(String datasetName, String tableName,
+                                            Schema schema, RangePartitioning rangePartitioning) {
+        createTable(datasetName, tableName, schema, null, rangePartitioning);
+    }
+
+    private void createTable(String datasetName, String tableName, Schema schema,
+                             TimePartitioning timePartitioning, RangePartitioning rangePartitioning) {
         TableId tableId = TableId.of(datasetName, tableName);
-        TableDefinition tableDefinition = StandardTableDefinition.of(schema);
+        TableDefinition tableDefinition = StandardTableDefinition.newBuilder()
+            .setSchema(schema)
+            .setTimePartitioning(timePartitioning)
+            .setRangePartitioning(rangePartitioning)
+            .build();
         TableInfo tableInfo = TableInfo.newBuilder(tableId, tableDefinition).build();
         bigQuery.create(tableInfo);
     }

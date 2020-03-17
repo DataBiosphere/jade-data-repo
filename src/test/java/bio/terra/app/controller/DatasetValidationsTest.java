@@ -7,6 +7,8 @@ import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.IntPartitionOptionsModel;
+import bio.terra.model.PartitionStrategy;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
@@ -128,7 +130,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().tables(Arrays.asList(table, table));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("duplicateTableNames", errorModel,
+        checkValidationErrorModel(errorModel,
             new String[]{"DuplicateTableNames", "InvalidRelationshipTermTableColumn",
                 "InvalidRelationshipTermTableColumn", "InvalidAssetTable",
                 "InvalidAssetTableColumn", "InvalidAssetTableColumn", "InvalidRootColumn"});
@@ -144,7 +146,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().tables(Collections.singletonList(table));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("duplicateColumnNames", errorModel,
+        checkValidationErrorModel(errorModel,
             new String[]{"DuplicateColumnNames", "InvalidRelationshipTermTableColumn",
                 "InvalidRelationshipTermTableColumn", "InvalidAssetTable",
                 "InvalidAssetTableColumn", "InvalidAssetTableColumn", "InvalidRootColumn"});
@@ -155,8 +157,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().assets(Arrays.asList(buildAsset(), buildAsset()));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("duplicateAssetNames", errorModel,
-            new String[]{"DuplicateAssetNames"});
+        checkValidationErrorModel(errorModel, new String[]{"DuplicateAssetNames"});
     }
 
     @Test
@@ -165,8 +166,7 @@ public class DatasetValidationsTest {
         RelationshipModel relationship = buildParticipantSampleRelationship();
         req.getSchema().relationships(Arrays.asList(relationship, relationship));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("duplicateRelationshipNames", errorModel,
-            new String[]{"DuplicateRelationshipNames"});
+        checkValidationErrorModel(errorModel, new String[]{"DuplicateRelationshipNames"});
     }
 
     @Test
@@ -184,7 +184,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().assets(Collections.singletonList(asset));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("invalidAssetTable", errorModel,
+        checkValidationErrorModel(errorModel,
             new String[]{"NotNull", "InvalidAssetTable", "InvalidRootColumn"});
     }
 
@@ -205,7 +205,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().assets(Collections.singletonList(asset));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("invalidAssetTableColumn", errorModel,
+        checkValidationErrorModel(errorModel,
             new String[]{"InvalidAssetTableColumn", "InvalidRootColumn"});
     }
 
@@ -219,7 +219,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().assets(Collections.singletonList(asset));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("invalidFollowsRelationship", errorModel,
+        checkValidationErrorModel(errorModel,
             new String[]{"NotNull", "NotNull", "NoRootTable", "InvalidFollowsRelationship"});
     }
 
@@ -238,7 +238,7 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().relationships(Collections.singletonList(mismatchedRelationship));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("invalidRelationshipTermTableColumn", errorModel,
+        checkValidationErrorModel(errorModel,
             new String[]{"InvalidRelationshipTermTableColumn"});
     }
 
@@ -253,31 +253,30 @@ public class DatasetValidationsTest {
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema().assets(Collections.singletonList(noRoot));
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("noRootTable", errorModel, new String[]{"NotNull", "NotNull", "NoRootTable"});
+        checkValidationErrorModel(errorModel, new String[]{"NotNull", "NotNull", "NoRootTable"});
     }
 
     @Test
     public void testDatasetNameInvalid() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no spaces"));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Pattern"});
+        checkValidationErrorModel(errorModel, new String[]{"Pattern"});
 
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no-dashes"));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Pattern"});
+        checkValidationErrorModel(errorModel, new String[]{"Pattern"});
 
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(""));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Size", "Pattern"});
+        checkValidationErrorModel(errorModel, new String[]{"Size", "Pattern"});
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Size"});
+        checkValidationErrorModel(errorModel, new String[]{"Size"});
     }
 
     @Test
     public void testDatasetNameMissing() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(null));
-        checkValidationErrorModel("datasetNameMissing", errorModel,
-            new String[]{"NotNull", "DatasetNameMissing"});
+        checkValidationErrorModel(errorModel, new String[]{"NotNull", "DatasetNameMissing"});
     }
 
     @Test
@@ -308,8 +307,7 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("primaryKeyColumnMissing", errorModel,
-            new String[]{"MissingPrimaryKeyColumn"});
+        checkValidationErrorModel(errorModel, new String[]{"MissingPrimaryKeyColumn"});
     }
 
     @Test
@@ -329,19 +327,179 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel("primaryKeyColumnMissing", errorModel,
-            new String[]{"PrimaryKeyArrayColumn"});
+        checkValidationErrorModel(errorModel, new String[]{"PrimaryKeyArrayColumn"});
     }
 
-    private void checkValidationErrorModel(String context,
-                                           ErrorModel errorModel,
-                                           String[] messageCodes) {
+    @Test
+    public void testIngestTimePartitionWithExtraOptions() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .partitionStrategy(PartitionStrategy.INGEST_TIME)
+            .partitionColumn("foo_column")
+            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"PartitionColumn", "IntPartitionOptions"});
+    }
+
+    @Test
+    public void testTimeColumnPartitionWithBadOptions() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .partitionStrategy(PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN)
+            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"MissingPartitionColumn", "IntPartitionOptions"});
+    }
+
+    @Test
+    public void testTimeColumnPartitionWithMissingColumn() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .partitionStrategy(PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN)
+            .partitionColumn("not_a_column");
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnName"});
+    }
+
+    @Test
+    public void testTimeColumnPartitionWithMismatchedType() throws Exception {
+        ColumnModel column = new ColumnModel()
+            .name("column")
+            .datatype("int64");
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.singletonList(column))
+            .partitionStrategy(PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN)
+            .partitionColumn(column.getName());
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnType"});
+    }
+
+    @Test
+    public void testIntColumnPartitionWithMissingOptions() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .partitionStrategy(PartitionStrategy.INT_COLUMN);
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"MissingPartitionColumn", "MissingIntPartitionOptions"});
+    }
+
+    @Test
+    public void testIntColumnPartitionWithMissingColumn() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .partitionStrategy(PartitionStrategy.INT_COLUMN)
+            .partitionColumn("not_a_column")
+            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnName"});
+    }
+
+    @Test
+    public void testIntColumnPartitionWithMismatchedType() throws Exception {
+        ColumnModel column = new ColumnModel()
+            .name("column")
+            .datatype("timestamp");
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.singletonList(column))
+            .partitionStrategy(PartitionStrategy.INT_COLUMN)
+            .partitionColumn(column.getName())
+            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnType"});
+    }
+
+    @Test
+    public void testIntColumnPartitionWithBadOptions() throws Exception {
+        ColumnModel column = new ColumnModel()
+            .name("column")
+            .datatype("int64");
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.singletonList(column))
+            .partitionStrategy(PartitionStrategy.INT_COLUMN)
+            .partitionColumn(column.getName())
+            .intPartitionOptions(new IntPartitionOptionsModel().min(5L).max(2L).interval(-1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel,
+            new String[]{"InvalidIntPartitionRange", "InvalidIntPartitionInterval"});
+    }
+
+    @Test
+    public void testPartitionOptionsWithoutStrategy() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .partitionColumn("foo_column")
+            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"PartitionColumn", "IntPartitionOptions"});
+    }
+
+    private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {
         List<String> details = errorModel.getErrorDetail();
-        int requiredDetailSize = messageCodes.length;
-        assertThat(context + ": got the expected error details",
-            details.size(), equalTo(requiredDetailSize));
-        assertThat(context + ": main message is right",
-            errorModel.getMessage(), containsString("Validation errors - see error details"));
+        assertThat("Main message is right", errorModel.getMessage(),
+            containsString("Validation errors - see error details"));
         /*
          * The global exception handler logs in this format:
          *
@@ -352,7 +510,6 @@ public class DatasetValidationsTest {
         List<Matcher<? super String>> expectedMatches = Arrays.stream(messageCodes)
             .map(code -> containsString("'" + code + "'"))
             .collect(Collectors.toList());
-        assertThat(context + ": detail codes are right",
-            details, containsInAnyOrder(expectedMatches));
+        assertThat("Detail codes are right", details, containsInAnyOrder(expectedMatches));
     }
 }

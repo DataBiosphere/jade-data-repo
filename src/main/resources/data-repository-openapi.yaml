@@ -1872,16 +1872,49 @@ definitions:
     properties:
       name:
         $ref: '#/definitions/ObjectNameProperty'
-
       columns:
         type: array
         items:
           $ref: '#/definitions/ColumnModel'
-
       primaryKey:
         type: array
         items:
           $ref: '#/definitions/ObjectNameProperty'
+      partitionStrategy:
+        $ref: '#/definitions/PartitionStrategy'
+      partitionColumn:
+        type: string
+        description: >
+          Name of the column to partition on, required if using the
+          'date_or_time_column' or 'int_column' partition strategy
+      intPartitionOptions:
+        $ref: '#/definitions/IntPartitionOptionsModel'
+        description: Extra settings for the 'int_column' strategy
+
+  PartitionStrategy:
+    type: string
+    enum:
+      - ingest_time
+      - date_or_timestamp_column
+      - int_column
+
+  IntPartitionOptionsModel:
+    description: Describes how an int partition should be configured
+    type: object
+    required:
+      - min
+      - max
+      - interval
+    properties:
+      min:
+        type: integer
+        format: int64
+      max:
+        type: integer
+        format: int64
+      interval:
+        type: integer
+        format: int64
 
   RelationshipTermModel:
     description: Describes a table and columns for a relationship

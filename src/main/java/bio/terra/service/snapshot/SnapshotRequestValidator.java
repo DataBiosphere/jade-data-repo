@@ -36,8 +36,6 @@ public class SnapshotRequestValidator implements Validator {
     private void validateSnapshotName(String snapshotName, Errors errors) {
         if (snapshotName == null) {
             errors.rejectValue("name", "SnapshotNameMissing");
-        } else if (!ValidationUtils.isValidName(snapshotName)) {
-            errors.rejectValue("name", "SnapshotNameInvalid");
         }
     }
 
@@ -49,8 +47,6 @@ public class SnapshotRequestValidator implements Validator {
                 String datasetName = contents.getDatasetName();
                 if (datasetName == null) {
                     errors.rejectValue("contents", "SnapshotDatasetNameMissing");
-                } else if (!ValidationUtils.isValidName(datasetName)) {
-                    errors.rejectValue("contents", "SnapshotDatasetNameInvalid");
                 }
 
                 switch (contents.getMode()) {
@@ -96,8 +92,6 @@ public class SnapshotRequestValidator implements Validator {
         String assetName = assetModel.getAssetName();
         if (assetName == null) {
             errors.rejectValue("contents", "SnapshotAssetNameMissing");
-        } else if (!ValidationUtils.isValidName(assetName)) {
-            errors.rejectValue("contents", "SnapshotAssetNameInvalid");
         }
     }
 

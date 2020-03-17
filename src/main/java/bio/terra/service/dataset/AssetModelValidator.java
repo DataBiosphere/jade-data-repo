@@ -32,8 +32,6 @@ public class AssetModelValidator implements Validator {
     private void validateAssetName(String assetName, Errors errors) {
         if (assetName == null) {
             errors.rejectValue("name", "AssetNameMissing");
-        } else if (!ValidationUtils.isValidName(assetName)) {
-            errors.rejectValue("name", "AssetNameInvalid");
         }
     }
 

@@ -12,6 +12,7 @@ import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static bio.terra.common.fixtures.DatasetFixtures.buildAsset;
 import static bio.terra.common.fixtures.DatasetFixtures.buildAssetParticipantTable;
@@ -36,6 +38,7 @@ import static bio.terra.common.fixtures.DatasetFixtures.buildParticipantSampleRe
 import static bio.terra.common.fixtures.DatasetFixtures.buildSampleTerm;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -256,18 +259,18 @@ public class DatasetValidationsTest {
     @Test
     public void testDatasetNameInvalid() throws Exception {
         ErrorModel errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no spaces"));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Pattern"});
 
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name("no-dashes"));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Pattern"});
 
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(""));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Size", "Pattern"});
 
         // Make a 64 character string, it should be considered too long by the validation.
         String tooLong = StringUtils.repeat("a", 64);
         errorModel = expectBadDatasetCreateRequest(buildDatasetRequest().name(tooLong));
-        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"DatasetNameInvalid"});
+        checkValidationErrorModel("datasetNameInvalid", errorModel, new String[]{"Size"});
     }
 
     @Test
@@ -335,20 +338,21 @@ public class DatasetValidationsTest {
                                            String[] messageCodes) {
         List<String> details = errorModel.getErrorDetail();
         int requiredDetailSize = messageCodes.length;
-        assertThat("Got the expected error details", details.size(), equalTo(requiredDetailSize));
-        assertThat("Main message is right",
+        assertThat(context + ": got the expected error details",
+            details.size(), equalTo(requiredDetailSize));
+        assertThat(context + ": main message is right",
             errorModel.getMessage(), containsString("Validation errors - see error details"));
-        for (int i = 0; i < messageCodes.length; i++) {
-            String code = messageCodes[i];
-            assertThat(context + ": correct message code (" + i + ")",
-                /**
-                 * The global exception handler logs in this format:
-                 *
-                 * <fieldName>: '<messageCode>' (<defaultMessage>)
-                 *
-                 * We check to see if the code is wrapped in quotes to prevent matching on substrings.
-                 */
-                details.get(i), containsString("'" + messageCodes[i] + "'"));
-        }
+        /*
+         * The global exception handler logs in this format:
+         *
+         * <fieldName>: '<messageCode>' (<defaultMessage>)
+         *
+         * We check to see if the code is wrapped in quotes to prevent matching on substrings.
+         */
+        List<Matcher<? super String>> expectedMatches = Arrays.stream(messageCodes)
+            .map(code -> containsString("'" + code + "'"))
+            .collect(Collectors.toList());
+        assertThat(context + ": detail codes are right",
+            details, containsInAnyOrder(expectedMatches));
     }
 }

@@ -124,7 +124,7 @@ public class DatasetConnectedTest {
             .andExpect(expectedStatus)
             .andReturn();
         MockHttpServletResponse response = result.getResponse();
-        return result.getResponse();
+        return response;
     }
 
     private MockHttpServletResponse deleteDataset(String datasetId) throws Exception {

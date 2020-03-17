@@ -52,15 +52,14 @@ public class DatasetDao {
     }
 
     /**
-     * Lock the dataset object before doing something with it (e.g. create, delete, bulk file load).
+     * Lock the dataset object before doing something with it (e.g. delete, bulk file load).
      * This method returns successfully when there is a dataset object locked by this flight, and throws an exception
-     * in all other cases. Below is an outline of the logic flow of this method.
+     * in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
      *     1. Update the dataset record to give this flight the lock.
      *     2. Throw an exception if no records were updated.
      * @param datasetName name of the dataset to lock, this is a unique column
      * @param flightId flight id that wants to lock the dataset
-     * @throws DatasetLockException if the dataset is locked by another flight,
-     *                              or if it does/not exist according to the LockBehaviorFlag specified
+     * @throws DatasetLockException if the dataset is locked by another flight or does not exist
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void lock(String datasetName, String flightId) {
@@ -86,7 +85,7 @@ public class DatasetDao {
     }
 
     /**
-     * Unlock the dataset object when finished doing something with it (e.g. create, delete, bulk file load).
+     * Unlock the dataset object when finished doing something with it (e.g. delete, bulk file load).
      * If the dataset is not locked by this flight, then the method is a no-op. It does not throw an exception in this
      * case. So, multiple unlocks can succeed with no errors. The method does return a boolean indicating whether any
      * rows were updated or not. So, callers can decide to throw an error if the unlock was a no-op.

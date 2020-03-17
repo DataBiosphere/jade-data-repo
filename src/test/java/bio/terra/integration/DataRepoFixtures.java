@@ -192,12 +192,13 @@ public class DataRepoFixtures {
         addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
     }
 
-    public DataRepoResponse<JobModel> createSnapshotLaunch(
-        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
-        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+    public DataRepoResponse<JobModel> createSnapshotWithRequestLaunch(
+        TestConfiguration.User user,
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotRequestModel requestModel) throws Exception {
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
-        requestModel.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
+        requestModel.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
         requestModel.setProfileId(billingProfileModel.getId());
         String json = TestUtils.mapToJson(requestModel);
 
@@ -208,10 +209,15 @@ public class DataRepoFixtures {
             JobModel.class);
     }
 
-    public SnapshotSummaryModel createSnapshot(
+    public DataRepoResponse<JobModel> createSnapshotLaunch(
         TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
-            user, datasetSummaryModel, filename);
+        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+        return createSnapshotWithRequestLaunch(user, datasetSummaryModel, requestModel);
+    }
+
+    public SnapshotSummaryModel resolveCreateSnapshot(
+        TestConfiguration.User user,
+        DataRepoResponse<JobModel> jobResponse) throws Exception {
         assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
 
@@ -220,6 +226,22 @@ public class DataRepoFixtures {
         assertThat("snapshot create is successful", snapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
         assertTrue("snapshot create response is present", snapshotResponse.getResponseObject().isPresent());
         return snapshotResponse.getResponseObject().get();
+    }
+
+    public SnapshotSummaryModel createSnapshotWithRequest(
+        TestConfiguration.User user,
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotRequestModel snapshotRequest) throws Exception {
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotWithRequestLaunch(user, datasetSummaryModel, snapshotRequest);
+        return resolveCreateSnapshot(user, jobResponse);
+    }
+
+    public SnapshotSummaryModel createSnapshot(
+        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
+            user, datasetSummaryModel, filename);
+        return resolveCreateSnapshot(user, jobResponse);
     }
 
     public DataRepoResponse<SnapshotModel> getSnapshotRaw(TestConfiguration.User user, String snapshotId)

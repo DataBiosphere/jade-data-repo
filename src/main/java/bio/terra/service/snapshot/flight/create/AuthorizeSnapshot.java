@@ -31,8 +31,8 @@ public class AuthorizeSnapshot implements Step {
     private SnapshotService snapshotService;
     private GcsPdao gcsPdao;
     private DatasetService datasetService;
+    private SnapshotRequestModel snapshotRequestModel;
     private AuthenticatedUserRequest userReq;
-    private SnapshotRequestModel snapshotReq;
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
     public AuthorizeSnapshot(BigQueryPdao bigQueryPdao,
@@ -41,7 +41,7 @@ public class AuthorizeSnapshot implements Step {
                              SnapshotService snapshotService,
                              GcsPdao gcsPdao,
                              DatasetService datasetService,
-                             SnapshotRequestModel snapshotReq,
+                             SnapshotRequestModel snapshotRequestModel,
                              AuthenticatedUserRequest userReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.sam = sam;
@@ -49,7 +49,7 @@ public class AuthorizeSnapshot implements Step {
         this.snapshotService = snapshotService;
         this.gcsPdao = gcsPdao;
         this.datasetService = datasetService;
-        this.snapshotReq = snapshotReq;
+        this.snapshotRequestModel = snapshotRequestModel;
         this.userReq = userReq;
     }
 
@@ -60,7 +60,8 @@ public class AuthorizeSnapshot implements Step {
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
         // This returns the policy email created by Google to correspond to the readers list in SAM
-        String readersPolicyEmail = sam.createSnapshotResource(userReq, snapshotId, snapshotReq.getReaders());
+        String readersPolicyEmail = sam.createSnapshotResource(
+            userReq, snapshotId, snapshotRequestModel.getReaders());
         bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);
 
         // Each dataset may keep its dependencies in its own scope. Therefore,

@@ -604,7 +604,7 @@ paths:
             $ref: '#/definitions/EnumerateDatasetModel'
 
     post:
-      description: Create a new dataset
+      description: Create a new dataset asynchronously. The async result is DatasetSummaryModel.
       operationId: createDataset
       tags:
       - repository
@@ -617,10 +617,22 @@ paths:
         schema:
           $ref: '#/definitions/DatasetRequestModel'
       responses:
-        201:
-          description: Dataset created successfully and a summary is returned
+        202:
+          description: Job status of ingest job & url for polling in the response header
           schema:
-            $ref: '#/definitions/DatasetSummaryModel'
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job polling
+        200:
+          description: Redirect for ingest complete
+          schema:
+            $ref: '#/definitions/JobModel'
+          headers:
+            location:
+              type: string
+              description: url for the job result
         400:
           description: Bad request - duplicate name, invalid name, badly formed schema
           schema:

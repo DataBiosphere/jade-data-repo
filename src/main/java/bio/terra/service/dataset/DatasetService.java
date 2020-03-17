@@ -44,11 +44,11 @@ public class DatasetService {
         this.loadService = loadService;
     }
 
-    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
+    public String createDataset(DatasetRequestModel datasetRequest, AuthenticatedUserRequest userReq) {
         String description = "Create dataset " + datasetRequest.getName();
         return jobService
             .newJob(description, DatasetCreateFlight.class, datasetRequest, userReq)
-            .submitAndWait(DatasetSummaryModel.class);
+            .submit();
     }
 
     /** Fetch existing Dataset object.

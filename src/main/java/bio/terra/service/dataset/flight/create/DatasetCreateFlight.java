@@ -1,10 +1,14 @@
 package bio.terra.service.dataset.flight.create;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -24,6 +28,7 @@ public class DatasetCreateFlight extends Flight {
         DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         IamService iamClient = (IamService) appContext.getBean("iamService");
+        ApplicationConfiguration appConfig = (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
 
         // get data from inputs that steps need
         AuthenticatedUserRequest userReq = inputParameters.get(
@@ -31,6 +36,11 @@ public class DatasetCreateFlight extends Flight {
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
 
+        addStep(new VerifyAuthorizationStep(
+            iamClient,
+            IamResourceType.DATAREPO,
+            appConfig.getResourceId(),
+            IamAction.CREATE_DATASET));
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         // TODO: create dataset data project step
         // right now the cloud project is created as part of the PrimaryDataStep below

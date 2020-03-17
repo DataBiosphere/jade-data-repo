@@ -100,7 +100,9 @@ public class BigQueryPdaoTest {
             .defaultProfileId(profileModel.getId())
             .name(datasetName());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        UUID datasetId = datasetDao.create(dataset);
+        String createFlightId = UUID.randomUUID().toString();
+        UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlock(dataset.getName(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);
         logger.info("Created dataset in setup: {}", datasetId);
     }

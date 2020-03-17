@@ -114,18 +114,8 @@ public class DatasetTest extends UsersBase {
 
     @Test
     public void datasetUnauthorizedPermissionsTest() throws Exception {
-
-        DataRepoResponse<DatasetSummaryModel> datasetSumRespCust = dataRepoFixtures.createDatasetRaw(
-            custodian(), "dataset-minimal.json");
-        assertThat("Custodian is not authorized to create a dataset",
-            datasetSumRespCust.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
-
-        DataRepoResponse<DatasetSummaryModel> datasetSumRespReader = dataRepoFixtures.createDatasetRaw(
-            reader(), "dataset-minimal.json");
-        assertThat("Reader is not authorized to create a dataset",
-            datasetSumRespReader.getStatusCode(),
-            equalTo(HttpStatus.UNAUTHORIZED));
+        dataRepoFixtures.createDatasetError(custodian(), "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
+        dataRepoFixtures.createDatasetError(reader(), "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
 
         EnumerateDatasetModel enumDatasetsResp = dataRepoFixtures.enumerateDatasets(reader());
         List<DatasetSummaryModel> items = enumDatasetsResp.getItems();

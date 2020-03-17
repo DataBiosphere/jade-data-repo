@@ -8,15 +8,13 @@ public enum JobMapKeys {
     RESPONSE("response"),
     STATUS_CODE("status_code"),
     AUTH_USER_INFO("auth_user_info"),
+    SUBJECT_ID("subjectId"),
 
     // parameters for specific flight types
     DATASET_ID("datasetId"),
     SNAPSHOT_ID("snapshotId"),
     FILE_ID("fileId"),
-    ASSET_ID("assetId"),
-
-    // parameter for the job
-    FLIGHT_CLASS("flight_class");
+    ASSET_ID("assetId");
 
     private String keyName;
 

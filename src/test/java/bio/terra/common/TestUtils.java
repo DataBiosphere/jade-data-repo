@@ -7,10 +7,13 @@ import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryProject;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,6 +28,7 @@ import static org.junit.Assert.fail;
 
 public final class TestUtils {
     private static Logger logger = LoggerFactory.getLogger(TestUtils.class);
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
     private TestUtils() {}
 
@@ -89,5 +93,25 @@ public final class TestUtils {
         DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
         return BigQueryProject.get(dataProject.getGoogleProjectId());
     }
+
+    public static <T> T mapFromJson(String content, Class<T> valueType) throws IOException {
+        try {
+            return objectMapper.readValue(content, valueType);
+        } catch (IOException ex) {
+            logger.error("unable to map JSON response to " +
+                valueType.getName() + "JSON: " + content, ex);
+            throw ex;
+        }
+    }
+
+    public static String mapToJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            logger.error("unable to map value to JSON. Value is: " + value, ex);
+        }
+        return null;
+    }
+
 }
 

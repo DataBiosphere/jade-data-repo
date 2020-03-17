@@ -23,7 +23,7 @@ buildscript {
     }
     dependencies {
         classpath("org.springframework.boot:spring-boot-gradle-plugin:${springBootVersion}")
-        classpath('io.swagger:swagger-codegen:2.3.1')
+        classpath('io.swagger:swagger-codegen:2.4.11')
         classpath('gradle.plugin.com.srcclr:gradle:3.1.0')
     }
 }
@@ -90,6 +90,9 @@ repositories {
     maven {
         url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
     }
+    maven {
+        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
+    }
 }
 
 configurations {
@@ -112,7 +115,7 @@ dependencies {
     compile 'com.google.apis:google-api-services-cloudbilling:v1-rev20200106-1.30.3'
     compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
-    compile 'com.google.cloud:google-cloud-bigquery:1.91.0'
+    compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
     compile 'com.google.cloud:google-cloud-storage:1.92.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
     compile 'io.springfox:springfox-swagger-ui:2.9.2'
@@ -127,6 +130,7 @@ dependencies {
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
+    compile 'bio.terra:stairway:0.0.3-SNAPSHOT'
     compile 'org.antlr:ST4:4.3'                          // String templating
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,

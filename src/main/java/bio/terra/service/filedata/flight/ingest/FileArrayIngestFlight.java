@@ -12,7 +12,6 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 /*
@@ -27,9 +26,8 @@ import org.springframework.context.ApplicationContext;
 public class FileArrayIngestFlight extends Flight {
 
     public FileArrayIngestFlight(FlightMap inputParameters,
-                                 Object applicationContext,
-                                 UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+                                 Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         IamService iamService = (IamService)appContext.getBean("iamService");

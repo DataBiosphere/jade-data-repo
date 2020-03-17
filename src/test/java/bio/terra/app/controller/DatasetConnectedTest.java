@@ -1,19 +1,19 @@
 package bio.terra.app.controller;
 
+import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -51,7 +51,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Category(Connected.class)
 public class DatasetConnectedTest {
     @Autowired private MockMvc mvc;
-    @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private ProfileDao profileDao;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
@@ -84,7 +83,7 @@ public class DatasetConnectedTest {
         MockHttpServletResponse response = createDataset(datasetRequest, status().isCreated());
         assertThat("create omop dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
         DatasetSummaryModel datasetSummaryModel =
-            objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
 
         response = deleteDataset(datasetSummaryModel.getId());
         checkDeleteSuccessful(response);
@@ -102,7 +101,7 @@ public class DatasetConnectedTest {
         MockHttpServletResponse response = createDataset(datasetRequest, status().isCreated());
         assertThat("created test dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
         DatasetSummaryModel datasetSummaryModel =
-            objectMapper.readValue(response.getContentAsString(), DatasetSummaryModel.class);
+            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
 
         // try to create the same dataset again and check that it fails
         response = createDataset(datasetRequest, status().is4xxClientError());
@@ -121,9 +120,13 @@ public class DatasetConnectedTest {
         throws Exception {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
-            .content(objectMapper.writeValueAsString(datasetRequest)))
-            .andExpect(expectedStatus)
+            .content(TestUtils.mapToJson(datasetRequest)))
+            .andExpect(status().isCreated())
             .andReturn();
+        MockHttpServletResponse response = result.getResponse();
+        assertThat("create omop dataset successfully", response.getStatus(), equalTo(HttpStatus.CREATED.value()));
+//        DatasetSummaryModel datasetSummaryModel =
+//            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
         return result.getResponse();
     }
 
@@ -135,7 +138,7 @@ public class DatasetConnectedTest {
     private void checkDeleteSuccessful(MockHttpServletResponse deleteResponse) throws Exception {
         assertThat("deleted dataset successfully", deleteResponse.getStatus(), equalTo(HttpStatus.OK.value()));
         DeleteResponseModel responseModel =
-            objectMapper.readValue(deleteResponse.getContentAsString(), DeleteResponseModel.class);
+            TestUtils.mapFromJson(deleteResponse.getContentAsString(), DeleteResponseModel.class);
         assertTrue("Valid delete response object state enumeration",
             (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
                 responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
@@ -149,6 +152,6 @@ public class DatasetConnectedTest {
         assertTrue("Error model was returned on failure",
             StringUtils.contains(responseBody, "message"));
 
-        return objectMapper.readValue(responseBody, ErrorModel.class);
+        return TestUtils.mapFromJson(responseBody, ErrorModel.class);
     }
 }

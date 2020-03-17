@@ -30,11 +30,12 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -45,6 +46,7 @@ import static org.junit.Assert.assertTrue;
 
 @Component
 public class DataRepoFixtures {
+    private static Logger logger = LoggerFactory.getLogger(DataRepoFixtures.class);
 
     @Autowired
     private JsonLoader jsonLoader;
@@ -55,13 +57,10 @@ public class DataRepoFixtures {
     @Autowired
     private TestConfiguration testConfig;
 
-    @Autowired
-    private ObjectMapper objectMapper;
-
     // Create a Billing Profile model: expect successful creation
     public BillingProfileModel createBillingProfile(TestConfiguration.User user) throws Exception {
         BillingProfileRequestModel billingProfileRequestModel = ProfileFixtures.randomBillingProfileRequest();
-        String json = objectMapper.writeValueAsString(billingProfileRequestModel);
+        String json = TestUtils.mapToJson(billingProfileRequestModel);
         DataRepoResponse<BillingProfileModel> postResponse = dataRepoClient.post(
             user,
             "/api/resources/v1/profiles",
@@ -83,7 +82,7 @@ public class DataRepoFixtures {
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setDefaultProfileId(billingProfileModel.getId());
         requestModel.setName(Names.randomizeName(requestModel.getName()));
-        String json = objectMapper.writeValueAsString(requestModel);
+        String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
             user,
@@ -144,7 +143,7 @@ public class DataRepoFixtures {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) + "/" +
                 resourceId + "/policies/" + role.toString() + "/members",
-            objectMapper.writeValueAsString(req), null);
+            TestUtils.mapToJson(req), null);
     }
 
     public void addPolicyMember(TestConfiguration.User user,
@@ -171,7 +170,7 @@ public class DataRepoFixtures {
                                    String datasetId,
                                    AssetModel assetModel) throws Exception {
         return dataRepoClient.post(user, "/api/repository/v1/datasets/" + datasetId + "/assets",
-            objectMapper.writeValueAsString(assetModel), JobModel.class);
+            TestUtils.mapToJson(assetModel), JobModel.class);
     }
 
     public void addDatasetAsset(TestConfiguration.User user,
@@ -193,14 +192,15 @@ public class DataRepoFixtures {
         addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
     }
 
-    public DataRepoResponse<JobModel> createSnapshotLaunch(
-        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
-        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+    public DataRepoResponse<JobModel> createSnapshotWithRequestLaunch(
+        TestConfiguration.User user,
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotRequestModel requestModel) throws Exception {
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
-        requestModel.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
+        requestModel.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
         requestModel.setProfileId(billingProfileModel.getId());
-        String json = objectMapper.writeValueAsString(requestModel);
+        String json = TestUtils.mapToJson(requestModel);
 
         return dataRepoClient.post(
             user,
@@ -209,10 +209,15 @@ public class DataRepoFixtures {
             JobModel.class);
     }
 
-    public SnapshotSummaryModel createSnapshot(
+    public DataRepoResponse<JobModel> createSnapshotLaunch(
         TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
-        DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
-            user, datasetSummaryModel, filename);
+        SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
+        return createSnapshotWithRequestLaunch(user, datasetSummaryModel, requestModel);
+    }
+
+    public SnapshotSummaryModel resolveCreateSnapshot(
+        TestConfiguration.User user,
+        DataRepoResponse<JobModel> jobResponse) throws Exception {
         assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
 
@@ -221,6 +226,22 @@ public class DataRepoFixtures {
         assertThat("snapshot create is successful", snapshotResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
         assertTrue("snapshot create response is present", snapshotResponse.getResponseObject().isPresent());
         return snapshotResponse.getResponseObject().get();
+    }
+
+    public SnapshotSummaryModel createSnapshotWithRequest(
+        TestConfiguration.User user,
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotRequestModel snapshotRequest) throws Exception {
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotWithRequestLaunch(user, datasetSummaryModel, snapshotRequest);
+        return resolveCreateSnapshot(user, jobResponse);
+    }
+
+    public SnapshotSummaryModel createSnapshot(
+        TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createSnapshotLaunch(
+            user, datasetSummaryModel, filename);
+        return resolveCreateSnapshot(user, jobResponse);
     }
 
     public DataRepoResponse<SnapshotModel> getSnapshotRaw(TestConfiguration.User user, String snapshotId)
@@ -276,7 +297,7 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<JobModel> ingestJsonDataLaunch(
         TestConfiguration.User user, String datasetId, IngestRequestModel request) throws Exception {
-        String ingestBody = objectMapper.writeValueAsString(request);
+        String ingestBody = TestUtils.mapToJson(request);
         return dataRepoClient.post(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/ingest",
@@ -315,7 +336,7 @@ public class DataRepoFixtures {
             .mimeType("application/octet-string")
             .targetPath(targetPath);
 
-        String json = objectMapper.writeValueAsString(fileLoadModel);
+        String json = TestUtils.mapToJson(fileLoadModel);
 
         return dataRepoClient.post(
             user,
@@ -484,7 +505,7 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<ConfigListModel> setConfigListRaw(TestConfiguration.User user,
                                                               ConfigGroupModel configGroup) throws Exception {
-        String json = objectMapper.writeValueAsString(configGroup);
+        String json = TestUtils.mapToJson(configGroup);
         return dataRepoClient.put(user,
             "/api/repository/v1/configs",
             json,

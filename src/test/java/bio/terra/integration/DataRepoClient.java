@@ -6,7 +6,6 @@ import bio.terra.model.DRSError;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.filedata.DrsResponse;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +24,8 @@ import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import static bio.terra.common.TestUtils.mapFromJson;
+
 /**
  * This class holds a Spring RestTemplate
  */
@@ -38,14 +39,12 @@ public class DataRepoClient {
 
     private static Logger logger = LoggerFactory.getLogger(DataRepoClient.class);
     private RestTemplate restTemplate;
-    private ObjectMapper objectMapper;
     private HttpHeaders headers;
 
     public DataRepoClient() {
         restTemplate = new RestTemplate();
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         restTemplate.setErrorHandler(new DataRepoClientErrorHandler());
-        objectMapper = new ObjectMapper();
 
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON_UTF8);
@@ -166,14 +165,14 @@ public class DataRepoClient {
 
         if (response.getStatusCode().is2xxSuccessful()) {
             if (responseClass != null) {
-                T responseObject = objectMapper.readValue(response.getBody(), responseClass);
+                T responseObject = mapFromJson(response.getBody(), responseClass);
                 drResponse.setResponseObject(Optional.of(responseObject));
             } else {
                 drResponse.setResponseObject(Optional.empty());
             }
             drResponse.setErrorModel(Optional.empty());
         } else {
-            S errorObject = objectMapper.readValue(response.getBody(), errorClass);
+            S errorObject = mapFromJson(response.getBody(), errorClass);
             drResponse.setErrorModel(Optional.of(errorObject));
             drResponse.setResponseObject(Optional.empty());
         }
@@ -187,7 +186,6 @@ public class DataRepoClient {
         copy.set("From", user.getEmail());
         return copy;
     }
-
 
 
 }

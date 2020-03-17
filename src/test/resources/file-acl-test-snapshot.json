@@ -3,14 +3,14 @@
   "description": "testing file access",
   "contents": [
     {
-      "source":
-      {
-        "datasetName": "file_acl_test",
-        "assetName": "file_asset"
-      },
-      "rootValues": [
-        "foo"
-      ]
+      "datasetName": "file_acl_test",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "file_asset",
+        "rootValues": [
+          "foo"
+        ]
+      }
     }
   ]
 }

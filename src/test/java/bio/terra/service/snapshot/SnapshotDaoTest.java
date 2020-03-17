@@ -75,7 +75,7 @@ public class SnapshotDaoTest {
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
             .profileId(profileId.toString());
-        snapshotRequest.getContents().get(0).getSource().setDatasetName(dataset.getName());
+        snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
         // Populate the snapshotId with random; delete should quietly not find it.
         snapshotId = UUID.randomUUID();

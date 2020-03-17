@@ -69,11 +69,10 @@ public class DatasetRequestValidator implements Validator {
     }
 
     private void validateDatasetName(String datasetName, Errors errors) {
+        // NOTE: We used to manually check the name against a pattern here, but the latest
+        // versions of Swagger codegen now auto-generate an equivalent check.
         if (datasetName == null) {
             errors.rejectValue("name", "DatasetNameMissing");
-        } else if (!ValidationUtils.isValidName(datasetName)) {
-            errors.rejectValue("name", "DatasetNameInvalid",
-                "Invalid dataset name " + datasetName);
         }
     }
 

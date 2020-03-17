@@ -1,25 +1,25 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
+import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.UserRequestInfo;
 import org.springframework.context.ApplicationContext;
 
 public class SnapshotCreateFlight extends Flight {
 
-    public SnapshotCreateFlight(FlightMap inputParameters, Object applicationContext, UserRequestInfo userRequestInfo) {
-        super(inputParameters, applicationContext, userRequestInfo);
+    public SnapshotCreateFlight(FlightMap inputParameters, Object applicationContext) {
+        super(inputParameters, applicationContext);
 
         // get the required daos to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
@@ -43,12 +43,31 @@ public class SnapshotCreateFlight extends Flight {
         // 4. firestore compute step - calculate checksums and sizes for all directories in the snapshot
         // 5. authorize snapshot - set permissions on BQ and files to enable access
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
-        addStep(new CreateSnapshotPrimaryDataStep(
-            bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq));
+        // Depending on the type of snapshot, the primary data step will differ:
+        // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
+        switch (snapshotReq.getContents().get(0).getMode()) {
+            case BYASSET:
+                addStep(new CreateSnapshotPrimaryDataAssetStep(
+                    bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq));
+                addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
+                break;
+            case BYROWID:
+                addStep(new CreateSnapshotPrimaryDataRowIdsStep(bigQueryPdao, snapshotDao, snapshotReq));
+                break;
+            default:
+                throw new InvalidSnapshotException("Snapshot does not have required mode information");
+        }
         addStep(new CreateSnapshotFireStoreDataStep(
             bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
         addStep(new AuthorizeSnapshot(
-            bigQueryPdao, iamClient, dependencyDao, snapshotService, gcsPdao, datasetService, snapshotReq, userReq));
+            bigQueryPdao,
+            iamClient,
+            dependencyDao,
+            snapshotService,
+            gcsPdao,
+            datasetService,
+            snapshotReq,
+            userReq));
     }
 }

@@ -1,14 +1,14 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
-import bio.terra.stairway.FlightUtils;
-import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotSummary;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSummary;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.common.FlightUtils;
+import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -20,14 +20,16 @@ import org.springframework.http.HttpStatus;
 import java.util.UUID;
 
 public class CreateSnapshotMetadataStep implements Step {
-    private SnapshotDao snapshotDao;
-    private SnapshotService snapshotService;
-    private SnapshotRequestModel snapshotReq;
+    private final SnapshotDao snapshotDao;
+    private final SnapshotService snapshotService;
+    private final SnapshotRequestModel snapshotReq;
 
     private static Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
     public CreateSnapshotMetadataStep(
-        SnapshotDao snapshotDao, SnapshotService snapshotService, SnapshotRequestModel snapshotReq) {
+        SnapshotDao snapshotDao,
+        SnapshotService snapshotService,
+        SnapshotRequestModel snapshotReq) {
         this.snapshotDao = snapshotDao;
         this.snapshotService = snapshotService;
         this.snapshotReq = snapshotReq;

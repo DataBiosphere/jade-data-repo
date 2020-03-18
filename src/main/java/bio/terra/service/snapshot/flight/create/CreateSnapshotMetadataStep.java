@@ -13,6 +13,8 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
@@ -21,6 +23,8 @@ public class CreateSnapshotMetadataStep implements Step {
     private final SnapshotDao snapshotDao;
     private final SnapshotService snapshotService;
     private final SnapshotRequestModel snapshotReq;
+
+    private static Logger logger = LoggerFactory.getLogger(CreateSnapshotMetadataStep.class);
 
     public CreateSnapshotMetadataStep(
         SnapshotDao snapshotDao,
@@ -49,8 +53,8 @@ public class CreateSnapshotMetadataStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        String snapshotName = snapshotReq.getName();
-        snapshotDao.deleteByName(snapshotName);
+        logger.debug("Snapshot creation failed. Deleting metadata.");
+        snapshotDao.deleteByName(snapshotReq.getName());
         return StepResult.getStepResultSuccess();
     }
 

@@ -1,9 +1,10 @@
 package bio.terra.service.dataset.flight.create;
 
-import bio.terra.model.DatasetRequestModel;
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -36,6 +37,7 @@ public class DatasetCreateFlight extends Flight {
         // right now the cloud project is created as part of the PrimaryDataStep below
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dataLocationService));
         addStep(new CreateDatasetAuthzResource(iamClient, bigQueryPdao, datasetService, userReq));
+        addStep(new UnlockDatasetStep(datasetDao));
     }
 
 }

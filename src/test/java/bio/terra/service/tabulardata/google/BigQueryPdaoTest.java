@@ -109,7 +109,9 @@ public class BigQueryPdaoTest {
             .defaultProfileId(profileModel.getId())
             .name(datasetName());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        datasetDao.create(dataset);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlock(dataset.getName(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);
         return dataset;
     }

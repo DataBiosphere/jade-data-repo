@@ -68,7 +68,9 @@ public class SnapshotDaoTest {
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        datasetId = datasetDao.create(dataset);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlock(dataset.getName(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)

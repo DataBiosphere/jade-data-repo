@@ -261,7 +261,9 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
                                                  @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
-        return null;
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override

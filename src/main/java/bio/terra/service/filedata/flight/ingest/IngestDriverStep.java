@@ -1,13 +1,9 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.model.BulkLoadArrayResultModel;
-import bio.terra.model.BulkLoadFileResultModel;
-import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
@@ -113,9 +109,6 @@ public class IngestDriverStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
 
-        BulkLoadArrayResultModel result = makeLoadResult(loadId, context);
-        workingMap.put(JobMapKeys.RESPONSE.getKeyName(), result);
-
         return StepResult.getStepResultSuccess();
     }
 
@@ -123,21 +116,6 @@ public class IngestDriverStep implements Step {
     public StepResult undoStep(FlightContext context) {
         return StepResult.getStepResultSuccess();
     }
-
-    private BulkLoadArrayResultModel makeLoadResult(UUID loadId, FlightContext context) {
-        // Get the summary stats and fill in our specific information
-        BulkLoadResultModel summary = loadService.makeBulkLoadResult(loadId);
-        summary.loadTag(loadTag).jobId(context.getFlightId());
-
-        // Get the file load results
-        List<BulkLoadFileResultModel> fileResults = loadService.makeBulkLoadFileArray(loadId);
-
-        return new BulkLoadArrayResultModel()
-            .loadSummary(summary)
-            .loadFileResults(fileResults);
-    }
-
-
 
     private void waitForAny(FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
         throws DatabaseOperationException {

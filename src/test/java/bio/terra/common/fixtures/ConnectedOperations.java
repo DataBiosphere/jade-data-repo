@@ -1,11 +1,13 @@
 package bio.terra.common.fixtures;
 
-
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetRequestModel;
@@ -22,7 +24,8 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.sam.SamConfiguration;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
@@ -63,10 +66,10 @@ public class ConnectedOperations {
     private static final Logger logger = LoggerFactory.getLogger(ConnectedOperations.class);
 
     private MockMvc mvc;
-    private ObjectMapper objectMapper;
     private JsonLoader jsonLoader;
     private SamConfiguration samConfiguration;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
+    private ConnectedTestConfiguration testConfig;
 
     private boolean deleteOnTeardown;
     private List<String> createdSnapshotIds;
@@ -74,16 +77,17 @@ public class ConnectedOperations {
     private List<String> createdProfileIds;
     private List<String[]> createdFileIds; // [0] is datasetid, [1] is fileid
     private List<String> createdBuckets;
+    private List<String> createdScratchFiles;
 
     @Autowired
     public ConnectedOperations(MockMvc mvc,
-                               ObjectMapper objectMapper,
                                JsonLoader jsonLoader,
-                               SamConfiguration samConfiguration) {
+                               SamConfiguration samConfiguration,
+                               ConnectedTestConfiguration testConfig) {
         this.mvc = mvc;
-        this.objectMapper = objectMapper;
         this.jsonLoader = jsonLoader;
         this.samConfiguration = samConfiguration;
+        this.testConfig = testConfig;
 
         createdSnapshotIds = new ArrayList<>();
         createdDatasetIds = new ArrayList<>();
@@ -91,6 +95,7 @@ public class ConnectedOperations {
         createdProfileIds = new ArrayList<>();
         deleteOnTeardown = true;
         createdBuckets = new ArrayList<>();
+        createdScratchFiles = new ArrayList<>();
     }
 
     public void stubOutSamCalls(IamService samService) {
@@ -263,6 +268,13 @@ public class ConnectedOperations {
         storage.delete(bucketName);
     }
 
+    public void deleteTestScratchFile(String path) {
+        Blob scratchBlob = storage.get(BlobId.of(testConfig.getIngestbucket(), path));
+        if (scratchBlob != null) {
+            scratchBlob.delete();
+        }
+    }
+
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         DeleteResponseModel responseModel =
             TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
@@ -342,9 +354,32 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleAsyncFailureCase(response);
     }
+
     public MvcResult ingestArrayRaw(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(loadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array";
+        return mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+    }
+
+    public BulkLoadResultModel ingestBulkFileSuccess(String datasetId,
+                                                     BulkLoadRequestModel loadModel) throws Exception {
+        MvcResult result = ingestBulkFileRaw(datasetId, loadModel);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleAsyncSuccessCase(response, BulkLoadResultModel.class);
+    }
+
+    public ErrorModel ingestBulkFileFailure(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
+        MvcResult result = ingestBulkFileRaw(datasetId, loadModel);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleAsyncFailureCase(response);
+    }
+
+    public MvcResult ingestBulkFileRaw(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
+        String jsonRequest = TestUtils.mapToJson(loadModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files/bulk";
         return mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
@@ -400,7 +435,7 @@ public class ConnectedOperations {
         while (true) {
             MockHttpServletResponse response = result.getResponse();
             HttpStatus status = HttpStatus.valueOf(response.getStatus());
-            assertTrue("received expected jobs polling status",
+            assertTrue("expected jobs polling status, got " + status.toString(),
                 (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
 
             JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
@@ -455,6 +490,11 @@ public class ConnectedOperations {
         createdBuckets.add(bucketName);
     }
 
+    // Scratch files are expected to be located in testConfig.getIngestBucket();
+    public void addScratchFile(String path) {
+        createdScratchFiles.add(path);
+    }
+
     public void setDeleteOnTeardown(boolean deleteOnTeardown) {
         this.deleteOnTeardown = deleteOnTeardown;
     }
@@ -482,6 +522,10 @@ public class ConnectedOperations {
             for (String bucketName : createdBuckets) {
                 deleteTestBucket(bucketName);
             }
+
+            for (String path : createdScratchFiles) {
+                deleteTestScratchFile(path);
+            }
         }
 
         createdSnapshotIds = new ArrayList<>();
@@ -489,5 +533,6 @@ public class ConnectedOperations {
         createdDatasetIds = new ArrayList<>();
         createdProfileIds = new ArrayList<>();
         createdBuckets = new ArrayList<>();
+        createdScratchFiles = new ArrayList<>();
     }
 }

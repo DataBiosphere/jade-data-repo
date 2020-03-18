@@ -23,16 +23,19 @@ import java.util.UUID;
 
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileStep implements Step {
-    // TODO: MAYBE make these configuration items?
-    private static final int BATCH_SIZE = 50;
-    private static final int MAX_BAD_LINES = 5;
-
     private final LoadService loadService;
     private final ObjectMapper objectMapper;
+    private final int maxBadLines;
+    private final int batchSize;
 
-    public IngestPopulateFileStateFromFileStep(LoadService loadService, ObjectMapper objectMapper) {
+    public IngestPopulateFileStateFromFileStep(LoadService loadService,
+                                               ObjectMapper objectMapper,
+                                               int maxBadLines,
+                                               int batchSize) {
         this.loadService = loadService;
         this.objectMapper = objectMapper;
+        this.maxBadLines = maxBadLines;
+        this.batchSize = batchSize;
     }
 
     @Override
@@ -59,15 +62,15 @@ public class IngestPopulateFileStateFromFileStep implements Step {
                     fileList.add(loadFile);
                 } catch (IOException ex) {
                     errorDetails.add("Format error at line " + lineCount + ": " + ex.getMessage());
-                    if (errorDetails.size() > MAX_BAD_LINES) {
+                    if (errorDetails.size() > maxBadLines) {
                         throw new BulkLoadControlFileException(
-                            "More than " + MAX_BAD_LINES + " bad lines in the control file",
+                            "More than " + maxBadLines + " bad lines in the control file",
                             errorDetails);
                     }
                 }
 
                 // Keep this check and load out of the inner try; it should only catch objectMapper failures
-                if (fileList.size() > BATCH_SIZE) {
+                if (fileList.size() > batchSize) {
                     loadService.populateFiles(loadId, fileList);
                     fileList.clear();
                 }

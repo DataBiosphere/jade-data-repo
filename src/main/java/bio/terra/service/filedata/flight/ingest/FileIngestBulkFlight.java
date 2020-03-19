@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -12,6 +13,7 @@ import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.ApplicationContext;
 
 /*
@@ -20,23 +22,25 @@ import org.springframework.context.ApplicationContext;
  * - LOAD_TAG is the load tag for this ingest
  * - CONCURRENT_INGESTS is the number of ingests to allow to run in parallel
  * - CONCURRENT_FILES is the number of file loads to run in parallel
- * - REQUEST is a BulkLoadArrayRequestModel
+ * - REQUEST is a BulkLoadRequestModel
  */
 
-public class FileArrayIngestFlight extends Flight {
+public class FileIngestBulkFlight extends Flight {
 
-    public FileArrayIngestFlight(FlightMap inputParameters,
-                                 Object applicationContext) {
+    public FileIngestBulkFlight(FlightMap inputParameters,
+                                Object applicationContext) {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         IamService iamService = (IamService)appContext.getBean("iamService");
         LoadService loadService = (LoadService)appContext.getBean("loadService");
+        ObjectMapper objectMapper = (ObjectMapper)appContext.getBean("objectMapper");
+        ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
-        BulkLoadArrayRequestModel loadRequest =
-            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadArrayRequestModel.class);
+        BulkLoadRequestModel loadRequest =
+            inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);
         int maxFailedFileLoads = loadRequest.getMaxFailedFileLoads();
         String profileId = loadRequest.getProfileId();
 
@@ -50,20 +54,26 @@ public class FileArrayIngestFlight extends Flight {
         // 0. Verify authorization to do the ingest
         // 1. Lock the load tag - only one flight operating on a load tag at a time
         // 2. TODO: reserve a bulk load slot to make sure we have the threads to do the flight; abort otherwise (DR-754)
-        // 3. Put the array into the load_file table for processing
+        // 3. Read the file into the load_file table for processing
         // 4. Main loading loop - shared with bulk ingest from a file in a bucket
-        // 5. TODO: Copy results into the database BigQuery (DR-694)
-        // 6. Clean load_file table
-        // 7. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
-        // 8. Unlock the load tag
+        // 5. Generate the bulk file response - just the summary information
+        // 6. TODO: Copy results into the database BigQuery (DR-694)
+        // 7. Clean load_file table
+        // 8. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
+        // 9. Unlock the load tag
         addStep(new VerifyAuthorizationStep(iamService, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
         addStep(new LoadLockStep(loadService));
         // 2. reserve a bulk load slot
-        addStep(new IngestPopulateFileStateFromArrayStep(loadService));
+        addStep(new IngestPopulateFileStateFromFileStep(
+            loadService,
+            objectMapper,
+            appConfig.getMaxBadLoadFileLineErrorsReported(),
+            appConfig.getLoadFilePopulateBatchSize()));
         addStep(new IngestDriverStep(loadService, datasetId, loadTag, concurrentFiles, maxFailedFileLoads, profileId));
-        // 5. copy results into BigQuery
+        addStep(new IngestBulkFileResponseStep(loadService, loadTag));
+        // 6. copy results into BigQuery
         addStep(new IngestCleanFileStateStep(loadService));
-        // 7. release bulk load slot
+        // 8. release bulk load slot
         addStep(new LoadUnlockStep(loadService));
     }
 

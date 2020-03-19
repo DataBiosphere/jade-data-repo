@@ -2,8 +2,16 @@
   "name":"demo",
   "description":"desc",
   "contents":[
-    { "source": {"datasetName":"IngestTest", "assetName":"sample_centric"},
-      "rootValues":["sample1","sample2"]
+    {
+      "datasetName": "IngestTest",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "sample_centric",
+        "rootValues": [
+          "sample1",
+          "sample2"
+        ]
+      }
     }
   ]
 }

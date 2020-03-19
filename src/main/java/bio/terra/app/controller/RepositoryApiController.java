@@ -40,10 +40,8 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.PolicyMemberValidator;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 import bio.terra.service.job.JobService;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotRequestValidator;
 import bio.terra.service.snapshot.SnapshotService;
-import bio.terra.service.snapshot.SnapshotSource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,11 +57,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Controller
 public class RepositoryApiController implements RepositoryApi {
@@ -258,7 +256,9 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
                                                  @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
-        return null;
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -347,22 +347,24 @@ public class RepositoryApiController implements RepositoryApi {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
     // -- snapshot --
+    private List<UUID> getUnauthorizedSources(
+        List<UUID> snapshotSourceDatasetIds, AuthenticatedUserRequest userReq) {
+        return snapshotSourceDatasetIds
+            .stream()
+            .filter(sourceId -> !iamService.isAuthorized(
+                userReq,
+                IamResourceType.DATASET,
+                sourceId.toString(),
+                IamAction.CREATE_DATASNAPSHOT))
+            .collect(Collectors.toList());
+    }
+
     @Override
     public ResponseEntity<JobModel> createSnapshot(@Valid @RequestBody SnapshotRequestModel snapshotRequestModel) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequestModel);
-        List<SnapshotSource> sources = snapshot.getSnapshotSources();
-        List<SnapshotSource> unauthorized = new ArrayList();
-        sources.forEach(source -> {
-                if (!iamService.isAuthorized(
-                    userReq,
-                    IamResourceType.DATASET,
-                    source.getDataset().getId().toString(),
-                    IamAction.CREATE_DATASNAPSHOT)) {
-                    unauthorized.add(source);
-                }
-            }
-        );
+        List<UUID> snapshotSourceDatasetIds =
+            snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
+        List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);
             // we can retrieve the job we just created

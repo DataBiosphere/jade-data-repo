@@ -12,6 +12,7 @@ import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
+import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigModel;
@@ -23,10 +24,13 @@ import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsIdService;
+import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -46,6 +50,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -54,10 +59,12 @@ import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -246,11 +253,6 @@ public class FileOperationTest {
             containsString("gs path"));
     }
 
-    // TESTS TO WRITE
-    // - two multi file loads in parallel - success case
-    // - set max to allow all to fail?
-    // - exceed max failures (after DR-643 fix)
-
     // -- array bulk load --
 
     @Test
@@ -366,6 +368,60 @@ public class FileOperationTest {
         assertThat("Got bad request", result.getResponse().getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
     }
 
+    // -- file bulk load --
+    @Test
+    public void multiFileLoadSuccessTest() throws Exception {
+        BulkLoadRequestModel loadRequest =
+            makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, new boolean[]{true, true, true, true});
+
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
+
+        // retry successful load to make sure it still succeeds and does nothing
+        result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
+    }
+
+    @Test
+    public void multiFileLoadFailRetryTest() throws Exception {
+        BulkLoadRequestModel loadRequest =
+            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, new boolean[]{true, false, true, false});
+        loadRequest.maxFailedFileLoads(4);
+        String loadTag = loadRequest.getLoadTag();
+
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        checkLoadSummary(result, loadTag, 4, 2, 2, 0);
+
+        loadRequest =
+            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, new boolean[]{true, true, true, true});
+        loadRequest.loadTag(loadTag);
+        result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        checkLoadSummary(result, loadTag, 4, 4, 0, 0);
+    }
+
+    @Test
+    public void multiFileLoadBadLineTest() throws Exception {
+        // part 1: test that we exit with the bad line error when we have fewer than the max
+        BulkLoadRequestModel loadRequest =
+            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, new boolean[]{true, false, true, false});
+        loadRequest.maxFailedFileLoads(4);
+
+        ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
+        assertThat("Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
+        assertThat("Expected error", errorModel.getMessage(), containsString("There were"));
+        assertThat("Expected number of error details", errorModel.getErrorDetail().size(), equalTo(3));
+
+        // part 2: test that we exit with bad line error when we have more than the max
+        loadRequest =
+            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, new boolean[]{true, true, true, true});
+        loadRequest.maxFailedFileLoads(4);
+
+        errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
+        assertThat("Expected error", errorModel.getMessage(), containsString("bad lines in the control file"));
+        assertThat("Expected error", errorModel.getMessage(), containsString("More than"));
+        assertThat("Expected number of error details", errorModel.getErrorDetail().size(), greaterThan(5));
+    }
+
     private static void checkFileResultFailed(BulkLoadFileResultModel fileResult) {
         assertNotNull("Error is not null", fileResult.getError());
         assertNull("FileId is null", fileResult.getFileId());
@@ -402,6 +458,44 @@ public class FileOperationTest {
             arrayLoad.addLoadArrayItem(getFileModel(true, index, testId));
         }
         return arrayLoad;
+    }
+
+    private BulkLoadRequestModel makeBulkFileLoad(String tagBase,
+                                                  int startIndex,
+                                                  int badLines,
+                                                  boolean[] validPattern) {
+        int fileCount = validPattern.length;
+        String testId = Names.randomizeName("test");
+        String loadTag = tagBase + testId;
+        String targetPath = "scratch/controlfile" + UUID.randomUUID().toString() + ".json";
+        connectedOperations.addScratchFile(targetPath); // track the file so it gets cleaned up
+
+        String gspath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+
+
+        try (GcsChannelWriter writer = new GcsChannelWriter(storage, testConfig.getIngestbucket(), targetPath)) {
+            for (int i = 0; i < badLines; i++) {
+                String badLine = "bad line: " + loadTag + "\n";
+                writer.write(badLine);
+            }
+
+            for (int i = 0; i < fileCount; i++) {
+                BulkLoadFileModel fileModel = getFileModel(validPattern[i], startIndex + i, testId);
+                String fileLine = objectMapper.writeValueAsString(fileModel) + "\n";
+                writer.write(fileLine);
+            }
+        } catch (IOException ex) {
+            fail("Failed to write load file '" + targetPath +
+                "' to bucket '" + testConfig.getIngestbucket() + "'");
+        }
+
+        BulkLoadRequestModel loadRequest = new BulkLoadRequestModel()
+            .profileId(profileModel.getId())
+            .loadTag(loadTag)
+            .maxFailedFileLoads(0)
+            .loadControlFile(gspath);
+        return loadRequest;
     }
 
     // We have a static array of good paths and bad paths with their associated

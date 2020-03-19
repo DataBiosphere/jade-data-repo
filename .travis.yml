@@ -35,6 +35,7 @@ before_install:
   - gcloud auth configure-docker
   - gcloud components install kubectl
   - gcloud container clusters get-credentials $CLUSTER_NAME
+  - curl 'https://api.ipify.org?format=json'
 
 script:
   - set -e

@@ -68,12 +68,14 @@ public class SnapshotDaoTest {
             .name(datasetRequest.getName() + UUID.randomUUID().toString())
             .defaultProfileId(profileId.toString());
         dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        datasetId = datasetDao.create(dataset);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetId = datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlock(dataset.getName(), createFlightId);
         dataset = datasetDao.retrieve(datasetId);
 
         snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json", SnapshotRequestModel.class)
             .profileId(profileId.toString());
-        snapshotRequest.getContents().get(0).getSource().setDatasetName(dataset.getName());
+        snapshotRequest.getContents().get(0).setDatasetName(dataset.getName());
 
         // Populate the snapshotId with random; delete should quietly not find it.
         snapshotId = UUID.randomUUID();

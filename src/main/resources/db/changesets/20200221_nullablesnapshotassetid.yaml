@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: snapshot_asset_id_nullablee
+      author: rc
+      changes:
+        - dropNotNullConstraint:
+            catalogName: datarepo
+            columnDataType: uuid
+            columnName: asset_id
+            schemaName: public
+            tableName: snapshot_source

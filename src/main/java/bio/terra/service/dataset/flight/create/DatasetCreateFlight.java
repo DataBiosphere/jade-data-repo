@@ -4,6 +4,7 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -46,6 +47,7 @@ public class DatasetCreateFlight extends Flight {
         // right now the cloud project is created as part of the PrimaryDataStep below
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dataLocationService));
         addStep(new CreateDatasetAuthzResource(iamClient, bigQueryPdao, datasetService, userReq));
+        addStep(new UnlockDatasetStep(datasetDao));
     }
 
 }

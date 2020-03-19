@@ -2377,28 +2377,67 @@ definitions:
       TODO: field will move the asset object; it is here as a stepping stone
     type: object
     required:
-      - source
+      - datasetName
+      - mode
+    properties:
+      datasetName:
+        $ref: '#/definitions/ObjectNameProperty'
+      mode:
+        type: string
+        enum:
+          - byAsset
+          - byRowId
+      assetSpec:
+        $ref: '#/definitions/SnapshotRequestAssetModel'
+      rowIdSpec:
+        $ref: '#/definitions/SnapshotRequestRowIdModel'
+
+  SnapshotRequestAssetModel:
+    description: |
+      The datasource identifies the dataset and asset from which to source the data.
+    type: object
+    required:
+      - assetName
       - rootValues
     properties:
-      source:
-        $ref: '#/definitions/SnapshotRequestSourceModel'
+      assetName:
+        $ref: '#/definitions/ObjectNameProperty'
       rootValues:
         type: array
         items:
           type: string
 
-  SnapshotRequestSourceModel:
+  SnapshotRequestRowIdModel:
     description: |
-      The datasource identifies the dataset and asset from which to source the data.
+      Identifies the list of tables + columns along with the row ids to be included in the snapshot
     type: object
     required:
-      - datasetName
-      - assetName
+      - tables
     properties:
-      datasetName:
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/SnapshotRequestRowIdTableModel'
+
+  SnapshotRequestRowIdTableModel:
+    description: |
+      A specification of a table, columns, and row ids to go into a snapshot.
+    type: object
+    required:
+      - tableName
+      - columns
+      - rowIds
+    properties:
+      tableName:
         $ref: '#/definitions/ObjectNameProperty'
-      assetName:
-        $ref: '#/definitions/ObjectNameProperty'
+      columns:
+        type: array
+        items:
+          $ref: '#/definitions/ObjectNameProperty'
+      rowIds:
+        type: array
+        items:
+          $ref: '#/definitions/UniqueIdProperty'
 
   SnapshotSummaryModel:
     description: |

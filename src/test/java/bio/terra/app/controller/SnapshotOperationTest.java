@@ -36,6 +36,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -146,6 +147,25 @@ public class SnapshotOperationTest {
     }
 
     @Test
+    public void testRowIdsHappyPath() throws Exception {
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        SnapshotRequestModel snapshotRequest =
+            makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        deleteTestSnapshot(snapshotModel.getId());
+
+        getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
     public void testMinimal() throws Exception {
         DatasetSummaryModel datasetSummary = setupMinimalDataset();
         String datasetName = PDAO_PREFIX + datasetSummary.getName();
@@ -197,9 +217,8 @@ public class SnapshotOperationTest {
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
                 "dataset-minimal-snapshot-bad-asset.json");
         MvcResult result = launchCreateSnapshot(snapshotRequest, "");
-        ErrorModel errorModel = handleCreateSnapshotFailureCase(result.getResponse());
-        assertThat(errorModel.getMessage(), containsString("Asset"));
-        assertThat(errorModel.getMessage(), containsString("NotARealAsset"));
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));
     }
 
     @Test
@@ -256,6 +275,33 @@ public class SnapshotOperationTest {
         MockHttpServletResponse response = performCreateSnapshot(badDataRequest, "_baddata_");
         ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
         assertThat(errorModel.getMessage(), containsString("Fred"));
+    }
+
+    @Ignore
+    public void testDuplicateName() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+
+        // fetch the snapshot and confirm the metadata matches the request
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        // try to create the same snapshot again
+        snapshotRequest.setName(snapshotModel.getName());
+        response = performCreateSnapshot(snapshotRequest, null);
+        ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
+        assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
+        assertThat(errorModel.getMessage(),
+            containsString("duplicate key value violates unique constraint \"snapshot_name_key\""));
+
+        // delete and confirm deleted
+        deleteTestSnapshot(snapshotModel.getId());
+        getNonexistentSnapshot(snapshotModel.getId());
     }
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
@@ -315,25 +361,27 @@ public class SnapshotOperationTest {
                                                          String resourcePath) throws Exception {
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
         // TODO SingleDatasetSnapshot
-        snapshotRequest.getContents().get(0).getSource().setDatasetName(datasetSummaryModel.getName());
+        snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
         snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
         return snapshotRequest;
     }
 
     private MvcResult launchCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
             throws Exception {
-        snapshotOriginalName = snapshotRequest.getName();
-        String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
-        snapshotRequest.setName(snapshotName);
+        if (infix != null) {
+            snapshotOriginalName = snapshotRequest.getName();
+            String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
+            snapshotRequest.setName(snapshotName);
+        }
 
         String jsonRequest = TestUtils.mapToJson(snapshotRequest);
 
         return mvc.perform(post("/api/repository/v1/snapshots")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(jsonRequest))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
 // TODO: swagger field validation errors do not set content type; they log and return nothing
 //                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
+            .andReturn();
     }
 
     private MockHttpServletResponse performCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
@@ -344,7 +392,7 @@ public class SnapshotOperationTest {
     }
 
     private SnapshotSummaryModel handleCreateSnapshotSuccessCase(SnapshotRequestModel snapshotRequest,
-                                                               MockHttpServletResponse response) throws Exception {
+                                                                 MockHttpServletResponse response) throws Exception {
         String responseBody = response.getContentAsString();
         HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
         if (!responseStatus.is2xxSuccessful()) {
@@ -352,7 +400,7 @@ public class SnapshotOperationTest {
             if (StringUtils.contains(responseBody, "message")) {
                 // If the responseBody contains the word 'message', then we try to decode it as an ErrorModel
                 // so we can generate good failure information.
-                ErrorModel errorModel = TestUtils.mapFromJson(responseBody, ErrorModel.class);
+                ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
                 failMessage += " msg=" + errorModel.getMessage();
             } else {
                 failMessage += " responseBody=" + responseBody;
@@ -360,7 +408,7 @@ public class SnapshotOperationTest {
             fail(failMessage);
         }
 
-        SnapshotSummaryModel summaryModel = TestUtils.mapFromJson(responseBody, SnapshotSummaryModel.class);
+        SnapshotSummaryModel summaryModel = objectMapper.readValue(responseBody, SnapshotSummaryModel.class);
         createdSnapshotIds.add(summaryModel.getId());
 
         assertThat(summaryModel.getDescription(), equalTo(snapshotRequest.getDescription()));
@@ -423,7 +471,7 @@ public class SnapshotOperationTest {
                 .andReturn();
 
         MockHttpServletResponse response = result.getResponse();
-        SnapshotModel snapshotModel = TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
+        SnapshotModel snapshotModel = objectMapper.readValue(response.getContentAsString(), SnapshotModel.class);
 
         assertThat(snapshotModel.getDescription(), equalTo(snapshotRequest.getDescription()));
         assertThat(snapshotModel.getName(), startsWith(snapshotRequest.getName()));

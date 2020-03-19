@@ -1,9 +1,9 @@
 package bio.terra.service.snapshot.flight.create;
 
 
+import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.snapshot.Snapshot;
-import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;

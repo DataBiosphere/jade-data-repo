@@ -105,7 +105,7 @@ public class DatasetRequestValidator implements Validator {
 
         PartitionStrategy strategy = table.getPartitionStrategy();
         String partitionColumnName = table.getPartitionColumn();
-        ColumnModel partitionColumn = columns.stream()
+        ColumnModel partitionColumn = columns == null ? null : columns.stream()
             .filter(col -> col.getName().equals(partitionColumnName))
             .findFirst()
             .orElse(null);

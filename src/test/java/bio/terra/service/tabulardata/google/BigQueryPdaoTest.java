@@ -276,6 +276,16 @@ public class BigQueryPdaoTest {
         }
     }
 
+    /* BigQuery Legacy SQL supports querying a "meta-table" about partitions
+     * for any partitioned table.
+     *
+     * The table won't exist if the real table is unpartitioned, so we can
+     * query it for a quick check to see if we enabled the expected options
+     * on table creation.
+     *
+     * https://cloud.google.com/bigquery/docs/
+     *   creating-partitioned-tables#listing_partitions_in_ingestion-time_partitioned_tables
+     */
     private static final String queryPartitionsSummaryTemplate =
         "SELECT * FROM [<project>.<dataset>.<table>$__PARTITIONS_SUMMARY__]";
 

@@ -118,7 +118,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 if (partitionStrategy == null) {
                     bigQueryProject.createUnpartitionedTable(datasetName, table.getRawTableName(), rawSchema);
                 } else {
-                    if (partitionStrategy == PartitionStrategy.INT_COLUMN) {
+                    if (partitionStrategy == PartitionStrategy.INTCOLUMN) {
                         IntPartitionOptionsModel options = table.getIntPartitionSettings();
                         RangePartitioning.Range range = RangePartitioning.Range.newBuilder()
                             .setStart(options.getMin())
@@ -132,7 +132,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
                         bigQueryProject.createRangePartitionedTable(
                             datasetName, table.getRawTableName(), rawSchema, partitioning);
                     } else {
+                        // TimePartitioning only supports the "DAY" type right now, so we hard-code it here.
+                        // They might have it as an enum to prep for adding a "TIME" type in the future?
                         TimePartitioning partitioning = TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
+                            // Passing 'null' signals that ingest-time partitioning should be used.
                             .setField(partitionColumn == null ? null : partitionColumn.getName())
                             .build();
                         bigQueryProject.createTimePartitionedTable(
@@ -162,7 +165,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
         liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-        if (table.getPartitionStrategy() == PartitionStrategy.INGEST_TIME) {
+        if (table.getPartitionStrategy() == PartitionStrategy.INGESTTIME) {
             liveViewSql.add("columns", "_PARTITIONDATE AS " + PDAO_INGEST_DATE_COLUMN_ALIAS);
         }
 

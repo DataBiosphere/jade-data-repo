@@ -1894,9 +1894,9 @@ definitions:
   PartitionStrategy:
     type: string
     enum:
-      - ingest_time
-      - date_or_timestamp_column
-      - int_column
+      - ingestTime
+      - dateOrTimestampColumn
+      - intColumn
 
   IntPartitionOptionsModel:
     description: Describes how an int partition should be configured

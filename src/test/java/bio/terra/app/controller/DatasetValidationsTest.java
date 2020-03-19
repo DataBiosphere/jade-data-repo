@@ -335,7 +335,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.INGEST_TIME)
+            .partitionStrategy(PartitionStrategy.INGESTTIME)
             .partitionColumn("foo_column")
             .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
@@ -353,7 +353,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN)
+            .partitionStrategy(PartitionStrategy.DATEORTIMESTAMPCOLUMN)
             .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
@@ -370,7 +370,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN)
+            .partitionStrategy(PartitionStrategy.DATEORTIMESTAMPCOLUMN)
             .partitionColumn("not_a_column");
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
@@ -390,7 +390,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
-            .partitionStrategy(PartitionStrategy.DATE_OR_TIMESTAMP_COLUMN)
+            .partitionStrategy(PartitionStrategy.DATEORTIMESTAMPCOLUMN)
             .partitionColumn(column.getName());
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
@@ -407,7 +407,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.INT_COLUMN);
+            .partitionStrategy(PartitionStrategy.INTCOLUMN);
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -423,7 +423,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.INT_COLUMN)
+            .partitionStrategy(PartitionStrategy.INTCOLUMN)
             .partitionColumn("not_a_column")
             .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
@@ -444,7 +444,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
-            .partitionStrategy(PartitionStrategy.INT_COLUMN)
+            .partitionStrategy(PartitionStrategy.INTCOLUMN)
             .partitionColumn(column.getName())
             .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
@@ -465,7 +465,7 @@ public class DatasetValidationsTest {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
-            .partitionStrategy(PartitionStrategy.INT_COLUMN)
+            .partitionStrategy(PartitionStrategy.INTCOLUMN)
             .partitionColumn(column.getName())
             .intPartitionOptions(new IntPartitionOptionsModel().min(5L).max(2L).interval(-1L));
         DatasetRequestModel req = buildDatasetRequest();

@@ -134,12 +134,12 @@ public class DatasetTableDao {
                 .orElse(null);
             table.partitionStrategy(strategy);
 
-            if (strategy != PartitionStrategy.INGEST_TIME) {
+            if (strategy != PartitionStrategy.INGESTTIME) {
                 String partitionCol = rs.getString("partition_column");
                 table.partitionColumn(columnMap.get(partitionCol));
             }
 
-            if (strategy == PartitionStrategy.INT_COLUMN) {
+            if (strategy == PartitionStrategy.INTCOLUMN) {
                 long min = rs.getLong("int_partition_min_value");
                 long max = rs.getLong("int_partition_max_value");
                 long interval = rs.getLong("int_partition_interval");

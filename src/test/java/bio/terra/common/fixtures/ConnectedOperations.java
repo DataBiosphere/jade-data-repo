@@ -125,13 +125,9 @@ public class ConnectedOperations {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(datasetRequest)))
-            .andExpect(status().isCreated())
             .andReturn();
-
-        MockHttpServletResponse response = result.getResponse();
-        DatasetSummaryModel datasetSummaryModel =
-            TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
-
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        DatasetSummaryModel datasetSummaryModel = handleAsyncSuccessCase(response, DatasetSummaryModel.class);
         addDataset(datasetSummaryModel.getId());
         return datasetSummaryModel;
     }

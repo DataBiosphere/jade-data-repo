@@ -18,6 +18,7 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
@@ -41,6 +42,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -76,7 +78,7 @@ public class DataRepoFixtures {
 
     // datasets
 
-    public DataRepoResponse<DatasetSummaryModel> createDatasetRaw(TestConfiguration.User user, String filename)
+    public DataRepoResponse<JobModel> createDatasetRaw(TestConfiguration.User user, String filename)
         throws Exception {
         DatasetRequestModel requestModel = jsonLoader.loadObject(filename, DatasetRequestModel.class);
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
@@ -88,14 +90,36 @@ public class DataRepoFixtures {
             user,
             "/api/repository/v1/datasets",
             json,
-            DatasetSummaryModel.class);
+            JobModel.class);
     }
 
     public DatasetSummaryModel createDataset(TestConfiguration.User user, String filename) throws Exception {
-        DataRepoResponse<DatasetSummaryModel> postResponse = createDatasetRaw(user, filename);
-        assertThat("dataset is successfully created", postResponse.getStatusCode(), equalTo(HttpStatus.CREATED));
-        assertTrue("dataset create response is present", postResponse.getResponseObject().isPresent());
-        return postResponse.getResponseObject().get();
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, filename);
+        assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<DatasetSummaryModel> response = dataRepoClient.waitForResponse(
+            user, jobResponse, DatasetSummaryModel.class);
+        assertThat("dataset create is successful", response.getStatusCode(), equalTo(HttpStatus.CREATED));
+        assertTrue("dataset create response is present", response.getResponseObject().isPresent());
+        return response.getResponseObject().get();
+    }
+
+    public ErrorModel createDatasetError(TestConfiguration.User user,
+                                         String filename,
+                                         HttpStatus checkStatus) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = createDatasetRaw(user, filename);
+        assertTrue("dataset create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("dataset create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<ErrorModel> response = dataRepoClient.waitForResponse(user, jobResponse, ErrorModel.class);
+        if (checkStatus == null) {
+            assertFalse("dataset create is failure", response.getStatusCode().is2xxSuccessful());
+        } else {
+            assertThat("correct dataset create error", response.getStatusCode(), equalTo(checkStatus));
+        }
+        assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
+        return response.getErrorObject().get();
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)

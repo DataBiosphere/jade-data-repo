@@ -6,8 +6,7 @@ import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
-import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -20,7 +19,6 @@ import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamService;
-import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -76,7 +74,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -108,20 +105,17 @@ public class SnapshotOperationTest {
     private IamService samService;
 
     private List<String> createdSnapshotIds;
-    private List<String> createdDatasetIds;
     private String snapshotOriginalName;
-    private BillingProfile billingProfile;
+    private BillingProfileModel billingProfile;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Before
     public void setup() throws Exception {
         // TODO all of this should be refactored to use connected operations, and that should be made a component
         createdSnapshotIds = new ArrayList<>();
-        createdDatasetIds = new ArrayList<>();
         connectedOperations.stubOutSamCalls(samService);
-        billingProfile = ProfileFixtures.billingProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
-        UUID profileId = profileDao.createBillingProfile(billingProfile);
-        billingProfile.id(profileId);
+        billingProfile =
+            connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
     }
 
     @After
@@ -130,11 +124,7 @@ public class SnapshotOperationTest {
             for (String snapshotId : createdSnapshotIds) {
                 deleteTestSnapshot(snapshotId);
             }
-
-            for (String datasetId : createdDatasetIds) {
-                deleteTestDataset(datasetId);
-            }
-            profileDao.deleteBillingProfileById(billingProfile.getId());
+            connectedOperations.teardown();
         }
     }
 
@@ -330,23 +320,7 @@ public class SnapshotOperationTest {
 
     // create a dataset to create snapshots in and return its id
     private DatasetSummaryModel createTestDataset(String resourcePath) throws Exception {
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId().toString());
-
-        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(TestUtils.mapToJson(datasetRequest)))
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        MockHttpServletResponse response = result.getResponse();
-        DatasetSummaryModel datasetSummaryModel =
-                TestUtils.mapFromJson(response.getContentAsString(), DatasetSummaryModel.class);
-        createdDatasetIds.add(datasetSummaryModel.getId());
-
-        return datasetSummaryModel;
+        return connectedOperations.createDatasetWithFlight(billingProfile, resourcePath);
     }
 
     private void loadCsvData(String datasetId, String tableName, String resourcePath) throws Exception {
@@ -384,7 +358,7 @@ public class SnapshotOperationTest {
     }
 
     private SnapshotRequestModel makeSnapshotTestRequest(DatasetSummaryModel datasetSummaryModel,
-                                                       String resourcePath) throws Exception {
+                                                         String resourcePath) throws Exception {
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
         // TODO SingleDatasetSnapshot
         snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());

@@ -192,7 +192,9 @@ Download the team's projects:
 ```
 git clone https://github.com/DataBiosphere/jade-data-repo
 git clone https://github.com/DataBiosphere/jade-data-repo-ui
+git clone https://github.com/DataBiosphere/jade-data-repo-cli
 git clone https://github.com/broadinstitute/terraform-jade
+git clone https://github.com/broadinstitute/datarepo-helm
 git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 

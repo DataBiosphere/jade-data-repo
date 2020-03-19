@@ -146,16 +146,17 @@ open -a "IntelliJ IDEA CE"
 then click in the search box and install **Cloud Code**, which integrates
 Google Cloud features with IntelliJ IDEA.
 
-## 4. Install Postgres 9.6
+## 4. Install Postgres 12
 
 [Postgres](https://www.postgresql.org/) is an advanced open-source database.
 **Postgres.app** is used to manage a local installation of Postgres. The latest
 release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
-page. Make sure to select a version which supports Postgres 9.6. After launching
-the application, create a new 9.6 database as follows:
+page. For compatibility, make sure to select a version which supports all the
+older versions of Postgres including 9.6. After launching the application,
+create a new version 12 database as follows:
 
 1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
-2. Name the new server, making sure to select version **9.6**, and then
+2. Name the new server, making sure to select version **12**, and then
 **Initialize** it
 3. Add `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path
 (there are multiple ways to achieve this)

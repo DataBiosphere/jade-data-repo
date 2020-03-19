@@ -1,13 +1,14 @@
 # Getting Started
 
-> Ensure that your teammates have given you access beforehand to the required
-team resources. If you encounter a permission error, it is likely because you
-are missing appropriate access. Ask for access to Data Biosphere and Google
-Groups. A DevOps colleague will also need to create a Helm `datarepo` definition
-for you.
+Ensure that you have access to the required team resources beforehand. If you
+encounter a permission error, it is likely because you are missing appropriate
+access. Join the `#github` Slack channel, click the lightning bolt in the
+channel header, and select `Join DataBiosphere`. Ask for access to Google Groups
+including `dsde-engineering`. A DevOps colleague will also need to create a Helm
+`datarepo` definition for you.
 
-> These instructions assume you use MacOS, and that you are on the Broad-Internal
-network.
+These instructions assume you use MacOS, and that you are on the internal Broad
+network or the VPN.
 
 > During this process, you will need your GitHub and Docker Hub username /
 password for multiple steps, so make sure to have those handy. If you don't have

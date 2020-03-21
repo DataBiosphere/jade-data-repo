@@ -31,6 +31,7 @@ buildscript {
 plugins {
   id "com.google.cloud.tools.jib" version "1.6.1"
   id 'org.liquibase.gradle' version '2.0.1'
+  id 'antlr'
 }
 
 apply plugin: 'java'
@@ -152,6 +153,8 @@ dependencies {
         force = true
     }
 
+    antlr "org.antlr:antlr4:4.8"
+
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
     runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
@@ -178,12 +181,12 @@ dependencies {
 }
 
 def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'
-def openapiTargetFolder = 'src/generated/java'
+def generatedOutputDir = 'src/generated/java'
 
 task generateApi {
     // specify the task inputs and outputs so gradle knows what to rebuild based on what has changed
     inputs.file("$projectDir/$openapiSourceFile")
-    outputs.dir("$projectDir/$openapiTargetFolder")
+    outputs.dir("$projectDir/$generatedOutputDir")
     doLast {
         def config = new CodegenConfigurator()
         config.setInputSpec("file:///$projectDir/$openapiSourceFile")
@@ -200,7 +203,7 @@ task generateApi {
                 'apiPackage'    : 'bio.terra.controller',
                 'modelPackage'  : 'bio.terra.model',
                 'invokerPackage': 'bio.terra',
-                'sourceFolder'  : openapiTargetFolder
+                'sourceFolder'  : generatedOutputDir
         ])
         new DefaultGenerator().opts(config.toClientOptInput()).generate()
     }
@@ -213,7 +216,7 @@ task unpack(type: Copy) {
 }
 
 clean.doFirst {
-    delete("${projectDir}/$openapiTargetFolder")
+    delete("${projectDir}/$generatedOutputDir")
 }
 
 sourceSets {
@@ -243,6 +246,10 @@ sourceSets {
     jacoco {
         toolVersion '0.8.2'
     }
+}
+
+generateGrammarSource {
+    outputDirectory = file("${projectDir}/${generatedOutputDir}/bio/terra/service/grammar")
 }
 
 bootRun {

@@ -2693,32 +2693,41 @@ definitions:
 
   DataDeletionRequest:
     description: |
-      a container holding a specification for how to delete tabular data
+      a container holding a specification for how to delete tabular data in one or more tables
     type: object
     required:
-      - deleteType
-      - tableName
-      - specType
+    - specType
+    - deleteType
     properties:
       deleteType:
         type: string
         enum:
-          - soft
-          - hard
-      tableName:
-        type: string
-        description: the name of a table in the dataset
+        - soft
       specType:
         type: string
         enum:
-          - file
-          - array
-      fileSpec:
+        - gcsFile
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/DataDeletionTableModel'
+
+  DataDeletionTableModel:
+    description: |
+      a specification for how to delete tabular data in one table
+    type: object
+    required:
+      - tableName
+    properties:
+      tableName:
+        type: string
+        description: the name of a table in the dataset
+      gcsFileSpec:
         $ref: '#/definitions/DataDeletionFileModel'
 
-  DataDeletionFileModel:
+  DataDeletionGcsFileModel:
     description: |
-      a specification of a file containing row ids to delete
+      a specification of a gcs file containing row ids to delete
     type: object
     required:
       - fileType
@@ -2728,7 +2737,6 @@ definitions:
         type: string
         enum:
           - csv
-          - json
       path:
         type: string
         description: a gs://path/to/a/file that can use wildcards(*)

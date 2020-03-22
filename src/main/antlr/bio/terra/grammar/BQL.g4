@@ -1,7 +1,7 @@
 grammar BQL;
 
 @header {
-    package bio.terra.service.grammar;
+    package bio.terra.grammar;
 }
 
 query_statement: query_expr;

@@ -38,6 +38,7 @@ apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: 'antlr'
 
 apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
@@ -209,6 +210,10 @@ task generateApi {
     }
 }
 
+generateGrammarSource {
+    arguments += ["-visitor", "-long-messages"]
+}
+
 task unpack(type: Copy) {
     dependsOn bootJar
     from(zipTree(tasks.bootJar.outputs.files.singleFile))
@@ -246,10 +251,6 @@ sourceSets {
     jacoco {
         toolVersion '0.8.2'
     }
-}
-
-generateGrammarSource {
-    outputDirectory = file("${projectDir}/${generatedOutputDir}/bio/terra/service/grammar")
 }
 
 bootRun {

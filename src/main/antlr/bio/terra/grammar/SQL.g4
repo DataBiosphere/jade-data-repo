@@ -1,4 +1,4 @@
-grammar BQL;
+grammar SQL;
 
 @header {
     package bio.terra.grammar;
@@ -66,7 +66,7 @@ expr : number
     ;
 
 column_expr : '`' column_expr '`'
-			| (((project_name '.')? dataset_name '.')? table_name '.')? column_name
+			| dataset_name '.' table_name '.' column_name
 			;
 
 join_type : INNER
@@ -97,10 +97,9 @@ datatype_name : name;
 function_name : name;
 join_name : name;
 member_name : name;
-project_name : name;
 struct_name : name;
 table_name : name;
-table_expr : (((project_name '.')? dataset_name '.')? table_name)
+table_expr : (dataset_name '.' table_name)
     | '`' table_expr '`';
 
 number : integer_type | float_type ;

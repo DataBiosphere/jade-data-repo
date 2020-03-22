@@ -1,10 +1,7 @@
-package bio.terra.service.grammar;
+package bio.terra.grammar;
 
 
 import bio.terra.common.category.Unit;
-import bio.terra.grammar.BQLLexer;
-import bio.terra.grammar.BQLParser;
-import bio.terra.grammar.Visitor;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -19,9 +16,9 @@ public class GrammarTest {
         //String sql = "mr. michael";
         String sql = "SELECT * FROM foo";
         CharStream charStream = CharStreams.fromString(sql);
-        BQLLexer lexer = new BQLLexer(charStream);
-        BQLParser parser = new BQLParser(new CommonTokenStream(lexer));
-        BQLParser.Query_statementContext queryStatement = parser.query_statement();
+        SQLLexer lexer = new SQLLexer(charStream);
+        SQLParser parser = new SQLParser(new CommonTokenStream(lexer));
+        SQLParser.Query_statementContext queryStatement = parser.query_statement();
         Visitor visitor = new Visitor();
         visitor.visit(queryStatement);
     }

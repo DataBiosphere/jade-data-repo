@@ -97,7 +97,8 @@ public class GoogleResourceDao {
         GoogleProjectResource projectResource = Optional.ofNullable(bucketRequest.getGoogleProjectResource())
             .orElseThrow(IllegalArgumentException::new);
         String sql = "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES " +
-            "(:project_resource_id, :name, :flightid)";
+            "(:project_resource_id, :name, :flightid) " +
+            "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getRepositoryId())
             .addValue("name", bucketRequest.getBucketName())
@@ -113,6 +114,17 @@ public class GoogleResourceDao {
         } else {
             return null;
         }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean unlockBucket(String bucketName, String flightId) {
+        String sql = "UPDATE bucket_resource SET flightid = NULL " +
+            "WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", bucketName)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        return (numRowsUpdated == 1);
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
@@ -142,6 +154,17 @@ public class GoogleResourceDao {
         }
 
         return bucketResource;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean deleteBucket(String bucketName, String flightId) {
+        String sql = "DELETE FROM bucket_resource " +
+            "WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", bucketName)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        return (numRowsUpdated == 1);
     }
 
     private List<GoogleBucketResource> retrieveBucketsBy(String column, Object value, Class valueClass) {

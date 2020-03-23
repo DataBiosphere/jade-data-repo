@@ -111,17 +111,19 @@ public class GoogleResourceService {
             // check if the bucket already exists
             Optional<Bucket> existingBucket = getBucket(bucketName);
             if (!existingBucket.isPresent()) {
-                // bucket DOES NOT EXIST. create it
+                // bucket DOES NOT EXIST. create it and unlock
                 bucket = newBucket(bucketRequest);
+                resourceDao.unlockBucket(bucketName, flightId);
             } else {
                 // bucket EXISTS. throw an exception or just use it, depending on the Spring profile
-                String[] activeProfiles = springEnvironment.getActiveProfiles();
-                boolean springProfileIsForTesting = Arrays.stream(activeProfiles).anyMatch(
+                boolean springProfileIsForTesting = Arrays.stream(springEnvironment.getActiveProfiles()).anyMatch(
                     springProfile -> springProfile.equals("integration") || springProfile.equals("connectedtest"));
                 if (springProfileIsForTesting) {
-                    logger.info("bucket already exists, using anyway: ", bucketName);
+                    logger.info(String.format("bucket already exists, using anyway: %s", bucketName));
                     bucket = existingBucket.get();
+                    resourceDao.unlockBucket(bucketName, flightId);
                 } else {
+                    resourceDao.deleteBucket(bucketName, flightId);
                     throw new GoogleResourceException(
                         String.format("Bucket already exists: %s", bucketName));
                 }

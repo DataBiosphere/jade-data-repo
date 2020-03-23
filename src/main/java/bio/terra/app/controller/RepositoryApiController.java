@@ -13,7 +13,6 @@ import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -147,14 +146,10 @@ public class RepositoryApiController implements RepositoryApi {
 
     // -- dataset --
     @Override
-    public ResponseEntity<DatasetSummaryModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
-        iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
-            IamResourceType.DATAREPO,
-            appConfig.getResourceId(),
-            IamAction.CREATE_DATASET);
-        return new ResponseEntity<>(datasetService.createDataset(datasetRequest, getAuthenticatedInfo()),
-            HttpStatus.CREATED);
+    public ResponseEntity<JobModel> createDataset(@Valid @RequestBody DatasetRequestModel datasetRequest) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = datasetService.createDataset(datasetRequest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -261,7 +256,9 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<JobModel> bulkFileLoad(@PathVariable("id") String id,
                                                  @Valid @RequestBody BulkLoadRequestModel bulkFileLoad) {
-        return null;
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = fileService.ingestBulkFile(id, bulkFileLoad, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override

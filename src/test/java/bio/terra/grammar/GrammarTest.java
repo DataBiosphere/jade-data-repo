@@ -2,39 +2,56 @@ package bio.terra.grammar;
 
 
 import bio.terra.common.category.Unit;
-import org.antlr.v4.runtime.BailErrorStrategy;
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
+import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.grammar.google.BigQueryVisitor;
+import bio.terra.model.DatasetModel;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 @Category(Unit.class)
 public class GrammarTest {
 
-    public SQLParser.Query_statementContext parseQuery(String sql) {
-        CharStream charStream = CharStreams.fromString(sql);
-        SQLLexer lexer = new SQLLexer(charStream);
-        SQLParser parser = new SQLParser(new CommonTokenStream(lexer));
-        parser.setErrorHandler(new BailErrorStrategy());
-        return parser.query_statement();
+    private Map<String, DatasetModel> datasetMap;
+
+    @Before
+    public void setup() {
+        DatasetModel datasetModel = new DatasetModel().dataProject("a-data-project");
+        datasetMap = Collections.singletonMap("dataset", datasetModel);
     }
 
     @Test
-    public void testValidate() {
-        String sql = "SELECT foo.bar.baz FROM foo.bar";
-        Visitor visitor = new Visitor();
-        String visitResult = visitor.visit(parseQuery(sql));
-        assertThat("visitResult matches", visitResult, equalTo(sql));
+    public void testDatasetNames() {
+        Query query = Query.parse("SELECT * FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+        List<String> datasetNames = query.getDatasetNames();
+        assertThat("there are two datasets", datasetNames.size(), equalTo(2));
+        assertThat("it found the right datasets", datasetNames, hasItems("foo", "baz"));
     }
 
     @Test
-    public void testBad() {
-        String sql = "mr. michael";
-        String visitResult = new Visitor().visit(parseQuery(sql));
+    public void testBqTranslate() {
+        BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+        Query query = Query.parse("SELECT * FROM dataset.table WHERE dataset.table.x = 'string'");
+        String translated = query.translateSql(bqVisitor);
+        assertThat("query translates to valid bigquery syntax", translated,
+            equalTo("SELECT * FROM `a-data-project.dataset.table` WHERE `a-data-project.dataset.table.x` = 'string'"));
+    }
+
+    // test missing key
+
+    @Test
+    public void testAliasedColumn() {
+        Query query = Query.parse("SELECT * FROM dataset.table A WHERE A.col = 'foo'");
+        BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+        String translated = query.translateSql(bqVisitor);
     }
 
 }

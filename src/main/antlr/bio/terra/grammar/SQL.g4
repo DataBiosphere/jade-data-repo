@@ -4,7 +4,8 @@ grammar SQL;
     package bio.terra.grammar;
 }
 
-query_statement: query_expr;
+// includes EOF in order to match the entire input
+query_statement: query_expr EOF;
 
 query_expr: select_statement limit_clause?;
 
@@ -65,9 +66,9 @@ expr : number
     | keyword
     ;
 
-column_expr : '`' column_expr '`'
-			| dataset_name '.' table_name '.' column_name
-			;
+column_expr : dataset_name '.' table_name '.' column_name
+    | alias_name '.' column_name
+    ;
 
 join_type : INNER
     | CROSS
@@ -84,7 +85,7 @@ bool_expression : expr;
 
 count : number;
 
-name : ID | '"' name '"' | '(' name ')' | '`' name '`' | '\'' name '\'' ;
+name : ID | '"' name '"' | '(' name ')' | '\'' name '\'' ;
 
 unary_operator : '-' | '~' | NOT;
 
@@ -99,8 +100,7 @@ join_name : name;
 member_name : name;
 struct_name : name;
 table_name : name;
-table_expr : (dataset_name '.' table_name)
-    | '`' table_expr '`';
+table_expr : dataset_name '.' table_name;
 
 number : integer_type | float_type ;
 integer_type : INT;
@@ -346,9 +346,6 @@ WITHIN : W I T H I N ;
 
 // Whitespace
 WS : [ \t\r\n]+ -> skip ;
-// Comments
-CMT : '--' ~[\r\n]* -> skip ;
-M_CMT : '/*' .*? '*/' -> skip;
 // Quoted String
 QUOTED_STRING : '"' (~'"' | '\\' '"')* '"'
 			  | '\'' (~'\'' | '\\' '\'' )* '\'' ;

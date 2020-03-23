@@ -82,7 +82,7 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public GoogleBucketResource getOrCreateBucketForFile(String profileId) {
+    public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId) {
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
         BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
@@ -91,7 +91,7 @@ public class DataLocationService {
             .bucketName(dataLocationSelector.bucketForFile(profileId))
             .profileId(UUID.fromString(profileId))
             .region(profile.getGcsRegion());
-        return resourceService.getOrCreateBucket(googleBucketRequest);
+        return resourceService.getOrCreateBucket(googleBucketRequest, flightId);
     }
 
     public GoogleBucketResource lookupBucket(String bucketResourceId) {

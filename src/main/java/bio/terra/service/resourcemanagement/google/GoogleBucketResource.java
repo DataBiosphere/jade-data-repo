@@ -5,6 +5,7 @@ import java.util.UUID;
 public class GoogleBucketResource {
     private UUID resourceId;
     private GoogleBucketRequest googleBucketRequest;
+    private String flightId;
 
     public GoogleBucketResource() {
         this.googleBucketRequest = new GoogleBucketRequest();
@@ -56,6 +57,15 @@ public class GoogleBucketResource {
 
     public GoogleBucketResource region(String region) {
         googleBucketRequest.region(region);
+        return this;
+    }
+
+    public String getFlightId() {
+        return flightId;
+    }
+
+    public GoogleBucketResource flightId(String flightId) {
+        this.flightId = flightId;
         return this;
     }
 }

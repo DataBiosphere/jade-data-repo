@@ -3,6 +3,7 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
@@ -38,10 +39,12 @@ import com.google.cloud.storage.StorageOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +63,7 @@ public class GoogleResourceService {
     private final GoogleBillingService billingService;
     private final GcsProjectFactory gcsProjectFactory;
     private final SamConfiguration samConfiguration;
+    private final Environment springEnvironment;
 
     @Autowired
     public GoogleResourceService(
@@ -68,42 +72,71 @@ public class GoogleResourceService {
         GoogleResourceConfiguration resourceConfiguration,
         GoogleBillingService billingService,
         GcsProjectFactory gcsProjectFactory,
-        SamConfiguration samConfiguration) {
+        SamConfiguration samConfiguration,
+        Environment springEnvironment) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
         this.gcsProjectFactory = gcsProjectFactory;
         this.samConfiguration = samConfiguration;
+        this.springEnvironment = springEnvironment;
     }
 
     public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
         return resourceDao.retrieveBucketById(bucketResourceId);
     }
 
-    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest) {
-        // see if there is a bucket resource that matches the project and bucket name from the request
-        GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
-        try {
-            Optional<GoogleBucketResource> possibleMatch = resourceDao.retrieveBucketsByProjectResource(projectResource)
-                .stream()
-                .filter(bucketResource -> bucketResource.getName().equals(bucketRequest.getBucketName()))
-                .findFirst();
-            if (possibleMatch.isPresent()) {
-                return possibleMatch.get();
-            }
-        } catch (GoogleResourceNotFoundException e) {
-            logger.info("no bucket resource metadata found for project: {}", projectResource.getGoogleProjectId());
+    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
+        // insert a new bucket_resource row and lock it
+        GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
+
+        if (googleBucketResource == null) {
+            // insert failed. lookup the existing bucket_resource row
+            googleBucketResource = resourceDao.getBucket(bucketRequest);
         }
 
-        // the bucket might already exist even though we don't have metadata for it
-        Bucket bucket = getBucket(bucketRequest.getBucketName()).orElseGet(() -> newBucket(bucketRequest));
+        String bucketName = bucketRequest.getBucketName();
+        String lockingFlightId = googleBucketResource.getFlightId();
+        Bucket bucket;
+        if (lockingFlightId == null) {
+            // GET case. the row in the bucket_resource table is unlocked. the bucket has already been created
+
+            // throw an exception if the bucket does not already exist
+            bucket = getBucket(bucketName)
+                .orElseThrow(() -> new GoogleResourceNotFoundException("Bucket not found: " + bucketName));
+        } else if (lockingFlightId.equals(flightId)) {
+            // CREATE case. the row in the bucket_resource table is locked by this flight. we need to create it here
+
+            // check if the bucket already exists
+            Optional<Bucket> existingBucket = getBucket(bucketName);
+            if (!existingBucket.isPresent()) {
+                // bucket DOES NOT EXIST. create it
+                bucket = newBucket(bucketRequest);
+            } else {
+                // bucket EXISTS. throw an exception or just use it, depending on the Spring profile
+                String[] activeProfiles = springEnvironment.getActiveProfiles();
+                boolean springProfileIsForTesting = Arrays.stream(activeProfiles).anyMatch(
+                    springProfile -> springProfile.equals("integration") || springProfile.equals("connectedtest"));
+                if (springProfileIsForTesting) {
+                    logger.info("bucket already exists, using anyway: ", bucketName);
+                    bucket = existingBucket.get();
+                } else {
+                    throw new GoogleResourceException(
+                        String.format("Bucket already exists: %s", bucketName));
+                }
+            }
+        } else {
+            // LOCKED case. the row in the bucket_resource table is locked by another flight. throw a lock exception
+            throw new BucketLockException("The bucket is being created by another flight.");
+        }
+
         Acl.Entity owner = bucket.getOwner();
         logger.info("bucket is owned by '{}'", owner.toString());
         // TODO: ensure that the repository is the owner unless strictOwnership is false
-        GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
-        UUID id = resourceDao.createBucket(googleBucketResource);
-        return googleBucketResource.resourceId(id);
+
+        // return the resource object
+        return googleBucketResource;
     }
 
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {

@@ -11,6 +11,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -89,20 +92,59 @@ public class GoogleResourceDao {
         }
     }
 
-    public UUID createBucket(GoogleBucketResource bucketResource) {
-        GoogleProjectResource projectResource = Optional.ofNullable(bucketResource.getProjectResource())
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public GoogleBucketResource createAndLockBucket(GoogleBucketRequest bucketRequest, String flightId) {
+        GoogleProjectResource projectResource = Optional.ofNullable(bucketRequest.getGoogleProjectResource())
             .orElseThrow(IllegalArgumentException::new);
-        String sql = "INSERT INTO bucket_resource (project_resource_id, name) VALUES " +
-            "(:project_resource_id, :name)";
+        String sql = "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES " +
+            "(:project_resource_id, :name, :flightid)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getRepositoryId())
-            .addValue("name", bucketResource.getName());
+            .addValue("name", bucketRequest.getBucketName())
+            .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        return keyHolder.getId();
+        int numRowsUpdated = jdbcTemplate.update(sql, params, keyHolder);
+        if (numRowsUpdated == 1) {
+            return (new GoogleBucketResource(bucketRequest))
+                .projectResource(projectResource)
+                .name(bucketRequest.getBucketName())
+                .resourceId(keyHolder.getId())
+                .flightId(flightId);
+        } else {
+            return null;
+        }
     }
 
-    private List<GoogleBucketResource> retrieveBucketsBy(String column, UUID value) {
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public GoogleBucketResource getBucket(GoogleBucketRequest bucketRequest) {
+        String bucketName = bucketRequest.getBucketName();
+        List<GoogleBucketResource> bucketResourcesByName =
+            retrieveBucketsBy("name", bucketName, String.class);
+
+        if (bucketResourcesByName.size() == 0) {
+            throw new GoogleResourceNotFoundException(
+                String.format("Bucket not found for name: %s", bucketName));
+        } else if (bucketResourcesByName.size() > 1) {
+            // this should never happen because name is unique in the PostGres table
+            // this also never happen because Google bucket names are unique
+            throw new GoogleResourceException(
+                String.format("Multiple buckets found with same name: %s", bucketName));
+        }
+
+        GoogleBucketResource bucketResource = bucketResourcesByName.get(0);
+        UUID foundProjectId = bucketResource.getProjectResource().getRepositoryId();
+        UUID requestedProjectId = bucketRequest.getGoogleProjectResource().getRepositoryId();
+        if (!foundProjectId.equals(requestedProjectId)) {
+            // there is a bucket with this name in our metadata, but it's for a different project
+            throw new GoogleResourceException(
+                String.format("A bucket with this name already exists for a different project: %s, %s",
+                    bucketName, requestedProjectId));
+        }
+
+        return bucketResource;
+    }
+
+    private List<GoogleBucketResource> retrieveBucketsBy(String column, Object value, Class valueClass) {
         List<String> selects = Arrays.asList(
             // project_resource
             "p.id AS project_resource_id",
@@ -119,7 +161,7 @@ public class GoogleResourceDao {
             " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
             " WHERE b.%s = :%s";
         String sql = String.format(query, String.join(", ", selects), column, column);
-        MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, value);
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue(column, valueClass.cast(value));
         List<GoogleBucketResource> bucketResources = jdbcTemplate.query(sql, params, new DataBucketMapper());
 
         if (bucketResources.size() == 0) {
@@ -129,7 +171,7 @@ public class GoogleResourceDao {
     }
 
     public GoogleBucketResource retrieveBucketById(UUID bucketResourceId) {
-        List<GoogleBucketResource> bucketResources = retrieveBucketsBy("id", bucketResourceId);
+        List<GoogleBucketResource> bucketResources = retrieveBucketsBy("id", bucketResourceId, UUID.class);
         if (bucketResources.size() > 1) {
             throw new IllegalStateException(
                 String.format("Found more than one result for bucket resource id: %s", bucketResourceId));
@@ -138,7 +180,7 @@ public class GoogleResourceDao {
     }
 
     public List<GoogleBucketResource> retrieveBucketsByProjectResource(GoogleProjectResource projectResource) {
-        return retrieveBucketsBy("project_resource_id", projectResource.getRepositoryId());
+        return retrieveBucketsBy("project_resource_id", projectResource.getRepositoryId(), UUID.class);
     }
 
     private static class DataBucketMapper implements RowMapper<GoogleBucketResource> {

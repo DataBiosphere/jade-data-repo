@@ -2,8 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
 import bio.terra.common.Table;
-import bio.terra.model.IntPartitionOptionsModel;
-import bio.terra.model.PartitionStrategy;
 
 import java.util.Collections;
 import java.util.List;
@@ -25,9 +23,7 @@ public class DatasetTable implements Table {
     private String softDeleteTableName;
     private List<Column> columns = Collections.emptyList();
     private List<Column> primaryKey = Collections.emptyList();
-    private PartitionStrategy partitionStrategy;
-    private Column partitionColumn;
-    private IntPartitionOptionsModel intPartitionSettings;
+    private PartitionMode partitionMode;
 
     public UUID getId() {
         return id;
@@ -83,30 +79,12 @@ public class DatasetTable implements Table {
         return this;
     }
 
-    public PartitionStrategy getPartitionStrategy() {
-        return partitionStrategy;
+    public PartitionMode getPartitionMode() {
+        return partitionMode;
     }
 
-    public DatasetTable partitionStrategy(PartitionStrategy strategy) {
-        this.partitionStrategy = strategy;
-        return this;
-    }
-
-    public Column getPartitionColumn() {
-        return partitionColumn;
-    }
-
-    public DatasetTable partitionColumn(Column column) {
-        this.partitionColumn = column;
-        return this;
-    }
-
-    public IntPartitionOptionsModel getIntPartitionSettings() {
-        return intPartitionSettings;
-    }
-
-    public DatasetTable intPartitionSettings(IntPartitionOptionsModel settings) {
-        this.intPartitionSettings = settings;
+    public DatasetTable partitionMode(PartitionMode mode) {
+        this.partitionMode = mode;
         return this;
     }
 }

@@ -5,8 +5,6 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.Column;
 import bio.terra.common.Table;
-import bio.terra.model.IntPartitionOptionsModel;
-import bio.terra.model.PartitionStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +18,6 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -31,14 +28,14 @@ public class DatasetTableDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetTableDao.class);
 
     private static final String sqlInsertTable = "INSERT INTO dataset_table " +
-        "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, partition_strategy, " +
+        "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, partition_mode, " +
         "partition_column, int_partition_min_value, int_partition_max_value, int_partition_interval) " +
-        "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, :partition_strategy, " +
+        "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, :partition_mode, " +
         ":partition_column, :int_partition_min_value, :int_partition_max_value, :int_partition_interval)";
     private static final String sqlInsertColumn = "INSERT INTO dataset_column " +
         "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
     private static final String sqlSelectTable =
-        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, partition_strategy, " +
+        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, partition_mode, " +
         "partition_column, int_partition_min_value, int_partition_max_value, int_partition_interval " +
         "FROM dataset_table WHERE dataset_id = :dataset_id";
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM dataset_column " +
@@ -64,15 +61,27 @@ public class DatasetTableDao {
             params.addValue("raw_table_name", table.getRawTableName());
             params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
 
-            PartitionStrategy strategy = table.getPartitionStrategy();
-            Column column = table.getPartitionColumn();
-            IntPartitionOptionsModel intSettings = table.getIntPartitionSettings();
+            PartitionMode mode = table.getPartitionMode();
+            params.addValue("partition_mode", mode.getName());
 
-            params.addValue("partition_strategy", strategy == null ? null : strategy.name());
-            params.addValue("partition_column", column == null ? null : column.getName());
-            params.addValue("int_partition_min_value", intSettings == null ? null : intSettings.getMin());
-            params.addValue("int_partition_max_value", intSettings == null ? null : intSettings.getMax());
-            params.addValue("int_partition_interval", intSettings == null ? null : intSettings.getInterval());
+            if (mode instanceof DatePartitionMode) {
+                DatePartitionMode dateMode = (DatePartitionMode)mode;
+                params.addValue("partition_column", dateMode.getColumn());
+                params.addValue("int_partition_min_value", null);
+                params.addValue("int_partition_max_value", null);
+                params.addValue("int_partition_interval", null);
+            } else if (mode instanceof IntPartitionMode) {
+                IntPartitionMode intMode = (IntPartitionMode)mode;
+                params.addValue("partition_column", intMode.getColumn());
+                params.addValue("int_partition_min_value", intMode.getMin());
+                params.addValue("int_partition_max_value", intMode.getMax());
+                params.addValue("int_partition_interval", intMode.getInterval());
+            } else {
+                params.addValue("partition_column", null);
+                params.addValue("int_partition_min_value", null);
+                params.addValue("int_partition_max_value", null);
+                params.addValue("int_partition_interval", null);
+            }
 
             List<String> naturalKeyStringList = table.getPrimaryKey()
                 .stream()
@@ -129,22 +138,17 @@ public class DatasetTableDao {
                 .collect(Collectors.toList());
             table.primaryKey(naturalKeyColumns);
 
-            PartitionStrategy strategy = Optional.ofNullable(rs.getString("partition_strategy"))
-                .map(PartitionStrategy::valueOf)
-                .orElse(null);
-            table.partitionStrategy(strategy);
-
-            if (strategy != PartitionStrategy.INGESTTIME) {
-                String partitionCol = rs.getString("partition_column");
-                table.partitionColumn(columnMap.get(partitionCol));
-            }
-
-            if (strategy == PartitionStrategy.INTCOLUMN) {
+            String modeName = rs.getString("partition_mode");
+            if (modeName.equals(DatePartitionMode.NAME)) {
+                table.partitionMode(new DatePartitionMode(rs.getString("partition_column")));
+            } else if (modeName.equals(IntPartitionMode.NAME)) {
+                String column = rs.getString("partition_column");
                 long min = rs.getLong("int_partition_min_value");
                 long max = rs.getLong("int_partition_max_value");
                 long interval = rs.getLong("int_partition_interval");
-
-                table.intPartitionSettings(new IntPartitionOptionsModel().min(min).max(max).interval(interval));
+                table.partitionMode(new IntPartitionMode(column, min, max, interval));
+            } else {
+                table.partitionMode(NoPartitionMode.INSTANCE);
             }
 
             return table;

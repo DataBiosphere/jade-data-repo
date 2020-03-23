@@ -7,14 +7,15 @@ import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.IntPartitionOptionsModel;
-import bio.terra.model.PartitionStrategy;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.DatePartitionMode;
+import bio.terra.service.dataset.NoPartitionMode;
+import bio.terra.service.dataset.PartitionMode;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
@@ -40,12 +41,10 @@ import com.google.cloud.bigquery.JobStatistics;
 import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
-import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
-import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.ViewDefinition;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -111,39 +110,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
             for (DatasetTable table : dataset.getTables()) {
-                PartitionStrategy partitionStrategy = table.getPartitionStrategy();
-                Column partitionColumn = table.getPartitionColumn();
+                PartitionMode partitionMode = table.getPartitionMode();
                 Schema rawSchema = buildSchema(table, true);
 
-                if (partitionStrategy == null) {
-                    bigQueryProject.createUnpartitionedTable(datasetName, table.getRawTableName(), rawSchema);
-                } else {
-                    if (partitionStrategy == PartitionStrategy.INTCOLUMN) {
-                        IntPartitionOptionsModel options = table.getIntPartitionSettings();
-                        RangePartitioning.Range range = RangePartitioning.Range.newBuilder()
-                            .setStart(options.getMin())
-                            .setEnd(options.getMax())
-                            .setInterval(options.getInterval())
-                            .build();
-                        RangePartitioning partitioning = RangePartitioning.newBuilder()
-                            .setField(partitionColumn.getName())
-                            .setRange(range)
-                            .build();
-                        bigQueryProject.createRangePartitionedTable(
-                            datasetName, table.getRawTableName(), rawSchema, partitioning);
-                    } else {
-                        // TimePartitioning only supports the "DAY" type right now, so we hard-code it here.
-                        // They might have it as an enum to prep for adding a "TIME" type in the future?
-                        TimePartitioning partitioning = TimePartitioning.newBuilder(TimePartitioning.Type.DAY)
-                            // Passing 'null' signals that ingest-time partitioning should be used.
-                            .setField(partitionColumn == null ? null : partitionColumn.getName())
-                            .build();
-                        bigQueryProject.createTimePartitionedTable(
-                            datasetName, table.getRawTableName(), rawSchema, partitioning);
-                    }
-                }
-                bigQueryProject.createUnpartitionedTable(
-                    datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+                bigQueryProject.createTable(datasetName, table.getRawTableName(), rawSchema, partitionMode);
+                bigQueryProject.createTable(
+                    datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema(), NoPartitionMode.INSTANCE);
                 bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
         } catch (Exception ex) {
@@ -165,8 +137,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
         liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-        if (table.getPartitionStrategy() == PartitionStrategy.INGESTTIME) {
-            liveViewSql.add("columns", "_PARTITIONDATE AS " + PDAO_INGEST_DATE_COLUMN_ALIAS);
+
+        if (table.getPartitionMode() instanceof DatePartitionMode) {
+            DatePartitionMode mode = (DatePartitionMode)table.getPartitionMode();
+            if (mode.partitionByIngestTime()) {
+                liveViewSql.add("columns", "_PARTITIONDATE AS " + PDAO_INGEST_DATE_COLUMN_ALIAS);
+            }
         }
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
@@ -263,7 +239,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
 
             // create the row id table
-            bigQueryProject.createUnpartitionedTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema(), NoPartitionMode.INSTANCE);
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
@@ -335,7 +311,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
 
             // create the row id table
-            bigQueryProject.createUnpartitionedTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema(), NoPartitionMode.INSTANCE);
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop

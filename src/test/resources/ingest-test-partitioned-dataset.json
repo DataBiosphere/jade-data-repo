@@ -12,9 +12,9 @@
           {"name": "donated", "datatype": "string", "array_of": true}
         ],
         "primaryKey": ["id"],
-        "partitionStrategy": "intColumn",
-        "partitionColumn": "age",
+        "partitionMode": "int",
         "intPartitionOptions": {
+          "column": "age",
           "min": 0,
           "max": 120,
           "interval": 1
@@ -29,8 +29,10 @@
           {"name": "derived_from", "datatype": "string"}
         ],
         "primaryKey": ["id"],
-        "partitionStrategy": "dateOrTimestampColumn",
-        "partitionColumn": "date_collected"
+        "partitionMode": "date",
+        "datePartitionOptions": {
+          "column": "date_collected"
+        }
       },
       {
         "name": "file",
@@ -38,7 +40,10 @@
           {"name": "id", "datatype": "string"},
           {"name": "derived_from", "datatype": "string", "array_of": true}
         ],
-        "partitionStrategy": "ingestTime"
+        "partitionMode": "date",
+        "datePartitionOptions": {
+          "column": "datarepo_ingest_date"
+        }
       }
     ],
     "relationships": [

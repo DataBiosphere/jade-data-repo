@@ -105,11 +105,20 @@ public final class DatasetJsonConversion {
             .collect(Collectors.toList());
         datasetTable.primaryKey(primaryKeyColumns);
 
-        datasetTable.partitionStrategy(tableModel.getPartitionStrategy());
-        Optional<Column> partitionColumn = Optional.ofNullable(tableModel.getPartitionColumn())
-            .map(columnMap::get);
-        datasetTable.partitionColumn(partitionColumn.orElse(null));
-        datasetTable.intPartitionSettings(tableModel.getIntPartitionOptions());
+        switch (tableModel.getPartitionMode()) {
+            case DATE:
+                datasetTable.partitionMode(new DatePartitionMode(tableModel.getDatePartitionOptions().getColumn()));
+                break;
+            case INT:
+                IntPartitionOptionsModel options = tableModel.getIntPartitionOptions();
+                PartitionMode mode = new IntPartitionMode(
+                    options.getColumn(), options.getMin(), options.getMax(), options.getInterval());
+                datasetTable.partitionMode(mode);
+                break;
+            default:
+                datasetTable.partitionMode(NoPartitionMode.INSTANCE);
+                break;
+        }
 
         return datasetTable.columns(columns);
     }

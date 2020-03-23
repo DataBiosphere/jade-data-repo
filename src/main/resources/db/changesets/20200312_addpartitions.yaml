@@ -7,7 +7,7 @@ databaseChangeLog:
             tableName: dataset_table
             columns:
               - column:
-                  name: partition_strategy
+                  name: partition_mode
                   type: text
               - column:
                   name: partition_column
@@ -21,3 +21,10 @@ databaseChangeLog:
               - column:
                   name: int_partition_interval
                   type: bigint
+        - sql:
+            comment: Backfill
+            sql: >
+              UPDATE dataset_table SET partition_mode = 'none'
+        - addNotNullConstraint:
+            tableName: dataset_table
+            columnName: partition_mode

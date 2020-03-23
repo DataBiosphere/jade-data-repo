@@ -6,9 +6,9 @@ import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatePartitionOptionsModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IntPartitionOptionsModel;
-import bio.terra.model.PartitionStrategy;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.TableModel;
@@ -331,13 +331,12 @@ public class DatasetValidationsTest {
     }
 
     @Test
-    public void testIngestTimePartitionWithExtraOptions() throws Exception {
+    public void testDatePartitionWithBadOptions() throws Exception {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.INGESTTIME)
-            .partitionColumn("foo_column")
-            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+            .partitionMode(TableModel.PartitionModeEnum.DATE)
+            .intPartitionOptions(new IntPartitionOptionsModel().column("foo").min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -345,16 +344,17 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"PartitionColumn", "IntPartitionOptions"});
+        checkValidationErrorModel(errorModel,
+            new String[]{"MissingDatePartitionOptions", "InvalidIntPartitionOptions"});
     }
 
     @Test
-    public void testTimeColumnPartitionWithBadOptions() throws Exception {
+    public void testDatePartitionWithMissingColumn() throws Exception {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.DATEORTIMESTAMPCOLUMN)
-            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+            .partitionMode(TableModel.PartitionModeEnum.DATE)
+            .datePartitionOptions(new DatePartitionOptionsModel().column("not_a_column"));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -362,36 +362,19 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"MissingPartitionColumn", "IntPartitionOptions"});
+        checkValidationErrorModel(errorModel, new String[]{"InvalidDatePartitionColumnName"});
     }
 
     @Test
-    public void testTimeColumnPartitionWithMissingColumn() throws Exception {
-        TableModel table = new TableModel()
-            .name("table")
-            .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.DATEORTIMESTAMPCOLUMN)
-            .partitionColumn("not_a_column");
-        DatasetRequestModel req = buildDatasetRequest();
-        req.getSchema()
-            .tables(Collections.singletonList(table))
-            .relationships(Collections.emptyList())
-            .assets(Collections.emptyList());
-
-        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnName"});
-    }
-
-    @Test
-    public void testTimeColumnPartitionWithMismatchedType() throws Exception {
+    public void testDatePartitionWithMismatchedType() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
             .datatype("int64");
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
-            .partitionStrategy(PartitionStrategy.DATEORTIMESTAMPCOLUMN)
-            .partitionColumn(column.getName());
+            .partitionMode(TableModel.PartitionModeEnum.DATE)
+            .datePartitionOptions(new DatePartitionOptionsModel().column(column.getName()));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -399,15 +382,16 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnType"});
+        checkValidationErrorModel(errorModel, new String[]{"InvalidDatePartitionColumnType"});
     }
 
     @Test
-    public void testIntColumnPartitionWithMissingOptions() throws Exception {
+    public void testIntPartitionWithBadOptions() throws Exception {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.INTCOLUMN);
+            .partitionMode(TableModel.PartitionModeEnum.INT)
+            .datePartitionOptions(new DatePartitionOptionsModel().column("foo"));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -415,17 +399,17 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"MissingPartitionColumn", "MissingIntPartitionOptions"});
+        checkValidationErrorModel(errorModel,
+            new String[]{"InvalidDatePartitionOptions", "MissingIntPartitionOptions"});
     }
 
     @Test
-    public void testIntColumnPartitionWithMissingColumn() throws Exception {
+    public void testIntPartitionWithMissingColumn() throws Exception {
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.emptyList())
-            .partitionStrategy(PartitionStrategy.INTCOLUMN)
-            .partitionColumn("not_a_column")
-            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+            .partitionMode(TableModel.PartitionModeEnum.INT)
+            .intPartitionOptions(new IntPartitionOptionsModel().column("not_a_column").min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -433,20 +417,19 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnName"});
+        checkValidationErrorModel(errorModel, new String[]{"InvalidIntPartitionColumnName"});
     }
 
     @Test
-    public void testIntColumnPartitionWithMismatchedType() throws Exception {
+    public void testIntPartitionWithMismatchedType() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
             .datatype("timestamp");
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
-            .partitionStrategy(PartitionStrategy.INTCOLUMN)
-            .partitionColumn(column.getName())
-            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+            .partitionMode(TableModel.PartitionModeEnum.INT)
+            .intPartitionOptions(new IntPartitionOptionsModel().column(column.getName()).min(1L).max(2L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -454,20 +437,19 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"InvalidPartitionColumnType"});
+        checkValidationErrorModel(errorModel, new String[]{"InvalidIntPartitionColumnType"});
     }
 
     @Test
-    public void testIntColumnPartitionWithBadOptions() throws Exception {
+    public void testIntPartitionWithBadRange() throws Exception {
         ColumnModel column = new ColumnModel()
             .name("column")
             .datatype("int64");
         TableModel table = new TableModel()
             .name("table")
             .columns(Collections.singletonList(column))
-            .partitionStrategy(PartitionStrategy.INTCOLUMN)
-            .partitionColumn(column.getName())
-            .intPartitionOptions(new IntPartitionOptionsModel().min(5L).max(2L).interval(-1L));
+            .partitionMode(TableModel.PartitionModeEnum.INT)
+            .intPartitionOptions(new IntPartitionOptionsModel().column(column.getName()).min(5L).max(2L).interval(-1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -480,12 +462,16 @@ public class DatasetValidationsTest {
     }
 
     @Test
-    public void testPartitionOptionsWithoutStrategy() throws Exception {
+    public void testIntPartitionTooManyPartitions() throws Exception {
+        ColumnModel column = new ColumnModel()
+            .name("column")
+            .datatype("int64");
         TableModel table = new TableModel()
             .name("table")
-            .columns(Collections.emptyList())
-            .partitionColumn("foo_column")
-            .intPartitionOptions(new IntPartitionOptionsModel().min(1L).max(2L).interval(1L));
+            .columns(Collections.singletonList(column))
+            .partitionMode(TableModel.PartitionModeEnum.INT)
+            .intPartitionOptions(
+                new IntPartitionOptionsModel().column(column.getName()).min(0L).max(80000L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))
@@ -493,7 +479,26 @@ public class DatasetValidationsTest {
             .assets(Collections.emptyList());
 
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
-        checkValidationErrorModel(errorModel, new String[]{"PartitionColumn", "IntPartitionOptions"});
+        checkValidationErrorModel(errorModel,
+            new String[]{"TooManyIntPartitions"});
+    }
+
+    @Test
+    public void testPartitionOptionsWithoutMode() throws Exception {
+        TableModel table = new TableModel()
+            .name("table")
+            .columns(Collections.emptyList())
+            .datePartitionOptions(new DatePartitionOptionsModel().column("foo"))
+            .intPartitionOptions(new IntPartitionOptionsModel().column("bar").min(1L).max(2L).interval(1L));
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema()
+            .tables(Collections.singletonList(table))
+            .relationships(Collections.emptyList())
+            .assets(Collections.emptyList());
+
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel,
+            new String[]{"InvalidDatePartitionOptions", "InvalidIntPartitionOptions"});
     }
 
     private void checkValidationErrorModel(ErrorModel errorModel, String[] messageCodes) {

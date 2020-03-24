@@ -1,8 +1,11 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
@@ -50,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
@@ -64,6 +68,7 @@ public class GoogleResourceService {
     private final GcsProjectFactory gcsProjectFactory;
     private final SamConfiguration samConfiguration;
     private final Environment springEnvironment;
+    private final ConfigurationService configService;
 
     @Autowired
     public GoogleResourceService(
@@ -73,7 +78,8 @@ public class GoogleResourceService {
         GoogleBillingService billingService,
         GcsProjectFactory gcsProjectFactory,
         SamConfiguration samConfiguration,
-        Environment springEnvironment) {
+        Environment springEnvironment,
+        ConfigurationService configService) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
@@ -81,6 +87,7 @@ public class GoogleResourceService {
         this.gcsProjectFactory = gcsProjectFactory;
         this.samConfiguration = samConfiguration;
         this.springEnvironment = springEnvironment;
+        this.configService = configService;
     }
 
     public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
@@ -95,6 +102,21 @@ public class GoogleResourceService {
         if (metadataCreationFailed) {
             // insert failed. lookup the existing bucket_resource row
             googleBucketResource = resourceDao.getBucket(bucketRequest);
+        }
+
+        // this fault is used by the ResourceLockTest
+        if (configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT)) {
+            try {
+                logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
+                while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                    logger.info("Sleeping for CONTINUE FAULT");
+                    TimeUnit.SECONDS.sleep(2);
+                }
+                logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
+            } catch (InterruptedException ex) {
+                Thread.currentThread().interrupt();
+                throw new LoadLockFailureException("Unexpected interrupt during bucket lock fault");
+            }
         }
 
         String bucketName = bucketRequest.getBucketName();

@@ -126,7 +126,7 @@ public class GoogleResourceService {
                 } else {
                     resourceDao.deleteBucketMetadata(bucketName, flightId);
                     throw new GoogleResourceException(
-                        String.format("Bucket already exists: %s", bucketName));
+                        String.format("Bucket already exists, metadata out of sync with cloud state: %s", bucketName));
                 }
             }
         } else {

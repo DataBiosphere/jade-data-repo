@@ -127,7 +127,6 @@ public class GoogleResourceDao {
         return (numRowsUpdated == 1);
     }
 
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public GoogleBucketResource getBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         List<GoogleBucketResource> bucketResourcesByName =
@@ -159,7 +158,7 @@ public class GoogleResourceDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean deleteBucketMetadata(String bucketName, String flightId) {
         String sql = "DELETE FROM bucket_resource " +
-            "WHERE name = :name AND flightid = :flightid";
+            "WHERE name = :name AND (flightid = :flightid OR flightid IS NULL)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", bucketName)
             .addValue("flightid", flightId);

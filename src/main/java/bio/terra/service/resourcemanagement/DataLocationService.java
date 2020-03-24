@@ -82,7 +82,7 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    private String getBucketName(String profileId) {
+    protected String getBucketName(String profileId) {
         return dataLocationSelector.bucketForFile(profileId);
     }
 

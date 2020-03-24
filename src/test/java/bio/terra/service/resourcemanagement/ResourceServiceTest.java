@@ -91,6 +91,5 @@ public class ResourceServiceTest {
 
     @Test
     public void createAndDeleteBucketTest() {
-        
     }
 }

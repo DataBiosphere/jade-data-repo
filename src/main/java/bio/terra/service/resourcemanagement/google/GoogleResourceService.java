@@ -142,6 +142,11 @@ public class GoogleResourceService {
         return googleBucketResource;
     }
 
+    public boolean deleteBucketMetadata(GoogleBucketResource googleBucketResource, String flightId) {
+        // delete the bucket_resource row if it is locked by this flight and the bucket does not exist
+        return true;
+    }
+
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();

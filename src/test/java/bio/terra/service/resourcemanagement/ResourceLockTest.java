@@ -78,6 +78,41 @@ public class ResourceLockTest {
     }
 
     @Test
+    public void createAndDeleteBucketTest() {
+        String bucketName = "testbucket_createanddeletebuckettest";
+        String flightId = "testFlightId";
+
+        // create the bucket and metadata
+        GoogleBucketRequest googleBucketRequest = buildBucketRequest(bucketName);
+        GoogleBucketResource bucketResource = resourceService.getOrCreateBucket(googleBucketRequest, flightId);
+
+        // confirm the bucket exists and the metadata row is unlocked
+        Bucket bucket = storage.get(bucketName);
+        assertNotNull("bucket exists in the cloud", bucket);
+
+        bucketResource = resourceService.getBucketResourceById(bucketResource.getResourceId());
+        assertNotNull("bucket metadata row exists", bucketResource);
+        assertNull("bucket metadata is unlocked", bucketResource.getFlightId());
+
+        // delete the bucket and update the metadata
+        storage.delete(bucketName);
+        resourceService.updateBucketMetadata(bucketName, null);
+
+        // confirm the bucket and metadata row no longer exist
+        bucket = storage.get(bucketName);
+        assertNull("bucket no longer exists", bucket);
+
+        boolean exceptionThrown = false;
+        try {
+            bucketResource = resourceService.getBucketResourceById(bucketResource.getResourceId());
+            logger.info("bucketResource = " + bucketResource);
+        } catch (GoogleResourceNotFoundException grnfEx) {
+            exceptionThrown = true;
+        }
+        assertTrue("bucket metadata row no longer exists", exceptionThrown);
+    }
+
+    @Test
     public void twoThreadsCompeteForLockTest() throws Exception {
         String flightIdBase = "twoThreadsCompeteForLockTest";
         String bucketName = "twothreadscompeteforlocktest";

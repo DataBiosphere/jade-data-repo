@@ -47,11 +47,18 @@ public class IngestFilePrimaryDataLocationStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // if bucket does not exist, then delete the row
-
         // There is not much to undo here. It is possible that a bucket was created in the last step. We could look to
         // see if there are no other files in the bucket and delete it here, but I think it is likely the bucket will
         // be used again.
+
+        // get the bucket name from the profile id
+        FlightMap inputParameters  = context.getInputParameters();
+        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        String bucketName = locationService.getBucketName(fileLoadModel.getProfileId());
+
+        // update the bucket metadata, to match the state of the cloud resource
+        locationService.updateBucketMetadata(bucketName, context.getFlightId());
+
         return StepResult.getStepResultSuccess();
     }
 }

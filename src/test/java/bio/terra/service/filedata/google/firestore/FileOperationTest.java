@@ -29,6 +29,7 @@ import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -119,7 +120,7 @@ public class FileOperationTest {
         //  complete more of the development work. Also reduced the load driver wait to hit other error paths and
         //  not have the test run so long.
         ConfigModel concurrentConfig = configService.getConfig(ConfigEnum.LOAD_CONCURRENT_FILES.name());
-        concurrentConfig.setParameter(new ConfigParameterModel().value("3"));
+        concurrentConfig.setParameter(new ConfigParameterModel().value("1"));
         ConfigModel driverWaitConfig = configService.getConfig(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS.name());
         driverWaitConfig.setParameter(new ConfigParameterModel().value("30"));
         ConfigGroupModel configGroupModel = new ConfigGroupModel()
@@ -276,7 +277,7 @@ public class FileOperationTest {
     }
 
     @Test
-    //@Ignore // This test will not reliably succeed until DR-643 is fixed
+    @Ignore // This test will not reliably succeed until DR-643 is fixed
     // TODO: unignore when DR-643 is fixed
     public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
         BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 0, 3);

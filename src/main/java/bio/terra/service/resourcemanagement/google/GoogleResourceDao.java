@@ -157,7 +157,7 @@ public class GoogleResourceDao {
     }
 
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public boolean deleteBucket(String bucketName, String flightId) {
+    public boolean deleteBucketMetadata(String bucketName, String flightId) {
         String sql = "DELETE FROM bucket_resource " +
             "WHERE name = :name AND flightid = :flightid";
         MapSqlParameterSource params = new MapSqlParameterSource()

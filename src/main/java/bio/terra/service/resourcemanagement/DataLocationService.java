@@ -82,13 +82,17 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
+    public String getBucketName(String profileId) {
+        return dataLocationSelector.bucketForFile(profileId);
+    }
+
     public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId) {
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
         BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
         GoogleBucketRequest googleBucketRequest = new GoogleBucketRequest()
             .googleProjectResource(projectResource)
-            .bucketName(dataLocationSelector.bucketForFile(profileId))
+            .bucketName(getBucketName(profileId))
             .profileId(UUID.fromString(profileId))
             .region(profile.getGcsRegion());
         return resourceService.getOrCreateBucket(googleBucketRequest, flightId);
@@ -96,6 +100,10 @@ public class DataLocationService {
 
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
         return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
+    }
+
+    public void updateBucketMetadata(String bucketName, String flightId) {
+        resourceService.updateBucketMetadata(bucketName, flightId);
     }
 
     /** Fetch existing SnapshotDataProject for the Snapshot.

@@ -124,7 +124,7 @@ public class GoogleResourceService {
                     bucket = existingBucket.get();
                     resourceDao.unlockBucket(bucketName, flightId);
                 } else {
-                    resourceDao.deleteBucket(bucketName, flightId);
+                    resourceDao.deleteBucketMetadata(bucketName, flightId);
                     throw new GoogleResourceException(
                         String.format("Bucket already exists: %s", bucketName));
                 }
@@ -142,9 +142,16 @@ public class GoogleResourceService {
         return googleBucketResource;
     }
 
-    public boolean deleteBucketMetadata(GoogleBucketResource googleBucketResource, String flightId) {
-        // delete the bucket_resource row if it is locked by this flight and the bucket does not exist
-        return true;
+    public void updateBucketMetadata(String bucketName, String flightId) {
+        // check if the bucket already exists
+        Optional<Bucket> existingBucket = getBucket(bucketName);
+        if (existingBucket.isPresent()) {
+            // bucket EXISTS. unlock the metadata row
+            resourceDao.unlockBucket(bucketName, flightId);
+        } else {
+            // bucket DOES NOT EXIST. delete the metadata row
+            resourceDao.deleteBucketMetadata(bucketName, flightId);
+        }
     }
 
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {

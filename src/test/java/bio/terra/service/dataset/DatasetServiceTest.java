@@ -29,8 +29,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,7 +76,7 @@ public class DatasetServiceTest {
 
     private ArrayList<UUID> datasetIdList;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws SQLException {
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws Exception {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
@@ -88,7 +86,7 @@ public class DatasetServiceTest {
         return datasetId;
     }
 
-    private UUID createDataset(String datasetFile) throws IOException, SQLException {
+    private UUID createDataset(String datasetFile) throws Exception {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         UUID datasetId = createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
         datasetIdList.add(datasetId);
@@ -123,7 +121,7 @@ public class DatasetServiceTest {
     }
 
     @Test(expected = DatasetNotFoundException.class)
-    public void datasetDeleteTest() throws IOException, SQLException {
+    public void datasetDeleteTest() throws Exception {
         UUID datasetId = createDataset("dataset-create-test.json");
         assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
         datasetDao.retrieve(datasetId);

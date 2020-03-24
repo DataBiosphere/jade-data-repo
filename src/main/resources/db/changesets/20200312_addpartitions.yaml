@@ -7,24 +7,12 @@ databaseChangeLog:
             tableName: dataset_table
             columns:
               - column:
-                  name: partition_mode
-                  type: text
-              - column:
-                  name: partition_column
-                  type: ${identifier_type}
-              - column:
-                  name: int_partition_min_value
-                  type: bigint
-              - column:
-                  name: int_partition_max_value
-                  type: bigint
-              - column:
-                  name: int_partition_interval
-                  type: bigint
+                  name: bigquery_partition_config
+                  type: json
         - sql:
             comment: Backfill
             sql: >
-              UPDATE dataset_table SET partition_mode = 'none'
+              UPDATE dataset_table SET bigquery_partition_config = '{"mode":"none"}'::json
         - addNotNullConstraint:
             tableName: dataset_table
-            columnName: partition_mode
+            columnName: bigquery_partition_config

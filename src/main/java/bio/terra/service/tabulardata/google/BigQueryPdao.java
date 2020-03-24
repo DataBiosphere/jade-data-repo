@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.Column;
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
@@ -10,11 +11,10 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.BigQueryPartitionConfig;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.NoPartitionMode;
-import bio.terra.service.dataset.PartitionMode;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
@@ -108,12 +108,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
             for (DatasetTable table : dataset.getTables()) {
-                PartitionMode partitionMode = table.getPartitionMode();
-                Schema rawSchema = buildSchema(table, true);
-
-                bigQueryProject.createTable(datasetName, table.getRawTableName(), rawSchema, partitionMode);
                 bigQueryProject.createTable(
-                    datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema(), NoPartitionMode.INSTANCE);
+                    datasetName, table.getRawTableName(), buildSchema(table, true), table.getBigQueryPartitionConfig());
+                bigQueryProject.createTable(
+                    datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
                 bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
         } catch (Exception ex) {
@@ -135,7 +133,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
         liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-        liveViewSql.add("columns", table.getPartitionMode().getGeneratedColumn());
+        if (table.getBigQueryPartitionConfig().getMode() == BigQueryPartitionConfig.Mode.INGEST_DATE) {
+            liveViewSql.add("columns", "_PARTITIONDATE AS " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
+        }
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
@@ -231,7 +231,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
 
             // create the row id table
-            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema(), NoPartitionMode.INSTANCE);
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
@@ -303,7 +303,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
 
             // create the row id table
-            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema(), NoPartitionMode.INSTANCE);
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop

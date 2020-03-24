@@ -1,5 +1,6 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.Table;
 import bio.terra.common.Column;
 import bio.terra.model.*;
@@ -105,22 +106,26 @@ public final class DatasetJsonConversion {
             .collect(Collectors.toList());
         datasetTable.primaryKey(primaryKeyColumns);
 
+        BigQueryPartitionConfig partitionConfig;
         switch (tableModel.getPartitionMode()) {
             case DATE:
-                datasetTable.partitionMode(new DatePartitionMode(tableModel.getDatePartitionOptions().getColumn()));
+                String column = tableModel.getDatePartitionOptions().getColumn();
+                boolean useIngestDate = column.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
+                partitionConfig = useIngestDate ?
+                    BigQueryPartitionConfig.ingestDate() :
+                    BigQueryPartitionConfig.date(column);
                 break;
             case INT:
                 IntPartitionOptionsModel options = tableModel.getIntPartitionOptions();
-                PartitionMode mode = new IntPartitionMode(
+                partitionConfig = BigQueryPartitionConfig.intRange(
                     options.getColumn(), options.getMin(), options.getMax(), options.getInterval());
-                datasetTable.partitionMode(mode);
                 break;
             default:
-                datasetTable.partitionMode(NoPartitionMode.INSTANCE);
+                partitionConfig = BigQueryPartitionConfig.none();
                 break;
         }
 
-        return datasetTable.columns(columns);
+        return datasetTable.bigQueryPartitionConfig(partitionConfig).columns(columns);
     }
 
     public static TableModel tableModelFromTable(DatasetTable datasetTable) {

@@ -5,6 +5,8 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.Column;
 import bio.terra.common.Table;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,21 +30,21 @@ public class DatasetTableDao {
     private static final Logger logger = LoggerFactory.getLogger(DatasetTableDao.class);
 
     private static final String sqlInsertTable = "INSERT INTO dataset_table " +
-        "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, partition_mode, " +
-        "partition_column, int_partition_min_value, int_partition_max_value, int_partition_interval) " +
-        "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, :partition_mode, " +
-        ":partition_column, :int_partition_min_value, :int_partition_max_value, :int_partition_interval)";
+        "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, bigquery_partition_config) " +
+        "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, " +
+        "cast(:bigquery_partition_config AS json))";
     private static final String sqlInsertColumn = "INSERT INTO dataset_column " +
         "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
     private static final String sqlSelectTable =
-        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, partition_mode, " +
-        "partition_column, int_partition_min_value, int_partition_max_value, int_partition_interval " +
+        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, bigquery_partition_config::text " +
         "FROM dataset_table WHERE dataset_id = :dataset_id";
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM dataset_column " +
         "WHERE table_id = :table_id";
 
     private final DataSource jdbcDataSource;
     private final NamedParameterJdbcTemplate jdbcTemplate;
+
+    @Autowired private ObjectMapper objectMapper;
 
     @Autowired
     public DatasetTableDao(DataRepoJdbcConfiguration jdbcConfiguration, NamedParameterJdbcTemplate jdbcTemplate) {
@@ -51,7 +53,7 @@ public class DatasetTableDao {
     }
 
     // Assumes transaction propagation from parent's create
-    public void createTables(UUID parentId, List<DatasetTable> tableList) {
+    public void createTables(UUID parentId, List<DatasetTable> tableList) throws Exception {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         params.addValue("dataset_id", parentId);
@@ -60,28 +62,8 @@ public class DatasetTableDao {
             params.addValue("name", table.getName());
             params.addValue("raw_table_name", table.getRawTableName());
             params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
-
-            PartitionMode mode = table.getPartitionMode();
-            params.addValue("partition_mode", mode.getName());
-
-            if (mode instanceof DatePartitionMode) {
-                DatePartitionMode dateMode = (DatePartitionMode)mode;
-                params.addValue("partition_column", dateMode.getColumn());
-                params.addValue("int_partition_min_value", null);
-                params.addValue("int_partition_max_value", null);
-                params.addValue("int_partition_interval", null);
-            } else if (mode instanceof IntPartitionMode) {
-                IntPartitionMode intMode = (IntPartitionMode)mode;
-                params.addValue("partition_column", intMode.getColumn());
-                params.addValue("int_partition_min_value", intMode.getMin());
-                params.addValue("int_partition_max_value", intMode.getMax());
-                params.addValue("int_partition_interval", intMode.getInterval());
-            } else {
-                params.addValue("partition_column", null);
-                params.addValue("int_partition_min_value", null);
-                params.addValue("int_partition_max_value", null);
-                params.addValue("int_partition_interval", null);
-            }
+            params.addValue("bigquery_partition_config",
+                objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
 
             List<String> naturalKeyStringList = table.getPrimaryKey()
                 .stream()
@@ -138,17 +120,12 @@ public class DatasetTableDao {
                 .collect(Collectors.toList());
             table.primaryKey(naturalKeyColumns);
 
-            String modeName = rs.getString("partition_mode");
-            if (modeName.equals(DatePartitionMode.NAME)) {
-                table.partitionMode(new DatePartitionMode(rs.getString("partition_column")));
-            } else if (modeName.equals(IntPartitionMode.NAME)) {
-                String column = rs.getString("partition_column");
-                long min = rs.getLong("int_partition_min_value");
-                long max = rs.getLong("int_partition_max_value");
-                long interval = rs.getLong("int_partition_interval");
-                table.partitionMode(new IntPartitionMode(column, min, max, interval));
-            } else {
-                table.partitionMode(NoPartitionMode.INSTANCE);
+            String bqPartitionConfig = rs.getString("bigquery_partition_config");
+            try {
+                table.bigQueryPartitionConfig(
+                    objectMapper.readValue(bqPartitionConfig, BigQueryPartitionConfig.class));
+            } catch (Exception ex) {
+                throw new CorruptMetadataException("Malformed BigQuery partition config", ex);
             }
 
             return table;

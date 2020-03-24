@@ -3,7 +3,10 @@ package bio.terra.service.dataset;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TimePartitioning;
 
-/** TODO */
+/**
+ * Mode that partitions rows into buckets by intervals of
+ * integers stored in a primary data column.
+ */
 public class IntPartitionMode implements PartitionMode {
 
     static final String NAME = "int";

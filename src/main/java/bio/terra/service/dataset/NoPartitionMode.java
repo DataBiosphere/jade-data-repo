@@ -3,7 +3,7 @@ package bio.terra.service.dataset;
 import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TimePartitioning;
 
-/** TODO */
+/** Fallback partition mode that does not enable partitioning. */
 public final class NoPartitionMode implements PartitionMode {
 
     private NoPartitionMode() {}

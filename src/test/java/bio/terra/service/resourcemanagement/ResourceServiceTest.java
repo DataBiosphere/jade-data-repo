@@ -4,7 +4,6 @@ package bio.terra.service.resourcemanagement;
 import bio.terra.common.category.Connected;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
@@ -17,7 +16,6 @@ import com.google.api.client.util.Lists;
 import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
-import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
@@ -40,8 +38,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -112,6 +108,7 @@ public class ResourceServiceTest {
         String flightId = "testFlightId";
         Storage storage = StorageOptions.getDefaultInstance().getService();
 
+        // create project metadata
         String role = "roles/bigquery.jobUser";
         String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";
         List<String> stewardsGroupEmailList = Lists.newArrayList();
@@ -125,8 +122,6 @@ public class ResourceServiceTest {
             .serviceIds(DataLocationService.DATA_PROJECT_SERVICE_IDS)
             .roleIdentityMapping(roleToStewardMap);
         GoogleProjectResource projectResource = resourceService.getOrCreateProject(projectRequest);
-        Project project = resourceService.getProject(resourceConfiguration.getProjectId());
-        System.out.println("project = " + project);
 
         // create the bucket and metadata
         BillingProfile billingProfile = profileService.getProfileById(UUID.fromString(profile.getId()));

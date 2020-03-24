@@ -26,4 +26,9 @@ public final class NoPartitionMode implements PartitionMode {
     public RangePartitioning asRangePartitioning() {
         return null;
     }
+
+    @Override
+    public String getGeneratedColumn() {
+        return null;
+    }
 }

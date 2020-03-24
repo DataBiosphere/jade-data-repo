@@ -13,7 +13,6 @@ import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
-import bio.terra.service.dataset.DatePartitionMode;
 import bio.terra.service.dataset.NoPartitionMode;
 import bio.terra.service.dataset.PartitionMode;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -61,7 +60,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static bio.terra.common.PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -137,13 +135,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
         liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-
-        if (table.getPartitionMode() instanceof DatePartitionMode) {
-            DatePartitionMode mode = (DatePartitionMode)table.getPartitionMode();
-            if (mode.partitionByIngestTime()) {
-                liveViewSql.add("columns", "_PARTITIONDATE AS " + PDAO_INGEST_DATE_COLUMN_ALIAS);
-            }
-        }
+        liveViewSql.add("columns", table.getPartitionMode().getGeneratedColumn());
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));

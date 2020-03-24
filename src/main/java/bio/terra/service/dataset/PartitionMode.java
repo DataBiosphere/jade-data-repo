@@ -14,4 +14,7 @@ public interface PartitionMode {
 
     /** TODO */
     RangePartitioning asRangePartitioning();
+
+    /** TODO */
+    String getGeneratedColumn();
 }

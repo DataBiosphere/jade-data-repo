@@ -19,7 +19,7 @@ public class DatePartitionMode implements PartitionMode {
         return column;
     }
 
-    public boolean partitionByIngestTime() {
+    private boolean partitionByIngestTime() {
         return column.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
     }
 
@@ -43,5 +43,13 @@ public class DatePartitionMode implements PartitionMode {
     @Override
     public RangePartitioning asRangePartitioning() {
         return null;
+    }
+
+    private static final String COLUMN_ALIAS =
+        "_PARTITIONDATE AS " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS;
+
+    @Override
+    public String getGeneratedColumn() {
+        return partitionByIngestTime() ? COLUMN_ALIAS : null;
     }
 }

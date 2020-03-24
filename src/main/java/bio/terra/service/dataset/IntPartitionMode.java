@@ -58,4 +58,9 @@ public class IntPartitionMode implements PartitionMode {
             .setRange(range)
             .build();
     }
+
+    @Override
+    public String getGeneratedColumn() {
+        return null;
+    }
 }

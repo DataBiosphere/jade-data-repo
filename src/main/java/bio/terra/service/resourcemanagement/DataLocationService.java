@@ -82,7 +82,7 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
-    public String getBucketName(String profileId) {
+    private String getBucketName(String profileId) {
         return dataLocationSelector.bucketForFile(profileId);
     }
 
@@ -102,7 +102,8 @@ public class DataLocationService {
         return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
     }
 
-    public void updateBucketMetadata(String bucketName, String flightId) {
+    public void updateBucketMetadata(String profileId, String flightId) {
+        String bucketName = getBucketName(profileId);
         resourceService.updateBucketMetadata(bucketName, flightId);
     }
 

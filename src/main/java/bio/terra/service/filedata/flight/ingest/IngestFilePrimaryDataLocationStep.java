@@ -54,10 +54,9 @@ public class IngestFilePrimaryDataLocationStep implements Step {
         // get the bucket name from the profile id
         FlightMap inputParameters  = context.getInputParameters();
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
-        String bucketName = locationService.getBucketName(fileLoadModel.getProfileId());
 
         // update the bucket metadata, to match the state of the cloud resource
-        locationService.updateBucketMetadata(bucketName, context.getFlightId());
+        locationService.updateBucketMetadata(fileLoadModel.getProfileId(), context.getFlightId());
 
         return StepResult.getStepResultSuccess();
     }

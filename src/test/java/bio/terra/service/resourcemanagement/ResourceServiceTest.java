@@ -37,10 +37,10 @@ import static org.hamcrest.Matchers.not;
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class ResourceServiceTest {
+
     @Autowired private GoogleResourceConfiguration resourceConfiguration;
     @Autowired private GoogleResourceService resourceService;
     @Autowired private ConnectedOperations connectedOperations;
-    @Autowired private DataLocationService dataLocationService;
 
     private BillingProfileModel profile;
 

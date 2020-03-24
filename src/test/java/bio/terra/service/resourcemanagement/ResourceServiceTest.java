@@ -88,4 +88,9 @@ public class ResourceServiceTest {
             project.getLifecycleState(),
             not(equalTo("ACTIVE")));
     }
+
+    @Test
+    public void createAndDeleteBucketTest() {
+        
+    }
 }

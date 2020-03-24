@@ -47,6 +47,8 @@ public class IngestFilePrimaryDataLocationStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        // if bucket does not exist, then delete the row
+
         // There is not much to undo here. It is possible that a bucket was created in the last step. We could look to
         // see if there are no other files in the bucket and delete it here, but I think it is likely the bucket will
         // be used again.

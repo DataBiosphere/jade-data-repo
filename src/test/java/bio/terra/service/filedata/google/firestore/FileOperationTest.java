@@ -119,7 +119,7 @@ public class FileOperationTest {
         //  complete more of the development work. Also reduced the load driver wait to hit other error paths and
         //  not have the test run so long.
         ConfigModel concurrentConfig = configService.getConfig(ConfigEnum.LOAD_CONCURRENT_FILES.name());
-        concurrentConfig.setParameter(new ConfigParameterModel().value("5"));
+        concurrentConfig.setParameter(new ConfigParameterModel().value("3"));
         ConfigModel driverWaitConfig = configService.getConfig(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS.name());
         driverWaitConfig.setParameter(new ConfigParameterModel().value("30"));
         ConfigGroupModel configGroupModel = new ConfigGroupModel()

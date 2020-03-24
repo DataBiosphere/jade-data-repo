@@ -91,7 +91,8 @@ public class GoogleResourceService {
         // insert a new bucket_resource row and lock it
         GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
 
-        if (googleBucketResource == null) {
+        boolean metadataCreationFailed = (googleBucketResource == null);
+        if (metadataCreationFailed) {
             // insert failed. lookup the existing bucket_resource row
             googleBucketResource = resourceDao.getBucket(bucketRequest);
         }
@@ -115,10 +116,10 @@ public class GoogleResourceService {
                 bucket = newBucket(bucketRequest);
                 resourceDao.unlockBucket(bucketName, flightId);
             } else {
-                // bucket EXISTS. throw an exception or just use it, depending on the Spring profile
+                // bucket EXISTS. if this is a recovery flight or testing environment, use it. otherwise throw exception
                 boolean springProfileIsForTesting = Arrays.stream(springEnvironment.getActiveProfiles()).anyMatch(
                     springProfile -> springProfile.equals("integration") || springProfile.equals("connectedtest"));
-                if (springProfileIsForTesting) {
+                if (metadataCreationFailed || springProfileIsForTesting) {
                     logger.info(String.format("bucket already exists, using anyway: %s", bucketName));
                     bucket = existingBucket.get();
                     resourceDao.unlockBucket(bucketName, flightId);

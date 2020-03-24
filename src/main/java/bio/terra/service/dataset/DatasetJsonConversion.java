@@ -129,12 +129,41 @@ public final class DatasetJsonConversion {
     }
 
     public static TableModel tableModelFromTable(DatasetTable datasetTable) {
+        BigQueryPartitionConfig config = datasetTable.getBigQueryPartitionConfig();
+        TableModel.PartitionModeEnum partitionMode;
+        DatePartitionOptionsModel dateOptions = null;
+        IntPartitionOptionsModel intOptions = null;
+        switch (config.getMode()) {
+            case INGEST_DATE:
+                partitionMode = TableModel.PartitionModeEnum.DATE;
+                dateOptions = new DatePartitionOptionsModel().column(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
+                break;
+            case DATE:
+                partitionMode = TableModel.PartitionModeEnum.DATE;
+                dateOptions = new DatePartitionOptionsModel().column(config.getColumnName());
+                break;
+            case INT_RANGE:
+                partitionMode = TableModel.PartitionModeEnum.INT;
+                intOptions = new IntPartitionOptionsModel()
+                    .column(config.getColumnName())
+                    .min(config.getIntMin())
+                    .max(config.getIntMax())
+                    .interval(config.getIntInterval());
+                break;
+            default:
+                partitionMode = TableModel.PartitionModeEnum.NONE;
+                break;
+        }
+
         return new TableModel()
             .name(datasetTable.getName())
             .primaryKey(datasetTable.getPrimaryKey()
                 .stream()
                 .map(Column::getName)
                 .collect(Collectors.toList()))
+            .partitionMode(partitionMode)
+            .datePartitionOptions(dateOptions)
+            .intPartitionOptions(intOptions)
             .columns(datasetTable.getColumns().stream()
                 .map(DatasetJsonConversion::columnModelFromDatasetColumn)
                 .collect(Collectors.toList()));

@@ -21,6 +21,22 @@ public final class BigQueryPartitionConfig {
         this.intInterval = intInterval;
     }
 
+    String getColumnName() {
+        return this.columnName;
+    }
+
+    Long getIntMin() {
+        return this.intMin;
+    }
+
+    Long getIntMax() {
+        return this.intMax;
+    }
+
+    Long getIntInterval() {
+        return this.intInterval;
+    }
+
     private static final BigQueryPartitionConfig NONE_INSTANCE =
         new BigQueryPartitionConfig(Mode.NONE, null, null, null, null);
 

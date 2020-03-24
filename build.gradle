@@ -138,7 +138,7 @@ dependencies {
     runtime group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.7'
 
     // Findbugs annotations, so we can selectively suppress findbugs findings
-    compileOnly 'com.google.code.findbugs:annotations:3.0.1u2'
+    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 
     liquibaseRuntime 'org.liquibase:liquibase-core:3.8.0'
     liquibaseRuntime 'org.postgresql:postgresql:42.2.7'
@@ -148,7 +148,7 @@ dependencies {
     testCompile group: 'org.hamcrest', name: 'hamcrest', version: '2.1'
     testCompile "org.springframework.boot:spring-boot-starter-test"
     testCompile 'org.postgresql:postgresql:42.2.8'
-    testCompile 'com.google.code.findbugs:annotations:3.0.1u2'
+    testCompile 'com.google.code.findbugs:annotations:3.0.1'
 
     generatedCompile 'org.springframework.boot:spring-boot-starter-web'
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
@@ -266,13 +266,6 @@ liquibase {
             password project.ext.dbDatarepoPassword
             logLevel 'debug'
         }
-        stairway {
-            changeLogFile project.ext.dbStairwayChangesetFile
-            url project.ext.dbStairwayUri
-            username project.ext.dbStairwayUsername
-            password project.ext.dbStairwayPassword
-            logLevel 'debug'
-        }
     }
 }
 
@@ -283,7 +276,7 @@ liquibase {
 // connected tests and running all of the tests.
 test {
     useJUnit {
-        includeCategories 'bio.terra.common.category.Unit', 'bio.terra.common.category.StairwayUnit'
+        includeCategories 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
 }
@@ -317,7 +310,7 @@ task testUnit(type: Test) {
 
 task testAll(type: Test) {
     useJUnit {
-        includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit', 'bio.terra.common.category.StairwayUnit'
+        includeCategories 'bio.terra.common.category.Connected', 'bio.terra.common.category.Unit'
     }
     outputs.upToDateWhen { false }
 }

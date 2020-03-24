@@ -99,6 +99,7 @@ public class GoogleResourceService {
         GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
 
         boolean metadataCreationFailed = (googleBucketResource == null);
+        logger.info("metadataCreationFailed = " + metadataCreationFailed);
         if (metadataCreationFailed) {
             // insert failed. lookup the existing bucket_resource row
             googleBucketResource = resourceDao.getBucket(bucketRequest);
@@ -110,7 +111,7 @@ public class GoogleResourceService {
                 logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
                 while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
                     logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(2);
+                    TimeUnit.SECONDS.sleep(5);
                 }
                 logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
             } catch (InterruptedException ex) {
@@ -121,6 +122,7 @@ public class GoogleResourceService {
 
         String bucketName = bucketRequest.getBucketName();
         String lockingFlightId = googleBucketResource.getFlightId();
+        logger.info("lockingFlightId = " + lockingFlightId);
         Bucket bucket;
         if (lockingFlightId == null) {
             // GET case. the row in the bucket_resource table is unlocked. the bucket has already been created

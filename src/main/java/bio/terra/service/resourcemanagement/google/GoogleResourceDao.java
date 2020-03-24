@@ -177,7 +177,8 @@ public class GoogleResourceDao {
 
             // bucket_resource
             "b.id AS bucket_resource_id",
-            "name"
+            "name",
+            "flightid"
         );
         String query = "SELECT %s " +
             " FROM bucket_resource b JOIN project_resource p ON b.project_resource_id = p.id " +
@@ -217,7 +218,8 @@ public class GoogleResourceDao {
             return new GoogleBucketResource()
                 .projectResource(projectResource)
                 .resourceId(rs.getObject("bucket_resource_id", UUID.class))
-                .name(rs.getString("name"));
+                .name(rs.getString("name"))
+                .flightId(rs.getString("flightid"));
         }
     }
 }

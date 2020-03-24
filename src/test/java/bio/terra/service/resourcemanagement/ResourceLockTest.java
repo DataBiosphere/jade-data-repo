@@ -79,31 +79,38 @@ public class ResourceLockTest {
 
     @Test
     public void twoThreadsCompeteForLockTest() throws Exception {
-        String flightId = "twoThreadsCompeteForLockTest";
+        String flightIdBase = "twoThreadsCompeteForLockTest";
         String bucketName = "twothreadscompeteforlocktest";
         GoogleBucketRequest bucketRequest = buildBucketRequest(bucketName);
-        ResourceLockTester resourceLockA = new ResourceLockTester(resourceService, bucketRequest, flightId);
-        ResourceLockTester resourceLockB = new ResourceLockTester(resourceService, bucketRequest, flightId);
+        ResourceLockTester resourceLockA = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "A");
+        ResourceLockTester resourceLockB = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "B");
+        ResourceLockTester resourceLockC = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "C");
 
         Thread threadA = new Thread(resourceLockA);
         Thread threadB = new Thread(resourceLockB);
+        Thread threadC = new Thread(resourceLockC);
 
         configService.setFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT.name(), true);
         threadA.start();
-        TimeUnit.SECONDS.sleep(2);
+        TimeUnit.SECONDS.sleep(1);
 
         threadB.start();
         threadB.join();
-        assertFalse("Thread B did not get the lock", resourceLockB.gotLock());
+        assertTrue("Thread B did get a lock exception", resourceLockB.gotLockException());
 
         configService.setFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
         threadA.join();
-        assertTrue("Thread A did get the lock", resourceLockA.gotLock());
+        assertFalse("Thread A did not get a lock exception", resourceLockA.gotLockException());
 
         GoogleBucketResource bucketResource = resourceLockA.getBucketResource();
         assertNotNull("Thread A did create the bucket", bucketResource);
 
         checkBucketExists(bucketResource.getResourceId());
+
+        threadC.start();
+        threadC.join();
+        assertFalse("Thread C did not get a lock exception", resourceLockC.gotLockException());
+        assertNotNull("Thread C did get the bucket", resourceLockC.getBucketResource());
 
         deleteBucket(bucketResource.getName(), bucketResource.getResourceId());
     }

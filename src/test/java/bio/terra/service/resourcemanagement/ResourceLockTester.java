@@ -11,7 +11,7 @@ public class ResourceLockTester implements Runnable {
     private GoogleBucketRequest bucketRequest;
     private String flightId;
 
-    private boolean gotLock;
+    private boolean gotLockException;
     private GoogleBucketResource bucketResource;
 
     public ResourceLockTester(
@@ -19,6 +19,8 @@ public class ResourceLockTester implements Runnable {
         this.resourceService = resourceService;
         this.bucketRequest = bucketRequest;
         this.flightId = flightId;
+
+        this.gotLockException = false;
     }
 
     @Override
@@ -26,14 +28,13 @@ public class ResourceLockTester implements Runnable {
         try {
             // create the bucket and metadata
             bucketResource = resourceService.getOrCreateBucket(bucketRequest, flightId);
-            gotLock = true;
         } catch (BucketLockException blEx) {
-            gotLock = false;
+            gotLockException = true;
         }
     }
 
-    public boolean gotLock() {
-        return gotLock;
+    public boolean gotLockException() {
+        return gotLockException;
     }
 
     public GoogleBucketResource getBucketResource() {

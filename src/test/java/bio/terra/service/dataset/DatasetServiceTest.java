@@ -78,7 +78,7 @@ public class DatasetServiceTest {
 
     private ArrayList<UUID> datasetIdList;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws SQLException {
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
@@ -118,7 +118,7 @@ public class DatasetServiceTest {
     }
 
     @Test
-    public void datasetOmopTest() throws Exception {
+    public void datasetOmopTest() throws IOException, SQLException {
         createDataset("it-dataset-omop.json");
     }
 

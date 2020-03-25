@@ -82,10 +82,23 @@ public class DataLocationService {
         return resourceService.getOrCreateProject(googleProjectRequest);
     }
 
+    /**
+     * Determine the bucket name for a profile, using the DataLocationSelector.
+     * @param profileId
+     * @return the bucket name
+     */
     protected String getBucketName(String profileId) {
         return dataLocationSelector.bucketForFile(profileId);
     }
 
+    /**
+     * Fetch/create a project, then use that to fetch/create a bucket.
+     * The profileId is used to determine the project name.
+     * The flightId is used to lock the bucket metadata during possible creation.
+     * @param profileId
+     * @param flightId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     */
     public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId) {
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
@@ -98,10 +111,24 @@ public class DataLocationService {
         return resourceService.getOrCreateBucket(googleBucketRequest, flightId);
     }
 
+    /**
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method does not check for the existence of the underlying cloud resource.
+     * @param bucketResourceId
+     * @returna a reference to the bucket as a POJO GoogleBucketResource
+     */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
         return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
     }
 
+    /**
+     * Update the bucket_resource metadata table to match the state of the underlying cloud.
+     *    - If the bucket exists, then the metadata row should also exist and be unlocked.
+     *    - If the bucket does not exist, then the metadata row should not exist.
+     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * @param profileId
+     * @param flightId
+     */
     public void updateBucketMetadata(String profileId, String flightId) {
         String bucketName = getBucketName(profileId);
         resourceService.updateBucketMetadata(bucketName, flightId);

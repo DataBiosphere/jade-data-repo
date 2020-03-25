@@ -90,10 +90,37 @@ public class GoogleResourceService {
         this.configService = configService;
     }
 
+    /**
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method does not check for the existence of the underlying cloud resource.
+     * @param bucketResourceId
+     * @returna a reference to the bucket as a POJO GoogleBucketResource
+     */
     public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
         return resourceDao.retrieveBucketById(bucketResourceId);
     }
 
+    /**
+     * Fetch/create a bucket cloud resource and the associated metadata in the bucket_resource table.
+     * The flightId is used to lock the bucket metadata during possible creation.
+     * Below is an outline of the logic flow.
+     *   1. Try to insert a new bucket_resource row and lock it
+     *      If the insert failed, lookup the existing row
+     *   2. Check who holds the lock on the bucket_resource row
+     *      a. GET case = row is unlocked. bucket has already been created
+     *         Check that the bucket cloud resource exists, throw an exception if not.
+     *      b. CREATE case = row is locked by this flight. need to create the bucket here
+     *         Check if the bucket cloud resource exists.
+     *           i. If not, create it
+     *           ii. If it does exist and this is a testing environment, just use it
+     *           iii. If it does exist and this is a recovery flight, just use it
+     *           iv. Otherwise, the state of the cloud is out of sync with the metadat
+     *               Delete anything we've created and throw an exception
+     *      c. LOCKED case = the row is locked by another flight. throw a lock exception so the flight knows to retry
+     * @param bucketRequest
+     * @param flightId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     */
     public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
         // insert a new bucket_resource row and lock it
         GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
@@ -166,6 +193,14 @@ public class GoogleResourceService {
         return googleBucketResource;
     }
 
+    /**
+     * Update the bucket_resource metadata table to match the state of the underlying cloud.
+     *    - If the bucket exists, then the metadata row should also exist and be unlocked.
+     *    - If the bucket does not exist, then the metadata row should not exist.
+     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * @param bucketName
+     * @param flightId
+     */
     public void updateBucketMetadata(String bucketName, String flightId) {
         // check if the bucket already exists
         Optional<Bucket> existingBucket = getBucket(bucketName);
@@ -178,6 +213,12 @@ public class GoogleResourceService {
         }
     }
 
+    /**
+     * Create a new bucket cloud resource.
+     * Note this method does not create any associated metadata in the bucket_resource table.
+     * @param bucketRequest
+     * @return a reference to the bucket as a GCS Bucket object
+     */
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
@@ -240,6 +281,12 @@ public class GoogleResourceService {
         }
     }
 
+    /**
+     * Fetch an existing bucket cloud resource.
+     * Note this method does not check any associated metadata in the bucket_resource table.
+     * @param bucketName
+     * @return a reference to the bucket as a GCS Bucket object
+     */
     private Optional<Bucket> getBucket(String bucketName) {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         try {

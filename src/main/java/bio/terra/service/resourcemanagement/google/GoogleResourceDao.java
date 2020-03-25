@@ -92,6 +92,14 @@ public class GoogleResourceDao {
         }
     }
 
+    /**
+     * Insert a new row into the bucket_resource metadata table and give the provided flight the lock by setting the
+     * flightid column. If there already exists a row with this bucket name, return null instead of throwing an
+     * exception.
+     * @param bucketRequest
+     * @param flightId
+     * @return a reference to the bucket as a POJO GoogleBucketResource if the insert succeeded, null otherwise
+     */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public GoogleBucketResource createAndLockBucket(GoogleBucketRequest bucketRequest, String flightId) {
         GoogleProjectResource projectResource = Optional.ofNullable(bucketRequest.getGoogleProjectResource())
@@ -116,6 +124,13 @@ public class GoogleResourceDao {
         }
     }
 
+    /**
+     * Unlock an existing bucket_resource metadata row, by setting flightid = NULL.
+     * Only the flight that currently holds the lock can unlock the row.
+     * @param bucketName
+     * @param flightId
+     * @return true if a row was unlocked, false otherwise
+     */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlockBucket(String bucketName, String flightId) {
         String sql = "UPDATE bucket_resource SET flightid = NULL " +
@@ -127,6 +142,13 @@ public class GoogleResourceDao {
         return (numRowsUpdated == 1);
     }
 
+    /**
+     * Fetch an existing bucket_resource metadata row using the name amd project id.
+     * This method expects that there is exactly one row matching the provided name and project id.
+     * @param bucketRequest
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceException if there is not exactly one matching row
+     */
     public GoogleBucketResource getBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         List<GoogleBucketResource> bucketResourcesByName =
@@ -155,6 +177,13 @@ public class GoogleResourceDao {
         return bucketResource;
     }
 
+    /**
+     * Delete the bucket_resource metadata row associated with the bucket, provided the row is either unlocked or
+     * locked by the provided flight.
+     * @param bucketName
+     * @param flightId
+     * @return true if a row is deleted, false otherwise
+     */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean deleteBucketMetadata(String bucketName, String flightId) {
         String sql = "DELETE FROM bucket_resource " +
@@ -193,6 +222,12 @@ public class GoogleResourceDao {
         return bucketResources;
     }
 
+    /**
+     * Fetch an existing bucket_resource metadata row using the id.
+     * This method expects that there is exactly one row matching the provided resource id.
+     * @param bucketResourceId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     */
     public GoogleBucketResource retrieveBucketById(UUID bucketResourceId) {
         List<GoogleBucketResource> bucketResources = retrieveBucketsBy("id", bucketResourceId, UUID.class);
         if (bucketResources.size() > 1) {

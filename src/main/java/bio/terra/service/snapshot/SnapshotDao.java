@@ -72,6 +72,14 @@ public class SnapshotDao {
         return snapshotId;
     }
 
+    public void lock(String snapshotName, String flightId) {
+
+    }
+
+    public boolean unlock(String snapshotName, String flightId) {
+        return true;
+    }
+
     private void createSnapshotSource(SnapshotSource snapshotSource) {
         String sql = "INSERT INTO snapshot_source (snapshot_id, dataset_id, asset_id)" +
                 " VALUES (:snapshot_id, :dataset_id, :asset_id)";

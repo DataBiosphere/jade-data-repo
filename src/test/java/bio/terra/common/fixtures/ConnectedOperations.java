@@ -10,6 +10,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
@@ -47,6 +48,7 @@ import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -115,21 +117,36 @@ public class ConnectedOperations {
      * @return summary of the dataset created
      * @throws Exception
      */
-    public DatasetSummaryModel createDatasetWithFlight(BillingProfileModel profileModel,
-                                                   String resourcePath) throws Exception {
+    public DatasetSummaryModel createDataset(BillingProfileModel profileModel,
+                                             String resourcePath) throws Exception {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
         datasetRequest
             .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(profileModel.getId());
 
+        return createDataset(datasetRequest);
+    }
+
+    public DatasetSummaryModel createDataset(DatasetRequestModel datasetRequest) throws Exception {
         MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(datasetRequest)))
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        DatasetSummaryModel datasetSummaryModel = handleAsyncSuccessCase(response, DatasetSummaryModel.class);
+        DatasetSummaryModel datasetSummaryModel = handleSuccessCase(response, DatasetSummaryModel.class);
         addDataset(datasetSummaryModel.getId());
         return datasetSummaryModel;
+    }
+
+    public ErrorModel createDatasetExpectError(DatasetRequestModel datasetRequest, HttpStatus expectedStatus)
+        throws Exception {
+        MvcResult result = mvc.perform(post("/api/repository/v1/datasets")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(datasetRequest)))
+            .andReturn();
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        ErrorModel errorModel = handleFailureCase(response, expectedStatus);
+        return errorModel;
     }
 
     public BillingProfileModel createProfileForAccount(String billingAccountId) throws Exception {
@@ -194,13 +211,23 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
     }
 
+    public DatasetModel getDataset(String datasetId) throws Exception {
+        MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        return handleSuccessCase(result.getResponse(), DatasetModel.class);
+    }
+
+    public ErrorModel getDatasetExpectError(String datasetId, HttpStatus expectedStatus) throws Exception {
+        MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        return handleFailureCase(result.getResponse(), expectedStatus);
+    }
+
     public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {
-        SnapshotSummaryModel summaryModel = handleAsyncSuccessCase(response, SnapshotSummaryModel.class);
+        SnapshotSummaryModel summaryModel = handleSuccessCase(response, SnapshotSummaryModel.class);
         addSnapshot(summaryModel.getId());
         return summaryModel;
     }
 
-    public <T> T handleAsyncSuccessCase(MockHttpServletResponse response, Class<T> returnClass) throws Exception {
+    public <T> T handleSuccessCase(MockHttpServletResponse response, Class<T> returnClass) throws Exception {
         String responseBody = response.getContentAsString();
         HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
         if (!responseStatus.is2xxSuccessful()) {
@@ -220,11 +247,23 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(responseBody, returnClass);
     }
 
-    public ErrorModel handleAsyncFailureCase(MockHttpServletResponse response) throws Exception {
-        String responseBody = response.getContentAsString();
-        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
-        assertFalse("Expect failure", responseStatus.is2xxSuccessful());
+    public ErrorModel handleFailureCase(MockHttpServletResponse response) throws Exception {
+        return handleFailureCase(response, null);
+    }
 
+    public ErrorModel handleFailureCase(MockHttpServletResponse response, HttpStatus expectedStatus)
+        throws Exception {
+        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
+
+        // check the failure status matches the expected
+        // if no specific status is specified, just check that it's not successful
+        if (expectedStatus == null) {
+            assertFalse("Expect failure", responseStatus.is2xxSuccessful());
+        } else {
+            assertEquals("Expect specific failure status", expectedStatus, responseStatus);
+        }
+
+        String responseBody = response.getContentAsString();
         assertTrue("Error model was returned on failure",
             StringUtils.contains(responseBody, "message"));
 
@@ -235,6 +274,7 @@ public class ConnectedOperations {
         // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         checkDeleteResponse(result.getResponse());
+
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -272,11 +312,17 @@ public class ConnectedOperations {
     }
 
     private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
-        DeleteResponseModel responseModel =
-            TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
-        assertTrue("Valid delete response object state enumeration",
-            (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
-                responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
+        HttpStatus status = HttpStatus.valueOf(response.getStatus());
+        if (status.is2xxSuccessful()) {
+            DeleteResponseModel responseModel =
+                TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
+            assertTrue("Valid delete response object state enumeration",
+                (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
+                    responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
+        } else {
+            ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
+            assertNotNull("error model returned", errorModel);
+        }
     }
 
     public IngestResponseModel ingestTableSuccess(
@@ -293,7 +339,7 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         IngestResponseModel ingestResponse =
-            handleAsyncSuccessCase(response, IngestResponseModel.class);
+            handleSuccessCase(response, IngestResponseModel.class);
         assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
 
         return ingestResponse;
@@ -307,7 +353,7 @@ public class ConnectedOperations {
             .content(jsonRequest))
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        return handleAsyncFailureCase(response);
+        return handleFailureCase(response);
     }
 
     public FileModel ingestFileSuccess(String datasetId, FileLoadModel fileLoadModel) throws Exception {
@@ -320,7 +366,7 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
-        FileModel fileModel = handleAsyncSuccessCase(response, FileModel.class);
+        FileModel fileModel = handleSuccessCase(response, FileModel.class);
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -342,13 +388,13 @@ public class ConnectedOperations {
                                                        BulkLoadArrayRequestModel loadModel) throws Exception {
         MvcResult result = ingestArrayRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        return handleAsyncSuccessCase(response, BulkLoadArrayResultModel.class);
+        return handleSuccessCase(response, BulkLoadArrayResultModel.class);
     }
 
     public ErrorModel ingestArrayFailure(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
         MvcResult result = ingestArrayRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        return handleAsyncFailureCase(response);
+        return handleFailureCase(response);
     }
 
     public MvcResult ingestArrayRaw(String datasetId, BulkLoadArrayRequestModel loadModel) throws Exception {
@@ -364,13 +410,13 @@ public class ConnectedOperations {
                                                      BulkLoadRequestModel loadModel) throws Exception {
         MvcResult result = ingestBulkFileRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        return handleAsyncSuccessCase(response, BulkLoadResultModel.class);
+        return handleSuccessCase(response, BulkLoadResultModel.class);
     }
 
     public ErrorModel ingestBulkFileFailure(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
         MvcResult result = ingestBulkFileRaw(datasetId, loadModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        return handleAsyncFailureCase(response);
+        return handleFailureCase(response);
     }
 
     public MvcResult ingestBulkFileRaw(String datasetId, BulkLoadRequestModel loadModel) throws Exception {
@@ -392,7 +438,7 @@ public class ConnectedOperations {
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
-        return handleAsyncFailureCase(response);
+        return handleFailureCase(response);
     }
 
     public FileModel lookupSnapshotFile(String snapshotId, String objectId) throws Exception {

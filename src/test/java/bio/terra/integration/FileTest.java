@@ -8,7 +8,6 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
-import bio.terra.service.dataset.DatasetTest;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -47,7 +46,7 @@ import static org.junit.Assert.assertThat;
 @Category(Integration.class)
 public class FileTest extends UsersBase {
 
-    private static Logger logger = LoggerFactory.getLogger(DatasetTest.class);
+    private static Logger logger = LoggerFactory.getLogger(FileTest.class);
 
     @Autowired
     private DataRepoFixtures dataRepoFixtures;

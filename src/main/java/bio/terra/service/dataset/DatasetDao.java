@@ -183,8 +183,9 @@ public class DatasetDao {
 
     public DatasetSummary retrieveSummaryById(UUID id) {
         try {
-            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
-                " FROM dataset WHERE id = :id";
+            String sql = "SELECT " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+                "FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -194,8 +195,9 @@ public class DatasetDao {
 
     public DatasetSummary retrieveSummaryByName(String name) {
         try {
-            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
-                " FROM dataset WHERE name = :name";
+            String sql = "SELECT " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+                "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -227,8 +229,9 @@ public class DatasetDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
-        String sql = "SELECT id, name, description, created_date, default_profile_id, additional_profile_ids " +
-            " FROM dataset " + whereSql +
+        String sql = "SELECT " +
+            "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+            "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
@@ -246,7 +249,8 @@ public class DatasetDao {
                     .description(rs.getString("description"))
                     .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                     .additionalProfileIds(DaoUtils.getUUIDList(rs, "additional_profile_ids"))
-                    .createdDate(rs.getTimestamp("created_date").toInstant());
+                    .createdDate(rs.getTimestamp("created_date").toInstant())
+                    .flightId(rs.getString("flightid"));
         }
     }
 }

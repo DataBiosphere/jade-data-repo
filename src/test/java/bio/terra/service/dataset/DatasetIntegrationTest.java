@@ -44,11 +44,11 @@ import static org.junit.Assert.assertTrue;
 @ActiveProfiles({"google", "integrationtest"})
 @AutoConfigureMockMvc
 @Category(Integration.class)
-public class DatasetTest extends UsersBase {
+public class DatasetIntegrationTest extends UsersBase {
     private static final String omopDatasetName = "it_dataset_omop";
     private static final String omopDatasetDesc =
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
-    private static Logger logger = LoggerFactory.getLogger(DatasetTest.class);
+    private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
     @Autowired
     private DataRepoClient dataRepoClient;

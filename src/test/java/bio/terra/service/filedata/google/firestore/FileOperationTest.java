@@ -116,7 +116,7 @@ public class FileOperationTest {
         coreBillingAccountId = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
 
-        datasetSummary = connectedOperations.createDatasetWithFlight(profileModel, "snapshot-test-dataset.json");
+        datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
 
         // Make sure we start from a known configuration
         configService.reset();
@@ -295,10 +295,10 @@ public class FileOperationTest {
         MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
 
         BulkLoadArrayResultModel resultModel1 =
-            connectedOperations.handleAsyncSuccessCase(response1, BulkLoadArrayResultModel.class);
+            connectedOperations.handleSuccessCase(response1, BulkLoadArrayResultModel.class);
 
         BulkLoadArrayResultModel resultModel2 =
-            connectedOperations.handleAsyncSuccessCase(response2, BulkLoadArrayResultModel.class);
+            connectedOperations.handleSuccessCase(response2, BulkLoadArrayResultModel.class);
 
         checkLoadSummary(resultModel1.getLoadSummary(), loadTag1, 3, 3, 0, 0);
         checkLoadSummary(resultModel2.getLoadSummary(), loadTag2, 3, 3, 0, 0);

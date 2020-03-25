@@ -119,7 +119,7 @@ public class EncodeFileTest {
     // re-write the json source data replacing the gs paths with the Jade object id.
     @Test
     public void encodeFileTest() throws Exception {
-        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+        DatasetSummaryModel datasetSummary = connectedOperations.createDataset(profileModel,
             "encodefiletest-dataset.json");
 
         // Load all of the files into the dataset
@@ -180,7 +180,7 @@ public class EncodeFileTest {
         response = connectedOperations.validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
 
-        ErrorModel errorModel = connectedOperations.handleAsyncFailureCase(response);
+        ErrorModel errorModel = connectedOperations.handleFailureCase(response);
         assertThat("correct dependency error message",
             errorModel.getMessage(), containsString("used by at least one snapshot"));
     }
@@ -278,7 +278,7 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadFileId() throws Exception {
-        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+        DatasetSummaryModel datasetSummary = connectedOperations.createDataset(profileModel,
             "encodefiletest-dataset.json");
         String targetPath = loadFiles(datasetSummary.getId(), true, false);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
@@ -297,7 +297,7 @@ public class EncodeFileTest {
             .andReturn();
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
-        ErrorModel ingestError = connectedOperations.handleAsyncFailureCase(response);
+        ErrorModel ingestError = connectedOperations.handleFailureCase(response);
         assertThat("correctly found bad file id",
             ingestError.getMessage(), containsString("Invalid file ids found"));
 
@@ -314,7 +314,7 @@ public class EncodeFileTest {
 
     @Test
     public void encodeFileBadRowTest() throws Exception {
-        DatasetSummaryModel datasetSummary = connectedOperations.createDatasetWithFlight(profileModel,
+        DatasetSummaryModel datasetSummary = connectedOperations.createDataset(profileModel,
             "encodefiletest-dataset.json");
         String targetPath = loadFiles(datasetSummary.getId(), false, true);
         String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + targetPath;
@@ -333,7 +333,7 @@ public class EncodeFileTest {
             .andReturn();
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
-        ErrorModel ingestError = connectedOperations.handleAsyncFailureCase(response);
+        ErrorModel ingestError = connectedOperations.handleFailureCase(response);
         // NB: this used to return 2 errors. It seems like the BQ API changed recently and now returns 3, except two of
         // them are the same error with one word changed.
         assertThat("correctly found bad row",

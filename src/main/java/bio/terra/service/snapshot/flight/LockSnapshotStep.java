@@ -1,7 +1,7 @@
-package bio.terra.service.dataset.flight;
+package bio.terra.service.snapshot.flight;
 
-import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -11,29 +11,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class LockDatasetStep implements Step {
+public class LockSnapshotStep implements Step {
 
-    private DatasetDao datasetDao;
-    private String datasetName;
+    private SnapshotDao snapshotDao;
+    private String snapshotName;
 
-    private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
+    private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
 
-    public LockDatasetStep(DatasetDao datasetDao, String datasetName) {
-        this.datasetDao = datasetDao;
-        this.datasetName = datasetName;
+    public LockSnapshotStep(SnapshotDao snapshotDao, String snapshotName) {
+        this.snapshotDao = snapshotDao;
+        this.snapshotName = snapshotName;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            datasetDao.lock(datasetName, context.getFlightId());
+            snapshotDao.lock(snapshotName, context.getFlightId());
 
             FlightMap workingMap = context.getWorkingMap();
-            workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, datasetName);
+            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_NAME, snapshotName);
 
             return StepResult.getStepResultSuccess();
-        } catch (DatasetLockException lockedEx) {
-            logger.debug("Another flight has already locked this Dataset", lockedEx);
+        } catch (SnapshotLockException lockedEx) {
+            logger.debug("Another flight has already locked this Snapshot", lockedEx);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, lockedEx);
         }
     }
@@ -42,7 +42,7 @@ public class LockDatasetStep implements Step {
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
-        boolean rowUpdated = datasetDao.unlock(datasetName, context.getFlightId());
+        boolean rowUpdated = snapshotDao.unlock(snapshotName, context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

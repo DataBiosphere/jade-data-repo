@@ -1,4 +1,4 @@
-package bio.terra.app.controller;
+package bio.terra.service.snapshot;
 
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
@@ -8,7 +8,6 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
@@ -70,7 +69,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -80,11 +78,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-public class SnapshotOperationTest {
-    private static final boolean deleteOnTeardown = true;
-
-    // private Logger logger = LoggerFactory.getLogger("bio.terra.app.controller.SnapshotOperationTest");
-
+public class SnapshotConnectedTest {
     // TODO: MORE TESTS to be done when we can ingest data:
     // - test more complex datasets with relationships
     // - test relationship walking with valid and invalid setups
@@ -104,15 +98,12 @@ public class SnapshotOperationTest {
     @MockBean
     private IamService samService;
 
-    private List<String> createdSnapshotIds;
     private String snapshotOriginalName;
     private BillingProfileModel billingProfile;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
 
     @Before
     public void setup() throws Exception {
-        // TODO all of this should be refactored to use connected operations, and that should be made a component
-        createdSnapshotIds = new ArrayList<>();
         connectedOperations.stubOutSamCalls(samService);
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
@@ -120,12 +111,7 @@ public class SnapshotOperationTest {
 
     @After
     public void tearDown() throws Exception {
-        if (deleteOnTeardown) {
-            for (String snapshotId : createdSnapshotIds) {
-                deleteTestSnapshot(snapshotId);
-            }
-            connectedOperations.teardown();
-        }
+        connectedOperations.teardown();
     }
 
     @Test
@@ -139,9 +125,9 @@ public class SnapshotOperationTest {
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
-        deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
-        deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
 
         getNonexistentSnapshot(snapshotModel.getId());
     }
@@ -158,9 +144,9 @@ public class SnapshotOperationTest {
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
-        deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
-        deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
 
         getNonexistentSnapshot(snapshotModel.getId());
     }
@@ -261,7 +247,7 @@ public class SnapshotOperationTest {
         assertThat("we found all snapshots", compareIndex, equalTo(5));
 
         for (int i = 0; i < 5; i++) {
-            deleteTestSnapshot(enumeratedArray.get(i).getId());
+            connectedOperations.deleteTestSnapshot(enumeratedArray.get(i).getId());
         }
     }
 
@@ -300,7 +286,7 @@ public class SnapshotOperationTest {
             containsString("duplicate key value violates unique constraint \"snapshot_name_key\""));
 
         // delete and confirm deleted
-        deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         getNonexistentSnapshot(snapshotModel.getId());
     }
 
@@ -320,7 +306,7 @@ public class SnapshotOperationTest {
 
     // create a dataset to create snapshots in and return its id
     private DatasetSummaryModel createTestDataset(String resourcePath) throws Exception {
-        return connectedOperations.createDatasetWithFlight(billingProfile, resourcePath);
+        return connectedOperations.createDataset(billingProfile, resourcePath);
     }
 
     private void loadCsvData(String datasetId, String tableName, String resourcePath) throws Exception {
@@ -409,7 +395,7 @@ public class SnapshotOperationTest {
         }
 
         SnapshotSummaryModel summaryModel = objectMapper.readValue(responseBody, SnapshotSummaryModel.class);
-        createdSnapshotIds.add(summaryModel.getId());
+        connectedOperations.addSnapshot(summaryModel.getId());
 
         assertThat(summaryModel.getDescription(), equalTo(snapshotRequest.getDescription()));
         assertThat(summaryModel.getName(), equalTo(snapshotRequest.getName()));
@@ -429,27 +415,6 @@ public class SnapshotOperationTest {
                 StringUtils.contains(responseBody, "message"));
 
         return TestUtils.mapFromJson(responseBody, ErrorModel.class);
-    }
-
-    private void deleteTestSnapshot(String id) throws Exception {
-        MvcResult result = mvc.perform(delete("/api/repository/v1/snapshots/" + id)).andReturn();
-        MockHttpServletResponse response = validateJobModelAndWait(result);
-        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
-        checkDeleteResponse(response);
-    }
-
-    private void deleteTestDataset(String id) throws Exception {
-        // We only use this for @After, so we don't check return values
-        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
-        checkDeleteResponse(result.getResponse());
-    }
-
-    private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
-        DeleteResponseModel responseModel =
-            TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
-        assertTrue("Valid delete response object state enumeration",
-            (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
-                responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
     }
 
     private EnumerateSnapshotModel enumerateTestSnapshots() throws Exception {

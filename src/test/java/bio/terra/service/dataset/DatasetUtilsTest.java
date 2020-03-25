@@ -1,4 +1,4 @@
-package bio.terra.service;
+package bio.terra.service.dataset;
 
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;

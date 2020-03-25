@@ -23,6 +23,8 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -53,7 +55,7 @@ public class DatasetDaoTest {
 
     private BillingProfile billingProfile;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws Exception {
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
@@ -62,7 +64,7 @@ public class DatasetDaoTest {
         return datasetId;
     }
 
-    private UUID createDataset(String datasetFile) throws Exception {
+    private UUID createDataset(String datasetFile) throws IOException, SQLException  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
@@ -80,14 +82,14 @@ public class DatasetDaoTest {
     }
 
     @Test(expected = DatasetNotFoundException.class)
-    public void datasetDeleteTest() throws Exception {
+    public void datasetDeleteTest() throws IOException, SQLException {
         UUID datasetId = createDataset("dataset-minimal.json");
         assertThat("dataset delete signals success", datasetDao.delete(datasetId), equalTo(true));
         datasetDao.retrieve(datasetId);
     }
 
     @Test
-    public void enumerateTest() throws Exception {
+    public void enumerateTest() throws IOException, SQLException {
         UUID dataset1 = createDataset("dataset-minimal.json");
         UUID dataset2 = createDataset("dataset-create-test.json");
         List<UUID> datasetIds = new ArrayList<>();
@@ -117,7 +119,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void datasetTest() throws Exception {
+    public void datasetTest() throws IOException, SQLException {
         DatasetRequestModel request = jsonLoader.loadObject("dataset-create-test.json", DatasetRequestModel.class);
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
@@ -150,7 +152,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void primaryKeyTest() throws Exception {
+    public void primaryKeyTest() throws IOException, SQLException {
         UUID datasetId = createDataset("dataset-primary-key.json");
         Dataset fromDB = datasetDao.retrieve(datasetId);
         DatasetTable variants = fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);

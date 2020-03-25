@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -114,7 +115,7 @@ public class DatasetDao {
      * @throws SQLException
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Dataset dataset, String flightId) throws Exception {
+    public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         String sql = "INSERT INTO dataset (name, default_profile_id, flightid, description, additional_profile_ids) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids) ";
         Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());

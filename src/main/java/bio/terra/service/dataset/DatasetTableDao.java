@@ -15,6 +15,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Collection;
@@ -53,7 +54,7 @@ public class DatasetTableDao {
     }
 
     // Assumes transaction propagation from parent's create
-    public void createTables(UUID parentId, List<DatasetTable> tableList) throws Exception {
+    public void createTables(UUID parentId, List<DatasetTable> tableList) throws IOException {
         MapSqlParameterSource params = new MapSqlParameterSource();
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         params.addValue("dataset_id", parentId);

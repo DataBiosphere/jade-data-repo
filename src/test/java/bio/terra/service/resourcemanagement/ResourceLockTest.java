@@ -189,7 +189,7 @@ public class ResourceLockTest {
         roleToStewardMap.put(role, stewardsGroupEmailList);
 
         GoogleProjectRequest projectRequest = new GoogleProjectRequest()
-            .projectId(resourceConfiguration.getProjectId())
+            .projectId(resourceConfiguration.getProjectId() + "-data")
             .profileId(UUID.fromString(profile.getId()))
             .serviceIds(DataLocationService.DATA_PROJECT_SERVICE_IDS)
             .roleIdentityMapping(roleToStewardMap);

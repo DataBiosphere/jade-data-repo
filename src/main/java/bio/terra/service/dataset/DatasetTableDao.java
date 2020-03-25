@@ -44,13 +44,14 @@ public class DatasetTableDao {
 
     private final DataSource jdbcDataSource;
     private final NamedParameterJdbcTemplate jdbcTemplate;
-
-    @Autowired private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     @Autowired
-    public DatasetTableDao(DataRepoJdbcConfiguration jdbcConfiguration, NamedParameterJdbcTemplate jdbcTemplate) {
+    public DatasetTableDao(DataRepoJdbcConfiguration jdbcConfiguration,
+                           NamedParameterJdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
         this.jdbcDataSource = jdbcConfiguration.getDataSource();
         this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = objectMapper;
     }
 
     // Assumes transaction propagation from parent's create

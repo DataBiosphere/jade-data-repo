@@ -26,10 +26,10 @@ public class LockDatasetStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            datasetDao.lock(datasetName, context.getFlightId());
-
             FlightMap workingMap = context.getWorkingMap();
             workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, datasetName);
+
+            datasetDao.lock(datasetName, context.getFlightId());
 
             return StepResult.getStepResultSuccess();
         } catch (DatasetLockException lockedEx) {

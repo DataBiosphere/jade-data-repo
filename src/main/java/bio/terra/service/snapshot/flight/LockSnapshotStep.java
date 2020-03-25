@@ -26,10 +26,10 @@ public class LockSnapshotStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            snapshotDao.lock(snapshotName, context.getFlightId());
-
             FlightMap workingMap = context.getWorkingMap();
             workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_NAME, snapshotName);
+
+            snapshotDao.lock(snapshotName, context.getFlightId());
 
             return StepResult.getStepResultSuccess();
         } catch (SnapshotLockException lockedEx) {

@@ -11,6 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -80,8 +81,6 @@ public class DatasetDao {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to lock the dataset");
         }
-
-        return;
     }
 
     /**
@@ -112,9 +111,12 @@ public class DatasetDao {
      * @param dataset the dataset object to create
      * @return the id of the new dataset
      * @throws SQLException
+     * @throws DuplicateKeyException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws SQLException {
+        logger.debug("createAndLock dataset " + dataset.getName());
+
         String sql = "INSERT INTO dataset (name, default_profile_id, flightid, description, additional_profile_ids) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids) ";
         Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());
@@ -126,6 +128,7 @@ public class DatasetDao {
             .addValue("additional_profile_ids", additionalProfileIds);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
+
         UUID datasetId = keyHolder.getId();
         dataset.id(datasetId);
         dataset.createdDate(keyHolder.getCreatedDate());
@@ -133,7 +136,8 @@ public class DatasetDao {
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
-        return dataset.getId();
+
+        return datasetId;
     }
 
     @Transactional

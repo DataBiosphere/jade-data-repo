@@ -6,15 +6,18 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSummary;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
@@ -39,12 +42,21 @@ public class CreateSnapshotMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
-            UUID snapshotId = snapshotDao.create(snapshot);
-            context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
+
+            FlightMap workingMap = context.getWorkingMap();
+            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_NAME, snapshot.getName());
+
+            UUID snapshotId = snapshotDao.createAndLock(snapshot, context.getFlightId());
+            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
+
             SnapshotSummary snapshotSummary = snapshotDao.retrieveSnapshotSummary(snapshot.getId());
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
+
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
+        } catch (DuplicateKeyException dkEx) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
+                new InvalidSnapshotException("Snapshot name already exists: " + snapshotReq.getName(), dkEx));
         } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

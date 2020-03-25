@@ -92,8 +92,10 @@ public class SnapshotDaoTest {
     public void happyInOutTest() throws Exception {
         snapshotRequest.name(snapshotRequest.getName() + UUID.randomUUID().toString());
 
+        String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-        snapshotId = snapshotDao.create(snapshot);
+        snapshotId = snapshotDao.createAndLock(snapshot, flightId);
+        snapshotDao.unlock(snapshot.getName(), flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
 
         assertThat("snapshot name set correctly",
@@ -169,8 +171,10 @@ public class SnapshotDaoTest {
                 // set the description to a random string so we can verify the sorting is working independently of the
                 // dataset name or created_date. add a suffix to filter on for the even snapshots
                 .description(UUID.randomUUID().toString() + ((i % 2 == 0) ? "==foo==" : ""));
+            String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
-            snapshotId = snapshotDao.create(snapshot);
+            snapshotId = snapshotDao.createAndLock(snapshot, flightId);
+            snapshotDao.unlock(snapshot.getName(), flightId);
             snapshotIds.add(snapshotId);
         }
 

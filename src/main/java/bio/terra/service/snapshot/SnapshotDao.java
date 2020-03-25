@@ -7,16 +7,19 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,36 +51,91 @@ public class SnapshotDao {
         this.datasetDao = datasetDao;
     }
 
-    @Transactional(propagation = Propagation.REQUIRED)
-    public UUID create(Snapshot snapshot) {
-        logger.debug("create snapshot " + snapshot.getName());
-        String sql = "INSERT INTO snapshot (name, description, profile_id)" +
-                " VALUES (:name, :description, :profile_id)";
+    /**
+     * Lock the snapshot object before doing something with it (e.g. delete).
+     * This method returns successfully when there is a snapshot object locked by this flight, and throws an exception
+     * in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
+     *     1. Update the snapshot record to give this flight the lock.
+     *     2. Throw an exception if no records were updated.
+     * @param snapshotName name of the snapshot to lock, this is a unique column
+     * @param flightId flight id that wants to lock the snapshot
+     * @throws SnapshotLockException if the snapshot is locked by another flight or does not exist
+     */
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public void lock(String snapshotName, String flightId) {
+        if (flightId == null) {
+            throw new SnapshotLockException("Locking flight id cannot be null");
+        }
+
+        // update the snapshot entry and lock it by setting the flight id
+        String sql = "UPDATE snapshot SET flightid = :flightid " +
+            "WHERE name = :name AND (flightid IS NULL OR flightid = :flightid)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", snapshot.getName())
-                .addValue("description", snapshot.getDescription())
-                .addValue("profile_id", snapshot.getProfileId());
+            .addValue("name", snapshotName)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+
+        // if no rows were updated, then throw an exception
+        if (numRowsUpdated == 0) {
+            logger.debug("numRowsUpdated=" + numRowsUpdated);
+            throw new SnapshotLockException("Failed to lock the snapshot");
+        }
+    }
+
+    /**
+     * Unlock the snapshot object when finished doing something with it (e.g. delete).
+     * If the snapshot is not locked by this flight, then the method is a no-op. It does not throw an exception in this
+     * case. So, multiple unlocks can succeed with no errors. The method does return a boolean indicating whether any
+     * rows were updated or not. So, callers can decide to throw an error if the unlock was a no-op.
+     * @param snapshotName name of the snapshot to unlock, this is a unique column
+     * @param flightId flight id that wants to unlock the snapshot
+     * @return true if a snapshot was unlocked, false otherwise
+     */
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean unlock(String snapshotName, String flightId) {
+        // update the snapshot entry to remove the flightid IF it is currently set to this flightid
+        String sql = "UPDATE snapshot SET flightid = NULL " +
+            "WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", snapshotName)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        logger.debug("numRowsUpdated=" + numRowsUpdated);
+        return (numRowsUpdated == 1);
+    }
+
+    /**
+     * Create a new snapshot object and lock it. An exception is thrown if the snapshot already exists.
+     * The correct order to call the SnapshotDao methods when creating a snapshot is: createAndLock, unlock.
+     * @param snapshot the snapshot object to create
+     * @return the id of the new snapshot
+     * @throws DuplicateKeyException if a row already exists with this snapshot name
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public UUID createAndLock(Snapshot snapshot, String flightId) {
+        logger.debug("createAndLock snapshot " + snapshot.getName());
+
+        String sql = "INSERT INTO snapshot (name, description, profile_id, flightid) " +
+            "VALUES (:name, :description, :profile_id, :flightid) ";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", snapshot.getName())
+            .addValue("description", snapshot.getDescription())
+            .addValue("profile_id", snapshot.getProfileId())
+            .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
+
         UUID snapshotId = keyHolder.getId();
         snapshot
             .id(snapshotId)
             .createdDate(keyHolder.getCreatedDate());
-        snapshotTableDao.createTables(snapshotId, snapshot.getTables());
 
+        snapshotTableDao.createTables(snapshotId, snapshot.getTables());
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
             createSnapshotSource(snapshotSource);
         }
 
         return snapshotId;
-    }
-
-    public void lock(String snapshotName, String flightId) {
-
-    }
-
-    public boolean unlock(String snapshotName, String flightId) {
-        return true;
     }
 
     private void createSnapshotSource(SnapshotSource snapshotSource) {

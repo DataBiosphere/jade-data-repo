@@ -78,6 +78,7 @@ public class ResourceLockTest {
     }
 
     @Test
+    // create and delete the bucket, checking that the metadata and cloud state match what is expected
     public void createAndDeleteBucketTest() {
         String bucketName = "testbucket_createanddeletebuckettest";
         String flightId = "testFlightId";
@@ -86,33 +87,14 @@ public class ResourceLockTest {
         GoogleBucketRequest googleBucketRequest = buildBucketRequest(bucketName);
         GoogleBucketResource bucketResource = resourceService.getOrCreateBucket(googleBucketRequest, flightId);
 
-        // confirm the bucket exists and the metadata row is unlocked
-        Bucket bucket = storage.get(bucketName);
-        assertNotNull("bucket exists in the cloud", bucket);
+        checkBucketExists(bucketResource.getResourceId());
 
-        bucketResource = resourceService.getBucketResourceById(bucketResource.getResourceId());
-        assertNotNull("bucket metadata row exists", bucketResource);
-        assertNull("bucket metadata is unlocked", bucketResource.getFlightId());
-
-        // delete the bucket and update the metadata
-        storage.delete(bucketName);
-        resourceService.updateBucketMetadata(bucketName, null);
-
-        // confirm the bucket and metadata row no longer exist
-        bucket = storage.get(bucketName);
-        assertNull("bucket no longer exists", bucket);
-
-        boolean exceptionThrown = false;
-        try {
-            bucketResource = resourceService.getBucketResourceById(bucketResource.getResourceId());
-            logger.info("bucketResource = " + bucketResource);
-        } catch (GoogleResourceNotFoundException grnfEx) {
-            exceptionThrown = true;
-        }
-        assertTrue("bucket metadata row no longer exists", exceptionThrown);
+        deleteBucket(bucketResource.getName(), bucketResource.getResourceId());
     }
 
     @Test
+    // two threads compete for the bucket lock, confirm one wins and one loses. a third thread fetches the bucket
+    // after it's been created, confirm it succeeds.
     public void twoThreadsCompeteForLockTest() throws Exception {
         String flightIdBase = "twoThreadsCompeteForLockTest";
         String bucketName = "twothreadscompeteforlocktest";
@@ -197,7 +179,7 @@ public class ResourceLockTest {
         // create project metadata
         GoogleProjectResource projectResource = resourceService.getOrCreateProject(projectRequest);
 
-        // create the bucket and metadata
+        // create the bucket request
         BillingProfile billingProfile = profileService.getProfileById(UUID.fromString(profile.getId()));
         GoogleBucketRequest googleBucketRequest = new GoogleBucketRequest()
             .googleProjectResource(projectResource)

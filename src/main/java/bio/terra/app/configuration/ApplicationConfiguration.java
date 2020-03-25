@@ -53,6 +53,18 @@ public class ApplicationConfiguration {
      */
     private int loadDriverWaitSeconds;
 
+    /**
+     * Number of badly formed lines in a bulk load input file to return in the error details of
+     * the error model
+     */
+    private int maxBadLoadFileLineErrorsReported;
+
+    /**
+     * Number of rows to collect into a batch for loading into the load_file table
+     */
+    private int loadFilePopulateBatchSize;
+
+
     public String getUserEmail() {
         return userEmail;
     }
@@ -131,6 +143,22 @@ public class ApplicationConfiguration {
 
     public void setLoadDriverWaitSeconds(int loadDriverWaitSeconds) {
         this.loadDriverWaitSeconds = loadDriverWaitSeconds;
+    }
+
+    public int getMaxBadLoadFileLineErrorsReported() {
+        return maxBadLoadFileLineErrorsReported;
+    }
+
+    public void setMaxBadLoadFileLineErrorsReported(int maxBadLoadFileLineErrorsReported) {
+        this.maxBadLoadFileLineErrorsReported = maxBadLoadFileLineErrorsReported;
+    }
+
+    public int getLoadFilePopulateBatchSize() {
+        return loadFilePopulateBatchSize;
+    }
+
+    public void setLoadFilePopulateBatchSize(int loadFilePopulateBatchSize) {
+        this.loadFilePopulateBatchSize = loadFilePopulateBatchSize;
     }
 
     @Bean("jdbcTemplate")

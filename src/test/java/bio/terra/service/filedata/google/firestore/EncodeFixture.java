@@ -13,13 +13,12 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamRole;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
-import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,6 @@ import org.springframework.test.context.ActiveProfiles;
 
 import java.io.BufferedReader;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.util.UUID;
 
@@ -123,11 +121,7 @@ public class EncodeFixture {
         Blob sourceBlob = storage.get(
             BlobId.of(testConfiguration.getIngestbucket(), "encodetest/file_small.json"));
 
-        BlobInfo targetBlobInfo = BlobInfo
-            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
-            .build();
-
-        try (WriteChannel writer = storage.writer(targetBlobInfo);
+        try (GcsChannelWriter writer = new GcsChannelWriter(storage, testConfiguration.getIngestbucket(), targetPath);
              BufferedReader reader = new BufferedReader(Channels.newReader(sourceBlob.reader(), "UTF-8"))) {
 
             String line = null;
@@ -147,7 +141,7 @@ public class EncodeFixture {
 
                 EncodeFileOut encodeFileOut = new EncodeFileOut(encodeFileIn, bamFileId, bamiFileId);
                 String fileLine = TestUtils.mapToJson(encodeFileOut) + "\n";
-                writer.write(ByteBuffer.wrap(fileLine.getBytes("UTF-8")));
+                writer.write(fileLine);
             }
         }
 

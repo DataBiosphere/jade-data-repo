@@ -155,3 +155,9 @@ Run a deployment you must set env var `IMAGE_TAG`
 ```
 skaffold run
 ```
+
+## Deployments
+The deployments of Terra Data Repository are:
+- [Production](https://jade-terra.datarepo-prod.broadinstitute.org/)
+- [Development](https://jade.datarepo-dev.broadinstitute.org/)
+- [Development - swagger page](https://jade.datarepo-dev.broadinstitute.org/swagger-ui.html)

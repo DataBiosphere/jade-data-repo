@@ -33,11 +33,12 @@ public class DatasetTableDao {
     private static final String sqlInsertTable = "INSERT INTO dataset_table " +
         "(name, raw_table_name, soft_delete_table_name, dataset_id, primary_key, bigquery_partition_config) " +
         "VALUES (:name, :raw_table_name, :soft_delete_table_name, :dataset_id, :primary_key, " +
-        "cast(:bigquery_partition_config AS json))";
+        "cast(:bigquery_partition_config AS jsonb))";
     private static final String sqlInsertColumn = "INSERT INTO dataset_column " +
         "(table_id, name, type, array_of) VALUES (:table_id, :name, :type, :array_of)";
     private static final String sqlSelectTable =
-        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, bigquery_partition_config::text " +
+        "SELECT id, name, raw_table_name, soft_delete_table_name, primary_key, bigquery_partition_config::text, " +
+        "(bigquery_partition_config->>'version')::bigint AS bigquery_partition_config_version " +
         "FROM dataset_table WHERE dataset_id = :dataset_id";
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM dataset_column " +
         "WHERE table_id = :table_id";
@@ -64,6 +65,7 @@ public class DatasetTableDao {
             params.addValue("name", table.getName());
             params.addValue("raw_table_name", table.getRawTableName());
             params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
+            System.err.println(objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
             params.addValue("bigquery_partition_config",
                 objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
 
@@ -122,12 +124,18 @@ public class DatasetTableDao {
                 .collect(Collectors.toList());
             table.primaryKey(naturalKeyColumns);
 
+            long bqPartitionVersion = rs.getLong("bigquery_partition_config_version");
             String bqPartitionConfig = rs.getString("bigquery_partition_config");
-            try {
-                table.bigQueryPartitionConfig(
-                    objectMapper.readValue(bqPartitionConfig, BigQueryPartitionConfig.class));
-            } catch (Exception ex) {
-                throw new CorruptMetadataException("Malformed BigQuery partition config", ex);
+            System.err.println(bqPartitionConfig);
+            if (bqPartitionVersion == 1) {
+                try {
+                    table.bigQueryPartitionConfig(
+                        objectMapper.readValue(bqPartitionConfig, BigQueryPartitionConfigV1.class));
+                } catch (Exception ex) {
+                    throw new CorruptMetadataException("Malformed BigQuery partition config", ex);
+                }
+            } else {
+                throw new CorruptMetadataException("Unknown BigQuery partition config version: " + bqPartitionVersion);
             }
 
             return table;

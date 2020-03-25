@@ -8,11 +8,11 @@ databaseChangeLog:
             columns:
               - column:
                   name: bigquery_partition_config
-                  type: json
+                  type: jsonb
         - sql:
             comment: Backfill
             sql: >
-              UPDATE dataset_table SET bigquery_partition_config = '{"mode":"none"}'::json
+              UPDATE dataset_table SET bigquery_partition_config = '{"version":1,"mode":"NONE"}'::jsonb
         - addNotNullConstraint:
             tableName: dataset_table
             columnName: bigquery_partition_config

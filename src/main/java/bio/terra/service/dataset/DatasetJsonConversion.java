@@ -106,22 +106,22 @@ public final class DatasetJsonConversion {
             .collect(Collectors.toList());
         datasetTable.primaryKey(primaryKeyColumns);
 
-        BigQueryPartitionConfig partitionConfig;
+        BigQueryPartitionConfigV1 partitionConfig;
         switch (tableModel.getPartitionMode()) {
             case DATE:
                 String column = tableModel.getDatePartitionOptions().getColumn();
                 boolean useIngestDate = column.equals(PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
                 partitionConfig = useIngestDate ?
-                    BigQueryPartitionConfig.ingestDate() :
-                    BigQueryPartitionConfig.date(column);
+                    BigQueryPartitionConfigV1.ingestDate() :
+                    BigQueryPartitionConfigV1.date(column);
                 break;
             case INT:
                 IntPartitionOptionsModel options = tableModel.getIntPartitionOptions();
-                partitionConfig = BigQueryPartitionConfig.intRange(
+                partitionConfig = BigQueryPartitionConfigV1.intRange(
                     options.getColumn(), options.getMin(), options.getMax(), options.getInterval());
                 break;
             default:
-                partitionConfig = BigQueryPartitionConfig.none();
+                partitionConfig = BigQueryPartitionConfigV1.none();
                 break;
         }
 
@@ -129,7 +129,7 @@ public final class DatasetJsonConversion {
     }
 
     public static TableModel tableModelFromTable(DatasetTable datasetTable) {
-        BigQueryPartitionConfig config = datasetTable.getBigQueryPartitionConfig();
+        BigQueryPartitionConfigV1 config = datasetTable.getBigQueryPartitionConfig();
         TableModel.PartitionModeEnum partitionMode;
         DatePartitionOptionsModel dateOptions = null;
         IntPartitionOptionsModel intOptions = null;

@@ -11,7 +11,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.BigQueryPartitionConfig;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
@@ -133,7 +133,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
         liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
-        if (table.getBigQueryPartitionConfig().getMode() == BigQueryPartitionConfig.Mode.INGEST_DATE) {
+        if (table.getBigQueryPartitionConfig().getMode() == BigQueryPartitionConfigV1.Mode.INGEST_DATE) {
             liveViewSql.add("columns", "_PARTITIONDATE AS " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
         }
 

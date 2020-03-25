@@ -23,7 +23,7 @@ public class DatasetTable implements Table {
     private String softDeleteTableName;
     private List<Column> columns = Collections.emptyList();
     private List<Column> primaryKey = Collections.emptyList();
-    private BigQueryPartitionConfig bqPartitionConfig;
+    private BigQueryPartitionConfigV1 bqPartitionConfig;
 
     public UUID getId() {
         return id;
@@ -79,11 +79,11 @@ public class DatasetTable implements Table {
         return this;
     }
 
-    public BigQueryPartitionConfig getBigQueryPartitionConfig() {
+    public BigQueryPartitionConfigV1 getBigQueryPartitionConfig() {
         return bqPartitionConfig;
     }
 
-    public DatasetTable bigQueryPartitionConfig(BigQueryPartitionConfig config) {
+    public DatasetTable bigQueryPartitionConfig(BigQueryPartitionConfigV1 config) {
         this.bqPartitionConfig = config;
         return this;
     }

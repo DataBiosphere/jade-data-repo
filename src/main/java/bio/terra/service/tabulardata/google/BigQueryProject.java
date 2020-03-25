@@ -1,7 +1,7 @@
 package bio.terra.service.tabulardata.google;
 
 import bio.terra.common.exception.PdaoException;
-import bio.terra.service.dataset.BigQueryPartitionConfig;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryException;
@@ -99,11 +99,11 @@ public final class BigQueryProject {
     }
 
     public void createTable(String datasetName, String tableName, Schema schema) {
-        createTable(datasetName, tableName, schema, BigQueryPartitionConfig.none());
+        createTable(datasetName, tableName, schema, BigQueryPartitionConfigV1.none());
     }
 
     public void createTable(String datasetName, String tableName, Schema schema,
-                            BigQueryPartitionConfig partitionConfig) {
+                            BigQueryPartitionConfigV1 partitionConfig) {
         TableId tableId = TableId.of(datasetName, tableName);
         TableDefinition tableDefinition = StandardTableDefinition.newBuilder()
             .setSchema(schema)

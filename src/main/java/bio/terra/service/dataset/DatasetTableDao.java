@@ -65,7 +65,6 @@ public class DatasetTableDao {
             params.addValue("name", table.getName());
             params.addValue("raw_table_name", table.getRawTableName());
             params.addValue("soft_delete_table_name", table.getSoftDeleteTableName());
-            System.err.println(objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
             params.addValue("bigquery_partition_config",
                 objectMapper.writeValueAsString(table.getBigQueryPartitionConfig()));
 
@@ -126,7 +125,6 @@ public class DatasetTableDao {
 
             long bqPartitionVersion = rs.getLong("bigquery_partition_config_version");
             String bqPartitionConfig = rs.getString("bigquery_partition_config");
-            System.err.println(bqPartitionConfig);
             if (bqPartitionVersion == 1) {
                 try {
                     table.bigQueryPartitionConfig(

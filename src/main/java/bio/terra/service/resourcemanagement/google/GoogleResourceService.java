@@ -2,17 +2,18 @@ package bio.terra.service.resourcemanagement.google;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.sam.SamConfiguration;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -66,7 +67,6 @@ public class GoogleResourceService {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final GoogleBillingService billingService;
     private final GcsProjectFactory gcsProjectFactory;
-    private final SamConfiguration samConfiguration;
     private final Environment springEnvironment;
     private final ConfigurationService configService;
 
@@ -77,7 +77,6 @@ public class GoogleResourceService {
         GoogleResourceConfiguration resourceConfiguration,
         GoogleBillingService billingService,
         GcsProjectFactory gcsProjectFactory,
-        SamConfiguration samConfiguration,
         Environment springEnvironment,
         ConfigurationService configService) {
         this.resourceDao = resourceDao;
@@ -85,7 +84,6 @@ public class GoogleResourceService {
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
         this.gcsProjectFactory = gcsProjectFactory;
-        this.samConfiguration = samConfiguration;
         this.springEnvironment = springEnvironment;
         this.configService = configService;
     }
@@ -95,9 +93,23 @@ public class GoogleResourceService {
      * Note this method does not check for the existence of the underlying cloud resource.
      * @param bucketResourceId
      * @returna a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
      */
-    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
-        return resourceDao.retrieveBucketById(bucketResourceId);
+    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId, boolean checkCloudResourceExists) {
+        // fetch the bucket_resource metadata row
+        GoogleBucketResource bucketResource = resourceDao.retrieveBucketById(bucketResourceId);
+
+        if (checkCloudResourceExists) {
+            // throw an exception if the bucket does not already exist
+            Bucket bucket = getBucket(bucketResource.getName());
+            if (bucket == null) {
+                throw new CorruptMetadataException(
+                    "Bucket metadata exists, but bucket not found: " + bucketResource.getName());
+            }
+        }
+
+        return bucketResource;
     }
 
     /**
@@ -126,7 +138,7 @@ public class GoogleResourceService {
         GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
 
         boolean metadataCreationFailed = (googleBucketResource == null);
-        logger.info("metadataCreationFailed = " + metadataCreationFailed);
+        logger.debug("metadataCreationFailed = " + metadataCreationFailed);
         if (metadataCreationFailed) {
             // insert failed. lookup the existing bucket_resource row
             googleBucketResource = resourceDao.getBucket(bucketRequest);
@@ -141,28 +153,30 @@ public class GoogleResourceService {
                     TimeUnit.SECONDS.sleep(5);
                 }
                 logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
-            } catch (InterruptedException ex) {
+            } catch (InterruptedException intEx) {
                 Thread.currentThread().interrupt();
-                throw new LoadLockFailureException("Unexpected interrupt during bucket lock fault");
+                throw new BucketLockFailureException("Unexpected interrupt during bucket lock fault", intEx);
             }
         }
 
         String bucketName = bucketRequest.getBucketName();
         String lockingFlightId = googleBucketResource.getFlightId();
-        logger.info("lockingFlightId = " + lockingFlightId);
+        logger.debug("lockingFlightId = " + lockingFlightId);
         Bucket bucket;
         if (lockingFlightId == null) {
             // GET case. the row in the bucket_resource table is unlocked. the bucket has already been created
 
             // throw an exception if the bucket does not already exist
-            bucket = getBucket(bucketName)
-                .orElseThrow(() -> new GoogleResourceNotFoundException("Bucket not found: " + bucketName));
+            bucket = getBucket(bucketName);
+            if (bucket == null) {
+                throw new GoogleResourceNotFoundException("Bucket not found: " + bucketName);
+            }
         } else if (lockingFlightId.equals(flightId)) {
             // CREATE case. the row in the bucket_resource table is locked by this flight. we need to create it here
 
             // check if the bucket already exists
-            Optional<Bucket> existingBucket = getBucket(bucketName);
-            if (!existingBucket.isPresent()) {
+            bucket = getBucket(bucketName);
+            if (bucket == null) {
                 // bucket DOES NOT EXIST. create it and unlock
                 bucket = newBucket(bucketRequest);
                 resourceDao.unlockBucket(bucketName, flightId);
@@ -171,8 +185,7 @@ public class GoogleResourceService {
                 boolean springProfileIsForTesting = Arrays.stream(springEnvironment.getActiveProfiles()).anyMatch(
                     springProfile -> springProfile.equals("integration") || springProfile.equals("connectedtest"));
                 if (metadataCreationFailed || springProfileIsForTesting) {
-                    logger.info(String.format("bucket already exists, using anyway: %s", bucketName));
-                    bucket = existingBucket.get();
+                    logger.debug(String.format("bucket already exists, using anyway: %s", bucketName));
                     resourceDao.unlockBucket(bucketName, flightId);
                 } else {
                     resourceDao.deleteBucketMetadata(bucketName, flightId);
@@ -203,8 +216,8 @@ public class GoogleResourceService {
      */
     public void updateBucketMetadata(String bucketName, String flightId) {
         // check if the bucket already exists
-        Optional<Bucket> existingBucket = getBucket(bucketName);
-        if (existingBucket.isPresent()) {
+        Bucket existingBucket = getBucket(bucketName);
+        if (existingBucket != null) {
             // bucket EXISTS. unlock the metadata row
             resourceDao.unlockBucket(bucketName, flightId);
         } else {
@@ -233,6 +246,21 @@ public class GoogleResourceService {
         // the project will have been created before this point, so no need to fetch it
         logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
         return gcsProject.getStorage().create(bucketInfo);
+    }
+
+    /**
+     * Fetch an existing bucket cloud resource.
+     * Note this method does not check any associated metadata in the bucket_resource table.
+     * @param bucketName
+     * @return a reference to the bucket as a GCS Bucket object, null if not found
+     */
+    private Bucket getBucket(String bucketName) {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        try {
+            return storage.get(bucketName);
+        } catch (StorageException e) {
+            throw new GoogleResourceException("Could not check bucket existence", e);
+        }
     }
 
     public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
@@ -278,21 +306,6 @@ public class GoogleResourceService {
             return null;
         } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not check on project state", e);
-        }
-    }
-
-    /**
-     * Fetch an existing bucket cloud resource.
-     * Note this method does not check any associated metadata in the bucket_resource table.
-     * @param bucketName
-     * @return a reference to the bucket as a GCS Bucket object
-     */
-    private Optional<Bucket> getBucket(String bucketName) {
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        try {
-            return Optional.ofNullable(storage.get(bucketName));
-        } catch (StorageException e) {
-            throw new GoogleResourceException("Could not check bucket existence", e);
         }
     }
 

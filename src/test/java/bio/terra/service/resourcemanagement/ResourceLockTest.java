@@ -33,6 +33,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,16 +65,21 @@ public class ResourceLockTest {
 
     private BillingProfileModel profile;
     private Storage storage;
+    private List<String> bucketNames;
 
     @Before
     public void setup() throws Exception {
         profile = connectedOperations.createProfileForAccount(resourceConfiguration.getCoreBillingAccount());
         connectedOperations.stubOutSamCalls(samService);
         storage = StorageOptions.getDefaultInstance().getService();
+        bucketNames = new ArrayList<>();
     }
 
     @After
     public void teardown() throws Exception {
+        for (String bucketName : bucketNames) {
+            deleteBucket(bucketName);
+        }
         connectedOperations.teardown();
     }
 
@@ -82,14 +88,18 @@ public class ResourceLockTest {
     public void createAndDeleteBucketTest() {
         String bucketName = "testbucket_createanddeletebuckettest";
         String flightId = "testFlightId";
+        bucketNames.add(bucketName);
 
         // create the bucket and metadata
         GoogleBucketRequest googleBucketRequest = buildBucketRequest(bucketName);
         GoogleBucketResource bucketResource = resourceService.getOrCreateBucket(googleBucketRequest, flightId);
 
+        // check the bucket and metadata exist
         checkBucketExists(bucketResource.getResourceId());
 
-        deleteBucket(bucketResource.getName(), bucketResource.getResourceId());
+        // delete the bucket and metadata
+        deleteBucket(bucketResource.getName());
+        checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
 
     @Test
@@ -98,6 +108,8 @@ public class ResourceLockTest {
     public void twoThreadsCompeteForLockTest() throws Exception {
         String flightIdBase = "twoThreadsCompeteForLockTest";
         String bucketName = "twothreadscompeteforlocktest";
+        bucketNames.add(bucketName);
+
         GoogleBucketRequest bucketRequest = buildBucketRequest(bucketName);
         ResourceLockTester resourceLockA = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "A");
         ResourceLockTester resourceLockB = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "B");
@@ -129,7 +141,8 @@ public class ResourceLockTest {
         assertFalse("Thread C did not get a lock exception", resourceLockC.gotLockException());
         assertNotNull("Thread C did get the bucket", resourceLockC.getBucketResource());
 
-        deleteBucket(bucketResource.getName(), bucketResource.getResourceId());
+        deleteBucket(bucketResource.getName());
+        checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
 
     private void checkBucketExists(UUID bucketResourceId) {
@@ -142,11 +155,13 @@ public class ResourceLockTest {
         assertNotNull("bucket exists in the cloud", bucket);
     }
 
-    private void deleteBucket(String bucketName, UUID bucketResourceId) {
+    private void deleteBucket(String bucketName) {
         // delete the bucket and update the metadata
         storage.delete(bucketName);
         resourceService.updateBucketMetadata(bucketName, null);
+    }
 
+    private void checkBucketDeleted(String bucketName, UUID bucketResourceId) {
         // confirm the bucket and metadata row no longer exist
         Bucket bucket = storage.get(bucketName);
         assertNull("bucket no longer exists", bucket);

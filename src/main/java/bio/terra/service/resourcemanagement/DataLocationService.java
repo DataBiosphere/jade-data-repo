@@ -112,13 +112,28 @@ public class DataLocationService {
     }
 
     /**
-     * Fetch an existing bucket_resource metadata row.
-     * Note this method does not check for the existence of the underlying cloud resource.
+     * Fetch an existing bucket and check that the associated cloud resource exists.
      * @param bucketResourceId
-     * @returna a reference to the bucket as a POJO GoogleBucketResource
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
      */
     public GoogleBucketResource lookupBucket(String bucketResourceId) {
-        return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId));
+        return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId), true);
+    }
+
+    /**
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method does not check for the existence of the underlying cloud resource.
+     * This method is intended for places where an existence check on the associated cloud resource might be too
+     * much overhead (e.g. DRS lookups). Most bucket lookups should use the lookupBucket method instead, which has
+     * additional overhead but will catch metadata corruption errors sooner.
+     * @param bucketResourceId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if the bucket_resource metadata row does not exist
+     */
+    public GoogleBucketResource lookupBucketMetadata(String bucketResourceId) {
+        return resourceService.getBucketResourceById(UUID.fromString(bucketResourceId), false);
     }
 
     /**

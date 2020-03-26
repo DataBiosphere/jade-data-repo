@@ -227,6 +227,7 @@ public class GoogleResourceDao {
      * This method expects that there is exactly one row matching the provided resource id.
      * @param bucketResourceId
      * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
      */
     public GoogleBucketResource retrieveBucketById(UUID bucketResourceId) {
         List<GoogleBucketResource> bucketResources = retrieveBucketsBy("id", bucketResourceId, UUID.class);

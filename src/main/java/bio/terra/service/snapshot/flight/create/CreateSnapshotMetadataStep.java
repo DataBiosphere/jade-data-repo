@@ -49,7 +49,7 @@ public class CreateSnapshotMetadataStep implements Step {
             UUID snapshotId = snapshotDao.createAndLock(snapshot, context.getFlightId());
             workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
 
-            SnapshotSummary snapshotSummary = snapshotDao.retrieveSnapshotSummary(snapshot.getId());
+            SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshot.getId());
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
 
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);

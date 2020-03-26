@@ -35,7 +35,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -65,6 +64,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -89,6 +89,7 @@ public class SnapshotConnectedTest {
     @Autowired private ObjectMapper objectMapper;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DatasetDao datasetDao;
+    @Autowired private SnapshotDao snapshotDao;
     @Autowired private ProfileDao profileDao;
     @Autowired private DataLocationService dataLocationService;
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
@@ -263,7 +264,7 @@ public class SnapshotConnectedTest {
         assertThat(errorModel.getMessage(), containsString("Fred"));
     }
 
-    @Ignore
+    @Test
     public void testDuplicateName() throws Exception {
         // create a dataset and load some tabular data
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
@@ -276,14 +277,19 @@ public class SnapshotConnectedTest {
 
         // fetch the snapshot and confirm the metadata matches the request
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
-        // try to create the same snapshot again
+        // check that the snapshot metadata row is unlocked
+        SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryByName(snapshotModel.getName());
+        assertNull("snapshot row is unlocked", snapshotSummary.getFlightId());
+
+        // try to create the same snapshot again and check that it fails
         snapshotRequest.setName(snapshotModel.getName());
         response = performCreateSnapshot(snapshotRequest, null);
         ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
-        assertThat(errorModel.getMessage(),
-            containsString("duplicate key value violates unique constraint \"snapshot_name_key\""));
+        assertThat("error message includes name conflict",
+            errorModel.getMessage(), containsString("Snapshot name already exists"));
 
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());

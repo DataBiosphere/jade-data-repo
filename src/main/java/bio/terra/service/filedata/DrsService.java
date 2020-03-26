@@ -225,7 +225,7 @@ public class DrsService {
         DrsId drsId = drsIdService.fromObjectId(drsObjectId);
         try {
             UUID snapshotId = UUID.fromString(drsId.getSnapshotId());
-            snapshotDao.retrieveSnapshotSummary(snapshotId);
+            snapshotDao.retrieveSummaryById(snapshotId);
             return drsId;
         } catch (IllegalArgumentException ex) {
             throw new InvalidDrsIdException("Invalid object id format '" + drsObjectId + "'", ex);

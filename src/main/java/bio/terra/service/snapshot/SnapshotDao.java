@@ -287,7 +287,7 @@ public class SnapshotDao {
         String countSql = "SELECT count(id) AS total FROM snapshot " + whereSql;
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
 
-        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " + whereSql +
+        String sql = "SELECT id, name, description, created_date, profile_id, flightid FROM snapshot " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -297,7 +297,7 @@ public class SnapshotDao {
             .total(total == null ? -1 : total);
     }
 
-    public SnapshotSummary retrieveSnapshotSummary(UUID id) {
+    public SnapshotSummary retrieveSummaryById(UUID id) {
         logger.debug("retrieve snapshot summary for id: " + id);
         try {
             String sql = "SELECT * FROM snapshot WHERE id = :id";
@@ -308,9 +308,20 @@ public class SnapshotDao {
         }
     }
 
+    public SnapshotSummary retrieveSummaryByName(String name) {
+        logger.debug("retrieve snapshot summary for name: " + name);
+        try {
+            String sql = "SELECT * FROM snapshot WHERE name = :name";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
+            return jdbcTemplate.queryForObject(sql, params, new SnapshotSummaryMapper());
+        } catch (EmptyResultDataAccessException ex) {
+            throw new SnapshotNotFoundException("Snapshot not found - name: " + name);
+        }
+    }
+
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
-            String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
+            String sql = "SELECT snapshot.id, name, description, created_date, profile_id, flightid FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
                 "WHERE snapshot_source.dataset_id = :datasetId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
@@ -328,7 +339,8 @@ public class SnapshotDao {
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
-                .profileId(rs.getObject("profile_id", UUID.class));
+                .profileId(rs.getObject("profile_id", UUID.class))
+                .flightId(rs.getString("flightid"));
         }
     }
 }

@@ -2723,7 +2723,7 @@ definitions:
         type: string
         description: the name of a table in the dataset
       gcsFileSpec:
-        $ref: '#/definitions/DataDeletionFileModel'
+        $ref: '#/definitions/DataDeletionGcsFileModel'
 
   DataDeletionGcsFileModel:
     description: |

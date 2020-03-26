@@ -4,7 +4,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
@@ -43,16 +42,15 @@ import com.google.cloud.storage.StorageOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -69,6 +67,8 @@ public class GoogleResourceService {
     private final GcsProjectFactory gcsProjectFactory;
     private final Environment springEnvironment;
     private final ConfigurationService configService;
+
+    @Value("${datarepo.gcs.allowReuseExistingBuckets}") private boolean allowReuseExistingBuckets;
 
     @Autowired
     public GoogleResourceService(
@@ -182,9 +182,8 @@ public class GoogleResourceService {
                 resourceDao.unlockBucket(bucketName, flightId);
             } else {
                 // bucket EXISTS. if this is a recovery flight or testing environment, use it. otherwise throw exception
-                boolean springProfileIsForTesting = Arrays.stream(springEnvironment.getActiveProfiles()).anyMatch(
-                    springProfile -> springProfile.equals("integration") || springProfile.equals("connectedtest"));
-                if (metadataCreationFailed || springProfileIsForTesting) {
+                // testing environments should set datarepo.gcs.allowReuseExistingBuckets=true in application.properties
+                if (metadataCreationFailed || allowReuseExistingBuckets) {
                     logger.debug(String.format("bucket already exists, using anyway: %s", bucketName));
                     resourceDao.unlockBucket(bucketName, flightId);
                 } else {

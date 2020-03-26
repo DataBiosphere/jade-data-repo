@@ -147,7 +147,7 @@ public class ResourceLockTest {
 
     private void checkBucketExists(UUID bucketResourceId) {
         // confirm the metadata row is unlocked and the bucket exists
-        GoogleBucketResource bucketResource = resourceService.getBucketResourceById(bucketResourceId);
+        GoogleBucketResource bucketResource = resourceService.getBucketResourceById(bucketResourceId, false);
         assertNotNull("bucket metadata row exists", bucketResource);
         assertNull("bucket metadata is unlocked", bucketResource.getFlightId());
 
@@ -168,7 +168,7 @@ public class ResourceLockTest {
 
         boolean exceptionThrown = false;
         try {
-            GoogleBucketResource bucketResource = resourceService.getBucketResourceById(bucketResourceId);
+            GoogleBucketResource bucketResource = resourceService.getBucketResourceById(bucketResourceId, false);
             logger.info("bucketResource = " + bucketResource);
         } catch (GoogleResourceNotFoundException grnfEx) {
             exceptionThrown = true;

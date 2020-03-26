@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 
-import java.sql.SQLException;
 import java.util.UUID;
 
 
@@ -51,9 +50,9 @@ public class CreateDatasetMetadataStep implements Step {
         } catch (DuplicateKeyException dkEx) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                 new InvalidDatasetException("Dataset name already exists: " + datasetRequest.getName(), dkEx));
-        } catch (SQLException sqlEx) {
+        } catch (Exception ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                new InvalidDatasetException("Cannot create dataset: " + datasetRequest.getName(), sqlEx));
+                new InvalidDatasetException("Cannot create dataset: " + datasetRequest.getName(), ex));
         }
     }
 

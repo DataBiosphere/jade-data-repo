@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.sql.Array;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -111,12 +112,12 @@ public class DatasetDao {
      * @param dataset the dataset object to create
      * @return the id of the new dataset
      * @throws SQLException
+     * @throws IOException
      * @throws DuplicateKeyException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public UUID createAndLock(Dataset dataset, String flightId) throws SQLException {
+    public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         logger.debug("createAndLock dataset " + dataset.getName());
-
         String sql = "INSERT INTO dataset (name, default_profile_id, flightid, description, additional_profile_ids) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids) ";
         Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());

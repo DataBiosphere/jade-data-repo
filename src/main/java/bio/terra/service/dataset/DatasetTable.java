@@ -13,6 +13,7 @@ import java.util.UUID;
  * Includes extra info to capture:
  *   1. Primary keys
  *   2. Names of helper tables used when building "live views"
+ *   3. Configuration for partitioning the table in BigQuery
  */
 public class DatasetTable implements Table {
 
@@ -22,6 +23,7 @@ public class DatasetTable implements Table {
     private String softDeleteTableName;
     private List<Column> columns = Collections.emptyList();
     private List<Column> primaryKey = Collections.emptyList();
+    private BigQueryPartitionConfigV1 bqPartitionConfig;
 
     public UUID getId() {
         return id;
@@ -74,6 +76,15 @@ public class DatasetTable implements Table {
 
     public DatasetTable primaryKey(List<Column> primaryKey) {
         this.primaryKey = primaryKey;
+        return this;
+    }
+
+    public BigQueryPartitionConfigV1 getBigQueryPartitionConfig() {
+        return bqPartitionConfig;
+    }
+
+    public DatasetTable bigQueryPartitionConfig(BigQueryPartitionConfigV1 config) {
+        this.bqPartitionConfig = config;
         return this;
     }
 }

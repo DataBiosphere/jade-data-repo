@@ -329,7 +329,7 @@ public class SnapshotConnectedTest {
                           IngestRequestModel.FormatEnum format) throws Exception {
 
         String bucket = testConfig.getIngestbucket();
-        BlobInfo stagingBlob = BlobInfo.newBuilder(bucket, resourcePath).build();
+        BlobInfo stagingBlob = BlobInfo.newBuilder(bucket, UUID.randomUUID() + "-" + resourcePath).build();
         byte[] data = IOUtils.toByteArray(jsonLoader.getClassLoader().getResource(resourcePath));
 
         IngestRequestModel ingestRequest = new IngestRequestModel()

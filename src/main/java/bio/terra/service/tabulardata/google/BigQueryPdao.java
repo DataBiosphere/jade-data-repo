@@ -2,6 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.Column;
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
@@ -10,6 +11,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
@@ -106,8 +108,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
             for (DatasetTable table : dataset.getTables()) {
-                bigQueryProject.createTable(datasetName, table.getRawTableName(), buildSchema(table, true));
-                bigQueryProject.createTable(datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
+                bigQueryProject.createTable(
+                    datasetName, table.getRawTableName(), buildSchema(table, true), table.getBigQueryPartitionConfig());
+                bigQueryProject.createTable(
+                    datasetName, table.getSoftDeleteTableName(), buildSoftDeletesSchema());
                 bigQuery.create(buildLiveView(bigQueryProject.getProjectId(), datasetName, table));
             }
         } catch (Exception ex) {
@@ -116,7 +120,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private static final String liveViewTemplate =
-        "SELECT R.* FROM `<project>.<dataset>.<rawTable>` R " +
+        "SELECT <columns:{c|R.<c>}; separator=\",\"> FROM `<project>.<dataset>.<rawTable>` R " +
             "LEFT OUTER JOIN `<project>.<dataset>.<sdTable>` S USING (" + PDAO_ROW_ID_COLUMN + ") " +
             "WHERE S." + PDAO_ROW_ID_COLUMN + " IS NULL";
 
@@ -126,6 +130,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         liveViewSql.add("dataset", datasetName);
         liveViewSql.add("rawTable", table.getRawTableName());
         liveViewSql.add("sdTable", table.getSoftDeleteTableName());
+
+        liveViewSql.add("columns", PDAO_ROW_ID_COLUMN);
+        liveViewSql.add("columns", table.getColumns().stream().map(Column::getName).collect(Collectors.toList()));
+        if (table.getBigQueryPartitionConfig().getMode() == BigQueryPartitionConfigV1.Mode.INGEST_DATE) {
+            liveViewSql.add("columns", "_PARTITIONDATE AS " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS);
+        }
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));

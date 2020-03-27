@@ -3,7 +3,6 @@ package bio.terra.service.dataset.flight;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -26,9 +25,6 @@ public class LockDatasetStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            FlightMap workingMap = context.getWorkingMap();
-            workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, datasetName);
-
             datasetDao.lock(datasetName, context.getFlightId());
 
             return StepResult.getStepResultSuccess();

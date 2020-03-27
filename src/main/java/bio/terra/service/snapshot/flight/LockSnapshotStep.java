@@ -3,7 +3,6 @@ package bio.terra.service.snapshot.flight;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -26,9 +25,6 @@ public class LockSnapshotStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            FlightMap workingMap = context.getWorkingMap();
-            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_NAME, snapshotName);
-
             snapshotDao.lock(snapshotName, context.getFlightId());
 
             return StepResult.getStepResultSuccess();

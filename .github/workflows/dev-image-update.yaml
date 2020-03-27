@@ -26,6 +26,7 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
+
 #      - name: "Check and edit Helm definition for dev"
 #        uses: broadinstitute/datarepo-actions@ms-imagetagger
 #        with:

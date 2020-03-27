@@ -1,6 +1,5 @@
 name: Update devs api image
-on:
-  pull_request:
+on: pull_request
 #  push:
 #    branches:
 #      - develop

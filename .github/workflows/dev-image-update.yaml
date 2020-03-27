@@ -1,4 +1,5 @@
 name: Update devs api image
+on:
   push:
     branches:
       - develop

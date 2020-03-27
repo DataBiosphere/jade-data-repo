@@ -5,6 +5,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
@@ -113,7 +114,7 @@ public class DatasetDao {
      * @return the id of the new dataset
      * @throws SQLException
      * @throws IOException
-     * @throws DuplicateKeyException if a row already exists with this dataset name
+     * @throws InvalidDatasetException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
@@ -128,7 +129,11 @@ public class DatasetDao {
             .addValue("description", dataset.getDescription())
             .addValue("additional_profile_ids", additionalProfileIds);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        try {
+            jdbcTemplate.update(sql, params, keyHolder);
+        } catch (DuplicateKeyException dkEx) {
+            throw new InvalidDatasetException("Dataset name already exists: " + dataset.getName(), dkEx);
+        }
 
         UUID datasetId = keyHolder.getId();
         dataset.id(datasetId);

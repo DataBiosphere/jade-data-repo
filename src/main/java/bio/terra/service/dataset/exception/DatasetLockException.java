@@ -1,10 +1,10 @@
 package bio.terra.service.dataset.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 import java.util.List;
 
-public class DatasetLockException extends BadRequestException {
+public class DatasetLockException extends InternalServerErrorException {
     public DatasetLockException(String message) {
         super(message);
     }

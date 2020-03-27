@@ -7,6 +7,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
@@ -109,7 +110,7 @@ public class SnapshotDao {
      * The correct order to call the SnapshotDao methods when creating a snapshot is: createAndLock, unlock.
      * @param snapshot the snapshot object to create
      * @return the id of the new snapshot
-     * @throws DuplicateKeyException if a row already exists with this snapshot name
+     * @throws InvalidSnapshotException if a row already exists with this snapshot name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Snapshot snapshot, String flightId) {
@@ -123,7 +124,11 @@ public class SnapshotDao {
             .addValue("profile_id", snapshot.getProfileId())
             .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        try {
+            jdbcTemplate.update(sql, params, keyHolder);
+        } catch (DuplicateKeyException dkEx) {
+            throw new InvalidSnapshotException("Snapshot name already exists: " + snapshot.getName(), dkEx);
+        }
 
         UUID snapshotId = keyHolder.getId();
         snapshot

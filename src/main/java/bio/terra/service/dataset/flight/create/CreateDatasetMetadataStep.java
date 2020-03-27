@@ -16,7 +16,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DuplicateKeyException;
 
 import java.util.UUID;
 
@@ -45,9 +44,8 @@ public class CreateDatasetMetadataStep implements Step {
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(newDataset.getDatasetSummary());
             workingMap.put(JobMapKeys.RESPONSE.getKeyName(), datasetSummary);
             return StepResult.getStepResultSuccess();
-        } catch (DuplicateKeyException dkEx) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                new InvalidDatasetException("Dataset name already exists: " + datasetRequest.getName(), dkEx));
+        } catch (InvalidDatasetException idEx) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, idEx);
         } catch (Exception ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
                 new InvalidDatasetException("Cannot create dataset: " + datasetRequest.getName(), ex));

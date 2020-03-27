@@ -17,7 +17,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
@@ -52,9 +51,8 @@ public class CreateSnapshotMetadataStep implements Step {
 
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
-        } catch (DuplicateKeyException dkEx) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                new InvalidSnapshotException("Snapshot name already exists: " + snapshotReq.getName(), dkEx));
+        } catch (InvalidSnapshotException isEx) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);
         } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

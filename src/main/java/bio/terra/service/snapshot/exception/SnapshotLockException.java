@@ -1,10 +1,10 @@
 package bio.terra.service.snapshot.exception;
 
-import bio.terra.common.exception.BadRequestException;
+import bio.terra.common.exception.InternalServerErrorException;
 
 import java.util.List;
 
-public class SnapshotLockException extends BadRequestException {
+public class SnapshotLockException extends InternalServerErrorException {
     public SnapshotLockException(String message) {
         super(message);
     }

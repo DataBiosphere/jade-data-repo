@@ -5,7 +5,7 @@ import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 
-public class ResourceLockTester implements Runnable {
+public class BucketResourceLockTester implements Runnable {
     private GoogleResourceService resourceService;
 
     private GoogleBucketRequest bucketRequest;
@@ -14,7 +14,7 @@ public class ResourceLockTester implements Runnable {
     private boolean gotLockException;
     private GoogleBucketResource bucketResource;
 
-    public ResourceLockTester(
+    public BucketResourceLockTester(
         GoogleResourceService resourceService, GoogleBucketRequest bucketRequest, String flightId) {
         this.resourceService = resourceService;
         this.bucketRequest = bucketRequest;

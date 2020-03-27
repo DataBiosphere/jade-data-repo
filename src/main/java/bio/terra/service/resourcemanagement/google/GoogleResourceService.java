@@ -132,6 +132,8 @@ public class GoogleResourceService {
      * @param bucketRequest
      * @param flightId
      * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
+     * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
      */
     public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
         // insert a new bucket_resource row and lock it
@@ -169,7 +171,7 @@ public class GoogleResourceService {
             // throw an exception if the bucket does not already exist
             bucket = getBucket(bucketName);
             if (bucket == null) {
-                throw new GoogleResourceNotFoundException("Bucket not found: " + bucketName);
+                throw new CorruptMetadataException("Bucket not found: " + bucketName);
             }
         } else if (lockingFlightId.equals(flightId)) {
             // CREATE case. the row in the bucket_resource table is locked by this flight. we need to create it here
@@ -188,7 +190,7 @@ public class GoogleResourceService {
                     resourceDao.unlockBucket(bucketName, flightId);
                 } else {
                     resourceDao.deleteBucketMetadata(bucketName, flightId);
-                    throw new GoogleResourceException(
+                    throw new CorruptMetadataException(
                         String.format("Bucket already exists, metadata out of sync with cloud state: %s", bucketName));
                 }
             }
@@ -260,6 +262,30 @@ public class GoogleResourceService {
         } catch (StorageException e) {
             throw new GoogleResourceException("Could not check bucket existence", e);
         }
+    }
+
+    /**
+     * Setter for allowReuseExistingBuckets property.
+     * This property should be set in application.properties (or the appropriate one for your environment).
+     * This setter should only be used by tests to programmatically modify the flag to test behavior without running
+     * with two different properties files.
+     * @param newValue
+     * @return this
+     */
+    public GoogleResourceService setAllowReuseExistingBuckets(boolean newValue) {
+        allowReuseExistingBuckets = newValue;
+        return this;
+    }
+
+    /**
+     * Getter for allowReuseExistingBuckets property.
+     * This property should be read from application.properties (or the appropriate one for your environment).
+     * This getter should only be used by tests to programmatically modify the flag to test behavior without running
+     * with two different properties files.
+     * @return boolean property value
+     */
+    public boolean getAllowReuseExistingBuckets() {
+        return allowReuseExistingBuckets;
     }
 
     public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {

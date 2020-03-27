@@ -98,6 +98,8 @@ public class DataLocationService {
      * @param profileId
      * @param flightId
      * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
+     * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
      */
     public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId) {
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)

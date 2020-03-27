@@ -15,6 +15,7 @@ import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.resourcemanagement.google.GoogleResourceDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.util.Lists;
 import com.google.cloud.storage.Bucket;
 import com.google.cloud.storage.Storage;
@@ -50,8 +51,8 @@ import static org.junit.Assert.assertTrue;
 @SpringBootTest
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
-public class ResourceLockTest {
-    private final Logger logger = LoggerFactory.getLogger(ResourceLockTest.class);
+public class BucketResourceTest {
+    private final Logger logger = LoggerFactory.getLogger(BucketResourceTest.class);
 
     @Autowired private LoadDao loadDao;
     @Autowired private ConfigurationService configService;
@@ -66,6 +67,7 @@ public class ResourceLockTest {
     private BillingProfileModel profile;
     private Storage storage;
     private List<String> bucketNames;
+    private boolean allowReuseExistingBuckets;
 
     @Before
     public void setup() throws Exception {
@@ -77,6 +79,9 @@ public class ResourceLockTest {
 
     @After
     public void teardown() throws Exception {
+        // restore original value of application property allowReuseExistingBuckets
+        resourceService.setAllowReuseExistingBuckets(allowReuseExistingBuckets);
+
         for (String bucketName : bucketNames) {
             deleteBucket(bucketName);
         }
@@ -87,7 +92,7 @@ public class ResourceLockTest {
     // create and delete the bucket, checking that the metadata and cloud state match what is expected
     public void createAndDeleteBucketTest() {
         String bucketName = "testbucket_createanddeletebuckettest";
-        String flightId = "testFlightId";
+        String flightId = "createAndDeleteBucketTest";
         bucketNames.add(bucketName);
 
         // create the bucket and metadata
@@ -111,9 +116,12 @@ public class ResourceLockTest {
         bucketNames.add(bucketName);
 
         GoogleBucketRequest bucketRequest = buildBucketRequest(bucketName);
-        ResourceLockTester resourceLockA = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "A");
-        ResourceLockTester resourceLockB = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "B");
-        ResourceLockTester resourceLockC = new ResourceLockTester(resourceService, bucketRequest, flightIdBase + "C");
+        BucketResourceLockTester resourceLockA = new BucketResourceLockTester(
+            resourceService, bucketRequest, flightIdBase + "A");
+        BucketResourceLockTester resourceLockB = new BucketResourceLockTester(
+            resourceService, bucketRequest, flightIdBase + "B");
+        BucketResourceLockTester resourceLockC = new BucketResourceLockTester(
+            resourceService, bucketRequest, flightIdBase + "C");
 
         Thread threadA = new Thread(resourceLockA);
         Thread threadB = new Thread(resourceLockB);
@@ -142,6 +150,107 @@ public class ResourceLockTest {
         assertNotNull("Thread C did get the bucket", resourceLockC.getBucketResource());
 
         deleteBucket(bucketResource.getName());
+        checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
+    }
+
+    @Test
+    // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
+    // bucket cloud resource exists, but the corresponding bucket_resource metadata row does not
+    public void bucketExistsBeforeMetadataTest() {
+        String bucketName = "testbucket_bucketexistsbeforemetadatatest";
+        String flightIdA = "bucketExistsBeforeMetadataTestA";
+        bucketNames.add(bucketName);
+
+        // create the bucket and metadata
+        GoogleBucketRequest googleBucketRequest = buildBucketRequest(bucketName);
+        GoogleBucketResource bucketResource = resourceService.getOrCreateBucket(googleBucketRequest, flightIdA);
+        checkBucketExists(bucketResource.getResourceId());
+
+        // delete the metadata only
+        boolean rowDeleted = resourceDao.deleteBucketMetadata(bucketName, flightIdA);
+        assertTrue("metadata row deleted", rowDeleted);
+
+        // try to fetch the bucket again, check fails with not found exception
+        boolean caughtNotFoundException = false;
+        try {
+            resourceService.getBucketResourceById(bucketResource.getResourceId(), true);
+        } catch (GoogleResourceNotFoundException cmEx) {
+            caughtNotFoundException = true;
+        }
+        assertTrue("fetch failed when metadata does not exist", caughtNotFoundException);
+
+        // save original value of application property allowReuseExistingBuckets
+        allowReuseExistingBuckets = resourceService.getAllowReuseExistingBuckets();
+
+        // set application property allowReuseExistingBuckets=false
+        // try to create bucket again, check fails with corrupt metadata exception
+        resourceService.setAllowReuseExistingBuckets(false);
+        String flightIdB = "bucketExistsBeforeMetadataTestB";
+        boolean caughtCorruptMetadataException = false;
+        try {
+            resourceService.getOrCreateBucket(googleBucketRequest, flightIdB);
+        } catch (CorruptMetadataException cmEx) {
+            caughtCorruptMetadataException = true;
+        }
+        assertTrue("create failed when cloud resource already exists", caughtCorruptMetadataException);
+
+        // set application property allowReuseExistingBuckets=true
+        // try to create bucket again, check succeeds
+        resourceService.setAllowReuseExistingBuckets(true);
+        String flightIdC = "bucketExistsBeforeMetadataTestC";
+        bucketResource = resourceService.getOrCreateBucket(googleBucketRequest, flightIdC);
+
+        // check the bucket and metadata exist
+        checkBucketExists(bucketResource.getResourceId());
+
+        // delete the bucket and metadata
+        deleteBucket(bucketResource.getName());
+        checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
+
+        // restore original value of application property allowReuseExistingBuckets
+        // (this is also done in cleanup after all tests, in case this test errors out before reaching this line)
+        resourceService.setAllowReuseExistingBuckets(allowReuseExistingBuckets);
+    }
+
+    @Test
+    // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
+    // bucket_resource metadata row exists, but the corresponding bucket cloud resource does not
+    public void noBucketButMetadataExistsTest() {
+        String bucketName = "testbucket_nobucketbutmetadataexiststest";
+        String flightIdA = "noBucketButMetadataExistsTestA";
+        bucketNames.add(bucketName);
+
+        // create the bucket and metadata
+        GoogleBucketRequest googleBucketRequest = buildBucketRequest(bucketName);
+        GoogleBucketResource bucketResource = resourceService.getOrCreateBucket(googleBucketRequest, flightIdA);
+        checkBucketExists(bucketResource.getResourceId());
+
+        // delete the bucket cloud resource only
+        Bucket bucket = storage.get(bucketName);
+        boolean bucketDeleted = bucket.delete();
+        assertTrue("bucket cloud resource deleted", bucketDeleted);
+
+        // try to fetch the bucket again, check fails with corrupt metadata exception
+        boolean caughtCorruptMetadataException = false;
+        try {
+            resourceService.getBucketResourceById(bucketResource.getResourceId(), true);
+        } catch (CorruptMetadataException cmEx) {
+            caughtCorruptMetadataException = true;
+        }
+        assertTrue("fetch failed when cloud resource does not exist", caughtCorruptMetadataException);
+
+        // try to getOrCreate bucket again, check fails with corrupt metadata exception
+        String flightIdB = "bucketExistsBeforeMetadataTestB";
+        caughtCorruptMetadataException = false;
+        try {
+            resourceService.getOrCreateBucket(googleBucketRequest, flightIdB);
+        } catch (CorruptMetadataException cmEx) {
+            caughtCorruptMetadataException = true;
+        }
+        assertTrue("getOrCreate failed when cloud resource does not exist", caughtCorruptMetadataException);
+
+        // update the metadata to match the cloud state, check that everything is deleted
+        resourceService.updateBucketMetadata(bucketName, null);
         checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
     }
 

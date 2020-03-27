@@ -12,18 +12,17 @@ import org.slf4j.LoggerFactory;
 public class UnlockSnapshotStep implements Step {
 
     private SnapshotDao snapshotDao;
+    private String snapshotName;
 
     private static Logger logger = LoggerFactory.getLogger(UnlockSnapshotStep.class);
 
-    public UnlockSnapshotStep(SnapshotDao snapshotDao) {
+    public UnlockSnapshotStep(SnapshotDao snapshotDao, String snapshotName) {
         this.snapshotDao = snapshotDao;
+        this.snapshotName = snapshotName;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap workingMap = context.getWorkingMap();
-        String snapshotName = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_NAME, String.class);
-
         boolean rowUpdated = snapshotDao.unlock(snapshotName, context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 

@@ -12,18 +12,17 @@ import org.slf4j.LoggerFactory;
 public class UnlockDatasetStep implements Step {
 
     private DatasetDao datasetDao;
+    private String datasetName;
 
     private static Logger logger = LoggerFactory.getLogger(UnlockDatasetStep.class);
 
-    public UnlockDatasetStep(DatasetDao datasetDao) {
+    public UnlockDatasetStep(DatasetDao datasetDao, String datasetName) {
         this.datasetDao = datasetDao;
+        this.datasetName = datasetName;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        FlightMap workingMap = context.getWorkingMap();
-        String datasetName = workingMap.get(DatasetWorkingMapKeys.DATASET_NAME, String.class);
-
         boolean rowUpdated = datasetDao.unlock(datasetName, context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 

@@ -55,7 +55,7 @@ public class DatasetDaoTest {
 
     private BillingProfile billingProfile;
 
-    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws SQLException {
+    private UUID createDataset(DatasetRequestModel datasetRequest, String newName) throws IOException, SQLException {
         datasetRequest.name(newName).defaultProfileId(billingProfile.getId().toString());
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
@@ -64,7 +64,7 @@ public class DatasetDaoTest {
         return datasetId;
     }
 
-    private UUID createDataset(String datasetFile) throws IOException, SQLException {
+    private UUID createDataset(String datasetFile) throws IOException, SQLException  {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(datasetFile, DatasetRequestModel.class);
         return createDataset(datasetRequest, datasetRequest.getName() + UUID.randomUUID().toString());
     }
@@ -89,7 +89,7 @@ public class DatasetDaoTest {
     }
 
     @Test
-    public void enumerateTest() throws Exception {
+    public void enumerateTest() throws IOException, SQLException {
         UUID dataset1 = createDataset("dataset-minimal.json");
         UUID dataset2 = createDataset("dataset-create-test.json");
         List<UUID> datasetIds = new ArrayList<>();
@@ -124,54 +124,85 @@ public class DatasetDaoTest {
         String expectedName = request.getName() + UUID.randomUUID().toString();
 
         UUID datasetId = createDataset(request, expectedName);
-        Dataset fromDB = datasetDao.retrieve(datasetId);
+        try {
+            Dataset fromDB = datasetDao.retrieve(datasetId);
 
-        assertThat("dataset name is set correctly",
+            assertThat("dataset name is set correctly",
                 fromDB.getName(),
                 equalTo(expectedName));
 
-        // verify tables
-        assertThat("correct number of tables created for dataset",
+            // verify tables
+            assertThat("correct number of tables created for dataset",
                 fromDB.getTables().size(),
                 equalTo(2));
-        fromDB.getTables().forEach(this::assertDatasetTable);
+            fromDB.getTables().forEach(this::assertDatasetTable);
 
-        assertThat("correct number of relationships are created for dataset",
+            assertThat("correct number of relationships are created for dataset",
                 fromDB.getRelationships().size(),
                 equalTo(2));
 
-        assertTablesInRelationship(fromDB);
+            assertTablesInRelationship(fromDB);
 
-        // verify assets
-        assertThat("correct number of assets created for dataset",
+            // verify assets
+            assertThat("correct number of assets created for dataset",
                 fromDB.getAssetSpecifications().size(),
                 equalTo(2));
-        fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+            fromDB.getAssetSpecifications().forEach(this::assertAssetSpecs);
+        } finally {
+            datasetDao.delete(datasetId);
+        }
+    }
 
-        datasetDao.delete(datasetId);
+    @Test
+    public void partitionTest() throws IOException, SQLException {
+        UUID datasetId = createDataset("ingest-test-partitioned-dataset.json");
+        try {
+            Dataset fromDB = datasetDao.retrieve(datasetId);
+            DatasetTable participants = fromDB.getTableByName("participant")
+                .orElseThrow(IllegalStateException::new);
+            DatasetTable samples = fromDB.getTableByName("sample")
+                .orElseThrow(IllegalStateException::new);
+            DatasetTable files = fromDB.getTableByName("file")
+                .orElseThrow(IllegalStateException::new);
+
+            assertThat("int-range partition settings are persisted",
+                participants.getBigQueryPartitionConfig(),
+                equalTo(BigQueryPartitionConfigV1.intRange("age", 0, 120, 1)));
+            assertThat("date partition settings are persisted",
+                samples.getBigQueryPartitionConfig(),
+                equalTo(BigQueryPartitionConfigV1.date("date_collected")));
+            assertThat("ingest-time partition settings are persisted",
+                files.getBigQueryPartitionConfig(),
+                equalTo(BigQueryPartitionConfigV1.ingestDate()));
+        } finally {
+            datasetDao.delete(datasetId);
+        }
     }
 
     @Test
     public void primaryKeyTest() throws IOException, SQLException {
         UUID datasetId = createDataset("dataset-primary-key.json");
-        Dataset fromDB = datasetDao.retrieve(datasetId);
-        DatasetTable variants = fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
-        DatasetTable freqAnalysis = fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
-        DatasetTable metaAnalysis = fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
+        try {
+            Dataset fromDB = datasetDao.retrieve(datasetId);
+            DatasetTable variants = fromDB.getTableByName("variant").orElseThrow(IllegalStateException::new);
+            DatasetTable freqAnalysis =
+                fromDB.getTableByName("frequency_analysis").orElseThrow(IllegalStateException::new);
+            DatasetTable metaAnalysis = fromDB.getTableByName("meta_analysis").orElseThrow(IllegalStateException::new);
 
-        assertThat("single-column primary keys are set correctly",
-            variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-            equalTo(Collections.singletonList("id")));
+            assertThat("single-column primary keys are set correctly",
+                variants.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+                equalTo(Collections.singletonList("id")));
 
-        assertThat("dual-column primary keys are set correctly",
-            metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-            equalTo(Arrays.asList("variant_id", "phenotype")));
+            assertThat("dual-column primary keys are set correctly",
+                metaAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+                equalTo(Arrays.asList("variant_id", "phenotype")));
 
-        assertThat("many-column primary keys are set correctly",
-            freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
-            equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
-
-        datasetDao.delete(datasetId);
+            assertThat("many-column primary keys are set correctly",
+                freqAnalysis.getPrimaryKey().stream().map(Column::getName).collect(Collectors.toList()),
+                equalTo(Arrays.asList("variant_id", "ancestry", "phenotype")));
+        } finally {
+            datasetDao.delete(datasetId);
+        }
     }
 
     protected void assertTablesInRelationship(Dataset dataset) {

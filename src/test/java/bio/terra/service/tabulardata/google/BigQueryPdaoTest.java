@@ -82,7 +82,6 @@ public class BigQueryPdaoTest {
     @MockBean
     private IamService samService;
 
-    private Dataset dataset;
     private BillingProfileModel profileModel;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
 
@@ -93,23 +92,10 @@ public class BigQueryPdaoTest {
 
         String coreBillingAccount = googleResourceConfiguration.getCoreBillingAccount();
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccount);
-        // TODO: this next bit should be in connected operations, need to make it a component and autowire a datasetdao
-        DatasetRequestModel datasetRequest = jsonLoader.loadObject("ingest-test-dataset.json",
-            DatasetRequestModel.class);
-        datasetRequest
-            .defaultProfileId(profileModel.getId())
-            .name(datasetName());
-        dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
-        String createFlightId = UUID.randomUUID().toString();
-        UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlock(dataset.getName(), createFlightId);
-        dataLocationService.getOrCreateProject(dataset);
-        logger.info("Created dataset in setup: {}", datasetId);
     }
 
     @After
     public void teardown() throws Exception {
-        datasetDao.delete(dataset.getId());
         connectedOperations.teardown();
     }
 
@@ -117,12 +103,25 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
-    private DatasetTable getTable(String name) {
+    private Dataset readDataset(String requestFile) throws Exception {
+        DatasetRequestModel datasetRequest = jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
+        datasetRequest
+            .defaultProfileId(profileModel.getId())
+            .name(datasetName());
+        Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
+        String createFlightId = UUID.randomUUID().toString();
+        datasetDao.createAndLock(dataset, createFlightId);
+        datasetDao.unlock(dataset.getName(), createFlightId);
+        dataLocationService.getOrCreateProject(dataset);
+        return dataset;
+    }
+
+    private DatasetTable getTable(Dataset dataset, String name) {
         return dataset.getTableByName(name)
             .orElseThrow(() -> new IllegalStateException("Expected table " + name + " not found!"));
     }
 
-    private void assertThatDatasetAndTablesShouldExist(boolean shouldExist) {
+    private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist) {
         boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
         assertThat(
             String.format("Dataset: %s, exists", dataset.getName()),
@@ -130,7 +129,7 @@ public class BigQueryPdaoTest {
             equalTo(shouldExist));
 
         Arrays.asList("participant", "sample", "file").forEach(name -> {
-            DatasetTable table = getTable(name);
+            DatasetTable table = getTable(dataset, name);
             Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName()).forEach(t -> {
                 assertThat(
                     "Table: " + dataset.getName() + "." + t + ", exists",
@@ -141,23 +140,29 @@ public class BigQueryPdaoTest {
     }
 
     @Test
-    public void basicTest() {
-        assertThatDatasetAndTablesShouldExist(false);
+    public void basicTest() throws Exception {
+        Dataset dataset = readDataset("ingest-test-dataset.json");
+        try {
+            assertThatDatasetAndTablesShouldExist(dataset, false);
 
-        bigQueryPdao.createDataset(dataset);
-        assertThatDatasetAndTablesShouldExist(true);
+            bigQueryPdao.createDataset(dataset);
+            assertThatDatasetAndTablesShouldExist(dataset, true);
 
-        // Perform the redo, which should delete and re-create
-        bigQueryPdao.createDataset(dataset);
-        assertThatDatasetAndTablesShouldExist(true);
+            // Perform the redo, which should delete and re-create
+            bigQueryPdao.createDataset(dataset);
+            assertThatDatasetAndTablesShouldExist(dataset, true);
 
-        // Now delete it and test that it is gone
-        bigQueryPdao.deleteDataset(dataset);
-        assertThatDatasetAndTablesShouldExist(false);
+            // Now delete it and test that it is gone
+            bigQueryPdao.deleteDataset(dataset);
+            assertThatDatasetAndTablesShouldExist(dataset, false);
+        } finally {
+            datasetDao.delete(dataset.getId());
+        }
     }
 
     @Test
     public void datasetTest() throws Exception {
+        Dataset dataset = readDataset("ingest-test-dataset.json");
         bigQueryPdao.createDataset(dataset);
 
         // Stage tabular data for ingest.
@@ -231,13 +236,13 @@ public class BigQueryPdaoTest {
 
             // Simulate soft-deleting some rows.
             // TODO: Replace this with a call to the soft-delete API once it exists?
-            softDeleteRows(bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable("participant"),
-                Arrays.asList("participant_3", "participant_4"));
+            softDeleteRows(bigQueryProject, bigQueryPdao.prefixName(dataset.getName()),
+                getTable(dataset, "participant"), Arrays.asList("participant_3", "participant_4"));
             softDeleteRows(
-                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable("sample"),
+                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable(dataset, "sample"),
                 Collections.singletonList("sample5"));
             softDeleteRows(
-                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable("file"),
+                bigQueryProject, bigQueryPdao.prefixName(dataset.getName()), getTable(dataset, "file"),
                 Collections.singletonList("file1"));
 
             // Create another snapshot.
@@ -267,6 +272,65 @@ public class BigQueryPdaoTest {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
             bigQueryPdao.deleteDataset(dataset);
+            datasetDao.delete(dataset.getId());
+        }
+    }
+
+    /* BigQuery Legacy SQL supports querying a "meta-table" about partitions
+     * for any partitioned table.
+     *
+     * The table won't exist if the real table is unpartitioned, so we can
+     * query it for a quick check to see if we enabled the expected options
+     * on table creation.
+     *
+     * https://cloud.google.com/bigquery/docs/
+     *   creating-partitioned-tables#listing_partitions_in_ingestion-time_partitioned_tables
+     */
+    private static final String queryPartitionsSummaryTemplate =
+        "SELECT * FROM [<project>.<dataset>.<table>$__PARTITIONS_SUMMARY__]";
+
+    private static final String queryIngestDateTemplate =
+        "SELECT " + PdaoConstant.PDAO_INGEST_DATE_COLUMN_ALIAS + " FROM `<project>.<dataset>.<table>`";
+
+    @Test
+    public void partitionTest() throws Exception {
+        Dataset dataset = readDataset("ingest-test-partitioned-dataset.json");
+        String bqDatasetName = bigQueryPdao.prefixName(dataset.getName());
+
+        try {
+            bigQueryPdao.createDataset(dataset);
+            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+                datasetDao, dataLocationService, dataset.getName());
+
+            for (String tableName : Arrays.asList("participant", "sample", "file")) {
+                DatasetTable table = getTable(dataset, tableName);
+
+                ST queryTemplate = new ST(queryPartitionsSummaryTemplate);
+                queryTemplate.add("project", bigQueryProject.getProjectId());
+                queryTemplate.add("dataset", bqDatasetName);
+                queryTemplate.add("table", table.getRawTableName());
+
+                QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryTemplate.render())
+                    // Need legacy SQL to access the partitions summary meta-table.
+                    .setUseLegacySql(true)
+                    .build();
+
+                // If the table isn't partitioned, this will go boom.
+                bigQueryProject.getBigQuery().query(queryConfig);
+            }
+
+            // Make sure ingest date is exposed in live views, when it exists.
+            ST queryTemplate = new ST(queryIngestDateTemplate);
+            queryTemplate.add("project", bigQueryProject.getProjectId());
+            queryTemplate.add("dataset", bqDatasetName);
+            queryTemplate.add("table", "file");
+
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.of(queryTemplate.render());
+            // If the column isn't exposed, this will go boom.
+            bigQueryProject.getBigQuery().query(queryConfig);
+        } finally {
+            bigQueryPdao.deleteDataset(dataset);
+            datasetDao.delete(dataset.getId());
         }
     }
 

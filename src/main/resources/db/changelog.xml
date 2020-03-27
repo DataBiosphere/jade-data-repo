@@ -21,5 +21,6 @@
     <include file="changesets/20200221_nullablesnapshotassetid.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200305_trackliveviews.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200310_lockdatasetssnapshots.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20200312_addpartitions.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200318_lockbuckets.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -23,6 +23,7 @@ public class LockDatasetStep implements Step {
     }
 
     @Override
+    // assumes datasetName has been fetched and placed into the working map in a previous step
     public StepResult doStep(FlightContext context) {
         try {
             datasetDao.lock(datasetName, context.getFlightId());
@@ -34,6 +35,7 @@ public class LockDatasetStep implements Step {
         }
     }
 
+    // TODO: DRY this up, shared with the unlock step
     @Override
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above

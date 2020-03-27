@@ -923,6 +923,7 @@ paths:
       consumes:
       - application/json
       parameters:
+      - $ref: '#/parameters/Id'
       - in: body
         name: dataDeletionRequest
         description: Description of the data in the dataset to delete

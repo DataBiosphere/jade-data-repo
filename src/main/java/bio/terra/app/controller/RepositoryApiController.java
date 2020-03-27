@@ -466,8 +466,11 @@ public class RepositoryApiController implements RepositoryApi {
 
     @Override
     public ResponseEntity<JobModel> applyDatasetDataDeletion(
+        String id,
         @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
-        return null;
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = datasetService.deleteDatasetData(id, dataDeletionRequest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override

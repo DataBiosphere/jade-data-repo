@@ -101,7 +101,7 @@ public class DrsService {
     private DRSObject drsObjectFromFSFile(FSFile fsFile, String snapshotId, AuthenticatedUserRequest authUser) {
         DRSObject fileObject = makeCommonDrsObject(fsFile, snapshotId);
 
-        GoogleBucketResource bucketResource = locationService.lookupBucket(fsFile.getBucketResourceId());
+        GoogleBucketResource bucketResource = locationService.lookupBucketMetadata(fsFile.getBucketResourceId());
 
         DRSAccessURL gsAccessURL = new DRSAccessURL()
             .url(fsFile.getGspath());

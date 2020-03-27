@@ -43,6 +43,8 @@ public class FileIngestFlight extends Flight {
         Dataset dataset = datasetService.retrieve(datasetId);
 
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff createBucketRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
         // 0. Lock the load tag - only one flight operating on a load tag at a time
@@ -65,7 +67,7 @@ public class FileIngestFlight extends Flight {
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep());
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
-        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService));
+        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService), createBucketRetry);
         addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
         addStep(new LoadUnlockStep(loadService));

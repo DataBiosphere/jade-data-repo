@@ -1,14 +1,18 @@
 package bio.terra.service.resourcemanagement.google;
 
-import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileService;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.googleapis.json.GoogleJsonResponseException;
@@ -38,6 +42,8 @@ import com.google.cloud.storage.StorageOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -45,8 +51,8 @@ import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Component
@@ -59,7 +65,10 @@ public class GoogleResourceService {
     private final GoogleResourceConfiguration resourceConfiguration;
     private final GoogleBillingService billingService;
     private final GcsProjectFactory gcsProjectFactory;
-    private final SamConfiguration samConfiguration;
+    private final Environment springEnvironment;
+    private final ConfigurationService configService;
+
+    @Value("${datarepo.gcs.allowReuseExistingBuckets}") private boolean allowReuseExistingBuckets;
 
     @Autowired
     public GoogleResourceService(
@@ -68,44 +77,165 @@ public class GoogleResourceService {
         GoogleResourceConfiguration resourceConfiguration,
         GoogleBillingService billingService,
         GcsProjectFactory gcsProjectFactory,
-        SamConfiguration samConfiguration) {
+        Environment springEnvironment,
+        ConfigurationService configService) {
         this.resourceDao = resourceDao;
         this.profileService = profileService;
         this.resourceConfiguration = resourceConfiguration;
         this.billingService = billingService;
         this.gcsProjectFactory = gcsProjectFactory;
-        this.samConfiguration = samConfiguration;
+        this.springEnvironment = springEnvironment;
+        this.configService = configService;
     }
 
-    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId) {
-        return resourceDao.retrieveBucketById(bucketResourceId);
-    }
+    /**
+     * Fetch an existing bucket_resource metadata row.
+     * Note this method checks for the existence of the underlying cloud resource, if checkCloudResourceExists=true.
+     * @param bucketResourceId
+     * @param checkCloudResourceExists true to do the existence check, false to skip it
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
+     * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
+     */
+    public GoogleBucketResource getBucketResourceById(UUID bucketResourceId, boolean checkCloudResourceExists) {
+        // fetch the bucket_resource metadata row
+        GoogleBucketResource bucketResource = resourceDao.retrieveBucketById(bucketResourceId);
 
-    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest) {
-        // see if there is a bucket resource that matches the project and bucket name from the request
-        GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
-        try {
-            Optional<GoogleBucketResource> possibleMatch = resourceDao.retrieveBucketsByProjectResource(projectResource)
-                .stream()
-                .filter(bucketResource -> bucketResource.getName().equals(bucketRequest.getBucketName()))
-                .findFirst();
-            if (possibleMatch.isPresent()) {
-                return possibleMatch.get();
+        if (checkCloudResourceExists) {
+            // throw an exception if the bucket does not already exist
+            Bucket bucket = getBucket(bucketResource.getName());
+            if (bucket == null) {
+                throw new CorruptMetadataException(
+                    "Bucket metadata exists, but bucket not found: " + bucketResource.getName());
             }
-        } catch (GoogleResourceNotFoundException e) {
-            logger.info("no bucket resource metadata found for project: {}", projectResource.getGoogleProjectId());
         }
 
-        // the bucket might already exist even though we don't have metadata for it
-        Bucket bucket = getBucket(bucketRequest.getBucketName()).orElseGet(() -> newBucket(bucketRequest));
+        return bucketResource;
+    }
+
+    /**
+     * Fetch/create a bucket cloud resource and the associated metadata in the bucket_resource table.
+     * The flightId is used to lock the bucket metadata during possible creation.
+     * Below is an outline of the logic flow.
+     *   1. Try to insert a new bucket_resource row and lock it
+     *      If the insert failed, lookup the existing row
+     *   2. Check who holds the lock on the bucket_resource row
+     *      a. GET case = row is unlocked. bucket has already been created
+     *         Check that the bucket cloud resource exists, throw an exception if not.
+     *      b. CREATE case = row is locked by this flight. need to create the bucket here
+     *         Check if the bucket cloud resource exists.
+     *           i. If not, create it
+     *           ii. If it does exist and this is a testing environment, just use it
+     *           iii. If it does exist and this is a recovery flight, just use it
+     *           iv. Otherwise, the state of the cloud is out of sync with the metadat
+     *               Delete anything we've created and throw an exception
+     *      c. LOCKED case = the row is locked by another flight. throw a lock exception so the flight knows to retry
+     * @param bucketRequest
+     * @param flightId
+     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
+     * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
+     */
+    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
+        logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
+
+        // insert a new bucket_resource row and lock it
+        GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
+
+        boolean metadataCreationFailed = (googleBucketResource == null);
+        logger.debug("metadataCreationFailed = " + metadataCreationFailed);
+        if (metadataCreationFailed) {
+            // insert failed. lookup the existing bucket_resource row
+            googleBucketResource = resourceDao.getBucket(bucketRequest);
+        }
+
+        // this fault is used by the ResourceLockTest
+        if (configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT)) {
+            try {
+                logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
+                while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                    logger.info("Sleeping for CONTINUE FAULT");
+                    TimeUnit.SECONDS.sleep(5);
+                }
+                logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
+            } catch (InterruptedException intEx) {
+                Thread.currentThread().interrupt();
+                throw new BucketLockFailureException("Unexpected interrupt during bucket lock fault", intEx);
+            }
+        }
+
+        String bucketName = bucketRequest.getBucketName();
+        String lockingFlightId = googleBucketResource.getFlightId();
+        logger.debug("lockingFlightId = " + lockingFlightId);
+        Bucket bucket;
+        if (lockingFlightId == null) {
+            // GET case. the row in the bucket_resource table is unlocked. the bucket has already been created
+
+            // throw an exception if the bucket does not already exist
+            bucket = getBucket(bucketName);
+            if (bucket == null) {
+                throw new CorruptMetadataException("Bucket not found: " + bucketName);
+            }
+        } else if (lockingFlightId.equals(flightId)) {
+            // CREATE case. the row in the bucket_resource table is locked by this flight. we need to create it here
+
+            // check if the bucket already exists
+            bucket = getBucket(bucketName);
+            if (bucket == null) {
+                // bucket DOES NOT EXIST. create it and unlock
+                bucket = newBucket(bucketRequest);
+                resourceDao.unlockBucket(bucketName, flightId);
+            } else {
+                // bucket EXISTS. if this is a recovery flight or testing environment, use it. otherwise throw exception
+                // testing environments should set datarepo.gcs.allowReuseExistingBuckets=true in application.properties
+                if (metadataCreationFailed || allowReuseExistingBuckets) {
+                    logger.debug(String.format("bucket already exists, using anyway: %s", bucketName));
+                    resourceDao.unlockBucket(bucketName, flightId);
+                } else {
+                    resourceDao.deleteBucketMetadata(bucketName, flightId);
+                    throw new CorruptMetadataException(
+                        String.format("Bucket already exists, metadata out of sync with cloud state: %s", bucketName));
+                }
+            }
+        } else {
+            // LOCKED case. the row in the bucket_resource table is locked by another flight. throw a lock exception
+            throw new BucketLockException("The bucket is being created by another flight.");
+        }
+
         Acl.Entity owner = bucket.getOwner();
         logger.info("bucket is owned by '{}'", owner.toString());
         // TODO: ensure that the repository is the owner unless strictOwnership is false
-        GoogleBucketResource googleBucketResource = new GoogleBucketResource(bucketRequest);
-        UUID id = resourceDao.createBucket(googleBucketResource);
-        return googleBucketResource.resourceId(id);
+
+        // return the resource object
+        return googleBucketResource;
     }
 
+    /**
+     * Update the bucket_resource metadata table to match the state of the underlying cloud.
+     *    - If the bucket exists, then the metadata row should also exist and be unlocked.
+     *    - If the bucket does not exist, then the metadata row should not exist.
+     * If the metadata row is locked, then only the locking flight can unlock or delete the row.
+     * @param bucketName
+     * @param flightId
+     */
+    public void updateBucketMetadata(String bucketName, String flightId) {
+        // check if the bucket already exists
+        Bucket existingBucket = getBucket(bucketName);
+        if (existingBucket != null) {
+            // bucket EXISTS. unlock the metadata row
+            resourceDao.unlockBucket(bucketName, flightId);
+        } else {
+            // bucket DOES NOT EXIST. delete the metadata row
+            resourceDao.deleteBucketMetadata(bucketName, flightId);
+        }
+    }
+
+    /**
+     * Create a new bucket cloud resource.
+     * Note this method does not create any associated metadata in the bucket_resource table.
+     * @param bucketRequest
+     * @return a reference to the bucket as a GCS Bucket object
+     */
     private Bucket newBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         GoogleProjectResource projectResource = bucketRequest.getGoogleProjectResource();
@@ -120,6 +250,45 @@ public class GoogleResourceService {
         // the project will have been created before this point, so no need to fetch it
         logger.info("Creating bucket '{}' in project '{}'", bucketName, googleProjectId);
         return gcsProject.getStorage().create(bucketInfo);
+    }
+
+    /**
+     * Fetch an existing bucket cloud resource.
+     * Note this method does not check any associated metadata in the bucket_resource table.
+     * @param bucketName
+     * @return a reference to the bucket as a GCS Bucket object, null if not found
+     */
+    private Bucket getBucket(String bucketName) {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        try {
+            return storage.get(bucketName);
+        } catch (StorageException e) {
+            throw new GoogleResourceException("Could not check bucket existence", e);
+        }
+    }
+
+    /**
+     * Setter for allowReuseExistingBuckets property.
+     * This property should be set in application.properties (or the appropriate one for your environment).
+     * This setter should only be used by tests to programmatically modify the flag to test behavior without running
+     * with two different properties files.
+     * @param newValue
+     * @return this
+     */
+    public GoogleResourceService setAllowReuseExistingBuckets(boolean newValue) {
+        allowReuseExistingBuckets = newValue;
+        return this;
+    }
+
+    /**
+     * Getter for allowReuseExistingBuckets property.
+     * This property should be read from application.properties (or the appropriate one for your environment).
+     * This getter should only be used by tests to programmatically modify the flag to test behavior without running
+     * with two different properties files.
+     * @return boolean property value
+     */
+    public boolean getAllowReuseExistingBuckets() {
+        return allowReuseExistingBuckets;
     }
 
     public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
@@ -165,15 +334,6 @@ public class GoogleResourceService {
             return null;
         } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not check on project state", e);
-        }
-    }
-
-    private Optional<Bucket> getBucket(String bucketName) {
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        try {
-            return Optional.ofNullable(storage.get(bucketName));
-        } catch (StorageException e) {
-            throw new GoogleResourceException("Could not check bucket existence", e);
         }
     }
 

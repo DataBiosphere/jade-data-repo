@@ -66,7 +66,7 @@ jobs:
         uses: broadinstitute/datarepo-actions@0.1.0
         with:
           actions_subcommand: 'k8_checknamespace'
-          k8_namespaces: 'integration-1,integration-2,integration-3,integration-4,integration-5'
+          k8_namespaces: 'integration-1,integration-2,integration-3'
       - name: "Build docker container via Gradle"
         uses: broadinstitute/datarepo-actions@0.1.0
         with:

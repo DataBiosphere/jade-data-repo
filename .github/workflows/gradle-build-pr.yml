@@ -42,6 +42,17 @@ jobs:
     if: "!contains( github.event.pull_request.labels.*.name, 'skip-ci')"
     runs-on: ${{ matrix.os }}
     ## skips if pr label is 'skip-ci'
+    # run a local Postgres container in Docker for the basic check tests
+    services:
+      postgres:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     steps:
       - name: "Checkout code"
         uses: actions/checkout@v2
@@ -67,11 +78,12 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_secret_chart_version: '0.0.4'
-          helm_datarepo_chart_version: '0.0.9'
+          helm_datarepo_chart_version: '0.0.8'
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions@0.1.0
         with:
           actions_subcommand: 'gradleinttest'
+          pgport: ${{ job.services.postgres.ports[5432] }}
           test_to_run: 'testIntegration'
       - name: "Clean state lock from used Namespace on API deploy"
         if: always()

@@ -50,3 +50,8 @@ pom.xml
 .DS_Store
 
 *.pem
+
+# integration vars
+env_vars
+jade-dev-account.json
+jade-dev-account.pem

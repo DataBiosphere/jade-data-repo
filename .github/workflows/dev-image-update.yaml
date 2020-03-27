@@ -31,7 +31,7 @@ jobs:
         with:
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
-      - name: "Check and edit Helm definition for dev"
+      - name: "Check and edit Helm definition for integration"
         uses: broadinstitute/datarepo-actions@0.1.0
         with:
           actions_subcommand: 'deploytagupdate'

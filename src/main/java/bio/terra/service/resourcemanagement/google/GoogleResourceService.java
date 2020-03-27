@@ -90,9 +90,10 @@ public class GoogleResourceService {
 
     /**
      * Fetch an existing bucket_resource metadata row.
-     * Note this method does not check for the existence of the underlying cloud resource.
+     * Note this method checks for the existence of the underlying cloud resource, if checkCloudResourceExists=true.
      * @param bucketResourceId
-     * @returna a reference to the bucket as a POJO GoogleBucketResource
+     * @param checkCloudResourceExists true to do the existence check, false to skip it
+     * @return a reference to the bucket as a POJO GoogleBucketResource
      * @throws GoogleResourceNotFoundException if no bucket_resource metadata row is found
      * @throws CorruptMetadataException if the bucket_resource metadata row exists but the cloud resource does not
      */

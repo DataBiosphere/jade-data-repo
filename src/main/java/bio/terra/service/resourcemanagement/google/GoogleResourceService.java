@@ -137,6 +137,8 @@ public class GoogleResourceService {
      * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
      */
     public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
+        logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
+
         // insert a new bucket_resource row and lock it
         GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
 
@@ -186,7 +188,6 @@ public class GoogleResourceService {
             } else {
                 // bucket EXISTS. if this is a recovery flight or testing environment, use it. otherwise throw exception
                 // testing environments should set datarepo.gcs.allowReuseExistingBuckets=true in application.properties
-                logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
                 if (metadataCreationFailed || allowReuseExistingBuckets) {
                     logger.debug(String.format("bucket already exists, using anyway: %s", bucketName));
                     resourceDao.unlockBucket(bucketName, flightId);

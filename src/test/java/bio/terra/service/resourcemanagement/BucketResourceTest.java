@@ -71,6 +71,10 @@ public class BucketResourceTest {
 
     @Before
     public void setup() throws Exception {
+        // save original value of application property allowReuseExistingBuckets
+        allowReuseExistingBuckets = resourceService.getAllowReuseExistingBuckets();
+        logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
+
         profile = connectedOperations.createProfileForAccount(resourceConfiguration.getCoreBillingAccount());
         connectedOperations.stubOutSamCalls(samService);
         storage = StorageOptions.getDefaultInstance().getService();
@@ -81,6 +85,7 @@ public class BucketResourceTest {
     public void teardown() throws Exception {
         // restore original value of application property allowReuseExistingBuckets
         resourceService.setAllowReuseExistingBuckets(allowReuseExistingBuckets);
+        logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
 
         for (String bucketName : bucketNames) {
             deleteBucket(bucketName);
@@ -157,6 +162,8 @@ public class BucketResourceTest {
     // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
     // bucket cloud resource exists, but the corresponding bucket_resource metadata row does not
     public void bucketExistsBeforeMetadataTest() {
+        logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
+
         String bucketName = "testbucket_bucketexistsbeforemetadatatest";
         String flightIdA = "bucketExistsBeforeMetadataTestA";
         bucketNames.add(bucketName);
@@ -178,9 +185,6 @@ public class BucketResourceTest {
             caughtNotFoundException = true;
         }
         assertTrue("fetch failed when metadata does not exist", caughtNotFoundException);
-
-        // save original value of application property allowReuseExistingBuckets
-        allowReuseExistingBuckets = resourceService.getAllowReuseExistingBuckets();
 
         // set application property allowReuseExistingBuckets=false
         // try to create bucket again, check fails with corrupt metadata exception
@@ -207,7 +211,7 @@ public class BucketResourceTest {
         deleteBucket(bucketResource.getName());
         checkBucketDeleted(bucketResource.getName(), bucketResource.getResourceId());
 
-        // restore original value of application property allowReuseExistingBuckets
+        // restore original value of application property allowReuseExistingBuckets, which was saved in setup
         // (this is also done in cleanup after all tests, in case this test errors out before reaching this line)
         resourceService.setAllowReuseExistingBuckets(allowReuseExistingBuckets);
     }
@@ -216,6 +220,8 @@ public class BucketResourceTest {
     // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
     // bucket_resource metadata row exists, but the corresponding bucket cloud resource does not
     public void noBucketButMetadataExistsTest() {
+        logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
+
         String bucketName = "testbucket_nobucketbutmetadataexiststest";
         String flightIdA = "noBucketButMetadataExistsTestA";
         bucketNames.add(bucketName);

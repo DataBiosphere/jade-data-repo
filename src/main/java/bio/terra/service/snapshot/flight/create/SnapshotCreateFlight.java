@@ -53,6 +53,9 @@ public class SnapshotCreateFlight extends Flight {
                 addStep(new CreateSnapshotPrimaryDataAssetStep(
                     bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq));
                 break;
+            case BYQUERY:
+                addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
+                addStep(new CreateSnapshotPrimaryDataQueryStep(bigQueryPdao, datasetService, snapshotDao, snapshotReq));
             case BYROWID:
                 addStep(new CreateSnapshotPrimaryDataRowIdsStep(bigQueryPdao, snapshotDao, snapshotReq));
                 break;

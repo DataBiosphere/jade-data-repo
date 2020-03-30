@@ -14,6 +14,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
@@ -29,6 +30,7 @@ import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
+import bio.terra.service.snapshot.exception.MismatchedValueException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -72,6 +74,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 
 @Component
 @Profile("google")
@@ -685,6 +688,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return Schema.of(fieldList);
     }
 
+    private Schema tempTableSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        return Schema.of(fieldList);
+    }
+
     private Schema rowIdTableSchema() {
         List<Field> fieldList = new ArrayList<>();
         fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
@@ -827,6 +836,69 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    // insert the rowIds into the snapshot row ids table and then kick off the rest of the relationship walking
+    public void queryForRowIds(AssetSpecification assetSpecification,
+                               Snapshot snapshot,
+                               String sqlQuery) {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        String snapshotName = snapshot.getName();
+        Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
+        String datasetBqDatasetName = prefixName(dataset.getName());
+        String projectId = bigQueryProject.getProjectId();
+
+        // create snapshot bq dataset
+        // Idempotency: delete possibly partial create
+        if (bigQueryProject.datasetExists(snapshotName)) {
+            bigQueryProject.deleteDataset(snapshotName);
+        }
+
+        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+
+        // now create a temp table with all the selected row ids in it
+        bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
+            .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
+            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+            .build();
+        try {
+            // TODO -- get results and validate that it got back more than 0 value
+            // we should tell people if their queries dont return anything
+            bigQuery.query(queryConfig);
+        } catch (InterruptedException ie) {
+            throw new PdaoException("Append query unexpectedly interrupted", ie);
+        }
+        // join the root table to find where the dataset's rootTable.rowid is null PDAO_ROW_ID_COLUMN
+        AssetTable rootTable = assetSpecification.getRootTable();
+        String datasetTableName = rootTable.getTable().getName();
+        String rootTableId = rootTable.getTable().getId().toString();
+
+        // validation check to see if any of the row id results dont match and get the count
+        ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+        sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+        sqlTemplate.add("datasetTable", datasetTableName);
+        sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
+
+        TableResult result = bigQueryProject.query(sqlTemplate.render());
+        FieldValueList mismatchedCount = result.getValues().iterator().next();
+        Long count = mismatchedCount.get(0).getLongValue();
+        if (count > 0) {
+            throw new MismatchedValueException("Query results did not match dataset root row ids");
+        }
+        // TODO insert into the PDAO_ROW_ID_TABLE the literal that is the table id and then all the row ids from the temp table
+        // then walk relationships
+        List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpecification);
+        walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+
+        // create the views
+        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+
+        // set authorization on views
+        List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
+        bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+    }
+
     // NOTE: this will have to be re-written when we support relationships that include
     // more than one column.
     private static final String storeRowIdsForRelatedTableTemplate =
@@ -853,6 +925,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final String matchCrossArraysTemplate =
         "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from " +
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
+
+    private static final String joinTablesToTestForMissingRowIds =
+        "SELECT COUNT(*) FROM <tempTable> LEFT JOIN <datasetTable> USING ( <commonColumn> ) " +
+            "WHERE <datasetTable>.<commonColumn> IS NULL";
 
     /**
      * Given a relationship, join from the start table to the target table.

@@ -2499,11 +2499,15 @@ definitions:
         type: string
         enum:
           - byAsset
+          - byQuery
           - byRowId
       assetSpec:
         $ref: '#/definitions/SnapshotRequestAssetModel'
+      querySpec:
+        $ref: '#/definitions/SnapshotRequestQueryModel'
       rowIdSpec:
         $ref: '#/definitions/SnapshotRequestRowIdModel'
+
 
   SnapshotRequestAssetModel:
     description: |
@@ -2519,6 +2523,19 @@ definitions:
         type: array
         items:
           type: string
+
+  SnapshotRequestQueryModel:
+    description: |
+      A specification of the query to go into a snapshot.
+    type: object
+    required:
+    - assetName
+    - query
+    properties:
+      assetName:
+        $ref: '#/definitions/ObjectNameProperty'
+      query:
+        type: string
 
   SnapshotRequestRowIdModel:
     description: |

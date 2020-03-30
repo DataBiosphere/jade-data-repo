@@ -9,6 +9,7 @@ public class SnapshotSummary {
     private String description;
     private Instant createdDate;
     private UUID profileId;
+    private String flightId;
 
     public UUID getId() {
         return id;
@@ -54,4 +55,14 @@ public class SnapshotSummary {
         this.profileId = profileId;
         return this;
     }
+
+    public String getFlightId() {
+        return flightId;
+    }
+
+    public SnapshotSummary flightId(String flightId) {
+        this.flightId = flightId;
+        return this;
+    }
+
 }

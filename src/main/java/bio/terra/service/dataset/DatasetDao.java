@@ -5,12 +5,14 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -81,8 +83,6 @@ public class DatasetDao {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to lock the dataset");
         }
-
-        return;
     }
 
     /**
@@ -113,9 +113,12 @@ public class DatasetDao {
      * @param dataset the dataset object to create
      * @return the id of the new dataset
      * @throws SQLException
+     * @throws IOException
+     * @throws InvalidDatasetException if a row already exists with this dataset name
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
+        logger.debug("createAndLock dataset " + dataset.getName());
         String sql = "INSERT INTO dataset (name, default_profile_id, flightid, description, additional_profile_ids) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids) ";
         Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());
@@ -126,7 +129,12 @@ public class DatasetDao {
             .addValue("description", dataset.getDescription())
             .addValue("additional_profile_ids", additionalProfileIds);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        try {
+            jdbcTemplate.update(sql, params, keyHolder);
+        } catch (DuplicateKeyException dkEx) {
+            throw new InvalidDatasetException("Dataset name already exists: " + dataset.getName(), dkEx);
+        }
+
         UUID datasetId = keyHolder.getId();
         dataset.id(datasetId);
         dataset.createdDate(keyHolder.getCreatedDate());
@@ -134,7 +142,8 @@ public class DatasetDao {
         tableDao.createTables(dataset.getId(), dataset.getTables());
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
-        return dataset.getId();
+
+        return datasetId;
     }
 
     @Transactional
@@ -184,8 +193,9 @@ public class DatasetDao {
 
     public DatasetSummary retrieveSummaryById(UUID id) {
         try {
-            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
-                " FROM dataset WHERE id = :id";
+            String sql = "SELECT " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+                "FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -195,8 +205,9 @@ public class DatasetDao {
 
     public DatasetSummary retrieveSummaryByName(String name) {
         try {
-            String sql = "SELECT id, name, description, default_profile_id, additional_profile_ids, created_date " +
-                " FROM dataset WHERE name = :name";
+            String sql = "SELECT " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+                "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -228,8 +239,9 @@ public class DatasetDao {
         if (!whereClauses.isEmpty()) {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
-        String sql = "SELECT id, name, description, created_date, default_profile_id, additional_profile_ids " +
-            " FROM dataset " + whereSql +
+        String sql = "SELECT " +
+            "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+            "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<DatasetSummary> summaries = jdbcTemplate.query(sql, params, new DatasetSummaryMapper());
@@ -247,7 +259,8 @@ public class DatasetDao {
                     .description(rs.getString("description"))
                     .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                     .additionalProfileIds(DaoUtils.getUUIDList(rs, "additional_profile_ids"))
-                    .createdDate(rs.getTimestamp("created_date").toInstant());
+                    .createdDate(rs.getTimestamp("created_date").toInstant())
+                    .flightId(rs.getString("flightid"));
         }
     }
 }

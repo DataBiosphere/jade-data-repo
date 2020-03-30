@@ -5,6 +5,7 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -42,6 +43,7 @@ public class SnapshotCreateFlight extends Flight {
         // 3. firestore data step - make the firestore file system for the snapshot
         // 4. firestore compute step - calculate checksums and sizes for all directories in the snapshot
         // 5. authorize snapshot - set permissions on BQ and files to enable access
+        // 6. unlock step - unlock the snapshot metadata row
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
         // Depending on the type of snapshot, the primary data step will differ:
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
@@ -69,5 +71,6 @@ public class SnapshotCreateFlight extends Flight {
             datasetService,
             snapshotReq,
             userReq));
+        addStep(new UnlockSnapshotStep(snapshotDao, snapshotReq.getName()));
     }
 }

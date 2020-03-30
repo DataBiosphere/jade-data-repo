@@ -124,7 +124,7 @@ public class SnapshotService {
      * @return summary model of the snapshot
      */
     public SnapshotSummaryModel retrieveSnapshotSummary(UUID id) {
-        SnapshotSummary snapshotSummary = snapshotDao.retrieveSnapshotSummary(id);
+        SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(id);
         return makeSummaryModelFromSummary(snapshotSummary);
     }
 

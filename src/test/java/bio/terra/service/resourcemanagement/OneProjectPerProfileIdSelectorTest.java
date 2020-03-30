@@ -75,7 +75,7 @@ public class OneProjectPerProfileIdSelectorTest {
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
         DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
+            connectedOperations.createDataset(profile, "dataset-minimal.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
@@ -95,7 +95,7 @@ public class OneProjectPerProfileIdSelectorTest {
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
         DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDatasetWithFlight(profile, "dataset-minimal.json");
+            connectedOperations.createDataset(profile, "dataset-minimal.json");
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetSummaryModel.getId()));
 
         String projectId = oneProjectPerProfileIdSelector.projectIdForDataset(dataset);
@@ -113,7 +113,7 @@ public class OneProjectPerProfileIdSelectorTest {
         BillingProfileModel profile = profileService.createProfile(billingProfileRequestModel);
 
         DatasetSummaryModel datasetSummaryModel =
-            connectedOperations.createDatasetWithFlight(profile, "snapshot-test-dataset.json");
+            connectedOperations.createDataset(profile, "snapshot-test-dataset.json");
 
         MockHttpServletResponse response =
             connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");

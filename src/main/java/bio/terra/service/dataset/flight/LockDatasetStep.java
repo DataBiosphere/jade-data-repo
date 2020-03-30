@@ -2,9 +2,7 @@ package bio.terra.service.dataset.flight;
 
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -15,23 +13,19 @@ import org.slf4j.LoggerFactory;
 public class LockDatasetStep implements Step {
 
     private DatasetDao datasetDao;
-    private DatasetRequestModel datasetRequest;
+    private String datasetName;
 
     private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
 
-    public LockDatasetStep(DatasetDao datasetDao, DatasetRequestModel datasetRequest) {
+    public LockDatasetStep(DatasetDao datasetDao, String datasetName) {
         this.datasetDao = datasetDao;
-        this.datasetRequest = datasetRequest;
+        this.datasetName = datasetName;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            String datasetName = datasetRequest.getName();
             datasetDao.lock(datasetName, context.getFlightId());
-
-            FlightMap workingMap = context.getWorkingMap();
-            workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, datasetName);
 
             return StepResult.getStepResultSuccess();
         } catch (DatasetLockException lockedEx) {
@@ -44,7 +38,7 @@ public class LockDatasetStep implements Step {
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
-        boolean rowUpdated = datasetDao.unlock(datasetRequest.getName(), context.getFlightId());
+        boolean rowUpdated = datasetDao.unlock(datasetName, context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

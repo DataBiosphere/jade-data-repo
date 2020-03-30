@@ -6,10 +6,12 @@ import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSummary;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.common.FlightUtils;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
 import bio.terra.stairway.FlightContext;
+import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -39,12 +41,18 @@ public class CreateSnapshotMetadataStep implements Step {
     public StepResult doStep(FlightContext context) {
         try {
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotReq);
-            UUID snapshotId = snapshotDao.create(snapshot);
-            context.getWorkingMap().put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
-            SnapshotSummary snapshotSummary = snapshotDao.retrieveSnapshotSummary(snapshot.getId());
+
+            UUID snapshotId = snapshotDao.createAndLock(snapshot, context.getFlightId());
+            FlightMap workingMap = context.getWorkingMap();
+            workingMap.put(SnapshotWorkingMapKeys.SNAPSHOT_ID, snapshotId);
+
+            SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryById(snapshot.getId());
             SnapshotSummaryModel response = snapshotService.makeSummaryModelFromSummary(snapshotSummary);
+
             FlightUtils.setResponse(context, response, HttpStatus.CREATED);
             return StepResult.getStepResultSuccess();
+        } catch (InvalidSnapshotException isEx) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, isEx);
         } catch (SnapshotNotFoundException ex) {
             FlightUtils.setErrorResponse(context, ex.toString(), HttpStatus.BAD_REQUEST);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

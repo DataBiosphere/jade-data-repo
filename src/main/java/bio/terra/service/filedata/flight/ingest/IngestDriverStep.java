@@ -44,6 +44,7 @@ public class IngestDriverStep implements Step {
     private final String loadTag;
     private final int concurrentFiles;
     private final int maxFailedFileLoads;
+    private final int driverWaitSeconds;
     private final String profileId;
 
     public IngestDriverStep(LoadService loadService,
@@ -51,12 +52,14 @@ public class IngestDriverStep implements Step {
                             String loadTag,
                             int concurrentFiles,
                             int maxFailedFileLoads,
+                            int driverWaitSeconds,
                             String profileId) {
         this.loadService = loadService;
         this.datasetId = datasetId;
         this.loadTag = loadTag;
         this.concurrentFiles = concurrentFiles;
         this.maxFailedFileLoads = maxFailedFileLoads;
+        this.driverWaitSeconds = driverWaitSeconds;
         this.profileId = profileId;
     }
 
@@ -140,11 +143,8 @@ public class IngestDriverStep implements Step {
 
     private void waiting() {
         logger.debug("Waiting for file loads to complete...");
-
-        // TODO: make a settable for the sleep timer for this wait
-        int waitSeconds = 60;
         try {
-            TimeUnit.SECONDS.sleep(waitSeconds);
+            TimeUnit.SECONDS.sleep(driverWaitSeconds);
         } catch (InterruptedException iex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("Bulk ingest driver interruped!", iex);

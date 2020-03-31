@@ -40,6 +40,7 @@ public class FileIngestBulkArrayFlight extends Flight {
         String profileId = loadRequest.getProfileId();
 
         int concurrentFiles = inputParameters.get(LoadMapKeys.CONCURRENT_FILES, Integer.class);
+        int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
 
         // TODO: for reserving a bulk load slot:
         //    int concurrentIngests = inputParameters.get(LoadMapKeys.CONCURRENT_INGESTS, Integer.class);
@@ -60,7 +61,14 @@ public class FileIngestBulkArrayFlight extends Flight {
         addStep(new LoadLockStep(loadService));
         // 2. reserve a bulk load slot
         addStep(new IngestPopulateFileStateFromArrayStep(loadService));
-        addStep(new IngestDriverStep(loadService, datasetId, loadTag, concurrentFiles, maxFailedFileLoads, profileId));
+        addStep(new IngestDriverStep(
+            loadService,
+            datasetId,
+            loadTag,
+            concurrentFiles,
+            maxFailedFileLoads,
+            driverWaitSeconds,
+            profileId));
         addStep(new IngestBulkArrayResponseStep(loadService, loadTag));
         // 6. copy results into BigQuery
         addStep(new IngestCleanFileStateStep(loadService));

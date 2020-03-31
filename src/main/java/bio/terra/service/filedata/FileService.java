@@ -97,8 +97,9 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_INGESTS))
             .addParameter(LoadMapKeys.CONCURRENT_FILES,
                 configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
+            .addParameter(LoadMapKeys.DRIVER_WAIT_SECONDS,
+                configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .submit();
-
     }
 
     public String ingestBulkFileArray(String datasetId,
@@ -123,6 +124,8 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_INGESTS))
             .addParameter(LoadMapKeys.CONCURRENT_FILES,
                 configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
+            .addParameter(LoadMapKeys.DRIVER_WAIT_SECONDS,
+                configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .submit();
     }
 

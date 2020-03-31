@@ -29,6 +29,7 @@ import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_CONT
 import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_SKIP_FILE_LOAD;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
@@ -190,13 +191,15 @@ public class ConfigurationService {
         addFaultCounted(LOAD_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(LOAD_LOCK_CONFLICT_CONTINUE_FAULT);
 
+        // Skip File Load fault is intended for bulk load infrastructure testing. It executes the bulk
+        // load without copying any files. There is code in IngestFilePrimaryDataStep that
+        // skips the copy and makes a dummy FSFileInfo. There is also code in DeleteDatasetPrimaryDataStep
+        // that skips deleting files.
+        addFaultSimple(LOAD_SKIP_FILE_LOAD);
+
         // Bucket resource lock faults. These are used by ResourceLockTest
         addFaultCounted(BUCKET_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(BUCKET_LOCK_CONFLICT_CONTINUE_FAULT);
     }
-
-
-
-
 
 }

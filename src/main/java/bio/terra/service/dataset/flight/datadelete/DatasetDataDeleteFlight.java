@@ -7,7 +7,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.FetchDatasetStep;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
-import bio.terra.service.dataset.flight.create.CreateDatasetMetadataStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -50,6 +49,7 @@ public class DatasetDataDeleteFlight extends Flight {
         //addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         addStep(new FetchDatasetStep(datasetDao));
         addStep(new LockDatasetStep(datasetDao));
+        addStep(new CreateExternalTableStep(bigQueryPdao, datasetService));
         /*
         - check to see access to file
         - create external temp table

@@ -1,7 +1,9 @@
 package bio.terra.service.dataset.flight;
 
+import bio.terra.model.DatasetModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -30,6 +32,7 @@ public class FetchDatasetStep implements Step {
 
         String datasetId = inputMap.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         Dataset dataset = datasetDao.retrieve(UUID.fromString(datasetId));
+        // TODO: we could also put the dataset model in here
 
         workingMap.put(DatasetWorkingMapKeys.DATASET_NAME, dataset.getName());
         return StepResult.getStepResultSuccess();

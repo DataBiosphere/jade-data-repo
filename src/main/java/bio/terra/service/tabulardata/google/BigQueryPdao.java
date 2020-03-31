@@ -26,10 +26,15 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import com.google.api.services.bigquery.model.ExternalDataConfiguration;
+import com.google.api.services.bigquery.model.TableFieldSchema;
+import com.google.api.services.bigquery.model.TableReference;
+import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.CsvOptions;
+import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -41,6 +46,7 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -53,6 +59,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,6 +67,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -1046,5 +1054,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
             case "TIMESTAMP": return LegacySQLTypeName.TIMESTAMP;
             default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
         }
+    }
+
+    public String createExternalTable(Dataset dataset, String path, String tableName, String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String extTableName = String.format("%s%s_%s", PDAO_EXTERNAL_TABLE_PREFIX, tableName, suffix);
+        TableId tableId = TableId.of(prefixName(dataset.getName()), extTableName);
+        Schema schema = Schema.of(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        ExternalTableDefinition tableDef = ExternalTableDefinition.of(path, schema, FormatOptions.csv());
+        TableInfo tableInfo = TableInfo.of(tableId, tableDef);
+        bigQueryProject.getBigQuery().create(tableInfo);
+        return extTableName;
     }
 }

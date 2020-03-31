@@ -48,7 +48,8 @@ public class DatasetDataDeleteFlight extends Flight {
         // need to lock, need dataset name and flight id
         //addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));
         addStep(new FetchDatasetStep(datasetDao));
-        addStep(new LockDatasetStep(datasetDao));
+        // TODO: why name here?
+        //addStep(new LockDatasetStep(datasetDao));
         addStep(new CreateExternalTableStep(bigQueryPdao, datasetService));
         /*
         - check to see access to file
@@ -61,7 +62,7 @@ public class DatasetDataDeleteFlight extends Flight {
 
         // TODO: create dataset data project step
         // right now the cloud project is created as part of the PrimaryDataStep below
-        addStep(new UnlockDatasetStep(datasetDao));
+        //addStep(new UnlockDatasetStep(datasetDao));
     }
 
 }

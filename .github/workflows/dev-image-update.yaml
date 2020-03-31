@@ -29,15 +29,11 @@ jobs:
       - name: "Check and edit Helm definition for dev"
         uses: broadinstitute/datarepo-actions@0.1.0
         with:
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: dev
       - name: "Check and edit Helm definition for integration"
         uses: broadinstitute/datarepo-actions@0.1.0
         with:
-          role_id: ${{ secrets.ROLE_ID }}
-          secret_id: ${{ secrets.SECRET_ID }}
           actions_subcommand: 'deploytagupdate'
           helm_env_prefix: 'integration-1,integration-2,integration-3,integration-4,integration-5'
       - name: Slack job status

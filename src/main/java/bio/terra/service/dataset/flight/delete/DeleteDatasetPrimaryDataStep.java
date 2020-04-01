@@ -44,7 +44,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
         bigQueryPdao.deleteDataset(dataset);
         if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
             // If we didn't load files, don't try to delete them
-            fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> {});
+            fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> { });
         } else {
             fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
         }

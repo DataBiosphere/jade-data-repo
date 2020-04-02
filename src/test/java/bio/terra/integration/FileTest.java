@@ -17,7 +17,6 @@ import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -81,9 +80,6 @@ public class FileTest extends UsersBase {
 
     // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
     // Do file ingests in parallel using a filename that will cause failure
-    // TODO: DR-643 needs to be fixed before this test will work reliably.
-    //  So for now it has to stay ignored
-    @Ignore
     @Test
     public void fileParallelFailedLoadTest() throws Exception {
         List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();

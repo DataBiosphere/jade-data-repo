@@ -46,6 +46,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -232,6 +233,36 @@ public class DatasetIntegrationTest extends UsersBase {
             .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
     }
 
+    // TODO: wildcard test, validation tests, empty file, missing file, fault insertion on creating ext tables
+
+    private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n) {
+        String tableRef = BigQueryFixtures.makeTableRef(dataset, tableName);
+        String sql = String.format("SELECT %s FROM %s LIMIT %s", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef, n);
+        TableResult result = BigQueryFixtures.query(sql, bigQuery);
+        assertThat("got right num of row ids back", result.getTotalRows(), equalTo(n));
+        return StreamSupport.stream(result.getValues().spliterator(), false)
+            .map(fieldValues -> fieldValues.get(0).getStringValue())
+            .collect(Collectors.toList());
+    }
+
+    private String writeListToScratch(String prefix, List<String> contents) throws IOException {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
+        BlobInfo blob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
+        try (WriteChannel writer = storage.writer(blob)) {
+            for (String line : contents) {
+                writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+            }
+        }
+        return String.format("gs://%s/%s", blob.getBucket(), targetPath);
+    }
+
+    private void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n) {
+        String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
+        TableResult result = BigQueryFixtures.query(sql, bigQuery);
+        assertThat("count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
+    }
+
     @Test
     public void testSoftDeleteHappyPath() throws Exception {
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
@@ -249,28 +280,25 @@ public class DatasetIntegrationTest extends UsersBase {
         // get row ids
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
-        String tableRef = BigQueryFixtures.makeTableRef(dataset, "participant");
-        String sql = String.format("SELECT %s FROM %s LIMIT 3", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef);
-        TableResult result = BigQueryFixtures.query(sql, bigQuery);
-        assertThat("got 3 row ids back", result.getTotalRows(), equalTo(3L));
-        List<String> rowIds = StreamSupport.stream(result.getValues().spliterator(), false)
-            .map(fieldValues -> fieldValues.get(0).getStringValue())
-            .collect(Collectors.toList());
+        List<String> participantRowIds = getRowIds(bigQuery, dataset, "participant", 3L);
+        List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 2L);
 
         // write them to GCS
-        Storage storage = StorageOptions.getDefaultInstance().getService();
-        String targetPath = "scratch/softDel/" + UUID.randomUUID().toString() + ".csv";
-        BlobInfo blob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
-        try (WriteChannel writer = storage.writer(blob)) {
-            for (String rowId : rowIds) {
-                writer.write(ByteBuffer.wrap((rowId + "\n").getBytes(Charsets.UTF_8)));
-            }
-        }
+        String participantPath = writeListToScratch("softDel", participantRowIds);
+        String samplePath = writeListToScratch("softDel", sampleRowIds);
+
+        // build the deletion request with pointers to the two files with row ids to soft delete
+        List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
+            deletionTableFile("participant", participantPath),
+            deletionTableFile("sample", samplePath));
+        DataDeletionRequest request = dataDeletionRequest()
+            .tables(dataDeletionTableModels);
 
         // send off the soft delete request
-        String gsPath = String.format("gs://%s/%s", blob.getBucket(), targetPath);
-        DataDeletionRequest request = dataDeletionRequest()
-            .tables(Collections.singletonList(deletionTableFile("participant", gsPath)));
         dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+        // make sure the new counts make sense
+        assertTableCount(bigQuery, dataset, "participant", 2L);
+        assertTableCount(bigQuery, dataset, "sample", 5L);
     }
 }

@@ -233,7 +233,7 @@ public class DatasetIntegrationTest extends UsersBase {
     }
 
     @Test
-    public void testSoftDelete() throws Exception {
+    public void testSoftDeleteHappyPath() throws Exception {
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         String datasetId = datasetSummaryModel.getId();
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
@@ -241,10 +241,10 @@ public class DatasetIntegrationTest extends UsersBase {
         IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
 
-        //ingestRequest = dataRepoFixtures.buildSimpleIngest(
-        //    "sample", "ingest-test/ingest-test-sample.json");
-        //ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
-        //assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+        ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json");
+        ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
 
         // get row ids
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -267,9 +267,10 @@ public class DatasetIntegrationTest extends UsersBase {
             }
         }
 
+        // send off the soft delete request
         String gsPath = String.format("gs://%s/%s", blob.getBucket(), targetPath);
         DataDeletionRequest request = dataDeletionRequest()
             .tables(Collections.singletonList(deletionTableFile("participant", gsPath)));
-        DataRepoResponse<JobModel> response = dataRepoFixtures.deleteDataRaw(steward(), datasetId, request);
+        dataRepoFixtures.deleteData(steward(), datasetId, request);
     }
 }

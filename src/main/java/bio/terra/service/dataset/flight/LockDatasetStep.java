@@ -2,46 +2,49 @@ package bio.terra.service.dataset.flight;
 
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidLockUsageException;
 import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class LockDatasetStep implements Step {
-
-    private DatasetDao datasetDao;
-    private String datasetName;
+public class LockDatasetStep extends LockDatasetBaseStep {
 
     private static Logger logger = LoggerFactory.getLogger(LockDatasetStep.class);
 
     public LockDatasetStep(DatasetDao datasetDao, String datasetName) {
-        this.datasetDao = datasetDao;
-        this.datasetName = datasetName;
+        super(datasetDao, datasetName);
+    }
+
+    public LockDatasetStep(DatasetDao datasetDao) {
+        super(datasetDao);
     }
 
     @Override
-    // assumes datasetName has been fetched and placed into the working map in a previous step
     public StepResult doStep(FlightContext context) {
         try {
-            datasetDao.lock(datasetName, context.getFlightId());
+            getDatasetDao().lock(getDatasetName(context), context.getFlightId());
 
             return StepResult.getStepResultSuccess();
-        } catch (DatasetLockException lockedEx) {
-            logger.debug("Another flight has already locked this Dataset", lockedEx);
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, lockedEx);
+        } catch (DatasetLockException | InvalidLockUsageException | DatasetNotFoundException ex) {
+            logger.debug("Issue locking this Dataset", ex);
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         }
     }
 
-    // TODO: DRY this up, shared with the unlock step
     @Override
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
-        boolean rowUpdated = datasetDao.unlock(datasetName, context.getFlightId());
-        logger.debug("rowUpdated on unlock = " + rowUpdated);
+        try {
+            boolean rowUpdated = getDatasetDao().unlock(getDatasetName(context), context.getFlightId());
+            logger.debug("rowUpdated on unlock = " + rowUpdated);
+        } catch (InvalidLockUsageException | DatasetNotFoundException ex) {
+            logger.debug("Issue unlocking this Dataset", ex);
+        }
 
         return StepResult.getStepResultSuccess();
     }

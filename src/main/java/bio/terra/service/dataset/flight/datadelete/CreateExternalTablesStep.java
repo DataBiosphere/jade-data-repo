@@ -23,15 +23,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 
-public class CreateExternalTableStep implements Step {
+public class CreateExternalTablesStep implements Step {
 
     private final BigQueryPdao bigQueryPdao;
     private final DatasetService datasetService;
     private final Storage storage;
 
-    private static Logger logger = LoggerFactory.getLogger(CreateExternalTableStep.class);
+    private static Logger logger = LoggerFactory.getLogger(CreateExternalTablesStep.class);
 
-    public CreateExternalTableStep(BigQueryPdao bigQueryPdao, DatasetService datasetService) {
+    public CreateExternalTablesStep(BigQueryPdao bigQueryPdao, DatasetService datasetService) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.storage = StorageOptions.getDefaultInstance().getService();
@@ -73,26 +73,37 @@ public class CreateExternalTableStep implements Step {
             .get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
     }
 
-    @Override
-    public StepResult doStep(FlightContext context) {
-        DataDeletionRequest dataDeletionRequest = request(context);
-        String suffix = suffix(context);
-        validateFilesExistForTables(dataDeletionRequest);
+    private Dataset dataset(FlightContext context) {
         String datasetId = context.getInputParameters()
             .get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+        return datasetService.retrieve(UUID.fromString(datasetId));
+    }
 
-        for (DataDeletionTableModel table : dataDeletionRequest.getTables()) {
+    @Override
+    public StepResult doStep(FlightContext context) {
+        Dataset dataset = dataset(context);
+        String suffix = suffix(context);
+        DataDeletionRequest dataDeletionRequest = request(context);
+
+        validateFilesExistForTables(dataDeletionRequest);
+
+        dataDeletionRequest.getTables().forEach(table -> {
             String path = table.getGcsFileSpec().getPath();
             bigQueryPdao.createExternalTable(dataset, path, table.getTableName(), suffix);
-        }
+        });
 
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        // TODO: loop through the tables, clean up
+        Dataset dataset = dataset(context);
+        String suffix = suffix(context);
+
+        for (DataDeletionTableModel table : request(context).getTables()) {
+            bigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
+        }
+
         return StepResult.getStepResultSuccess();
     }
 }

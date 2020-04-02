@@ -123,11 +123,21 @@ public class DataRepoFixtures {
         return response.getErrorObject().get();
     }
 
-    public DataRepoResponse<JobModel> deleteDataRaw(
-        TestConfiguration.User user, String datasetId, DataDeletionRequest request) throws Exception {
+    public DataRepoResponse<JobModel> deleteDataRaw(TestConfiguration.User user,
+                                                    String datasetId,
+                                                    DataDeletionRequest request) throws Exception {
         String url = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
         String json = TestUtils.mapToJson(request);
         return dataRepoClient.post(user, url, json, JobModel.class);
+    }
+
+    public void deleteData(TestConfiguration.User user,
+                           String datasetId,
+                           DataDeletionRequest request) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = deleteDataRaw(user, datasetId, request);
+        DataRepoResponse<DeleteResponseModel> deleteResponse =
+            dataRepoClient.waitForResponse(user, jobResponse, DeleteResponseModel.class);
+        assertGoodDeleteResponse(deleteResponse);
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)

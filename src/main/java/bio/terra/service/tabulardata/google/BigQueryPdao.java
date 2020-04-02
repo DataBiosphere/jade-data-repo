@@ -26,10 +26,6 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
-import com.google.api.services.bigquery.model.ExternalDataConfiguration;
-import com.google.api.services.bigquery.model.TableFieldSchema;
-import com.google.api.services.bigquery.model.TableReference;
-import com.google.api.services.bigquery.model.TableSchema;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -64,8 +60,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
@@ -1056,14 +1054,52 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    private String externalTableName(String tableName, String suffix) {
+        return String.format("%s%s_%s", PDAO_EXTERNAL_TABLE_PREFIX, tableName, suffix);
+    }
+
     public String createExternalTable(Dataset dataset, String path, String tableName, String suffix) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-        String extTableName = String.format("%s%s_%s", PDAO_EXTERNAL_TABLE_PREFIX, tableName, suffix);
+        String extTableName = externalTableName(tableName, suffix);
         TableId tableId = TableId.of(prefixName(dataset.getName()), extTableName);
         Schema schema = Schema.of(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         ExternalTableDefinition tableDef = ExternalTableDefinition.of(path, schema, FormatOptions.csv());
         TableInfo tableInfo = TableInfo.of(tableId, tableDef);
         bigQueryProject.getBigQuery().create(tableInfo);
         return extTableName;
+    }
+
+    public boolean deleteExternalTable(Dataset dataset, String tableName, String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String extTableName = externalTableName(tableName, suffix);
+        return bigQueryProject.deleteTable(prefixName(dataset.getName()), extTableName);
+    }
+
+    private static final String insertSoftDeleteTemplate =
+        "INSERT INTO `<project>.<dataset>.<softDeleteTable>` SELECT * FROM `<project>.<dataset>.<softDeleteExtTable>`";
+
+    /**
+     * Insert row ids into the corresponding soft delete table for each table provided.
+     *
+     * @param dataset repo dataset that we are deleting data from
+     * @param tableNames list of table names that should have corresponding external tables with row ids to soft delete
+     * @param suffix a bq-safe version of the flight id to prevent different flights from stepping on each other
+     */
+    public TableResult applySoftDeletes(Dataset dataset,
+                                 List<String> tableNames,
+                                 Map<String, String> softDeleteTableNameLookup,
+                                 String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        List<String> sqlStatements = tableNames.stream()
+            .map(tableName -> new ST(insertSoftDeleteTemplate)
+                .add("project", bigQueryProject.getProjectId())
+                .add("dataset", prefixName(dataset.getName()))
+                .add("softDeleteTable", softDeleteTableNameLookup.get(tableName))
+                .add("softDeleteExtTable", externalTableName(tableName, suffix))
+                .render())
+            .collect(Collectors.toList());
+
+        return bigQueryProject.query(String.join(";", sqlStatements));
     }
 }

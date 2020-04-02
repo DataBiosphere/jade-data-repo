@@ -183,7 +183,7 @@ skaffold run
     ```
       datarepoGcsAllowreuseexistingbuckets:
     ```
-    - Release a new version of the chart. Talk to DevOps/Mark S to do this.
+    - Release a new version of the chart. Talk to DevOps to do this.
 3. To override properties for specific environments (e.g. integration), modify the 
 [environment-specific override Data Repo charts](https://github.com/broadinstitute/datarepo-helm-definitions).
     - Find the [deployment.yaml](https://github.com/broadinstitute/datarepo-helm-definitions/blob/master/integration/integration-1/integration-1Deployment.yaml)

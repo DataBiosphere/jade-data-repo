@@ -19,11 +19,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 public class IngestFileDirectoryStep implements Step {
     private static final Logger logger = LoggerFactory.getLogger(IngestFileDirectoryStep.class);
-    private static AtomicLong abortCounter = new AtomicLong();
 
     private final FireStoreDao fileDao;
     private final FireStoreUtils fireStoreUtils;
@@ -98,8 +95,6 @@ public class IngestFileDirectoryStep implements Step {
 
             }
         } catch (FileSystemAbortTransactionException rex) {
-            long ac = abortCounter.incrementAndGet();
-            logger.warn("RETRY filedir: " + ac);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }
 

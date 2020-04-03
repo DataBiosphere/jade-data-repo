@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileService;
@@ -39,11 +40,14 @@ public class FileIngestWorkerFlight extends Flight {
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
+        ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
 
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);
 
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff createBucketRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
         // 1. Generate the new file id and store it in the working map. We need to allocate the file id before any
@@ -63,8 +67,8 @@ public class FileIngestWorkerFlight extends Flight {
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
         addStep(new IngestFileIdStep());
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
-        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService));
-        addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));
+        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService), createBucketRetry);
+        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     }
 

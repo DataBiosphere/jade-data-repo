@@ -23,7 +23,7 @@ confirm () {
     if [[ ! -z "$SKIP_CONFIRM" ]]; then
         shift
         $@
-    else 
+    else
         # call with a prompt string or use a default
         read -r -p "${1:-Are you sure?} [y/N] " response
         case $response in
@@ -48,6 +48,6 @@ if confirm "Delete all these Big Query datasets?"; then
     for file in $DATASETS_TO_DELETE
     do
       echo "Removing $file"
-      bq rm -rf --project_id=$PROJ $file
+      bq rm -r -f --project_id=$PROJ $file
     done
 fi

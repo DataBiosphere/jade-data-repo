@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: allowlongernames
+      author: danmoran
+      changes:
+        - modifyDataType:
+            tableName: dataset_relationship
+            columnName: name
+            newDataType: text
+        - modifyDataType:
+            tableName: asset_specification
+            columnName: name
+            newDataType: text

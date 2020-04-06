@@ -2740,7 +2740,7 @@ definitions:
           - csv
       path:
         type: string
-        description: a gs://path/to/a/file that can use wildcards(*)
+        description: a gs://path/to/a/file that can include a wildcard (*)
 
   UserStatusInfo:
     description: ''

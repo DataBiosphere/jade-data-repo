@@ -121,8 +121,8 @@ public class EncodeFixture {
         // Read one line at a time - unpack into pojo
         // Ingest the files, substituting the file ids
         // Generate JSON and write the line to scratch
-        String rndtail = UUID.randomUUID().toString() + ".json";
-        String loaddata = "scratch/lf_loaddata" + rndtail;
+        String rndSuffix = UUID.randomUUID().toString() + ".json";
+        String loadData = "scratch/lf_loaddata" + rndSuffix;
 
         // For a bigger test use encodetest/file.json (1000+ files)
         // For normal testing encodetest/file_small.json (10 files)
@@ -161,7 +161,7 @@ public class EncodeFixture {
             resultMap.put(fileResult.getSourcePath(), fileResult);
         }
 
-        try (GcsChannelWriter writer = new GcsChannelWriter(storage, testConfiguration.getIngestbucket(), loaddata)) {
+        try (GcsChannelWriter writer = new GcsChannelWriter(storage, testConfiguration.getIngestbucket(), loadData)) {
             for (EncodeFileIn encodeFileIn : inArray) {
                 BulkLoadFileResultModel resultModel = resultMap.get(encodeFileIn.getFile_gs_path());
                 String bamFileId = (resultModel == null) ? null : resultModel.getFileId();
@@ -173,14 +173,14 @@ public class EncodeFixture {
             }
         }
 
-        return loaddata;
+        return loadData;
     }
 
-    public void deleteLoadFile(TestConfiguration.User user, String loaddata) {
+    public void deleteLoadFile(TestConfiguration.User user, String loadData) {
         String userToken = authService.getDirectAccessAuthToken(user.getEmail());
         Storage storage = dataRepoFixtures.getStorage(userToken);
         Blob targetBlob = storage.get(
-            BlobId.of(testConfiguration.getIngestbucket(), loaddata));
+            BlobId.of(testConfiguration.getIngestbucket(), loadData));
         targetBlob.delete();
     }
 

@@ -4,8 +4,8 @@ Ensure that you have access to the required team resources beforehand. If you
 encounter a permission error, it is likely because you are missing appropriate
 access. Join the `#github` Slack channel, click the lightning bolt in the
 channel header, and select `Join DataBiosphere`. Ask for access to Google Groups
-including `dsde-engineering`. A DevOps colleague will also need to create a Helm
-`datarepo` definition for you.
+including `dsde-engineering`. A colleague on the team will also need to create a
+Helm `datarepo` definition for you.
 
 These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN.

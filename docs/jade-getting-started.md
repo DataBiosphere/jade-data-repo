@@ -220,5 +220,6 @@ gcloud container clusters get-credentials dev-master --region us-central1 --proj
 ```
 # replace all instances of `zzz` with your initials
 cd datarepo-helm-definitions/dev/zzz
-kubectl apply -f zzzHelmOperator.yaml --namespace zzz
+helm namespace upgrade zzz-secrets datarepo-helm/create-secret-manager-secret --version=0.0.4 --install --namespace zzz -f zzzSecrets.yaml
+helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install --namespace zzz -f zzzDeployment.yaml
 ```

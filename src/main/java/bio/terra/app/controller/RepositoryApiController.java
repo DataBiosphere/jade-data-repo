@@ -469,7 +469,7 @@ public class RepositoryApiController implements RepositoryApi {
         String id,
         @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
-        String jobId = datasetService.deleteDatasetData(id, dataDeletionRequest, userReq);
+        String jobId = datasetService.deleteTabularData(id, dataDeletionRequest, userReq);
         return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 

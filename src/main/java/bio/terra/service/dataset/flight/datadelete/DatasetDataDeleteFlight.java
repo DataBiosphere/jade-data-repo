@@ -38,7 +38,7 @@ public class DatasetDataDeleteFlight extends Flight {
         // need to lock, need dataset name and flight id
         addStep(new LockDatasetStep(datasetDao));
 
-        // check to see access to file and create external temp table
+        // validate tables exist, check access to files, and create external temp tables
         addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));
 
         // insert into soft delete table

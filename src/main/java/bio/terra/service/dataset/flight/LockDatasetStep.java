@@ -3,7 +3,7 @@ package bio.terra.service.dataset.flight;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.exception.InvalidLockUsageException;
+import bio.terra.service.dataset.exception.InvalidLockArgumentException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
@@ -29,7 +29,7 @@ public class LockDatasetStep extends LockDatasetBaseStep {
             getDatasetDao().lock(getDatasetName(context), context.getFlightId());
 
             return StepResult.getStepResultSuccess();
-        } catch (DatasetLockException | InvalidLockUsageException | DatasetNotFoundException ex) {
+        } catch (DatasetLockException | InvalidLockArgumentException | DatasetNotFoundException ex) {
             logger.debug("Issue locking this Dataset", ex);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         }
@@ -42,7 +42,7 @@ public class LockDatasetStep extends LockDatasetBaseStep {
         try {
             boolean rowUpdated = getDatasetDao().unlock(getDatasetName(context), context.getFlightId());
             logger.debug("rowUpdated on unlock = " + rowUpdated);
-        } catch (InvalidLockUsageException | DatasetNotFoundException ex) {
+        } catch (InvalidLockArgumentException | DatasetNotFoundException ex) {
             logger.debug("Issue unlocking this Dataset", ex);
         }
 

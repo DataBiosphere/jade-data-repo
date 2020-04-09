@@ -7,8 +7,9 @@ import bio.terra.model.DataDeletionTableModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.InvalidFileRefException;
+import bio.terra.service.dataset.exception.TableNotFoundException;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -19,8 +20,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getDataset;
+import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getRequest;
+import static bio.terra.service.dataset.flight.datadelete.DataDeletionUtils.getSuffix;
 
 
 public class CreateExternalTablesStep implements Step {
@@ -40,8 +44,14 @@ public class CreateExternalTablesStep implements Step {
     private boolean fileExistsForTable(DataDeletionTableModel table) {
         // TODO: support other file types (assuming header-less csv here)
         String path  = table.getGcsFileSpec().getPath();
+        IngestUtils.GsUrlParts gsUrlParts = IngestUtils.parseBlobUri(path);
         try {
-            return GcsPdao.getBlobFromGsPath(storage, path).exists();
+            if (gsUrlParts.getIsWildcard()) {
+                // There's not an easy way to check this with the SDK. Let BQ handle catching this on its side.
+                return true;
+            } else {
+                return GcsPdao.getBlobFromGsPath(storage, path).exists();
+            }
         } catch (PdaoInvalidUriException | PdaoSourceFileNotFoundException ex) {
             logger.warn("Could not fetch details about: " + path, ex);
             throw ex;
@@ -49,47 +59,42 @@ public class CreateExternalTablesStep implements Step {
     }
 
     private void validateFilesExistForTables(DataDeletionRequest request) {
-        // TODO: revisit the name of this? table could be confusing here
-        List<DataDeletionTableModel> tablesMissingFiles = request.getTables()
+        List<String> missingFiles = request.getTables()
             .stream()
             .filter(t -> !fileExistsForTable(t))
+            .map(t -> t.getGcsFileSpec().getPath())
             .collect(Collectors.toList());
 
-        if (tablesMissingFiles.size() > 0) {
-            List<String> badPaths = tablesMissingFiles
-                .stream()
-                .map(t -> t.getGcsFileSpec().getPath())
-                .collect(Collectors.toList());
-            throw new InvalidFileRefException("Not all files referenced in request exist.", badPaths);
+        if (missingFiles.size() > 0) {
+            throw new InvalidFileRefException("Not all files referenced in request exist.", missingFiles);
         }
     }
 
-    private String suffix(FlightContext context) {
-        return context.getFlightId().replace('-', '_');
-    }
+    private void validateTablesExistInDataset(DataDeletionRequest request, Dataset dataset) {
+        List<String> missingTables = request.getTables()
+            .stream()
+            .filter(t -> !dataset.getTableByName(t.getTableName()).isPresent())
+            .map(DataDeletionTableModel::getTableName)
+            .collect(Collectors.toList());
 
-    private DataDeletionRequest request(FlightContext context) {
-        return context.getInputParameters()
-            .get(JobMapKeys.REQUEST.getKeyName(), DataDeletionRequest.class);
-    }
-
-    private Dataset dataset(FlightContext context) {
-        String datasetId = context.getInputParameters()
-            .get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
-        return datasetService.retrieve(UUID.fromString(datasetId));
+        if (missingTables.size() > 0) {
+            throw new TableNotFoundException("Not all tables from request exist in dataset: " +
+                String.join(", ", missingTables));
+        }
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Dataset dataset = dataset(context);
-        String suffix = suffix(context);
-        DataDeletionRequest dataDeletionRequest = request(context);
+        Dataset dataset = getDataset(context, datasetService);
+        String suffix = getSuffix(context);
+        DataDeletionRequest dataDeletionRequest = getRequest(context);
 
+        validateTablesExistInDataset(dataDeletionRequest, dataset);
         validateFilesExistForTables(dataDeletionRequest);
 
         dataDeletionRequest.getTables().forEach(table -> {
             String path = table.getGcsFileSpec().getPath();
-            bigQueryPdao.createExternalTable(dataset, path, table.getTableName(), suffix);
+            bigQueryPdao.createSoftDeleteExternalTable(dataset, path, table.getTableName(), suffix);
         });
 
         return StepResult.getStepResultSuccess();
@@ -97,11 +102,11 @@ public class CreateExternalTablesStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        Dataset dataset = dataset(context);
-        String suffix = suffix(context);
+        Dataset dataset = getDataset(context, datasetService);
+        String suffix = getSuffix(context);
 
-        for (DataDeletionTableModel table : request(context).getTables()) {
-            bigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix);
+        for (DataDeletionTableModel table : getRequest(context).getTables()) {
+            bigQueryPdao.deleteSoftDeleteExternalTable(dataset, table.getTableName(), suffix);
         }
 
         return StepResult.getStepResultSuccess();

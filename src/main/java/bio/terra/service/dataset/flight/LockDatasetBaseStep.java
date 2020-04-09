@@ -3,7 +3,7 @@ package bio.terra.service.dataset.flight;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.exception.InvalidLockUsageException;
+import bio.terra.service.dataset.exception.InvalidLockArgumentException;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -39,7 +39,7 @@ public abstract class LockDatasetBaseStep implements Step {
         }
         String datasetId = context.getInputParameters().get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         if (datasetId == null) {
-            throw new InvalidLockUsageException("Must pass dataset name to step constructor or provide datasetId " +
+            throw new InvalidLockArgumentException("Must pass dataset name to step constructor or provide datasetId " +
                 "in the flight input params");
         }
         Dataset dataset = datasetDao.retrieve(UUID.fromString(datasetId));

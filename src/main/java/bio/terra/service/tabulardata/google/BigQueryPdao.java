@@ -7,6 +7,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -26,6 +27,7 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -42,7 +44,6 @@ import com.google.cloud.bigquery.LegacySQLTypeName;
 import com.google.cloud.bigquery.LoadJobConfiguration;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.Schema;
-import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
@@ -55,7 +56,6 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -63,7 +63,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
@@ -1058,7 +1057,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return String.format("%s%s_%s", PDAO_EXTERNAL_TABLE_PREFIX, tableName, suffix);
     }
 
-    public String createExternalTable(Dataset dataset, String path, String tableName, String suffix) {
+    public String createSoftDeleteExternalTable(Dataset dataset, String path, String tableName, String suffix) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String extTableName = externalTableName(tableName, suffix);
         TableId tableId = TableId.of(prefixName(dataset.getName()), extTableName);
@@ -1069,37 +1068,97 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return extTableName;
     }
 
-    public boolean deleteExternalTable(Dataset dataset, String tableName, String suffix) {
+    public boolean deleteSoftDeleteExternalTable(Dataset dataset, String tableName, String suffix) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         String extTableName = externalTableName(tableName, suffix);
         return bigQueryProject.deleteTable(prefixName(dataset.getName()), extTableName);
     }
 
     private static final String insertSoftDeleteTemplate =
-        "INSERT INTO `<project>.<dataset>.<softDeleteTable>` SELECT * FROM `<project>.<dataset>.<softDeleteExtTable>`";
+        "INSERT INTO `<project>.<dataset>.<softDeleteTable>` " +
+        "SELECT DISTINCT <rowId> FROM `<project>.<dataset>.<softDeleteExtTable>`";
 
     /**
      * Insert row ids into the corresponding soft delete table for each table provided.
      *
      * @param dataset repo dataset that we are deleting data from
-     * @param tableNames list of table names that should have corresponding external tables with row ids to soft delete
+     * @param tables list of tables that should have corresponding external tables with row ids to soft delete
      * @param suffix a bq-safe version of the flight id to prevent different flights from stepping on each other
      */
     public TableResult applySoftDeletes(Dataset dataset,
-                                 List<String> tableNames,
-                                 Map<String, String> softDeleteTableNameLookup,
+                                 List<DataDeletionTableModel> tables,
                                  String suffix) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        // we want this soft delete operation to be atomic, we we will combine all of the inserts into one statement
+        // that we send to bigquery.
+        List<String> tableNames = tables
+            .stream()
+            .map(DataDeletionTableModel::getTableName)
+            .collect(Collectors.toList());
+
+        // the soft delete tables have a random suffix on them, we need to fetch those from the db and pass them in
+        Map<String, String> softDeleteTableNameLookup = dataset.getTables()
+            .stream()
+            .collect(Collectors.toMap(DatasetTable::getName, DatasetTable::getSoftDeleteTableName));
 
         List<String> sqlStatements = tableNames.stream()
             .map(tableName -> new ST(insertSoftDeleteTemplate)
                 .add("project", bigQueryProject.getProjectId())
                 .add("dataset", prefixName(dataset.getName()))
                 .add("softDeleteTable", softDeleteTableNameLookup.get(tableName))
+                .add("rowId", PDAO_ROW_ID_COLUMN)
                 .add("softDeleteExtTable", externalTableName(tableName, suffix))
                 .render())
             .collect(Collectors.toList());
 
         return bigQueryProject.query(String.join(";", sqlStatements));
+    }
+
+    private long getSingleLongValue(TableResult result) {
+        FieldValueList fieldValues = result.getValues().iterator().next();
+        return fieldValues.get(0).getLongValue();
+    }
+
+    /**
+     * This join should pair up every rowId in the external table with a corresponding match in the live view. If there
+     * isn't a match in the live view, then V.rowId will be null and we count that as a mismatch.
+     *
+     * Note that since this is joining against the live view, an attempt to soft delete a rowId that has already been
+     * soft deleted will result in a mismatch.
+     */
+    private static final String validateSoftDeleteTemplate =
+        "SELECT COUNT(E.<rowId>) FROM `<project>.<dataset>.<softDeleteExtTable>` E " +
+        "LEFT JOIN `<project>.<dataset>.<liveView>` V USING (<rowId>) " +
+        "WHERE V.<rowId> IS NULL";
+
+    /**
+     * Goes through each of the provided tables and checks to see if the proposed row ids to soft delete exist in the
+     * dataset table. This will error out on the first sign of mismatch.
+     *
+     * @param dataset dataset repo concept object
+     * @param tables list of table specs from the DataDeletionRequest
+     * @param suffix a string added onto the end of the external table to prevent collisions
+     */
+    public void validateDeleteRequest(Dataset dataset, List<DataDeletionTableModel> tables, String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        for (DataDeletionTableModel table : tables) {
+            String tableName = table.getTableName();
+            String sql = new ST(validateSoftDeleteTemplate)
+                .add("rowId", PDAO_ROW_ID_COLUMN)
+                .add("project", bigQueryProject.getProjectId())
+                .add("dataset", prefixName(dataset.getName()))
+                .add("softDeleteExtTable", externalTableName(tableName, suffix))
+                .add("liveView", tableName)
+                .render();
+            TableResult result = bigQueryProject.query(sql);
+            long numMismatched = getSingleLongValue(result);
+
+            // shortcut out early, no use wasting more compute
+            if (numMismatched > 0) {
+                throw new MismatchedRowIdException(
+                    String.format("Could not match %s row ids for table %s", numMismatched, tableName));
+            }
+        }
     }
 }

@@ -48,7 +48,7 @@ public class DropExternalTablesStep implements Step {
         DataDeletionRequest dataDeletionRequest = request(context);
 
         dataDeletionRequest.getTables().forEach(table ->
-            bigQueryPdao.deleteExternalTable(dataset, table.getTableName(), suffix));
+            bigQueryPdao.deleteSoftDeleteExternalTable(dataset, table.getTableName(), suffix));
 
         return StepResult.getStepResultSuccess();
     }

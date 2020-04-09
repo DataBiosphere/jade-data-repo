@@ -23,7 +23,6 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
-import bio.terra.model.JobModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
@@ -263,8 +262,7 @@ public class DatasetIntegrationTest extends UsersBase {
         assertThat("count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
     }
 
-    @Test
-    public void testSoftDeleteHappyPath() throws Exception {
+    public String ingestedDataset() throws Exception {
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         String datasetId = datasetSummaryModel.getId();
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
@@ -276,6 +274,12 @@ public class DatasetIntegrationTest extends UsersBase {
             "sample", "ingest-test/ingest-test-sample.json");
         ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+        return datasetId;
+    }
+
+    @Test
+    public void testSoftDeleteHappyPath() throws Exception {
+        String datasetId = ingestedDataset();
 
         // get row ids
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -300,5 +304,30 @@ public class DatasetIntegrationTest extends UsersBase {
         // make sure the new counts make sense
         assertTableCount(bigQuery, dataset, "participant", 2L);
         assertTableCount(bigQuery, dataset, "sample", 5L);
+    }
+
+    @Test
+    public void wildcardSoftDelete() throws Exception {
+        String datasetId = ingestedDataset();
+        String pathPrefix = "softDelWildcard" + UUID.randomUUID().toString();
+
+        // get 5 row ids, we'll write them out to 5 separate files
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+        List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 5L);
+        for (String rowId : sampleRowIds) {
+            writeListToScratch(pathPrefix, Collections.singletonList(rowId));
+        }
+
+        // make a wildcard path 'gs://ingestbucket/softDelWildcard/*'
+        String wildcardPath = String.format("gs://%s/scratch/%s/*", testConfiguration.getIngestbucket(), pathPrefix);
+
+        // build a request and send it off
+        DataDeletionRequest request = dataDeletionRequest()
+            .tables(Collections.singletonList(deletionTableFile("sample", wildcardPath)));
+        dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+        // there should be (7 - 5) = 2 rows "visible" in the sample table
+        assertTableCount(bigQuery, dataset, "sample", 2L);
     }
 }

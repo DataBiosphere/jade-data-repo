@@ -136,11 +136,11 @@ public class DatasetService {
             .submit();
     }
 
-    public String deleteDatasetData(
+    public String deleteTabularData(
         String datasetId,
         DataDeletionRequest dataDeletionRequest,
         AuthenticatedUserRequest userReq) {
-        String description = "Deleting data from dataset " + datasetId;
+        String description = "Deleting tabular data from dataset " + datasetId;
         return jobService
             .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)

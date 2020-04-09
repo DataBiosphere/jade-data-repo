@@ -4,8 +4,8 @@ Ensure that you have access to the required team resources beforehand. If you
 encounter a permission error, it is likely because you are missing appropriate
 access. Join the `#github` Slack channel, click the lightning bolt in the
 channel header, and select `Join DataBiosphere`. Ask for access to Google Groups
-including `dsde-engineering`. A DevOps colleague will also need to create a Helm
-`datarepo` definition for you.
+including `dsde-engineering`. A colleague on the team will also need to create a
+Helm `datarepo` definition for you.
 
 These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN.
@@ -220,5 +220,6 @@ gcloud container clusters get-credentials dev-master --region us-central1 --proj
 ```
 # replace all instances of `zzz` with your initials
 cd datarepo-helm-definitions/dev/zzz
-kubectl apply -f zzzHelmOperator.yaml --namespace zzz
+helm namespace upgrade zzz-secrets datarepo-helm/create-secret-manager-secret --version=0.0.4 --install --namespace zzz -f zzzSecrets.yaml
+helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install --namespace zzz -f zzzDeployment.yaml
 ```

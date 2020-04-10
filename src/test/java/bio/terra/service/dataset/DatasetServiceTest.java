@@ -83,7 +83,7 @@ public class DatasetServiceTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlock(dataset.getName(), createFlightId);
+        datasetDao.unlock(dataset.getId(), createFlightId);
         datasetIdList.add(datasetId);
         return datasetId;
     }

@@ -14,6 +14,8 @@ import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import org.springframework.context.ApplicationContext;
 
+import java.util.UUID;
+
 public class DatasetDataDeleteFlight extends Flight {
 
     public DatasetDataDeleteFlight(FlightMap inputParameters, Object applicationContext) {
@@ -36,7 +38,7 @@ public class DatasetDataDeleteFlight extends Flight {
             IamAction.UPDATE_DATA));
 
         // need to lock, need dataset name and flight id
-        addStep(new LockDatasetStep(datasetDao));
+        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId)));
 
         // validate tables exist, check access to files, and create external temp tables
         addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));
@@ -45,7 +47,7 @@ public class DatasetDataDeleteFlight extends Flight {
         addStep(new DataDeletionStep(bigQueryPdao, datasetService));
 
         // unlock
-        addStep(new UnlockDatasetStep(datasetDao));
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId)));
 
         // cleanup
         addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));

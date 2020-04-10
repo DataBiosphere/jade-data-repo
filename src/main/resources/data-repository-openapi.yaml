@@ -1688,7 +1688,7 @@ definitions:
 
   ObjectNameProperty:
     description: |
-      Table, column, and relationship names follow this pattern. This should be used for the name of any object in the
+      Dataset, table, and column names follow this pattern. This should be used for the name of any object in the
       system. It enforces BigQuery naming rules except it disallows a leading underscore so we avoid collisions with
       any extra columns the DR adds. For table names, this is shorter than what BigQuery allows.
     type: string
@@ -1958,7 +1958,7 @@ definitions:
       table:
         $ref: '#/definitions/ObjectNameProperty'
       column:
-        type: string
+        $ref: '#/definitions/ObjectNameProperty'
 
   RelationshipModel:
     description: |
@@ -1971,7 +1971,8 @@ definitions:
       - to
     properties:
       name:
-        $ref: '#/definitions/ObjectNameProperty'
+        type: string
+        minLength: 1
       from:
         $ref: '#/definitions/RelationshipTermModel'
       to:
@@ -2007,7 +2008,8 @@ definitions:
       - rootColumn
     properties:
       name:
-        $ref: '#/definitions/ObjectNameProperty'
+        type: string
+        minLength: 1
       tables:
         type: array
         items:

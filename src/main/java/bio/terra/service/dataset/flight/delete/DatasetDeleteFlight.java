@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.delete;
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -33,6 +34,7 @@ public class DatasetDeleteFlight extends Flight {
         FireStoreDao fileDao = (FireStoreDao)appContext.getBean("fireStoreDao");
         IamService iamClient = (IamService)appContext.getBean("iamService");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
 
         // get data from inputs that steps need
         UUID datasetId = UUID.fromString(inputParameters.get(
@@ -41,7 +43,13 @@ public class DatasetDeleteFlight extends Flight {
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
         addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
-        addStep(new DeleteDatasetPrimaryDataStep(bigQueryPdao, gcsPdao, fileDao, datasetService, datasetId));
+        addStep(new DeleteDatasetPrimaryDataStep(
+            bigQueryPdao,
+            gcsPdao,
+            fileDao,
+            datasetService,
+            datasetId,
+            configService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
     }

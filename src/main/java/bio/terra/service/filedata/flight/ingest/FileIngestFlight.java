@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.FileService;
@@ -37,6 +38,7 @@ public class FileIngestFlight extends Flight {
         LoadService loadService = (LoadService)appContext.getBean("loadService");
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
+        ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
 
         UUID datasetId = UUID.fromString(inputParameters.get(
             JobMapKeys.DATASET_ID.getKeyName(), String.class));
@@ -68,7 +70,7 @@ public class FileIngestFlight extends Flight {
         addStep(new IngestFileIdStep());
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
         addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService), createBucketRetry);
-        addStep(new IngestFilePrimaryDataStep(fileDao, dataset, gcsPdao));
+        addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
         addStep(new LoadUnlockStep(loadService));
     }

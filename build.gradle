@@ -126,12 +126,20 @@ dependencies {
     compile 'org.liquibase:liquibase-core:3.8.0'         // For upgrade
     compile 'org.postgresql:postgresql:42.2.8'           // Postgres jdbc driver
     compile 'org.slf4j:slf4j-api:1.7.28'                 // Logging facade
-    compile "org.springframework.boot:spring-boot-starter-web:2.2.4.RELEASE"
+    compile "org.springframework.boot:spring-boot-starter-web:2.2.6.RELEASE"
 
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
     compile 'bio.terra:stairway:0.0.3-SNAPSHOT'
     compile 'org.antlr:ST4:4.3'                          // String templating
+
+    // Forcing this due to vulnerability issues
+    compile ('com.fasterxml.jackson.core:jackson-databind:2.11.0.rc1') {
+        force = true
+    }
+    compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
+        force = true
+    }
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.

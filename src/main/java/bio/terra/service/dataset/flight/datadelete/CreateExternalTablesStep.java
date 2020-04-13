@@ -55,6 +55,7 @@ public class CreateExternalTablesStep implements Step {
 
         dataDeletionRequest.getTables().forEach(table -> {
             String path = table.getGcsFileSpec().getPath();
+            // let any exception here trigger an undo, no use trying to continue
             bigQueryPdao.createSoftDeleteExternalTable(dataset, path, table.getTableName(), suffix);
         });
 
@@ -67,7 +68,14 @@ public class CreateExternalTablesStep implements Step {
         String suffix = getSuffix(context);
 
         for (DataDeletionTableModel table : getRequest(context).getTables()) {
-            bigQueryPdao.deleteSoftDeleteExternalTable(dataset, table.getTableName(), suffix);
+            try {
+                bigQueryPdao.deleteSoftDeleteExternalTable(dataset, table.getTableName(), suffix);
+            } catch (Exception ex) {
+                // catch any exception and get it into the log, make a
+                String msg = String.format("Couldn't clean up external table for %s from dataset %s w/ suffix %s",
+                    table.getTableName(), dataset.getName(), suffix);
+                logger.warn(msg, ex);
+            }
         }
 
         return StepResult.getStepResultSuccess();

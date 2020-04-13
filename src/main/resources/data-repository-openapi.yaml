@@ -914,6 +914,40 @@ paths:
           schema:
             $ref: '#/definitions/ErrorModel'
 
+  '/api/repository/v1/datasets/{id}/deletes':
+    post:
+      description: Applies deletes to primary tabular data in a dataset
+      operationId: applyDatasetDataDeletion
+      tags:
+      - repository
+      consumes:
+      - application/json
+      parameters:
+      - $ref: '#/parameters/Id'
+      - in: body
+        name: dataDeletionRequest
+        description: Description of the data in the dataset to delete
+        schema:
+          $ref: '#/definitions/DataDeletionRequest'
+      responses:
+        201:
+          description: Response
+          schema:
+            $ref: '#/definitions/JobModel'
+        400:
+          description: Bad request - invalid tableName, bad row ids, badly formed, etc.
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        403:
+          description: No permission to delete data
+          schema:
+            $ref: '#/definitions/ErrorModel'
+        404:
+          description: Not found - dataset id does not exist
+          schema:
+            $ref: '#/definitions/ErrorModel'
+
+
   '/api/repository/v1/register/user':
     get:
       description: |
@@ -2659,6 +2693,56 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/PolicyModel'
+
+  DataDeletionRequest:
+    description: |
+      a container holding a specification for how to delete tabular data in one or more tables
+    type: object
+    required:
+    - specType
+    - deleteType
+    properties:
+      deleteType:
+        type: string
+        enum:
+        - soft
+      specType:
+        type: string
+        enum:
+        - gcsFile
+      tables:
+        type: array
+        items:
+          $ref: '#/definitions/DataDeletionTableModel'
+
+  DataDeletionTableModel:
+    description: |
+      a specification for how to delete tabular data in one table
+    type: object
+    required:
+      - tableName
+    properties:
+      tableName:
+        type: string
+        description: the name of a table in the dataset
+      gcsFileSpec:
+        $ref: '#/definitions/DataDeletionGcsFileModel'
+
+  DataDeletionGcsFileModel:
+    description: |
+      a specification of a gcs file containing row ids to delete
+    type: object
+    required:
+      - fileType
+      - path
+    properties:
+      fileType:
+        type: string
+        enum:
+          - csv
+      path:
+        type: string
+        description: a gs://path/to/a/file that can include a wildcard (*)
 
   UserStatusInfo:
     description: ''

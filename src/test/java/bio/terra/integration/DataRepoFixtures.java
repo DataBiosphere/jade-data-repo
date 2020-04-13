@@ -14,6 +14,7 @@ import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -123,6 +124,23 @@ public class DataRepoFixtures {
         }
         assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
         return response.getErrorObject().get();
+    }
+
+    public DataRepoResponse<JobModel> deleteDataRaw(TestConfiguration.User user,
+                                                    String datasetId,
+                                                    DataDeletionRequest request) throws Exception {
+        String url = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
+        String json = TestUtils.mapToJson(request);
+        return dataRepoClient.post(user, url, json, JobModel.class);
+    }
+
+    public void deleteData(TestConfiguration.User user,
+                           String datasetId,
+                           DataDeletionRequest request) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = deleteDataRaw(user, datasetId, request);
+        DataRepoResponse<DeleteResponseModel> deleteResponse =
+            dataRepoClient.waitForResponse(user, jobResponse, DeleteResponseModel.class);
+        assertGoodDeleteResponse(deleteResponse);
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)

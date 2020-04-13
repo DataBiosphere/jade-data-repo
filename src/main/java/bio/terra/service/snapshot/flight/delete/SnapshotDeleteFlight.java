@@ -5,6 +5,8 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
+import bio.terra.service.snapshot.flight.LockSnapshotStep;
+import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.job.JobMapKeys;
@@ -35,6 +37,7 @@ public class SnapshotDeleteFlight extends Flight {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+        addStep(new LockSnapshotStep(snapshotDao, snapshotId));
         // Delete access control first so Readers and Discoverers can no longer see snapshot
         // Google auto-magically removes the ACLs from files and BQ objects when SAM
         // deletes the snapshot group, so no ACL cleanup is needed beyond that.
@@ -49,5 +52,6 @@ public class SnapshotDeleteFlight extends Flight {
             snapshotId,
             datasetService));
         addStep(new DeleteSnapshotMetadataStep(snapshotDao, snapshotId));
+        addStep(new UnlockSnapshotStep(snapshotDao, snapshotId));
     }
 }

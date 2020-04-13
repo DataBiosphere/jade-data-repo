@@ -9,23 +9,25 @@ import bio.terra.stairway.StepStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.UUID;
+
 
 public class LockSnapshotStep implements Step {
 
     private SnapshotDao snapshotDao;
-    private String snapshotName;
+    private UUID snapshotId;
 
     private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
 
-    public LockSnapshotStep(SnapshotDao snapshotDao, String snapshotName) {
+    public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
         this.snapshotDao = snapshotDao;
-        this.snapshotName = snapshotName;
+        this.snapshotId = snapshotId;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            snapshotDao.lock(snapshotName, context.getFlightId());
+            snapshotDao.lock(snapshotId, context.getFlightId());
 
             return StepResult.getStepResultSuccess();
         } catch (SnapshotLockException lockedEx) {
@@ -38,7 +40,7 @@ public class LockSnapshotStep implements Step {
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
-        boolean rowUpdated = snapshotDao.unlock(snapshotName, context.getFlightId());
+        boolean rowUpdated = snapshotDao.unlock(snapshotId, context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

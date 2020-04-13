@@ -12,7 +12,9 @@ import bio.terra.service.job.exception.InvalidResultStateException;
 import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
+import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
+import bio.terra.service.kube.KubeService;
 import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
@@ -38,16 +40,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
-    private final Stairway stairway;
+    private Stairway stairway;
     private final IamService samService;
     private final ApplicationConfiguration appConfig;
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
+    private final KubeService kubeService;
+    private final AtomicBoolean isShutdown;
 
     @Autowired
     public JobService(IamService samService,
@@ -55,15 +61,33 @@ public class JobService {
                       StairwayJdbcConfiguration stairwayJdbcConfiguration,
                       MigrateConfiguration migrateConfiguration,
                       ApplicationContext applicationContext,
-                      ObjectMapper objectMapper) {
+                      ObjectMapper objectMapper,
+                      KubeService kubeService) {
         this.samService = samService;
         this.appConfig = appConfig;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
+        this.kubeService = kubeService;
+        this.isShutdown = new AtomicBoolean(false);
 
         ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-        stairway = new Stairway(executorService, applicationContext, serializer);
+        stairway = new Stairway(executorService, applicationContext, serializer, "stairwayname");
+    }
+
+    /**
+     * Stop accepting jobs and shutdown stairway
+     */
+    public void shutdown() throws InterruptedException {
+        isShutdown.set(true);
+
+        // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
+        int shutdownTimeout = appConfig.getShutdownTimeoutSeconds();
+        int gracefulTimeout = (shutdownTimeout * 3) / 4;
+        boolean finishedShutdown = stairway.quietDown(gracefulTimeout, TimeUnit.SECONDS);
+        if (!finishedShutdown) {
+            stairway.terminate();
+        }
     }
 
     public static class JobResultWithStatus<T> {
@@ -98,12 +122,19 @@ public class JobService {
     // submit a new job to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
+        if (isShutdown.get()) {
+            throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
+        }
+
         String jobId = createJobId();
         try {
             stairway.submit(jobId, flightClass, parameterMap);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
+
         return jobId;
     }
 
@@ -123,9 +154,10 @@ public class JobService {
             stairway.waitForFlight(jobId, null, null);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
-
 
     /**
      * This method is called from StartupInitializer as part of the sequence of migrating databases
@@ -140,6 +172,8 @@ public class JobService {
 
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
 
@@ -168,6 +202,8 @@ public class JobService {
             stairway.deleteFlight(jobId, false);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
 
@@ -218,8 +254,8 @@ public class JobService {
         return JobModel.JobStatusEnum.FAILED;
     }
 
-    public List<JobModel> enumerateJobs(
-        int offset, int limit, AuthenticatedUserRequest userReq) {
+    public List<JobModel> enumerateJobs(int offset, int limit, AuthenticatedUserRequest userReq) {
+
         boolean canListAnyJob = checkUserCanListAnyJob(userReq);
 
         // if the user has access to all jobs, then fetch everything
@@ -237,6 +273,8 @@ public class JobService {
             flightStateList = stairway.getFlights(offset, limit, filter);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
 
         List<JobModel> jobModelList = new ArrayList<>();
@@ -260,6 +298,8 @@ public class JobService {
             return mapFlightStateToJobModel(flightState);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
 
@@ -297,12 +337,24 @@ public class JobService {
             return retrieveJobResultWorker(jobId, resultClass);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
+    }
+
+    /**
+     * In general, we keep Stairway encapsulated in the JobService. KubeService also needs access,
+     * so we provide this accessor.
+     * @return stairway instance
+     */
+    public Stairway getStairway() {
+        return stairway;
     }
 
     private <T> JobResultWithStatus<T> retrieveJobResultWorker(
         String jobId,
-        Class<T> resultClass) throws StairwayException {
+        Class<T> resultClass) throws StairwayException, InterruptedException {
+
         FlightState flightState = stairway.getFlightState(jobId);
         FlightMap resultMap = flightState.getResultMap().orElse(null);
         if (resultMap == null) {
@@ -378,6 +430,8 @@ public class JobService {
             throw new InternalStairwayException("Stairway exception looking up the job", ex);
         } catch (FlightNotFoundException ex) {
             throw new JobNotFoundException("Job not found", ex);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
 

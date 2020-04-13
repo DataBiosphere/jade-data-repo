@@ -1,15 +1,21 @@
 package bio.terra.service.job;
 
+import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.common.category.Unit;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.Stairway;
 import bio.terra.stairway.exception.FlightNotFoundException;
-import bio.terra.stairway.exception.StairwayException;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,21 +24,35 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 @SpringBootTest
 @Category(Unit.class)
 public class JobServiceTest {
+    private static final Logger logger = LoggerFactory.getLogger(JobServiceTest.class);
+
     private AuthenticatedUserRequest testUser = new AuthenticatedUserRequest()
         .subjectId("StairwayUnit")
-        .email("stairway@unit.com");
+        .email("stairway@unit.com")
+        .token(Optional.empty());
 
     @Autowired
     private JobService jobService;
+
+    @Autowired
+    private ApplicationConfiguration appConfig;
+
+    @Before
+    public void setup() throws Exception {
+
+    }
 
     @Test
     public void retrieveTest() throws Exception {
@@ -72,13 +92,13 @@ public class JobServiceTest {
         }
     }
 
-    private void testSingleRetrieval(List<String> fids) {
+    private void testSingleRetrieval(List<String> fids) throws InterruptedException {
         JobModel response = jobService.retrieveJob(fids.get(2), null);
         Assert.assertNotNull(response);
         validateJobModel(response, 2, fids);
     }
 
-    private void testResultRetrieval(List<String> fids) {
+    private void testResultRetrieval(List<String> fids) throws InterruptedException {
         JobService.JobResultWithStatus<String> resultHolder =
             jobService.retrieveJobResult(fids.get(2), String.class, null);
         Assert.assertThat(resultHolder.getStatusCode(), is(equalTo(HttpStatus.I_AM_A_TEAPOT)));
@@ -86,7 +106,9 @@ public class JobServiceTest {
     }
 
     // Get some range and compare it with the fids
-    private void testEnumRange(List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds) {
+    private void testEnumRange(List<String> fids, int offset, int limit, List<ResourceAndAccessPolicy> resourceIds)
+        throws InterruptedException {
+
         List<JobModel> jobList = jobService.enumerateJobs(offset, limit, null);
         Assert.assertNotNull(jobList);
         int index = offset;
@@ -97,20 +119,61 @@ public class JobServiceTest {
     }
 
     // Get some range and make sure we got the number we expected
-    private void testEnumCount(int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds) {
+    private void testEnumCount(int count, int offset, int length, List<ResourceAndAccessPolicy> resourceIds)
+        throws InterruptedException {
+
         List<JobModel> jobList = jobService.enumerateJobs(offset, length, null);
         Assert.assertNotNull(jobList);
         Assert.assertThat(jobList.size(), is(count));
     }
 
     @Test(expected = FlightNotFoundException.class)
-    public void testBadIdRetrieveJob() {
+    public void testBadIdRetrieveJob() throws InterruptedException {
         jobService.retrieveJob("abcdef", null);
     }
 
     @Test(expected = FlightNotFoundException.class)
-    public void testBadIdRetrieveResult() {
+    public void testBadIdRetrieveResult() throws InterruptedException {
         jobService.retrieveJobResult("abcdef", Object.class, null);
+    }
+
+    @Test
+    public void testShutdown() throws Exception {
+        // scenario:
+        //  - start a thread that creates one flight every X second; keeping track of the flights
+        //     - each flight sleeps Y secs and then returns; we want to get a backlog of flights in the queue
+        //    when thread catches JobServiceShutdown exception, it stops launching and returns its flight list
+        //  - sleep Z seconds to let the system fill up
+        //  - call shutdown
+        //  - validate that flights are either SUCCESS or READY
+
+        // Test Control Parameters
+        final int flightPerSecond = 1;
+        final int flightWaitSeconds = 30;
+
+        int maxStairwayThreads = appConfig.getMaxStairwayThreads();
+        logger.info("maxStairwayThreads: " + maxStairwayThreads);
+
+        JobTestShutdownFlightLauncher launcher =
+            new JobTestShutdownFlightLauncher(flightPerSecond, flightWaitSeconds, testUser, jobService);
+
+        Thread launchThread = new Thread(launcher);
+        launchThread.start();
+
+        // Build a backlog in the queue
+        TimeUnit.SECONDS.sleep(2 * maxStairwayThreads);
+        jobService.shutdown();
+
+        launchThread.join();
+        List<String> flightIdList = launcher.getFlightIdList();
+        Stairway stairway = jobService.getStairway();
+
+        for (String flightId : flightIdList) {
+            FlightState state = stairway.getFlightState(flightId);
+            FlightStatus status = state.getFlightStatus();
+            logger.info("Flightid: " + flightId + "; status: " + status);
+            assertTrue(status == FlightStatus.SUCCESS || status == FlightStatus.READY);
+        }
     }
 
     private void validateJobModel(JobModel jm, int index, List<String> fids) {
@@ -121,7 +184,7 @@ public class JobServiceTest {
     }
 
     // Submit a flight; wait for it to finish; return the flight id
-    private String runFlight(String description) throws StairwayException {
+    private String runFlight(String description) throws InterruptedException {
         String jobId = jobService.newJob(description, JobServiceTestFlight.class, null, testUser).submit();
         jobService.waitForJob(jobId);
         return jobId;

@@ -55,6 +55,6 @@ public class DatasetDeleteFlight extends Flight {
             configService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
-        addStep(new UnlockDatasetStep(datasetDao));
+        addStep(new UnlockDatasetStep(datasetDao, datasetId));
     }
 }

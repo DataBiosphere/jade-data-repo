@@ -23,6 +23,7 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
@@ -129,7 +130,7 @@ public class DatasetIntegrationTest extends UsersBase {
 
         } finally {
             logger.info("deleting dataset");
-            dataRepoFixtures.deleteDatasetRaw(steward(), summaryModel.getId());
+            dataRepoFixtures.deleteDatasetLaunch(steward(), summaryModel.getId());
         }
     }
 
@@ -161,14 +162,26 @@ public class DatasetIntegrationTest extends UsersBase {
                 getDatasetResp.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));
 
-            DataRepoResponse<DeleteResponseModel> deleteResp1 = dataRepoFixtures.deleteDatasetRaw(
+            // make sure reader cannot delete dataset
+            DataRepoResponse<JobModel> jobResp1 = dataRepoFixtures.deleteDatasetLaunch(
                 reader(), summaryModel.getId());
+            assertTrue("dataset delete launch succeeded", jobResp1.getStatusCode().is2xxSuccessful());
+            assertTrue("dataset delete launch response is present", jobResp1.getResponseObject().isPresent());
+
+            DataRepoResponse<DeleteResponseModel> deleteResp1 = dataRepoClient.waitForResponse(
+                reader(), jobResp1, DeleteResponseModel.class);
             assertThat("Reader is not authorized to delete datasets",
                 deleteResp1.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));
 
-            DataRepoResponse<DeleteResponseModel> deleteResp2 = dataRepoFixtures.deleteDatasetRaw(
+            // make sure custodian cannot delete dataset
+            DataRepoResponse<JobModel> jobResp2 = dataRepoFixtures.deleteDatasetLaunch(
                 custodian(), summaryModel.getId());
+            assertTrue("dataset delete launch succeeded", jobResp2.getStatusCode().is2xxSuccessful());
+            assertTrue("dataset delete launch response is present", jobResp2.getResponseObject().isPresent());
+
+            DataRepoResponse<DeleteResponseModel> deleteResp2 = dataRepoClient.waitForResponse(
+                custodian(), jobResp2, DeleteResponseModel.class);
             assertThat("Custodian is not authorized to delete datasets",
                 deleteResp2.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));

@@ -273,7 +273,8 @@ public class ConnectedOperations {
     public void deleteTestDataset(String id) throws Exception {
         // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
-        checkDeleteResponse(result.getResponse());
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        checkDeleteResponse(response);
 
     }
 

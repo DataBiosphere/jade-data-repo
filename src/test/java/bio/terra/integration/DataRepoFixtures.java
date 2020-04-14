@@ -143,14 +143,19 @@ public class DataRepoFixtures {
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<JobModel> deleteDatasetLaunch(TestConfiguration.User user, String datasetId)
         throws Exception {
         return dataRepoClient.delete(
-            user, "/api/repository/v1/datasets/" + datasetId, DeleteResponseModel.class);
+            user, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
     }
 
     public void deleteDataset(TestConfiguration.User user, String datasetId) throws Exception {
-        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetRaw(user, datasetId);
+        DataRepoResponse<JobModel> jobResponse = deleteDatasetLaunch(user, datasetId);
+        assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, DeleteResponseModel.class);
         assertGoodDeleteResponse(deleteResponse);
     }
 

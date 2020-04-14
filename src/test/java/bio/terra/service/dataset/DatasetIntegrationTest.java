@@ -33,6 +33,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
+import org.assertj.core.util.Strings;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -165,6 +166,12 @@ public class DatasetIntegrationTest extends UsersBase {
             // make sure reader cannot delete dataset
             DataRepoResponse<JobModel> jobResp1 = dataRepoFixtures.deleteDatasetLaunch(
                 reader(), summaryModel.getId());
+            logger.info("jobResp1 statuscode : " + jobResp1.getStatusCode());
+            logger.info("jobResp1 errorObject.isPresesnt : " + jobResp1.getErrorObject().isPresent());
+            if (jobResp1.getErrorObject().isPresent()) {
+                logger.info("jobResp1 errorObject : " + jobResp1.getErrorObject().get().getMessage());
+                logger.info("jobResp1 errorObject : " + Strings.join(jobResp1.getErrorObject().get().getErrorDetail()));
+            }
             assertTrue("dataset delete launch succeeded", jobResp1.getStatusCode().is2xxSuccessful());
             assertTrue("dataset delete launch response is present", jobResp1.getResponseObject().isPresent());
 

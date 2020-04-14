@@ -83,7 +83,8 @@ public class JobService {
         int terminateTimeout = (shutdownTimeout - gracefulTimeout) - 2;
         boolean finishedShutdown = stairway.quietDown(gracefulTimeout, TimeUnit.SECONDS);
         if (!finishedShutdown) {
-            stairway.terminate(terminateTimeout, TimeUnit.SECONDS);
+            finishedShutdown = stairway.terminate(terminateTimeout, TimeUnit.SECONDS);
+            logger.info("Finished shutdown: " + finishedShutdown);
         }
     }
 

@@ -204,7 +204,8 @@ public class ConfigurationService {
         addFaultSimple(BUCKET_LOCK_CONFLICT_CONTINUE_FAULT);
 
         // Snapshot delete lock faults. These are used by SnapshotConnectedTest > testOverlappingDeletes
-        addFaultCounted(SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultCounted(SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100,
+            ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
     }
 

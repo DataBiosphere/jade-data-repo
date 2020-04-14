@@ -37,7 +37,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -60,7 +59,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringStartsWith.startsWith;
@@ -308,7 +306,8 @@ public class SnapshotConnectedTest {
         loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
 
         // create a snapshot
-        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary, "snapshot-test-snapshot.json", "_mkm_");
+        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary,
+            "snapshot-test-snapshot.json", "_d2_");
 
         // enable wait in DeleteSnapshotPrimaryDataStep
         configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);

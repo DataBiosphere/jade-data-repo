@@ -1,6 +1,5 @@
 package bio.terra.service.snapshot.flight;
 
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;

@@ -1,7 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
@@ -33,7 +32,6 @@ public class SnapshotCreateFlight extends Flight {
         IamService iamClient = (IamService)appContext.getBean("iamService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
 
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);

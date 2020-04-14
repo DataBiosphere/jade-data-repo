@@ -14,7 +14,6 @@ import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
-import bio.terra.service.kube.KubeService;
 import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
@@ -52,7 +51,6 @@ public class JobService {
     private final ApplicationConfiguration appConfig;
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
-    private final KubeService kubeService;
     private final AtomicBoolean isShutdown;
 
     @Autowired
@@ -61,13 +59,11 @@ public class JobService {
                       StairwayJdbcConfiguration stairwayJdbcConfiguration,
                       MigrateConfiguration migrateConfiguration,
                       ApplicationContext applicationContext,
-                      ObjectMapper objectMapper,
-                      KubeService kubeService) {
+                      ObjectMapper objectMapper) {
         this.samService = samService;
         this.appConfig = appConfig;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.kubeService = kubeService;
         this.isShutdown = new AtomicBoolean(false);
 
         ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxStairwayThreads());

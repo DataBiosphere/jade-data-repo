@@ -60,7 +60,8 @@ public class SnapshotDao {
      *     2. Throw an exception if no records were updated.
      * @param snapshotId id of the snapshot to lock, this is a unique column
      * @param flightId flight id that wants to lock the snapshot
-     * @throws SnapshotLockException if the snapshot is locked by another flight or does not exist
+     * @throws SnapshotLockException if the snapshot is locked by another flight
+     * @throws SnapshotNotFoundException if the snapshot does not exist
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void lock(UUID snapshotId, String flightId) {
@@ -78,6 +79,10 @@ public class SnapshotDao {
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
+            // try to retrieve the snapshot in case we should throw a NotFound exception
+            retrieveSnapshot(snapshotId);
+
+            // otherwise, throw a Lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new SnapshotLockException("Failed to lock the snapshot");
         }

@@ -115,9 +115,8 @@ public class OneProjectPerProfileIdSelectorTest {
         DatasetSummaryModel datasetSummaryModel =
             connectedOperations.createDataset(profile, "snapshot-test-dataset.json");
 
-        MockHttpServletResponse response =
-            connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
-        SnapshotSummaryModel snapshotSummaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
+        SnapshotSummaryModel snapshotSummaryModel =
+            connectedOperations.createSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
         SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummaryModel.getId());
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotModel.getId()));
 

@@ -221,11 +221,9 @@ public class BigQueryPdaoTest {
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
-            MockHttpServletResponse snapshotResponse =
-                connectedOperations.launchCreateSnapshot(datasetSummaryModel,
-                    "ingest-test-snapshot.json", "");
             SnapshotSummaryModel snapshotSummary =
-                connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
+                connectedOperations.createSnapshot(datasetSummaryModel,
+                    "ingest-test-snapshot.json", "");
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
@@ -252,9 +250,8 @@ public class BigQueryPdaoTest {
                 Collections.singletonList("file1"));
 
             // Create another snapshot.
-            snapshotResponse = connectedOperations.launchCreateSnapshot(
+            snapshotSummary = connectedOperations.createSnapshot(
                 datasetSummaryModel, "ingest-test-snapshot.json", "");
-            snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
             Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
 

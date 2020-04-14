@@ -1,7 +1,9 @@
 package bio.terra.service.snapshot.flight;
 
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -16,12 +18,18 @@ public class LockSnapshotStep implements Step {
 
     private SnapshotDao snapshotDao;
     private UUID snapshotId;
+    private boolean suppressNotFoundException; // default to false
 
     private static Logger logger = LoggerFactory.getLogger(LockSnapshotStep.class);
 
     public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId) {
+        this(snapshotDao, snapshotId, false);
+    }
+
+    public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId, boolean suppressNotFoundException) {
         this.snapshotDao = snapshotDao;
         this.snapshotId = snapshotId;
+        this.suppressNotFoundException = suppressNotFoundException;
     }
 
     @Override
@@ -33,6 +41,12 @@ public class LockSnapshotStep implements Step {
         } catch (SnapshotLockException lockedEx) {
             logger.debug("Another flight has already locked this Snapshot", lockedEx);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, lockedEx);
+        } catch (SnapshotNotFoundException notFoundEx) {
+            if (suppressNotFoundException) {
+                return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+            } else {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
+            }
         }
     }
 

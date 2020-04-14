@@ -95,7 +95,7 @@ public class SnapshotDaoTest {
         String flightId = "happyInOutTest_flightId";
         Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
         snapshotId = snapshotDao.createAndLock(snapshot, flightId);
-        snapshotDao.unlock(snapshot.getName(), flightId);
+        snapshotDao.unlock(snapshotId, flightId);
         Snapshot fromDB = snapshotDao.retrieveSnapshot(snapshotId);
 
         assertThat("snapshot name set correctly",
@@ -174,7 +174,7 @@ public class SnapshotDaoTest {
             String flightId = "snapshotEnumerateTest_flightId";
             Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
             snapshotId = snapshotDao.createAndLock(snapshot, flightId);
-            snapshotDao.unlock(snapshot.getName(), flightId);
+            snapshotDao.unlock(snapshotId, flightId);
             snapshotIds.add(snapshotId);
         }
 

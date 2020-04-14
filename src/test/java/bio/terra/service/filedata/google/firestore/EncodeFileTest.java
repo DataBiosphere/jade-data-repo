@@ -147,9 +147,8 @@ public class EncodeFileTest {
         connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest);
 
         // At this point, we have files and tabular data. Let's make a snapshot!
-        MockHttpServletResponse response = connectedOperations.launchCreateSnapshot(
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(
             datasetSummary, "encodefiletest-snapshot.json", "");
-        SnapshotSummaryModel snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(response);
 
         String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
         DrsId drsId = drsIdService.fromUri(fileUri);
@@ -177,7 +176,7 @@ public class EncodeFileTest {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetSummary.getId() + "/files/" + drsId.getFsObjectId()))
             .andReturn();
-        response = connectedOperations.validateJobModelAndWait(result);
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
 
         ErrorModel errorModel = connectedOperations.handleFailureCase(response);

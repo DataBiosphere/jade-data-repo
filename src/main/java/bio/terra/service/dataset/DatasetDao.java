@@ -81,7 +81,9 @@ public class DatasetDao {
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
-            // try to retrieve the dataset in case we should throw a NotFound exception
+            // this method checks if the dataset exists
+            // if it does not exist, then the method throws a DatasetNotFoundException
+            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
             retrieveSummaryById(datasetId);
 
             // otherwise, throw a lock exception

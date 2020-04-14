@@ -19,8 +19,8 @@ import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
@@ -168,8 +168,8 @@ public class DatasetIntegrationTest extends UsersBase {
             assertTrue("dataset delete launch succeeded", jobResp1.getStatusCode().is2xxSuccessful());
             assertTrue("dataset delete launch response is present", jobResp1.getResponseObject().isPresent());
 
-            DataRepoResponse<DeleteResponseModel> deleteResp1 = dataRepoClient.waitForResponse(
-                reader(), jobResp1, DeleteResponseModel.class);
+            DataRepoResponse<ErrorModel> deleteResp1 = dataRepoClient.waitForResponse(
+                reader(), jobResp1, ErrorModel.class);
             assertThat("Reader is not authorized to delete datasets",
                 deleteResp1.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));
@@ -180,8 +180,8 @@ public class DatasetIntegrationTest extends UsersBase {
             assertTrue("dataset delete launch succeeded", jobResp2.getStatusCode().is2xxSuccessful());
             assertTrue("dataset delete launch response is present", jobResp2.getResponseObject().isPresent());
 
-            DataRepoResponse<DeleteResponseModel> deleteResp2 = dataRepoClient.waitForResponse(
-                custodian(), jobResp2, DeleteResponseModel.class);
+            DataRepoResponse<ErrorModel> deleteResp2 = dataRepoClient.waitForResponse(
+                custodian(), jobResp2, ErrorModel.class);
             assertThat("Custodian is not authorized to delete datasets",
                 deleteResp2.getStatusCode(),
                 equalTo(HttpStatus.UNAUTHORIZED));

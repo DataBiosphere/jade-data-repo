@@ -80,7 +80,7 @@ public class SnapshotDao {
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
             // try to retrieve the snapshot in case we should throw a NotFound exception
-            retrieveSnapshot(snapshotId);
+            retrieveSummaryById(snapshotId);
 
             // otherwise, throw a Lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);

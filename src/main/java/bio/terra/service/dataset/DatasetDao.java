@@ -62,7 +62,8 @@ public class DatasetDao {
      *     2. Throw an exception if no records were updated.
      * @param datasetId id of the dataset to lock, this is a unique column
      * @param flightId flight id that wants to lock the dataset
-     * @throws DatasetLockException if the dataset is locked by another flight or does not exist
+     * @throws DatasetLockException if the dataset is locked by another flight
+     * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void lock(UUID datasetId, String flightId) {
@@ -80,6 +81,10 @@ public class DatasetDao {
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
+            // try to retrieve the dataset in case we should throw a NotFound exception
+            retrieveSummaryById(datasetId);
+
+            // otherwise, throw a lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to lock the dataset");
         }

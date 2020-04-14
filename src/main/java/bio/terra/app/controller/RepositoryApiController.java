@@ -164,13 +164,16 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<DeleteResponseModel> deleteDataset(@PathVariable("id") String id) {
+    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
+            userReq,
             IamResourceType.DATASET,
             id,
             IamAction.DELETE);
-        return new ResponseEntity<>(datasetService.delete(id, getAuthenticatedInfo()), HttpStatus.OK);
+        String jobId = datasetService.delete(id, userReq);
+        // we can retrieve the job we just created
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override

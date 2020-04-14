@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight;
 
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -17,10 +18,16 @@ public class LockDatasetStep implements Step {
 
     private final DatasetDao datasetDao;
     private final UUID datasetId;
+    private boolean suppressNotFoundException; // default to false
 
     public LockDatasetStep(DatasetDao datasetDao, UUID datasetId) {
+        this(datasetDao, datasetId, false);
+    }
+
+    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean suppressNotFoundException) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
+        this.suppressNotFoundException = suppressNotFoundException;
     }
 
     @Override
@@ -32,6 +39,12 @@ public class LockDatasetStep implements Step {
         } catch (DatasetLockException ex) {
             logger.debug("Issue locking this Dataset", ex);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+        } catch (DatasetNotFoundException notFoundEx) {
+            if (suppressNotFoundException) {
+                return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
+            } else {
+                return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
+            }
         }
     }
 

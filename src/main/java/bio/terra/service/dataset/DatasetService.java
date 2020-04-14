@@ -87,12 +87,12 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(String id, AuthenticatedUserRequest userReq) {
+    public String delete(String id, AuthenticatedUserRequest userReq) {
         String description = "Delete dataset " + id;
         return jobService
             .newJob(description, DatasetDeleteFlight.class, null, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
-            .submitAndWait(DeleteResponseModel.class);
+            .submit();
     }
 
     public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {

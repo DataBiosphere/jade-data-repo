@@ -84,9 +84,10 @@ public class JobService {
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
         int shutdownTimeout = appConfig.getShutdownTimeoutSeconds();
         int gracefulTimeout = (shutdownTimeout * 3) / 4;
+        int terminateTimeout = (shutdownTimeout - gracefulTimeout) - 2;
         boolean finishedShutdown = stairway.quietDown(gracefulTimeout, TimeUnit.SECONDS);
         if (!finishedShutdown) {
-            stairway.terminate();
+            stairway.terminate(terminateTimeout, TimeUnit.SECONDS);
         }
     }
 

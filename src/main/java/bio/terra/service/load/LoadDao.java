@@ -99,6 +99,10 @@ public class LoadDao {
                     .locked(rs.getBoolean("locked"))
                     .lockingFlightId(rs.getString("locking_flight_id")));
 
+            if (load == null) {
+                throw new CorruptMetadataException("Load row should exist! Load tag: " + loadTag);
+            }
+
             // It is locked by someone else
             if (!StringUtils.equals(load.getLockingFlightId(), flightId)) {
                 throw new LoadLockedException("Load '" + loadTag +
@@ -128,11 +132,14 @@ public class LoadDao {
     public void unlockLoad(String loadTag, String flightId) {
         jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
-        String upsert = "DELETE FROM load WHERE load_tag = :load_tag AND locking_flight_id = :flight_id";
+        String delete = "DELETE FROM load WHERE load_tag = :load_tag AND locking_flight_id = :flight_id";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("load_tag", loadTag)
             .addValue("flight_id", flightId);
-        jdbcTemplate.update(upsert, params);
+        int rowCount = jdbcTemplate.update(delete, params);
+        if (rowCount != 1) {
+            throw new LoadLockedException("Flight does not hold the load lock for load tag: " + loadTag);
+        }
     }
 
     // -- load files methods --

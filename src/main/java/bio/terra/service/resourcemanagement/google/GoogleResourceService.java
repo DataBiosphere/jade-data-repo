@@ -4,14 +4,14 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
+import bio.terra.service.resourcemanagement.BillingProfile;
+import bio.terra.service.resourcemanagement.ProfileService;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
 import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
 import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
-import bio.terra.service.resourcemanagement.BillingProfile;
-import bio.terra.service.resourcemanagement.ProfileService;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -22,12 +22,12 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
+import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Policy;
+import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.cloudresourcemanager.model.Project;
-import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
@@ -39,6 +39,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageClass;
 import com.google.cloud.storage.StorageException;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -139,47 +140,29 @@ public class GoogleResourceService {
     public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
         logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
 
-        // insert a new bucket_resource row and lock it
-        GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
+        // get or create and lock bucket cases:
+        // 1. GET case:      flightId == null - bucket exists we are done
+        // 2. CONFLICT case: flightId != our flight id: throw bucket lock conflict
+        // 3. CREATE case:   flightId == our flight id: create the bucket and unlock
+        GoogleBucketResource bucketResource = resourceDao.getOrCreateAndLockBucket(bucketRequest, flightId);
 
-        boolean metadataCreationFailed = (googleBucketResource == null);
-        logger.debug("metadataCreationFailed = " + metadataCreationFailed);
-        if (metadataCreationFailed) {
-            // insert failed. lookup the existing bucket_resource row
-            googleBucketResource = resourceDao.getBucket(bucketRequest);
-        }
-
-        // this fault is used by the ResourceLockTest
-        if (configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT)) {
-            try {
-                logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
-                while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                    logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(5);
-                }
-                logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
-            } catch (InterruptedException intEx) {
-                Thread.currentThread().interrupt();
-                throw new BucketLockFailureException("Unexpected interrupt during bucket lock fault", intEx);
-            }
-        }
-
-        String bucketName = bucketRequest.getBucketName();
-        String lockingFlightId = googleBucketResource.getFlightId();
-        logger.debug("lockingFlightId = " + lockingFlightId);
+        String bucketName = bucketResource.getName();
         Bucket bucket;
-        if (lockingFlightId == null) {
-            // GET case. the row in the bucket_resource table is unlocked. the bucket has already been created
-
-            // throw an exception if the bucket does not already exist
+        if (bucketResource.getFlightId() == null) {
+            // GET case
             bucket = getBucket(bucketName);
             if (bucket == null) {
                 throw new CorruptMetadataException("Bucket not found: " + bucketName);
             }
-        } else if (lockingFlightId.equals(flightId)) {
-            // CREATE case. the row in the bucket_resource table is locked by this flight. we need to create it here
+        } else if (!StringUtils.equals(bucketResource.getFlightId(), flightId)) {
+            // CONFLICT case
+            throw new BucketLockException("The bucket is being created by another flight.");
+        } else {
+            // CREATE case
+            if (configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT)) {
+                bucketLockFault();
+            }
 
-            // check if the bucket already exists
             bucket = getBucket(bucketName);
             if (bucket == null) {
                 // bucket DOES NOT EXIST. create it and unlock
@@ -188,26 +171,37 @@ public class GoogleResourceService {
             } else {
                 // bucket EXISTS. if this is a recovery flight or testing environment, use it. otherwise throw exception
                 // testing environments should set datarepo.gcs.allowReuseExistingBuckets=true in application.properties
-                if (metadataCreationFailed || allowReuseExistingBuckets) {
-                    logger.debug(String.format("bucket already exists, using anyway: %s", bucketName));
+                if (allowReuseExistingBuckets) {
+                    logger.debug("bucket already exists, using anyway: " + bucketName);
                     resourceDao.unlockBucket(bucketName, flightId);
                 } else {
                     resourceDao.deleteBucketMetadata(bucketName, flightId);
                     throw new CorruptMetadataException(
-                        String.format("Bucket already exists, metadata out of sync with cloud state: %s", bucketName));
+                        "Bucket already exists, metadata out of sync with cloud state: " + bucketName);
                 }
             }
-        } else {
-            // LOCKED case. the row in the bucket_resource table is locked by another flight. throw a lock exception
-            throw new BucketLockException("The bucket is being created by another flight.");
         }
 
+        // TODO: ensure that the repository is the owner unless strictOwnership is false
         Acl.Entity owner = bucket.getOwner();
         logger.info("bucket is owned by '{}'", owner.toString());
-        // TODO: ensure that the repository is the owner unless strictOwnership is false
 
-        // return the resource object
-        return googleBucketResource;
+        return bucketResource;
+    }
+
+    private void bucketLockFault() {
+        // this fault is used by the ResourceLockTest to cause a lock conflict on bucket creation
+        try {
+            logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
+            }
+            logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
+        } catch (InterruptedException intEx) {
+            Thread.currentThread().interrupt();
+            throw new BucketLockFailureException("Unexpected interrupt during bucket lock fault", intEx);
+        }
     }
 
     /**

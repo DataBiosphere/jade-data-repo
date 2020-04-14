@@ -8,7 +8,6 @@ public class LoadLockUnlockLooper implements Runnable {
     private String flightId;
     private int count;
     private int conflicts;
-    private int sqlerrors;
 
     public LoadLockUnlockLooper(LoadDao loadDao, String loadTag, String flightId, int count) {
         this.loadDao = loadDao;
@@ -20,7 +19,6 @@ public class LoadLockUnlockLooper implements Runnable {
     @Override
     public void run() {
         conflicts = 0;
-        sqlerrors = 0;
         for (int i = 0; i < count; ) {
             try {
                 loadDao.lockLoad(loadTag, flightId);

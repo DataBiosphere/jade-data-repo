@@ -5,6 +5,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -93,15 +94,29 @@ public class GoogleResourceDao {
     }
 
     /**
-     * Insert a new row into the bucket_resource metadata table and give the provided flight the lock by setting the
-     * flightid column. If there already exists a row with this bucket name, return null instead of throwing an
-     * exception.
+     * Bucket Resource logic - getOrCreateAndLockBucket - (get or (create and lock)) bucket
+     *
+     * This method always returns a GoogleBucketResource object. That object reflects three possible states:
+     *  1. flightId is null - the bucket exists.
+     *  2. flightId is present - someone has the flight locked. You can check the flight id against
+     *     your flight id to know if you have it locked or not.
+     *
+     * This supports the three behaviors needed by the GoogleResourceService code.
+     *
+     * We have a lot of contention on the bucket_resource table when a bulk load starts up targeting a
+     * not-yet-existing bucket. Therefore, we use a table lock to sequence threads through this code.
+     * The alternative is lots of serialization failures and retries.
+     *
      * @param bucketRequest
      * @param flightId
-     * @return a reference to the bucket as a POJO GoogleBucketResource if the insert succeeded, null otherwise
+     * @return a reference to the bucket as a POJO GoogleBucketResource
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public GoogleBucketResource createAndLockBucket(GoogleBucketRequest bucketRequest, String flightId) {
+    public GoogleBucketResource getOrCreateAndLockBucket(GoogleBucketRequest bucketRequest, String flightId) {
+        jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE bucket_resource IN EXCLUSIVE MODE");
+
+        String bucketName = bucketRequest.getBucketName();
+
         GoogleProjectResource projectResource = Optional.ofNullable(bucketRequest.getGoogleProjectResource())
             .orElseThrow(IllegalArgumentException::new);
         String sql = "INSERT INTO bucket_resource (project_resource_id, name, flightid) VALUES " +
@@ -109,7 +124,7 @@ public class GoogleResourceDao {
             "ON CONFLICT ON CONSTRAINT bucket_resource_name_key DO NOTHING";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("project_resource_id", projectResource.getRepositoryId())
-            .addValue("name", bucketRequest.getBucketName())
+            .addValue("name", bucketName)
             .addValue("flightid", flightId);
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         int numRowsUpdated = jdbcTemplate.update(sql, params, keyHolder);
@@ -119,49 +134,13 @@ public class GoogleResourceDao {
                 .name(bucketRequest.getBucketName())
                 .resourceId(keyHolder.getId())
                 .flightId(flightId);
-        } else {
-            return null;
         }
-    }
 
-    /**
-     * Unlock an existing bucket_resource metadata row, by setting flightid = NULL.
-     * Only the flight that currently holds the lock can unlock the row.
-     * @param bucketName
-     * @param flightId
-     * @return true if a row was unlocked, false otherwise
-     */
-    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public boolean unlockBucket(String bucketName, String flightId) {
-        String sql = "UPDATE bucket_resource SET flightid = NULL " +
-            "WHERE name = :name AND flightid = :flightid";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", bucketName)
-            .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
-        return (numRowsUpdated == 1);
-    }
-
-    /**
-     * Fetch an existing bucket_resource metadata row using the name amd project id.
-     * This method expects that there is exactly one row matching the provided name and project id.
-     * @param bucketRequest
-     * @return a reference to the bucket as a POJO GoogleBucketResource
-     * @throws GoogleResourceException if there is not exactly one matching row
-     */
-    public GoogleBucketResource getBucket(GoogleBucketRequest bucketRequest) {
-        String bucketName = bucketRequest.getBucketName();
-        List<GoogleBucketResource> bucketResourcesByName =
-            retrieveBucketsBy("name", bucketName, String.class);
-
-        if (bucketResourcesByName.size() == 0) {
-            throw new GoogleResourceNotFoundException(
-                String.format("Bucket not found for name: %s", bucketName));
-        } else if (bucketResourcesByName.size() > 1) {
-            // this should never happen because name is unique in the PostGres table
-            // this also never happen because Google bucket names are unique
-            throw new GoogleResourceException(
-                String.format("Multiple buckets found with same name: %s", bucketName));
+        // The bucket already exists - locked or not. Retrieve it, validate it, and return it.
+        List<GoogleBucketResource> bucketResourcesByName = retrieveBucketsBy("name", bucketName, String.class);
+        if (bucketResourcesByName.size() != 1) {
+            // This should never happen - either we just created it or there should be exactly 1
+            throw new CorruptMetadataException("Invalid bucket state for bucket " + bucketName);
         }
 
         GoogleBucketResource bucketResource = bucketResourcesByName.get(0);
@@ -175,6 +154,25 @@ public class GoogleResourceDao {
         }
 
         return bucketResource;
+    }
+
+    /**
+     * Unlock an existing bucket_resource metadata row, by setting flightid = NULL.
+     * Only the flight that currently holds the lock can unlock the row.
+     *
+     * @param bucketName
+     * @param flightId
+     * @return true if a row was unlocked, false otherwise
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean unlockBucket(String bucketName, String flightId) {
+        String sql = "UPDATE bucket_resource SET flightid = NULL " +
+            "WHERE name = :name AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("name", bucketName)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        return (numRowsUpdated == 1);
     }
 
     /**

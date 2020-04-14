@@ -4,6 +4,7 @@ import bio.terra.common.exception.NotImplementedException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import com.google.api.core.ApiFuture;
+import com.google.api.gax.rpc.AbortedException;
 import com.google.cloud.firestore.CollectionReference;
 import com.google.cloud.firestore.DocumentReference;
 import com.google.cloud.firestore.DocumentSnapshot;
@@ -247,8 +248,8 @@ public class FireStoreDirectoryDao {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("lookupByEntryPath - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("lookupByEntryPath - execution exception", ex);
+        } catch (AbortedException | ExecutionException ex) {
+            throw handleExecutionException("lookupByEntryPath", ex);
         }
     }
 
@@ -283,8 +284,8 @@ public class FireStoreDirectoryDao {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("lookupByFileId - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("lookupByFileId - execution exception", ex);
+        } catch (AbortedException | ExecutionException ex) {
+            throw handleExecutionException("lookupByFileId", ex);
         }
     }
 
@@ -403,8 +404,8 @@ public class FireStoreDirectoryDao {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("storeDirectoryEntry - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("storeDirectoryEntry - execution exception", ex);
+        } catch (AbortedException | ExecutionException ex) {
+            throw handleExecutionException("storeDirectoryEntry", ex);
         }
     }
 
@@ -417,8 +418,8 @@ public class FireStoreDirectoryDao {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("updateDirectoryEntry - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("updateDirectoryEntry - execution exception", ex);
+        } catch (AbortedException | ExecutionException ex) {
+            throw handleExecutionException("updateDirectoryEntry", ex);
         }
     }
 
@@ -432,9 +433,16 @@ public class FireStoreDirectoryDao {
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new FileSystemExecutionException("lookupByPathNoXn - execution interrupted", ex);
-        } catch (ExecutionException ex) {
-            throw new FileSystemExecutionException("lookupByPathNoXn - execution exception", ex);
+        } catch (AbortedException | ExecutionException ex) {
+            throw handleExecutionException("lookupByPathNoXn", ex);
         }
     }
 
+    private RuntimeException handleExecutionException(String info, Exception ex) {
+        Throwable cause = ex.getCause();
+        if ((ex instanceof AbortedException) || (cause instanceof AbortedException)) {
+            return new FileSystemAbortTransactionException(info + " - abort exception", ex);
+        }
+        return new FileSystemExecutionException(info + " - execution exception", ex);
+    }
 }

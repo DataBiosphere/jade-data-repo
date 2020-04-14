@@ -33,7 +33,6 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -120,14 +119,9 @@ public class FileOperationTest {
 
         // Make sure we start from a known configuration
         configService.reset();
-        // TODO: NOTE: during initial testing, I ran into DR-643. The effect of the bug is that parallel
-        //  load threads hit the lack of thread-safe-ness in bucket allocation, causing loads to fail randomly.
-        //  In order to make progress developing the tests and debugging error conditions, we force the concurrent
-        //  loads to 1 in the configuration. Kinda defeats the purpose of the bulk load, but it does mean I can
-        //  complete more of the development work. Also reduced the load driver wait to hit other error paths and
-        //  not have the test run so long.
+        // Set the configuration so it is constant for the load tests
         ConfigModel concurrentConfig = configService.getConfig(ConfigEnum.LOAD_CONCURRENT_FILES.name());
-        concurrentConfig.setParameter(new ConfigParameterModel().value("1"));
+        concurrentConfig.setParameter(new ConfigParameterModel().value("6"));
         ConfigModel driverWaitConfig = configService.getConfig(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS.name());
         driverWaitConfig.setParameter(new ConfigParameterModel().value("30"));
         ConfigGroupModel configGroupModel = new ConfigGroupModel()
@@ -257,10 +251,11 @@ public class FileOperationTest {
 
     @Test
     public void arrayMultiFileLoadSuccessTest() throws Exception {
-        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, 3);
+        int fileCount = 10;
+        BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
 
         BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
-        checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), 3, 3, 0, 0);
+        checkLoadSummary(result.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
 
         Map<String, String> fileIdMap = new HashMap<>();
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
@@ -270,7 +265,7 @@ public class FileOperationTest {
 
         // retry successful load to make sure it still succeeds and does nothing
         BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
-        checkLoadSummary(result2.getLoadSummary(), arrayLoad.getLoadTag(), 3, 3, 0, 0);
+        checkLoadSummary(result2.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
 
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
@@ -279,11 +274,10 @@ public class FileOperationTest {
     }
 
     @Test
-    @Ignore // This test will not reliably succeed until DR-643 is fixed
-    // TODO: unignore when DR-643 is fixed
     public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
-        BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 0, 3);
-        BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiFileLoadDoubleSuccessTest", 3, 3);
+        int fileCount = 8;
+        BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", 0, fileCount);
+        BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", fileCount, fileCount);
         String loadTag1 = arrayLoad1.getLoadTag();
         String loadTag2 = arrayLoad2.getLoadTag();
         String datasetId = datasetSummary.getId();
@@ -300,8 +294,8 @@ public class FileOperationTest {
         BulkLoadArrayResultModel resultModel2 =
             connectedOperations.handleSuccessCase(response2, BulkLoadArrayResultModel.class);
 
-        checkLoadSummary(resultModel1.getLoadSummary(), loadTag1, 3, 3, 0, 0);
-        checkLoadSummary(resultModel2.getLoadSummary(), loadTag2, 3, 3, 0, 0);
+        checkLoadSummary(resultModel1.getLoadSummary(), loadTag1, fileCount, fileCount, 0, 0);
+        checkLoadSummary(resultModel2.getLoadSummary(), loadTag2, fileCount, fileCount, 0, 0);
 
         for (BulkLoadFileResultModel fileResult : resultModel1.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);

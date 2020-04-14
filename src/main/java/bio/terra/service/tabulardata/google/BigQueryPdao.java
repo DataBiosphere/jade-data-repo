@@ -7,6 +7,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
@@ -26,10 +27,13 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.tabulardata.exception.BadExternalFileException;
+import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.CsvOptions;
+import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FieldValue;
 import com.google.cloud.bigquery.FieldValueList;
@@ -57,9 +61,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
@@ -1045,6 +1051,126 @@ public class BigQueryPdao implements PrimaryDataAccess {
             case "TIME":      return LegacySQLTypeName.TIME;
             case "TIMESTAMP": return LegacySQLTypeName.TIMESTAMP;
             default: throw new IllegalArgumentException("Unknown datatype '" + datatype + "'");
+        }
+    }
+
+    private String externalTableName(String tableName, String suffix) {
+        return String.format("%s%s_%s", PDAO_EXTERNAL_TABLE_PREFIX, tableName, suffix);
+    }
+
+    private static final String validateExtTableTemplate =
+        "SELECT <rowId> FROM `<project>.<dataset>.<table>` LIMIT 1";
+
+    public void createSoftDeleteExternalTable(Dataset dataset, String path, String tableName, String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String extTableName = externalTableName(tableName, suffix);
+        TableId tableId = TableId.of(prefixName(dataset.getName()), extTableName);
+        Schema schema = Schema.of(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        ExternalTableDefinition tableDef = ExternalTableDefinition.of(path, schema, FormatOptions.csv());
+        TableInfo tableInfo = TableInfo.of(tableId, tableDef);
+        bigQueryProject.getBigQuery().create(tableInfo);
+
+        // validate that the external table has data
+        String sql = new ST(validateExtTableTemplate)
+            .add("rowId", PDAO_ROW_ID_COLUMN)
+            .add("project", bigQueryProject.getProjectId())
+            .add("dataset", tableId.getDataset())
+            .add("table", tableId.getTable())
+            .render();
+        TableResult result = bigQueryProject.query(sql);
+        if (result.getTotalRows() == 0L) {
+            // either the file at the path is empty or it doesn't exist. error out and let the cleanup begin
+            String msg = String.format("No rows found at %s. Likely it is from a bad path or empty file(s).", path);
+            throw new BadExternalFileException(msg);
+        }
+    }
+
+    public boolean deleteSoftDeleteExternalTable(Dataset dataset, String tableName, String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        String extTableName = externalTableName(tableName, suffix);
+        return bigQueryProject.deleteTable(prefixName(dataset.getName()), extTableName);
+    }
+
+    private static final String insertSoftDeleteTemplate =
+        "INSERT INTO `<project>.<dataset>.<softDeleteTable>` " +
+        "SELECT DISTINCT <rowId> FROM `<project>.<dataset>.<softDeleteExtTable>`";
+
+    /**
+     * Insert row ids into the corresponding soft delete table for each table provided.
+     *
+     * @param dataset repo dataset that we are deleting data from
+     * @param tableNames list of table names that should have corresponding external tables with row ids to soft delete
+     * @param suffix a bq-safe version of the flight id to prevent different flights from stepping on each other
+     */
+    public TableResult applySoftDeletes(Dataset dataset,
+                                 List<String> tableNames,
+                                 String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        // we want this soft delete operation to be one parent job with one child-job per query, we we will combine
+        // all of the inserts into one statement that we send to bigquery.
+        // the soft delete tables have a random suffix on them, we need to fetch those from the db and pass them in
+        Map<String, String> softDeleteTableNameLookup = dataset.getTables()
+            .stream()
+            .collect(Collectors.toMap(DatasetTable::getName, DatasetTable::getSoftDeleteTableName));
+
+        List<String> sqlStatements = tableNames.stream()
+            .map(tableName -> new ST(insertSoftDeleteTemplate)
+                .add("project", bigQueryProject.getProjectId())
+                .add("dataset", prefixName(dataset.getName()))
+                .add("softDeleteTable", softDeleteTableNameLookup.get(tableName))
+                .add("rowId", PDAO_ROW_ID_COLUMN)
+                .add("softDeleteExtTable", externalTableName(tableName, suffix))
+                .render())
+            .collect(Collectors.toList());
+
+        return bigQueryProject.query(String.join(";", sqlStatements));
+    }
+
+    private long getSingleLongValue(TableResult result) {
+        FieldValueList fieldValues = result.getValues().iterator().next();
+        return fieldValues.get(0).getLongValue();
+    }
+
+    /**
+     * This join should pair up every rowId in the external table with a corresponding match in the live view. If there
+     * isn't a match in the live view, then V.rowId will be null and we count that as a mismatch.
+     *
+     * Note that since this is joining against the live view, an attempt to soft delete a rowId that has already been
+     * soft deleted will result in a mismatch.
+     */
+    private static final String validateSoftDeleteTemplate =
+        "SELECT COUNT(E.<rowId>) FROM `<project>.<dataset>.<softDeleteExtTable>` E " +
+        "LEFT JOIN `<project>.<dataset>.<liveView>` V USING (<rowId>) " +
+        "WHERE V.<rowId> IS NULL";
+
+    /**
+     * Goes through each of the provided tables and checks to see if the proposed row ids to soft delete exist in the
+     * dataset table. This will error out on the first sign of mismatch.
+     *
+     * @param dataset dataset repo concept object
+     * @param tables list of table specs from the DataDeletionRequest
+     * @param suffix a string added onto the end of the external table to prevent collisions
+     */
+    public void validateDeleteRequest(Dataset dataset, List<DataDeletionTableModel> tables, String suffix) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        for (DataDeletionTableModel table : tables) {
+            String tableName = table.getTableName();
+            String sql = new ST(validateSoftDeleteTemplate)
+                .add("rowId", PDAO_ROW_ID_COLUMN)
+                .add("project", bigQueryProject.getProjectId())
+                .add("dataset", prefixName(dataset.getName()))
+                .add("softDeleteExtTable", externalTableName(tableName, suffix))
+                .add("liveView", tableName)
+                .render();
+            TableResult result = bigQueryProject.query(sql);
+            long numMismatched = getSingleLongValue(result);
+
+            // shortcut out early, no use wasting more compute
+            if (numMismatched > 0) {
+                throw new MismatchedRowIdException(
+                    String.format("Could not match %s row ids for table %s", numMismatched, tableName));
+            }
         }
     }
 }

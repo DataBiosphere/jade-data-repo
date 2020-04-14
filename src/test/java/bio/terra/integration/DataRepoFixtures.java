@@ -8,10 +8,13 @@ import bio.terra.common.fixtures.ProfileFixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -45,6 +48,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @Component
 public class DataRepoFixtures {
@@ -120,6 +124,23 @@ public class DataRepoFixtures {
         }
         assertTrue("dataset create error response is present", response.getErrorObject().isPresent());
         return response.getErrorObject().get();
+    }
+
+    public DataRepoResponse<JobModel> deleteDataRaw(TestConfiguration.User user,
+                                                    String datasetId,
+                                                    DataDeletionRequest request) throws Exception {
+        String url = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
+        String json = TestUtils.mapToJson(request);
+        return dataRepoClient.post(user, url, json, JobModel.class);
+    }
+
+    public void deleteData(TestConfiguration.User user,
+                           String datasetId,
+                           DataDeletionRequest request) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = deleteDataRaw(user, datasetId, request);
+        DataRepoResponse<DeleteResponseModel> deleteResponse =
+            dataRepoClient.waitForResponse(user, jobResponse, DeleteResponseModel.class);
+        assertGoodDeleteResponse(deleteResponse);
     }
 
     public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)
@@ -383,6 +404,35 @@ public class DataRepoFixtures {
         assertThat("ingestFile is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
         return response.getResponseObject().get();
+    }
+
+    public BulkLoadArrayResultModel bulkLoadArray(
+        TestConfiguration.User user,
+        String datasetId,
+        BulkLoadArrayRequestModel requestModel) throws Exception {
+
+        String json = TestUtils.mapToJson(requestModel);
+
+        DataRepoResponse<JobModel> launchResponse = dataRepoClient.post(
+            user,
+            "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array",
+            json,
+            JobModel.class);
+        assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<BulkLoadArrayResultModel> response =
+            dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
+        if (response.getStatusCode().is2xxSuccessful()) {
+            assertThat("bulkLoadArray is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
+            assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
+            return response.getResponseObject().get();
+        } else {
+            ErrorModel errorModel = response.getErrorObject().orElse(null);
+            logger.error("bulkLoadArray failed: " + errorModel);
+            fail();
+            return null; // Make findbugs happy
+        }
     }
 
     public DataRepoResponse<FileModel> getFileByIdRaw(

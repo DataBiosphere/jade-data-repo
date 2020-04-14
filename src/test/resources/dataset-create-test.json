@@ -29,7 +29,7 @@
         "to":   {"table": "sample", "column": "participant_id"}
       },
       {
-        "name": "parent",
+        "name": "parent_with_a_long_pointless_suffix_to_push_the_name_length_over_the_old_limit",
         "from": {"table": "participant", "column": "id"},
         "to":   {"table": "participant", "column": "id"}
       }
@@ -56,7 +56,8 @@
           {"name": "sample", "columns": []}
         ],
         "follow": [
-          "participant_sample", "parent"
+          "participant_sample",
+          "parent_with_a_long_pointless_suffix_to_push_the_name_length_over_the_old_limit"
         ]
       }
     ]

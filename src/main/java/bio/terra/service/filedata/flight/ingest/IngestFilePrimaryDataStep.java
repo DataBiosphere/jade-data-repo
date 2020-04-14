@@ -1,27 +1,30 @@
 package bio.terra.service.filedata.flight.ingest;
 
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.model.FileLoadModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.model.FileLoadModel;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
-import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
+import java.time.Instant;
+
 public class IngestFilePrimaryDataStep implements Step {
-    private final FireStoreDao fileDao;
+    private final ConfigurationService configService;
     private final GcsPdao gcsPdao;
     private final Dataset dataset;
 
-    public IngestFilePrimaryDataStep(FireStoreDao fileDao,
-                                     Dataset dataset,
-                                     GcsPdao gcsPdao) {
-        this.fileDao = fileDao;
+    public IngestFilePrimaryDataStep(Dataset dataset,
+                                     GcsPdao gcsPdao,
+                                     ConfigurationService configService) {
+        this.configService = configService;
         this.gcsPdao = gcsPdao;
         this.dataset = dataset;
     }
@@ -40,7 +43,19 @@ public class IngestFilePrimaryDataStep implements Step {
             // copy the file.
             GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
 
-            FSFileInfo fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+            FSFileInfo fsFileInfo;
+            if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
+                fsFileInfo = new FSFileInfo()
+                    .fileId(fileId)
+                    .bucketResourceId(bucketResource.getResourceId().toString())
+                    .checksumCrc32c(null)
+                    .checksumMd5("baaaaaad")
+                    .createdDate(Instant.now().toString())
+                    .gspath("gs://path")
+                    .size(100L);
+            } else {
+                fsFileInfo = gcsPdao.copyFile(dataset, fileLoadModel, fileId, bucketResource);
+            }
             workingMap.put(FileMapKeys.FILE_INFO, fsFileInfo);
         }
         return StepResult.getStepResultSuccess();

@@ -1,6 +1,8 @@
 package bio.terra.integration;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
+import bio.terra.model.DatasetModel;
 import bio.terra.model.SnapshotModel;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.AccessToken;
@@ -67,6 +69,13 @@ public final class BigQueryFixtures {
         return String.format("`%s.%s.%s`",
             snapshotModel.getDataProject(),
             snapshotModel.getName(),
+            tableName);
+    }
+
+    public static String makeTableRef(DatasetModel datasetModel, String tableName) {
+        return String.format("`%s.%s.%s`",
+            datasetModel.getDataProject(),
+            PdaoConstant.PDAO_PREFIX + datasetModel.getName(),
             tableName);
     }
 

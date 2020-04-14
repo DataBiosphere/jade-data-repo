@@ -19,14 +19,14 @@ deploy:
     releases:
     - name: TEMP-secrets
       chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.4/create-secret-manager-secret-0.0.4.tgz
-      version: 0.0.6
+      version: 0.0.4
       namespace: TEMP
       remote: true
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPSecrets.yaml
     - name: TEMP-jade
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.0.8/datarepo-0.0.8.tgz
-      version: 0.0.9
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.1.0/datarepo-0.1.0.tgz
+      version: 0.1.0
       namespace: TEMP
       remote: true
       values:

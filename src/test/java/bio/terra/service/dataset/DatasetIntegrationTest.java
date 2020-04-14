@@ -1,21 +1,37 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
+import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
+import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.DatasetFixtures;
 import bio.terra.common.fixtures.JsonLoader;
+import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoClient;
 import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.AssetModel;
+import bio.terra.model.DataDeletionGcsFileModel;
+import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetSpecificationModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
+import com.google.cloud.WriteChannel;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.TableResult;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+import com.google.common.base.Charsets;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -29,9 +45,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
@@ -50,18 +71,18 @@ public class DatasetIntegrationTest extends UsersBase {
         "OMOP schema based on BigQuery schema from https://github.com/OHDSI/CommonDataModel/wiki";
     private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
-    @Autowired
-    private DataRepoClient dataRepoClient;
+    @Autowired private DataRepoClient dataRepoClient;
+    @Autowired private JsonLoader jsonLoader;
+    @Autowired private DataRepoFixtures dataRepoFixtures;
+    @Autowired private AuthService authService;
+    @Autowired private TestConfiguration testConfiguration;
 
-    @Autowired
-    private JsonLoader jsonLoader;
-
-    @Autowired
-    private DataRepoFixtures dataRepoFixtures;
+    private String stewardToken;
 
     @Before
     public void setup() throws Exception {
         super.setup();
+        stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
     }
 
     @Test
@@ -194,5 +215,119 @@ public class DatasetIntegrationTest extends UsersBase {
             equalTo(1));
         // delete the dataset
         dataRepoFixtures.deleteDataset(steward(), summaryModel.getId());
+    }
+
+    private DataDeletionTableModel deletionTableFile(String tableName, String path) {
+        DataDeletionGcsFileModel deletionGcsFileModel = new DataDeletionGcsFileModel()
+            .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+            .path(path);
+        return new DataDeletionTableModel()
+            .tableName(tableName)
+            .gcsFileSpec(deletionGcsFileModel);
+    }
+
+    private DataDeletionRequest dataDeletionRequest() {
+        return new DataDeletionRequest()
+            .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
+            .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
+    }
+
+    // TODO: wildcard test, validation tests, empty file, missing file, fault insertion on creating ext tables
+
+    private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n) {
+        String tableRef = BigQueryFixtures.makeTableRef(dataset, tableName);
+        String sql = String.format("SELECT %s FROM %s LIMIT %s", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef, n);
+        TableResult result = BigQueryFixtures.query(sql, bigQuery);
+        assertThat("got right num of row ids back", result.getTotalRows(), equalTo(n));
+        return StreamSupport.stream(result.getValues().spliterator(), false)
+            .map(fieldValues -> fieldValues.get(0).getStringValue())
+            .collect(Collectors.toList());
+    }
+
+    private String writeListToScratch(String prefix, List<String> contents) throws IOException {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
+        BlobInfo blob = BlobInfo.newBuilder(testConfiguration.getIngestbucket(), targetPath).build();
+        try (WriteChannel writer = storage.writer(blob)) {
+            for (String line : contents) {
+                writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+            }
+        }
+        return String.format("gs://%s/%s", blob.getBucket(), targetPath);
+    }
+
+    private void assertTableCount(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n) {
+        String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(dataset, tableName);
+        TableResult result = BigQueryFixtures.query(sql, bigQuery);
+        assertThat("count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
+    }
+
+    public String ingestedDataset() throws Exception {
+        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
+        String datasetId = datasetSummaryModel.getId();
+        IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+        IngestResponseModel ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
+
+        ingestRequest = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json");
+        ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
+        assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
+        return datasetId;
+    }
+
+    @Test
+    public void testSoftDeleteHappyPath() throws Exception {
+        String datasetId = ingestedDataset();
+
+        // get row ids
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+        List<String> participantRowIds = getRowIds(bigQuery, dataset, "participant", 3L);
+        List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 2L);
+
+        // write them to GCS
+        String participantPath = writeListToScratch("softDel", participantRowIds);
+        String samplePath = writeListToScratch("softDel", sampleRowIds);
+
+        // build the deletion request with pointers to the two files with row ids to soft delete
+        List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
+            deletionTableFile("participant", participantPath),
+            deletionTableFile("sample", samplePath));
+        DataDeletionRequest request = dataDeletionRequest()
+            .tables(dataDeletionTableModels);
+
+        // send off the soft delete request
+        dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+        // make sure the new counts make sense
+        assertTableCount(bigQuery, dataset, "participant", 2L);
+        assertTableCount(bigQuery, dataset, "sample", 5L);
+    }
+
+    @Test
+    public void wildcardSoftDelete() throws Exception {
+        String datasetId = ingestedDataset();
+        String pathPrefix = "softDelWildcard" + UUID.randomUUID().toString();
+
+        // get 5 row ids, we'll write them out to 5 separate files
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+        List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 5L);
+        for (String rowId : sampleRowIds) {
+            writeListToScratch(pathPrefix, Collections.singletonList(rowId));
+        }
+
+        // make a wildcard path 'gs://ingestbucket/softDelWildcard/*'
+        String wildcardPath = String.format("gs://%s/scratch/%s/*", testConfiguration.getIngestbucket(), pathPrefix);
+
+        // build a request and send it off
+        DataDeletionRequest request = dataDeletionRequest()
+            .tables(Collections.singletonList(deletionTableFile("sample", wildcardPath)));
+        dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+        // there should be (7 - 5) = 2 rows "visible" in the sample table
+        assertTableCount(bigQuery, dataset, "sample", 2L);
     }
 }

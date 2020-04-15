@@ -28,6 +28,10 @@ public class LockSnapshotStep implements Step {
     public LockSnapshotStep(SnapshotDao snapshotDao, UUID snapshotId, boolean suppressNotFoundException) {
         this.snapshotDao = snapshotDao;
         this.snapshotId = snapshotId;
+
+        // this will be set to true in cases where we don't want to fail if the snapshot metadata record doesn't exist.
+        // for example, snapshot deletion. we want multiple deletes to succeed, not throw a lock or notfound exception.
+        // for most cases, this should be set to false because we expect the snapshot metadata record to exist.
         this.suppressNotFoundException = suppressNotFoundException;
     }
 
@@ -42,6 +46,7 @@ public class LockSnapshotStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, lockedEx);
         } catch (SnapshotNotFoundException notFoundEx) {
             if (suppressNotFoundException) {
+                logger.debug("Suppressing SnapshotNotFoundException");
                 return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
             } else {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);

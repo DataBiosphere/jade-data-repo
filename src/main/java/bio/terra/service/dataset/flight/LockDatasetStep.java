@@ -45,6 +45,7 @@ public class LockDatasetStep implements Step {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         } catch (DatasetNotFoundException notFoundEx) {
             if (suppressNotFoundException) {
+                logger.debug("Suppressing DatasetNotFoundException");
                 return new StepResult(StepStatus.STEP_RESULT_SUCCESS);
             } else {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);

@@ -23,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -115,9 +114,8 @@ public class OneProjectPerProfileIdSelectorTest {
         DatasetSummaryModel datasetSummaryModel =
             connectedOperations.createDataset(profile, "snapshot-test-dataset.json");
 
-        MockHttpServletResponse response =
-            connectedOperations.launchCreateSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
-        SnapshotSummaryModel snapshotSummaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
+        SnapshotSummaryModel snapshotSummaryModel =
+            connectedOperations.createSnapshot(datasetSummaryModel, "snapshot-test-snapshot.json", "");
         SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummaryModel.getId());
         Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotModel.getId()));
 

@@ -58,26 +58,31 @@ public class SnapshotDao {
      * in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
      *     1. Update the snapshot record to give this flight the lock.
      *     2. Throw an exception if no records were updated.
-     * @param snapshotName name of the snapshot to lock, this is a unique column
+     * @param snapshotId id of the snapshot to lock, this is a unique column
      * @param flightId flight id that wants to lock the snapshot
-     * @throws SnapshotLockException if the snapshot is locked by another flight or does not exist
+     * @throws SnapshotLockException if the snapshot is locked by another flight
+     * @throws SnapshotNotFoundException if the snapshot does not exist
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lock(String snapshotName, String flightId) {
+    public void lock(UUID snapshotId, String flightId) {
         if (flightId == null) {
             throw new SnapshotLockException("Locking flight id cannot be null");
         }
 
         // update the snapshot entry and lock it by setting the flight id
         String sql = "UPDATE snapshot SET flightid = :flightid " +
-            "WHERE name = :name AND (flightid IS NULL OR flightid = :flightid)";
+            "WHERE id = :id AND (flightid IS NULL OR flightid = :flightid)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", snapshotName)
+            .addValue("id", snapshotId)
             .addValue("flightid", flightId);
         int numRowsUpdated = jdbcTemplate.update(sql, params);
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
+            // try to retrieve the snapshot in case we should throw a NotFound exception
+            retrieveSummaryById(snapshotId);
+
+            // otherwise, throw a Lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new SnapshotLockException("Failed to lock the snapshot");
         }
@@ -88,17 +93,17 @@ public class SnapshotDao {
      * If the snapshot is not locked by this flight, then the method is a no-op. It does not throw an exception in this
      * case. So, multiple unlocks can succeed with no errors. The method does return a boolean indicating whether any
      * rows were updated or not. So, callers can decide to throw an error if the unlock was a no-op.
-     * @param snapshotName name of the snapshot to unlock, this is a unique column
+     * @param snapshotId id of the snapshot to unlock, this is a unique column
      * @param flightId flight id that wants to unlock the snapshot
      * @return true if a snapshot was unlocked, false otherwise
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public boolean unlock(String snapshotName, String flightId) {
+    public boolean unlock(UUID snapshotId, String flightId) {
         // update the snapshot entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE snapshot SET flightid = NULL " +
-            "WHERE name = :name AND flightid = :flightid";
+            "WHERE id = :id AND flightid = :flightid";
         MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", snapshotName)
+            .addValue("id", snapshotId)
             .addValue("flightid", flightId);
         int numRowsUpdated = jdbcTemplate.update(sql, params);
         logger.debug("numRowsUpdated=" + numRowsUpdated);

@@ -46,7 +46,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
@@ -221,11 +220,9 @@ public class BigQueryPdaoTest {
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
-            MockHttpServletResponse snapshotResponse =
-                connectedOperations.launchCreateSnapshot(datasetSummaryModel,
-                    "ingest-test-snapshot.json", "");
             SnapshotSummaryModel snapshotSummary =
-                connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
+                connectedOperations.createSnapshot(datasetSummaryModel,
+                    "ingest-test-snapshot.json", "");
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
@@ -252,9 +249,8 @@ public class BigQueryPdaoTest {
                 Collections.singletonList("file1"));
 
             // Create another snapshot.
-            snapshotResponse = connectedOperations.launchCreateSnapshot(
+            snapshotSummary = connectedOperations.createSnapshot(
                 datasetSummaryModel, "ingest-test-snapshot.json", "");
-            snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
             Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
 

@@ -27,6 +27,10 @@ public class LockDatasetStep implements Step {
     public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean suppressNotFoundException) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
+
+        // this will be set to true in cases where we don't want to fail if the dataset metadata record doesn't exist.
+        // for example, dataset deletion. we want multiple deletes to succeed, not throw a lock or notfound exception.
+        // for most cases, this should be set to false because we expect the dataset metadata record to exist.
         this.suppressNotFoundException = suppressNotFoundException;
     }
 

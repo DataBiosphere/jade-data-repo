@@ -31,6 +31,8 @@ import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CO
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_SKIP_FILE_LOAD;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
@@ -207,6 +209,11 @@ public class ConfigurationService {
         addFaultCounted(DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        // Snapshot delete lock faults. These are used by SnapshotConnectedTest > testOverlappingDeletes
+        addFaultCounted(SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100,
+            ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
     }
 
 }

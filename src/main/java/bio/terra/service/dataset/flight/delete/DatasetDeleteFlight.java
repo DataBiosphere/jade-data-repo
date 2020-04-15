@@ -3,6 +3,8 @@ package bio.terra.service.dataset.flight.delete;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -42,6 +44,7 @@ public class DatasetDeleteFlight extends Flight {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
+        addStep(new LockDatasetStep(datasetDao, datasetId, true));
         addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
         addStep(new DeleteDatasetPrimaryDataStep(
             bigQueryPdao,
@@ -52,5 +55,6 @@ public class DatasetDeleteFlight extends Flight {
             configService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
+        addStep(new UnlockDatasetStep(datasetDao, datasetId));
     }
 }

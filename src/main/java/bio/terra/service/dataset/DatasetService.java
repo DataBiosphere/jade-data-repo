@@ -6,7 +6,6 @@ import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
@@ -87,12 +86,12 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(String id, AuthenticatedUserRequest userReq) {
+    public String delete(String id, AuthenticatedUserRequest userReq) {
         String description = "Delete dataset " + id;
         return jobService
             .newJob(description, DatasetDeleteFlight.class, null, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
-            .submitAndWait(DeleteResponseModel.class);
+            .submit();
     }
 
     public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {

@@ -79,7 +79,9 @@ public class SnapshotDao {
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
-            // try to retrieve the snapshot in case we should throw a NotFound exception
+            // this method checks if the snapshot exists
+            // if it does not exist, then the method throws a SnapshotNotFoundException
+            // we don't need the result (snapshot summary) here, just the existence check, so ignore the return value.
             retrieveSummaryById(snapshotId);
 
             // otherwise, throw a Lock exception

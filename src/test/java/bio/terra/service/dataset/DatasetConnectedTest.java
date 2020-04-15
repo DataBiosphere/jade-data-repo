@@ -8,7 +8,10 @@ import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.junit.After;
@@ -21,15 +24,19 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -42,6 +49,7 @@ public class DatasetConnectedTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private DatasetDao datasetDao;
+    @Autowired private ConfigurationService configService;
     @MockBean private IamService samService;
 
     private BillingProfileModel billingProfile;
@@ -90,8 +98,45 @@ public class DatasetConnectedTest {
         connectedOperations.deleteTestDataset(datasetSummaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        errorModel = connectedOperations.getDatasetExpectError(datasetSummaryModel.getId(), HttpStatus.NOT_FOUND);
-        System.out.println("error message = " + errorModel.getMessage());
+        connectedOperations.getDatasetExpectError(datasetSummaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    public void testOverlappingDeletes() throws Exception {
+        // create a dataset and check that it succeeds
+        String resourcePath = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest =
+            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+        // enable wait in DeleteDatasetPrimaryDataStep
+        configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // try to delete the dataset
+        MvcResult result1 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+
+        // try to delete the dataset again
+        MvcResult result2 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
+        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel2.getMessage(),
+            startsWith("Failed to lock the dataset"));
+
+        // disable wait in DeleteDatasetPrimaryDataStep
+        configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the first delete request
+        MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
+        assertEquals("First delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
 }

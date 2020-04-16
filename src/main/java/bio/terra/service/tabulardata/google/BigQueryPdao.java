@@ -7,6 +7,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -837,6 +838,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     // insert the rowIds into the snapshot row ids table and then kick off the rest of the relationship walking
+    // once we have the row ids in addition to the asset spec, this should look familiar to wAsset
     public void queryForRowIds(AssetSpecification assetSpecification,
                                Snapshot snapshot,
                                String sqlQuery) {
@@ -848,56 +850,88 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String projectId = bigQueryProject.getProjectId();
 
         // create snapshot bq dataset
-        // Idempotency: delete possibly partial create
-        if (bigQueryProject.datasetExists(snapshotName)) {
-            bigQueryProject.deleteDataset(snapshotName);
-        }
-
-        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
-
-        // now create a temp table with all the selected row ids in it
-        bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
-
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
-            .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
-            .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
-            .build();
         try {
-            // TODO -- get results and validate that it got back more than 0 value
-            // we should tell people if their queries dont return anything
-            bigQuery.query(queryConfig);
-        } catch (InterruptedException ie) {
-            throw new PdaoException("Append query unexpectedly interrupted", ie);
+            // Idempotency: delete possibly partial create
+            if (bigQueryProject.datasetExists(snapshotName)) {
+                bigQueryProject.deleteDataset(snapshotName);
+            }
+
+            bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+
+            // now create a temp table with all the selected row ids based on the query in it
+            bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
+                .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
+                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                .build();
+            try {
+                final TableResult query = bigQuery.query(queryConfig);
+                // get results and validate that it got back more than 0 value
+                if (query.getTotalRows()<1) {
+                    // should this be a different error?
+                    throw new InvalidQueryException("Query returned 0 results");
+                }
+
+            } catch (InterruptedException ie) {
+                throw new PdaoException("Append query unexpectedly interrupted", ie);
+            }
+
+            // join on the root table to validate that the dataset's rootTable.rowid is never null
+            // and thus matches the PDAO_ROW_ID_COLUMN
+            AssetTable rootAssetTable = assetSpecification.getRootTable();
+            Table rootTable = rootAssetTable.getTable();
+            String datasetTableName = rootTable.getName();
+            String rootTableId = rootTable.getId().toString();
+
+            ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+            sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            sqlTemplate.add("datasetTable", datasetTableName);
+            sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
+
+            TableResult result = bigQueryProject.query(sqlTemplate.render());
+            FieldValueList mismatchedCount = result.getValues().iterator().next();
+            Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
+            if (mismatchedCountLong > 0) {
+                throw new MismatchedValueException("Query results did not match dataset root row ids");
+            }
+
+            // todo is this right?
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+            // populate root row ids. Must happen before the relationship walk.
+            // NOTE: when we have multiple sources, we can put this into a loop
+
+
+            // insert into the PDAO_ROW_ID_TABLE the literal that is the table id and then all the row ids from the temp table
+            ST sqlLoadTemplate = new ST(loadRootRowIdsFromTempTableTemplate);
+            sqlLoadTemplate.add("project", projectId);
+            sqlLoadTemplate.add("snapshot", snapshotName);
+            sqlLoadTemplate.add("dataset", datasetBqDatasetName);
+            sqlLoadTemplate.add("tableId", rootTableId);
+            sqlLoadTemplate.add("datasetTable", datasetTableName);
+            sqlLoadTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN); // this is the disc from classic asset
+            bigQueryProject.query(sqlLoadTemplate.render());
+
+            //ST sqlValidateTemplate = new ST(validateRowIdsForRootTemplate);
+            // TODO do we want to reuse this validation? if yes, maybe mismatchedCount / query should be updated
+
+            // walk and populate relationship table row ids
+            List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpecification);
+            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+
+            // create the views
+            List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+
+            // set authorization on views
+            List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
+            bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+        } catch (Exception ex) {
+            // TODO What if the select list doesn't match the temp table schema?
+            // TODO what if the query is invalid? Seems like there might be more to catch here.
+            throw new PdaoException("createSnapshot failed", ex);
         }
-        // join the root table to find where the dataset's rootTable.rowid is null PDAO_ROW_ID_COLUMN
-        AssetTable rootTable = assetSpecification.getRootTable();
-        String datasetTableName = rootTable.getTable().getName();
-        String rootTableId = rootTable.getTable().getId().toString();
-
-        // validation check to see if any of the row id results dont match and get the count
-        ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
-        sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
-        sqlTemplate.add("datasetTable", datasetTableName);
-        sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
-
-        TableResult result = bigQueryProject.query(sqlTemplate.render());
-        FieldValueList mismatchedCount = result.getValues().iterator().next();
-        Long count = mismatchedCount.get(0).getLongValue();
-        if (count > 0) {
-            throw new MismatchedValueException("Query results did not match dataset root row ids");
-        }
-        // TODO insert into the PDAO_ROW_ID_TABLE the literal that is the table id and then all the row ids from the temp table
-        // then walk relationships
-        List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpecification);
-        walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
-
-        // create the views
-        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
-
-        // set authorization on views
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
-        bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
     }
+
 
     // NOTE: this will have to be re-written when we support relationships that include
     // more than one column.
@@ -929,6 +963,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final String joinTablesToTestForMissingRowIds =
         "SELECT COUNT(*) FROM <tempTable> LEFT JOIN <datasetTable> USING ( <commonColumn> ) " +
             "WHERE <datasetTable>.<commonColumn> IS NULL";
+
+    private static final String loadRootRowIdsFromTempTableTemplate =
+        "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
+            "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
+            "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
+            "SELECT row_id FROM <tempTable>.<commonColumn> AS row_id" +
+            ") AS T";
 
     /**
      * Given a relationship, join from the start table to the target table.

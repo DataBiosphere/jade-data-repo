@@ -3,6 +3,7 @@ package bio.terra.grammar;
 
 import bio.terra.common.category.Unit;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.grammar.exception.MissingDatasetException;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
 import org.junit.Before;
@@ -28,6 +29,7 @@ public class GrammarTest {
         datasetMap = Collections.singletonMap("dataset", datasetModel);
     }
 
+
     @Test
     public void testDatasetNames() {
         Query query = Query.parse("SELECT * FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
@@ -51,7 +53,21 @@ public class GrammarTest {
     public void testAliasedColumn() {
         Query query = Query.parse("SELECT * FROM dataset.table A WHERE A.col = 'foo'");
         BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
-        String translated = query.translateSql(bqVisitor);
+        // String translated = query.translateSql(bqVisitor);
+        // TODO the rest of this test
+    }
+
+    @Test(expected = InvalidQueryException.class)
+    public void testInvalidQuery() {
+        Query query = Query.parse("this is not a valid query");
+        query.getDatasetNames();
+    }
+
+    @Test(expected = MissingDatasetException.class)
+    public void testInvalidDataset() {
+        BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+        Query query = Query.parse("SELECT * FROM noDataset.table WHERE noDataset.table.x = 'string'");
+        query.translateSql(bqVisitor);
     }
 
 }

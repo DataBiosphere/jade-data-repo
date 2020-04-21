@@ -228,7 +228,7 @@ helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install
 1. You should have already added the following to your path: `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path. 
 Something like running `export PATH="/Applications/Postgres.app/Contents/Versions/latest/bin:$PATH"` on command line. 
 
-2. Create the data repo db and user by running the follwoing while in the `jade-data-repo` directory. More information can be found in [the database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md)
+2. Create the data repo db and user by running the following while in the `jade-data-repo` directory. More information can be found in [the database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md)
   ```
   psql -f db/create-data-repo-db
   ```
@@ -263,3 +263,23 @@ Something like running `export PATH="/Applications/Postgres.app/Contents/Version
 
 3. Follow [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) for the jade-data-repo-ui. 
 * You may need to also run `npm install` to add the node_modules folder
+
+## 11. Jade Terraform setup
+Follow instructions found on the [terraform-jade repo readme](https://github.com/broadinstitute/terraform-jade). 
+
+## Common Issues
+1. On Broad Non-split VPN 
+2. Docker is running
+3. Postgres database is started
+4. Environmental variables are set (replace 'zzzzz' with your initials or "dev" depending on what you're trying to access).
+Below you'll find a list of parameters, you may need some or all of these depending on what you're trying to run. 
+  * export NVM_DIR="$HOME/.nvm"
+  * export VAULT_ADDR=https://clotho.broadinstitute.org:8200
+  * export ENVIRONMENT=dev
+  * export GOOGLE_CLOUD_PROJECT=broad-jade-zzzzz
+  * export SUFFIX=zzzzz
+  * export STEWARD_ACCT={YOUREMAIL}@{whatever}.com
+  * export PROXY_URL=https://jade-zzzzz.datarepo-dev.broadinstitute.org
+  * export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
+  // Only need to do this if you're not using a Broad computer - otherwise host would be http://local.broadinstitute.org
+  * export HOST=localhost 

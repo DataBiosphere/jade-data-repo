@@ -223,3 +223,43 @@ cd datarepo-helm-definitions/dev/zzz
 helm namespace upgrade zzz-secrets datarepo-helm/create-secret-manager-secret --version=0.0.4 --install --namespace zzz -f zzzSecrets.yaml
 helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install --namespace zzz -f zzzDeployment.yaml
 ```
+
+## 9. Continued Postgres Setup
+1. You should have already added the following to your path: `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path. 
+Something like running `export PATH="/Applications/Postgres.app/Contents/Versions/latest/bin:$PATH"` on command line. 
+
+2. Create the data repo db and user by running the follwoing while in the `jade-data-repo` directory. More information can be found in [the database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md)
+  ```
+  psql -f db/create-data-repo-db
+  ```
+  You can run the following to make sure they've been added:
+  This will switch you over to running postgres commands: 
+  ```
+  psql
+  ```
+  List out the databases. You should now see "datarepo" and "stairway."
+  ```
+  \l
+  ```
+
+## 10. Running jade-data-repo and jade-data-repo-ui
+1. Build jade-data-repo: Find more detailed instructions on the [main readme](https://github.com/DataBiosphere/jade-data-repo). You can build the repo and then test to make sure it's working as expceted with the following commands.
+* Build jade-data-repo:
+```
+./gradlew bootRun
+```
+* Run linters and unit tests:
+```
+./gradlew check
+```
+* Run connected and integration tests:
+```
+./gradlew testConnected
+```
+2. Set up env variable for the terminal:
+* export VAULT_ADDR=https://clotho.broadinstitute.org:8200
+* export PROXY_URL=https://jade-sh.datarepo-dev.broadinstitute.org
+* If you're not on a broad issued computer: export HOST=localhost
+
+3. Follow [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) for the jade-data-repo-ui. 
+* You may need to also run `npm install` to add the node_modules folder

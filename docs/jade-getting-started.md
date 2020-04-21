@@ -226,7 +226,6 @@ helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install
 
 ## 9. Continued Postgres Setup
 1. You should have already added the following to your path: `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path. 
-Something like running `export PATH="/Applications/Postgres.app/Contents/Versions/latest/bin:$PATH"` on command line. 
 
 2. Create the data repo db and user by running the following while in the `jade-data-repo` directory. More information can be found in [the database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md)
   ```

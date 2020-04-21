@@ -469,11 +469,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             logger.info("Staging table load job " + loadJob.getJobId().getJob() + " succeeded");
         } else {
             logger.info("Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
-            throw new PdaoException("Unexpected return from BigQuery job - no getStatus()");
-        }
-
-        if (loadJob.getStatus().getError() != null) {
-            if ("notFound".equals(loadJob.getStatus().getError().getReason())) {
+            if ("notFound".equals(loadJobError.getReason())) {
                 throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequest.getPath());
             }
 

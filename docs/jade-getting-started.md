@@ -262,7 +262,6 @@ Something like running `export PATH="/Applications/Postgres.app/Contents/Version
 * If you're not on a broad issued computer: export HOST=localhost
 
 3. Follow [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) for the jade-data-repo-ui. 
-* You may need to also run `npm install` to add the node_modules folder
 
 ## 11. Jade Terraform setup
 Follow instructions found on the [terraform-jade repo readme](https://github.com/broadinstitute/terraform-jade). 

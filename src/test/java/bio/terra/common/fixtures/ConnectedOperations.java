@@ -185,9 +185,9 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), BillingProfileModel.class);
     }
 
-    public MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
-                                                        String resourcePath,
-                                                        String infix) throws Exception {
+    public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,
+                                                  String resourcePath,
+                                                  String infix) throws Exception {
 
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
         String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
@@ -202,7 +202,10 @@ public class ConnectedOperations {
             .content(TestUtils.mapToJson(snapshotRequest)))
             .andReturn();
 
-        return validateJobModelAndWait(result);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
+
+        return snapshotSummary;
     }
 
     public SnapshotModel getSnapshot(String snapshotId) throws Exception {
@@ -273,7 +276,8 @@ public class ConnectedOperations {
     public void deleteTestDataset(String id) throws Exception {
         // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
-        checkDeleteResponse(result.getResponse());
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        checkDeleteResponse(response);
 
     }
 

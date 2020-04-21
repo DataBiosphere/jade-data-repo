@@ -2,14 +2,15 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.model.AssetModel;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.dataset.flight.create.AddAssetSpecFlight;
 import bio.terra.service.dataset.flight.create.DatasetCreateFlight;
+import bio.terra.service.dataset.flight.datadelete.DatasetDataDeleteFlight;
 import bio.terra.service.dataset.flight.delete.DatasetDeleteFlight;
 import bio.terra.service.dataset.flight.delete.RemoveAssetSpecFlight;
 import bio.terra.service.dataset.flight.ingest.DatasetIngestFlight;
@@ -85,12 +86,12 @@ public class DatasetService {
         return new EnumerateDatasetModel().items(summaries).total(datasetEnum.getTotal());
     }
 
-    public DeleteResponseModel delete(String id, AuthenticatedUserRequest userReq) {
+    public String delete(String id, AuthenticatedUserRequest userReq) {
         String description = "Delete dataset " + id;
         return jobService
             .newJob(description, DatasetDeleteFlight.class, null, userReq)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), id)
-            .submitAndWait(DeleteResponseModel.class);
+            .submit();
     }
 
     public String ingestDataset(String id, IngestRequestModel ingestRequestModel, AuthenticatedUserRequest userReq) {
@@ -131,6 +132,17 @@ public class DatasetService {
         return jobService
             .newJob(description, RemoveAssetSpecFlight.class, assetId, userReq)
             .addParameter(JobMapKeys.ASSET_ID.getKeyName(), assetId)
+            .submit();
+    }
+
+    public String deleteTabularData(
+        String datasetId,
+        DataDeletionRequest dataDeletionRequest,
+        AuthenticatedUserRequest userReq) {
+        String description = "Deleting tabular data from dataset " + datasetId;
+        return jobService
+            .newJob(description, DatasetDataDeleteFlight.class, dataDeletionRequest, userReq)
+            .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .submit();
     }
 }

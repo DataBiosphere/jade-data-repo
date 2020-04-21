@@ -19,7 +19,7 @@ deploy:
     releases:
     - name: TEMP-secrets
       chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/create-secret-manager-secret-0.0.4/create-secret-manager-secret-0.0.4.tgz
-      version: 0.0.6
+      version: 0.0.4
       namespace: TEMP
       remote: true
       valuesFiles:

@@ -11,9 +11,9 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
-import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.FileLoadModel;
@@ -163,13 +163,16 @@ public class RepositoryApiController implements RepositoryApi {
     }
 
     @Override
-    public ResponseEntity<DeleteResponseModel> deleteDataset(@PathVariable("id") String id) {
+    public ResponseEntity<JobModel> deleteDataset(@PathVariable("id") String id) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         iamService.verifyAuthorization(
-            getAuthenticatedInfo(),
+            userReq,
             IamResourceType.DATASET,
             id,
             IamAction.DELETE);
-        return new ResponseEntity<>(datasetService.delete(id, getAuthenticatedInfo()), HttpStatus.OK);
+        String jobId = datasetService.delete(id, userReq);
+        // we can retrieve the job we just created
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override
@@ -461,6 +464,15 @@ public class RepositoryApiController implements RepositoryApi {
             policyMember.getEmail());
         PolicyResponse response = new PolicyResponse().policies(Collections.singletonList(policy));
         return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<JobModel> applyDatasetDataDeletion(
+        String id,
+        @RequestBody @Valid DataDeletionRequest dataDeletionRequest) {
+        AuthenticatedUserRequest userReq = getAuthenticatedInfo();
+        String jobId = datasetService.deleteTabularData(id, dataDeletionRequest, userReq);
+        return jobToResponse(jobService.retrieveJob(jobId, userReq));
     }
 
     @Override

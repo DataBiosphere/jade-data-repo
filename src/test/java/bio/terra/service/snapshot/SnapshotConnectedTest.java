@@ -8,14 +8,16 @@ import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -54,14 +56,13 @@ import org.stringtemplate.v4.ST;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
-import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.StringStartsWith.startsWith;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -69,6 +70,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -95,6 +97,7 @@ public class SnapshotConnectedTest {
     @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
+    @Autowired private ConfigurationService configService;
 
     @MockBean
     private IamService samService;
@@ -122,7 +125,7 @@ public class SnapshotConnectedTest {
 
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
@@ -141,7 +144,7 @@ public class SnapshotConnectedTest {
         SnapshotRequestModel snapshotRequest =
             makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
@@ -166,7 +169,7 @@ public class SnapshotConnectedTest {
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
                 "dataset-minimal-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
-        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
         getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
         long snapshotParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
@@ -189,7 +192,7 @@ public class SnapshotConnectedTest {
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
             "snapshot-array-struct.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
-        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
         getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
 
         long snapshotParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
@@ -204,7 +207,7 @@ public class SnapshotConnectedTest {
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
                 "dataset-minimal-snapshot-bad-asset.json");
         MvcResult result = launchCreateSnapshot(snapshotRequest, "");
-        MockHttpServletResponse response = validateJobModelAndWait(result);
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.NOT_FOUND.value()));
     }
 
@@ -219,7 +222,7 @@ public class SnapshotConnectedTest {
         List<SnapshotSummaryModel> snapshotList = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_en_");
-            SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+            SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
             snapshotList.add(summaryModel);
         }
 
@@ -273,7 +276,7 @@ public class SnapshotConnectedTest {
         // create a snapshot
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
-        SnapshotSummaryModel summaryModel = handleCreateSnapshotSuccessCase(snapshotRequest, response);
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
         // fetch the snapshot and confirm the metadata matches the request
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
@@ -294,6 +297,43 @@ public class SnapshotConnectedTest {
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
+    public void testOverlappingDeletes() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary,
+            "snapshot-test-snapshot.json", "_d2_");
+
+        // enable wait in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // try to delete the snapshot
+        MvcResult result1 = mvc.perform(delete("/api/repository/v1/snapshots/" + summaryModel.getId())).andReturn();
+
+        // try to delete the snapshot again
+        MvcResult result2 = mvc.perform(delete("/api/repository/v1/snapshots/" + summaryModel.getId())).andReturn();
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
+        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel2.getMessage(),
+            startsWith("Failed to lock the snapshot"));
+
+        // disable wait in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the first delete request
+        MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
+        assertEquals("First delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // confirm deleted
+        getNonexistentSnapshot(summaryModel.getId());
     }
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
@@ -361,8 +401,7 @@ public class SnapshotConnectedTest {
     private MvcResult launchCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
             throws Exception {
         if (infix != null) {
-            snapshotOriginalName = snapshotRequest.getName();
-            String snapshotName = Names.randomizeNameInfix(snapshotOriginalName, infix);
+            String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
             snapshotRequest.setName(snapshotName);
         }
 
@@ -378,30 +417,15 @@ public class SnapshotConnectedTest {
 
     private MockHttpServletResponse performCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
         throws Exception {
+        snapshotOriginalName = snapshotRequest.getName();
         MvcResult result = launchCreateSnapshot(snapshotRequest, infix);
-        MockHttpServletResponse response = validateJobModelAndWait(result);
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
         return response;
     }
 
-    private SnapshotSummaryModel handleCreateSnapshotSuccessCase(SnapshotRequestModel snapshotRequest,
-                                                                 MockHttpServletResponse response) throws Exception {
-        String responseBody = response.getContentAsString();
-        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
-        if (!responseStatus.is2xxSuccessful()) {
-            String failMessage = "createTestSnapshot failed: status=" + responseStatus.toString();
-            if (StringUtils.contains(responseBody, "message")) {
-                // If the responseBody contains the word 'message', then we try to decode it as an ErrorModel
-                // so we can generate good failure information.
-                ErrorModel errorModel = objectMapper.readValue(responseBody, ErrorModel.class);
-                failMessage += " msg=" + errorModel.getMessage();
-            } else {
-                failMessage += " responseBody=" + responseBody;
-            }
-            fail(failMessage);
-        }
-
-        SnapshotSummaryModel summaryModel = objectMapper.readValue(responseBody, SnapshotSummaryModel.class);
-        connectedOperations.addSnapshot(summaryModel.getId());
+    private SnapshotSummaryModel validateSnapshotCreated(SnapshotRequestModel snapshotRequest,
+                                                         MockHttpServletResponse response) throws Exception {
+        SnapshotSummaryModel summaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
 
         assertThat(summaryModel.getDescription(), equalTo(snapshotRequest.getDescription()));
         assertThat(summaryModel.getName(), equalTo(snapshotRequest.getName()));
@@ -464,44 +488,6 @@ public class SnapshotConnectedTest {
         MockHttpServletResponse response = result.getResponse();
         ErrorModel errorModel = TestUtils.mapFromJson(response.getContentAsString(), ErrorModel.class);
         assertThat("proper not found error", errorModel.getMessage(), startsWith("Snapshot not found"));
-    }
-
-    // TODO: this can probably be common code for anything async
-    private MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
-        MvcResult result = inResult;
-        while (true) {
-            MockHttpServletResponse response = result.getResponse();
-            HttpStatus status = HttpStatus.valueOf(response.getStatus());
-            assertTrue("received expected jobs polling status",
-                    (status == HttpStatus.ACCEPTED || status == HttpStatus.OK));
-
-            JobModel jobModel = TestUtils.mapFromJson(response.getContentAsString(), JobModel.class);
-            String jobId = jobModel.getId();
-            String locationUrl = response.getHeader("Location");
-            assertNotNull("location URL was specified", locationUrl);
-
-            switch (status) {
-                case ACCEPTED:
-                    // Not done case: sleep and probe using the header URL
-                    assertThat("location header for probe", locationUrl,
-                            equalTo(String.format("/api/repository/v1/jobs/%s", jobId)));
-
-                    TimeUnit.SECONDS.sleep(1);
-                    result = mvc.perform(get(locationUrl).accept(MediaType.APPLICATION_JSON)).andReturn();
-                    break;
-
-                case OK:
-                    // Done case: get the result with the header URL and return the response;
-                    // let the caller interpret the response
-                    assertThat("location header for result", locationUrl,
-                            equalTo(String.format("/api/repository/v1/jobs/%s/result", jobId)));
-                    result = mvc.perform(get(locationUrl).accept(MediaType.APPLICATION_JSON)).andReturn();
-                    return result.getResponse();
-
-                default:
-                    fail("invalid response status " + status);
-            }
-        }
     }
 
     private static final String queryForCountTemplate =

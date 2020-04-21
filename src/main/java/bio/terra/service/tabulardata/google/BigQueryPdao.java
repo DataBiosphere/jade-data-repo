@@ -63,6 +63,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
@@ -446,19 +447,29 @@ public class BigQueryPdao implements PrimaryDataAccess {
         LoadJobConfiguration configuration = loadBuilder.build();
 
         Job loadJob = bigQuery.create(JobInfo.of(configuration));
-        try {
-            loadJob = loadJob.waitFor();
-            if (loadJob.getStatus() == null) {
-                throw new PdaoException("Unexpected return from BigQuery job - no getStatus()");
+        Instant loadJobMaxTime = Instant.now().plusSeconds(TimeUnit.MINUTES.toSeconds(20L));
+        while (!loadJob.isDone()) {
+            logger.info("Waiting for staging table load job " + loadJob.getJobId().getJob() + " to complete");
+            // TODO: when DR-897 is in, let this just throw InterruptedException
+            try {
+                TimeUnit.SECONDS.sleep(5L);
+            } catch (InterruptedException e) {
+                throw new IngestInterruptedException("Load job interrupted");
             }
-        } catch (InterruptedException ex) {
-            // Someone is shutting down the application
-            Thread.currentThread().interrupt();
-            throw new IngestInterruptedException("Ingest was interrupted");
-        }
 
-        if (loadJob.getStatus().getError() != null) {
-            if ("notFound".equals(loadJob.getStatus().getError().getReason())) {
+            if (loadJobMaxTime.isBefore(Instant.now())) {
+                loadJob.cancel();
+                throw new PdaoException("Staging table load failed to complete within timeout - canceled");
+            }
+        }
+        loadJob = loadJob.reload();
+
+        BigQueryError loadJobError = loadJob.getStatus().getError();
+        if (loadJobError == null) {
+            logger.info("Staging table load job " + loadJob.getJobId().getJob() + " succeeded");
+        } else {
+            logger.info("Staging table load job " + loadJob.getJobId().getJob() + " failed: " + loadJobError);
+            if ("notFound".equals(loadJobError.getReason())) {
                 throw new IngestFileNotFoundException("Ingest source file not found: " + ingestRequest.getPath());
             }
 

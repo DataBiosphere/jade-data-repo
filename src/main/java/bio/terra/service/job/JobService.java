@@ -61,6 +61,7 @@ public class JobService {
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
 
+        logger.info("Creating Stairway thread pool. maxStairwayThreads: " + appConfig.getMaxStairwayThreads());
         ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
         stairway = new Stairway(executorService, applicationContext, serializer);

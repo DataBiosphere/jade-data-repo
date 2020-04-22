@@ -42,6 +42,7 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
+        // This assumption has already been validated as part of the flight
         /*
          * get dataset and assetName
          * get asset from dataset

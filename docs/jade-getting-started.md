@@ -146,22 +146,7 @@ open -a "IntelliJ IDEA CE"
 then click in the search box and install **Cloud Code**, which integrates
 Google Cloud features with IntelliJ IDEA.
 
-## 4. Install Postgres 12
-
-[Postgres](https://www.postgresql.org/) is an advanced open-source database.
-**Postgres.app** is used to manage a local installation of Postgres. The latest
-release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
-page. For compatibility, make sure to select a version which supports all the
-older versions of Postgres including 9.6. After launching the application,
-create a new version 12 database as follows:
-
-1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
-2. Name the new server, making sure to select version **12**, and then
-**Initialize** it
-3. Add `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path
-(there are multiple ways to achieve this)
-
-## 5. Create GitHub token
+## 4. Create GitHub token
 
 The GitHub token verifies team permissions. This token is necessary for the next
 step, [Login to Vault](#6-login-to-vault). To create a token:
@@ -177,7 +162,7 @@ GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
 echo $GH_VAULT_TOKEN > ~/.gh_token
 ```
 
-## 6. Login to Vault
+## 5. Login to Vault
 
 Vault access tokens can be obtained using the GitHub token from earlier as
 follows:
@@ -186,7 +171,7 @@ follows:
 vault login -method=github token=$(cat ~/.gh_token)
 ```
 
-## 7. Code Checkout
+## 6. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -201,7 +186,7 @@ git clone https://github.com/broadinstitute/datarepo-helm
 git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
-## 8. Google Cloud Platform setup
+## 7. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
 top-left corner, select the **BROADINSTITUTE.ORG** organization. Select
@@ -224,10 +209,21 @@ helm namespace upgrade zzz-secrets datarepo-helm/create-secret-manager-secret --
 helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install --namespace zzz -f zzzDeployment.yaml
 ```
 
-## 9. Continued Postgres Setup
-1. You should have already added the following to your path: `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path. 
+## 8. Install Postgres 12
 
-2. Create the data repo db and user by running the following while in the `jade-data-repo` directory. More information can be found in [the database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md)
+[Postgres](https://www.postgresql.org/) is an advanced open-source database.
+**Postgres.app** is used to manage a local installation of Postgres. The latest
+release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
+page. For compatibility, make sure to select a version which supports all the
+older versions of Postgres including 9.6. After launching the application,
+create a new version 12 database as follows:
+
+1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
+2. Name the new server, making sure to select version **12**, and then
+**Initialize** it
+3. Add `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path
+(there are multiple ways to achieve this)
+4. Create the data repo db and user by running the following while in the `jade-data-repo` directory. More information can be found in [the database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md)
   ```
   psql -f db/create-data-repo-db
   ```
@@ -241,7 +237,7 @@ helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install
   \l
   ```
 
-## 10. Running jade-data-repo and jade-data-repo-ui
+## 9. Running jade-data-repo and jade-data-repo-ui
 1. Build jade-data-repo: Find more detailed instructions on the [main readme](https://github.com/DataBiosphere/jade-data-repo). You can build the repo and then test to make sure it's working as expceted with the following commands.
 * Build jade-data-repo:
 ```
@@ -262,7 +258,7 @@ helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install
 
 3. Follow [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) for the jade-data-repo-ui. 
 
-## 11. Jade Terraform setup
+## 10. Jade Terraform setup
 Follow instructions found on the [terraform-jade repo readme](https://github.com/broadinstitute/terraform-jade). 
 
 ## Common Issues

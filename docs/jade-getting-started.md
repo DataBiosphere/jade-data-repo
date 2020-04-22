@@ -240,7 +240,7 @@ create a new version 12 database as follows:
 ## 9. Setup Repositories
 ### 1. Build jade-data-repo
 Find more detailed instructions on the [main readme](https://github.com/DataBiosphere/jade-data-repo). You can build the repo and then test to make sure it's working as expceted with the following commands.
-* You may need to add environmental variables (where 'zzz' is your initials or the environment (i.e. 'dev')):
+* You may need to add environmental variables (where "zzz" is your initials or the environment (i.e. "dev")):
 ```
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
@@ -272,7 +272,7 @@ Follow instructions found on the [terraform-jade repo readme](https://github.com
 1. On Broad Non-split VPN. Find instructions [here](https://broad.io/vpn) to set up your VPN. 
 2. Docker is running
 3. Postgres database is started
-4. Environmental variables are set (replace 'zzz' with your initials or "dev" depending on what you're trying to access).
+4. Environmental variables are set (where "zzz" is your initials or the environment (i.e. "dev"))).
 Below you'll find a list of parameters, you may need some or all of these depending on what you're trying to run. 
   * export NVM_DIR="$HOME/.nvm"
   * export VAULT_ADDR=https://clotho.broadinstitute.org:8200

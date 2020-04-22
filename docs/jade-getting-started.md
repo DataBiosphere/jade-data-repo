@@ -237,8 +237,18 @@ create a new version 12 database as follows:
   \l
   ```
 
-## 9. Running jade-data-repo and jade-data-repo-ui
-1. Build jade-data-repo: Find more detailed instructions on the [main readme](https://github.com/DataBiosphere/jade-data-repo). You can build the repo and then test to make sure it's working as expceted with the following commands.
+## 9. Setup Repositories
+### 1. Build jade-data-repo
+Find more detailed instructions on the [main readme](https://github.com/DataBiosphere/jade-data-repo). You can build the repo and then test to make sure it's working as expceted with the following commands.
+* You may need to add environmental variables (where 'zzz' is your initials or the environment (i.e. 'dev')):
+```
+export VAULT_ADDR=https://clotho.broadinstitute.org:8200
+export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+```
+* If you're not on a Broad computer, you made need to also set the host to localhost (as opposed 'http://local.broadinstitute.org')
+```
+export HOST=localhost
+```
 * Build jade-data-repo:
 ```
 ./gradlew bootRun
@@ -251,29 +261,26 @@ create a new version 12 database as follows:
 ```
 ./gradlew testConnected
 ```
-2. Set up env variable for the terminal:
-* export VAULT_ADDR=https://clotho.broadinstitute.org:8200
-* export PROXY_URL=https://jade-sh.datarepo-dev.broadinstitute.org
-* If you're not on a broad issued computer: export HOST=localhost
 
-3. Follow [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) for the jade-data-repo-ui. 
+### 2. Build jade-data-repo-ui
+Follow [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui) for the jade-data-repo-ui. 
 
-## 10. Jade Terraform setup
+### 3. Initialize terraform-jade
 Follow instructions found on the [terraform-jade repo readme](https://github.com/broadinstitute/terraform-jade). 
 
 ## Common Issues
-1. On Broad Non-split VPN 
+1. On Broad Non-split VPN. Find instructions [here](https://broad.io/vpn) to set up your VPN. 
 2. Docker is running
 3. Postgres database is started
-4. Environmental variables are set (replace 'zzzzz' with your initials or "dev" depending on what you're trying to access).
+4. Environmental variables are set (replace 'zzz' with your initials or "dev" depending on what you're trying to access).
 Below you'll find a list of parameters, you may need some or all of these depending on what you're trying to run. 
   * export NVM_DIR="$HOME/.nvm"
   * export VAULT_ADDR=https://clotho.broadinstitute.org:8200
   * export ENVIRONMENT=dev
-  * export GOOGLE_CLOUD_PROJECT=broad-jade-zzzzz
-  * export SUFFIX=zzzzz
+  * export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
+  * export SUFFIX=zzz
   * export STEWARD_ACCT={YOUREMAIL}@{whatever}.com
-  * export PROXY_URL=https://jade-zzzzz.datarepo-dev.broadinstitute.org
+  * export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
   * export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
   // Only need to do this if you're not using a Broad computer - otherwise host would be http://local.broadinstitute.org
   * export HOST=localhost 

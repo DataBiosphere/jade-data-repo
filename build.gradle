@@ -224,6 +224,15 @@ clean.doFirst {
     delete("${projectDir}/$generatedOutputDir")
 }
 
+def excludePattern = 'generated-src/antlr/main/bio/terra/grammar/'
+def excludeGrammarPattern = '${buildDir}/' + excludePattern + '*'
+
+
+tasks.withType(Checkstyle) {
+    exclude excludeGrammarPattern
+    exclude "${buildDir}/generated-src/antlr/main/bio/terra/grammar/*"
+}
+
 sourceSets {
     generated {
         compileClasspath = configurations.generatedCompile
@@ -343,6 +352,7 @@ task testAll(type: Test) {
 }
 
 compileGeneratedJava.dependsOn generateApi
+compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn generateApi

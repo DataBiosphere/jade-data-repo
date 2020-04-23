@@ -39,6 +39,18 @@ public class Query {
         return listener.getDatasetNames();
     }
 
+    public List<String> getTableNames() {
+        TableNameListener listener = new TableNameListener();
+        ParseTreeWalker.DEFAULT.walk(listener, queryStatement);
+        return listener.getTableNames();
+    }
+
+    public List<String> getColumnNames() {
+        ColumnNameListener listener = new ColumnNameListener();
+        ParseTreeWalker.DEFAULT.walk(listener, queryStatement);
+        return listener.getColumnNames();
+    }
+
     public String translateSql(SQLBaseVisitor<String> visitor) {
         return visitor.visit(queryStatement);
     }

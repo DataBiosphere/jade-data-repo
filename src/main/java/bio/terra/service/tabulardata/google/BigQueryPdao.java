@@ -867,7 +867,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             try {
                 final TableResult query = bigQuery.query(queryConfig);
                 // get results and validate that it got back more than 0 value
-                if (query.getTotalRows()<1) {
+                if (query.getTotalRows() < 1) {
                     // should this be a different error?
                     throw new InvalidQueryException("Query returned 0 results");
                 }
@@ -902,7 +902,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // NOTE: when we have multiple sources, we can put this into a loop
 
 
-            // insert into the PDAO_ROW_ID_TABLE the literal that is the table id and then all the row ids from the temp table
+            // insert into the PDAO_ROW_ID_TABLE the literal that is the table id
+            // and then all the row ids from the temp table
             ST sqlLoadTemplate = new ST(loadRootRowIdsFromTempTableTemplate);
             sqlLoadTemplate.add("project", projectId);
             sqlLoadTemplate.add("snapshot", snapshotName);

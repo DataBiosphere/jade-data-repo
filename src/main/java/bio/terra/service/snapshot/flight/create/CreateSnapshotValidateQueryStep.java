@@ -46,11 +46,27 @@ public class CreateSnapshotValidateQueryStep implements Step {
         }
         String datasetName = datasetNames.get(0);
 
-        Dataset dataset = datasetService.retrieveByName(datasetName); // TODO this will throw DatasetNotFoundException
+        // TODO this will throw DatasetNotFoundException
+        Dataset dataset = datasetService.retrieveByName(datasetName);
+
         if (datasetNames.size() > 1) {
             String message = String.format("Snapshots can currently only be associated with one dataset");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
+
+        List<String> tableNames = query.getTableNames();
+        if (tableNames.isEmpty()) {
+            String message = String.format("Snapshots much be associated with at least one table");
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+        }
+
+        // TODO validate the select list. It should have one column that is the row id.
+        List<String> columnNames = query.getColumnNames();
+        if (columnNames.isEmpty()) {
+            String message = String.format("Snapshots much be associated with at least one column");
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+        }
+
 
         // TODO test this in an integration test
 

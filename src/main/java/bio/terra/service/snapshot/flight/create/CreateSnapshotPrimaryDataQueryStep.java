@@ -1,17 +1,17 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.grammar.Query;
+import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.grammar.google.BigQueryVisitor;
 import bio.terra.model.DatasetModel;
-import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -42,14 +42,13 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
-        // This assumption has already been validated as part of the flight
+        // (based on the validation flight step that already occurred.)
         /*
          * get dataset and assetName
          * get asset from dataset
-         * which give the root table
-         * then pass the row id array into create snapshot
+         * which gives the root table
+         * to use in conjunction with the filtered row ids to create this snapshot
          */
-        SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         SnapshotRequestQueryModel snapshotQuerySpec = snapshotReq.getContents().get(0).getQuerySpec();
         String snapshotAssetName = snapshotQuerySpec.getAssetName();
@@ -64,16 +63,24 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
 
         Dataset dataset = datasetService.retrieveByName(datasetName);
         DatasetModel datasetModel = datasetService.retrieveModel(dataset.getId());
+
         // get asset out of dataset
         Optional<AssetSpecification> assetSpecOp = dataset.getAssetSpecificationByName(snapshotAssetName);
-        AssetSpecification assetSpec = assetSpecOp.get();
-        // TODO throw? assetSpecOp.isPresent() ? AssetNotFoundException
-        AssetTable rootTable = assetSpec.getRootTable();
+        AssetSpecification assetSpec = assetSpecOp.orElseThrow(
+            () -> new AssetNotFoundException("Expected asset specification"));
 
         Map<String, DatasetModel> datasetMap = Collections.singletonMap(datasetName, datasetModel);
         BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
 
         String sqlQuery = query.translateSql(bqVisitor);
+
+        // validate that the root table is actually a table being queried in the query -->
+        // TODO specifically validate that it's in the FROM clause
+        List<String> tableNames = query.getTableNames();
+        String rootTablename = assetSpec.getRootTable().getTable().getName();
+        if (!tableNames.contains(rootTablename)) {
+            throw new InvalidQueryException("The root table of the selected asset is not present in this query");
+        }
 
         // now using the query, get the rowIds
         // insert the rowIds into the snapshot row ids table and then kick off the rest of the relationship walking

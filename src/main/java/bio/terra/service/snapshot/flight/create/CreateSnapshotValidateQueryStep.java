@@ -30,8 +30,9 @@ public class CreateSnapshotValidateQueryStep implements Step {
         * for now--this includes making sure there is only one dataset
         * passes general grammar check (will pass sql into parse method to make sure it works
         *
-        * get dataset(s) from query and make sure that it exists-- initially just one, but multiple in the future
-        * make sure the user has custodian data access (currently this is done in the controller, but this should be moved
+        * get dataset(s) from query and make sure that it exists-- initially just one and multiple in the future
+        * make sure the user has custodian data access (currently this is done in the controller,
+        * but this should be moved
         */
         String snapshotQuery = snapshotReq.getContents().get(0).getQuerySpec().getQuery();
         Query query = Query.parse(snapshotQuery);

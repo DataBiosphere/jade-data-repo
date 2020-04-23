@@ -64,7 +64,7 @@ public class IngestDriverStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         // Gather inputs
         FlightMap workingMap = context.getWorkingMap();
         String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
@@ -121,7 +121,7 @@ public class IngestDriverStep implements Step {
     }
 
     private void waitForAny(FlightContext context, UUID loadId, int concurrentLoads, int originallyRunning)
-        throws DatabaseOperationException {
+        throws DatabaseOperationException, InterruptedException {
         while (true) {
             waiting();
             LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentLoads);
@@ -131,7 +131,8 @@ public class IngestDriverStep implements Step {
         }
     }
 
-    private void waitForAll(FlightContext context, UUID loadId, int concurrentLoads) throws DatabaseOperationException {
+    private void waitForAll(FlightContext context, UUID loadId, int concurrentLoads)
+        throws DatabaseOperationException, InterruptedException {
         while (true) {
             waiting();
             LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentLoads);
@@ -151,7 +152,8 @@ public class IngestDriverStep implements Step {
         }
     }
 
-    private void checkForOrphans(FlightContext context, UUID loadId) throws DatabaseOperationException {
+    private void checkForOrphans(FlightContext context, UUID loadId)
+        throws DatabaseOperationException, InterruptedException {
         // Check for launch orphans - these are loads in the RUNNING state that are in the load_files table
         // in the database, but not known to Stairway. We revert them to NOT_TRIED before starting the
         // load loop.
@@ -166,7 +168,7 @@ public class IngestDriverStep implements Step {
     }
 
     private LoadCandidates getLoadCandidates(FlightContext context, UUID loadId, int concurrentLoads)
-        throws DatabaseOperationException {
+        throws DatabaseOperationException, InterruptedException {
         // We start by getting the database view of the state of loads.
         // For the running loads, we ask Stairway what the actual state is.
         // If they have completed, we mark them as such.
@@ -226,7 +228,7 @@ public class IngestDriverStep implements Step {
                              int launchCount,
                              List<LoadFile> loadFiles,
                              String profileId,
-                             UUID loadId) throws DatabaseOperationException {
+                             UUID loadId) throws DatabaseOperationException, InterruptedException {
         Stairway stairway = context.getStairway();
 
         for (int i = 0; i < launchCount; i++) {

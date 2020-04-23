@@ -3,6 +3,7 @@ package bio.terra.app.controller;
 import bio.terra.app.configuration.OauthConfiguration;
 import bio.terra.controller.UnauthenticatedApi;
 import bio.terra.model.RepositoryConfigurationModel;
+import bio.terra.service.job.JobService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -23,6 +24,9 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     private final HttpServletRequest request;
 
     private final OauthConfiguration oauthConfig;
+
+    @Autowired
+    private JobService jobService;
 
     @Autowired
     private Environment env;
@@ -59,6 +63,16 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
             .clientId(oauthConfig.getClientId())
             .activeProfiles(Arrays.asList(env.getActiveProfiles()));
         return new ResponseEntity<>(configurationModel, HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Void> shutdownRequest() {
+        try {
+            jobService.shutdown();
+        } catch (InterruptedException ex) {
+            return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     /**

@@ -131,6 +131,18 @@ paths:
           description: Config is unavailable
       security: []
 
+  '/shutdown':
+    get:
+      description: |
+        Requests that this instance of DR Manager shut down. In production, this must be configured to
+        only be callable by Kubernetes.
+      operationId: shutdownRequest
+      tags:
+        - unauthenticated
+      responses:
+        204:
+          description: DR Manager was shutdown successfully
+      security: []
 
   ## Resources interface
 

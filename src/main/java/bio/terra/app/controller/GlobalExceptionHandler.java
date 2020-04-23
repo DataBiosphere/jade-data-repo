@@ -6,6 +6,7 @@ import bio.terra.common.exception.DataRepoException;
 import bio.terra.common.exception.InternalServerErrorException;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.NotImplementedException;
+import bio.terra.common.exception.ServiceUnavailableException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.ErrorModel;
 import bio.terra.service.iam.sam.SamIam;
@@ -44,6 +45,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(InternalServerErrorException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public ErrorModel internalServerErrorHandler(DataRepoException ex) {
+        return buildErrorModel(ex, ex.getErrorDetails());
+    }
+
+    @ExceptionHandler(ServiceUnavailableException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public ErrorModel serviceUnavailableHandler(DataRepoException ex) {
         return buildErrorModel(ex, ex.getErrorDetails());
     }
 

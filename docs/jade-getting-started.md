@@ -8,7 +8,8 @@ including `dsde-engineering`. A colleague on the team will also need to create a
 Helm `datarepo` definition for you.
 
 These instructions assume you use MacOS, and that you are on the internal Broad
-network or the VPN.
+network or the VPN. If the VPN is not installed, follow the instructions
+[at this link](https://broad.io/vpn).
 
 > During this process, you will need your GitHub and Docker Hub username /
 password for multiple steps, so make sure to have those handy. If you don't have
@@ -146,22 +147,7 @@ open -a "IntelliJ IDEA CE"
 then click in the search box and install **Cloud Code**, which integrates
 Google Cloud features with IntelliJ IDEA.
 
-## 4. Install Postgres 12
-
-[Postgres](https://www.postgresql.org/) is an advanced open-source database.
-**Postgres.app** is used to manage a local installation of Postgres. The latest
-release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
-page. For compatibility, make sure to select a version which supports all the
-older versions of Postgres including 9.6. After launching the application,
-create a new version 12 database as follows:
-
-1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
-2. Name the new server, making sure to select version **12**, and then
-**Initialize** it
-3. Add `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path
-(there are multiple ways to achieve this)
-
-## 5. Create GitHub token
+## 4. Create GitHub token
 
 The GitHub token verifies team permissions. This token is necessary for the next
 step, [Login to Vault](#6-login-to-vault). To create a token:
@@ -177,7 +163,7 @@ GH_VAULT_TOKEN=<<GITHUB TOKEN VALUE>>
 echo $GH_VAULT_TOKEN > ~/.gh_token
 ```
 
-## 6. Login to Vault
+## 5. Login to Vault
 
 Vault access tokens can be obtained using the GitHub token from earlier as
 follows:
@@ -186,7 +172,7 @@ follows:
 vault login -method=github token=$(cat ~/.gh_token)
 ```
 
-## 7. Code Checkout
+## 6. Code Checkout
 
 > It may be useful to create a folder for Broad projects in your home directory.
 
@@ -201,7 +187,7 @@ git clone https://github.com/broadinstitute/datarepo-helm
 git clone https://github.com/broadinstitute/datarepo-helm-definitions
 ```
 
-## 8. Google Cloud Platform setup
+## 7. Google Cloud Platform setup
 
 1. Log in to [Google Cloud Platform](https://console.cloud.google.com). In the
 top-left corner, select the **BROADINSTITUTE.ORG** organization. Select
@@ -215,11 +201,100 @@ command to copy and paste into the terminal:
 gcloud container clusters get-credentials dev-master --region us-central1 --project broad-jade-dev
 ```
 
-4. From your [project directory](#7-code-checkout), bring up Helm services:
+4. Starting from your [project directory](#7-code-checkout), bring up Helm services:
 
 ```
 # replace all instances of `zzz` with your initials
 cd datarepo-helm-definitions/dev/zzz
 helm namespace upgrade zzz-secrets datarepo-helm/create-secret-manager-secret --version=0.0.4 --install --namespace zzz -f zzzSecrets.yaml
 helm namespace upgrade zzz-jade datarepo-helm/datarepo --version=0.1.0 --install --namespace zzz -f zzzDeployment.yaml
+```
+
+## 8. Install Postgres 12
+
+[Postgres](https://www.postgresql.org/) is an advanced open-source database.
+**Postgres.app** is used to manage a local installation of Postgres. The latest
+release can be found on the [GitHub releases](https://github.com/PostgresApp/PostgresApp/releases)
+page. For compatibility, make sure to select a version which supports all the
+older versions of Postgres including 9.6. After launching the application,
+create a new version 12 database as follows:
+
+1. Click the sidebar icon (bottom left-hand corner) and then click the plus sign
+2. Name the new server, making sure to select version **12**, and then
+**Initialize** it
+3. Add `/Applications/Postgres.app/Contents/Versions/latest/bin` to your path
+(there are multiple ways to achieve this)
+4. Switch to the `jade-data-repo` repository, and create the data repo database
+and user following the [database readme](https://github.com/DataBiosphere/jade-data-repo/blob/develop/DATABASE.md):
+
+```
+psql -f db/create-data-repo-db
+# verify that the `datarepo` and `stairway` databases exist
+psql --list
+```
+
+## 9. Repository Setup
+
+### 1. Build `jade-data-repo`
+
+Follow the [Build and Run Locally](https://github.com/DataBiosphere/jade-data-repo#build-and-run-locally)
+section in the [main readme](https://github.com/DataBiosphere/jade-data-repo#jade-data-repository---)
+to build `jade-data-repo`.
+
+* You may need to set environmental variables. Instances of `zzz` should be
+replaced by your initials or the environment (i.e. `dev`):
+
+```
+export VAULT_ADDR=https://clotho.broadinstitute.org:8200
+export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+```
+
+* If you're not on a Broad computer, you may need to set the host to `localhost`
+instead of `http://local.broadinstitute.org`:
+
+```
+export HOST=localhost
+```
+
+* Build the code and run the tests:
+
+```
+./gradlew bootRun         # build jade-data-repo with Spring Boot features
+./gradlew check           # linters and unit tests
+./gradlew testConnected   # connected tests
+```
+
+### 2. Build `jade-data-repo-ui`
+
+Follow the [setup instructions](https://github.com/DataBiosphere/jade-data-repo-ui#jade-data-repository-ui)
+to build the `jade-data-repo-ui` repository.
+
+### 3. Initialize `terraform-jade`
+
+Follow the [setup instructions](https://github.com/broadinstitute/terraform-jade#terraform-jade)
+to initialize the `terraform-jade` repository.
+
+## Common Issues
+
+Ensure that:
+
+1. You are on the Broad Non-split VPN. See earlier [instructions](#-getting-started).
+2. Docker is running.
+3. Postgres database is started.
+4. Environment variables are set. Instances of `zzz` should be replaced by your
+initials or the environment (i.e. `dev`). You may need to set some or all of the
+environment variables below depending on what you are trying to run:
+
+```
+export NVM_DIR="$HOME/.nvm"
+export VAULT_ADDR=https://clotho.broadinstitute.org:8200
+export ENVIRONMENT=dev
+export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
+export SUFFIX=zzz
+export STEWARD_ACCT={YOUREMAIL}@{whatever}.com
+export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export CYPRESS_BASE_URL=http://local.broadinstitute.org:3000
+# Only need to do this if you're not using a Broad computer - otherwise host
+# would be http://local.broadinstitute.org
+export HOST=localhost
 ```

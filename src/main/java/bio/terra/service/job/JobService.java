@@ -88,6 +88,7 @@ public class JobService {
         int shutdownTimeout = appConfig.getShutdownTimeoutSeconds();
         if (shutdownTimeout < MIN_SHUTDOWN_TIMEOUT) {
             logger.warn("Shutdown timeout of " + shutdownTimeout + "is too small. Setting to " + MIN_SHUTDOWN_TIMEOUT);
+            shutdownTimeout = MIN_SHUTDOWN_TIMEOUT;
         }
 
         int gracefulTimeout = (shutdownTimeout * 3) / 4;

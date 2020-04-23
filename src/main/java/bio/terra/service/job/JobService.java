@@ -46,6 +46,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
+    private static final int MIN_SHUTDOWN_TIMEOUT = 12;
+
     private Stairway stairway;
     private final IamService samService;
     private final ApplicationConfiguration appConfig;
@@ -75,10 +77,19 @@ public class JobService {
      * Stop accepting jobs and shutdown stairway
      */
     public void shutdown() throws InterruptedException {
+        if (isShutdown.get()) {
+            logger.warn("Ignoreing duplicate shutdown request");
+            return;
+        }
         isShutdown.set(true);
 
+        // We enforce a minimum shutdown time. Otherwise, there is no point in trying the shutdown.
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
         int shutdownTimeout = appConfig.getShutdownTimeoutSeconds();
+        if (shutdownTimeout < MIN_SHUTDOWN_TIMEOUT) {
+            logger.warn("Shutdown timeout of " + shutdownTimeout + "is too small. Setting to " + MIN_SHUTDOWN_TIMEOUT);
+        }
+
         int gracefulTimeout = (shutdownTimeout * 3) / 4;
         int terminateTimeout = (shutdownTimeout - gracefulTimeout) - 2;
         boolean finishedShutdown = stairway.quietDown(gracefulTimeout, TimeUnit.SECONDS);

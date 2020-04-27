@@ -1,10 +1,10 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.common.ValidationUtils;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
-
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.common.ValidationUtils;
+import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import org.apache.commons.lang3.StringUtils;
@@ -53,6 +53,9 @@ public class SnapshotRequestValidator implements Validator {
                     case BYASSET:
                         validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
                         break;
+                    case BYQUERY:
+                        validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
+                        break;
                     case BYROWID:
                         validateSnapshotRowIdSpec(contents.getRowIdSpec(), errors);
                         break;
@@ -60,6 +63,29 @@ public class SnapshotRequestValidator implements Validator {
                         errors.rejectValue("contents", "SnapshotContentsModeInvalid");
                 }
             });
+        }
+    }
+
+    private void validateSnapshotAssetSpec(SnapshotRequestAssetModel assetModel, Errors errors) {
+        List<String> rootValues = assetModel.getRootValues();
+        if (rootValues == null || rootValues.isEmpty()) {
+            errors.rejectValue("contents", "SnapshotRootValuesListEmpty");
+        }
+        String assetName = assetModel.getAssetName();
+        if (assetName == null) {
+            errors.rejectValue("contents", "SnapshotAssetNameMissing");
+        }
+    }
+
+    private void validateSnapshotQuerySpec(SnapshotRequestQueryModel queryModel, Errors errors) {
+        String query = queryModel.getQuery();
+        if (query == null) {
+            errors.rejectValue("contents", "SnapshotQueryEmpty");
+        }
+        // TODO add addtional ANTLR validation?
+        String assetName = queryModel.getAssetName();
+        if (assetName == null) {
+            errors.rejectValue("contents", "SnapshotAssetNameMissing");
         }
     }
 
@@ -81,17 +107,6 @@ public class SnapshotRequestValidator implements Validator {
                     errors.rejectValue("contents", "SnapshotTableRowIdsMissing");
                 }
             });
-        }
-    }
-
-    private void validateSnapshotAssetSpec(SnapshotRequestAssetModel assetModel, Errors errors) {
-        List<String> rootValues = assetModel.getRootValues();
-        if (rootValues == null || rootValues.isEmpty()) {
-            errors.rejectValue("contents", "SnapshotRootValuesListEmpty");
-        }
-        String assetName = assetModel.getAssetName();
-        if (assetName == null) {
-            errors.rejectValue("contents", "SnapshotAssetNameMissing");
         }
     }
 

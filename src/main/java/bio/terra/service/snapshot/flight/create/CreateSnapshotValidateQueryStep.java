@@ -2,8 +2,6 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.grammar.Query;
 import bio.terra.model.SnapshotRequestModel;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -14,12 +12,9 @@ import java.util.List;
 
 public class CreateSnapshotValidateQueryStep implements Step {
 
-    private DatasetService datasetService;
     private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotValidateQueryStep(DatasetService datasetService,
-                                           SnapshotRequestModel snapshotReq) {
-        this.datasetService = datasetService;
+    public CreateSnapshotValidateQueryStep(SnapshotRequestModel snapshotReq) {
         this.snapshotReq = snapshotReq;
     }
 
@@ -36,6 +31,9 @@ public class CreateSnapshotValidateQueryStep implements Step {
         */
         String snapshotQuery = snapshotReq.getContents().get(0).getQuerySpec().getQuery();
         Query query = Query.parse(snapshotQuery);
+        // TODO do I want to get the dataset by name? this will throw DatasetNotFoundException
+        //String datasetName = datasetNames.get(0);
+        //Dataset dataset = datasetService.retrieveByName(datasetName);
         List<String> datasetNames = query.getDatasetNames();
         if (datasetNames.isEmpty()) {
             String message = String.format("Snapshots much be associated with at least one dataset");
@@ -45,10 +43,6 @@ public class CreateSnapshotValidateQueryStep implements Step {
             String message = String.format("Snapshots can currently only be associated with one dataset");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
-        String datasetName = datasetNames.get(0);
-
-        // TODO this will throw DatasetNotFoundException
-        Dataset dataset = datasetService.retrieveByName(datasetName);
 
         if (datasetNames.size() > 1) {
             String message = String.format("Snapshots can currently only be associated with one dataset");

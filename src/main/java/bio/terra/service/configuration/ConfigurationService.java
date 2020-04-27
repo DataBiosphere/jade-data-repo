@@ -19,20 +19,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_DRIVER_WAIT_SECONDS;
-import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
-import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_SKIP_FILE_LOAD;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
@@ -191,10 +185,6 @@ public class ConfigurationService {
         addFaultSimple(CREATE_ASSET_FAULT);
         addFaultCounted(SAM_TIMEOUT_FAULT, 0, -1, 25, ConfigFaultCountedModel.RateStyleEnum.FIXED);
 
-        // Load Lock faults: these next two go together and are used by LoadDaoUnitTest
-        addFaultCounted(LOAD_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
-        addFaultSimple(LOAD_LOCK_CONFLICT_CONTINUE_FAULT);
-
         // Skip File Load fault is intended for bulk load infrastructure testing. It executes the bulk
         // load without copying any files. There is code in IngestFilePrimaryDataStep that
         // skips the copy and makes a dummy FSFileInfo. There is also code in DeleteDatasetPrimaryDataStep
@@ -204,16 +194,6 @@ public class ConfigurationService {
         // Bucket resource lock faults. These are used by ResourceLockTest
         addFaultCounted(BUCKET_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(BUCKET_LOCK_CONFLICT_CONTINUE_FAULT);
-
-        // Dataset delete lock faults. These are used by DatasetConnectedTest > testOverlappingDeletes
-        addFaultCounted(DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100,
-            ConfigFaultCountedModel.RateStyleEnum.FIXED);
-        addFaultSimple(DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
-
-        // Snapshot delete lock faults. These are used by SnapshotConnectedTest > testOverlappingDeletes
-        addFaultCounted(SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100,
-            ConfigFaultCountedModel.RateStyleEnum.FIXED);
-        addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
     }
 
 }

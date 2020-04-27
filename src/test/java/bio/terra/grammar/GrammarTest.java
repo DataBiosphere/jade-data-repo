@@ -51,8 +51,8 @@ public class GrammarTest {
 
     @Test
     public void testAliasedColumn() {
-        Query query = Query.parse("SELECT * FROM dataset.table A WHERE A.col = 'foo'");
-        BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+        //Query query = Query.parse("SELECT * FROM dataset.table A WHERE A.col = 'foo'");
+        //BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
         // String translated = query.translateSql(bqVisitor);
         // TODO the rest of this test
     }

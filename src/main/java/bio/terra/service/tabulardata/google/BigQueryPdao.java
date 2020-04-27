@@ -926,7 +926,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // set authorization on views
             List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
             bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
-        } catch (Exception ex) {
+        } catch (PdaoException ex) {
             // TODO What if the select list doesn't match the temp table schema?
             // TODO what if the query is invalid? Seems like there might be more to catch here.
             throw new PdaoException("createSnapshot failed", ex);

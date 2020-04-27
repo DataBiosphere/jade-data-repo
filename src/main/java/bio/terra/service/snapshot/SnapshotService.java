@@ -4,6 +4,7 @@ import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
 import bio.terra.common.Table;
+import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -11,6 +12,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.model.SnapshotSourceModel;
@@ -184,6 +186,25 @@ public class SnapshotService {
                 // allowed in a snapshot.
                 AssetSpecification assetSpecification = getAssetSpecificationFromRequest(requestContents);
                 snapshotSource.assetSpecification(assetSpecification);
+                conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
+                break;
+            case BYQUERY:
+                SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
+                String assetName = queryModel.getAssetName();
+                String snapshotQuery = queryModel.getQuery();
+                Query query = Query.parse(snapshotQuery);
+                List<String> datasetNames = query.getDatasetNames();
+                // TODO this makes the assumption that there is only one dataset
+                // (based on the validation flight step that already occurred.)
+                // This will change when more than 1 dataset is allowed
+                String datasetName = datasetNames.get(0);
+                Dataset queryDataset = datasetDao.retrieveByName(datasetName);
+                AssetSpecification queryAssetSpecification = queryDataset.getAssetSpecificationByName(assetName)
+                    .orElseThrow(() ->
+                        new AssetNotFoundException("This dataset does not have an asset specification with name: " + assetName)
+                    );
+                snapshotSource.assetSpecification(queryAssetSpecification);
+                // TODO this is wrong? why dont we just pass the assetSpecification?
                 conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
                 break;
             case BYROWID:

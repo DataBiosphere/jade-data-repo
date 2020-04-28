@@ -20,6 +20,17 @@ public class JdbcConfiguration {
     private String username;
     private String password;
     private String changesetFile;
+    /**
+     * Maximum number of database connections in the connection pool; -1 means no limit
+     * The goal of these parameters is to prevent waiting for a database connection.
+     */
+    private int poolMaxTotal;
+
+    /**
+     * Maximum number of database connections to keep idle
+     */
+    private int poolMaxIdle;
+
 
     // Not a property
     private PoolingDataSource<PoolableConnection> dataSource;
@@ -40,6 +51,14 @@ public class JdbcConfiguration {
         return changesetFile;
     }
 
+    public int getPoolMaxTotal() {
+        return poolMaxTotal;
+    }
+
+    public int getPoolMaxIdle() {
+        return poolMaxIdle;
+    }
+
     // NOTE: even though the setters appear unused, the Spring infrastructure uses them to populate the properties.
     public void setUri(String uri) {
         this.uri = uri;
@@ -57,6 +76,14 @@ public class JdbcConfiguration {
         this.changesetFile = changesetFile;
     }
 
+    public void setPoolMaxTotal(int poolMaxTotal) {
+        this.poolMaxTotal = poolMaxTotal;
+    }
+
+    public void setPoolMaxIdle(int poolMaxIdle) {
+        this.poolMaxIdle = poolMaxIdle;
+    }
+
     // Main use of the configuration is this pooling data source object.
     public PoolingDataSource<PoolableConnection> getDataSource() {
         // Lazy allocation of the data source
@@ -70,6 +97,8 @@ public class JdbcConfiguration {
         Properties props = new Properties();
         props.setProperty("user", getUsername());
         props.setProperty("password", getPassword());
+        props.setProperty("maxTotal", String.valueOf(poolMaxTotal));
+        props.setProperty("maxIdle", String.valueOf(poolMaxIdle));
 
         ConnectionFactory connectionFactory = new DriverManagerConnectionFactory(getUri(), props);
 

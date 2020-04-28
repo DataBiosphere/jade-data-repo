@@ -60,26 +60,33 @@ public class DatasetDao {
      * in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
      *     1. Update the dataset record to give this flight the lock.
      *     2. Throw an exception if no records were updated.
-     * @param datasetName name of the dataset to lock, this is a unique column
+     * @param datasetId id of the dataset to lock, this is a unique column
      * @param flightId flight id that wants to lock the dataset
-     * @throws DatasetLockException if the dataset is locked by another flight or does not exist
+     * @throws DatasetLockException if the dataset is locked by another flight
+     * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lock(String datasetName, String flightId) {
+    public void lock(UUID datasetId, String flightId) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
 
         // update the dataset entry and lock it by setting the flight id
         String sql = "UPDATE dataset SET flightid = :flightid " +
-            "WHERE name = :name AND (flightid IS NULL OR flightid = :flightid)";
+            "WHERE id = :datasetid AND (flightid IS NULL OR flightid = :flightid)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", datasetName)
+            .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
         int numRowsUpdated = jdbcTemplate.update(sql, params);
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
+            // this method checks if the dataset exists
+            // if it does not exist, then the method throws a DatasetNotFoundException
+            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
+            retrieveSummaryById(datasetId);
+
+            // otherwise, throw a lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to lock the dataset");
         }
@@ -90,17 +97,17 @@ public class DatasetDao {
      * If the dataset is not locked by this flight, then the method is a no-op. It does not throw an exception in this
      * case. So, multiple unlocks can succeed with no errors. The method does return a boolean indicating whether any
      * rows were updated or not. So, callers can decide to throw an error if the unlock was a no-op.
-     * @param datasetName name of the dataset to unlock, this is a unique column
+     * @param datasetId id of the dataset to unlock, this is a unique column
      * @param flightId flight id that wants to unlock the dataset
      * @return true if a dataset was unlocked, false otherwise
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public boolean unlock(String datasetName, String flightId) {
+    public boolean unlock(UUID datasetId, String flightId) {
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE dataset SET flightid = NULL " +
-            "WHERE name = :name AND flightid = :flightid";
+            "WHERE id = :datasetid AND flightid = :flightid";
         MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("name", datasetName)
+            .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
         int numRowsUpdated = jdbcTemplate.update(sql, params);
         logger.debug("numRowsUpdated=" + numRowsUpdated);

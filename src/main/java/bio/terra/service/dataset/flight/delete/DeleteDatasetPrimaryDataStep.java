@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -12,11 +13,17 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 public class DeleteDatasetPrimaryDataStep implements Step {
+
+    private static Logger logger = LoggerFactory.getLogger(DeleteDatasetPrimaryDataStep.class);
+
     private BigQueryPdao bigQueryPdao;
     private GcsPdao gcsPdao;
     private FireStoreDao fileDao;
@@ -47,6 +54,21 @@ public class DeleteDatasetPrimaryDataStep implements Step {
             fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> { });
         } else {
             fileDao.deleteFilesFromDataset(dataset, fireStoreFile -> gcsPdao.deleteFile(fireStoreFile));
+        }
+
+        // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
+        if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
+            try {
+                logger.info("DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT");
+                while (!configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                    logger.info("Sleeping for CONTINUE FAULT");
+                    TimeUnit.SECONDS.sleep(5);
+                }
+                logger.info("DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
+            } catch (InterruptedException intEx) {
+                Thread.currentThread().interrupt();
+                throw new DatasetLockException("Unexpected interrupt during dataset delete lock fault", intEx);
+            }
         }
 
         FlightMap map = context.getWorkingMap();

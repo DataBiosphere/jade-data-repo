@@ -47,7 +47,7 @@ public class DatasetCreateFlight extends Flight {
         // right now the cloud project is created as part of the PrimaryDataStep below
         addStep(new CreateDatasetPrimaryDataStep(bigQueryPdao, datasetDao, dataLocationService));
         addStep(new CreateDatasetAuthzResource(iamClient, bigQueryPdao, datasetService, userReq));
-        addStep(new UnlockDatasetStep(datasetDao, datasetRequest.getName()));
+        addStep(new UnlockDatasetStep(datasetDao));
     }
 
 }

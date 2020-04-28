@@ -14,6 +14,7 @@ import bio.terra.model.ConfigGroupModel;
 import bio.terra.model.ConfigListModel;
 import bio.terra.model.ConfigModel;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -125,14 +126,36 @@ public class DataRepoFixtures {
         return response.getErrorObject().get();
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteDatasetRaw(TestConfiguration.User user, String datasetId)
+    public DataRepoResponse<JobModel> deleteDataRaw(TestConfiguration.User user,
+                                                    String datasetId,
+                                                    DataDeletionRequest request) throws Exception {
+        String url = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
+        String json = TestUtils.mapToJson(request);
+        return dataRepoClient.post(user, url, json, JobModel.class);
+    }
+
+    public void deleteData(TestConfiguration.User user,
+                           String datasetId,
+                           DataDeletionRequest request) throws Exception {
+        DataRepoResponse<JobModel> jobResponse = deleteDataRaw(user, datasetId, request);
+        DataRepoResponse<DeleteResponseModel> deleteResponse =
+            dataRepoClient.waitForResponse(user, jobResponse, DeleteResponseModel.class);
+        assertGoodDeleteResponse(deleteResponse);
+    }
+
+    public DataRepoResponse<JobModel> deleteDatasetLaunch(TestConfiguration.User user, String datasetId)
         throws Exception {
         return dataRepoClient.delete(
-            user, "/api/repository/v1/datasets/" + datasetId, DeleteResponseModel.class);
+            user, "/api/repository/v1/datasets/" + datasetId, JobModel.class);
     }
 
     public void deleteDataset(TestConfiguration.User user, String datasetId) throws Exception {
-        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetRaw(user, datasetId);
+        DataRepoResponse<JobModel> jobResponse = deleteDatasetLaunch(user, datasetId);
+        assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, DeleteResponseModel.class);
         assertGoodDeleteResponse(deleteResponse);
     }
 

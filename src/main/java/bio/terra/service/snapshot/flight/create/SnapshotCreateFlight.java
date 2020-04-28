@@ -71,6 +71,6 @@ public class SnapshotCreateFlight extends Flight {
             datasetService,
             snapshotReq,
             userReq));
-        addStep(new UnlockSnapshotStep(snapshotDao, snapshotReq.getName()));
+        addStep(new UnlockSnapshotStep(snapshotDao, null));
     }
 }

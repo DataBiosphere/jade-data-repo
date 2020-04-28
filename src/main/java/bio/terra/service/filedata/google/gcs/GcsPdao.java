@@ -177,7 +177,7 @@ public class GcsPdao {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
     }
 
-    static Blob getBlobFromGsPath(Storage storage, String gspath) {
+    public static Blob getBlobFromGsPath(Storage storage, String gspath) {
         String sourceBucket;
         String sourcePath;
 

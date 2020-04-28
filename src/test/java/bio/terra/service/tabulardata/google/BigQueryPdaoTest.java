@@ -21,6 +21,7 @@ import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
 import com.google.cloud.bigquery.QueryJobConfiguration;
@@ -34,8 +35,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +46,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
@@ -85,6 +87,9 @@ public class BigQueryPdaoTest {
     private BillingProfileModel profileModel;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
 
+    @Rule
+    public ExpectedException exceptionGrabber = ExpectedException.none();
+
     @Before
     public void setup() throws Exception {
         // Setup mock sam service
@@ -111,7 +116,7 @@ public class BigQueryPdaoTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlock(dataset.getName(), createFlightId);
+        datasetDao.unlock(dataset.getId(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);
         return dataset;
     }
@@ -215,11 +220,9 @@ public class BigQueryPdaoTest {
             // Create a snapshot!
             DatasetSummaryModel datasetSummaryModel =
                 DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(dataset.getDatasetSummary());
-            MockHttpServletResponse snapshotResponse =
-                connectedOperations.launchCreateSnapshot(datasetSummaryModel,
-                    "ingest-test-snapshot.json", "");
             SnapshotSummaryModel snapshotSummary =
-                connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
+                connectedOperations.createSnapshot(datasetSummaryModel,
+                    "ingest-test-snapshot.json", "");
             SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
 
             BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
@@ -246,9 +249,8 @@ public class BigQueryPdaoTest {
                 Collections.singletonList("file1"));
 
             // Create another snapshot.
-            snapshotResponse = connectedOperations.launchCreateSnapshot(
+            snapshotSummary = connectedOperations.createSnapshot(
                 datasetSummaryModel, "ingest-test-snapshot.json", "");
-            snapshotSummary = connectedOperations.handleCreateSnapshotSuccessCase(snapshotResponse);
             SnapshotModel snapshot2 = connectedOperations.getSnapshot(snapshotSummary.getId());
             Assert.assertThat(snapshot2.getTables().size(), is(equalTo(3)));
 
@@ -388,5 +390,21 @@ public class BigQueryPdaoTest {
         result.iterateAll().forEach(r -> ids.add(r.get("id").getStringValue()));
 
         return ids;
+    }
+
+    @Test
+    public void testBadSoftDeletePath() throws Exception {
+        Dataset dataset = readDataset("ingest-test-dataset.json");
+        String suffix = UUID.randomUUID().toString().replaceAll("-", "");
+        String badGsUri = String.format("gs://%s/not/a/real/path/to/*files", testConfig.getIngestbucket());
+
+        try {
+            bigQueryPdao.createDataset(dataset);
+            exceptionGrabber.expect(BadExternalFileException.class);
+            bigQueryPdao.createSoftDeleteExternalTable(dataset, badGsUri, "participant", suffix);
+        } finally {
+            bigQueryPdao.deleteDataset(dataset);
+            datasetDao.delete(dataset.getId());
+        }
     }
 }

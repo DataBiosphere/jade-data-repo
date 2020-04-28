@@ -64,6 +64,12 @@ public class ApplicationConfiguration {
      */
     private int loadFilePopulateBatchSize;
 
+    /**
+     * Pod shutdown timeout
+     * TODO: better to have this passed in as an envvar from the K8s configuration so it is in sync.
+     *  For getting started, we use this timeout setting.
+     */
+    private int shutdownTimeoutSeconds;
 
     public String getUserEmail() {
         return userEmail;
@@ -159,6 +165,14 @@ public class ApplicationConfiguration {
 
     public void setLoadFilePopulateBatchSize(int loadFilePopulateBatchSize) {
         this.loadFilePopulateBatchSize = loadFilePopulateBatchSize;
+    }
+
+    public int getShutdownTimeoutSeconds() {
+        return shutdownTimeoutSeconds;
+    }
+
+    public void setShutdownTimeoutSeconds(int shutdownTimeoutSeconds) {
+        this.shutdownTimeoutSeconds = shutdownTimeoutSeconds;
     }
 
     @Bean("jdbcTemplate")

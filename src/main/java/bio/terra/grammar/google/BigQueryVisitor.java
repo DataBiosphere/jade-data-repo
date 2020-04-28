@@ -1,5 +1,6 @@
 package bio.terra.grammar.google;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.grammar.DatasetAwareVisitor;
 import bio.terra.grammar.SQLParser;
 import bio.terra.model.DatasetModel;
@@ -8,8 +9,18 @@ import java.util.Map;
 
 public class BigQueryVisitor extends DatasetAwareVisitor {
 
+    private static final int PRIME = 31;
+
     public BigQueryVisitor(Map<String, DatasetModel> datasetMap) {
         super(datasetMap);
+    }
+
+    private String generateAlias(String datasetName, String tableName) {
+        int datasetNameHash = datasetName.hashCode();
+        int tableNameHash = tableName.hashCode();
+        // there's less of a chance of collision if we multiply the first value by an odd prime before we sum them
+        int hash = datasetNameHash * PRIME + tableNameHash;
+        return  "alias" + String.valueOf(hash);
     }
 
     @Override
@@ -17,17 +28,18 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
         String datasetName = getNameFromContext(ctx.dataset_name());
         DatasetModel dataset = getDatasetByName(datasetName);
         String dataProjectId = dataset.getDataProject();
+        String bqDatasetName = PdaoConstant.PDAO_PREFIX + getNameFromContext(ctx.dataset_name());
         String tableName = getNameFromContext(ctx.table_name());
-        return String.format("`%s.%s.%s`", dataProjectId, datasetName, tableName);
+        String alias = generateAlias(bqDatasetName, tableName);
+        return String.format("`%s.%s.%s` AS `%s`", dataProjectId, bqDatasetName, tableName, alias);
     }
 
     @Override
     public String visitColumn_expr(SQLParser.Column_exprContext ctx) {
-        String datasetName = getNameFromContext(ctx.dataset_name());
-        DatasetModel dataset = getDatasetByName(datasetName);
-        String dataProjectId = dataset.getDataProject();
+        String bqDatasetName = PdaoConstant.PDAO_PREFIX + getNameFromContext(ctx.dataset_name());
         String tableName = getNameFromContext(ctx.table_name());
+        String alias = generateAlias(bqDatasetName, tableName);
         String columnName = getNameFromContext(ctx.column_name());
-        return String.format("`%s.%s.%s.%s`", dataProjectId, datasetName, tableName, columnName);
+        return String.format("`%s`.%s", alias, columnName);
     }
 }

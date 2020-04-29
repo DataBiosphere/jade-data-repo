@@ -41,6 +41,7 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
@@ -159,9 +160,34 @@ public class SnapshotTest extends UsersBase {
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 datasetSummaryModel,
                 requestModel);
-        createdSnapshotIds.add(snapshotSummary.getId());
         TimeUnit.SECONDS.sleep(10);
-
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+        assertEquals("new snapshot has the correct number of tables",
+            requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
+            snapshot.getTables().size());
         // TODO: get the snapshot and make sure the number of rows matches with the row ids input
+    }
+
+    @Test
+    public void snapshotByQueryHappyPathTest() throws Exception {
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        String datasetName = dataset.getName();
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot-query.json", SnapshotRequestModel.class);
+        // swap in the correct dataset name (with the id at the end)
+        requestModel.getContents().get(0).setDatasetName(datasetName);
+        requestModel.getContents().get(0).getQuerySpec()
+            .setQuery("SELECT * FROM " + datasetName + ".sample WHERE " + datasetName + ".sample.id = 'sample6'");
+        //  .setQuery("SELECT datarepo_row_id FROM " + datasetName + ".sample WHERE " + datasetName + ".sample.id ='sample6'");
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
+                datasetSummaryModel,
+                requestModel);
+        TimeUnit.SECONDS.sleep(10);
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
 }

@@ -18,15 +18,20 @@ public class LockDatasetStep implements Step {
 
     private final DatasetDao datasetDao;
     private final UUID datasetId;
+    private boolean sharedLock; // default to false
     private boolean suppressNotFoundException; // default to false
 
-    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId) {
-        this(datasetDao, datasetId, false);
+    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
+        this(datasetDao, datasetId, sharedLock, false);
     }
 
-    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean suppressNotFoundException) {
+    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId,
+                           boolean sharedLock, boolean suppressNotFoundException) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
+
+        // this will be set to true for a shared lock, false for an exclusive lock
+        this.sharedLock = sharedLock;
 
         // this will be set to true in cases where we don't want to fail if the dataset metadata record doesn't exist.
         // for example, dataset deletion. we want multiple deletes to succeed, not throw a lock or notfound exception.
@@ -37,7 +42,11 @@ public class LockDatasetStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         try {
-            datasetDao.lock(datasetId, context.getFlightId());
+            if (sharedLock) {
+                datasetDao.lockShared(datasetId, context.getFlightId());
+            } else {
+                datasetDao.lockExclusive(datasetId, context.getFlightId());
+            }
 
             return StepResult.getStepResultSuccess();
         } catch (DatasetLockException ex) {
@@ -57,7 +66,7 @@ public class LockDatasetStep implements Step {
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
-        boolean rowUpdated = datasetDao.unlock(datasetId, context.getFlightId());
+        boolean rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

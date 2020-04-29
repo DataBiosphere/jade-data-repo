@@ -65,7 +65,7 @@ public class FileIngestWorkerFlight extends Flight {
         //    time of the actual file in GCS. That ensures that the file info we return on REST API (and DRS) lookups
         //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
-        addStep(new IngestFileIdStep());
+        addStep(new IngestFileIdStep(configService));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
         addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService), createBucketRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));

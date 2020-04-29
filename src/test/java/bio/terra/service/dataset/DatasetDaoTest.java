@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.category.Unit;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -33,7 +34,11 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -60,7 +65,7 @@ public class DatasetDaoTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         UUID datasetId = datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlock(dataset.getId(), createFlightId);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         return datasetId;
     }
 
@@ -270,5 +275,264 @@ public class DatasetDaoTest {
                     spec.getAssetRelationships().size(),
                     equalTo(1));
         }
+    }
+
+    @Test
+    public void mixingSharedAndExclusiveLocksTest() throws IOException, SQLException {
+        UUID datasetId = createDataset("dataset-primary-key.json");
+        try {
+            // check that there are no outstanding locks
+            DatasetSummary summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after creation", summary.getFlightId());
+            assertEquals("no shared locks after creation", 0, summary.getSharedLock().length);
+
+            // 1. take out a shared lock
+            // confirm that there are no exclusive locks and one shared lock
+            datasetDao.lockShared(datasetId, "flightid1");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 1", summary.getFlightId());
+            assertEquals("one shared lock after step 1", 1, summary.getSharedLock().length);
+            assertEquals("flightid1 has shared lock after step 1", "flightid1", summary.getSharedLock()[0]);
+
+            // 2. take out another shared lock
+            // confirm that there are no exclusive locks and two shared locks
+            datasetDao.lockShared(datasetId, "flightid2");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 2", summary.getFlightId());
+            assertEquals("two shared locks after step 2", 2, summary.getSharedLock().length);
+            assertTrue("flightid2 has shared lock after step 2",
+                Arrays.asList(summary.getSharedLock()).contains("flightid2"));
+
+            // 3. try to take out an exclusive lock
+            // confirm that it fails with a DatasetLockException
+            boolean threwLockException = false;
+            try {
+                datasetDao.lockExclusive(datasetId, "flightid3");
+            } catch (DatasetLockException dlEx) {
+                threwLockException = true;
+            }
+            assertTrue("exclusive lock threw exception in step 3", threwLockException);
+
+            // 4. release the first shared lock
+            // confirm that there are no exclusive locks and one shared lock
+            datasetDao.unlockShared(datasetId, "flightid1");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 4", summary.getFlightId());
+            assertEquals("one shared lock after step 4", 1, summary.getSharedLock().length);
+            assertFalse("flightid1 no longer has shared lock after step 4",
+                Arrays.asList(summary.getSharedLock()).contains("flightid1"));
+
+            // 5. try to take out an exclusive lock
+            // confirm that it fails with a DatasetLockException
+            threwLockException = false;
+            try {
+                datasetDao.lockExclusive(datasetId, "flightid4");
+            } catch (DatasetLockException dlEx) {
+                threwLockException = true;
+            }
+            assertTrue("exclusive lock threw exception in step 5", threwLockException);
+
+            // 6. take out five shared locks
+            // confirm that there are no exclusive locks and six shared locks
+            datasetDao.lockShared(datasetId, "flightid5");
+            datasetDao.lockShared(datasetId, "flightid6");
+            datasetDao.lockShared(datasetId, "flightid7");
+            datasetDao.lockShared(datasetId, "flightid8");
+            datasetDao.lockShared(datasetId, "flightid9");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 6", summary.getFlightId());
+            assertEquals("six shared locks after step 6", 6, summary.getSharedLock().length);
+            assertTrue("flightid2 has shared lock after step 6",
+                Arrays.asList(summary.getSharedLock()).contains("flightid2"));
+            assertTrue("flightid5 has shared lock after step 6",
+                Arrays.asList(summary.getSharedLock()).contains("flightid5"));
+            assertTrue("flightid6 has shared lock after step 6",
+                Arrays.asList(summary.getSharedLock()).contains("flightid6"));
+            assertTrue("flightid7 has shared lock after step 6",
+                Arrays.asList(summary.getSharedLock()).contains("flightid7"));
+            assertTrue("flightid8 has shared lock after step 6",
+                Arrays.asList(summary.getSharedLock()).contains("flightid8"));
+            assertTrue("flightid9 has shared lock after step 6",
+                Arrays.asList(summary.getSharedLock()).contains("flightid9"));
+
+            // 7. release all the shared locks
+            // confirm that there are no outstanding locks
+            datasetDao.unlockShared(datasetId, "flightid2");
+            datasetDao.unlockShared(datasetId, "flightid5");
+            datasetDao.unlockShared(datasetId, "flightid6");
+            datasetDao.unlockShared(datasetId, "flightid7");
+            datasetDao.unlockShared(datasetId, "flightid8");
+            datasetDao.unlockShared(datasetId, "flightid9");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 7", summary.getFlightId());
+            assertEquals("no shared locks after step 7", 0, summary.getSharedLock().length);
+
+            // 8. take out an exclusive lock
+            // confirm that there is an exclusive lock and no shared locks
+            datasetDao.lockExclusive(datasetId, "flightid10");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertEquals("exclusive lock taken out after step 8", "flightid10", summary.getFlightId());
+            assertEquals("no shared locks after step 8", 0, summary.getSharedLock().length);
+
+            // 9. try to take out a shared lock
+            // confirm that it fails with a DatasetLockException
+            threwLockException = false;
+            try {
+                datasetDao.lockShared(datasetId, "flightid11");
+            } catch (DatasetLockException dlEx) {
+                threwLockException = true;
+            }
+            assertTrue("shared lock threw exception in step 9", threwLockException);
+
+            // 10. release the exclusive lock
+            // confirm that there are no outstanding locks
+            datasetDao.unlockExclusive(datasetId, "flightid10");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("exclusive lock taken out after step 10", summary.getFlightId());
+            assertEquals("no shared locks after step 10", 0, summary.getSharedLock().length);
+
+        } finally {
+            datasetDao.delete(datasetId);
+        }
+    }
+
+    @Test
+    public void duplicateCallsForExclusiveLockTest() throws IOException, SQLException {
+        UUID datasetId = createDataset("dataset-primary-key.json");
+        try {
+            // check that there are no outstanding locks
+            DatasetSummary summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after creation", summary.getFlightId());
+            assertEquals("no shared locks after creation", 0, summary.getSharedLock().length);
+
+            // 1. take out an exclusive lock
+            // confirm that there is an exclusive lock and no shared locks
+            datasetDao.lockExclusive(datasetId, "flightid20");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertEquals("exclusive lock taken out after step 1", "flightid20", summary.getFlightId());
+            assertEquals("no shared locks after step 1", 0, summary.getSharedLock().length);
+
+            // 2. try to take out an exclusive lock again with the same flightid
+            // confirm that the exclusive lock is still there and there are no shared locks
+            datasetDao.lockExclusive(datasetId, "flightid20");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertEquals("exclusive lock taken out after step 2", "flightid20", summary.getFlightId());
+            assertEquals("no shared locks after step 2", 0, summary.getSharedLock().length);
+
+            // 3. try to unlock the exclusive lock with a different flightid
+            // confirm that the exclusive lock is still there and there are no shared locks
+            boolean rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid21");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertFalse("no rows updated on call to unlock with different flightid after step 3", rowUnlocked);
+            assertEquals("exclusive lock still taken out after step 3", "flightid20", summary.getFlightId());
+            assertEquals("no shared locks after step 3", 0, summary.getSharedLock().length);
+
+            // 4. unlock the exclusive lock
+            // confirm that there are no outstanding exclusive or shared locks
+            rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid20");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertTrue("row was updated on first call to unlock after step 4", rowUnlocked);
+            assertNull("no exclusive lock after step 4", summary.getFlightId());
+            assertEquals("no shared locks after step 4", 0, summary.getSharedLock().length);
+
+            // 5. unlock the exclusive lock again with the same flightid
+            // confirm that there are still no oustanding exclusive or shared locks
+            rowUnlocked = datasetDao.unlockExclusive(datasetId, "flightid20");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertFalse("no rows updated on second call to unlock after step 5", rowUnlocked);
+            assertNull("no exclusive lock after step 5", summary.getFlightId());
+            assertEquals("no shared locks after step 5", 0, summary.getSharedLock().length);
+        } finally {
+            datasetDao.delete(datasetId);
+        }
+    }
+
+    @Test
+    public void duplicateCallsForSharedLockTest() throws IOException, SQLException {
+        UUID datasetId = createDataset("dataset-primary-key.json");
+        try {
+            // check that there are no outstanding locks
+            DatasetSummary summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after creation", summary.getFlightId());
+            assertEquals("no shared locks after creation", 0, summary.getSharedLock().length);
+
+            // 1. take out a shared lock
+            // confirm that there is no exclusive lock and one shared lock
+            datasetDao.lockShared(datasetId, "flightid30");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 1", summary.getFlightId());
+            assertEquals("one shared lock after step 1", 1, summary.getSharedLock().length);
+            assertEquals("flightid30 has shared lock after step 1", "flightid30", summary.getSharedLock()[0]);
+
+            // 2. try to take out a shared lock again with the same flightid
+            // confirm that the shared lock is still there and there is no exclusive lock
+            datasetDao.lockShared(datasetId, "flightid30");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertNull("no exclusive lock after step 2", summary.getFlightId());
+            assertEquals("one shared lock after step 2", 1, summary.getSharedLock().length);
+            assertEquals("flightid30 has shared lock after step 2", "flightid30", summary.getSharedLock()[0]);
+
+            // 3. try to unlock the shared lock with a different flightid
+            // confirm that the shared lock is still there and there is no exclusive lock
+            boolean rowUnlocked = datasetDao.unlockShared(datasetId, "flightid31");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertFalse("no rows updated on call to unlock with different flightid after step 3", rowUnlocked);
+            assertNull("no exclusive lock after step 3", summary.getFlightId());
+            assertEquals("one shared lock still taken out after step 3", 1, summary.getSharedLock().length);
+            assertEquals("flightid30 still has shared lock after step 3", "flightid30", summary.getSharedLock()[0]);
+
+            // 4. unlock the shared lock
+            // confirm that there are no outstanding exclusive or shared locks
+            rowUnlocked = datasetDao.unlockShared(datasetId, "flightid30");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertTrue("row was updated on first call to unlock after step 4", rowUnlocked);
+            assertNull("no exclusive lock after step 4", summary.getFlightId());
+            assertEquals("no shared locks after step 4", 0, summary.getSharedLock().length);
+
+            // 5. unlock the exclusive lock again with the same flightid
+            // confirm that there are still no oustanding exclusive or shared locks
+            rowUnlocked = datasetDao.unlockShared(datasetId, "flightid30");
+            summary = datasetDao.retrieveSummaryById(datasetId);
+            assertFalse("no rows updated on second call to unlock after step 5", rowUnlocked);
+            assertNull("no exclusive lock after step 5", summary.getFlightId());
+            assertEquals("no shared locks after step 5", 0, summary.getSharedLock().length);
+        } finally {
+            datasetDao.delete(datasetId);
+        }
+    }
+
+    @Test
+    public void lockNonExistentDatasetTest() throws IOException, SQLException {
+        UUID nonExistentDatasetId = UUID.randomUUID();
+
+        // try to take out an exclusive lock
+        // confirm that it fails with a DatasetNotFoundkException
+        boolean threwNotFoundException = false;
+        try {
+            datasetDao.lockExclusive(nonExistentDatasetId, "flightid40");
+        } catch (DatasetNotFoundException dnfEx) {
+            threwNotFoundException = true;
+        }
+        assertTrue("exclusive lock threw not found exception", threwNotFoundException);
+
+        // try to release an exclusive lock
+        // confirm that it succeeds with no rows updated
+        boolean rowUpdated = datasetDao.unlockExclusive(nonExistentDatasetId, "flightid40");
+        assertFalse("exclusive unlock did not update any rows", rowUpdated);
+
+        // try to take out a shared lock
+        // confirm that it fails with a DatasetNotFoundkException
+        threwNotFoundException = false;
+        try {
+            datasetDao.lockShared(nonExistentDatasetId, "flightid41");
+        } catch (DatasetNotFoundException dnfEx) {
+            threwNotFoundException = true;
+        }
+        assertTrue("exclusive lock threw not found exception", threwNotFoundException);
+
+        // try to release a shared lock
+        // confirm that it succeeds with no rows updated
+        rowUpdated = datasetDao.unlockExclusive(nonExistentDatasetId, "flightid40");
+        assertFalse("shared unlock did not update any rows", rowUpdated);
     }
 }

@@ -315,7 +315,7 @@ public class ConnectedOperations {
         }
     }
 
-    private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
+    public void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
         if (status.is2xxSuccessful()) {
             DeleteResponseModel responseModel =
@@ -530,6 +530,19 @@ public class ConnectedOperations {
     public void addFile(String datasetId, String fileId) {
         String[] createdFile = new String[]{datasetId, fileId};
         createdFileIds.add(createdFile);
+    }
+
+    public void removeFile(String datasetId, String fileId) {
+        String[] fileToRemove = null;
+        for (String[] fileInfo : createdFileIds) {
+            if (datasetId.equals(fileInfo[0]) && fileId.equals(fileInfo[1])) {
+                fileToRemove = fileInfo;
+                break;
+            }
+        }
+        if (fileToRemove != null) {
+            createdFileIds.remove(fileToRemove);
+        }
     }
 
     public void addBucket(String bucketName) {

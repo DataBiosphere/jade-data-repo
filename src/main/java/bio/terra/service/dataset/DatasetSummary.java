@@ -12,6 +12,7 @@ public class DatasetSummary {
     private List<UUID> additionalProfileIds;
     private Instant createdDate;
     private String flightId;
+    private String[] sharedLock;
 
     public UUID getId() {
         return id;
@@ -73,6 +74,15 @@ public class DatasetSummary {
 
     public DatasetSummary flightId(String flightId) {
         this.flightId = flightId;
+        return this;
+    }
+
+    public String[] getSharedLock() {
+        return sharedLock.clone();
+    }
+
+    public DatasetSummary sharedLock(String[] sharedLock) {
+        this.sharedLock = sharedLock.clone();
         return this;
     }
 

@@ -72,6 +72,7 @@ public class FileIngestFlight extends Flight {
         //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
         // 7. Unlock the load tag
+        // 8. Unlock the dataset
         addStep(new LockDatasetStep(datasetDao, datasetId, true));
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));

@@ -66,7 +66,12 @@ public class LockDatasetStep implements Step {
     public StepResult undoStep(FlightContext context) {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
-        boolean rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+        boolean rowUpdated;
+        if (sharedLock) {
+            rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
+        } else {
+            rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+        }
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

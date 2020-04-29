@@ -848,6 +848,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
         String projectId = bigQueryProject.getProjectId();
+        String newQuery = sqlQuery.replace("*", "datarepo_row_id");
 
         // create snapshot bq dataset
         try {
@@ -857,10 +858,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
-
             // now create a temp table with all the selected row ids based on the query in it
             bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
-            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(newQuery)
                 .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
                 .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
                 .build();
@@ -884,7 +884,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             String rootTableId = rootTable.getId().toString();
 
             ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+            sqlTemplate.add("snapshotDatasetName", snapshotName);
             sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
             sqlTemplate.add("datasetTable", datasetTableName);
             sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
 
@@ -895,7 +897,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 throw new MismatchedValueException("Query results did not match dataset root row ids");
             }
 
-            // todo is this right?
             bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.
@@ -909,8 +910,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             sqlLoadTemplate.add("snapshot", snapshotName);
             sqlLoadTemplate.add("dataset", datasetBqDatasetName);
             sqlLoadTemplate.add("tableId", rootTableId);
-            sqlLoadTemplate.add("datasetTable", datasetTableName);
             sqlLoadTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN); // this is the disc from classic asset
+            sqlLoadTemplate.add("tempTable", PDAO_TEMP_TABLE);
             bigQueryProject.query(sqlLoadTemplate.render());
 
             //ST sqlValidateTemplate = new ST(validateRowIdsForRootTemplate);
@@ -962,14 +963,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
 
     private static final String joinTablesToTestForMissingRowIds =
-        "SELECT COUNT(*) FROM <tempTable> LEFT JOIN <datasetTable> USING ( <commonColumn> ) " +
+        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
             "WHERE <datasetTable>.<commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =
         "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
             "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
             "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
-            "SELECT row_id FROM <tempTable>.<commonColumn> AS row_id" +
+            "SELECT <commonColumn> AS row_id FROM `<snapshot>.<tempTable>` " +
             ") AS T";
 
     /**

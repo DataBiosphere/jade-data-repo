@@ -179,8 +179,7 @@ public class SnapshotTest extends UsersBase {
         // swap in the correct dataset name (with the id at the end)
         requestModel.getContents().get(0).setDatasetName(datasetName);
         requestModel.getContents().get(0).getQuerySpec()
-            .setQuery("SELECT * FROM " + datasetName + ".sample WHERE " + datasetName + ".sample.id = 'sample6'");
-        //  .setQuery("SELECT datarepo_row_id FROM " + datasetName + ".sample WHERE " + datasetName + ".sample.id ='sample6'");
+          .setQuery("SELECT " + datasetName + ".sample.datarepo_row_id FROM " + datasetName + ".sample WHERE " + datasetName + ".sample.id ='sample6'");
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
                 datasetSummaryModel,

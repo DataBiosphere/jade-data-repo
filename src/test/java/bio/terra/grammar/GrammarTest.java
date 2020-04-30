@@ -38,6 +38,29 @@ public class GrammarTest {
         assertThat("it found the right datasets", datasetNames, hasItems("foo", "baz"));
     }
 
+
+    @Test
+    public void testTableNames() {
+        Query query = Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+        List<String> tableNames = query.getTableNames();
+        assertThat("there are three columns", tableNames.size(), equalTo(2));
+        assertThat("it found the right tables", tableNames, hasItems("bar", "quux"));
+    }
+
+    @Test
+    public void testColumnNames() {
+        Query query = Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+    }
+
+    @Test(expected = InvalidQueryException.class)
+    public void testColumnNotFullyQualifiedName() {
+        // note that the col `datarepo_row_id` does not have a table or dataset attached
+        Query.parse("SELECT datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+    }
+
     @Test
     public void testBqTranslate() {
         BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);

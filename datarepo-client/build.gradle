@@ -27,6 +27,7 @@ plugins {
 
 group 'bio.terra'
 version '1.0.0-SNAPSHOT'
+sourceCompatibility = 1.8
 
 // TODO: there may be a better way to supply these values than envvars.
 // This and the test below makes sure the build will fail reasonably if you try
@@ -107,7 +108,7 @@ compileJava.dependsOn generateApi
 
 publishing {
     publications {
-        tdrLibrary(MavenPublication) {
+        datarepoClientLibrary(MavenPublication) {
             from components.java
         }
     }
@@ -124,10 +125,27 @@ artifactory {
         defaults {
             // This is how we tell the Artifactory Plugin which artifacts should be published to Artifactory.
             // Reference to Gradle publications defined in the build script.
-            publications('tdrLibrary')
+            publications('datarepoClientLibrary')
             publishArtifacts = true
             publishPom = true
         }
     }
 }
 
+clean {
+    // clean up all of the swagger codegen crud
+    delete ".gradle/"
+    delete ".swagger-codegen-ignore"
+    delete ".swagger-codegen/"
+    delete ".travis.yml"
+    delete "README.md"
+    delete "build.sbt"
+    delete "docs/"
+    delete "git_push.sh"
+    delete "gradle.properties"
+    delete "gradle/"
+    delete "gradlew"
+    delete "gradlew.bat"
+    delete "pom.xml"
+    delete "src/"
+}

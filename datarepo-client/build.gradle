@@ -5,16 +5,11 @@ buildscript {
 
     repositories {
         mavenCentral()
-    }
-    dependencies {
-        classpath("io.swagger:swagger-codegen:${swagger}")
-    }
-
-    // This is all for the artifactory plugin
-    repositories {
         jcenter()
     }
     dependencies {
+        classpath("io.swagger:swagger-codegen:${swagger}")
+        // This is for the artifactory plugin
         classpath group: 'com.jfrog.artifactory', name: 'com.jfrog.artifactory.gradle.plugin', version: '4.13.0', ext: 'pom'
     }
 }
@@ -26,7 +21,7 @@ plugins {
 }
 
 group 'bio.terra'
-version '1.0.0-SNAPSHOT'
+version '1.0.1-SNAPSHOT'
 sourceCompatibility = 1.8
 
 // TODO: there may be a better way to supply these values than envvars.
@@ -67,6 +62,7 @@ dependencies {
     compile group: 'org.glassfish.jersey.core', name: 'jersey-client', version: "${jersey}"
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-json-jackson', version: "${jersey}"
     compile group: 'org.glassfish.jersey.media', name: 'jersey-media-multipart', version: "${jersey}"
+    compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: "${jackson}"
 
     testCompile group: 'junit', name: 'junit', version: '4.12'
@@ -93,7 +89,7 @@ task generateApi {
         // spring boot options.
         config.setAdditionalProperties([
             'interfaceOnly' : 'true',                  // only generate the model and API interfaces
-            'library'       : 'jersey2',               // do jersey code generation
+            'library'       : 'jersey2',               // do jersey code generation so we use Jackson JSON
             'dateLibrary'   : 'java8',                 // do java8 code generation
             'apiPackage'    : 'bio.terra.datarepo.api',
             'modelPackage'  : 'bio.terra.datarepo.model',

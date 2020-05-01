@@ -15,7 +15,7 @@ The artifactoryPublish target generates the extra files (pom.xml and so forth) n
 publish the client into the Broad Artifactory.
 
 In order to publish, you must know the artifactory username and password. You supply
-those to the gradle build by setting these environment variables:
+those to gradle by setting these environment variables:
 - ARTIFACTORY_USER
 - ARTIFACTORY_PASSWORD
 

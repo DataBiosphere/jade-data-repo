@@ -187,19 +187,19 @@ public class LoadDao {
     }
 
     public void setLoadFileNotTried(UUID loadId, String targetPath) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.NOT_TRIED, null, null,null, null);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.NOT_TRIED, null, null, null, null);
     }
 
     public void setLoadFileRunning(UUID loadId, String targetPath, String flightId) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null,null, flightId);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null, null, flightId);
     }
 
     public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, FSFileInfo fileInfo) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, fileInfo,null, null);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, fileInfo, null, null);
     }
 
     public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null,null, error, null);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null, null, error, null);
     }
 
     public BulkLoadResultModel makeBulkLoadResult(UUID loadId) {

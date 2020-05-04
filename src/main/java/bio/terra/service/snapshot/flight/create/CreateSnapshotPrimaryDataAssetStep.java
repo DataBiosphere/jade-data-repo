@@ -40,7 +40,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         /*
          * map field ids into row ids and validate
          * then pass the row id array into create snapshot
@@ -67,7 +67,7 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         // Remove any file dependencies created
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {

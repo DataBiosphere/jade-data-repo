@@ -38,7 +38,7 @@ public class CreateDatasetAuthzResource implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         Dataset dataset = datasetService.retrieve(datasetId);

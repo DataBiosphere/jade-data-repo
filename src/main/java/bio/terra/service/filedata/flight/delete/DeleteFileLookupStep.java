@@ -30,7 +30,7 @@ public class DeleteFileLookupStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         try {
             // If we are restarting, we may have already retrieved and saved the file,
             // so we check the working map before doing the lookup.

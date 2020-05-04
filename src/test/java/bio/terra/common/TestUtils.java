@@ -86,8 +86,9 @@ public final class TestUtils {
         return httpPathString;
     }
 
-    public static BigQueryProject bigQueryProjectForDatasetName(
-        DatasetDao datasetDao, DataLocationService dataLocationService, String datasetName) {
+    public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,
+                                                                DataLocationService dataLocationService,
+                                                                String datasetName) throws InterruptedException {
 
         Dataset dataset = datasetDao.retrieveByName(datasetName);
         DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);

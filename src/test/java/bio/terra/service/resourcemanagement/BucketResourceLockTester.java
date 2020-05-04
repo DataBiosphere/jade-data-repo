@@ -30,6 +30,8 @@ public class BucketResourceLockTester implements Runnable {
             bucketResource = resourceService.getOrCreateBucket(bucketRequest, flightId);
         } catch (BucketLockException blEx) {
             gotLockException = true;
+        } catch (InterruptedException e) {
+            gotLockException = false;
         }
     }
 

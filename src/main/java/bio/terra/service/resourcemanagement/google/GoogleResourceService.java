@@ -4,14 +4,13 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
-import bio.terra.service.resourcemanagement.exception.BucketLockException;
-import bio.terra.service.resourcemanagement.exception.BucketLockFailureException;
-import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
-import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileService;
+import bio.terra.service.resourcemanagement.exception.BucketLockException;
+import bio.terra.service.resourcemanagement.exception.EnablePermissionsFailedException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.resourcemanagement.exception.InaccessibleBillingAccountException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
@@ -22,12 +21,12 @@ import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.services.cloudresourcemanager.CloudResourceManager;
 import com.google.api.services.cloudresourcemanager.model.Binding;
 import com.google.api.services.cloudresourcemanager.model.GetIamPolicyRequest;
+import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.cloudresourcemanager.model.Policy;
+import com.google.api.services.cloudresourcemanager.model.Project;
 import com.google.api.services.cloudresourcemanager.model.ResourceId;
 import com.google.api.services.cloudresourcemanager.model.SetIamPolicyRequest;
 import com.google.api.services.cloudresourcemanager.model.Status;
-import com.google.api.services.cloudresourcemanager.model.Project;
-import com.google.api.services.cloudresourcemanager.model.Operation;
 import com.google.api.services.serviceusage.v1beta1.ServiceUsage;
 import com.google.api.services.serviceusage.v1beta1.model.BatchEnableServicesRequest;
 import com.google.api.services.serviceusage.v1beta1.model.ListServicesResponse;
@@ -136,7 +135,9 @@ public class GoogleResourceService {
      * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
      * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
      */
-    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId) {
+    public GoogleBucketResource getOrCreateBucket(GoogleBucketRequest bucketRequest, String flightId)
+        throws InterruptedException {
+
         logger.info("application property allowReuseExistingBuckets = " + allowReuseExistingBuckets);
 
         // insert a new bucket_resource row and lock it
@@ -151,17 +152,12 @@ public class GoogleResourceService {
 
         // this fault is used by the ResourceLockTest
         if (configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT)) {
-            try {
-                logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
-                while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                    logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(5);
-                }
-                logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
-            } catch (InterruptedException intEx) {
-                Thread.currentThread().interrupt();
-                throw new BucketLockFailureException("Unexpected interrupt during bucket lock fault", intEx);
+            logger.info("BUCKET_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
             }
+            logger.info("BUCKET_LOCK_CONFLICT_CONTINUE_FAULT");
         }
 
         String bucketName = bucketRequest.getBucketName();
@@ -291,7 +287,7 @@ public class GoogleResourceService {
         return allowReuseExistingBuckets;
     }
 
-    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
+    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) throws InterruptedException {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
         String googleProjectId = projectRequest.getProjectId();
@@ -337,7 +333,9 @@ public class GoogleResourceService {
         }
     }
 
-    private GoogleProjectResource newProject(GoogleProjectRequest projectRequest, String googleProjectId) {
+    private GoogleProjectResource newProject(GoogleProjectRequest projectRequest, String googleProjectId)
+        throws InterruptedException {
+
         BillingProfile profile = profileService.getProfileById(projectRequest.getProfileId());
         logger.info("creating a new project: {}", projectRequest.getProjectId());
         if (!profile.isAccessible()) {
@@ -375,7 +373,7 @@ public class GoogleResourceService {
             enableIamPermissions(googleProjectResource);
             UUID repositoryId = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(repositoryId);
-        } catch (IOException | GeneralSecurityException | InterruptedException e) {
+        } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not create project", e);
         }
     }
@@ -398,7 +396,7 @@ public class GoogleResourceService {
         resourceDao.deleteProject(resourceId);
     }
 
-    private void enableServices(GoogleProjectResource projectResource) {
+    private void enableServices(GoogleProjectResource projectResource) throws InterruptedException {
         BatchEnableServicesRequest batchRequest = new BatchEnableServicesRequest()
             .setServiceIds(projectResource.getServiceIds());
         try {
@@ -433,7 +431,7 @@ public class GoogleResourceService {
                 long timeout = resourceConfiguration.getProjectCreateTimeoutSeconds();
                 blockUntilServiceOperationComplete(serviceUsage, batchEnable.execute(), timeout);
             }
-        } catch (IOException | GeneralSecurityException | InterruptedException e) {
+        } catch (IOException | GeneralSecurityException e) {
             throw new GoogleResourceException("Could not enable services", e);
         }
     }

@@ -57,7 +57,7 @@ public class ResourceServiceTest {
     @Test
     // this test should be unignored whenever there are changes to the project creation or deletion code
     @Ignore
-    public void createAndDeleteProjectTest() {
+    public void createAndDeleteProjectTest() throws Exception {
         // the project id can't be more than 30 characters
         String projectId = ("test-" + UUID.randomUUID().toString()).substring(0, 30);
 

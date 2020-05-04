@@ -2,17 +2,16 @@ package bio.terra.service.snapshot.flight.delete;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
-import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -52,21 +51,16 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         try {
             // this fault is used by the SnapshotConnectedTest > testOverlappingDeletes
             if (configService.testInsertFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
-                try {
-                    logger.info("SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT");
-                    while (!configService.testInsertFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                        logger.info("Sleeping for CONTINUE FAULT");
-                        TimeUnit.SECONDS.sleep(5);
-                    }
-                    logger.info("SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
-                } catch (InterruptedException intEx) {
-                    Thread.currentThread().interrupt();
-                    throw new SnapshotLockException("Unexpected interrupt during snapshot delete lock fault", intEx);
+                logger.info("SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT");
+                while (!configService.testInsertFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                    logger.info("Sleeping for CONTINUE FAULT");
+                    TimeUnit.SECONDS.sleep(5);
                 }
+                logger.info("SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
             }
 
             Snapshot snapshot = snapshotService.retrieve(snapshotId);

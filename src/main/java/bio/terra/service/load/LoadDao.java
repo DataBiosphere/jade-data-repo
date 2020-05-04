@@ -53,7 +53,7 @@ public class LoadDao {
     // the second updater to overwrite the first updater's data. Serialization means the second
     // updater will throw a PSQLException.
     @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.SERIALIZABLE)
-    public Load lockLoad(String loadTag, String flightId) {
+    public Load lockLoad(String loadTag, String flightId) throws InterruptedException {
         Load load = lookupLoadByTag(loadTag);
         if (load == null) {
             load = createLoad(loadTag, flightId);
@@ -71,17 +71,12 @@ public class LoadDao {
 
         // FAULT: see LoadDaoUnitTest for the rationale for this code.
         if (configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT)) {
-            try {
-                logger.info("LOAD_LOCK_CONFLICT_STOP");
-                while (!configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                    logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(2);
-                }
-                logger.info("LOAD_LOCK_CONFLICT_CONTINUE");
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                throw new LoadLockFailureException("Unexpected interrupt during load lock fault");
+            logger.info("LOAD_LOCK_CONFLICT_STOP");
+            while (!configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(2);
             }
+            logger.info("LOAD_LOCK_CONFLICT_CONTINUE");
         }
 
         try {

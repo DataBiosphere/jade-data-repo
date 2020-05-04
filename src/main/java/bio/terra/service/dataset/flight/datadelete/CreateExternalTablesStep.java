@@ -46,18 +46,18 @@ public class CreateExternalTablesStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = getDataset(context, datasetService);
         String suffix = getSuffix(context);
         DataDeletionRequest dataDeletionRequest = getRequest(context);
 
         validateTablesExistInDataset(dataDeletionRequest, dataset);
 
-        dataDeletionRequest.getTables().forEach(table -> {
+        for (DataDeletionTableModel table :dataDeletionRequest.getTables()) {
             String path = table.getGcsFileSpec().getPath();
             // let any exception here trigger an undo, no use trying to continue
             bigQueryPdao.createSoftDeleteExternalTable(dataset, path, table.getTableName(), suffix);
-        });
+        }
 
         return StepResult.getStepResultSuccess();
     }

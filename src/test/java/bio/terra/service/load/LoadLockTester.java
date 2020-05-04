@@ -22,6 +22,8 @@ public class LoadLockTester implements Runnable {
             result = 1;
         } catch (LoadLockedException ex) {
             result = 2;
+        } catch (InterruptedException ex) {
+            result = 3;
         }
     }
 

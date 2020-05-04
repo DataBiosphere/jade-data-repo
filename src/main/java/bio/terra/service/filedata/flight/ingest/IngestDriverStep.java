@@ -209,8 +209,9 @@ public class IngestDriverStep implements Step {
                         throw new FileSystemCorruptException("no result map in flight state");
                     }
                     String fileId = resultMap.get(FileMapKeys.FILE_ID, String.class);
+                    String checksum = resultMap.get(FileMapKeys.CHECKSUM, String.class);
                     // here - the checksum should be put into this map
-                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId);
+                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId, checksum);
                     break;
                 }
             }

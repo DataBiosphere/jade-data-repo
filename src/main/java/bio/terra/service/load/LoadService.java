@@ -77,8 +77,8 @@ public class LoadService {
         return loadDao.findCandidates(loadId, candidatesToFind);
     }
 
-    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId) {
-        loadDao.setLoadFileSucceeded(loadId, targetPath, fileId);
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, String checksum) {
+        loadDao.setLoadFileSucceeded(loadId, targetPath, fileId, checksum);
     }
 
     public void setLoadFileFailed(UUID loadId, String targetPath, String error) {

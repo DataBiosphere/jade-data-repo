@@ -11,4 +11,5 @@ public final class FileMapKeys {
     public static final String FIRESTORE_FILE = "fireStoreFile";
     public static final String REQUEST = "request";
     public static final String LOAD_COMPLETED = "loadCompleted";
+    public static final String CHECKSUM = "checksum";
 }

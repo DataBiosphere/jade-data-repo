@@ -156,6 +156,25 @@ public class SnapshotConnectedTest {
     }
 
     @Test
+    public void testQueryHappyPath() throws Exception {
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        SnapshotRequestModel snapshotRequest =
+            makeSnapshotTestRequest(datasetSummary, "snapshot-query-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+
+        getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
     public void testMinimal() throws Exception {
         DatasetSummaryModel datasetSummary = setupMinimalDataset();
         String datasetName = PDAO_PREFIX + datasetSummary.getName();

@@ -4,6 +4,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -113,8 +115,12 @@ public class LoadDaoUnitTest {
         testLoadCandidates(candidates, 0, 0, 3);
 
         List<LoadFile> loadSet1 = candidates.getCandidateFiles();
+        FSFileInfo fsFileInfo;
+        fsFileInfo = new FSFileInfo()
+            .checksumCrc32c("crcChecksum")
+            .checksumMd5("md5Checksum");
 
-        loadDao.setLoadFileSucceeded(loadId, loadSet1.get(0).getTargetPath(), "fileidA");
+        loadDao.setLoadFileSucceeded(loadId, loadSet1.get(0).getTargetPath(), "fileidA", fsFileInfo);
         loadDao.setLoadFileFailed(loadId, loadSet1.get(1).getTargetPath(), "failureB");
         loadDao.setLoadFileRunning(loadId, loadSet1.get(2).getTargetPath(), FlightIdsUsedByTest.FLIGHT_C.getId());
 
@@ -123,7 +129,7 @@ public class LoadDaoUnitTest {
         testLoadCandidates(candidates, 1, 1, 3);
         List<LoadFile> loadSet2 = candidates.getCandidateFiles();
 
-        loadDao.setLoadFileSucceeded(loadId, loadSet1.get(2).getTargetPath(), "fileidC");
+        loadDao.setLoadFileSucceeded(loadId, loadSet1.get(2).getTargetPath(), "fileidC", fsFileInfo);
 
         loadDao.setLoadFileRunning(loadId, loadSet2.get(0).getTargetPath(), FlightIdsUsedByTest.FLIGHT_D.getId());
         loadDao.setLoadFileRunning(loadId, loadSet2.get(1).getTargetPath(), FlightIdsUsedByTest.FLIGHT_E.getId());
@@ -145,8 +151,8 @@ public class LoadDaoUnitTest {
         candidates = loadDao.findCandidates(loadId, 3);
         testLoadCandidates(candidates, 4, 2, 0);
 
-        loadDao.setLoadFileSucceeded(loadId, loadSet3.get(0).getTargetPath(), "fileidG");
-        loadDao.setLoadFileSucceeded(loadId, loadSet3.get(1).getTargetPath(), "fileidH");
+        loadDao.setLoadFileSucceeded(loadId, loadSet3.get(0).getTargetPath(), "fileidG", fsFileInfo);
+        loadDao.setLoadFileSucceeded(loadId, loadSet3.get(1).getTargetPath(), "fileidH", fsFileInfo);
 
         // No more candidates and nothing running; this would be the bulk load completed state
         candidates = loadDao.findCandidates(loadId, 3);

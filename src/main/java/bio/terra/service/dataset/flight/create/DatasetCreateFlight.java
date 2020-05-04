@@ -7,8 +7,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.resourcemanagement.DataLocationService;
@@ -28,7 +28,7 @@ public class DatasetCreateFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
-        IamService iamClient = (IamService) appContext.getBean("iamService");
+        IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         ApplicationConfiguration appConfig = (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
 
         // get data from inputs that steps need

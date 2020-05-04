@@ -5,8 +5,8 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -26,7 +26,7 @@ public class DatasetDataDeleteFlight extends Flight {
         DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
-        IamService iamClient = (IamService) appContext.getBean("iamService");
+        IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
 
         // get data from inputs that steps need
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);

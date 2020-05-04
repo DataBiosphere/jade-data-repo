@@ -3,8 +3,8 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.service.iam.IamAction;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
-import bio.terra.service.iam.IamService;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
@@ -32,7 +32,7 @@ public class FileIngestBulkFlight extends Flight {
         super(inputParameters, applicationContext);
 
         ApplicationContext appContext = (ApplicationContext) applicationContext;
-        IamService iamService = (IamService)appContext.getBean("iamService");
+        IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         LoadService loadService = (LoadService)appContext.getBean("loadService");
         ObjectMapper objectMapper = (ObjectMapper)appContext.getBean("objectMapper");
         ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
@@ -62,7 +62,7 @@ public class FileIngestBulkFlight extends Flight {
         // 7. Clean load_file table
         // 8. TODO: release the bulk load slot (DR-754) - may not need a step if we use the count of locked tags
         // 9. Unlock the load tag
-        addStep(new VerifyAuthorizationStep(iamService, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
+        addStep(new VerifyAuthorizationStep(iamClient, IamResourceType.DATASET, datasetId, IamAction.INGEST_DATA));
         addStep(new LoadLockStep(loadService));
         // 2. reserve a bulk load slot
         addStep(new IngestPopulateFileStateFromFileStep(

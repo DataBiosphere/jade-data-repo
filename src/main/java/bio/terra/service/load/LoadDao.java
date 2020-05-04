@@ -159,7 +159,7 @@ public class LoadDao {
     // Remove all file load instructions for a given loadId from the load_file table
     public void cleanFiles(UUID loadId) {
         jdbcTemplate.update("DELETE FROM load_file WHERE load_id = :load_id",
-                new MapSqlParameterSource().addValue("load_id", loadId));
+            new MapSqlParameterSource().addValue("load_id", loadId));
     }
 
     public List<LoadFile> findLoadsByState(UUID loadId, BulkLoadFileState state, Integer limit) {
@@ -297,6 +297,12 @@ public class LoadDao {
                                 FSFileInfo fileInfo,
                                 String error,
                                 String flightId) {
+        String checksumCRC = null;
+        String checksumMD5 = null;
+        if (fileInfo != null) {
+            checksumCRC = fileInfo.getChecksumCrc32c();
+            checksumMD5 = fileInfo.getChecksumMd5();
+        }
         final String sql = "UPDATE load_file" +
             " SET state = :state, file_id = :file_id, flight_id = :flight_id," +
             " checksum_crc32c = :checksum_crc, checksum_md5 = :checksum_md5," +
@@ -306,8 +312,8 @@ public class LoadDao {
             .addValue("state", state.toString())
             .addValue("flight_id", flightId)
             .addValue("file_id", fileId)
-            .addValue("checksum_crc", fileInfo.getChecksumCrc32c())
-            .addValue("checksum_md5", fileInfo.getChecksumMd5())
+            .addValue("checksum_crc", checksumCRC)
+            .addValue("checksum_md5", checksumMD5)
             .addValue("error", error)
             .addValue("load_id", loadId)
             .addValue("target_path", targetPath);

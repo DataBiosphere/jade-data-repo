@@ -200,9 +200,8 @@ public class SnapshotService {
                 String datasetName = datasetNames.get(0);
                 Dataset queryDataset = datasetDao.retrieveByName(datasetName);
                 AssetSpecification queryAssetSpecification = queryDataset.getAssetSpecificationByName(assetName)
-                    .orElseThrow(() ->
-                        new AssetNotFoundException("This dataset does not have an asset specification with name: " + assetName)
-                    );
+                    .orElseThrow(() -> new AssetNotFoundException(
+                        "This dataset does not have an asset specification with name: " + assetName));
                 snapshotSource.assetSpecification(queryAssetSpecification);
                 // TODO this is wrong? why dont we just pass the assetSpecification?
                 conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);

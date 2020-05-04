@@ -963,7 +963,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
 
     private static final String joinTablesToTestForMissingRowIds =
-        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
+        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> " +
+            "LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
             "WHERE <datasetTable>.<commonColumn> IS NULL";
 
     private static final String loadRootRowIdsFromTempTableTemplate =

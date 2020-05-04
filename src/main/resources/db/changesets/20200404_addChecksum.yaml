@@ -9,8 +9,12 @@ databaseChangeLog:
               - column:
                   name: checksum_crc32c
                   type: text
+                  constraints:
+                    nullable: true
                   remarks:  if the state is SUCCEEDED, this column will contain the loaded file's crc 32checksum
               - column:
                   name: checksum_md5
                   type: text
+                  constraints:
+                    nullable: true
                   remarks:  if the state is SUCCEEDED, this column will contain the loaded file's md5 checksum

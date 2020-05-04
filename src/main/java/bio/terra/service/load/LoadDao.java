@@ -298,7 +298,9 @@ public class LoadDao {
                                 String error,
                                 String flightId) {
         final String sql = "UPDATE load_file" +
-            " SET state = :state, file_id = :file_id, checksum_crc32c = :checksum_crc, checksum_md5 = :checksum_md5, error = :error, flight_id = :flight_id" +
+            " SET state = :state, file_id = :file_id, flight_id = :flight_id," +
+            " checksum_crc32c = :checksum_crc, checksum_md5 = :checksum_md5," +
+            " error = :error" +
             " WHERE load_id = :load_id AND target_path = :target_path";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("state", state.toString())

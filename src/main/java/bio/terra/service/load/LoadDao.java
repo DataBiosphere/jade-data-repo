@@ -8,6 +8,7 @@ import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
@@ -193,8 +194,8 @@ public class LoadDao {
         updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null,null, flightId);
     }
 
-    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, String checksum) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, checksum,null, null);
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, FSFileInfo fileInfo) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, fileInfo,null, null);
     }
 
     public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
@@ -293,17 +294,18 @@ public class LoadDao {
                                 String targetPath,
                                 BulkLoadFileState state,
                                 String fileId,
-                                String checksum,
+                                FSFileInfo fileInfo,
                                 String error,
                                 String flightId) {
         final String sql = "UPDATE load_file" +
-            " SET state = :state, file_id = :file_id, checksum = :checksum, error = :error, flight_id = :flight_id" +
+            " SET state = :state, file_id = :file_id, checksum_crc32c = :checksum_crc, checksum_md5 = :checksum_md5, error = :error, flight_id = :flight_id" +
             " WHERE load_id = :load_id AND target_path = :target_path";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("state", state.toString())
             .addValue("flight_id", flightId)
             .addValue("file_id", fileId)
-            .addValue("checksum", checksum)
+            .addValue("checksum_crc", fileInfo.getChecksumCrc32c())
+            .addValue("checksum_md5", fileInfo.getChecksumMd5())
             .addValue("error", error)
             .addValue("load_id", loadId)
             .addValue("target_path", targetPath);

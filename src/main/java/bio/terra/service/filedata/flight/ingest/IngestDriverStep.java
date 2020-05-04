@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -209,9 +210,9 @@ public class IngestDriverStep implements Step {
                         throw new FileSystemCorruptException("no result map in flight state");
                     }
                     String fileId = resultMap.get(FileMapKeys.FILE_ID, String.class);
-                    String checksum = resultMap.get(FileMapKeys.CHECKSUM, String.class);
+                    FSFileInfo fileInfo = resultMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
                     // here - the checksum should be put into this map
-                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId, checksum);
+                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId, fileInfo);
                     break;
                 }
             }

@@ -186,19 +186,19 @@ public class LoadDao {
     }
 
     public void setLoadFileNotTried(UUID loadId, String targetPath) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.NOT_TRIED, null, null, null);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.NOT_TRIED, null, null,null, null);
     }
 
     public void setLoadFileRunning(UUID loadId, String targetPath, String flightId) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null, flightId);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.RUNNING, null, null,null, flightId);
     }
 
-    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, null, null);
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, String checksum) {
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.SUCCEEDED, fileId, checksum,null, null);
     }
 
     public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
-        updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null, error, null);
+        updateLoadFile(loadId, targetPath, BulkLoadFileState.FAILED, null,null, error, null);
     }
 
     public BulkLoadResultModel makeBulkLoadResult(UUID loadId) {
@@ -293,15 +293,17 @@ public class LoadDao {
                                 String targetPath,
                                 BulkLoadFileState state,
                                 String fileId,
+                                String checksum,
                                 String error,
                                 String flightId) {
         final String sql = "UPDATE load_file" +
-            " SET state = :state, file_id = :file_id, error = :error, flight_id = :flight_id" +
+            " SET state = :state, file_id = :file_id, checksum = :checksum, error = :error, flight_id = :flight_id" +
             " WHERE load_id = :load_id AND target_path = :target_path";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("state", state.toString())
             .addValue("flight_id", flightId)
             .addValue("file_id", fileId)
+            .addValue("checksum", checksum)
             .addValue("error", error)
             .addValue("load_id", loadId)
             .addValue("target_path", targetPath);

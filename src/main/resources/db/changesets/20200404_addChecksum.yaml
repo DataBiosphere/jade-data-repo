@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: addchecksum
+      author: sholden
+      changes:
+        - addColumn:
+            tableName: load_file
+            columns:
+              - column:
+                  name: checksum
+                  type: text
+                  remarks:  if the state is SUCCEEDED, this column will contain the loaded file's checksum

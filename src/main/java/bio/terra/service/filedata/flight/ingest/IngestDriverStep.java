@@ -211,7 +211,6 @@ public class IngestDriverStep implements Step {
                     }
                     String fileId = resultMap.get(FileMapKeys.FILE_ID, String.class);
                     FSFileInfo fileInfo = resultMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
-                    // here - the checksum should be put into this map
                     loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId, fileInfo);
                     break;
                 }

@@ -7,6 +7,10 @@ databaseChangeLog:
             tableName: load_file
             columns:
               - column:
-                  name: checksum
+                  name: checksum_crc32c
                   type: text
-                  remarks:  if the state is SUCCEEDED, this column will contain the loaded file's checksum
+                  remarks:  if the state is SUCCEEDED, this column will contain the loaded file's crc 32checksum
+              - column:
+                  name: checksum_md5
+                  type: text
+                  remarks:  if the state is SUCCEEDED, this column will contain the loaded file's md5 checksum

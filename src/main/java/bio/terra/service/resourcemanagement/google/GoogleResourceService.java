@@ -1,7 +1,9 @@
 package bio.terra.service.resourcemanagement.google;
 
+import bio.terra.model.DatasetModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.exception.BucketLockException;
@@ -49,6 +51,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -59,6 +62,8 @@ import java.util.stream.Collectors;
 public class GoogleResourceService {
     private static final Logger logger = LoggerFactory.getLogger(GoogleResourceService.class);
     private static final String ENABLED_FILTER = "state:ENABLED";
+    private static final String BQ_JOB_USER_ROLE = "roles/bigquery.jobUser";
+
 
     private final GoogleResourceDao resourceDao;
     private final ProfileService profileService;
@@ -309,12 +314,20 @@ public class GoogleResourceService {
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(existingProject.getProjectNumber().toString());
             enableServices(googleProjectResource);
-            enableIamPermissions(googleProjectResource);
+            enableIamPermissions(googleProjectResource.getRoleIdentityMapping(), googleProjectId);
             UUID id = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(id);
         }
 
         return newProject(projectRequest, googleProjectId);
+    }
+
+    public void grantPoliciesBqJobUser(DatasetModel datasetModel, List<String> policyEmails) {
+        Map<String, List<String>> policyMap = new HashMap<>();
+        List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
+        policyMap.put(BQ_JOB_USER_ROLE, emails);
+
+        enableIamPermissions(policyMap, datasetModel.getDataProject());
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {
@@ -372,7 +385,7 @@ public class GoogleResourceService {
                 .googleProjectNumber(googleProjectNumber);
             setupBilling(googleProjectResource);
             enableServices(googleProjectResource);
-            enableIamPermissions(googleProjectResource);
+            enableIamPermissions(googleProjectResource.getRoleIdentityMapping(), googleProjectId);
             UUID repositoryId = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(repositoryId);
         } catch (IOException | GeneralSecurityException | InterruptedException e) {
@@ -438,14 +451,13 @@ public class GoogleResourceService {
         }
     }
 
-    public void enableIamPermissions(GoogleProjectResource projectResource) {
-        Map<String, List<String>> userPermissions = projectResource.getRoleIdentityMapping();
+    public void enableIamPermissions(Map<String, List<String>> userPermissions, String projectId) {
         GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
         try {
             CloudResourceManager resourceManager = cloudResourceManager();
             Policy policy = resourceManager.projects()
-                .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
+                .getIamPolicy(projectId, getIamPolicyRequest).execute();
             List<Binding> bindingsList = policy.getBindings();
 
             for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
@@ -458,7 +470,7 @@ public class GoogleResourceService {
             policy.setBindings(bindingsList);
             SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
             resourceManager.projects()
-                .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
+                .setIamPolicy(projectId, setIamPolicyRequest).execute();
         } catch (IOException | GeneralSecurityException ex) {
             throw new EnablePermissionsFailedException("Cannot enable iam permissions", ex);
         }

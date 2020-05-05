@@ -141,7 +141,7 @@ public class GoogleResourceService {
      * CASE 4: bucket exists, no record exists, we are allowed to reuse buckets
      *   This is a common case in development where we re-use the same cloud resources over and over during
      *   testing rather than continually create and destroy them. In this case, we proceed with the
-     *   try-to-create-bucket algorithm.
+     *   try-to-create-bucket-metadata algorithm.
      *
      * CASE 5: bucket exists, no record exists, we are not reusing buckets
      *   This is the production mode and should not happen. It means we our metadata does not reflect the

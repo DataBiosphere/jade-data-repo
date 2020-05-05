@@ -9,6 +9,7 @@ import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -71,6 +72,8 @@ public class IngestDriverStep implements Step {
         String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
         UUID loadId = UUID.fromString(loadIdString);
 
+        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+
         try {
             // Check for launch orphans - these are loads in the RUNNING state that never
             // got recorded by stairway.
@@ -102,7 +105,14 @@ public class IngestDriverStep implements Step {
                         launchCount = candidateCount;
                     }
 
-                    launchLoads(context, launchCount, candidates.getCandidateFiles(), profileId, loadId);
+                    launchLoads(
+                        context,
+                        launchCount,
+                        candidates.getCandidateFiles(),
+                        profileId,
+                        loadId,
+                        bucketResource);
+
                     currentRunning += launchCount;
                 }
 
@@ -230,7 +240,8 @@ public class IngestDriverStep implements Step {
                              int launchCount,
                              List<LoadFile> loadFiles,
                              String profileId,
-                             UUID loadId) throws DatabaseOperationException, InterruptedException {
+                             UUID loadId,
+                             GoogleBucketResource bucketInfo) throws DatabaseOperationException, InterruptedException {
         Stairway stairway = context.getStairway();
 
         for (int i = 0; i < launchCount; i++) {
@@ -248,6 +259,7 @@ public class IngestDriverStep implements Step {
             FlightMap inputParameters = new FlightMap();
             inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
             inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
+            inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
 
             loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);
             // NOTE: this is the window where we have recorded a flight as RUNNING in the load_file

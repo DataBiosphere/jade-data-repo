@@ -5,24 +5,24 @@
 ### Infrastructure Overview
 The Google Infrastructure is managed via Terraform and nearly all the kubenetes deployments and such are done via a Helm Chart. See [General Deployment Process Overview Doc](https://github.com/broadinstitute/dsp-devops-wiki/wiki/deployment_process) for more in depth guide. Datarepo is deployed on Kubernetes, Google Cloud Sql (postgres 11) and contains the following containers:
 
-- api
-- ui
-- open id connect proxy
-- google cloud sql proxy
+- api (datarepo api container)
+- ui (datarepo ui container)
+- open id connect proxy (externally exposed endpoint proxy)
+- google cloud sql proxy (sql proxy to database)
 
 Container monitoring is done by [promethues operator](https://github.com/helm/charts/tree/master/stable/prometheus-operator) this includes:
 
-- alertmanager
-- grafana
-- state-metric
-- node-exporter
-- promethues
+- alertmanager (alertmanager can group send alerts)
+- grafana (graphical ui charts/graphs)
+- state-metric (collects state metrics)
+- node-exporter (collects k8 node metrics)
+- promethues (backend for metrics)
 
 Continuous deployment is managed by [Argocd](https://github.com/argoproj/argo-helm/tree/master/charts/argo-cd) this includes:
-- dex
-- argo-repo-server
-- argo-server
-- redis
+- dex (sso authentication container)
+- argo-repo-server (repo server)
+- argo-server (ui server)
+- redis (in-memory data structure store)
 - argo-application-controller
 
 ### Helm Overview
@@ -41,6 +41,11 @@ This is specifically referring to a helm `Values.yaml` file. This file contains 
 
 ## Github Actions
 GitHub Actions automates all your workflows and jobs that happen in the back ground. Here we will cover datarepo specific actions. These are mostly for internal use such as releasing charts and bumping deployments. This doc is going to assume you understand the basics [here](https://help.github.com/en/actions).
+
+## Action Syntax
+Some actions can be defined within a yaml passing bash to it or it can be abstracted to a [container](https://help.github.com/en/actions/building-actions/creating-a-docker-container-action) that is build with pre written code to be acted on.
+
+- [Jade backend container action repo](https://github.com/broadinstitute/datarepo-actions)
 
 #### Datarepo Actions
 - [Jade-Datarepo integration testing](https://github.com/DataBiosphere/jade-data-repo/blob/develop/.github/workflows/gradle-build-pr.yml)

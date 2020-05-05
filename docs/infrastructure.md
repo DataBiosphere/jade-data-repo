@@ -59,7 +59,7 @@ Some actions can be defined within a yaml passing bash to it or it can be abstra
     - This action will start a job one, the UI end to end tests. This will take the code from a PR and build a container then test it.
 - [Jade-Datarepo-ui dev container build and helm definition bump](https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/.github/workflows/dev-image-update.yaml)
   - On Merge to develop
-  -  This action take the passed code from Jade-Datarepo-ui integration testing and builds a bless container specifically for develop. Once the container is build it
+  - This action take the passed code from Jade-Datarepo-ui integration testing and builds a blessed container specifically for develop meaning the build has passed integration tests and now has a tag containging the "commit hash+-develop". Once the container is build it
 
 #### Terraform Actions
 - [Terraform PR testing](https://github.com/broadinstitute/terraform-jade/blob/master/.github/workflows/terraformPr.yml)

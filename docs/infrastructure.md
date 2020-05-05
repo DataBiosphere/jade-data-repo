@@ -3,9 +3,9 @@
 ### [General Deployment Process Overview Doc](https://github.com/broadinstitute/dsp-devops-wiki/wiki/deployment_process)
 
 ### Infrastructure Overview
-The Google Infrastructure is managed via Terraform and nearly all the kubenetes deployments and such are done via a Helm Chart. See [General Deployment Process Overview Doc](https://github.com/broadinstitute/dsp-devops-wiki/wiki/deployment_process) for more in depth guide. Datarepo is deployed on Kubernetes, Google Cloud Sql (postgres 11) and contains the following containers:
+The Google Infrastructure is managed via Terraform and nearly all the kubenetes deployments and such are done via a Helm Chart. See [General Deployment Process Overview Doc](https://github.com/broadinstitute/dsp-devops-wiki/wiki/deployment_process) for more in depth guide. Datarepo is deployed on Kubernetes, Google Cloud Sql (postgres) and contains the following containers:
 
-- api (datarepo api container)
+- api (datarepo api/DRmanager container)
 - ui (datarepo ui container)
 - open id connect proxy (externally exposed endpoint proxy)
 - google cloud sql proxy (sql proxy to database)
@@ -40,7 +40,7 @@ Continuous deployment is managed by [Argocd](https://github.com/argoproj/argo-he
 This is specifically referring to a helm `Values.yaml` file. This file contains all the user specific values to be overritten in the chart being used. Datarepo uses an umbrella chart and each users values can be found [here](https://github.com/broadinstitute/datarepo-helm-definitions)
 
 ## Github Actions
-GitHub Actions automates all your workflows and jobs that happen in the back ground. Here we will cover datarepo specific actions. These are mostly for internal use such as releasing charts and bumping deployments. This doc is going to assume you understand the basics [here](https://help.github.com/en/actions).
+GitHub Actions automates all your workflows and jobs that happen in the background. Here we will cover datarepo specific actions. These are mostly for internal use such as releasing charts and bumping deployments. This doc is going to assume you understand the basics [here](https://help.github.com/en/actions).
 
 ## Action Syntax
 Some actions can be defined within a yaml passing bash to it or it can be abstracted to a [container](https://help.github.com/en/actions/building-actions/creating-a-docker-container-action) that is build with pre written code to be acted on.
@@ -53,13 +53,13 @@ Some actions can be defined within a yaml passing bash to it or it can be abstra
   - This action has two blocks that will spawn two jobs one is the connected test and the other is the integration test. This will take the code from a PR and build a container then test it.
 - [Jade-Datarepo dev container build and helm definition bump](https://github.com/DataBiosphere/jade-data-repo/blob/develop/.github/workflows/dev-image-update.yaml)
   - On Merge to develop
-  -  This action take the passed code from [Jade-Datarepo integration testing](https://github.com/DataBiosphere/jade-data-repo/blob/develop/.github/workflows/gradle-build-pr.yml) and builds a bless container specifically for develop. Once the container is build it will checkout the [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions) and increment the api version [tag shown here](https://github.com/broadinstitute/datarepo-helm-definitions/commit/80c0abd317981970cf979498895ab43171d8f544)
+  -  This action takes the passed code from [Jade-Datarepo integration testing](https://github.com/DataBiosphere/jade-data-repo/blob/develop/.github/workflows/gradle-build-pr.yml) and builds a develop approved container specifically for the develop branch meaning the built container has passed integration tests and now has a tag containing the "commit hash+-develop". Once the container is build it will checkout the [datarepo-helm-definitions](https://github.com/broadinstitute/datarepo-helm-definitions) and increment the api version [tag shown here](https://github.com/broadinstitute/datarepo-helm-definitions/commit/80c0abd317981970cf979498895ab43171d8f544)
 - [Jade-Datarepo-ui integration testing](https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/.github/workflows/test-e2e.yml)
     - On pull request
     - This action will start a job one, the UI end to end tests. This will take the code from a PR and build a container then test it.
 - [Jade-Datarepo-ui dev container build and helm definition bump](https://github.com/DataBiosphere/jade-data-repo-ui/blob/develop/.github/workflows/dev-image-update.yaml)
   - On Merge to develop
-  - This action take the passed code from Jade-Datarepo-ui integration testing and builds a blessed container specifically for develop meaning the build has passed integration tests and now has a tag containging the "commit hash+-develop". Once the container is build it
+  - This action takes the passed code from Jade-Datarepo-ui integration testing and builds a develop approved container specifically for the develop branch meaning the built container has passed integration tests and now has a tag containing the "commit hash+-develop". Once the container is build it will checkout the datarepo-helm-definitions repo
 
 #### Terraform Actions
 - [Terraform PR testing](https://github.com/broadinstitute/terraform-jade/blob/master/.github/workflows/terraformPr.yml)

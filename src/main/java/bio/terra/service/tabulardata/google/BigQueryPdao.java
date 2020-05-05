@@ -841,7 +841,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     // once we have the row ids in addition to the asset spec, this should look familiar to wAsset
     public void queryForRowIds(AssetSpecification assetSpecification,
                                Snapshot snapshot,
-                               String sqlQuery) {
+                               String sqlQuery) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         String snapshotName = snapshot.getName();

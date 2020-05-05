@@ -22,8 +22,9 @@ import bio.terra.service.dataset.AssetColumn;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
@@ -32,6 +33,7 @@ import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -49,17 +51,23 @@ import java.util.stream.Collectors;
 @Component
 public class SnapshotService {
     private final JobService jobService;
-    private final DatasetDao datasetDao;
+    private final DatasetService datasetService;
+    private final FireStoreDependencyDao dependencyDao;
+    private final BigQueryPdao bigQueryPdao;
     private final SnapshotDao snapshotDao;
     private final DataLocationService dataLocationService;
 
     @Autowired
     public SnapshotService(JobService jobService,
-                           DatasetDao datasetDao,
+                           DatasetService datasetService,
+                           FireStoreDependencyDao dependencyDao,
+                           BigQueryPdao bigQueryPdao,
                            SnapshotDao snapshotDao,
                            DataLocationService dataLocationService) {
         this.jobService = jobService;
-        this.datasetDao = datasetDao;
+        this.datasetService = datasetService;
+        this.dependencyDao = dependencyDao;
+        this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
         this.dataLocationService = dataLocationService;
     }
@@ -76,6 +84,20 @@ public class SnapshotService {
         return jobService
             .newJob(description, SnapshotCreateFlight.class, snapshotRequestModel, userReq)
             .submit();
+    }
+
+    public void undoCreateSnapshot(String snapshotName) throws InterruptedException {
+        // Remove any file dependencies created
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotName);
+        for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
+            Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
+            dependencyDao.deleteSnapshotFileDependencies(
+                dataset,
+                snapshot.getId().toString());
+        }
+
+        bigQueryPdao.deleteSnapshot(snapshot);
+
     }
 
     /**
@@ -175,7 +197,7 @@ public class SnapshotService {
         }
 
         SnapshotRequestContentsModel requestContents = requestContentsList.get(0);
-        Dataset dataset = datasetDao.retrieveByName(requestContents.getDatasetName());
+        Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
         SnapshotSource snapshotSource = new SnapshotSource()
             .snapshot(snapshot)
             .dataset(dataset);
@@ -198,7 +220,7 @@ public class SnapshotService {
                 // (based on the validation flight step that already occurred.)
                 // This will change when more than 1 dataset is allowed
                 String datasetName = datasetNames.get(0);
-                Dataset queryDataset = datasetDao.retrieveByName(datasetName);
+                Dataset queryDataset = datasetService.retrieveByName(datasetName);
                 AssetSpecification queryAssetSpecification = queryDataset.getAssetSpecificationByName(assetName)
                     .orElseThrow(() -> new AssetNotFoundException(
                         "This dataset does not have an asset specification with name: " + assetName));
@@ -223,14 +245,14 @@ public class SnapshotService {
     public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
         return snapshotRequestModel.getContents()
             .stream()
-            .map(c -> datasetDao.retrieveByName(c.getDatasetName()).getId())
+            .map(c -> datasetService.retrieveByName(c.getDatasetName()).getId())
             .collect(Collectors.toList());
     }
 
     private AssetSpecification getAssetSpecificationFromRequest(
         SnapshotRequestContentsModel requestContents) {
         SnapshotRequestAssetModel requestAssetModel = requestContents.getAssetSpec();
-        Dataset dataset = datasetDao.retrieveByName(requestContents.getDatasetName());
+        Dataset dataset = datasetService.retrieveByName(requestContents.getDatasetName());
 
         Optional<AssetSpecification> optAsset = dataset.getAssetSpecificationByName(requestAssetModel.getAssetName());
         if (!optAsset.isPresent()) {

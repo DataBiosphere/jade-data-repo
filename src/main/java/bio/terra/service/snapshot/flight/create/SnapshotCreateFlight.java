@@ -51,14 +51,16 @@ public class SnapshotCreateFlight extends Flight {
             case BYASSET:
                 addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
                 addStep(new CreateSnapshotPrimaryDataAssetStep(
-                    bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq));
+                    bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
                 break;
             case BYQUERY:
                 addStep(new CreateSnapshotValidateQueryStep(snapshotReq));
-                addStep(new CreateSnapshotPrimaryDataQueryStep(bigQueryPdao, datasetService, snapshotDao, snapshotReq));
+                addStep(new CreateSnapshotPrimaryDataQueryStep(
+                    bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
                 break;
             case BYROWID:
-                addStep(new CreateSnapshotPrimaryDataRowIdsStep(bigQueryPdao, snapshotDao, snapshotReq));
+                addStep(new CreateSnapshotPrimaryDataRowIdsStep(
+                    bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
                 break;
             default:
                 throw new InvalidSnapshotException("Snapshot does not have required mode information");

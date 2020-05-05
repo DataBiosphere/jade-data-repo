@@ -11,6 +11,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
@@ -26,21 +27,24 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
+    private SnapshotService snapshotService;
     private SnapshotDao snapshotDao;
     private SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotPrimaryDataQueryStep(BigQueryPdao bigQueryPdao,
                                               DatasetService datasetService,
+                                              SnapshotService snapshotService,
                                               SnapshotDao snapshotDao,
                                               SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
+        this.snapshotService = snapshotService;
         this.snapshotDao = snapshotDao;
         this.snapshotReq = snapshotReq;
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
         // (based on the validation flight step that already occurred.)
         /*
@@ -89,10 +93,8 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
-        // Remove any file dependencies created
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        bigQueryPdao.deleteSnapshot(snapshot);
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
+        snapshotService.undoCreateSnapshot(snapshotReq.getName());
         return StepResult.getStepResultSuccess();
     }
 

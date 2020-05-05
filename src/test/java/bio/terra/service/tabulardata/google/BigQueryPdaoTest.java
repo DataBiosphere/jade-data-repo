@@ -50,6 +50,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
+import static bio.terra.service.tabulardata.google.BigQueryPdao.GetLoadTableName;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
@@ -131,6 +132,12 @@ public class BigQueryPdaoTest {
         assertThat(
             String.format("Dataset: %s, exists", dataset.getName()),
             datasetExists,
+            equalTo(shouldExist));
+
+        boolean loadTableExists = bigQueryPdao.tableExists(dataset, GetLoadTableName(dataset.getName()));
+        assertThat(
+            String.format("Load Table: %s, exists", GetLoadTableName(dataset.getName())),
+            loadTableExists,
             equalTo(shouldExist));
 
         Arrays.asList("participant", "sample", "file").forEach(name -> {

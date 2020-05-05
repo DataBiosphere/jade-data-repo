@@ -114,9 +114,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
-            /*TODO dataset.getLoadDataseteName()*/
             bigQueryProject.createTable(
-                datasetName, dataset.getName() + "_load", buildLoadDatasetSchema());
+                datasetName, GetLoadTableName(dataset.getName()), buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {
                 bigQueryProject.createTable(
                     datasetName, table.getRawTableName(), buildSchema(table, true), table.getBigQueryPartitionConfig());
@@ -127,6 +126,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } catch (Exception ex) {
             throw new PdaoException("create dataset failed for " + datasetName, ex);
         }
+    }
+
+    public static final String GetLoadTableName(String datasetName){
+        return datasetName + "_load";
     }
 
     private static final String liveViewTemplate =

@@ -1,6 +1,7 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.model.FileLoadModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDao;
@@ -44,9 +45,11 @@ public class FileIngestFlight extends Flight {
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
 
-        UUID datasetId = UUID.fromString(inputParameters.get(
-            JobMapKeys.DATASET_ID.getKeyName(), String.class));
+        UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);
+
+        FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
+        String profileId = fileLoadModel.getProfileId();
 
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
         RetryRuleRandomBackoff createBucketRetry =
@@ -77,7 +80,7 @@ public class FileIngestFlight extends Flight {
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
-        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService), createBucketRetry);
+        addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
         addStep(new LoadUnlockStep(loadService));

@@ -86,8 +86,11 @@ public class LoadUnitTest {
         loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
     }
 
-    @Test(expected = LoadLockedException.class)
+    @Test
     public void cannotUnlockTest() throws Exception {
+        // Unlock with the wrong flight succeeds. That is because there is a valid case:
+        // flight2 had the lock and did an unlock, but failed before the step completed.
+        // Flight1 gets the lock. Flight2 recovers and re-runs the unlock.
         loadService.lockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_1.getId());
         loadService.unlockLoad(LoadTagsUsedByTest.LOADTAG_1.getTag(), FlightIdsUsedByTest.FLIGHT_2.getId());
     }

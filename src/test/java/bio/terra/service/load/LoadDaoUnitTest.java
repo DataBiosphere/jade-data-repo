@@ -2,7 +2,6 @@ package bio.terra.service.load;
 
 import bio.terra.common.category.Unit;
 import bio.terra.model.BulkLoadFileModel;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.load.exception.LoadLockedException;
 import org.junit.After;
@@ -20,7 +19,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -41,7 +39,8 @@ public class LoadDaoUnitTest {
     private ConfigurationService configService;
 
     private enum LoadTagsUsedByTest {
-        LOADTAG_MY("myLoadTag"), LOADTAG_SERIAL("serialLoadTag"), LOADTAG_CONCURRENT("concurrentLoadTag");
+        LOADTAG_MY("myLoadTag"), LOADTAG_SERIAL("serialLoadTag"), LOADTAG_CONCURRENT("concurrentLoadTag"),
+        LOADTAG_CONFLICT("conflictLoadTag");
         private String tag;
         public String getTag() {
             return tag;
@@ -167,6 +166,9 @@ public class LoadDaoUnitTest {
         boolean xlocks = tryLockLoad(loadTag, flightX);
         assertTrue("x gets lock", xlocks);
 
+        xlocks = tryLockLoad(loadTag, flightX);
+        assertTrue("x gets lock again", xlocks);
+
         boolean ylocks = tryLockLoad(loadTag, flightY);
         assertFalse("y does not get lock", ylocks);
 
@@ -174,6 +176,11 @@ public class LoadDaoUnitTest {
 
         ylocks = tryLockLoad(loadTag, flightY);
         assertTrue("y gets lock", ylocks);
+
+        // No errors unlocking X again
+        loadDao.unlockLoad(loadTag, flightX);
+
+        loadDao.unlockLoad(loadTag, flightY);
     }
 
     private boolean tryLockLoad(String loadTag, String flightId) {
@@ -186,39 +193,33 @@ public class LoadDaoUnitTest {
     }
 
     @Test
-    public void concurrentLockTest() throws Exception {
-        // The test calls the loadLock method from two threads. Thread A will read the record first (we give it a
-        // 2 second head start) and then will hit the LOAD_LOCK_CONFLICT_STOP_FAULT and pause, waiting for
-        // the LOAD_LOCK_CONFLICT_CONTINUE_FAULT to be enabled.
-        // Thread B won't stop at the STOP fault - the fault is a one shot count - so it will just run
-        // through. Since thread A did the select first, when thread B tries the update, it gets a serialization
-        // failure. When thread B completes, the test code enables the CONTINUE fault allowing thread A
-        // to continue and make its update to the load tag.
-        final String loadTag = LoadTagsUsedByTest.LOADTAG_CONCURRENT.getTag();
+    public void conflictLockTest() throws Exception {
+        final String loadTag = LoadTagsUsedByTest.LOADTAG_CONFLICT.getTag();
 
-        // Initialize the load tag by locking and unlocking it, so neither thread will perform the creation
-        // and miss the faults.
         loadDao.lockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
         loadDao.unlockLoad(loadTag, FlightIdsUsedByTest.FLIGHT_INIT.getId());
 
-        configService.setFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT.name(), true);
+        LoadLockUnlockLooper looperA = new LoadLockUnlockLooper(
+            loadDao,
+            loadTag,
+            FlightIdsUsedByTest.FLIGHT_A.getId(),
+            100);
+        LoadLockUnlockLooper looperB = new LoadLockUnlockLooper(
+            loadDao,
+            loadTag,
+            FlightIdsUsedByTest.FLIGHT_B.getId(),
+            100);
 
-        LoadLockTester loadLockA = new LoadLockTester(loadDao, loadTag, FlightIdsUsedByTest.FLIGHT_A.getId());
-        LoadLockTester loadLockB = new LoadLockTester(loadDao, loadTag, FlightIdsUsedByTest.FLIGHT_B.getId());
-
-        Thread threadA = new Thread(loadLockA);
+        Thread threadA = new Thread(looperA);
+        Thread threadB = new Thread(looperB);
 
         threadA.start();
-        TimeUnit.SECONDS.sleep(2); // Let threadA get to the fault/lookup first
-        Thread threadB = new Thread(loadLockB);
         threadB.start();
-        threadB.join();
-        assertThat("Thread B succeeded", loadLockB.getResult(), equalTo(1));
-
-        configService.setFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
-
         threadA.join();
-        assertThat("Thread A failed", loadLockA.getResult(), equalTo(2));
+        threadB.join();
+
+        logger.info("A conflicts: " + looperA.getConflicts());
+        logger.info("B conflicts: " + looperB.getConflicts());
     }
 
     private void testLoadCandidates(LoadCandidates candidates, int failures, int running, int notTried) {

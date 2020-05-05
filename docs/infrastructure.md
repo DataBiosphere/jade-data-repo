@@ -16,7 +16,7 @@ Container monitoring is done by [promethues operator](https://github.com/helm/ch
 - grafana (graphical ui charts/graphs)
 - state-metric (collects state metrics)
 - node-exporter (collects k8 node metrics)
-- promethues (backend for metrics)
+- prometheus (backend for metrics)
 
 Continuous deployment is managed by [Argocd](https://github.com/argoproj/argo-helm/tree/master/charts/argo-cd) this includes:
 - dex (sso authentication container)

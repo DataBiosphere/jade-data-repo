@@ -135,6 +135,7 @@ public class FileLoadTest {
 
         assertThat(summary.getSucceededFiles(), equalTo(filesToLoad));
     }
+
     private BulkLoadRequestModel makeBulkFileLoad(String tagBase, int fileCount) {
         String testId = Names.randomizeName("test");
         String loadTag = tagBase + testId;

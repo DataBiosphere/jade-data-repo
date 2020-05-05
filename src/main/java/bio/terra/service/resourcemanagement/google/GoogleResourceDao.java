@@ -5,6 +5,7 @@ import bio.terra.common.DaoUtils;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceException;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -146,22 +147,20 @@ public class GoogleResourceDao {
      * Fetch an existing bucket_resource metadata row using the name amd project id.
      * This method expects that there is exactly one row matching the provided name and project id.
      * @param bucketRequest
-     * @return a reference to the bucket as a POJO GoogleBucketResource
+     * @return a reference to the bucket as a POJO GoogleBucketResource or null if not found
      * @throws GoogleResourceException if there is not exactly one matching row
      */
     public GoogleBucketResource getBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();
         List<GoogleBucketResource> bucketResourcesByName =
             retrieveBucketsBy("name", bucketName, String.class);
-
-        if (bucketResourcesByName.size() == 0) {
-            throw new GoogleResourceNotFoundException(
-                String.format("Bucket not found for name: %s", bucketName));
-        } else if (bucketResourcesByName.size() > 1) {
+        if (bucketResourcesByName == null || bucketResourcesByName.size() == 0) {
+            return null;
+        }
+        if (bucketResourcesByName.size() > 1) {
             // this should never happen because name is unique in the PostGres table
             // this also never happen because Google bucket names are unique
-            throw new GoogleResourceException(
-                String.format("Multiple buckets found with same name: %s", bucketName));
+            throw new CorruptMetadataException("Multiple buckets found with same name: " + bucketName);
         }
 
         GoogleBucketResource bucketResource = bucketResourcesByName.get(0);
@@ -217,7 +216,7 @@ public class GoogleResourceDao {
         List<GoogleBucketResource> bucketResources = jdbcTemplate.query(sql, params, new DataBucketMapper());
 
         if (bucketResources.size() == 0) {
-            throw new GoogleResourceNotFoundException(String.format("Bucket not found for %s: %s", column, value));
+            return null;
         }
         return bucketResources;
     }
@@ -231,15 +230,14 @@ public class GoogleResourceDao {
      */
     public GoogleBucketResource retrieveBucketById(UUID bucketResourceId) {
         List<GoogleBucketResource> bucketResources = retrieveBucketsBy("id", bucketResourceId, UUID.class);
+        if (bucketResources == null) {
+            throw new GoogleResourceNotFoundException("Bucket not found for id:" + bucketResourceId);
+        }
         if (bucketResources.size() > 1) {
-            throw new IllegalStateException(
-                String.format("Found more than one result for bucket resource id: %s", bucketResourceId));
+            throw new CorruptMetadataException(
+                "Found more than one result for bucket resource id: " + bucketResourceId);
         }
         return bucketResources.get(0);
-    }
-
-    public List<GoogleBucketResource> retrieveBucketsByProjectResource(GoogleProjectResource projectResource) {
-        return retrieveBucketsBy("project_resource_id", projectResource.getRepositoryId(), UUID.class);
     }
 
     private static class DataBucketMapper implements RowMapper<GoogleBucketResource> {

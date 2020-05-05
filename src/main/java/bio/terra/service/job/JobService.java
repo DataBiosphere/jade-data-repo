@@ -77,10 +77,11 @@ public class JobService {
     /**
      * Stop accepting jobs and shutdown stairway
      */
-    public void shutdown() throws InterruptedException {
+    public boolean shutdown() throws InterruptedException {
+        logger.info("JobService received shutdown request");
         if (isShutdown.get()) {
-            logger.warn("Ignoreing duplicate shutdown request");
-            return;
+            logger.warn("Ignoring duplicate shutdown request");
+            return true; // allow this to be success
         }
         isShutdown.set(true);
 
@@ -94,11 +95,15 @@ public class JobService {
 
         int gracefulTimeout = (shutdownTimeout * 3) / 4;
         int terminateTimeout = (shutdownTimeout - gracefulTimeout) - 2;
+
+        logger.info("JobService request Stairway shutdown");
         boolean finishedShutdown = stairway.quietDown(gracefulTimeout, TimeUnit.SECONDS);
         if (!finishedShutdown) {
+            logger.info("JobService request Stairway terminate");
             finishedShutdown = stairway.terminate(terminateTimeout, TimeUnit.SECONDS);
-            logger.info("Finished shutdown: " + finishedShutdown);
         }
+        logger.info("JobService finished shutdown?: " + finishedShutdown);
+        return finishedShutdown;
     }
 
     public static class JobResultWithStatus<T> {

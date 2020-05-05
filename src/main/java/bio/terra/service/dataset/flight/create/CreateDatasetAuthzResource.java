@@ -50,8 +50,7 @@ public class CreateDatasetAuthzResource implements Step {
         Dataset dataset = datasetService.retrieve(datasetId);
         List<String> policyEmails = sam.createDatasetResource(userReq, datasetId);
         bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails);
-        DatasetModel datasetModel = datasetService.retrieveModel(datasetId);
-        System.out.println(datasetModel);
+        DatasetModel datasetModel = datasetService.retrieveModel(dataset);
         resourceService.grantPoliciesBqJobUser(datasetModel, policyEmails);
         // TODO: on file ingest these policies also need to be added as readers
         return StepResult.getStepResultSuccess();

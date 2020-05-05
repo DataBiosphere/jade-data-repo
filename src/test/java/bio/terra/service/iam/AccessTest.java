@@ -94,14 +94,6 @@ public class AccessTest extends UsersBase {
         return GcsFixtures.getStorage(googleCredentials);
     }
 
-    // create dataset
-    // maybe ingest some data
-    // grant a custodian access
-    // check permission????
-    // profit
-
-    // need to go into google cloud console and make sure that we haven't blanket granted all the test users bq jobusers
-
     @Test
     public void checkShared() throws  Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
@@ -275,7 +267,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
-        String datasetBqSnapshotName = "datarepo_" + dataset.getName();
+        String datasetBqSnapshotName = PdaoConstant.PDAO_PREFIX + dataset.getName();
 
         BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
         try {
@@ -300,18 +292,14 @@ public class AccessTest extends UsersBase {
         boolean custodianHasAccess =
             BigQueryFixtures.hasAccess(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
 
+        assertTrue("custodian can access the bq snapshot after it has been shared",
+            custodianHasAccess);
+
         // gets the "sample" table and makes a table ref to use in the query
         String tableRef = BigQueryFixtures.makeTableRef(dataset, dataset.getSchema().getTables().get(1).getName());
         String sql = String.format("SELECT * FROM %s LIMIT %s", tableRef, 1000);
         TableResult results = BigQueryFixtures.query(sql, custodianBigQuery);
         Assert.assertEquals(7, results.getTotalRows());
-
-        assertThat("custodian can access the bq snapshot after it has been shared",
-            custodianHasAccess,
-            equalTo(true));
-
-        SnapshotSummaryModel snapshotSummaryModel =
-            dataRepoFixtures.createSnapshot(custodian(), datasetSummaryModel, "ingest-test-snapshot.json");
     }
 
     private boolean canReadBlob(Storage storage, BlobId blobId) {

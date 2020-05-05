@@ -114,8 +114,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
+            /*TODO dataset.getLoadDataseteName()*/
             bigQueryProject.createTable(
-                datasetName, dataset.getName()+"_load"/*TODO dataset.getLoadDataseteName()*/, buildLoadDatasetSchema());
+                datasetName, dataset.getName() + "_load", buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {
                 bigQueryProject.createTable(
                     datasetName, table.getRawTableName(), buildSchema(table, true), table.getBigQueryPartitionConfig());

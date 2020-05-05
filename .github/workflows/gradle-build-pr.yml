@@ -76,7 +76,7 @@ jobs:
         with:
           actions_subcommand: 'helmdeploy'
           helm_secret_chart_version: '0.0.4'
-          helm_datarepo_chart_version: '0.1.1'
+          helm_datarepo_chart_version: '0.1.2'
       - name: "Run Integration test via Gradle"
         uses: broadinstitute/datarepo-actions@0.3.0
         with:

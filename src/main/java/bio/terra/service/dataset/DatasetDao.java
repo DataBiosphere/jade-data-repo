@@ -133,12 +133,18 @@ public class DatasetDao {
         }
 
         // update the dataset entry and lock it by adding the flight id to the shared lock array column
-        String sql = "UPDATE dataset SET sharedlock = (CASE " +
-            "WHEN sharedlock IS NULL " +
-            "THEN ARRAY[ :flightid ] " +
-            "ELSE " +
+        String sql = "UPDATE dataset SET sharedlock = " +
+            // the SQL below appends flightid to an existing array
+            // it does this by:
+            //   1. append the flightid to the existing list: ARRAY_APPEND(sharedlock, :flightid::text)
+            //   2. convert the array to a list of rows: UNNEST
+            //   3. select only the distinct rows, to make sure we don't have duplicates: DISTINCT arrayelt
+            //   4. convert the rows back to an array: ARRAY_AGG
+            // the ARRAY_AGG function will return null if passed zero rows, but that will never be the case here
+            // because we are appending a new element, so there will always be at least one row
             "(SELECT ARRAY_AGG(DISTINCT arrayelt) " +
-                "FROM UNNEST(ARRAY_APPEND(sharedlock, :flightid::text)) arrayelt) END) " +
+                "FROM UNNEST(ARRAY_APPEND(sharedlock, :flightid::text)) arrayelt) " +
+
             "WHERE id = :datasetid AND flightid IS NULL";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
@@ -222,6 +228,30 @@ public class DatasetDao {
         return datasetId;
     }
 
+    protected String getExclusiveLock(UUID id) {
+        try {
+            String sql = "SELECT flightid FROM dataset WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            return jdbcTemplate.queryForObject(sql, params, String.class);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new DatasetNotFoundException("Dataset not found for id " + id);
+        }
+    }
+
+    protected String[] getSharedLocks(UUID id) {
+        try {
+            String sql = "SELECT sharedlock FROM dataset WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            Array arr = jdbcTemplate.queryForObject(sql, params, Array.class);
+            if (arr == null) {
+                throw new CorruptMetadataException("Dataset shared locks array column should not be null. id " + id);
+            }
+            return (String[])arr.getArray();
+        } catch (EmptyResultDataAccessException | SQLException ex) {
+            throw new DatasetNotFoundException("Dataset not found for id " + id);
+        }
+    }
+
     @Transactional
     public boolean delete(UUID id) {
         int rowsAffected = jdbcTemplate.update("DELETE FROM dataset WHERE id = :id",
@@ -270,8 +300,7 @@ public class DatasetDao {
     public DatasetSummary retrieveSummaryById(UUID id) {
         try {
             String sql = "SELECT " +
-                "id, name, description, default_profile_id, additional_profile_ids, created_date, " +
-                "flightid, sharedlock " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date " +
                 "FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -283,8 +312,7 @@ public class DatasetDao {
     public DatasetSummary retrieveSummaryByName(String name) {
         try {
             String sql = "SELECT " +
-                "id, name, description, default_profile_id, additional_profile_ids, created_date, " +
-                "flightid, sharedlock " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date " +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -318,8 +346,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, additional_profile_ids, created_date, " +
-            "flightid, sharedlock " +
+            "id, name, description, default_profile_id, additional_profile_ids, created_date " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
@@ -338,9 +365,7 @@ public class DatasetDao {
                     .description(rs.getString("description"))
                     .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                     .additionalProfileIds(DaoUtils.getUUIDList(rs, "additional_profile_ids"))
-                    .createdDate(rs.getTimestamp("created_date").toInstant())
-                    .flightId(rs.getString("flightid"))
-                    .sharedLock((String[])rs.getArray("sharedlock").getArray());
+                    .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }
 }

@@ -36,6 +36,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.net.URI;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.CoreMatchers.containsString;
@@ -96,8 +97,8 @@ public class DatasetConnectedTest {
         assertEquals("fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
         // check that the dataset metadata row is unlocked
-        DatasetSummary datasetSummary = datasetDao.retrieveSummaryByName(datasetRequest.getName());
-        assertNull("dataset row is unlocked", datasetSummary.getFlightId());
+        String exclusiveLock = datasetDao.getExclusiveLock(UUID.fromString(datasetSummaryModel.getId()));
+        assertNull("dataset row is unlocked", exclusiveLock);
 
         // try to create the same dataset again and check that it fails
         ErrorModel errorModel =
@@ -185,10 +186,12 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
-        DatasetSummary datasetSummary = datasetDao.retrieveSummaryByName(datasetRequest.getName());
-        assertNull("dataset row has no exclusive lock", datasetSummary.getFlightId());
-        assertNotNull("dataset row has a shared lock taken out", datasetSummary.getSharedLock());
-        assertEquals("dataset row has one shared lock", 1, datasetSummary.getSharedLock().length);
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock);
+        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks.length);
 
         // try to ingest a separate file
         String targetPath2 = "/mm/" + Names.randomizeName("testdir") + "/testfile2.txt";
@@ -205,10 +208,11 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
-        datasetSummary = datasetDao.retrieveSummaryByName(datasetRequest.getName());
-        assertNull("dataset row has no exclusive lock", datasetSummary.getFlightId());
-        assertNotNull("dataset row has a shared lock taken out", datasetSummary.getSharedLock());
-        assertEquals("dataset row has two shared locks", 2, datasetSummary.getSharedLock().length);
+        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock);
+        sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
+        assertEquals("dataset row has two shared locks", 2, sharedLocks.length);
 
         // try to delete the dataset, confirm fails with a lock exception
         MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
@@ -280,10 +284,12 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
-        DatasetSummary datasetSummary = datasetDao.retrieveSummaryByName(datasetRequest.getName());
-        assertNull("dataset row has no exclusive lock", datasetSummary.getFlightId());
-        assertNotNull("dataset row has a shared lock taken out", datasetSummary.getSharedLock());
-        assertEquals("dataset row has one shared lock", 1, datasetSummary.getSharedLock().length);
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock);
+        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks.length);
 
         // try to delete the second file
         MvcResult result2 = mvc.perform(
@@ -292,10 +298,11 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
-        datasetSummary = datasetDao.retrieveSummaryByName(datasetRequest.getName());
-        assertNull("dataset row has no exclusive lock", datasetSummary.getFlightId());
-        assertNotNull("dataset row has a shared lock taken out", datasetSummary.getSharedLock());
-        assertEquals("dataset row has two shared locks", 2, datasetSummary.getSharedLock().length);
+        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock);
+        sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
+        assertEquals("dataset row has two shared locks", 2, sharedLocks.length);
 
         // try to delete the dataset, confirm fails with a lock exception
         MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();

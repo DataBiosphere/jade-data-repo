@@ -18,8 +18,8 @@ public class LockDatasetStep implements Step {
 
     private final DatasetDao datasetDao;
     private final UUID datasetId;
-    private boolean sharedLock; // default to false
-    private boolean suppressNotFoundException; // default to false
+    private final boolean sharedLock; // default to false
+    private final boolean suppressNotFoundException; // default to false
 
     public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
         this(datasetDao, datasetId, sharedLock, false);

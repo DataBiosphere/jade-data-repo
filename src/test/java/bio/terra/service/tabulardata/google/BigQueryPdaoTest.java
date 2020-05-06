@@ -1,26 +1,26 @@
 package bio.terra.service.tabulardata.google;
 
+import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
-import bio.terra.app.configuration.ConnectedTestConfiguration;
-import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.IngestRequestModel;
-import bio.terra.service.dataset.DatasetJsonConversion;
-import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetJsonConversion;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
@@ -63,7 +63,10 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -127,7 +130,9 @@ public class BigQueryPdaoTest {
             .orElseThrow(() -> new IllegalStateException("Expected table " + name + " not found!"));
     }
 
-    private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist) {
+    private void assertThatDatasetAndTablesShouldExist(Dataset dataset, boolean shouldExist)
+        throws InterruptedException {
+
         boolean datasetExists = bigQueryPdao.tableExists(dataset, "participant");
         assertThat(
             String.format("Dataset: %s, exists", dataset.getName()),
@@ -140,15 +145,15 @@ public class BigQueryPdaoTest {
             loadTableExists,
             equalTo(shouldExist));
 
-        Arrays.asList("participant", "sample", "file").forEach(name -> {
+            for (String name : Arrays.asList("participant", "sample", "file")) {
             DatasetTable table = getTable(dataset, name);
-            Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName()).forEach(t -> {
+            for (String t : Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName())) {
                 assertThat(
                     "Table: " + dataset.getName() + "." + t + ", exists",
                     bigQueryPdao.tableExists(dataset, t),
                     equalTo(shouldExist));
-            });
-        });
+            }
+        }
     }
 
     @Test

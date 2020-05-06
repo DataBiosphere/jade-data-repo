@@ -40,7 +40,7 @@ public interface PrimaryDataAccess {
      *
      * @param dataset
      */
-    void createDataset(Dataset dataset);
+    void createDataset(Dataset dataset) throws InterruptedException;
 
     /**
      * Delete the dataset. All tables within the container and the container are deleted
@@ -48,7 +48,7 @@ public interface PrimaryDataAccess {
      * @param dataset
      * @return true if the dataset was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteDataset(Dataset dataset);
+    boolean deleteDataset(Dataset dataset) throws InterruptedException;
 
     /**
      * Given inputs from one asset, compute the row ids from the input values. The
@@ -62,7 +62,7 @@ public interface PrimaryDataAccess {
      */
     RowIdMatch mapValuesToRows(Snapshot snapshot,
                                SnapshotSource source,
-                               List<String> inputValues);
+                               List<String> inputValues) throws InterruptedException;
 
     /**
      * Create the container, tables and views for a snapshot.
@@ -70,7 +70,7 @@ public interface PrimaryDataAccess {
      * @param snapshot
      * @param rowIds - row ids for the root table
      */
-    void createSnapshot(Snapshot snapshot, List<String> rowIds);
+    void createSnapshot(Snapshot snapshot, List<String> rowIds) throws InterruptedException;
 
     /**
      * Delete the snapshot. All tables within the container and the container are deleted
@@ -78,7 +78,7 @@ public interface PrimaryDataAccess {
      * @param snapshot
      * @return true if the snapshot was deleted; false if it was not found; throw on other errors
      */
-    boolean deleteSnapshot(Snapshot snapshot);
+    boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException;
 
 
     /**
@@ -87,16 +87,16 @@ public interface PrimaryDataAccess {
      * @param snapshot snapshot metadata
      * @param readersEmail email address for readers group (as returned by SAM)
      */
-    void addReaderGroupToSnapshot(Snapshot snapshot, String readersEmail);
+    void addReaderGroupToSnapshot(Snapshot snapshot, String readersEmail) throws InterruptedException;
 
-    void grantReadAccessToDataset(Dataset dataset, List<String> readerEmails);
+    void grantReadAccessToDataset(Dataset dataset, List<String> readerEmails) throws InterruptedException;
 
     /**
      * Checks to see if a dataset exists
      * @param dataset
      * @return true if the dataset exists, false otherwise
      */
-    boolean datasetExists(Dataset dataset);
+    boolean datasetExists(Dataset dataset) throws InterruptedException;
 
     /**
      * Checks to see if a table within a dataset exists
@@ -104,13 +104,13 @@ public interface PrimaryDataAccess {
      * @param tableName
      * @return true if the table exists, false otherwise
      */
-    boolean tableExists(Dataset dataset, String tableName);
+    boolean tableExists(Dataset dataset, String tableName) throws InterruptedException;
 
     /**
      * Checks to see if a snapshot exists
      * @param snapshot
      * @return true if the snapshot exists, false otherwise
      */
-    boolean snapshotExists(Snapshot snapshot);
+    boolean snapshotExists(Snapshot snapshot) throws InterruptedException;
 
 }

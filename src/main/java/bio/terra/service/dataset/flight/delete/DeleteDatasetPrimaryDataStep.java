@@ -46,7 +46,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = datasetService.retrieve(datasetId);
         bigQueryPdao.deleteDataset(dataset);
         if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {

@@ -141,7 +141,7 @@ public class GoogleResourceService {
      * CASE 4: bucket exists, no record exists, we are allowed to reuse buckets
      *   This is a common case in development where we re-use the same cloud resources over and over during
      *   testing rather than continually create and destroy them. In this case, we proceed with the
-     *   try-to-create-bucket algorithm.
+     *   try-to-create-bucket-metadata algorithm.
      *
      * CASE 5: bucket exists, no record exists, we are not reusing buckets
      *   This is the production mode and should not happen. It means we our metadata does not reflect the
@@ -367,7 +367,7 @@ public class GoogleResourceService {
         return allowReuseExistingBuckets;
     }
 
-    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) {
+    public GoogleProjectResource getOrCreateProject(GoogleProjectRequest projectRequest) throws InterruptedException {
         // Naive: this implements a 1-project-per-profile approach. If there is already a Google project for this
         // profile we will look up the project by id, otherwise we will generate one and look it up
         String googleProjectId = projectRequest.getProjectId();
@@ -514,30 +514,47 @@ public class GoogleResourceService {
         }
     }
 
-    public void enableIamPermissions(GoogleProjectResource projectResource) {
+    private static final int RETRIES = 10;
+    private static final int MAX_WAIT_SECONDS = 30;
+    private static final int INITIAL_WAIT_SECONDS = 2;
+
+    public void enableIamPermissions(GoogleProjectResource projectResource) throws InterruptedException {
         Map<String, List<String>> userPermissions = projectResource.getRoleIdentityMapping();
         GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
-        try {
-            CloudResourceManager resourceManager = cloudResourceManager();
-            Policy policy = resourceManager.projects()
-                .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
-            List<Binding> bindingsList = policy.getBindings();
+        Exception lastException = null;
+        int retryWait = INITIAL_WAIT_SECONDS;
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                CloudResourceManager resourceManager = cloudResourceManager();
+                Policy policy = resourceManager.projects()
+                    .getIamPolicy(projectResource.getGoogleProjectId(), getIamPolicyRequest).execute();
+                List<Binding> bindingsList = policy.getBindings();
 
-            for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
-                Binding binding = new Binding()
-                    .setRole(entry.getKey())
-                    .setMembers(entry.getValue());
-                bindingsList.add(binding);
+                for (Map.Entry<String, List<String>> entry : userPermissions.entrySet()) {
+                    Binding binding = new Binding()
+                        .setRole(entry.getKey())
+                        .setMembers(entry.getValue());
+                    bindingsList.add(binding);
+                }
+
+                policy.setBindings(bindingsList);
+                SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+                resourceManager.projects()
+                    .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
+                return;
+            } catch (IOException | GeneralSecurityException ex) {
+                logger.info("Failed to enable iam permissions. Retry " + i + " of " + RETRIES, ex);
+                lastException = ex;
             }
 
-            policy.setBindings(bindingsList);
-            SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
-            resourceManager.projects()
-                .setIamPolicy(projectResource.getGoogleProjectId(), setIamPolicyRequest).execute();
-        } catch (IOException | GeneralSecurityException ex) {
-            throw new EnablePermissionsFailedException("Cannot enable iam permissions", ex);
+            TimeUnit.SECONDS.sleep(retryWait);
+            retryWait = retryWait + retryWait;
+            if (retryWait > MAX_WAIT_SECONDS) {
+                retryWait = MAX_WAIT_SECONDS;
+            }
         }
+        throw new EnablePermissionsFailedException("Cannot enable iam permissions", lastException);
     }
 
     private void setupBilling(GoogleProjectResource project) {

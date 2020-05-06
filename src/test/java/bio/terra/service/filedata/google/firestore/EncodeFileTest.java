@@ -421,7 +421,7 @@ public class EncodeFileTest {
         return targetPath;
     }
 
-    private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) {
+    private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
         SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
         BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());

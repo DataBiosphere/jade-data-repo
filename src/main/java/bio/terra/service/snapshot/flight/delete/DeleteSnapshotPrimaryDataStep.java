@@ -52,7 +52,7 @@ public class DeleteSnapshotPrimaryDataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         try {
             // this fault is used by the SnapshotConnectedTest > testOverlappingDeletes
             if (configService.testInsertFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT)) {

@@ -54,7 +54,7 @@ public class AuthorizeSnapshot implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         Snapshot snapshot = snapshotService.retrieve(snapshotId);

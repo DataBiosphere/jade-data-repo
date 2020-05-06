@@ -848,7 +848,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
         String datasetBqDatasetName = prefixName(dataset.getName());
         String projectId = bigQueryProject.getProjectId();
-        String newQuery = sqlQuery.replace("*", "datarepo_row_id");
+        // TODO add additional validation that the col is the root col
 
         // create snapshot bq dataset
         try {
@@ -860,7 +860,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
             // now create a temp table with all the selected row ids based on the query in it
             bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
-            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(newQuery)
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
                 .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
                 .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
                 .build();

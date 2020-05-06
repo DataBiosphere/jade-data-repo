@@ -8,7 +8,6 @@ import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.apache.commons.codec.binary.StringUtils;

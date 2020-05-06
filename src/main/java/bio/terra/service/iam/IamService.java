@@ -10,6 +10,19 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * The IamProvider code is used both in flights and from the REST API. It needs to be able to throw
+ * InterruptedException to be caught by Stairway as part of shutdown processing.
+ *
+ * In the REST API controller, we cannot just specify `throws InterruptedException` (or any checked exception),
+ * because the controller derives from the swagger-codegen interface definition. That definition does not allow for
+ * any checked exceptions.
+ *
+ * This IamService is a thin layer that calls the IamProviderInterface, but catches InterruptedExceptions and
+ * converts them into a RuntimeException: IamUnavailableException. That throw will get processed by the global
+ * exception handler and make the right error return to the caller.
+ */
+
 @Component
 public class IamService {
     private final IamProviderInterface iamProvider;

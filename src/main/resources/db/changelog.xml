@@ -25,4 +25,5 @@
     <include file="changesets/20200318_lockbuckets.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200406_allowlongernames.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200404_addChecksum.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20200420_datasetsharedlock.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

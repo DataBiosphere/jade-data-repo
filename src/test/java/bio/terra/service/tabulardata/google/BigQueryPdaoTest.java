@@ -117,7 +117,7 @@ public class BigQueryPdaoTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlock(dataset.getId(), createFlightId);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);
         return dataset;
     }

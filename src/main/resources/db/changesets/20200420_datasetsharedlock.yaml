@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: datasetsharedlock
+      author: marikomedlock
+      changes:
+        - addColumn:
+            tableName: dataset
+            columns:
+              - column:
+                  name: sharedlock
+                  type: text[]
+                  defaultValue: {}
+                  constraints:
+                    nullable: false

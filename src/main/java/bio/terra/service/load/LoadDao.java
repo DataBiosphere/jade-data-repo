@@ -6,17 +6,13 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadResultModel;
-import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.exception.LoadLockedException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.apache.commons.codec.binary.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.CannotSerializeTransactionException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
@@ -31,7 +27,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 @Repository
 public class LoadDao {
@@ -49,73 +44,106 @@ public class LoadDao {
     // -- load tags public methods --
 
     // This must be serializable so that conflicting updates of the locked state and flightid
-    // are detected. The default isolation level for Postgres is READ_COMMITTED; that will allow
-    // the second updater to overwrite the first updater's data. Serialization means the second
-    // updater will throw a PSQLException.
-    @Transactional(propagation = Propagation.REQUIRES_NEW, isolation = Isolation.SERIALIZABLE)
+    // are detected. We lock the table so that we avoid serialization errors.
+
+    /**
+     * We implement a rule that one load job can use one load tag at a time. That rule is needed to control
+     * concurrent operations. For example, a delete-by-load-tag cannot compete with a load; two loads cannot
+     * run in parallel with the same load tag - it confuses the algorithm for re-running a load with a load tag
+     * and skipping already-loaded files.
+     *
+     * This call and the unlock call use a load table in the database to record that a load tag is in use.
+     * The load tag is associated with a load id (a guid); that guid is a foreign key to the load_file table
+     * that maintains the state of files being loaded.
+     *
+     * We expect conflicts on load tags to be rare. The typical case will be: a load starts, runs, and ends
+     * without conflict and with a re-run.
+     *
+     * We learned from the first implementation of this code that when there were conflicts, we would get
+     * serialization errors from Postgres. Those require building retry logic. Instead, we chose to use
+     * table locks to serialize access to the load table during the time we are setting and freeing the
+     * our load lock state.
+     *
+     * A lock is taken by creating the load tag row and storing the flight id holding the lock.
+     * The lock is freed by deleting the load tag row. Code can safely re-lock a load tag lock it holds and
+     * unlock a load tag lock it has freed.
+     *
+     * There is never a case where a lock row is updated. They are only ever inserted or deleted.
+     *
+     * @param loadTag tag identifying this load
+     * @param flightId flight id taking the lock
+     * @return Load object including the load id
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public Load lockLoad(String loadTag, String flightId) {
-        Load load = lookupLoadByTag(loadTag);
-        if (load == null) {
-            load = createLoad(loadTag, flightId);
-        }
+        jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
-        if (load.isLocked()) {
-            if (StringUtils.equals(flightId, load.getLockingFlightId())) {
-                // we already have it locked
-                return load;
-            } else {
-                // another flight has it locked
-                conflictThrow(load);
+        String upsert = "INSERT INTO load (load_tag, locked, locking_flight_id)" +
+            " VALUES (:load_tag, true, :flight_id)" +
+            " ON CONFLICT ON CONSTRAINT load_load_tag_key DO NOTHING";
+
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("load_tag", loadTag)
+            .addValue("flight_id", flightId);
+        DaoKeyHolder keyHolder = new DaoKeyHolder();
+        int rows = jdbcTemplate.update(upsert, params, keyHolder);
+        Load load;
+        if (rows == 0) {
+            // We did not insert. Therefore, someone has the load tag locked.
+            // Retrieve it, in case it is us re-locking
+            load = lookupLoadByTag(loadTag);
+            if (load == null) {
+                throw new CorruptMetadataException("Load row should exist! Load tag: " + loadTag);
             }
-        }
 
-        // FAULT: see LoadDaoUnitTest for the rationale for this code.
-        if (configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_STOP_FAULT)) {
-            try {
-                logger.info("LOAD_LOCK_CONFLICT_STOP");
-                while (!configService.testInsertFault(ConfigEnum.LOAD_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                    logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(2);
-                }
-                logger.info("LOAD_LOCK_CONFLICT_CONTINUE");
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                throw new LoadLockFailureException("Unexpected interrupt during load lock fault");
+            // It is locked by someone else
+            if (!StringUtils.equals(load.getLockingFlightId(), flightId)) {
+                throw new LoadLockedException("Load '" + loadTag +
+                    "' is locked by flight '" + load.getLockingFlightId() + "'");
             }
+        } else {
+            load = new Load()
+                .id(keyHolder.getId())
+                .loadTag(keyHolder.getString("load_tag"))
+                .locked(keyHolder.getField("locked", Boolean.class))
+                .lockingFlightId(keyHolder.getString("locking_flight_id"));
         }
 
-        try {
-            // Lock the load for our use and validate
-            updateLoad(load.getId(), true, flightId);
-        } catch (CannotSerializeTransactionException ex) {
-            conflictThrow(load);
-        }
-
-        load = lookupLoadByTag(loadTag);
-        if (load != null && load.isLocked() && StringUtils.equals(load.getLockingFlightId(), flightId)) {
-            return load;
-        }
-        throw new LoadLockFailureException("Internal error: failed to lock a load!");
+        return load;
     }
 
-    // To support idempotent steps, this method will not complain if the load no longer exists or if
-    // it is already unlocked. It throws if the lock is held by a different flight or if the unlock operation
-    // fails for some reason.
+    /**
+     * Unlocking means deleting the specific row for our load tag and flight id.
+     * If no row is deleted, we assume this is a redo of the unlock and is OK. That can happen
+     * if a flight successfully unlocks and then fails. When the first flight
+     * recovers it will retry unlocking. We don't want that to be an error.
+     *
+     * If a row is deleted, then we have performed the unlock. So we don't
+     * check the affected row count.
+     *
+     * @param loadTag tag identifying this load
+     * @param flightId flight id releasing the lock
+     */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public void unlockLoad(String loadTag, String flightId) {
-        Load load = lookupLoadByTag(loadTag);
-        if (load == null || !load.isLocked()) {
-            return; // nothing to unlock
-        }
+        jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
-        if (!StringUtils.equals(load.getLockingFlightId(), flightId)) {
-            conflictThrow(load);
-        }
-        updateLoad(load.getId(), false, null);
-        load = lookupLoadByTag(loadTag);
-        if (load == null || load.isLocked() || load.getLockingFlightId() != null) {
-            throw new LoadLockFailureException("Internal error: failed to unlock a load!");
-        }
+        String delete = "DELETE FROM load WHERE load_tag = :load_tag AND locking_flight_id = :flight_id";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("load_tag", loadTag)
+            .addValue("flight_id", flightId);
+        jdbcTemplate.update(delete, params);
+    }
+
+    private Load lookupLoadByTag(String loadTag) {
+        String sql = "SELECT id, load_tag, locked, locking_flight_id FROM load WHERE load_tag = :load_tag";
+        MapSqlParameterSource params = new MapSqlParameterSource().addValue("load_tag", loadTag);
+        return jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
+            new Load()
+                .id(rs.getObject("id", UUID.class))
+                .loadTag(rs.getString("load_tag"))
+                .locked(rs.getBoolean("locked"))
+                .lockingFlightId(rs.getString("locking_flight_id")));
     }
 
     // -- load files methods --
@@ -306,57 +334,6 @@ public class LoadDao {
             .addValue("load_id", loadId)
             .addValue("target_path", targetPath);
         jdbcTemplate.update(sql, params);
-    }
-
-    private void conflictThrow(Load load) {
-        throw new LoadLockedException("Load " + load.getLoadTag() +
-            " is locked by flight " + load.getLockingFlightId());
-    }
-
-    // Creates a new load and locks it on behalf of this flight
-    private Load createLoad(String loadTag, String flightId) {
-        String sql = "INSERT INTO load (load_tag, locked, locking_flight_id)" +
-            " VALUES (:load_tag, true, :flight_id)";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("load_tag", loadTag)
-            .addValue("flight_id", flightId);
-        DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
-        Load load = new Load()
-            .id(keyHolder.getId())
-            .loadTag(keyHolder.getString("load_tag"))
-            .locked(keyHolder.getField("locked", Boolean.class))
-            .lockingFlightId(keyHolder.getString("locking_flight_id"));
-
-        return load;
-    }
-
-    // Updates the load to either lock or unlock it
-    @Transactional(propagation = Propagation.MANDATORY, isolation = Isolation.SERIALIZABLE)
-    private void updateLoad(UUID loadId, boolean lock, String flightId) {
-        String sql = "UPDATE load SET locked = :locked, locking_flight_id = :flight_id WHERE id = :id";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-            .addValue("locked", lock)
-            .addValue("flight_id", flightId)
-            .addValue("id", loadId);
-        jdbcTemplate.update(sql, params);
-    }
-
-    // Returns null if not found
-    private Load lookupLoadByTag(String loadTag) {
-        try {
-            String sql = "SELECT * FROM load WHERE load_tag = :load_tag";
-            MapSqlParameterSource params = new MapSqlParameterSource().addValue("load_tag", loadTag);
-            Load load = jdbcTemplate.queryForObject(sql, params, (rs, rowNum) ->
-                new Load()
-                    .id(rs.getObject("id", UUID.class))
-                    .loadTag(rs.getString("load_tag"))
-                    .locked(rs.getBoolean("locked"))
-                    .lockingFlightId(rs.getString("locking_flight_id")));
-            return load;
-        } catch (EmptyResultDataAccessException ex) {
-            return null;
-        }
     }
 
 }

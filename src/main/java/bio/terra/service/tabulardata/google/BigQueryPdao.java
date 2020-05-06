@@ -71,6 +71,7 @@ import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 
 @Component
 @Profile("google")
@@ -115,7 +116,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
             bigQueryProject.createTable(
-                datasetName, GetLoadTableName(dataset.getName()), buildLoadDatasetSchema());
+                datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {
                 bigQueryProject.createTable(
                     datasetName, table.getRawTableName(), buildSchema(table, true), table.getBigQueryPartitionConfig());
@@ -126,10 +127,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } catch (Exception ex) {
             throw new PdaoException("create dataset failed for " + datasetName, ex);
         }
-    }
-
-    public static final String GetLoadTableName(String datasetName){
-        return datasetName + "_load";
     }
 
     private static final String liveViewTemplate =

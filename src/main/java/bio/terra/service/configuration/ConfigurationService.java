@@ -29,6 +29,10 @@ import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_DRIVER_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_SKIP_FILE_LOAD;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
@@ -208,6 +212,16 @@ public class ConfigurationService {
         addFaultCounted(SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 1, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        // File ingest lock faults. These are used by DatasetConnectedTest > testSharedLockFileIngest
+        addFaultCounted(FILE_INGEST_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
+            ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        // File delete lock faults. These are used by DatasetConnectedTest > testSharedLockFileDelete
+        addFaultCounted(FILE_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
+            ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
     }
 
 }

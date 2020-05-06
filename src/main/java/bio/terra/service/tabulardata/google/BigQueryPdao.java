@@ -71,6 +71,7 @@ import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 
 @Component
 @Profile("google")
@@ -114,6 +115,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
 
             bigQueryProject.createDataset(datasetName, dataset.getDescription());
+            bigQueryProject.createTable(
+                datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
             for (DatasetTable table : dataset.getTables()) {
                 bigQueryProject.createTable(
                     datasetName, table.getRawTableName(), buildSchema(table, true), table.getBigQueryPartitionConfig());
@@ -632,6 +635,33 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public String prefixName(String name) {
         return PDAO_PREFIX + name;
+    }
+
+    private Schema buildLoadDatasetSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("load_time", LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+
+        return Schema.of(fieldList);
     }
 
     private Schema buildSoftDeletesSchema() {

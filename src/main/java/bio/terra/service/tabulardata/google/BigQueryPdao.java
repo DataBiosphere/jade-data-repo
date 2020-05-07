@@ -315,7 +315,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
-
         try {
             // Idempotency: delete possibly partial create.
             if (bigQueryProject.datasetExists(snapshotName)) {

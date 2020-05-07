@@ -65,21 +65,28 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
             // send list plus load_tag to BQ to be put in a temporary table
             // TODO Perform insert of paged info into staging table
         }
-
-        bigQueryPdao.deleteDatasetTable(dataset, tableName);
+        try {
+            bigQueryPdao.deleteDatasetTable(dataset, tableName);
+        } catch (Exception ex) {
+            logger.error("Failure deleting load history staging table: " + tableName, ex);
+        }
 
 
         return StepResult.getStepResultSuccess();
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
-        // not sure if I should move this stuff into a helper method?
-        UUID datasetId = UUID.fromString(datasetIdString);
-        Dataset dataset = datasetService.retrieve(datasetId);
+    public StepResult undoStep(FlightContext context)  {
         String flightId = context.getFlightId();
         String tableName = "bulk_results_staging_" + flightId;
-        bigQueryPdao.deleteDatasetTable(dataset, tableName);
+        try {
+            // not sure if I should move this stuff into a helper method?
+            UUID datasetId = UUID.fromString(datasetIdString);
+            Dataset dataset = datasetService.retrieve(datasetId);
+            bigQueryPdao.deleteDatasetTable(dataset, tableName);
+        } catch (Exception ex) {
+            logger.error("Failure deleting load history staging table: " + tableName, ex);
+        }
         return StepResult.getStepResultSuccess();
     }
 

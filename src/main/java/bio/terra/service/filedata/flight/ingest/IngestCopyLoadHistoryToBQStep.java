@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,10 +17,17 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
 
     private final LoadService loadService;
     private final String loadTag;
+    private final String datasetIdString;
+    private final BigQueryPdao bigQueryPdao;
 
-    public IngestCopyLoadHistoryToBQStep(LoadService loadService, String loadTag) {
+    public IngestCopyLoadHistoryToBQStep(LoadService loadService,
+                                         String loadTag,
+                                         String datasetId,
+                                         BigQueryPdao bigQueryPdao) {
         this.loadService = loadService;
         this.loadTag = loadTag;
+        this.datasetIdString = datasetId;
+        this.bigQueryPdao = bigQueryPdao;
     }
 
     @Override
@@ -27,6 +35,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
         UUID loadId = UUID.fromString(loadIdString);
+        UUID datasetId = UUID.fromString(datasetIdString);
 
         // for load tag, get files in chunk out of postgres table
         // Want this info:
@@ -42,6 +51,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         int chunkSize = 1000;
         int chunkNum = 0;
         List<BulkLoadHistoryModel> loadHistoryArray = null;
+        bigQueryPdao.createStagingLoadHistoryTable(datasetId);
 
         while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
             loadHistoryArray = loadService.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
@@ -51,6 +61,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
             // history table we should add this information to?
         }
 
+        bigQueryPdao.deleteStagingLoadHistoryTable(datasetId);
 
 
         return StepResult.getStepResultSuccess();
@@ -65,6 +76,8 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         } catch (FileSystemAbortTransactionException rex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, rex);
         }*/
+        UUID datasetId = UUID.fromString(datasetIdString);
+        bigQueryPdao.deleteStagingLoadHistoryTable(datasetId);
         return StepResult.getStepResultSuccess();
     }
 

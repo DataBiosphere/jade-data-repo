@@ -11,11 +11,7 @@ import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
-import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.BigQueryPartitionConfigV1;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetDataProject;
-import bio.terra.service.dataset.DatasetTable;
+import bio.terra.service.dataset.*;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
@@ -58,11 +54,7 @@ import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -72,6 +64,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_STAGING_LOAD_HISTORY_TABLE;
 
 @Component
 @Profile("google")
@@ -80,13 +73,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private final String datarepoDnsName;
     private final DataLocationService dataLocationService;
+    private final DatasetService datasetService;
 
     @Autowired
     public BigQueryPdao(
         ApplicationConfiguration applicationConfiguration,
-        DataLocationService dataLocationService) {
+        DataLocationService dataLocationService,
+        DatasetService datasetService) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.dataLocationService = dataLocationService;
+        this.datasetService = datasetService;
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) {
@@ -149,6 +145,28 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
+    }
+
+    public void createStagingLoadHistoryTable(UUID datasetId) {
+        Dataset dataset = datasetService.retrieve(datasetId);
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        String datasetName = prefixName(dataset.getName());
+        try {
+            if (bigQueryProject.tableExists(datasetName, PDAO_STAGING_LOAD_HISTORY_TABLE)) {
+                bigQueryProject.deleteTable(datasetName, PDAO_STAGING_LOAD_HISTORY_TABLE);
+            }
+
+            bigQueryProject.createTable(
+                datasetName, PDAO_STAGING_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
+        } catch (Exception ex) {
+            throw new PdaoException("create staging load history table failed for " + datasetName, ex);
+        }
+    }
+
+    public void deleteStagingLoadHistoryTable(UUID datasetId) {
+        Dataset dataset = datasetService.retrieve(datasetId);
+        deleteDatasetTable(dataset, PDAO_STAGING_LOAD_HISTORY_TABLE);
     }
 
     @Override

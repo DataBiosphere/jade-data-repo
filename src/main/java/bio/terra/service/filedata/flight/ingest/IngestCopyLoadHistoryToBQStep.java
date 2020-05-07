@@ -57,15 +57,16 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         List<BulkLoadHistoryModel> loadHistoryArray = null;
         String flightId = context.getFlightId();
         String tableName = "bulk_results_staging_" + flightId;
-        bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName);
-
-        while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
-            loadHistoryArray = loadService.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
-            chunkNum++;
-            // send list plus load_tag to BQ to be put in a temporary table
-            // TODO Perform insert of paged info into staging table
-        }
         try {
+            bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName);
+
+            while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
+                loadHistoryArray = loadService.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
+                chunkNum++;
+                // send list plus load_tag to BQ to be put in a temporary table
+                // TODO Perform insert of paged info into staging table
+            }
+
             bigQueryPdao.deleteDatasetTable(dataset, tableName);
         } catch (Exception ex) {
             logger.error("Failure deleting load history staging table: " + tableName, ex);
@@ -76,7 +77,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context)  {
+    public StepResult undoStep(FlightContext context) {
         String flightId = context.getFlightId();
         String tableName = "bulk_results_staging_" + flightId;
         try {

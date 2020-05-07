@@ -2,9 +2,12 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
+import bio.terra.model.DatasetModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamService;
@@ -25,16 +28,19 @@ public class CreateDatasetAuthzResource implements Step {
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
     private AuthenticatedUserRequest userReq;
+    private GoogleResourceService resourceService;
 
     public CreateDatasetAuthzResource(
         IamService sam,
         BigQueryPdao bigQueryPdao,
         DatasetService datasetService,
-        AuthenticatedUserRequest userReq) {
+        AuthenticatedUserRequest userReq,
+        GoogleResourceService resourceService) {
         this.sam = sam;
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.userReq = userReq;
+        this.resourceService = resourceService;
     }
 
     @Override
@@ -44,6 +50,8 @@ public class CreateDatasetAuthzResource implements Step {
         Dataset dataset = datasetService.retrieve(datasetId);
         List<String> policyEmails = sam.createDatasetResource(userReq, datasetId);
         bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails);
+        DatasetModel datasetModel = datasetService.retrieveModel(dataset);
+        resourceService.grantPoliciesBqJobUser(datasetModel, policyEmails);
         // TODO: on file ingest these policies also need to be added as readers
         return StepResult.getStepResultSuccess();
     }

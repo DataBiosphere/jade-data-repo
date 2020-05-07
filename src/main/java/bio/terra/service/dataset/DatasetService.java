@@ -67,6 +67,16 @@ public class DatasetService {
      */
     public DatasetModel retrieveModel(UUID id) {
         Dataset dataset = retrieve(id);
+        return retrieveModel(dataset);
+    }
+
+    /**
+     * Convenience wrapper to grab the dataset model from the dataset object, avoids having to retrieve the dataset
+     * a second time if you already have it
+     * @param dataset the dataset being passed in
+     * @return a DatasetModel = API output-friendly representation of the Dataset
+     */
+    public DatasetModel retrieveModel(Dataset dataset) {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         return DatasetJsonConversion.populateDatasetModelFromDataset(dataset)
             .dataProject(dataProject.getGoogleProjectId());

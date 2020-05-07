@@ -64,7 +64,6 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_STAGING_LOAD_HISTORY_TABLE;
 
 @Component
 @Profile("google")
@@ -147,26 +146,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
     }
 
-    public void createStagingLoadHistoryTable(UUID datasetId) {
-        Dataset dataset = datasetService.retrieve(datasetId);
+    public void createStagingLoadHistoryTable(Dataset dataset, String tableName) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
 
         String datasetName = prefixName(dataset.getName());
         try {
-            if (bigQueryProject.tableExists(datasetName, PDAO_STAGING_LOAD_HISTORY_TABLE)) {
-                bigQueryProject.deleteTable(datasetName, PDAO_STAGING_LOAD_HISTORY_TABLE);
+            if (bigQueryProject.tableExists(datasetName, tableName)) {
+                bigQueryProject.deleteTable(datasetName, tableName);
             }
 
             bigQueryProject.createTable(
-                datasetName, PDAO_STAGING_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
+                datasetName, tableName, buildLoadDatasetSchema());
         } catch (Exception ex) {
             throw new PdaoException("create staging load history table failed for " + datasetName, ex);
         }
-    }
-
-    public void deleteStagingLoadHistoryTable(UUID datasetId) {
-        Dataset dataset = datasetService.retrieve(datasetId);
-        deleteDatasetTable(dataset, PDAO_STAGING_LOAD_HISTORY_TABLE);
     }
 
     @Override

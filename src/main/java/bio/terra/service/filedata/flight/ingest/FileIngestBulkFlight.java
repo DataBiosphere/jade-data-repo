@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamService;
@@ -44,6 +45,7 @@ public class FileIngestBulkFlight extends Flight {
         ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
+        DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -120,7 +122,12 @@ public class FileIngestBulkFlight extends Flight {
             addStep(new IngestBulkFileResponseStep(loadService, loadTag));
         }
         // 7. copy results into BigQuery
-        addStep(new IngestCopyLoadHistoryToBQStep(loadService, loadTag, datasetId, bigQueryPdao));
+        addStep(new IngestCopyLoadHistoryToBQStep(
+            loadService,
+            datasetService,
+            loadTag,
+            datasetId,
+            bigQueryPdao));
         addStep(new IngestCleanFileStateStep(loadService));
         // 9. TODO: release bulk load slot
         addStep(new LoadUnlockStep(loadService));

@@ -37,8 +37,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -68,10 +66,14 @@ public class JobService {
         this.migrateConfiguration = migrateConfiguration;
         this.isShutdown = new AtomicBoolean(false);
 
-        logger.info("Creating Stairway thread pool. maxStairwayThreads: " + appConfig.getMaxStairwayThreads());
-        ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxStairwayThreads());
+        logger.info("Creating Stairway: maxStairwayThreads = " + appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-        stairway = new Stairway(executorService, applicationContext, serializer, "stairwayname");
+        stairway = Stairway.newBuilder()
+            .maxParallelFlights(appConfig.getMaxStairwayThreads())
+            .exceptionSerializer(serializer)
+            .applicationContext(applicationContext)
+            .stairwayName(appConfig.getPodName())
+        .build();
     }
 
     /**

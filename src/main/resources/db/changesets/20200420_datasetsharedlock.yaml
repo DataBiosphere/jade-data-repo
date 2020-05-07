@@ -10,5 +10,10 @@ databaseChangeLog:
                   name: sharedlock
                   type: text[]
                   defaultValue: {}
-                  constraints:
-                    nullable: false
+        - sql:
+            comment: populate the sharedlock column with empty array
+            sql: UPDATE dataset SET sharedlock = '{}'
+        - addNotNullConstraint:
+            tableName: dataset
+            columnName: sharedlock
+

@@ -6,6 +6,7 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockedException;
@@ -289,6 +290,33 @@ public class LoadDao {
                     .state(BulkLoadFileState.fromValue(rs.getString("state")))
                     .fileId(rs.getString("file_id"))
                     .error(rs.getString("error"));
+            });
+    }
+
+    //Want these column types:
+    // source_name
+    // target_path
+    // file_id
+    // checksum_crc32c
+    // checksum_md5
+    public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
+        final String sql = "SELECT source_path, target_path, file_id, checksum_crc32c, checksum_md5" +
+            " FROM load_file WHERE load_id = :load_id" +
+            " LIMIT :chunk_size OFFSET :chunk_num";
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("load_id", loadId);
+        params.addValue("chunk_size", chunkSize);
+        params.addValue("chunk_num", chunkNum);
+        return jdbcTemplate.query(
+            sql,
+            params,
+            (rs, rowNum) -> {
+                return new BulkLoadHistoryModel()
+                    .sourcePath(rs.getString("source_path"))
+                    .targetPath(rs.getString("target_path"))
+                    .fileId(rs.getString("file_id"))
+                    .checksumCRC(rs.getString("checksum_crc32c"))
+                    .checksumMD5(rs.getString("checksum_md5"));
             });
     }
 

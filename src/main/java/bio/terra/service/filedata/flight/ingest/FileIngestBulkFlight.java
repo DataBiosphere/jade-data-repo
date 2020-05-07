@@ -117,7 +117,8 @@ public class FileIngestBulkFlight extends Flight {
         } else {
             addStep(new IngestBulkFileResponseStep(loadService, loadTag));
         }
-        // 7. TODO: copy results into BigQuery
+        // 7. copy results into BigQuery
+        addStep(new IngestCopyLoadHistoryToBQStep(loadService, loadTag));
         addStep(new IngestCleanFileStateStep(loadService));
         // 9. TODO: release bulk load slot
         addStep(new LoadUnlockStep(loadService));

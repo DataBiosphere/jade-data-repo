@@ -18,14 +18,18 @@ public class UnlockDatasetStep implements Step {
 
     private final DatasetDao datasetDao;
     private UUID datasetId;
+    private boolean sharedLock; // default to false
 
-    public UnlockDatasetStep(DatasetDao datasetDao, UUID datasetId) {
+    public UnlockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
+
+        // this will be set to true for a shared lock, false for an exclusive lock
+        this.sharedLock = sharedLock;
     }
 
-    public UnlockDatasetStep(DatasetDao datasetDao) {
-        this.datasetDao = datasetDao;
+    public UnlockDatasetStep(DatasetDao datasetDao, boolean sharedLock) {
+        this(datasetDao, null, sharedLock);
     }
 
     @Override
@@ -39,7 +43,12 @@ public class UnlockDatasetStep implements Step {
             }
         }
 
-        boolean rowUpdated = datasetDao.unlock(datasetId, context.getFlightId());
+        boolean rowUpdated;
+        if (sharedLock) {
+            rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
+        } else {
+            rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+        }
         logger.debug("rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();

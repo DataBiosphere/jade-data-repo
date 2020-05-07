@@ -35,7 +35,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         // Note that there can be only one project for a Dataset. This requirement is enforced in DataLocationService,
         // where getOrCreateProject first checks for an existing project before trying to create a new one.
         // The below logic would not work correctly if this one-to-one mapping were ever violated.
@@ -49,7 +49,7 @@ public class CreateDatasetPrimaryDataStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         Dataset dataset = getDataset(context);
 
         // get the cloud project for the dataset if it exists

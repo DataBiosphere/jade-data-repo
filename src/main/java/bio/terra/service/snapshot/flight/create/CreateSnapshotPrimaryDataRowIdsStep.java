@@ -34,7 +34,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
         SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
@@ -60,7 +60,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         // Remove any file dependencies created
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
         bigQueryPdao.deleteSnapshot(snapshot);

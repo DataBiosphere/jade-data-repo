@@ -9,4 +9,5 @@ public final class LoadMapKeys {
     public static final String CONCURRENT_INGESTS = "concurrentIngests";
     public static final String CONCURRENT_FILES = "concurrentFiles";
     public static final String DRIVER_WAIT_SECONDS = "driverWaitSeconds";
+    public static final String IS_ARRAY = "isArray";
 }

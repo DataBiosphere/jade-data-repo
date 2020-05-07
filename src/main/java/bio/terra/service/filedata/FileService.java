@@ -15,7 +15,6 @@ import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.exception.BulkLoadFileMaxExceededException;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.delete.FileDeleteFlight;
-import bio.terra.service.filedata.flight.ingest.FileIngestBulkArrayFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestBulkFlight;
 import bio.terra.service.filedata.flight.ingest.FileIngestFlight;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
@@ -91,6 +90,7 @@ public class FileService {
 
         return jobService
             .newJob(description, FileIngestBulkFlight.class, loadModel, userReq)
+            .addParameter(LoadMapKeys.IS_ARRAY, false)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
             .addParameter(LoadMapKeys.CONCURRENT_INGESTS,
@@ -117,7 +117,8 @@ public class FileService {
                 filesMax + "; request array contains " + inArraySize);
         }
         return jobService
-            .newJob(description, FileIngestBulkArrayFlight.class, loadArray, userReq)
+            .newJob(description, FileIngestBulkFlight.class, loadArray, userReq)
+            .addParameter(LoadMapKeys.IS_ARRAY, true)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
             .addParameter(LoadMapKeys.CONCURRENT_INGESTS,

@@ -11,7 +11,6 @@ public class DatasetSummary {
     private UUID defaultProfileId;
     private List<UUID> additionalProfileIds;
     private Instant createdDate;
-    private String flightId;
 
     public UUID getId() {
         return id;
@@ -66,14 +65,4 @@ public class DatasetSummary {
         this.createdDate = createdDate;
         return this;
     }
-
-    public String getFlightId() {
-        return flightId;
-    }
-
-    public DatasetSummary flightId(String flightId) {
-        this.flightId = flightId;
-        return this;
-    }
-
 }

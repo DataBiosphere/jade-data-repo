@@ -1,20 +1,20 @@
 package bio.terra.service.resourcemanagement;
 
-import bio.terra.service.iam.sam.SamConfiguration;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
-import bio.terra.service.resourcemanagement.exception.DataProjectNotFoundException;
-import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetDataProjectSummary;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotDataProject;
-import bio.terra.service.snapshot.SnapshotDataProjectSummary;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.iam.sam.SamConfiguration;
+import bio.terra.service.resourcemanagement.exception.DataProjectNotFoundException;
+import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectRequest;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDataProject;
+import bio.terra.service.snapshot.SnapshotDataProjectSummary;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class DataLocationService {
         return Collections.unmodifiableMap(policyMap);
     }
 
-    public GoogleProjectResource getProjectForFile(String profileId) {
+    public GoogleProjectResource getProjectForFile(String profileId) throws InterruptedException {
         GoogleProjectRequest googleProjectRequest = new GoogleProjectRequest()
             .projectId(dataLocationSelector.projectIdForFile(profileId))
             .profileId(UUID.fromString(profileId))
@@ -101,7 +101,9 @@ public class DataLocationService {
      * @throws CorruptMetadataException in two cases. 1) if the bucket already exists, but the metadata does not AND the
      * application property allowReuseExistingBuckets=false. 2) if the metadata exists, but the bucket does not
      */
-    public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId) {
+    public GoogleBucketResource getOrCreateBucketForFile(String profileId, String flightId)
+        throws InterruptedException {
+
         // Every bucket needs to live in a project, so we get a project first (one will be created if it can't be found)
         GoogleProjectResource projectResource = getProjectForFile(profileId);
         BillingProfile profile = profileService.getProfileById(UUID.fromString(profileId));
@@ -156,7 +158,7 @@ public class DataLocationService {
      * @param snapshot
      * @return a populated and valid SnapshotDataProject
      */
-    public SnapshotDataProject getOrCreateProject(Snapshot snapshot) {
+    public SnapshotDataProject getOrCreateProject(Snapshot snapshot) throws InterruptedException {
         // check if for an existing SnapshotDataProject first, and return here if found one
         Optional<SnapshotDataProject> existingDataProject = getProject(snapshot);
         if (existingDataProject.isPresent()) {
@@ -237,7 +239,7 @@ public class DataLocationService {
      * @param dataset
      * @return a populated and valid DatasetDataProject
      */
-    public DatasetDataProject getOrCreateProject(Dataset dataset) {
+    public DatasetDataProject getOrCreateProject(Dataset dataset) throws InterruptedException {
         // check if for an existing DatasetDataProject first, and return here if found one
         Optional<DatasetDataProject> existingDataProject = getProject(dataset);
         if (existingDataProject.isPresent()) {

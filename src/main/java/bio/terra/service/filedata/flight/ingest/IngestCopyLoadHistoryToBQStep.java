@@ -56,9 +56,8 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         int chunkNum = 0;
         List<BulkLoadHistoryModel> loadHistoryArray = null;
         String flightId = context.getFlightId();
-        String tableName = "bulk_results_staging_" + flightId;
         try {
-            bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName);
+            bigQueryPdao.createStagingLoadHistoryTable(dataset, flightId);
 
             while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
                 loadHistoryArray = loadService.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
@@ -67,9 +66,9 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                 // TODO Perform insert of paged info into staging table
             }
 
-            bigQueryPdao.deleteDatasetTable(dataset, tableName);
+            bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
         } catch (Exception ex) {
-            logger.error("Failure deleting load history staging table: " + tableName, ex);
+            logger.error("Failure deleting load history staging table for flight: " + flightId, ex);
         }
 
 
@@ -79,14 +78,13 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     @Override
     public StepResult undoStep(FlightContext context) {
         String flightId = context.getFlightId();
-        String tableName = "bulk_results_staging_" + flightId;
         try {
             // not sure if I should move this stuff into a helper method?
             UUID datasetId = UUID.fromString(datasetIdString);
             Dataset dataset = datasetService.retrieve(datasetId);
-            bigQueryPdao.deleteDatasetTable(dataset, tableName);
+            bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
         } catch (Exception ex) {
-            logger.error("Failure deleting load history staging table: " + tableName, ex);
+            logger.error("Failure deleting load history staging table for flight: " + flightId, ex);
         }
         return StepResult.getStepResultSuccess();
     }

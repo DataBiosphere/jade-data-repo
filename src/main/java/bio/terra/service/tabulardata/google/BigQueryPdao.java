@@ -64,6 +64,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX;
 
 @Component
 @Profile("google")
@@ -146,19 +147,27 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
     }
 
-    public void createStagingLoadHistoryTable(Dataset dataset, String tableName) {
-        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-
-        String datasetName = prefixName(dataset.getName());
+    public void createStagingLoadHistoryTable(Dataset dataset, String flightId) {
         try {
-            if (bigQueryProject.tableExists(datasetName, tableName)) {
-                bigQueryProject.deleteTable(datasetName, tableName);
+            BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+            String datasetName = prefixName(dataset.getName());
+
+            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId)) {
+                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId);
             }
 
             bigQueryProject.createTable(
-                datasetName, tableName, buildLoadDatasetSchema());
+                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId, buildLoadDatasetSchema());
         } catch (Exception ex) {
-            throw new PdaoException("create staging load history table failed for " + datasetName, ex);
+            throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
+        }
+    }
+
+    public void deleteStagingLoadHistoryTable(Dataset dataset, String flightId) {
+        try {
+            deleteDatasetTable(dataset, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId);
+        } catch (Exception ex) {
+            throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
         }
     }
 

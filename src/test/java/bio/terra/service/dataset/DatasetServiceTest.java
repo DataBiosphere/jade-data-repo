@@ -12,7 +12,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
@@ -61,7 +61,7 @@ public class DatasetServiceTest {
     private JobService jobService;
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     @Autowired
     private ConnectedOperations connectedOperations;
@@ -96,7 +96,7 @@ public class DatasetServiceTest {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         billingProfile = ProfileFixtures.randomBillingProfile();
         UUID profileId = profileDao.createBillingProfile(billingProfile);
         billingProfile.id(profileId);

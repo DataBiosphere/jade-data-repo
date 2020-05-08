@@ -68,7 +68,7 @@ public class AccessTest extends UsersBase {
 
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private AuthService authService;
-    @Autowired private IamService iamService;
+    @Autowired private IamProviderInterface iamService;
     @Autowired private TestConfiguration testConfiguration;
 
     private String discovererToken;

@@ -10,7 +10,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
@@ -57,10 +57,10 @@ public class OneProjectPerProfileIdSelectorTest {
     private ConnectedOperations connectedOperations;
 
     @MockBean
-    private IamService iamService;
+    private IamProviderInterface iamService;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(iamService);
     }
 

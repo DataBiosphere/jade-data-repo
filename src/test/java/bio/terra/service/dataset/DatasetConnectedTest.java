@@ -16,7 +16,7 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import org.junit.After;
 import org.junit.Before;
@@ -61,7 +61,7 @@ public class DatasetConnectedTest {
     @Autowired private DatasetDao datasetDao;
     @Autowired private ConfigurationService configService;
     @Autowired private ConnectedTestConfiguration testConfig;
-    @MockBean private IamService samService;
+    @MockBean private IamProviderInterface samService;
 
     private BillingProfileModel billingProfile;
 

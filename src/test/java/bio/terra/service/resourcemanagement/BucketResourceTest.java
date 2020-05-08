@@ -5,7 +5,7 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.load.LoadDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
@@ -62,7 +62,7 @@ public class BucketResourceTest {
     @Autowired private GoogleResourceDao resourceDao;
     @Autowired private DataLocationService dataLocationService;
     @Autowired private ProfileService profileService;
-    @MockBean private IamService samService;
+    @MockBean private IamProviderInterface samService;
 
     private BillingProfileModel profile;
     private Storage storage;

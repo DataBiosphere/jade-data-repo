@@ -18,7 +18,7 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -82,7 +82,7 @@ public class BigQueryPdaoTest {
     @Autowired private DataLocationService dataLocationService;
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     private BillingProfileModel profileModel;
     private Storage storage = StorageOptions.getDefaultInstance().getService();

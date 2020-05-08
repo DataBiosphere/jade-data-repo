@@ -7,7 +7,7 @@
       "mode": "byQuery",
       "querySpec": {
         "assetName": "theasset",
-        "query": "SELECT * FROM replaceMe.sample WHERE replaceMe.sample.id = 'string'"
+        "query": "SELECT * FROM replaceMe.sample WHERE replaceMe.sample.id = 'sample6'"
       }
     }
   ]

@@ -65,8 +65,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
             while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
                 loadHistoryArray = loadService.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
                 chunkNum++;
-                // send list plus load_tag to BQ to be put in a temporary table
-                // TODO Perform insert of paged info into staging table
+                // send list plus load_tag, load_time to BQ to be put in a staging table
                 bigQueryPdao.loadHistoryToStagingTable(
                     dataset,
                     flightId,
@@ -74,6 +73,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                     loadTime,
                     loadHistoryArray);
             }
+            // TODO copy from staging to actual BQ table
 
             bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
         } catch (Exception ex) {

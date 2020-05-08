@@ -195,11 +195,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return Schema.of(fieldList);
     }
 
-    private static final String addLoadHistoryToStagingTableTemplate =
+    private static final String insertLoadHistoryToStagingTableTemplate =
         "INSERT INTO `<project>.<dataset>.<stagingTable>`" +
             " (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)" +
-            " VALUES ('<load_tag>', '<load_time>', '<source_name>', '<target_path>', '<file_id>'," +
-            " '<checksum_crc32c>', '<checksum_md5>')";
+            " VALUES <load_history_array:{v|('<loadTag>', '<load_time>', '<v.sourcePath>', '<v.targetPath>'," +
+            " '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>')}; separator=\",\">";
 
     public void loadHistoryToStagingTable(
         Dataset dataset,
@@ -209,21 +209,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
         List<BulkLoadHistoryModel> loadHistoryArray) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
 
-        // TODO load in all items in array. Loading in just first one for POC
-        // TODO Make sure we're doing null checks on the array
-        BulkLoadHistoryModel firstItem = loadHistoryArray.get(0);
-
-        ST sqlTemplate = new ST(addLoadHistoryToStagingTableTemplate);
+        ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
         sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+
+        sqlTemplate.add("load_history_array", loadHistoryArray);
         sqlTemplate.add("load_tag", loadTag);
         sqlTemplate.add("load_time", loadTime);
-        sqlTemplate.add("source_name", firstItem.getSourcePath());
-        sqlTemplate.add("target_path", firstItem.getTargetPath());
-        sqlTemplate.add("file_id", firstItem.getFileId());
-        sqlTemplate.add("checksum_crc32c", firstItem.getChecksumCRC());
-        sqlTemplate.add("checksum_md5", firstItem.getChecksumMD5());
 
         bigQueryProject.query(sqlTemplate.render());
     }

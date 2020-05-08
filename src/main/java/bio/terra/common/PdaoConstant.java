@@ -12,5 +12,5 @@ public final class PdaoConstant {
     public static final String PDAO_INGEST_DATE_COLUMN_ALIAS = PDAO_PREFIX + "ingest_date";
     public static final String PDAO_EXTERNAL_TABLE_PREFIX = PDAO_PREFIX + "ext_";
     public static final String PDAO_LOAD_HISTORY_TABLE = PDAO_PREFIX + "load_history";
-    public static final String PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX = "bulk_results_staging";
+    public static final String PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX = PDAO_LOAD_HISTORY_TABLE + "_staging_";
 }

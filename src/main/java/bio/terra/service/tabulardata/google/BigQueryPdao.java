@@ -7,8 +7,17 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.model.*;
-import bio.terra.service.dataset.*;
+import bio.terra.model.DataDeletionTableModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.SnapshotRequestContentsModel;
+import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.DatasetDataProject;
+import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
 import bio.terra.service.dataset.exception.IngestInterruptedException;
@@ -51,7 +60,11 @@ import org.springframework.stereotype.Component;
 import org.stringtemplate.v4.ST;
 
 import java.time.Instant;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -509,8 +522,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .map(tableId -> Acl.of(new Acl.View(tableId)))
             .collect(Collectors.toList());
     }
-
-
 
     // Load data
     public PdaoLoadStatistics loadToStagingTable(Dataset dataset,

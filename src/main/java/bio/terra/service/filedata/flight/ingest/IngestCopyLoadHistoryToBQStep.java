@@ -24,6 +24,9 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     private final String datasetIdString;
     private final BigQueryPdao bigQueryPdao;
 
+    // Number of files written to staging load history table at a time
+    private final int chunkSize = 1000;
+
     public IngestCopyLoadHistoryToBQStep(LoadService loadService,
                                          DatasetService datasetService,
                                          String loadTag,
@@ -44,17 +47,6 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         UUID datasetId = UUID.fromString(datasetIdString);
         Dataset dataset = datasetService.retrieve(datasetId);
 
-        // for load tag, get files in chunk out of postgres table
-        // Want this info:
-        // load_tag - have this here!
-        // load_time - this will just be on the BQ side of things
-        // source_name
-        // target_path
-        // file_id
-        // checksum_crc32c
-        // checksum_md5
-
-        int chunkSize = 1000;
         int chunkNum = 0;
         List<BulkLoadHistoryModel> loadHistoryArray = null;
         String flightId = context.getFlightId();
@@ -79,7 +71,6 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         } catch (Exception ex) {
             logger.error("Failure deleting load history staging table for flight: " + flightId, ex);
         }
-
 
         return StepResult.getStepResultSuccess();
     }

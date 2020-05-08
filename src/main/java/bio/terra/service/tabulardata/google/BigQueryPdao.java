@@ -61,7 +61,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 
 @Component
 @Profile("google")
@@ -149,12 +149,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
             String datasetName = prefixName(dataset.getName());
 
-            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId)) {
-                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId);
+            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId)) {
+                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
             }
 
             bigQueryProject.createTable(
-                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId, buildLoadDatasetSchema());
+                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId, buildLoadDatasetSchema());
         } catch (Exception ex) {
             throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
         }
@@ -162,7 +162,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void deleteStagingLoadHistoryTable(Dataset dataset, String flightId) {
         try {
-            deleteDatasetTable(dataset, PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId);
+            deleteDatasetTable(dataset, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
         } catch (Exception ex) {
             throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
         }
@@ -216,7 +216,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         ST sqlTemplate = new ST(addLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId);
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
         sqlTemplate.add("load_tag", loadTag);
         sqlTemplate.add("load_time", loadTime);
         sqlTemplate.add("source_name", firstItem.getSourcePath());

@@ -10,6 +10,7 @@ import bio.terra.stairway.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,6 +43,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         UUID loadId = UUID.fromString(loadIdString);
         UUID datasetId = UUID.fromString(datasetIdString);
         Dataset dataset = datasetService.retrieve(datasetId);
+
         // for load tag, get files in chunk out of postgres table
         // Want this info:
         // load_tag - have this here!
@@ -57,6 +59,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         List<BulkLoadHistoryModel> loadHistoryArray = null;
         String flightId = context.getFlightId();
         try {
+            Instant loadTime = context.getStairway().getFlightState(context.getFlightId()).getSubmitted();
             bigQueryPdao.createStagingLoadHistoryTable(dataset, flightId);
 
             while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
@@ -64,6 +67,12 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                 chunkNum++;
                 // send list plus load_tag to BQ to be put in a temporary table
                 // TODO Perform insert of paged info into staging table
+                bigQueryPdao.loadHistoryToStagingTable(
+                    dataset,
+                    flightId,
+                    loadTag,
+                    loadTime,
+                    loadHistoryArray);
             }
 
             bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);

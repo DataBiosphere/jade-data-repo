@@ -7,10 +7,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
-import bio.terra.model.DataDeletionTableModel;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.model.SnapshotRequestContentsModel;
-import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.*;
 import bio.terra.service.dataset.*;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
@@ -169,6 +166,66 @@ public class BigQueryPdao implements PrimaryDataAccess {
         } catch (Exception ex) {
             throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
         }
+    }
+
+    private Schema buildLoadDatasetSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("load_time",  LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+
+        return Schema.of(fieldList);
+    }
+
+    private static final String addLoadHistoryToStagingTableTemplate =
+        "INSERT INTO `<project>.<dataset>.<stagingTable>`" +
+            " (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)" +
+            " VALUES ('<load_tag>', '<load_time>', '<source_name>', '<target_path>', '<file_id>'," +
+            " '<checksum_crc32c>', '<checksum_md5>')";
+
+    public void loadHistoryToStagingTable(
+        Dataset dataset,
+        String flightId,
+        String loadTag,
+        Instant loadTime,
+        List<BulkLoadHistoryModel> loadHistoryArray) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        // TODO load in all items in array. Loading in just first one for POC
+        // TODO Make sure we're doing null checks on the array
+        BulkLoadHistoryModel firstItem = loadHistoryArray.get(0);
+
+        ST sqlTemplate = new ST(addLoadHistoryToStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREIX + flightId);
+        sqlTemplate.add("load_tag", loadTag);
+        sqlTemplate.add("load_time", loadTime);
+        sqlTemplate.add("source_name", firstItem.getSourcePath());
+        sqlTemplate.add("target_path", firstItem.getTargetPath());
+        sqlTemplate.add("file_id", firstItem.getFileId());
+        sqlTemplate.add("checksum_crc32c", firstItem.getChecksumCRC());
+        sqlTemplate.add("checksum_md5", firstItem.getChecksumMD5());
+
+        bigQueryProject.query(sqlTemplate.render());
     }
 
     @Override
@@ -437,6 +494,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .collect(Collectors.toList());
     }
 
+
+
     // Load data
     public PdaoLoadStatistics loadToStagingTable(Dataset dataset,
                                                  DatasetTable targetTable,
@@ -654,33 +713,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public String prefixName(String name) {
         return PDAO_PREFIX + name;
-    }
-
-    private Schema buildLoadDatasetSchema() {
-        List<Field> fieldList = new ArrayList<>();
-        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("load_time", LegacySQLTypeName.TIMESTAMP)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-
-        return Schema.of(fieldList);
     }
 
     private Schema buildSoftDeletesSchema() {

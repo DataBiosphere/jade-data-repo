@@ -18,7 +18,7 @@ import bio.terra.service.dataset.DatasetJsonConversion;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.DatasetUtils;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -50,11 +50,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertThat;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +57,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
@@ -86,7 +82,7 @@ public class BigQueryPdaoTest {
     @Autowired private DataLocationService dataLocationService;
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     private BillingProfileModel profileModel;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
@@ -145,7 +141,7 @@ public class BigQueryPdaoTest {
             loadTableExists,
             equalTo(shouldExist));
 
-            for (String name : Arrays.asList("participant", "sample", "file")) {
+        for (String name : Arrays.asList("participant", "sample", "file")) {
             DatasetTable table = getTable(dataset, name);
             for (String t : Arrays.asList(table.getName(), table.getRawTableName(), table.getSoftDeleteTableName())) {
                 assertThat(

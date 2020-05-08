@@ -32,7 +32,7 @@ class SamRetry {
         this.operationTimeout = now().plusSeconds(operationTimeoutSeconds);
     }
 
-    <T> T perform(SamFunction<T> function) {
+    <T> T perform(SamFunction<T> function) throws InterruptedException {
         while (true) {
             try {
                 // Simulate a socket timeout for testing
@@ -59,13 +59,8 @@ class SamRetry {
             }
 
             // Retry
-            try {
-                logger.info("SamRetry: sleeping " + retrySeconds + " seconds");
-                TimeUnit.SECONDS.sleep(retrySeconds);
-            } catch (InterruptedException iex) {
-                Thread.currentThread().interrupt();
-                throw new IamInternalServerErrorException("SamIam operation was interrupted");
-            }
+            logger.info("SamRetry: sleeping " + retrySeconds + " seconds");
+            TimeUnit.SECONDS.sleep(retrySeconds);
 
             retrySeconds = retrySeconds + retrySeconds;
             if (retrySeconds > retryMaxWait) {

@@ -3,14 +3,13 @@ package bio.terra.service.dataset.flight.create;
 import bio.terra.common.exception.NotFoundException;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.DatasetModel;
-import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.iam.IamService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -24,19 +23,19 @@ import java.util.UUID;
 public class CreateDatasetAuthzResource implements Step {
     private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
 
-    private IamService sam;
+    private IamProviderInterface iamClient;
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetService;
     private AuthenticatedUserRequest userReq;
     private GoogleResourceService resourceService;
 
     public CreateDatasetAuthzResource(
-        IamService sam,
+        IamProviderInterface iamClient,
         BigQueryPdao bigQueryPdao,
         DatasetService datasetService,
         AuthenticatedUserRequest userReq,
         GoogleResourceService resourceService) {
-        this.sam = sam;
+        this.iamClient = iamClient;
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.userReq = userReq;
@@ -48,7 +47,7 @@ public class CreateDatasetAuthzResource implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         Dataset dataset = datasetService.retrieve(datasetId);
-        List<String> policyEmails = sam.createDatasetResource(userReq, datasetId);
+        List<String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
         bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails);
         DatasetModel datasetModel = datasetService.retrieveModel(dataset);
         resourceService.grantPoliciesBqJobUser(datasetModel, policyEmails);
@@ -57,11 +56,11 @@ public class CreateDatasetAuthzResource implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         try {
-            sam.deleteDatasetResource(userReq, datasetId);
+            iamClient.deleteDatasetResource(userReq, datasetId);
         } catch (UnauthorizedException ex) {
             // suppress exception
             logger.error("NEEDS CLEANUP: delete sam resource for dataset " + datasetId.toString(), ex);

@@ -17,7 +17,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsId;
 import bio.terra.service.filedata.DrsIdService;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
@@ -95,7 +95,7 @@ public class EncodeFileTest {
     private static final String ID_GARBAGE = "GARBAGE";
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     private BillingProfileModel profileModel;
     private Storage storage = StorageOptions.getDefaultInstance().getService();

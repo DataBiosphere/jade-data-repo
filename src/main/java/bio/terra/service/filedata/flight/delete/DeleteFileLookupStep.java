@@ -2,14 +2,13 @@ package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.exception.FileDependencyException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.filedata.exception.FileDependencyException;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -42,19 +41,14 @@ public class DeleteFileLookupStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         if (configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
-            try {
-                logger.info("FILE_DELETE_LOCK_CONFLICT_STOP_FAULT");
-                while (!configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                    logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(5);
-                }
-                logger.info("FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
-            } catch (InterruptedException intEx) {
-                Thread.currentThread().interrupt();
-                throw new DatasetLockException("Unexpected interrupt during file delete lock fault", intEx);
+            logger.info("FILE_DELETE_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
             }
+            logger.info("FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
         }
 
         try {

@@ -221,6 +221,29 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sqlTemplate.render());
     }
 
+    private static final String mergeLoadHistoryStagingTableTemplate =
+        "MERGE `<project>.<dataset>.<loadTable>` L" +
+            " USING `<project>.<dataset>.<stagingTable>` S" +
+            " ON S.load_tag = L.load_tag AND S.load_time = L.load_time" +
+                " AND S.file_id = L.file_id" +
+            " WHEN NOT MATCHED THEN" +
+                " INSERT (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)" +
+                " VALUES (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)";
+
+    public void mergeStagingLoadHistoryTable(
+        Dataset dataset,
+        String flightId) {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        ST sqlTemplate = new ST(mergeLoadHistoryStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+        sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+
+        bigQueryProject.query(sqlTemplate.render());
+    }
+
     @Override
     public boolean deleteDataset(Dataset dataset) {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);

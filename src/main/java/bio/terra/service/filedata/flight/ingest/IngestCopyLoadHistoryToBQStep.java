@@ -73,8 +73,8 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                     loadTime,
                     loadHistoryArray);
             }
-            // TODO copy from staging to actual BQ table
-
+            // copy from staging to actual BQ table
+            bigQueryPdao.mergeStagingLoadHistoryTable(dataset, flightId);
             bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
         } catch (Exception ex) {
             logger.error("Failure deleting load history staging table for flight: " + flightId, ex);

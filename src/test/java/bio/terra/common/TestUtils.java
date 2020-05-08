@@ -89,7 +89,6 @@ public final class TestUtils {
     public static BigQueryProject bigQueryProjectForDatasetName(DatasetDao datasetDao,
                                                                 DataLocationService dataLocationService,
                                                                 String datasetName) throws InterruptedException {
-
         Dataset dataset = datasetDao.retrieveByName(datasetName);
         DatasetDataProject dataProject = dataLocationService.getOrCreateProject(dataset);
         return BigQueryProject.get(dataProject.getGoogleProjectId());

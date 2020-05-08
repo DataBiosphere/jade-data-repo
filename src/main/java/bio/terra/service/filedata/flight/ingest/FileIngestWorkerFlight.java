@@ -9,7 +9,6 @@ import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
-import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
@@ -37,7 +36,6 @@ public class FileIngestWorkerFlight extends Flight {
         FileService fileService = (FileService)appContext.getBean("fileService");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService)appContext.getBean("datasetService");
-        DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
@@ -46,8 +44,6 @@ public class FileIngestWorkerFlight extends Flight {
         Dataset dataset = datasetService.retrieve(datasetId);
 
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff createBucketRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
         // 1. Generate the new file id and store it in the working map. We need to allocate the file id before any
@@ -57,17 +53,13 @@ public class FileIngestWorkerFlight extends Flight {
         //    no entry in the file collection, indicates that the file is being ingested (or deleted) and so REST API
         //    lookups will not reveal that it exists. We make the directory entry first, because that atomic operation
         //    prevents a second ingest with the same path from getting created.
-        // 3. Locate the bucket where this file should go and store it in the working map. We need to make the
-        //    decision about where we will put the file and remember it persistently in the working map before
-        //    we copy the file in. That allows the copy undo to know the location to look at to delete the file.
-        // 4. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the working map.
-        // 5. Create the file entry in the filesystem. The file object takes the gspath, checksum, size, and create
+        // 3. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the working map.
+        // 4. Create the file entry in the filesystem. The file object takes the gspath, checksum, size, and create
         //    time of the actual file in GCS. That ensures that the file info we return on REST API (and DRS) lookups
         //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
-        addStep(new IngestFileIdStep());
+        addStep(new IngestFileIdStep(configService));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
-        addStep(new IngestFilePrimaryDataLocationStep(fileDao, dataset, locationService), createBucketRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
     }

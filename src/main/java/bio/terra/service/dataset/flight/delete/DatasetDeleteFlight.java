@@ -44,7 +44,7 @@ public class DatasetDeleteFlight extends Flight {
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
-        addStep(new LockDatasetStep(datasetDao, datasetId, true));
+        addStep(new LockDatasetStep(datasetDao, datasetId, false, true));
         addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
         addStep(new DeleteDatasetPrimaryDataStep(
             bigQueryPdao,
@@ -55,6 +55,6 @@ public class DatasetDeleteFlight extends Flight {
             configService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId));
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false));
     }
 }

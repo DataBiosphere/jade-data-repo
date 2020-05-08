@@ -53,7 +53,7 @@ public class CreateExternalTablesStep implements Step {
 
         validateTablesExistInDataset(dataDeletionRequest, dataset);
 
-        for (DataDeletionTableModel table :dataDeletionRequest.getTables()) {
+        for (DataDeletionTableModel table : dataDeletionRequest.getTables()) {
             String path = table.getGcsFileSpec().getPath();
             // let any exception here trigger an undo, no use trying to continue
             bigQueryPdao.createSoftDeleteExternalTable(dataset, path, table.getTableName(), suffix);

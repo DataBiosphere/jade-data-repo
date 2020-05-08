@@ -50,6 +50,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.stringtemplate.v4.ST;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.junit.Assert.assertThat;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,7 +120,7 @@ public class BigQueryPdaoTest {
         Dataset dataset = DatasetUtils.convertRequestWithGeneratedNames(datasetRequest);
         String createFlightId = UUID.randomUUID().toString();
         datasetDao.createAndLock(dataset, createFlightId);
-        datasetDao.unlock(dataset.getId(), createFlightId);
+        datasetDao.unlockExclusive(dataset.getId(), createFlightId);
         dataLocationService.getOrCreateProject(dataset);
         return dataset;
     }
@@ -132,6 +137,12 @@ public class BigQueryPdaoTest {
         assertThat(
             String.format("Dataset: %s, exists", dataset.getName()),
             datasetExists,
+            equalTo(shouldExist));
+
+        boolean loadTableExists = bigQueryPdao.tableExists(dataset, PDAO_LOAD_HISTORY_TABLE);
+        assertThat(
+            String.format("Load Table: %s, exists", PDAO_LOAD_HISTORY_TABLE),
+            loadTableExists,
             equalTo(shouldExist));
 
         for (String name : Arrays.asList("participant", "sample", "file")) {

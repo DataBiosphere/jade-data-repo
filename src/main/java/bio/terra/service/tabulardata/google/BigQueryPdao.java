@@ -144,9 +144,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
     }
 
-    public void createStagingLoadHistoryTable(Dataset dataset, String flightId) {
+    public void createStagingLoadHistoryTable(Dataset dataset, String flightId) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         try {
-            BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
             String datasetName = prefixName(dataset.getName());
 
             if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId)) {

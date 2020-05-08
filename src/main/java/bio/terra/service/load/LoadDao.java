@@ -293,12 +293,6 @@ public class LoadDao {
             });
     }
 
-    //Want these column types:
-    // source_name
-    // target_path
-    // file_id
-    // checksum_crc32c
-    // checksum_md5
     public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
         final String sql = "SELECT source_path, target_path, file_id, checksum_crc32c, checksum_md5" +
             " FROM load_file WHERE load_id = :load_id" +

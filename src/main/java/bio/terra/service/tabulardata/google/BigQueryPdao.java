@@ -187,7 +187,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .setMode(Field.Mode.REQUIRED)
             .build());
         fieldList.add(Field.newBuilder("load_time",  LegacySQLTypeName.TIMESTAMP)
-            .setMode(Field.Mode.NULLABLE)
+            .setMode(Field.Mode.REQUIRED)
             .build());
         fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
             .setMode(Field.Mode.REQUIRED)
@@ -199,10 +199,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
             .setMode(Field.Mode.REQUIRED)
             .build());
         fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.NULLABLE)
+            .setMode(Field.Mode.REQUIRED)
             .build());
         fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.NULLABLE)
+            .setMode(Field.Mode.REQUIRED)
             .build());
 
         return Schema.of(fieldList);

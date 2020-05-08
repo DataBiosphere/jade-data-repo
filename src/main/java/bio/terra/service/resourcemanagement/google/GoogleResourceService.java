@@ -3,7 +3,6 @@ package bio.terra.service.resourcemanagement.google;
 import bio.terra.model.DatasetModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.filedata.google.gcs.GcsProject;
 import bio.terra.service.filedata.google.gcs.GcsProjectFactory;
 import bio.terra.service.resourcemanagement.BillingProfile;
@@ -241,7 +240,9 @@ public class GoogleResourceService {
     }
 
     // Step 1 of creating a new bucket - create and lock the metadata record
-    private GoogleBucketResource createMetadataRecord(GoogleBucketRequest bucketRequest, String flightId) {
+    private GoogleBucketResource createMetadataRecord(GoogleBucketRequest bucketRequest, String flightId)
+        throws InterruptedException {
+
         // insert a new bucket_resource row and lock it
         GoogleBucketResource googleBucketResource = resourceDao.createAndLockBucket(bucketRequest, flightId);
         if (googleBucketResource == null) {
@@ -394,7 +395,9 @@ public class GoogleResourceService {
         return newProject(projectRequest, googleProjectId);
     }
 
-    public void grantPoliciesBqJobUser(DatasetModel datasetModel, List<String> policyEmails) throws InterruptedException {
+    public void grantPoliciesBqJobUser(DatasetModel datasetModel, List<String> policyEmails)
+        throws InterruptedException {
+
         Map<String, List<String>> policyMap = new HashMap<>();
         List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
         policyMap.put(BQ_JOB_USER_ROLE, emails);
@@ -529,7 +532,9 @@ public class GoogleResourceService {
     private static final int MAX_WAIT_SECONDS = 30;
     private static final int INITIAL_WAIT_SECONDS = 2;
 
-    public void enableIamPermissions(Map<String, List<String>> userPermissions, String projectId) throws InterruptedException {
+    public void enableIamPermissions(Map<String, List<String>> userPermissions, String projectId)
+        throws InterruptedException {
+
         GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
 
         Exception lastException = null;

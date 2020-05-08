@@ -2,14 +2,13 @@ package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.exception.FileDependencyException;
 import bio.terra.service.filedata.exception.FileSystemAbortTransactionException;
+import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.filedata.exception.FileDependencyException;
-import bio.terra.service.filedata.flight.FileMapKeys;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;

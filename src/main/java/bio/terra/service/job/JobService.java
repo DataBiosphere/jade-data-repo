@@ -14,6 +14,7 @@ import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
+import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
@@ -38,20 +39,21 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 @Component
 public class JobService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
-    private static final int MIN_SHUTDOWN_TIMEOUT = 12;
+    private static final int MIN_SHUTDOWN_TIMEOUT = 14;
+    private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
 
-    private Stairway stairway;
+    private final Stairway stairway;
     private final IamService samService;
     private final ApplicationConfiguration appConfig;
     private final StairwayJdbcConfiguration stairwayJdbcConfiguration;
     private final MigrateConfiguration migrateConfiguration;
-    private final AtomicBoolean isShutdown;
+    private final KubeService kubeService;
+    private final JobShutdownState jobShutdownState;
 
     @Autowired
     public JobService(IamService samService,
@@ -59,12 +61,15 @@ public class JobService {
                       StairwayJdbcConfiguration stairwayJdbcConfiguration,
                       MigrateConfiguration migrateConfiguration,
                       ApplicationContext applicationContext,
+                      KubeService kubeService,
+                      JobShutdownState jobShutdownState,
                       ObjectMapper objectMapper) {
         this.samService = samService;
         this.appConfig = appConfig;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.isShutdown = new AtomicBoolean(false);
+        this.kubeService = kubeService;
+        this.jobShutdownState = jobShutdownState;
 
         logger.info("Creating Stairway: maxStairwayThreads = " + appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
@@ -81,11 +86,11 @@ public class JobService {
      */
     public boolean shutdown() throws InterruptedException {
         logger.info("JobService received shutdown request");
-        if (isShutdown.get()) {
+        if (jobShutdownState.isShutdown()) {
             logger.warn("Ignoring duplicate shutdown request");
             return true; // allow this to be success
         }
-        isShutdown.set(true);
+        jobShutdownState.setShutdown();
 
         // We enforce a minimum shutdown time. Otherwise, there is no point in trying the shutdown.
         // We allocate 3/4 of the time for graceful shutdown. Then call terminate for the rest of the time.
@@ -94,6 +99,9 @@ public class JobService {
             logger.warn("Shutdown timeout of " + shutdownTimeout + "is too small. Setting to " + MIN_SHUTDOWN_TIMEOUT);
             shutdownTimeout = MIN_SHUTDOWN_TIMEOUT;
         }
+
+        kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
+        shutdownTimeout = shutdownTimeout - POD_LISTENER_SHUTDOWN_TIMEOUT;
 
         int gracefulTimeout = (shutdownTimeout * 3) / 4;
         int terminateTimeout = (shutdownTimeout - gracefulTimeout) - 2;
@@ -140,7 +148,7 @@ public class JobService {
     // submit a new job to stairway
     // protected method intended to be called only from JobBuilder
     protected String submit(Class<? extends Flight> flightClass, FlightMap parameterMap) {
-        if (isShutdown.get()) {
+        if (jobShutdownState.isShutdown()) {
             throw new JobServiceShutdownException("Job service is shut down. Cannot accept a flight");
         }
 
@@ -187,6 +195,8 @@ public class JobService {
             stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
                 migrateConfiguration.getDropAllOnStart(),
                 migrateConfiguration.getUpdateAllOnStart());
+
+            kubeService.startPodListener();
 
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException("Stairway initialization failed", stairwayEx);

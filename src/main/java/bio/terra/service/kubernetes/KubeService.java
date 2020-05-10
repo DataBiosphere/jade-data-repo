@@ -1,6 +1,7 @@
 package bio.terra.service.kubernetes;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.service.job.JobShutdownState;
 import bio.terra.service.kubernetes.exception.KubeApiException;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.kubernetes.client.openapi.ApiClient;
@@ -22,6 +23,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+
+import static bio.terra.service.kubernetes.KubeConstants.API_POD_FILTER;
+import static bio.terra.service.kubernetes.KubeConstants.KUBE_NAMESPACE_FILE;
 
 /**
  * KubeService provides access to the Kubernetes environment from within DRmanager.
@@ -32,18 +37,21 @@ import java.util.List;
 @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
 public class KubeService {
     private static final Logger logger = LoggerFactory.getLogger(KubeService.class);
-    private static final String KUBE_DIR = "/var/run/secrets/kubernetes.io/serviceaccount";
-    private static final String API_POD_FILTER = "datarepo-api";
 
     private final ApplicationConfiguration appConfig;
+    private final JobShutdownState jobShutdownState;
     private final String podName;
     private final String namespace;
     private final boolean inKubernetes;
 
+    private KubePodListener podListener;
+    private Thread podListenerThread;
+
     @Autowired
-    public KubeService(ApplicationConfiguration appConfig) {
+    public KubeService(ApplicationConfiguration appConfig, JobShutdownState jobShutdownState) {
         this.appConfig = appConfig;
-        this.namespace = readFileIntoString(KUBE_DIR + "/namespace");
+        this.jobShutdownState = jobShutdownState;
+        this.namespace = readFileIntoString(KUBE_NAMESPACE_FILE);
         this.podName = appConfig.getPodName();
         this.inKubernetes = appConfig.isInKubernetes();
 
@@ -63,9 +71,7 @@ public class KubeService {
 
         List<String> podList = new ArrayList<>();
         try {
-            ApiClient client = ClientBuilder.cluster().build();
-            Configuration.setDefaultApiClient(client);
-            CoreV1Api api = new CoreV1Api();
+            CoreV1Api api = makeCoreApi();
 
             V1PodList list = api.listNamespacedPod(namespace, null, null, null, null, null, null, null, null, null);
             for (V1Pod item : list.getItems()) {
@@ -75,8 +81,48 @@ public class KubeService {
                 }
             }
             return podList;
-        } catch (ApiException | IOException ex) {
+        } catch (ApiException ex) {
             throw new KubeApiException("Error listing pods", ex);
+        }
+    }
+
+    /**
+     * Launch the pod listener thread.
+     */
+    public void startPodListener() {
+        if (inKubernetes) {
+            podListener = new KubePodListener(jobShutdownState, namespace, podName);
+            podListenerThread = new Thread(podListener);
+            podListenerThread.start();
+        }
+    }
+
+    /**
+     * Stop the pod listener thread within a given time span.
+     * @param timeUnit unit of the joinWait
+     * @param joinWait number of units to wait for the listener thread to stop
+     * @return true if the thread joined in the time span. False otherwise.
+     */
+    public boolean stopPodListener(TimeUnit timeUnit, long joinWait) {
+        if (inKubernetes) {
+            podListenerThread.interrupt();
+            long waitMillis = timeUnit.toMillis(joinWait);
+            try {
+                podListenerThread.join(waitMillis);
+            } catch (InterruptedException ex) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    CoreV1Api makeCoreApi() {
+        try {
+            ApiClient client = ClientBuilder.cluster().build();
+            Configuration.setDefaultApiClient(client);
+            return new CoreV1Api();
+        } catch (IOException ex) {
+            throw new KubeApiException("Error making core API", ex);
         }
     }
 

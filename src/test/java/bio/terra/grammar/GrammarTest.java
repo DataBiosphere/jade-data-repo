@@ -1,6 +1,7 @@
 package bio.terra.grammar;
 
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.category.Unit;
 import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.grammar.exception.MissingDatasetException;
@@ -10,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,7 +27,10 @@ public class GrammarTest {
     @Before
     public void setup() {
         DatasetModel datasetModel = new DatasetModel().dataProject("a-data-project");
-        datasetMap = Collections.singletonMap("dataset", datasetModel);
+        datasetMap = new HashMap<>();
+        datasetMap.put("dataset", datasetModel);
+        datasetMap.put("foo", datasetModel);
+        datasetMap.put("baz", datasetModel);
     }
 
 
@@ -43,13 +47,21 @@ public class GrammarTest {
     public void testTableNames() {
         Query query = Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
         List<String> tableNames = query.getTableNames();
-        assertThat("there are three columns", tableNames.size(), equalTo(2));
+        assertThat("there are two tables", tableNames.size(), equalTo(2));
         assertThat("it found the right tables", tableNames, hasItems("bar", "quux"));
     }
 
     @Test
     public void testColumnNames() {
         Query query = Query.parse("SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+    }
+
+    @Test
+    public void testColumnNamesOrder() {
+        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
         List<String> columnNames = query.getColumnNames();
         assertThat("there are three columns", columnNames.size(), equalTo(3));
         assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
@@ -64,20 +76,63 @@ public class GrammarTest {
     @Test
     public void testBqTranslate() {
         BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
-        Query query = Query.parse("SELECT * FROM dataset.table WHERE dataset.table.x = 'string'");
+        String bqDatasetName = PdaoConstant.PDAO_PREFIX + "dataset";
+        String tableName = "table";
+        String explicitTableName = String
+            .join(".", datasetMap.get("dataset").getDataProject() ,bqDatasetName, tableName);
+        Query query = Query
+            .parse("SELECT dataset.table.datarepo_row_id FROM dataset.table WHERE dataset.table.x = 'string'");
         String translated = query.translateSql(bqVisitor);
+        String aliasedTableName = bqVisitor.generateAlias(bqDatasetName, tableName);
         assertThat("query translates to valid bigquery syntax", translated,
-            equalTo("SELECT * FROM `a-data-project.dataset.table` WHERE `a-data-project.dataset.table.x` = 'string'"));
+            equalTo("SELECT `" + aliasedTableName + "`.datarepo_row_id FROM `" + explicitTableName + "` " +
+                "AS `" + aliasedTableName + "` WHERE `" + aliasedTableName + "`.x = 'string'"));
     }
 
-    // test missing key
+    @Test
+    public void testBqTranslateTwoTables() {
+        BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+        String bqDataset1Name = PdaoConstant.PDAO_PREFIX + "foo";
+        String bqDataset2Name = PdaoConstant.PDAO_PREFIX + "baz";
+        String table1Name = "bar";
+        String table2Name = "quux";
+        String explicitTable1Name = String
+            .join(".", datasetMap.get("foo").getDataProject(), bqDataset1Name, table1Name);
+        String explicitTable2Name = String
+            .join(".", datasetMap.get("baz").getDataProject(), bqDataset2Name, table2Name);
+        Query query = Query
+            .parse("SELECT foo.bar.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+        String translated = query.translateSql(bqVisitor);
+        String aliasedTable1Name = bqVisitor.generateAlias(bqDataset1Name, table1Name);
+        String aliasedTable2Name = bqVisitor.generateAlias(bqDataset2Name, table2Name);
+        assertThat("query translates to valid bigquery syntax", translated,
+            equalTo("SELECT `" + aliasedTable1Name + "`.datarepo_row_id " +
+                "FROM `" + explicitTable1Name + "` AS `" + aliasedTable1Name + "` ," +
+                " `" + explicitTable2Name + "` AS `" + aliasedTable2Name + "` " +
+                "WHERE `" + aliasedTable1Name + "`.x = `" + aliasedTable2Name + "`.y"));
+    }
 
     @Test
-    public void testAliasedColumn() {
-        //Query query = Query.parse("SELECT * FROM dataset.table A WHERE A.col = 'foo'");
-        //BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
-        // String translated = query.translateSql(bqVisitor);
-        // TODO the rest of this test
+    public void testBqTranslateTwoTablesOrdered() {
+        BigQueryVisitor bqVisitor = new BigQueryVisitor(datasetMap);
+        String bqDataset1Name = PdaoConstant.PDAO_PREFIX + "foo";
+        String bqDataset2Name = PdaoConstant.PDAO_PREFIX + "baz";
+        String table1Name = "bar";
+        String table2Name = "quux";
+        String explicitTable1Name = String
+            .join(".", datasetMap.get("foo").getDataProject(), bqDataset1Name, table1Name);
+        String explicitTable2Name = String
+            .join(".", datasetMap.get("baz").getDataProject(), bqDataset2Name, table2Name);
+        Query query = Query
+            .parse("SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE foo.bar.x = baz.quux.y");
+        String translated = query.translateSql(bqVisitor);
+        String aliasedTable1Name = bqVisitor.generateAlias(bqDataset1Name, table1Name);
+        String aliasedTable2Name = bqVisitor.generateAlias(bqDataset2Name, table2Name);
+        assertThat("query translates to valid bigquery syntax", translated,
+            equalTo("SELECT `" + aliasedTable2Name + "`.datarepo_row_id " +
+                "FROM `" + explicitTable1Name + "` AS `" + aliasedTable1Name + "` ," +
+                " `" + explicitTable2Name + "` AS `" + aliasedTable2Name + "` " +
+                "WHERE `" + aliasedTable1Name + "`.x = `" + aliasedTable2Name + "`.y"));
     }
 
     @Test(expected = InvalidQueryException.class)

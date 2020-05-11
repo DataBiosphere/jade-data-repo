@@ -15,7 +15,7 @@ public class BigQueryVisitor extends DatasetAwareVisitor {
         super(datasetMap);
     }
 
-    private String generateAlias(String datasetName, String tableName) {
+    public String generateAlias(String datasetName, String tableName) {
         int datasetNameHash = datasetName.hashCode();
         int tableNameHash = tableName.hashCode();
         // there's less of a chance of collision if we multiply the first value by an odd prime before we sum them

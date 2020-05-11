@@ -51,9 +51,13 @@ public class KubeService {
     public KubeService(ApplicationConfiguration appConfig, JobShutdownState jobShutdownState) {
         this.appConfig = appConfig;
         this.jobShutdownState = jobShutdownState;
-        this.namespace = readFileIntoString(KUBE_NAMESPACE_FILE);
         this.podName = appConfig.getPodName();
         this.inKubernetes = appConfig.isInKubernetes();
+        if (inKubernetes) {
+            this.namespace = readFileIntoString(KUBE_NAMESPACE_FILE);
+        } else {
+            this.namespace = "none";
+        }
 
         logger.info("Kubernetes configuration: inKube: " + inKubernetes +
             "; namespace: " + namespace +

@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -379,7 +380,7 @@ public class GoogleResourceService {
             logger.info("no project resource found for projectId: {}", googleProjectId);
         }
 
-        // it's possible that the project exists already but it is not stored in the metadata table
+        // It's possible that the project exists already but it is not stored in the metadata table
         // TODO: ensure that the ownership, read/write perms are correct!
         Project existingProject = getProject(googleProjectId);
         if (existingProject != null) {
@@ -387,6 +388,13 @@ public class GoogleResourceService {
                 .googleProjectId(googleProjectId)
                 .googleProjectNumber(existingProject.getProjectNumber().toString());
             enableServices(googleProjectResource);
+            // HACK for DR-977: we overload the allowReuseExistingBuckets flag to control
+            // cleaning old policies from the IamPermissions.
+            // TODO: figure out a better cleanup path
+            if (getAllowReuseExistingBuckets()) {
+                cleanIamPermissions(googleProjectId);
+            }
+
             enableIamPermissions(googleProjectResource.getRoleIdentityMapping(), googleProjectId);
             UUID id = resourceDao.createProject(googleProjectResource);
             return googleProjectResource.repositoryId(id);
@@ -553,14 +561,79 @@ public class GoogleResourceService {
                     bindingsList.add(binding);
                 }
 
-                // DEBUG logging for DR-977.
-                logger.info("Project: " + projectId + " - dumping proposed iam policy binding list. Size: "
+                // DEBUG logging for DR-977 and the next one that comes along...
+                logger.debug("Project: " + projectId + " - dumping proposed iam policy binding list. Size: "
                     + bindingsList.size());
                 int count = 0;
                 for (Binding binding : bindingsList) {
-                    logger.info(" binding[" + count + "]: " + binding.getRole());
+                    logger.debug(" binding[" + count + "]: " + binding.getRole());
                     for (String member : binding.getMembers()) {
-                        logger.info("   member: " + member);
+                        logger.debug("   member: " + member);
+                    }
+                    count++;
+                }
+
+                policy.setBindings(bindingsList);
+                SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
+                resourceManager.projects()
+                    .setIamPolicy(projectId, setIamPolicyRequest).execute();
+                return;
+            } catch (IOException | GeneralSecurityException ex) {
+                logger.info("Failed to enable iam permissions. Retry " + i + " of " + RETRIES, ex);
+                lastException = ex;
+            }
+
+            TimeUnit.SECONDS.sleep(retryWait);
+            retryWait = retryWait + retryWait;
+            if (retryWait > MAX_WAIT_SECONDS) {
+                retryWait = MAX_WAIT_SECONDS;
+            }
+        }
+        throw new EnablePermissionsFailedException("Cannot enable iam permissions", lastException);
+    }
+
+    // HACK for DR-977
+    public void cleanIamPermissions(String projectId) throws InterruptedException {
+        GetIamPolicyRequest getIamPolicyRequest = new GetIamPolicyRequest();
+
+        Exception lastException = null;
+        int retryWait = INITIAL_WAIT_SECONDS;
+        for (int i = 0; i < RETRIES; i++) {
+            try {
+                CloudResourceManager resourceManager = cloudResourceManager();
+                Policy policy = resourceManager.projects()
+                    .getIamPolicy(projectId, getIamPolicyRequest).execute();
+                List<Binding> bindingsList = policy.getBindings();
+                List<Binding> newList = new LinkedList<>();
+
+                for (Binding binding : bindingsList) {
+                    if (StringUtils.equals(binding.getRole(), "roles/bigquery.jobUser")) {
+                        List<String> members = binding.getMembers();
+                        List<String> newMembers = new LinkedList<>();
+
+                        // Do not include stale SAM policies
+                        for (String member: members) {
+                            if (!StringUtils.startsWith(member, "group:policy-")) {
+                                newMembers.add(member);
+                            }
+                        }
+                        Binding newBinding = new Binding()
+                            .setRole(binding.getRole())
+                            .setMembers(newMembers);
+                        newList.add(newBinding);
+                    } else {
+                        newList.add(binding);
+                    }
+                }
+
+                // DEBUG logging for DR-977 and the next one that comes along...
+                logger.debug("Project: " + projectId + " - cleaned proposed iam policy binding list. Size: "
+                    + bindingsList.size());
+                int count = 0;
+                for (Binding binding : bindingsList) {
+                    logger.debug(" binding[" + count + "]: " + binding.getRole());
+                    for (String member : binding.getMembers()) {
+                        logger.debug("   member: " + member);
                     }
                     count++;
                 }

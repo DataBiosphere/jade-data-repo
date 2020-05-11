@@ -553,6 +553,18 @@ public class GoogleResourceService {
                     bindingsList.add(binding);
                 }
 
+                // DEBUG logging for DR-977.
+                logger.info("Project: " + projectId + " - dumping proposed iam policy binding list. Size: "
+                    + bindingsList.size());
+                int count = 0;
+                for (Binding binding : bindingsList) {
+                    logger.info(" binding[" + count + "]: " + binding.getRole());
+                    for (String member : binding.getMembers()) {
+                        logger.info("   member: " + member);
+                    }
+                    count++;
+                }
+
                 policy.setBindings(bindingsList);
                 SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
                 resourceManager.projects()

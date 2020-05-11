@@ -294,7 +294,7 @@ public class LoadDao {
     }
 
     public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
-        final String sql = "SELECT source_path, target_path, file_id, checksum_crc32c, checksum_md5" +
+        final String sql = "SELECT source_path, target_path, state, file_id, checksum_crc32c, checksum_md5, error" +
             " FROM load_file WHERE load_id = :load_id" +
             " ORDER BY file_id" +
             " LIMIT :chunk_size OFFSET :chunk_num";
@@ -309,9 +309,11 @@ public class LoadDao {
                 return new BulkLoadHistoryModel()
                     .sourcePath(rs.getString("source_path"))
                     .targetPath(rs.getString("target_path"))
+                    .state(BulkLoadFileState.fromValue(rs.getString("state")))
                     .fileId(rs.getString("file_id"))
                     .checksumCRC(rs.getString("checksum_crc32c"))
-                    .checksumMD5(rs.getString("checksum_md5"));
+                    .checksumMD5(rs.getString("checksum_md5"))
+                    .error(rs.getString("error"));
             });
     }
 

@@ -195,14 +195,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
         fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
             .setMode(Field.Mode.REQUIRED)
             .build());
-        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
+        fieldList.add(Field.newBuilder("state", LegacySQLTypeName.STRING)
             .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
             .build());
         fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
+            .setMode(Field.Mode.NULLABLE)
             .build());
         fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("error", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
             .build());
 
         return Schema.of(fieldList);
@@ -210,9 +216,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private static final String insertLoadHistoryToStagingTableTemplate =
         "INSERT INTO `<project>.<dataset>.<stagingTable>`" +
-            " (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)" +
+            " (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error)" +
             " VALUES <load_history_array:{v|('<loadTag>', '<load_time>', '<v.sourcePath>', '<v.targetPath>'," +
-            " '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>')}; separator=\",\">";
+            " '<v.state>', '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>', '<v.error>')}; separator=\",\">";
 
     public void loadHistoryToStagingTable(
         Dataset dataset,
@@ -240,8 +246,10 @@ public class BigQueryPdao implements PrimaryDataAccess {
             " ON S.load_tag = L.load_tag AND S.load_time = L.load_time" +
                 " AND S.file_id = L.file_id" +
             " WHEN NOT MATCHED THEN" +
-                " INSERT (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)" +
-                " VALUES (load_tag, load_time, source_name, target_path, file_id, checksum_crc32c, checksum_md5)";
+                " INSERT (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c," +
+                    " checksum_md5, error)" +
+                " VALUES (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c," +
+                    " checksum_md5, error)";
 
     public void mergeStagingLoadHistoryTable(
         Dataset dataset,

@@ -87,7 +87,7 @@ public class KubePodListener implements Runnable {
                             Boolean deletedPod = podMap.get(podName);
                             if (deletedPod != null && !deletedPod) {
                                 logger.info("Deleted api pod: " + podName);
-                                podMap.remove(podName);
+                                podMap.put(podName, false);
                             }
                         }
                     }

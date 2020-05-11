@@ -7,7 +7,7 @@
       "mode": "byQuery",
       "querySpec": {
         "assetName": "theasset",
-        "query": "SELECT replaceMe.sample.datarepo_row_id FROM replaceMe.sample WHERE replaceMe.sample.id = 'sample6'"
+        "query": "SELECT snapshot_test_dataset.thetable.datarepo_row_id FROM snapshot_test_dataset.thetable WHERE snapshot_test_dataset.thetable.thecolumn = 'Rori'"
       }
     }
   ]

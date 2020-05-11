@@ -219,7 +219,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String flightId,
         String loadTag,
         Instant loadTime,
-        List<BulkLoadHistoryModel> loadHistoryArray) {
+        List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
 
         ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
@@ -245,7 +245,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void mergeStagingLoadHistoryTable(
         Dataset dataset,
-        String flightId) {
+        String flightId) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
 
         ST sqlTemplate = new ST(mergeLoadHistoryStagingTableTemplate);

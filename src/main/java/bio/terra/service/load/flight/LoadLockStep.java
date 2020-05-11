@@ -19,7 +19,7 @@ public class LoadLockStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         String loadTag = loadService.getLoadTag(context);
         UUID loadId = loadService.lockLoad(loadTag, context.getFlightId());
         FlightMap workingMap = context.getWorkingMap();

@@ -188,7 +188,7 @@ public class LoadDaoUnitTest {
         loadDao.unlockLoad(loadTag, flightY);
     }
 
-    private boolean tryLockLoad(String loadTag, String flightId) {
+    private boolean tryLockLoad(String loadTag, String flightId) throws InterruptedException {
         try {
             loadDao.lockLoad(loadTag, flightId);
             return true;
@@ -233,7 +233,7 @@ public class LoadDaoUnitTest {
         assertThat("right number of not_tried", candidates.getCandidateFiles().size(), equalTo(notTried));
     }
 
-    private UUID populateFiles(int n) {
+    private UUID populateFiles(int n) throws InterruptedException {
         Load load = loadDao.lockLoad(LoadTagsUsedByTest.LOADTAG_MY.getTag(), FlightIdsUsedByTest.FLIGHT_MY.getId());
         loadIdsWithFilesUsedByTest.add(load.getId()); // add load id to test class list, for cleanup afterwards
 

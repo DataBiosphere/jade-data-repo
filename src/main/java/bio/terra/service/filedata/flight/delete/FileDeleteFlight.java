@@ -1,8 +1,12 @@
 package bio.terra.service.filedata.flight.delete;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.dataset.flight.LockDatasetStep;
+import bio.terra.service.dataset.flight.UnlockDatasetStep;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
@@ -25,9 +29,11 @@ public class FileDeleteFlight extends Flight {
         FireStoreDependencyDao dependencyDao = (FireStoreDependencyDao)appContext.getBean("fireStoreDependencyDao");
         GcsPdao gcsPdao = (GcsPdao)appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        DatasetDao datasetDao = (DatasetDao) appContext.getBean("datasetDao");
         DataLocationService locationService = (DataLocationService) appContext.getBean("dataLocationService");
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
+        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
 
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String fileId = inputParameters.get(JobMapKeys.FILE_ID.getKeyName(), String.class);
@@ -41,6 +47,8 @@ public class FileDeleteFlight extends Flight {
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
+        // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this
+        //    flight is running.
         // 1. Lookup file and store the file data in the flight map. Check dependencies to make sure that the
         //    delete is allowed. We do the lookup and store so that we have all of the file information, since
         //    once we start deleting things, we can't look it up again!
@@ -49,10 +57,12 @@ public class FileDeleteFlight extends Flight {
         // 4. Delete the directory entry
         // This flight updates GCS and firestore in exactly the reverse order of create, so no new
         // data structure states are introduced by this flight.
-        addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao), fileSystemRetry);
+        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
+        addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService), fileSystemRetry);
         addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
         addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
     }
 
 }

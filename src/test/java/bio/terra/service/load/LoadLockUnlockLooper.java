@@ -26,6 +26,8 @@ public class LoadLockUnlockLooper implements Runnable {
                 i++;
             } catch (LoadLockedException ex) {
                 conflicts++;
+            } catch (InterruptedException ex) {
+                return;
             }
         }
     }

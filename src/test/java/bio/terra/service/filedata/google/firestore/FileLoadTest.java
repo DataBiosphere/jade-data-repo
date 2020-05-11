@@ -17,7 +17,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -73,7 +73,7 @@ public class FileLoadTest {
     private ConfigurationService configService;
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     @SpyBean
     private DataLocationSelector dataLocationSelector;

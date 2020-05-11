@@ -35,7 +35,7 @@ public class DataDeletionStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = getDataset(context, datasetService);
         String suffix = getSuffix(context);
         DataDeletionRequest dataDeletionRequest = getRequest(context);

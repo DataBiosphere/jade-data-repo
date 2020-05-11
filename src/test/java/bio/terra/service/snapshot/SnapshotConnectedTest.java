@@ -19,7 +19,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -100,7 +100,7 @@ public class SnapshotConnectedTest {
     @Autowired private ConfigurationService configService;
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     private String snapshotOriginalName;
     private BillingProfileModel billingProfile;

@@ -31,7 +31,7 @@ public class IngestValidateRefsStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         Table table = IngestUtils.getDatasetTable(context, dataset);
         String stagingTableName = IngestUtils.getStagingTableName(context);

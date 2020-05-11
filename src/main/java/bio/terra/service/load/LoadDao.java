@@ -77,7 +77,7 @@ public class LoadDao {
      * @return Load object including the load id
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public Load lockLoad(String loadTag, String flightId) {
+    public Load lockLoad(String loadTag, String flightId) throws InterruptedException {
         jdbcTemplate.getJdbcTemplate().execute("LOCK TABLE load IN EXCLUSIVE MODE");
 
         String upsert = "INSERT INTO load (load_tag, locked, locking_flight_id)" +

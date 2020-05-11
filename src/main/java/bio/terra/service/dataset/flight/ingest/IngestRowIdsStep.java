@@ -17,7 +17,7 @@ public class IngestRowIdsStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         String stagingTableName = IngestUtils.getStagingTableName(context);
         bigQueryPdao.addRowIdsToStagingTable(dataset, stagingTableName);

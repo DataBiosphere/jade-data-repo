@@ -141,12 +141,10 @@ public final class BigQueryProject {
         }
     }
 
-    public TableResult query(String sql) {
+    public TableResult query(String sql) throws InterruptedException {
         try {
             QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
             return bigQuery.query(queryConfig);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException("Query unexpectedly interrupted", e);
         } catch (BigQueryException e) {
             throw new PdaoException("Failure executing query...\n" + sql, e);
         }

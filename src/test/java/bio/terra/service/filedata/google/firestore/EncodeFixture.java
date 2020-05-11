@@ -92,7 +92,7 @@ public class EncodeFixture {
         SnapshotSummaryModel snapshotSummary = dataRepoFixtures.createSnapshot(
             custodian, datasetSummary, "encodefiletest-snapshot.json");
 
-        // TODO: Fix use of IamService - see DR-494
+        // TODO: Fix use of IamProviderInterface - see DR-494
         dataRepoFixtures.addSnapshotPolicyMember(
             custodian,
             snapshotSummary.getId(),

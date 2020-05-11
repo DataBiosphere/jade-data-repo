@@ -29,7 +29,7 @@ public class LoadService {
         this.loadDao = loadDao;
     }
 
-    public UUID lockLoad(String loadTag, String flightId) {
+    public UUID lockLoad(String loadTag, String flightId) throws InterruptedException {
         Load load = loadDao.lockLoad(loadTag, flightId);
         return load.getId();
     }

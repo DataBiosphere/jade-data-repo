@@ -148,7 +148,8 @@ public class GoogleResourceDao {
      * This method expects that there is exactly one row matching the provided name and project id.
      * @param bucketRequest
      * @return a reference to the bucket as a POJO GoogleBucketResource or null if not found
-     * @throws GoogleResourceException if there is not exactly one matching row
+     * @throws GoogleResourceException if the bucket matches, but is in the wrong project
+     * @throws CorruptMetadataException if multiple buckets have the same name
      */
     public GoogleBucketResource getBucket(GoogleBucketRequest bucketRequest) {
         String bucketName = bucketRequest.getBucketName();

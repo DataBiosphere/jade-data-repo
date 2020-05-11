@@ -3,7 +3,6 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.model.FileLoadModel;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
@@ -153,14 +152,9 @@ public class IngestDriverStep implements Step {
         }
     }
 
-    private void waiting() {
+    private void waiting() throws InterruptedException {
         logger.debug("Waiting for file loads to complete...");
-        try {
-            TimeUnit.SECONDS.sleep(driverWaitSeconds);
-        } catch (InterruptedException iex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("Bulk ingest driver interruped!", iex);
-        }
+        TimeUnit.SECONDS.sleep(driverWaitSeconds);
     }
 
     private void checkForOrphans(FlightContext context, UUID loadId)

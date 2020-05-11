@@ -23,7 +23,7 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.sam.SamConfiguration;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -100,7 +100,7 @@ public class ConnectedOperations {
         createdScratchFiles = new ArrayList<>();
     }
 
-    public void stubOutSamCalls(IamService samService) {
+    public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
         when(samService.createSnapshotResource(any(), any(), any())).thenReturn("hi@hi.com");
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.createDatasetResource(any(), any())).thenReturn(
@@ -315,7 +315,7 @@ public class ConnectedOperations {
         }
     }
 
-    private void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
+    public void checkDeleteResponse(MockHttpServletResponse response) throws Exception {
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
         if (status.is2xxSuccessful()) {
             DeleteResponseModel responseModel =
@@ -530,6 +530,19 @@ public class ConnectedOperations {
     public void addFile(String datasetId, String fileId) {
         String[] createdFile = new String[]{datasetId, fileId};
         createdFileIds.add(createdFile);
+    }
+
+    public void removeFile(String datasetId, String fileId) {
+        String[] fileToRemove = null;
+        for (String[] fileInfo : createdFileIds) {
+            if (datasetId.equals(fileInfo[0]) && fileId.equals(fileInfo[1])) {
+                fileToRemove = fileInfo;
+                break;
+            }
+        }
+        if (fileToRemove != null) {
+            createdFileIds.remove(fileToRemove);
+        }
     }
 
     public void addBucket(String bucketName) {

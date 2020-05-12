@@ -553,6 +553,8 @@ public class GoogleResourceService {
                     bindingsList.add(binding);
                 }
 
+                logger.info("Project: " + projectId + " policy list size: " + bindingsList.size());
+
                 policy.setBindings(bindingsList);
                 SetIamPolicyRequest setIamPolicyRequest = new SetIamPolicyRequest().setPolicy(policy);
                 resourceManager.projects()

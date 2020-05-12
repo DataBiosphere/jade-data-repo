@@ -7,6 +7,7 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.grammar.exception.InvalidQueryException;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -14,6 +15,7 @@ import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
@@ -29,6 +31,7 @@ import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
+import bio.terra.service.snapshot.exception.MismatchedValueException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -72,6 +75,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 
 @Component
 @Profile("google")
@@ -685,6 +689,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return Schema.of(fieldList);
     }
 
+    private Schema tempTableSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
+        return Schema.of(fieldList);
+    }
+
     private Schema rowIdTableSchema() {
         List<Field> fieldList = new ArrayList<>();
         fieldList.add(Field.of(PDAO_TABLE_ID_COLUMN, LegacySQLTypeName.STRING));
@@ -827,6 +837,104 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    // insert the rowIds into the snapshot row ids table and then kick off the rest of the relationship walking
+    // once we have the row ids in addition to the asset spec, this should look familiar to wAsset
+    public void queryForRowIds(AssetSpecification assetSpecification,
+                               Snapshot snapshot,
+                               String sqlQuery) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        String snapshotName = snapshot.getName();
+        Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
+        String datasetBqDatasetName = prefixName(dataset.getName());
+        String projectId = bigQueryProject.getProjectId();
+        // TODO add additional validation that the col is the root col
+
+        // create snapshot bq dataset
+        try {
+            // Idempotency: delete possibly partial create
+            if (bigQueryProject.datasetExists(snapshotName)) {
+                bigQueryProject.deleteDataset(snapshotName);
+            }
+
+            bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+            // now create a temp table with all the selected row ids based on the query in it
+            bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
+                .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
+                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                .build();
+            try {
+                final TableResult query = bigQuery.query(queryConfig);
+                // get results and validate that it got back more than 0 value
+                if (query.getTotalRows() < 1) {
+                    // should this be a different error?
+                    throw new InvalidQueryException("Query returned 0 results");
+                }
+
+            } catch (InterruptedException ie) {
+                throw new PdaoException("Append query unexpectedly interrupted", ie);
+            }
+
+            // join on the root table to validate that the dataset's rootTable.rowid is never null
+            // and thus matches the PDAO_ROW_ID_COLUMN
+            AssetTable rootAssetTable = assetSpecification.getRootTable();
+            Table rootTable = rootAssetTable.getTable();
+            String datasetTableName = rootTable.getName();
+            String rootTableId = rootTable.getId().toString();
+
+            ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+            sqlTemplate.add("snapshotDatasetName", snapshotName);
+            sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
+            sqlTemplate.add("datasetTable", datasetTableName);
+            sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
+
+            TableResult result = bigQueryProject.query(sqlTemplate.render());
+            FieldValueList mismatchedCount = result.getValues().iterator().next();
+            Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
+            if (mismatchedCountLong > 0) {
+                throw new MismatchedValueException("Query results did not match dataset root row ids");
+            }
+
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+            // populate root row ids. Must happen before the relationship walk.
+            // NOTE: when we have multiple sources, we can put this into a loop
+
+
+            // insert into the PDAO_ROW_ID_TABLE the literal that is the table id
+            // and then all the row ids from the temp table
+            ST sqlLoadTemplate = new ST(loadRootRowIdsFromTempTableTemplate);
+            sqlLoadTemplate.add("project", projectId);
+            sqlLoadTemplate.add("snapshot", snapshotName);
+            sqlLoadTemplate.add("dataset", datasetBqDatasetName);
+            sqlLoadTemplate.add("tableId", rootTableId);
+            sqlLoadTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN); // this is the disc from classic asset
+            sqlLoadTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            bigQueryProject.query(sqlLoadTemplate.render());
+
+            //ST sqlValidateTemplate = new ST(validateRowIdsForRootTemplate);
+            // TODO do we want to reuse this validation? if yes, maybe mismatchedCount / query should be updated
+
+            // walk and populate relationship table row ids
+            List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpecification);
+            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+
+            // create the views
+            List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+
+            // set authorization on views
+            List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
+            bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+        } catch (PdaoException ex) {
+            // TODO What if the select list doesn't match the temp table schema?
+            // TODO what if the query is invalid? Seems like there might be more to catch here.
+            throw new PdaoException("createSnapshot failed", ex);
+        }
+    }
+
+
     // NOTE: this will have to be re-written when we support relationships that include
     // more than one column.
     private static final String storeRowIdsForRelatedTableTemplate =
@@ -853,6 +961,18 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final String matchCrossArraysTemplate =
         "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from " +
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
+
+    private static final String joinTablesToTestForMissingRowIds =
+        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> " +
+            "LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
+            "WHERE <datasetTable>.<commonColumn> IS NULL";
+
+    private static final String loadRootRowIdsFromTempTableTemplate =
+        "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
+            "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
+            "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
+            "SELECT <commonColumn> AS row_id FROM `<snapshot>.<tempTable>` " +
+            ") AS T";
 
     /**
      * Given a relationship, join from the start table to the target table.

@@ -68,7 +68,10 @@ public class UnauthenticatedApiController implements UnauthenticatedApi {
     @Override
     public ResponseEntity<Void> shutdownRequest() {
         try {
-            jobService.shutdown();
+            if (!jobService.shutdown()) {
+                // Shutdown did not complete. Return an error so the caller knows that
+                return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         } catch (InterruptedException ex) {
             return new ResponseEntity<>(HttpStatus.SERVICE_UNAVAILABLE);
         }

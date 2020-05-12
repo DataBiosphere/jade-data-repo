@@ -65,6 +65,17 @@ public class ApplicationConfiguration {
     private int loadFilePopulateBatchSize;
 
     /**
+     * Name of the Kubernetes pod we are running in. If we are not in a pod, this defaults to
+     * a constant string in application properties.
+     */
+    private String podName;
+
+    /**
+     * Used to denote that we are running in the Kubernetes environment. This should NOT be changed
+     * in application.properties. It should only be reset by the Kubernetes deployment.
+     */
+    private boolean inKubernetes;
+    /**
      * Pod shutdown timeout
      * TODO: better to have this passed in as an envvar from the K8s configuration so it is in sync.
      *  For getting started, we use this timeout setting.
@@ -173,6 +184,22 @@ public class ApplicationConfiguration {
 
     public void setShutdownTimeoutSeconds(int shutdownTimeoutSeconds) {
         this.shutdownTimeoutSeconds = shutdownTimeoutSeconds;
+    }
+
+    public String getPodName() {
+        return podName;
+    }
+
+    public void setPodName(String podName) {
+        this.podName = podName;
+    }
+
+    public boolean isInKubernetes() {
+        return inKubernetes;
+    }
+
+    public void setInKubernetes(boolean inKubernetes) {
+        this.inKubernetes = inKubernetes;
     }
 
     @Bean("jdbcTemplate")

@@ -2,6 +2,7 @@ package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.grammar.Query;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -9,12 +10,17 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 
 import java.util.List;
+import java.util.Optional;
+
+import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 
 public class CreateSnapshotValidateQueryStep implements Step {
 
+    private DatasetService datasetService;
     private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotValidateQueryStep(SnapshotRequestModel snapshotReq) {
+    public CreateSnapshotValidateQueryStep(DatasetService datasetService, SnapshotRequestModel snapshotReq) {
+        this.datasetService = datasetService;
         this.snapshotReq = snapshotReq;
     }
 
@@ -31,9 +37,6 @@ public class CreateSnapshotValidateQueryStep implements Step {
         */
         String snapshotQuery = snapshotReq.getContents().get(0).getQuerySpec().getQuery();
         Query query = Query.parse(snapshotQuery);
-        // TODO do I want to get the dataset by name? this will throw DatasetNotFoundException
-        //String datasetName = datasetNames.get(0);
-        //Dataset dataset = datasetService.retrieveByName(datasetName);
         List<String> datasetNames = query.getDatasetNames();
         if (datasetNames.isEmpty()) {
             String message = String.format("Snapshots much be associated with at least one dataset");
@@ -48,6 +51,9 @@ public class CreateSnapshotValidateQueryStep implements Step {
             String message = String.format("Snapshots can currently only be associated with one dataset");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
+        // Get the dataset by name to ensure the dataset exists
+        String datasetName = datasetNames.get(0);
+        datasetService.retrieveByName(datasetName); // if not found, will throw a DatasetNotFoundException
 
         List<String> tableNames = query.getTableNames();
         if (tableNames.isEmpty()) {
@@ -61,10 +67,13 @@ public class CreateSnapshotValidateQueryStep implements Step {
             String message = String.format("Snapshots much be associated with at least one column");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
         }
-
+        Optional<String> rowId = columnNames.stream().filter(PDAO_ROW_ID_COLUMN::equals).findFirst();
+        if (!rowId.isPresent()) {
+            String message = String.format("Query must include a row_id column");
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, new MismatchedValueException(message));
+        }
 
         // TODO test this in an integration test
-
         return StepResult.getStepResultSuccess();
     }
 

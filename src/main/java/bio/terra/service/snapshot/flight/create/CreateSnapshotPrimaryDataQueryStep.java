@@ -79,7 +79,7 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
         String sqlQuery = query.translateSql(bqVisitor);
 
         // validate that the root table is actually a table being queried in the query -->
-        // TODO specifically validate that it's in the FROM clause
+        // and the grammar only picks up tables names in the from clause (though there may be more than one)
         List<String> tableNames = query.getTableNames();
         String rootTablename = assetSpec.getRootTable().getTable().getName();
         if (!tableNames.contains(rootTablename)) {

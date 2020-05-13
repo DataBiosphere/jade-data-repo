@@ -61,6 +61,8 @@ import java.net.URI;
 import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
+import static bio.terra.common.TestUtils.bigQueryProjectForDatasetName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -148,6 +150,10 @@ public class FileOperationTest {
     private static String testDescription = "test file description";
     private static String testMimeType = "application/pdf";
     private static String testPdfFile = "File Design Notes.pdf";
+
+    public String prefixName(String name) {
+        return PDAO_PREFIX + name;
+    }
 
     @Test
     public void fileOperationsTest() throws Exception {
@@ -289,14 +295,15 @@ public class FileOperationTest {
 
     // Get the count of rows in a table or view
     private List<String> queryForIds() throws Exception {
-        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetSummary.getName());
+        String datasetName = prefixName(datasetSummary.getName());
+        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetName);
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         ST sqlTemplate = new ST(queryForIdsTemplate);
         sqlTemplate.add("project", bigQueryProjectId);
-        sqlTemplate.add("dataset", datasetSummary.getName());
+        sqlTemplate.add("dataset", datasetName);
         sqlTemplate.add("table", PDAO_LOAD_HISTORY_TABLE);
 
         QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();

@@ -259,7 +259,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         Dataset dataset,
         String flightId) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
-
+        // TODO: Need to check if Load history table exists in the dataset
+        // TODO: Additionally, need to check if the state and error columns exist. If not, need to recreate the table?
         ST sqlTemplate = new ST(mergeLoadHistoryStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));

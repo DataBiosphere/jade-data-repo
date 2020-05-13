@@ -25,7 +25,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     private final BigQueryPdao bigQueryPdao;
 
     // Number of files written to staging load history table at a time
-    private final int chunkSize = 1000;
+    private static int chunkSize = 1000;
 
     public IngestCopyLoadHistoryToBQStep(LoadService loadService,
                                          DatasetService datasetService,

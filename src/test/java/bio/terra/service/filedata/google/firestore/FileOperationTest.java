@@ -30,6 +30,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.cloud.bigquery.BigQuery;
@@ -102,6 +103,8 @@ public class FileOperationTest {
     private DatasetDao datasetDao;
     @Autowired
     private DataLocationService dataLocationService;
+    @Autowired
+    private BigQueryPdao bigQueryPdao;
 
     @MockBean
     private IamProviderInterface samService;
@@ -150,10 +153,6 @@ public class FileOperationTest {
     private static String testDescription = "test file description";
     private static String testMimeType = "application/pdf";
     private static String testPdfFile = "File Design Notes.pdf";
-
-    public String prefixName(String name) {
-        return PDAO_PREFIX + name;
-    }
 
     @Test
     public void fileOperationsTest() throws Exception {
@@ -295,9 +294,9 @@ public class FileOperationTest {
 
     // Get the count of rows in a table or view
     private List<String> queryForIds() throws Exception {
-        String datasetName = prefixName(datasetSummary.getName());
+        String datasetName = bigQueryPdao.prefixName(datasetSummary.getName());
         BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetName);
+            datasetDao, dataLocationService, datasetSummary.getName());
         String bigQueryProjectId = bigQueryProject.getProjectId();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 

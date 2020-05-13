@@ -55,7 +55,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
             bigQueryPdao.createStagingLoadHistoryTable(dataset, flightId);
 
             while (loadHistoryArray == null || loadHistoryArray.size() == fileChunkSize) {
-                loadHistoryArray = loadService.makeLoadHistoryArray(loadId, fileChunkSize, chunkNum);
+                loadHistoryArray = loadService.makeLoadHistoryArray(loadId, fileChunkSize, (chunkNum*fileChunkSize));
                 chunkNum++;
                 // send list plus load_tag, load_time to BQ to be put in a staging table
                 bigQueryPdao.loadHistoryToStagingTable(

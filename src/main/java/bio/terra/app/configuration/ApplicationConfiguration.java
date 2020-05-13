@@ -56,7 +56,7 @@ public class ApplicationConfiguration {
     /**
      * Number of files for the bulk file load to load file metadata into staging table
      */
-    private int fileChunkSize;
+    private int loadHistoryCopyChunkSize;
 
     /**
      * Number of badly formed lines in a bulk load input file to return in the error details of
@@ -167,12 +167,12 @@ public class ApplicationConfiguration {
         this.loadDriverWaitSeconds = loadDriverWaitSeconds;
     }
 
-    public int getFileChunkSize() {
-        return fileChunkSize;
+    public int getLoadHistoryCopyChunkSize() {
+        return loadHistoryCopyChunkSize;
     }
 
-    public void setFileChunkSize(int fileChunkSize) {
-        this.fileChunkSize = fileChunkSize;
+    public void setLoadHistoryCopyChunkSize(int loadHistoryCopyChunkSize) {
+        this.loadHistoryCopyChunkSize = loadHistoryCopyChunkSize;
     }
 
     public int getMaxBadLoadFileLineErrorsReported() {

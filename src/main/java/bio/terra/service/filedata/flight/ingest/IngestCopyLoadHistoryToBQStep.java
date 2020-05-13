@@ -23,14 +23,14 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     private final String loadTag;
     private final String datasetIdString;
     private final BigQueryPdao bigQueryPdao;
-    private final Integer fileChunkSize;
+    private final int fileChunkSize;
 
     public IngestCopyLoadHistoryToBQStep(LoadService loadService,
                                          DatasetService datasetService,
                                          String loadTag,
                                          String datasetId,
                                          BigQueryPdao bigQueryPdao,
-                                            Integer fileChunkSize) {
+                                         int fileChunkSize) {
         this.loadService = loadService;
         this.loadTag = loadTag;
         this.datasetIdString = datasetId;

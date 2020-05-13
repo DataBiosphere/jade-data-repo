@@ -285,7 +285,8 @@ public class FileOperationTest {
 
         assertThat("Number of files in datarepo_load_history table match load summary", fileCount, equalTo(ids.size()));
         for (String bq_file_id:ids) {
-            assertNotNull("fileIdMap should contain File_id from datarepo_load_history", fileIdMap.containsValue(bq_file_id));
+            assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
+                fileIdMap.containsValue(bq_file_id));
         }
 
         // retry successful load to make sure it still succeeds and does nothing
@@ -374,17 +375,17 @@ public class FileOperationTest {
         // bulk load file states
         String columnsToQuery = "state, file_id, error";
         TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnsToQuery);
-        for(FieldValueList item:queryLoadHistoryTableResult.getValues()){
+        for (FieldValueList item:queryLoadHistoryTableResult.getValues()) {
             String state = item.get(0).getStringValue();
             assertTrue("state should either be succeeded or failed.",
-                state.equals(BulkLoadFileState.SUCCEEDED.toString()) || state.equals(BulkLoadFileState.FAILED.toString()));
-            if(state.equals(BulkLoadFileState.SUCCEEDED.toString())){
-                assertTrue("file_id should have value",item.get(1).getStringValue().length() > 0);
-                assertTrue("Error column should be empty",item.get(2).getStringValue().length() == 0);
-            }
-            else if(state.equals(BulkLoadFileState.FAILED.toString())){
-                assertTrue("file_id should NOT have value",item.get(1).getStringValue().length() == 0);
-                assertTrue("Error column should have value",item.get(2).getStringValue().length() > 0);
+                state.equals(BulkLoadFileState.SUCCEEDED.toString()) ||
+                    state.equals(BulkLoadFileState.FAILED.toString()));
+            if (state.equals(BulkLoadFileState.SUCCEEDED.toString())) {
+                assertTrue("file_id should have value", item.get(1).getStringValue().length() > 0);
+                assertTrue("Error column should be empty", item.get(2).getStringValue().length() == 0);
+            } else if (state.equals(BulkLoadFileState.FAILED.toString())) {
+                assertTrue("file_id should NOT have value", item.get(1).getStringValue().length() == 0);
+                assertTrue("Error column should have value", item.get(2).getStringValue().length() > 0);
             }
         }
         FieldValueList curr_result;

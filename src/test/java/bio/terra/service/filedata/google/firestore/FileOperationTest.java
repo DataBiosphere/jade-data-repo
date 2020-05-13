@@ -62,7 +62,6 @@ import java.net.URI;
 import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.TestUtils.bigQueryProjectForDatasetName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -276,8 +275,13 @@ public class FileOperationTest {
             checkFileResultSuccess(fileResult);
             fileIdMap.put(fileResult.getTargetPath(), fileResult.getFileId());
         }
-        // DO BIG QUERY HERE! SUCCESS TEST!
+
+        // Query Big Query datarepo_load_history table - should reflect all files loaded above
         List<String> ids = queryForIds();
+        assertThat("Number of files in datarepo_load_history table match load summary", fileCount, equalTo(ids.size()));
+        for (String bq_file_id:ids) {
+            assertNotNull("fileIdMap should contain File_id from datarepo_load_history", fileIdMap.containsValue(bq_file_id));
+        }
 
         // retry successful load to make sure it still succeeds and does nothing
         BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);

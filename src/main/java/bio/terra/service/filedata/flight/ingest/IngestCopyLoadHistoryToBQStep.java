@@ -23,20 +23,20 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     private final String loadTag;
     private final String datasetIdString;
     private final BigQueryPdao bigQueryPdao;
-
-    // Number of files written to staging load history table at a time
-    private static int chunkSize = 1000;
+    private final Integer fileChunkSize;
 
     public IngestCopyLoadHistoryToBQStep(LoadService loadService,
                                          DatasetService datasetService,
                                          String loadTag,
                                          String datasetId,
-                                         BigQueryPdao bigQueryPdao) {
+                                         BigQueryPdao bigQueryPdao,
+                                            Integer fileChunkSize) {
         this.loadService = loadService;
         this.loadTag = loadTag;
         this.datasetIdString = datasetId;
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
+        this.fileChunkSize = fileChunkSize;
     }
 
     @Override
@@ -54,8 +54,8 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
             Instant loadTime = context.getStairway().getFlightState(context.getFlightId()).getSubmitted();
             bigQueryPdao.createStagingLoadHistoryTable(dataset, flightId);
 
-            while (loadHistoryArray == null || loadHistoryArray.size() == chunkSize) {
-                loadHistoryArray = loadService.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
+            while (loadHistoryArray == null || loadHistoryArray.size() == fileChunkSize) {
+                loadHistoryArray = loadService.makeLoadHistoryArray(loadId, fileChunkSize, chunkNum);
                 chunkNum++;
                 // send list plus load_tag, load_time to BQ to be put in a staging table
                 bigQueryPdao.loadHistoryToStagingTable(

@@ -52,6 +52,7 @@ public class FileIngestBulkFlight extends Flight {
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
         int concurrentFiles = inputParameters.get(LoadMapKeys.CONCURRENT_FILES, Integer.class);
         int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
+        int fileChunkSize = inputParameters.get(LoadMapKeys.FILE_CHUNK_SIZE, Integer.class);
         boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
         // TODO: for reserving a bulk load slot:
         //    int concurrentIngests = inputParameters.get(LoadMapKeys.CONCURRENT_INGESTS, Integer.class);
@@ -127,7 +128,8 @@ public class FileIngestBulkFlight extends Flight {
             datasetService,
             loadTag,
             datasetId,
-            bigQueryPdao));
+            bigQueryPdao,
+            fileChunkSize));
         addStep(new IngestCleanFileStateStep(loadService));
         // 9. TODO: release bulk load slot
         addStep(new LoadUnlockStep(loadService));

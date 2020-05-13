@@ -54,6 +54,11 @@ public class ApplicationConfiguration {
     private int loadDriverWaitSeconds;
 
     /**
+     * Number of files for the bulk file load to load file metadata into staging table
+     */
+    private int fileChunkSize;
+
+    /**
      * Number of badly formed lines in a bulk load input file to return in the error details of
      * the error model
      */
@@ -160,6 +165,14 @@ public class ApplicationConfiguration {
 
     public void setLoadDriverWaitSeconds(int loadDriverWaitSeconds) {
         this.loadDriverWaitSeconds = loadDriverWaitSeconds;
+    }
+
+    public int getFileChunkSize() {
+        return fileChunkSize;
+    }
+
+    public void setFileChunkSize(int fileChunkSize) {
+        this.fileChunkSize = fileChunkSize;
     }
 
     public int getMaxBadLoadFileLineErrorsReported() {

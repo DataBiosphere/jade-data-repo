@@ -127,6 +127,8 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
             .addParameter(LoadMapKeys.DRIVER_WAIT_SECONDS,
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
+            .addParameter(LoadMapKeys.FILE_CHUNK_SIZE,
+                configService.getParameterValue(ConfigEnum.FILE_CHUNK_SIZE))
             .submit();
     }
 

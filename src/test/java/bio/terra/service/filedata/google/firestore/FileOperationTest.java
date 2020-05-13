@@ -23,12 +23,18 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
@@ -48,14 +54,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -91,6 +96,10 @@ public class FileOperationTest {
     private ConnectedOperations connectedOperations;
     @Autowired
     private ConfigurationService configService;
+    @Autowired
+    private DatasetDao datasetDao;
+    @Autowired
+    private DataLocationService dataLocationService;
 
     @MockBean
     private IamProviderInterface samService;
@@ -262,6 +271,8 @@ public class FileOperationTest {
             checkFileResultSuccess(fileResult);
             fileIdMap.put(fileResult.getTargetPath(), fileResult.getFileId());
         }
+        // DO BIG QUERY HERE! SUCCESS TEST!
+        List<String> ids = queryForIds();
 
         // retry successful load to make sure it still succeeds and does nothing
         BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
@@ -271,6 +282,30 @@ public class FileOperationTest {
             checkFileResultSuccess(fileResult);
             assertThat("FileId matches", fileResult.getFileId(), equalTo(fileIdMap.get(fileResult.getTargetPath())));
         }
+    }
+
+    private static final String queryForIdsTemplate =
+        "SELECT file_id FROM `<project>.<dataset>.<table>`";
+
+    // Get the count of rows in a table or view
+    private List<String> queryForIds() throws Exception {
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummary.getName());
+        String bigQueryProjectId = bigQueryProject.getProjectId();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        ST sqlTemplate = new ST(queryForIdsTemplate);
+        sqlTemplate.add("project", bigQueryProjectId);
+        sqlTemplate.add("dataset", datasetSummary.getName());
+        sqlTemplate.add("table", PDAO_LOAD_HISTORY_TABLE);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        TableResult result = bigQuery.query(queryConfig);
+
+        ArrayList<String> ids = new ArrayList<>();
+        result.iterateAll().forEach(r -> ids.add(r.get("file_id").getStringValue()));
+
+        return ids;
     }
 
     @Test

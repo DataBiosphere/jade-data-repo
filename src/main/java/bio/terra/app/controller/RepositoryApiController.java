@@ -330,6 +330,7 @@ public class RepositoryApiController implements RepositoryApi {
         AuthenticatedUserRequest userReq = getAuthenticatedInfo();
         List<UUID> snapshotSourceDatasetIds =
             snapshotService.getSourceDatasetIdsFromSnapshotRequest(snapshotRequestModel);
+        // TODO auth should be put into flight?
         List<UUID> unauthorized = getUnauthorizedSources(snapshotSourceDatasetIds, userReq);
         if (unauthorized.isEmpty()) {
             String jobId = snapshotService.createSnapshot(snapshotRequestModel, userReq);

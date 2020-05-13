@@ -5,6 +5,7 @@ import bio.terra.common.category.Unit;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotRequestQueryModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,11 +45,15 @@ public class SnapshotValidationTest {
 
     private SnapshotRequestModel snapshotByRowIdsRequestModel;
 
+    private SnapshotRequestModel snapshotByQueryRequestModel;
+
+
 
     @Before
     public void setup() {
         snapshotByAssetRequest = makeSnapshotAssetRequest();
         snapshotByRowIdsRequestModel = makeSnapshotRowIdsRequest();
+        snapshotByQueryRequestModel = makeSnapshotByQueryRequest();
     }
 
     private void expectBadSnapshotCreateRequest(SnapshotRequestModel snapshotRequest) throws Exception {
@@ -89,6 +94,21 @@ public class SnapshotValidationTest {
             .datasetName("dataset")
             .mode(SnapshotRequestContentsModel.ModeEnum.BYROWID)
             .rowIdSpec(rowIdSpec);
+
+        return new SnapshotRequestModel()
+            .contents(Collections.singletonList(snapshotRequestContentsModel));
+    }
+
+    // Generate a valid snapshot-by-rowId request, we will tweak individual pieces to test validation below
+    public SnapshotRequestModel makeSnapshotByQueryRequest() {
+        SnapshotRequestQueryModel querySpec = new SnapshotRequestQueryModel()
+            .assetName("asset")
+            .query("SELECT * FROM dataset");
+
+        SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
+            .datasetName("dataset")
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
+            .querySpec(querySpec);
 
         return new SnapshotRequestModel()
             .contents(Collections.singletonList(snapshotRequestContentsModel));
@@ -209,6 +229,14 @@ public class SnapshotValidationTest {
         SnapshotRequestRowIdModel rowIdSpec = snapshotByRowIdsRequestModel.getContents().get(0).getRowIdSpec();
         rowIdSpec.getTables().get(0).setRowIds(Collections.emptyList());
         expectBadSnapshotCreateRequest(snapshotByRowIdsRequestModel);
+    }
+
+    @Test
+    public void testSnapshotByQuery() throws Exception {
+        SnapshotRequestModel querySpec = this.snapshotByQueryRequestModel;
+        querySpec.getContents().get(0).getQuerySpec()
+            .setQuery(null);
+        expectBadSnapshotCreateRequest(snapshotByQueryRequestModel);
     }
 
     @Test

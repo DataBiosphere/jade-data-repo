@@ -18,6 +18,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.stairway.exception.StairwayExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -118,7 +119,7 @@ public class IngestDriverStep implements Step {
                 // Wait until some loads complete
                 waitForAny(context, loadId, concurrentFiles, currentRunning);
             }
-        } catch (DatabaseOperationException ex) {
+        } catch (DatabaseOperationException | StairwayExecutionException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
 
@@ -235,7 +236,9 @@ public class IngestDriverStep implements Step {
                              List<LoadFile> loadFiles,
                              String profileId,
                              UUID loadId,
-                             GoogleBucketResource bucketInfo) throws DatabaseOperationException, InterruptedException {
+                             GoogleBucketResource bucketInfo)
+        throws DatabaseOperationException, StairwayExecutionException, InterruptedException {
+
         Stairway stairway = context.getStairway();
 
         for (int i = 0; i < launchCount; i++) {
@@ -260,7 +263,8 @@ public class IngestDriverStep implements Step {
             // table, but it has not yet been launched. A failure in this window leaves "orphan"
             // loads that are marked running, but not actually started. We handle this
             // with the check for launch orphans at the beginning of the do() method.
-            stairway.submit(flightId, FileIngestWorkerFlight.class, inputParameters);
+            // We use submitToQueue to spread the file loaders across multiple instances of datarepo.
+            stairway.submitToQueue(flightId, FileIngestWorkerFlight.class, inputParameters);
         }
     }
 

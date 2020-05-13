@@ -8,6 +8,7 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -23,13 +24,16 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
+    private SnapshotService snapshotService;
     private SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotPrimaryDataRowIdsStep(BigQueryPdao bigQueryPdao,
                                                SnapshotDao snapshotDao,
+                                               SnapshotService snapshotService,
                                                SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
+        this.snapshotService = snapshotService;
         this.snapshotReq = snapshotReq;
     }
 
@@ -61,9 +65,7 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        // Remove any file dependencies created
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        bigQueryPdao.deleteSnapshot(snapshot);
+        snapshotService.undoCreateSnapshot(snapshotReq.getName());
         return StepResult.getStepResultSuccess();
     }
 

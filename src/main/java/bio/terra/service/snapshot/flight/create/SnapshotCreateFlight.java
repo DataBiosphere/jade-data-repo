@@ -49,12 +49,18 @@ public class SnapshotCreateFlight extends Flight {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
         switch (snapshotReq.getContents().get(0).getMode()) {
             case BYASSET:
-                addStep(new CreateSnapshotPrimaryDataAssetStep(
-                    bigQueryPdao, snapshotDao, dependencyDao, datasetService, snapshotReq));
                 addStep(new CreateSnapshotValidateAssetStep(datasetService, snapshotService, snapshotReq));
+                addStep(new CreateSnapshotPrimaryDataAssetStep(
+                    bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
+                break;
+            case BYQUERY:
+                addStep(new CreateSnapshotValidateQueryStep(datasetService, snapshotReq));
+                addStep(new CreateSnapshotPrimaryDataQueryStep(
+                    bigQueryPdao, datasetService, snapshotService, snapshotDao, snapshotReq));
                 break;
             case BYROWID:
-                addStep(new CreateSnapshotPrimaryDataRowIdsStep(bigQueryPdao, snapshotDao, snapshotReq));
+                addStep(new CreateSnapshotPrimaryDataRowIdsStep(
+                    bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
                 break;
             default:
                 throw new InvalidSnapshotException("Snapshot does not have required mode information");

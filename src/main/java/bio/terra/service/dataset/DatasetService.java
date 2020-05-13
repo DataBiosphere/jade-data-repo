@@ -60,6 +60,15 @@ public class DatasetService {
         return datasetDao.retrieve(id);
     }
 
+    /** Fetch existing Dataset object using the name.
+     * @param name
+     * @return a Dataset object
+     */
+    public Dataset retrieveByName(String name) {
+        return datasetDao.retrieveByName(name);
+    }
+
+
     /** Convenience wrapper around fetching an existing Dataset object and converting it to a Model object.
      * Unlike the Dataset object, the Model object includes a reference to the associated cloud project.
      * @param id in UUID formant

@@ -190,4 +190,22 @@ public class SnapshotTest extends UsersBase {
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
+
+    @Test
+    public void snapshotByLiveViewHappyPathTest() throws Exception {
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        String datasetName = dataset.getName();
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot-liveviews.json", SnapshotRequestModel.class);
+        // swap in the correct dataset name (with the id at the end)
+        requestModel.getContents().get(0).setDatasetName(datasetName);
+        SnapshotSummaryModel snapshotSummary =
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
+                datasetSummaryModel,
+                requestModel);
+        TimeUnit.SECONDS.sleep(10);
+        createdSnapshotIds.add(snapshotSummary.getId());
+        SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
+        assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+    }
 }

@@ -210,6 +210,9 @@ public class SnapshotService {
                 snapshotSource.assetSpecification(assetSpecification);
                 conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
                 break;
+            case BYLIVEVIEW:
+                conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+                break;
             case BYQUERY:
                 SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
                 String assetName = queryModel.getAssetName();
@@ -329,6 +332,47 @@ public class SnapshotService {
             if (!requestTableLookup.containsKey(datasetTable.getName())) {
                 continue; // only capture the dataset tables in the request model
             }
+            List<Column> columnList = new ArrayList<>();
+            SnapshotTable snapshotTable = new SnapshotTable()
+                .name(datasetTable.getName())
+                .columns(columnList);
+            tableList.add(snapshotTable);
+            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
+            mapTableList.add(new SnapshotMapTable()
+                .fromTable(datasetTable)
+                .toTable(snapshotTable)
+                .snapshotMapColumns(mapColumnList));
+
+            // for each dataset column specified in the request, create a column in the snapshot with the same name
+            Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
+            datasetTable.getColumns()
+                .stream()
+                .filter(c -> requestColumns.contains(c.getName()))
+                .forEach(datasetColumn -> {
+                    Column snapshotColumn = new Column().name(datasetColumn.getName());
+                    SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
+                        .fromColumn(datasetColumn)
+                        .toColumn(snapshotColumn);
+                    columnList.add(snapshotColumn);
+                    mapColumnList.add(snapshotMapColumn);
+                });
+        }
+    }
+
+    private void conjureSnapshotTablesFromLiveviews(SnapshotRequestRowIdModel requestRowIdModel,
+                                                 Snapshot snapshot,
+                                                 SnapshotSource snapshotSource) {
+        // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
+        List<SnapshotTable> tableList = new ArrayList<>();
+        snapshot.snapshotTables(tableList);
+        List<SnapshotMapTable> mapTableList = new ArrayList<>();
+        snapshotSource.snapshotMapTables(mapTableList);
+        Dataset dataset = snapshotSource.getDataset();
+
+        // for each dataset table specified in the request, create a table in the snapshot with the same name
+        for (DatasetTable datasetTable : dataset.getTables()) {
+
+
             List<Column> columnList = new ArrayList<>();
             SnapshotTable snapshotTable = new SnapshotTable()
                 .name(datasetTable.getName())

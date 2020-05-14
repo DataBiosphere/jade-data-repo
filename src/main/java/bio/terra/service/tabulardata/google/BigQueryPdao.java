@@ -435,6 +435,54 @@ public class BigQueryPdao implements PrimaryDataAccess {
         snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
+    private static final String getAllLiveViewDataTemplate =
+        "INSERT INTO `<project>.<snapshot>.<dataRepoTable>` " +
+            "(<dataRepoTableId>, <dataRepoRowId>) " + // TODO is this line necessary?
+            "SELECT <dataRepoRowId>, '<tableId>' FROM `<project>.<dataset>.<liveView>`";
+
+    public void createSnapshotWithLiveViews(
+        Snapshot snapshot,
+        Dataset dataset) throws InterruptedException {
+
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String projectId = bigQueryProject.getProjectId();
+        String snapshotName = snapshot.getName();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        String datasetBqDatasetName = prefixName(dataset.getName());
+
+        // create snapshot BQ dataset
+        snapshotCreatBQDataset(bigQueryProject, snapshot);
+
+        // create the row id table (row id col and table id col)
+        bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+        // get source dataset table live views
+        List<DatasetTable> tables = dataset.getTables();
+
+        // create a snapshot table based on the live view data row ids
+        for (DatasetTable table : tables) {
+            TableId liveViewId = TableId.of(datasetBqDatasetName, table.getName());
+            String liveViewTableName = liveViewId.getTable();
+            // for each live view, get a list of all included row ids
+
+            ST sqlTemplate = new ST(getAllLiveViewDataTemplate);
+            sqlTemplate.add("project", projectId);
+            sqlTemplate.add("snapshot", snapshotName);
+            sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+            sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
+            sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
+            sqlTemplate.add("tableId", table.getId());
+            sqlTemplate.add("dataset", datasetBqDatasetName);
+            sqlTemplate.add("liveView", liveViewTableName);
+        }
+
+        // TODO there is not enough validation - thought other than dataset existing, not sure what would be ideal
+
+        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+    }
+
+
     public void createSnapshotWithProvidedIds(
         Snapshot snapshot,
         SnapshotRequestContentsModel contentsModel) throws InterruptedException {

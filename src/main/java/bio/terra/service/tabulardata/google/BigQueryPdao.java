@@ -433,6 +433,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
 
         snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+<<<<<<< HEAD
     }
 
     private static final String getAllLiveViewDataTemplate =

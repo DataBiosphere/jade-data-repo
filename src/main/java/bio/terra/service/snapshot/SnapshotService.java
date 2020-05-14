@@ -211,7 +211,7 @@ public class SnapshotService {
                 conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
                 break;
             case BYLIVEVIEW:
-                conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+                //conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
                 break;
             case BYQUERY:
                 SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
@@ -385,18 +385,7 @@ public class SnapshotService {
                 .snapshotMapColumns(mapColumnList));
 
             // for each dataset column specified in the request, create a column in the snapshot with the same name
-            Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
-            datasetTable.getColumns()
-                .stream()
-                .filter(c -> requestColumns.contains(c.getName()))
-                .forEach(datasetColumn -> {
-                    Column snapshotColumn = new Column().name(datasetColumn.getName());
-                    SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
-                        .fromColumn(datasetColumn)
-                        .toColumn(snapshotColumn);
-                    columnList.add(snapshotColumn);
-                    mapColumnList.add(snapshotMapColumn);
-                });
+          //  Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
         }
     }
 

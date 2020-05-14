@@ -323,6 +323,7 @@ public class FileOperationTest {
     @Test
     public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
         int fileCount = 8;
+        int totalfileCount = fileCount * 2;
         BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", 0, fileCount);
         BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", fileCount, fileCount);
         String loadTag1 = arrayLoad1.getLoadTag();
@@ -344,11 +345,26 @@ public class FileOperationTest {
         checkLoadSummary(resultModel1.getLoadSummary(), loadTag1, fileCount, fileCount, 0, 0);
         checkLoadSummary(resultModel2.getLoadSummary(), loadTag2, fileCount, fileCount, 0, 0);
 
+        List<String> fileIds = new ArrayList<>();
         for (BulkLoadFileResultModel fileResult : resultModel1.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
+            fileIds.add(fileResult.getFileId());
         }
         for (BulkLoadFileResultModel fileResult : resultModel2.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
+            fileIds.add(fileResult.getFileId());
+        }
+
+        // Query Big Query datarepo_load_history table - should reflect all files loaded above
+        String columnToQuery = "file_id";
+        TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnToQuery);
+        ArrayList<String> bq_fileIds = new ArrayList<>();
+        queryLoadHistoryTableResult.iterateAll().forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
+
+        assertThat("Number of files in datarepo_load_history table match load summary", totalfileCount , equalTo(bq_fileIds.size()));
+        for (String bq_file_id:bq_fileIds) {
+            assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
+                fileIds.contains(bq_file_id));
         }
     }
 

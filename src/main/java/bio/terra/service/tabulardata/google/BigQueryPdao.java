@@ -235,8 +235,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         Snapshot snapshot,
         String projectId,
         BigQuery bigQuery,
-        BigQueryProject bigQueryProject
-        ) {
+        BigQueryProject bigQueryProject) {
         // create the views
         List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
 
@@ -906,7 +905,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 throw new MismatchedValueException("Query results did not match dataset root row ids");
             }
 
-            // TODO should this be pulled up to the top of the methohd and added to the snapshotCreatBQDataset helper method
+            // TODO should this be pulled up to the top of queryForRowIds() / added to snapshotCreatBQDataset() helper
             bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.

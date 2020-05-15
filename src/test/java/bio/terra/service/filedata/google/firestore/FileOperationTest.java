@@ -428,7 +428,8 @@ public class FileOperationTest {
         String columnToQuery = "file_id";
         TableResult queryLoadHistoryTableResult_final = queryLoadHistoryTable(columnToQuery);
         ArrayList<String> bq_fileIds = new ArrayList<>();
-        queryLoadHistoryTableResult_final.iterateAll().forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
+        queryLoadHistoryTableResult_final.iterateAll()
+            .forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
 
         assertThat("Number of files in datarepo_load_history table match total files loaded",
             bq_fileIds.size(), equalTo(3));

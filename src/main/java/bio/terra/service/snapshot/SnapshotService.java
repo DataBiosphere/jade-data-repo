@@ -211,7 +211,7 @@ public class SnapshotService {
                 conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
                 break;
             case BYLIVEVIEW:
-                //conjureSnapshotTablesFromRowIds(requestRowIdModel, snapshot, snapshotSource);
+                conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
                 break;
             case BYQUERY:
                 SnapshotRequestQueryModel queryModel = requestContents.getQuerySpec();
@@ -359,8 +359,8 @@ public class SnapshotService {
         }
     }
 
-    private void conjureSnapshotTablesFromLiveviews(SnapshotRequestRowIdModel requestRowIdModel,
-                                                 Snapshot snapshot,
+
+    private void conjureSnapshotTablesFromDatasetTables(Snapshot snapshot,
                                                  SnapshotSource snapshotSource) {
         // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
         List<SnapshotTable> tableList = new ArrayList<>();
@@ -371,8 +371,6 @@ public class SnapshotService {
 
         // for each dataset table specified in the request, create a table in the snapshot with the same name
         for (DatasetTable datasetTable : dataset.getTables()) {
-
-
             List<Column> columnList = new ArrayList<>();
             SnapshotTable snapshotTable = new SnapshotTable()
                 .name(datasetTable.getName())
@@ -385,7 +383,16 @@ public class SnapshotService {
                 .snapshotMapColumns(mapColumnList));
 
             // for each dataset column specified in the request, create a column in the snapshot with the same name
-          //  Set<String> requestColumns = new HashSet<>(requestTableLookup.get(datasetTable.getName()).getColumns());
+            datasetTable.getColumns()
+                .stream()
+                .forEach(datasetColumn -> {
+                    Column snapshotColumn = new Column().name(datasetColumn.getName());
+                    SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
+                        .fromColumn(datasetColumn)
+                        .toColumn(snapshotColumn);
+                    columnList.add(snapshotColumn);
+                    mapColumnList.add(snapshotMapColumn);
+                });
         }
     }
 

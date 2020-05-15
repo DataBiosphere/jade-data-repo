@@ -423,6 +423,15 @@ public class FileOperationTest {
         loadArray.set(1, getFileModel(true, 3, testId));
         BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
         checkLoadSummary(result2.getLoadSummary(), loadTag, 3, 3, 0, 0);
+
+        // check that there are only 4 files in the load history table
+        String columnToQuery = "file_id";
+        TableResult queryLoadHistoryTableResult_final = queryLoadHistoryTable(columnToQuery);
+        ArrayList<String> bq_fileIds = new ArrayList<>();
+        queryLoadHistoryTableResult_final.iterateAll().forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
+
+        assertThat("Number of files in datarepo_load_history table match total files loaded",
+            bq_fileIds.size(), equalTo(3));
     }
 
     @Test
@@ -478,15 +487,6 @@ public class FileOperationTest {
         loadRequest.loadTag(loadTag);
         result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
         checkLoadSummary(result, loadTag, 4, 4, 0, 0);
-
-        // check that there are only 4 files in the load history table
-        String columnToQuery = "file_id";
-        TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnToQuery);
-        ArrayList<String> bq_fileIds = new ArrayList<>();
-        queryLoadHistoryTableResult.iterateAll().forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
-
-        assertThat("Number of files in datarepo_load_history table match total files loaded",
-            4, equalTo(bq_fileIds.size()));
     }
 
     @Test

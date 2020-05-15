@@ -2534,8 +2534,6 @@ definitions:
           - byRowId
       assetSpec:
         $ref: '#/definitions/SnapshotRequestAssetModel'
-      liveViewSpec:
-        $ref: '#/definitions/SnapshotRequestLiveViewModel'
       querySpec:
         $ref: '#/definitions/SnapshotRequestQueryModel'
       rowIdSpec:
@@ -2555,11 +2553,6 @@ definitions:
         type: array
         items:
           type: string
-
-  SnapshotRequestLiveViewModel:
-    description: |
-      No add'l information is currently needed for the live view mode, since all views will be included.
-    type: object
 
   SnapshotRequestQueryModel:
     description: |

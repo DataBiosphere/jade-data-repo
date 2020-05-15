@@ -4,9 +4,7 @@
   "contents": [
     {
       "datasetName": "snapshot_test_dataset",
-      "mode": "byLiveView",
-      "liveViewSpec": {
-      }
+      "mode": "byLiveView"
     }
   ]
 }

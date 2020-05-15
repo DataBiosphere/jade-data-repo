@@ -5,8 +5,6 @@
     {
       "datasetName": "IngestTest",
       "mode": "byLiveView",
-      "liveViewSpec": {
-      }
     }
   ]
 }

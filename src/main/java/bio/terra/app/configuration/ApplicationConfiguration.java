@@ -80,10 +80,10 @@ public class ApplicationConfiguration {
      * in application.properties. It should only be reset by the Kubernetes deployment.
      */
     private boolean inKubernetes;
+
     /**
-     * Pod shutdown timeout
-     * TODO: better to have this passed in as an envvar from the K8s configuration so it is in sync.
-     *  For getting started, we use this timeout setting.
+     * Pod shutdown timeout. When constructed using our helm charts, the shutdown time is set both in the
+     * Kubernetes configuration and as an environment variable that controls this value.
      */
     private int shutdownTimeoutSeconds;
 

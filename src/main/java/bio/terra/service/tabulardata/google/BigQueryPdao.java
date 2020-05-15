@@ -219,7 +219,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return rowIdMatch;
     }
 
-    public void snapshotCreatBQDataset(BigQueryProject bigQueryProject, Snapshot snapshot) {
+    public void snapshotCreateBQDataset(BigQueryProject bigQueryProject, Snapshot snapshot) {
         String snapshotName = snapshot.getName();
         // Idempotency: delete possibly partial create.
         if (bigQueryProject.datasetExists(snapshotName)) {
@@ -264,7 +264,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
         // create snapshot BQ dataset
-        snapshotCreatBQDataset(bigQueryProject, snapshot);
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
 
         // create the row id table
         bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
@@ -324,7 +324,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
         // create snapshot BQ dataset
-        snapshotCreatBQDataset(bigQueryProject, snapshot);
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
 
         // create the row id table
         bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
@@ -863,7 +863,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         try {
 
             // create snapshot BQ dataset
-            snapshotCreatBQDataset(bigQueryProject, snapshot);
+            snapshotCreateBQDataset(bigQueryProject, snapshot);
 
             // now create a temp table with all the selected row ids based on the query in it
             bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
@@ -905,7 +905,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 throw new MismatchedValueException("Query results did not match dataset root row ids");
             }
 
-            // TODO should this be pulled up to the top of queryForRowIds() / added to snapshotCreatBQDataset() helper
+            // TODO should this be pulled up to the top of queryForRowIds() / added to snapshotCreateBQDataset() helper
             bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
 
             // populate root row ids. Must happen before the relationship walk.

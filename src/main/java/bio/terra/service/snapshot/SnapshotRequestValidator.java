@@ -53,6 +53,9 @@ public class SnapshotRequestValidator implements Validator {
                     case BYASSET:
                         validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
                         break;
+                    case BYLIVEVIEW:
+                        // no additional validation necessary
+                        break;
                     case BYQUERY:
                         validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
                         break;
@@ -75,6 +78,10 @@ public class SnapshotRequestValidator implements Validator {
         if (assetName == null) {
             errors.rejectValue("contents", "SnapshotAssetNameMissing");
         }
+    }
+
+    private void validateSnapshotLiveViewSpec() {
+
     }
 
     private void validateSnapshotQuerySpec(SnapshotRequestQueryModel queryModel, Errors errors) {

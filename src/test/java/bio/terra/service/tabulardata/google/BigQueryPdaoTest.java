@@ -401,6 +401,22 @@ public class BigQueryPdaoTest {
     }
 
     @Test
+    public void testGetLiveViews() throws Exception {
+        Dataset dataset = readDataset("ingest-test-dataset.json");
+        String datasetBqDatasetName = bigQueryPdao.prefixName(dataset.getName());
+
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, dataset.getName());
+
+        DatasetTable participantTable = getTable(dataset, "participant");
+        DatasetTable sampleTable = getTable(dataset, "sample");
+        DatasetTable fileTable = getTable(dataset, "file");
+        List<DatasetTable> tables = Arrays.asList(participantTable, sampleTable, fileTable);
+
+        bigQueryPdao.createSnaphotTableFromLiveViews(bigQueryProject, tables, datasetBqDatasetName);
+    }
+
+    @Test
     public void testBadSoftDeletePath() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
         String suffix = UUID.randomUUID().toString().replaceAll("-", "");

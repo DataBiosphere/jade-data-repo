@@ -80,10 +80,6 @@ public class SnapshotRequestValidator implements Validator {
         }
     }
 
-    private void validateSnapshotLiveViewSpec() {
-
-    }
-
     private void validateSnapshotQuerySpec(SnapshotRequestQueryModel queryModel, Errors errors) {
         String query = queryModel.getQuery();
         if (query == null) {

@@ -99,7 +99,7 @@ public class SnapshotValidationTest {
             .contents(Collections.singletonList(snapshotRequestContentsModel));
     }
 
-    // Generate a valid snapshot-by-rowId request, we will tweak individual pieces to test validation below
+    // Generate a valid snapshot-by-query request, we will tweak individual pieces to test validation below
     public SnapshotRequestModel makeSnapshotByQueryRequest() {
         SnapshotRequestQueryModel querySpec = new SnapshotRequestQueryModel()
             .assetName("asset")
@@ -109,6 +109,16 @@ public class SnapshotValidationTest {
             .datasetName("dataset")
             .mode(SnapshotRequestContentsModel.ModeEnum.BYQUERY)
             .querySpec(querySpec);
+
+        return new SnapshotRequestModel()
+            .contents(Collections.singletonList(snapshotRequestContentsModel));
+    }
+
+    // Generate a valid snapshot-by-liveView request, we will tweak individual pieces to test validation below
+    public SnapshotRequestModel makeSnapshotByLiveViewRequest() {
+        SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
+            .datasetName("dataset")
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYLIVEVIEW);
 
         return new SnapshotRequestModel()
             .contents(Collections.singletonList(snapshotRequestContentsModel));

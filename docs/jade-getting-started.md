@@ -69,7 +69,7 @@ should be installed.
 1. [Git](https://git-scm.com/) is a version control tool for tracking changes in
 projects and code. To ensure that secrets and passwords cannot accidentally be
 committed to repositories, [git-secrets](https://github.com/awslabs/git-secrets)
-is also installed.
+is also installed:
 
 ```
 brew install git

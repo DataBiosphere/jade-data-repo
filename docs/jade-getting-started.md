@@ -11,9 +11,10 @@ These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN. If the VPN is not installed, follow the instructions
 [at this link](https://broad.io/vpn).
 
-> During this process, you will need your GitHub and Docker Hub username /
-password for multiple steps, so make sure to have those handy. If you don't have
-those yet, see the section below, otherwise you can skip to [Connect Accounts](#2-connect-accounts)
+> During this process, you will need your GitHub and Docker Hub username,
+password, and personal access token for multiple steps, so make sure to have
+those handy. If you don't have those yet, see the section below, otherwise you
+can skip to [Connect Accounts](#2-connect-accounts)
 
 ## 1. Create a GitHub and Docker Hub account
 
@@ -24,6 +25,9 @@ dependencies.
 Sign up to these services with your **personal** email:
   * https://github.com/join
   * https://hub.docker.com/signup
+
+Create a [personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line)
+so you can interact with GitHub on the command line.
 
 ## 2. Connect accounts
 
@@ -63,10 +67,15 @@ Once Homebrew is installed, there are a number of useful development tools that
 should be installed.
 
 1. [Git](https://git-scm.com/) is a version control tool for tracking changes in
-projects and code:
+projects and code. To ensure that secrets and passwords cannot accidentally be
+committed to repositories, [git-secrets](https://github.com/awslabs/git-secrets)
+is also installed.
 
 ```
 brew install git
+brew install git-secrets
+git clone https://github.com/broadinstitute/dsp-appsec-gitsecrets-client.git gitsecrets
+sh gitsecrets/gitsecrets.sh
 ```
 
 2. [jq](https://stedolan.github.io/jq/) is a command line JSON processing tool:

@@ -274,9 +274,9 @@ export HOST=localhost
 ./gradlew testConnected   # connected tests
 ./gradlew testIntegrated # integration tests
 ```
-* First run of the integration tests should create your own Google Cloud Project: broad-jade-<initials>-data. After this is created, we need to enable Firestore.
+* First run of the integration tests should create your own Google Cloud Project: broad-jade-zzz-data, where 'zzz' should be replaced your two initials. After this is created, we need to enable Firestore.
   1. Go to the [Google Cloud Console](http://console.cloud.google.com/).
-  2. From the DATA.TEST-TERRA.BIO organization, select your newly created GCP project: broad-jade-<initials>-data.
+  2. From the DATA.TEST-TERRA.BIO organization, select your newly created GCP project: broad-jade-zzz-data.
   3. Go to Firestore and enable firestore in *Native* mode.
 
 ### 2. Build `jade-data-repo-ui`

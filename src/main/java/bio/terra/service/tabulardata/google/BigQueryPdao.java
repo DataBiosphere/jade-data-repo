@@ -161,17 +161,17 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
     }
 
-    public void createStagingLoadHistoryTable(Dataset dataset, String flightId) throws InterruptedException {
+    public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         try {
             String datasetName = prefixName(dataset.getName());
 
-            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId)) {
-                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId)) {
+                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
             }
 
             bigQueryProject.createTable(
-                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId, buildLoadDatasetSchema());
+                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId, buildLoadDatasetSchema());
         } catch (Exception ex) {
             throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
         }
@@ -226,7 +226,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void loadHistoryToStagingTable(
         Dataset dataset,
-        String flightId,
+        String tableName_FlightId,
         String loadTag,
         Instant loadTime,
         List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
@@ -235,7 +235,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
         sqlTemplate.add("project", bigQueryProject.getProjectId());
         sqlTemplate.add("dataset", prefixName(dataset.getName()));
-        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
 
         sqlTemplate.add("load_history_array", loadHistoryArray);
         sqlTemplate.add("load_tag", loadTag);

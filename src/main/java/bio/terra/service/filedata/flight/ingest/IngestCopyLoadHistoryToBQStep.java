@@ -50,9 +50,10 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         int chunkNum = 0;
         List<BulkLoadHistoryModel> loadHistoryArray = null;
         String flightId = context.getFlightId();
+        String tableName_FlightId = flightId.replaceAll("[^a-zA-Z0-9]", "_");
         try {
-            Instant loadTime = context.getStairway().getFlightState(context.getFlightId()).getSubmitted();
-            bigQueryPdao.createStagingLoadHistoryTable(dataset, flightId);
+            Instant loadTime = context.getStairway().getFlightState(flightId).getSubmitted();
+            bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName_FlightId);
 
             while (loadHistoryArray == null || loadHistoryArray.size() == fileChunkSize) {
                 loadHistoryArray = loadService.makeLoadHistoryArray(loadId, fileChunkSize, (chunkNum * fileChunkSize));
@@ -61,15 +62,15 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                 if (!loadHistoryArray.isEmpty()) {
                     bigQueryPdao.loadHistoryToStagingTable(
                         dataset,
-                        flightId,
+                        tableName_FlightId,
                         loadTag,
                         loadTime,
                         loadHistoryArray);
                 }
             }
             // copy from staging to actual BQ table
-            bigQueryPdao.mergeStagingLoadHistoryTable(dataset, flightId);
-            bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);
+            bigQueryPdao.mergeStagingLoadHistoryTable(dataset, tableName_FlightId);
+            bigQueryPdao.deleteStagingLoadHistoryTable(dataset, tableName_FlightId);
         } catch (Exception ex) {
             logger.error("Failure deleting load history staging table for flight: " + flightId, ex);
         }

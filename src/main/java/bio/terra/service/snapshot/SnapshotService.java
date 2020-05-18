@@ -363,36 +363,41 @@ public class SnapshotService {
     private void conjureSnapshotTablesFromDatasetTables(Snapshot snapshot,
                                                  SnapshotSource snapshotSource) {
         // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
-        List<SnapshotTable> tableList = new ArrayList<>();
-        snapshot.snapshotTables(tableList);
-        List<SnapshotMapTable> mapTableList = new ArrayList<>();
-        snapshotSource.snapshotMapTables(mapTableList);
-        Dataset dataset = snapshotSource.getDataset();
 
         // for each dataset table specified in the request, create a table in the snapshot with the same name
+        Dataset dataset = snapshotSource.getDataset();
         for (DatasetTable datasetTable : dataset.getTables()) {
+
+            List<SnapshotTable> tableList = new ArrayList<>();
+            List<SnapshotMapTable> mapTableList = new ArrayList<>();
             List<Column> columnList = new ArrayList<>();
+            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
+
+
+            // for each dataset column specified in the request, create a column in the snapshot with the same name
+            for (Column datasetColumn : datasetTable.getColumns()) {
+                Column snapshotColumn = new Column().name(datasetColumn.getName());
+                SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
+                    .fromColumn(datasetColumn)
+                    .toColumn(snapshotColumn);
+                columnList.add(snapshotColumn);
+                mapColumnList.add(snapshotMapColumn);
+            }
+
+            // create snapshot tables & mapping with the proper dataset name and columns
             SnapshotTable snapshotTable = new SnapshotTable()
                 .name(datasetTable.getName())
                 .columns(columnList);
             tableList.add(snapshotTable);
-            List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
+
             mapTableList.add(new SnapshotMapTable()
                 .fromTable(datasetTable)
                 .toTable(snapshotTable)
                 .snapshotMapColumns(mapColumnList));
 
-            // for each dataset column specified in the request, create a column in the snapshot with the same name
-            datasetTable.getColumns()
-                .stream()
-                .forEach(datasetColumn -> {
-                    Column snapshotColumn = new Column().name(datasetColumn.getName());
-                    SnapshotMapColumn snapshotMapColumn = new SnapshotMapColumn()
-                        .fromColumn(datasetColumn)
-                        .toColumn(snapshotColumn);
-                    columnList.add(snapshotColumn);
-                    mapColumnList.add(snapshotMapColumn);
-                });
+            // set the snapshot tables and mapping
+            snapshot.snapshotTables(tableList);
+            snapshotSource.snapshotMapTables(mapTableList);
         }
     }
 

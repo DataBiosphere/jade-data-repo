@@ -82,7 +82,6 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     public StepResult undoStep(FlightContext context) {
         String flightId = context.getFlightId();
         try {
-            // not sure if I should move this stuff into a helper method?
             UUID datasetId = UUID.fromString(datasetIdString);
             Dataset dataset = datasetService.retrieve(datasetId);
             bigQueryPdao.deleteStagingLoadHistoryTable(dataset, flightId);

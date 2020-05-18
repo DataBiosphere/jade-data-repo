@@ -276,11 +276,11 @@ export HOST=localhost
 ```
 
 * The first run of the integration tests should create a corresponding Google
-Cloud Project with the name `broad-jade-<initials>-data`. After this is created,
-Firestore needs to be enabled:
+Cloud Project with the name `broad-jade-zzz-data`, where `zzz` is replaced by
+your initials. After this is created, Firestore needs to be enabled:
   1. Go to the [Google Cloud Console](http://console.cloud.google.com/).
   2. From the `DATA.TEST-TERRA.BIO` organization, select your newly created GCP
-  project: `broad-jade-<initials>-data`.
+  project: `broad-jade-zzz-data`.
   3. Go to Firestore and enable firestore in **Native** mode.
 
 ### 2. Build `jade-data-repo-ui`

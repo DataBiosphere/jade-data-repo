@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
@@ -13,6 +14,7 @@ import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.service.load.flight.LoadUnlockStep;
 import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
@@ -42,12 +44,15 @@ public class FileIngestBulkFlight extends Flight {
         ObjectMapper objectMapper = (ObjectMapper)appContext.getBean("objectMapper");
         ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
+        BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
+        DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
         int concurrentFiles = inputParameters.get(LoadMapKeys.CONCURRENT_FILES, Integer.class);
         int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
+        int fileChunkSize = inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
         boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
         // TODO: for reserving a bulk load slot:
         //    int concurrentIngests = inputParameters.get(LoadMapKeys.CONCURRENT_INGESTS, Integer.class);
@@ -117,7 +122,14 @@ public class FileIngestBulkFlight extends Flight {
         } else {
             addStep(new IngestBulkFileResponseStep(loadService, loadTag));
         }
-        // 7. TODO: copy results into BigQuery
+        // 7. copy results into BigQuery
+        addStep(new IngestCopyLoadHistoryToBQStep(
+            loadService,
+            datasetService,
+            loadTag,
+            datasetId,
+            bigQueryPdao,
+            fileChunkSize));
         addStep(new IngestCleanFileStateStep(loadService));
         // 9. TODO: release bulk load slot
         addStep(new LoadUnlockStep(loadService));

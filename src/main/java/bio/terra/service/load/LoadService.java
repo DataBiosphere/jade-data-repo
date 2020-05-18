@@ -4,6 +4,7 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.flight.LoadMapKeys;
@@ -100,5 +101,9 @@ public class LoadService {
 
     public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {
         return loadDao.makeBulkLoadFileArray(loadId);
+    }
+
+    public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
+        return loadDao.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
     }
 }

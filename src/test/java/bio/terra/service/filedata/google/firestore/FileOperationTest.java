@@ -23,12 +23,20 @@ import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.FieldValueList;
+import com.google.cloud.bigquery.QueryJobConfiguration;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.junit.After;
@@ -48,14 +56,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.TestUtils.bigQueryProjectForDatasetName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -91,6 +99,12 @@ public class FileOperationTest {
     private ConnectedOperations connectedOperations;
     @Autowired
     private ConfigurationService configService;
+    @Autowired
+    private DatasetDao datasetDao;
+    @Autowired
+    private DataLocationService dataLocationService;
+    @Autowired
+    private BigQueryPdao bigQueryPdao;
 
     @MockBean
     private IamProviderInterface samService;
@@ -263,6 +277,18 @@ public class FileOperationTest {
             fileIdMap.put(fileResult.getTargetPath(), fileResult.getFileId());
         }
 
+        // Query Big Query datarepo_load_history table - should reflect all files loaded above
+        String columnToQuery = "file_id";
+        TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnToQuery);
+        ArrayList<String> ids = new ArrayList<>();
+        queryLoadHistoryTableResult.iterateAll().forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
+
+        assertThat("Number of files in datarepo_load_history table match load summary", fileCount, equalTo(ids.size()));
+        for (String bq_file_id:ids) {
+            assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
+                fileIdMap.containsValue(bq_file_id));
+        }
+
         // retry successful load to make sure it still succeeds and does nothing
         BulkLoadArrayResultModel result2 = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
         checkLoadSummary(result2.getLoadSummary(), arrayLoad.getLoadTag(), fileCount, fileCount, 0, 0);
@@ -273,9 +299,31 @@ public class FileOperationTest {
         }
     }
 
+    private static final String queryForIdsTemplate =
+        "SELECT <columns> FROM `<project>.<dataset>.<table>`";
+
+    // Get the count of rows in a table or view
+    private TableResult queryLoadHistoryTable(String columns) throws Exception {
+        String datasetName = bigQueryPdao.prefixName(datasetSummary.getName());
+        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummary.getName());
+        String bigQueryProjectId = bigQueryProject.getProjectId();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        ST sqlTemplate = new ST(queryForIdsTemplate);
+        sqlTemplate.add("columns", columns);
+        sqlTemplate.add("project", bigQueryProjectId);
+        sqlTemplate.add("dataset", datasetName);
+        sqlTemplate.add("table", PDAO_LOAD_HISTORY_TABLE);
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        return bigQuery.query(queryConfig);
+    }
+
     @Test
     public void arrayMultiFileLoadDoubleSuccessTest() throws Exception {
         int fileCount = 8;
+        int totalfileCount = fileCount * 2;
         BulkLoadArrayRequestModel arrayLoad1 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", 0, fileCount);
         BulkLoadArrayRequestModel arrayLoad2 = makeSuccessArrayLoad("arrayMultiDoubleSuccess", fileCount, fileCount);
         String loadTag1 = arrayLoad1.getLoadTag();
@@ -297,11 +345,27 @@ public class FileOperationTest {
         checkLoadSummary(resultModel1.getLoadSummary(), loadTag1, fileCount, fileCount, 0, 0);
         checkLoadSummary(resultModel2.getLoadSummary(), loadTag2, fileCount, fileCount, 0, 0);
 
+        List<String> fileIds = new ArrayList<>();
         for (BulkLoadFileResultModel fileResult : resultModel1.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
+            fileIds.add(fileResult.getFileId());
         }
         for (BulkLoadFileResultModel fileResult : resultModel2.getLoadFileResults()) {
             checkFileResultSuccess(fileResult);
+            fileIds.add(fileResult.getFileId());
+        }
+
+        // Query Big Query datarepo_load_history table - should reflect all files loaded above
+        String columnToQuery = "file_id";
+        TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnToQuery);
+        ArrayList<String> bq_fileIds = new ArrayList<>();
+        queryLoadHistoryTableResult.iterateAll().forEach(r -> bq_fileIds.add(r.get(columnToQuery).getStringValue()));
+
+        assertThat("Number of files in datarepo_load_history table match load summary",
+            totalfileCount, equalTo(bq_fileIds.size()));
+        for (String bq_file_id:bq_fileIds) {
+            assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
+                fileIds.contains(bq_file_id));
         }
     }
 
@@ -324,13 +388,36 @@ public class FileOperationTest {
         for (BulkLoadFileResultModel fileResult : result.getLoadFileResults()) {
             resultMap.put(fileResult.getTargetPath(), fileResult);
         }
+        // Query Big Query datarepo_load_history table - assert correctly reflects different
+        // bulk load file states
+        String columnsToQuery = "state, file_id, error";
+        TableResult queryLoadHistoryTableResult = queryLoadHistoryTable(columnsToQuery);
+        for (FieldValueList item:queryLoadHistoryTableResult.getValues()) {
+            String state = item.get(0).getStringValue();
+            assertTrue("state should either be succeeded or failed.",
+                state.equals(BulkLoadFileState.SUCCEEDED.toString()) ||
+                    state.equals(BulkLoadFileState.FAILED.toString()));
+            if (state.equals(BulkLoadFileState.SUCCEEDED.toString())) {
+                assertTrue("file_id should have value", item.get(1).getStringValue().length() > 0);
+                assertTrue("Error column should be empty", item.get(2).getStringValue().length() == 0);
+            } else if (state.equals(BulkLoadFileState.FAILED.toString())) {
+                assertTrue("file_id should NOT have value", item.get(1).getStringValue().length() == 0);
+                assertTrue("Error column should have value", item.get(2).getStringValue().length() > 0);
+            }
+        }
+        FieldValueList curr_result;
+
         List<BulkLoadFileModel> loadArray = arrayLoad.getLoadArray();
         BulkLoadFileResultModel fileResult = resultMap.get(loadArray.get(0).getTargetPath());
         checkFileResultSuccess(fileResult);
+
         fileResult = resultMap.get(loadArray.get(1).getTargetPath());
         checkFileResultFailed(fileResult);
+
         fileResult = resultMap.get(loadArray.get(2).getTargetPath());
         checkFileResultSuccess(fileResult);
+
+
 
         // fix the bad file and retry load
         loadArray.set(1, getFileModel(true, 3, testId));

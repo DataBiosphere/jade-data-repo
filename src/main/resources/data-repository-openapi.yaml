@@ -2441,6 +2441,36 @@ definitions:
         type: string
         description: The error message if state is FAILED
 
+  BulkLoadHistoryModel:
+    description: Describes metadata about a file during a bulk load
+    type: object
+    required:
+      - sourcePath
+      - targetPath
+    properties:
+      sourcePath:
+        type: string
+        description: gs URL of the source file to load
+      targetPath:
+        type: string
+        description: |
+          Full path within the dataset where the file should be placed.
+          The path must start with /.
+      state:
+        $ref: '#/definitions/BulkLoadFileState'
+      fileId:
+        type: string
+        description: The fileId of the loaded file; non-null if state is SUCCEEDED
+      checksumCRC:
+        type: string
+        description: The checksum crc of the loaded file; non-null if state is SUCCEEDED
+      checksumMD5:
+        type: string
+        description: The checksum mD5 of the loaded file; non-null if state is SUCCEEDED
+      error:
+        type: string
+        description: The error message if state is FAILED
+
   BulkLoadFileState:
     type: string
     enum:

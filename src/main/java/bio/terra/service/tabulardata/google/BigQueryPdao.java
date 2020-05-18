@@ -12,11 +12,13 @@ import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
@@ -75,6 +77,7 @@ import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 
 @Component
@@ -84,13 +87,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private final String datarepoDnsName;
     private final DataLocationService dataLocationService;
+    private final DatasetService datasetService;
 
     @Autowired
     public BigQueryPdao(
         ApplicationConfiguration applicationConfiguration,
-        DataLocationService dataLocationService) {
+        DataLocationService dataLocationService,
+        DatasetService datasetService) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.dataLocationService = dataLocationService;
+        this.datasetService = datasetService;
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
@@ -153,6 +159,122 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         TableId liveViewId = TableId.of(datasetName, table.getName());
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
+    }
+
+    public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        try {
+            String datasetName = prefixName(dataset.getName());
+
+            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId)) {
+                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
+            }
+
+            bigQueryProject.createTable(
+                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId, buildLoadDatasetSchema());
+        } catch (Exception ex) {
+            throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
+        }
+    }
+
+    public void deleteStagingLoadHistoryTable(Dataset dataset, String flightId) {
+        try {
+            deleteDatasetTable(dataset, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+        } catch (Exception ex) {
+            throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
+        }
+    }
+
+    private Schema buildLoadDatasetSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("load_time",  LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("state", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("error", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+
+        return Schema.of(fieldList);
+    }
+
+    private static final String insertLoadHistoryToStagingTableTemplate =
+        "INSERT INTO `<project>.<dataset>.<stagingTable>`" +
+            " (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error)" +
+            " VALUES <load_history_array:{v|('<load_tag>', '<load_time>', '<v.sourcePath>', '<v.targetPath>'," +
+            " '<v.state>', '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>', '<v.error>')}; separator=\",\">";
+
+    public void loadHistoryToStagingTable(
+        Dataset dataset,
+        String tableName_FlightId,
+        String loadTag,
+        Instant loadTime,
+        List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
+
+        sqlTemplate.add("load_history_array", loadHistoryArray);
+        sqlTemplate.add("load_tag", loadTag);
+        sqlTemplate.add("load_time", loadTime);
+
+        bigQueryProject.query(sqlTemplate.render());
+    }
+
+    private static final String mergeLoadHistoryStagingTableTemplate =
+        "MERGE `<project>.<dataset>.<loadTable>` L" +
+            " USING `<project>.<dataset>.<stagingTable>` S" +
+            " ON S.load_tag = L.load_tag AND S.load_time = L.load_time" +
+                " AND S.file_id = L.file_id" +
+            " WHEN NOT MATCHED THEN" +
+                " INSERT (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c," +
+                    " checksum_md5, error)" +
+                " VALUES (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c," +
+                    " checksum_md5, error)";
+
+    public void mergeStagingLoadHistoryTable(
+        Dataset dataset,
+        String flightId) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        String datasetName = prefixName(dataset.getName());
+
+        // Make sure load_history table exists in dataset, if not - add table
+        if (!tableExists(dataset, PDAO_LOAD_HISTORY_TABLE)) {
+            bigQueryProject.createTable(
+                    datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
+        }
+
+        ST sqlTemplate = new ST(mergeLoadHistoryStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", datasetName);
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+        sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+
+        bigQueryProject.query(sqlTemplate.render());
     }
 
     @Override
@@ -626,33 +748,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public String prefixName(String name) {
         return PDAO_PREFIX + name;
-    }
-
-    private Schema buildLoadDatasetSchema() {
-        List<Field> fieldList = new ArrayList<>();
-        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("load_time", LegacySQLTypeName.TIMESTAMP)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-
-        return Schema.of(fieldList);
     }
 
     private Schema buildSoftDeletesSchema() {

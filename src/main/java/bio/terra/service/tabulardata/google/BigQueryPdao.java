@@ -452,7 +452,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetBqDatasetName = prefixName(dataset.getName());
 
         // create snapshot BQ dataset
-        snapshotCreatBQDataset(bigQueryProject, snapshot);
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
 
         // create the row id table (row id col and table id col)
         bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());

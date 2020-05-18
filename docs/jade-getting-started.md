@@ -251,12 +251,17 @@ Follow the [Build and Run Locally](https://github.com/DataBiosphere/jade-data-re
 section in the [main readme](https://github.com/DataBiosphere/jade-data-repo#jade-data-repository---)
 to build `jade-data-repo`.
 
-* You may need to set environmental variables. Instances of `zzz` should be
-replaced by your initials or the environment (i.e. `dev`):
+* You will need to run `render-configs.sh` before running integration tests.
+
+* Certain environment variables need to be set beforehand. Instances of `zzz`
+should be replaced by your initials or the environment (i.e. `dev`):
 
 ```
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
+export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 ```
 
 * If you're not on a Broad computer, you may need to set the host to `localhost`

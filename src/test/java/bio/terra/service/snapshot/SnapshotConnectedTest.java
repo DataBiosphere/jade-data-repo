@@ -355,7 +355,7 @@ public class SnapshotConnectedTest {
         return connectedOperations.createDataset(billingProfile, resourcePath);
     }
 
-    private void loadCsvData(String datasetId, String tableName, String resourcePath) throws Exception {
+    public void loadCsvData(String datasetId, String tableName, String resourcePath) throws Exception {
         loadData(datasetId, tableName, resourcePath, IngestRequestModel.FormatEnum.CSV);
     }
 

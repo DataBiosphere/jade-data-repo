@@ -150,7 +150,7 @@ public class FileOperationTest {
         // Change the data location selector, verify that we can still delete the file
         String newBucketName = "bucket-" + UUID.randomUUID().toString();
         doReturn(newBucketName).when(dataLocationSelector).bucketForFile(any());
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
+        connectedOperations.deleteFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path reflects new bucket location",
             fileModel.getFileDetail().getAccessUrl(),
@@ -186,7 +186,7 @@ public class FileOperationTest {
         assertTrue("Ingest file equals lookup file", lookupModel.equals(fileModel));
 
         // Delete the file and we should be able to create it successfully again
-        connectedOperations.deleteTestFile(datasetSummary.getId(), fileModel.getFileId());
+        connectedOperations.deleteFile(datasetSummary.getId(), fileModel.getFileId());
         fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
 

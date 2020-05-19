@@ -228,7 +228,7 @@ public class DatasetDao {
         return datasetId;
     }
 
-    protected String getExclusiveLock(UUID id) {
+    public String getExclusiveLock(UUID id) {
         try {
             String sql = "SELECT flightid FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);

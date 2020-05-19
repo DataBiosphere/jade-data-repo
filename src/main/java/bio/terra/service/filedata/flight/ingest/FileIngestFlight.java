@@ -76,7 +76,7 @@ public class FileIngestFlight extends Flight {
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
         // 7. Unlock the load tag
         // 8. Unlock the dataset
-        addStep(new LockDatasetStep(datasetDao, datasetId, true));
+        addStep(new LockDatasetStep(datasetDao, datasetId, true, configService));
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);

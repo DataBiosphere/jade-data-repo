@@ -40,6 +40,8 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_
 import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOCK_DATASET_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOCK_DATASET_CONTINUE_FAULT;
 
 @Component
 public class ConfigurationService {
@@ -222,6 +224,11 @@ public class ConfigurationService {
         addFaultCounted(FILE_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        // File delete lock faults. These are used by DatasetConnectedTest > testThatRetryFails
+        addFaultCounted(LOCK_DATASET_STOP_FAULT, 0, 1, 100,
+            ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(LOCK_DATASET_CONTINUE_FAULT);
     }
 
 }

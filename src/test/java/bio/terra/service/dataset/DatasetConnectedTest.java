@@ -7,6 +7,9 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DataDeletionGcsFileModel;
+import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -14,11 +17,22 @@ import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
+import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.snapshot.SnapshotConnectedTest;
+import bio.terra.stairway.StepResult;
+import com.google.cloud.WriteChannel;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.StorageOptions;
+import com.google.common.base.Charsets;
+import org.apache.commons.io.IOUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -35,7 +49,12 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -54,14 +73,22 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
 public class DatasetConnectedTest {
-    @Autowired private MockMvc mvc;
-    @Autowired private JsonLoader jsonLoader;
-    @Autowired private GoogleResourceConfiguration googleResourceConfiguration;
-    @Autowired private ConnectedOperations connectedOperations;
-    @Autowired private DatasetDao datasetDao;
-    @Autowired private ConfigurationService configService;
-    @Autowired private ConnectedTestConfiguration testConfig;
-    @MockBean private IamProviderInterface samService;
+    @Autowired
+    private MockMvc mvc;
+    @Autowired
+    private JsonLoader jsonLoader;
+    @Autowired
+    private GoogleResourceConfiguration googleResourceConfiguration;
+    @Autowired
+    private ConnectedOperations connectedOperations;
+    @Autowired
+    private DatasetDao datasetDao;
+    @Autowired
+    private ConfigurationService configService;
+    @Autowired
+    private ConnectedTestConfiguration testConfig;
+    @MockBean
+    private IamProviderInterface samService;
 
     private BillingProfileModel billingProfile;
 
@@ -331,5 +358,110 @@ public class DatasetConnectedTest {
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void testThatRetryFails() throws Exception {
+        // create a dataset and check that it succeeds
+        String resourcePathDatasetCreate = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest =
+            jsonLoader.loadObject(resourcePathDatasetCreate, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+        // ingest a table
+        String resourcePathTableIngest = "snapshot-test-dataset-data.csv";
+        IngestRequestModel ingestRequest = new IngestRequestModel()
+            .table("thetable")
+            .format(IngestRequestModel.FormatEnum.CSV)
+            .csvSkipLeadingRows(1)
+            .path(putFileInBucket(resourcePathTableIngest));
+        connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
+
+        // remove csv file from bucket
+
+        // enable wait in LockDatasetStep
+        configService.setFault(ConfigEnum.LOCK_DATASET_STOP_FAULT.name(), true);
+
+        // try to do soft delete #1 (on dataset)
+        // build the deletion request with pointers to the two files with row ids to soft delete
+        List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
+            deletionTableFile("thetable", writeListToScratch("testThatRetryFails",
+                Collections.singletonList("8c52c63e-8d9f-4cfc-82d0-0f916b2404c1"))));
+        DataDeletionRequest softDeleteRequest = dataDeletionRequest()
+            .tables(dataDeletionTableModels);
+
+        // send off the soft delete request
+        String softDeleteUrl = String.format("/api/repository/v1/datasets/%s/deletes", summaryModel.getId());
+        MvcResult softDeleteResult1 = mvc.perform(
+            post(softDeleteUrl).contentType(MediaType.APPLICATION_JSON).content(TestUtils.mapToJson(softDeleteRequest)))
+            .andReturn();
+
+        // check that the dataset metadata row has a exclusive lock
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNotNull("dataset row has an exclusive lock", exclusiveLock);
+        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
+
+//        // try to do soft delete #2
+//        DataDeletionRequest softDeleteRequest2 = dataDeletionRequest()
+//            .tables(dataDeletionTableModels);
+//
+//        String softDeleteUrl2 = String.format("/api/repository/v1/datasets/%s/deletes", summaryModel.getId());
+//        MvcResult softDeleteResult2 = mvc.perform(
+//            post(softDeleteUrl2).contentType(MediaType.APPLICATION_JSON).content(TestUtils.mapToJson(softDeleteRequest2)))
+//            .andReturn();
+
+        // check that soft delete fails to get exclusive lock
+
+        // disable wait in LockDatasetStep
+        configService.setFault(ConfigEnum.LOCK_DATASET_CONTINUE_FAULT.name(), true);
+
+        // ensure that soft delete #1 finishes successfully
+        MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(softDeleteResult1);
+        assertEquals(response1.getStatus(), HttpStatus.OK.value());
+    }
+
+    private String putFileInBucket(String resourcesFileName) throws IOException {
+        String bucketName = testConfig.getIngestbucket();
+        String randomizedFileName = UUID.randomUUID().toString() + "-" + resourcesFileName;
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+
+
+        BlobInfo stagingBlob = BlobInfo.newBuilder(bucketName, randomizedFileName).build();
+        byte[] data = IOUtils.toByteArray(jsonLoader.getClassLoader().getResource(resourcesFileName));
+        Blob blob = storage.create(stagingBlob, data);
+        return "gs://" + blob.getBucket() + "/" + blob.getName();
+    }
+
+    private String writeListToScratch(String prefix, List<String> contents) throws IOException {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
+        BlobInfo blob = BlobInfo.newBuilder(testConfig.getIngestbucket(), targetPath).build();
+        try (WriteChannel writer = storage.writer(blob)) {
+            for (String line : contents) {
+                writer.write(ByteBuffer.wrap((line + "\n").getBytes(Charsets.UTF_8)));
+            }
+        }
+        return String.format("gs://%s/%s", blob.getBucket(), targetPath);
+    }
+
+    private DataDeletionTableModel deletionTableFile(String tableName, String path) {
+        DataDeletionGcsFileModel deletionGcsFileModel = new DataDeletionGcsFileModel()
+            .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+            .path(path);
+        return new DataDeletionTableModel()
+            .tableName(tableName)
+            .gcsFileSpec(deletionGcsFileModel);
+    }
+
+    private DataDeletionRequest dataDeletionRequest() {
+        return new DataDeletionRequest()
+            .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
+            .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
     }
 }

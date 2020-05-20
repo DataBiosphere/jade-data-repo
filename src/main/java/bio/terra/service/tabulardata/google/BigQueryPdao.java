@@ -453,7 +453,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public String createSnaphotTableFromLiveViews(
         BigQueryProject bigQueryProject,
         List<DatasetTable> tables,
-        String datasetBqDatasetName) throws InterruptedException {
+        String datasetBqDatasetName) {
 
         String output = "";
 

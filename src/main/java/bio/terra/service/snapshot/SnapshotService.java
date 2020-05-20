@@ -366,13 +366,14 @@ public class SnapshotService {
 
         // for each dataset table specified in the request, create a table in the snapshot with the same name
         Dataset dataset = snapshotSource.getDataset();
+        List<SnapshotTable> tableList = new ArrayList<>();
+        List<SnapshotMapTable> mapTableList = new ArrayList<>();
+
         for (DatasetTable datasetTable : dataset.getTables()) {
 
-            List<SnapshotTable> tableList = new ArrayList<>();
-            List<SnapshotMapTable> mapTableList = new ArrayList<>();
+
             List<Column> columnList = new ArrayList<>();
             List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
-
 
             // for each dataset column specified in the request, create a column in the snapshot with the same name
             for (Column datasetColumn : datasetTable.getColumns()) {
@@ -394,11 +395,10 @@ public class SnapshotService {
                 .fromTable(datasetTable)
                 .toTable(snapshotTable)
                 .snapshotMapColumns(mapColumnList));
-
-            // set the snapshot tables and mapping
-            snapshot.snapshotTables(tableList);
-            snapshotSource.snapshotMapTables(mapTableList);
         }
+        // set the snapshot tables and mapping
+        snapshot.snapshotTables(tableList);
+        snapshotSource.snapshotMapTables(mapTableList);
     }
 
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {

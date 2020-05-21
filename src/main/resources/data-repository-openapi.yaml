@@ -2529,7 +2529,7 @@ definitions:
         type: string
         enum:
           - byAsset
-          - byLiveView
+          - byFullView
           - byQuery
           - byRowId
       assetSpec:

@@ -401,7 +401,7 @@ public class BigQueryPdaoTest {
     }
 
     @Test
-    public void testGetLiveViews() throws Exception {
+    public void testGetFullViews() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
         String datasetBqDatasetName = bigQueryPdao.prefixName(dataset.getName());
 

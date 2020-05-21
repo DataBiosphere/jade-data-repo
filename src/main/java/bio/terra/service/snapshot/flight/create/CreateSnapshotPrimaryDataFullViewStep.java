@@ -12,7 +12,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-public class CreateSnapshotPrimaryDataLiveViewStep implements Step {
+public class CreateSnapshotPrimaryDataFullViewStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private DatasetService datasetservice;
@@ -20,7 +20,7 @@ public class CreateSnapshotPrimaryDataLiveViewStep implements Step {
     private SnapshotService snapshotService;
     private SnapshotRequestModel snapshotReq;
 
-    public CreateSnapshotPrimaryDataLiveViewStep(BigQueryPdao bigQueryPdao,
+    public CreateSnapshotPrimaryDataFullViewStep(BigQueryPdao bigQueryPdao,
                                                  DatasetService datasetservice,
                                                  SnapshotDao snapshotDao,
                                                  SnapshotService snapshotService,

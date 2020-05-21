@@ -53,8 +53,8 @@ public class SnapshotCreateFlight extends Flight {
                 addStep(new CreateSnapshotPrimaryDataAssetStep(
                     bigQueryPdao, snapshotDao, snapshotService, snapshotReq));
                 break;
-            case BYLIVEVIEW:
-                addStep(new CreateSnapshotPrimaryDataLiveViewStep(
+            case BYFULLVIEW:
+                addStep(new CreateSnapshotPrimaryDataFullViewStep(
                     bigQueryPdao, datasetService, snapshotDao, snapshotService, snapshotReq));
                 break;
             case BYQUERY:

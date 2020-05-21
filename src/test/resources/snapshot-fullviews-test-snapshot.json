@@ -4,7 +4,7 @@
   "contents": [
     {
       "datasetName": "snapshot_test_dataset",
-      "mode": "byLiveView"
+      "mode": "byFullView"
     }
   ]
 }

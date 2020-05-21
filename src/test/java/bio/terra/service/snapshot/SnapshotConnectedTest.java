@@ -176,12 +176,12 @@ public class SnapshotConnectedTest {
     }
 
     @Test
-    public void testLiveViewsHappyPath() throws Exception {
+    public void testFullViewsHappyPath() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
         loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
 
         SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-liveviews-test-snapshot.json");
+            makeSnapshotTestRequest(datasetSummary, "snapshot-fullviews-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 

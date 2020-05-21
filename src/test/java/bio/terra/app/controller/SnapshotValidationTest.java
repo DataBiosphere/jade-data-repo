@@ -114,11 +114,11 @@ public class SnapshotValidationTest {
             .contents(Collections.singletonList(snapshotRequestContentsModel));
     }
 
-    // Generate a valid snapshot-by-liveView request, we will tweak individual pieces to test validation below
-    public SnapshotRequestModel makeSnapshotByLiveViewRequest() {
+    // Generate a valid snapshot-by-fullView request, we will tweak individual pieces to test validation below
+    public SnapshotRequestModel makeSnapshotByFullViewRequest() {
         SnapshotRequestContentsModel snapshotRequestContentsModel = new SnapshotRequestContentsModel()
             .datasetName("dataset")
-            .mode(SnapshotRequestContentsModel.ModeEnum.BYLIVEVIEW);
+            .mode(SnapshotRequestContentsModel.ModeEnum.BYFULLVIEW);
 
         return new SnapshotRequestModel()
             .contents(Collections.singletonList(snapshotRequestContentsModel));

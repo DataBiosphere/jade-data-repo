@@ -210,7 +210,7 @@ public class SnapshotService {
                 snapshotSource.assetSpecification(assetSpecification);
                 conjureSnapshotTablesFromAsset(snapshotSource.getAssetSpecification(), snapshot, snapshotSource);
                 break;
-            case BYLIVEVIEW:
+            case BYFULLVIEW:
                 conjureSnapshotTablesFromDatasetTables(snapshot, snapshotSource);
                 break;
             case BYQUERY:

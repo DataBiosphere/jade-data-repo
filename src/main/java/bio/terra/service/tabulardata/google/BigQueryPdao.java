@@ -517,7 +517,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         TableResult result = bigQueryProject.query(sqlValidateSnapshotTemplate.render());
         if (result.getTotalRows() <= 0) {
-           throw new PdaoException("This snapshot is empty");
+            throw new PdaoException("This snapshot is empty");
         }
 
         snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);

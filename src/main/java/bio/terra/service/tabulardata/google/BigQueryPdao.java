@@ -445,46 +445,35 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "(SELECT '<tableId>', <dataRepoRowId> FROM `<project>.<dataset>.<liveView>`)";
 
     private static final String mergeLiveViewTablesTemplate =
-        "<selectStatement1> UNION ALL <selectStatement2>";
+        "<selectStatements; separator=\" UNION ALL \">";
 
     private static final String validateSnapshotSizeTemplate =
-        "SELECT * FROM <project>.<snapshot>.<dataRepoTable>";
+        "SELECT COUNT(1) FROM <project>.<snapshot>.<dataRepoTable>";
+
 
     public String createSnaphotTableFromLiveViews(
         BigQueryProject bigQueryProject,
         List<DatasetTable> tables,
         String datasetBqDatasetName) {
 
-        String output = "";
+        List<String> selectStatements = new ArrayList<>();
 
-        // recursively call the merge template to spool together all the different select statements
-        if (tables.size() == 1) {
-            DatasetTable onlyTable = tables.get(0);
-            TableId liveViewId = TableId.of(datasetBqDatasetName, onlyTable.getName());
+        for (DatasetTable table : tables) {
+
+            TableId liveViewId = TableId.of(datasetBqDatasetName, table.getName());
             String liveViewTableName = liveViewId.getTable();
 
             ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
-            sqlTableTemplate.add("tableId", onlyTable.getId());
+            sqlTableTemplate.add("tableId", table.getId());
             sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
             sqlTableTemplate.add("project", bigQueryProject.getProjectId());
             sqlTableTemplate.add("dataset", datasetBqDatasetName);
             sqlTableTemplate.add("liveView", liveViewTableName);
-
-            return sqlTableTemplate.render();
+            selectStatements.add(sqlTableTemplate.render());
         }
-
-        for (DatasetTable table : tables) {
-            List<DatasetTable> remainingTables = tables.stream().filter(t -> !t.equals(table)).collect(Collectors.toList());
-            String selectStatement1 = createSnaphotTableFromLiveViews(bigQueryProject, Collections.singletonList(table), datasetBqDatasetName);
-            String selectStatement2 = createSnaphotTableFromLiveViews(bigQueryProject, remainingTables, datasetBqDatasetName);
-
-            ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
-            sqlMergeTablesTemplate.add("selectStatement1", selectStatement1);
-            sqlMergeTablesTemplate.add("selectStatement2", selectStatement2);
-            output = sqlMergeTablesTemplate.render();
-        }
-        return output;
-
+        ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
+        sqlMergeTablesTemplate.add("selectStatements", selectStatements);
+        return sqlMergeTablesTemplate.render();
     }
 
     public void createSnapshotWithLiveViews(

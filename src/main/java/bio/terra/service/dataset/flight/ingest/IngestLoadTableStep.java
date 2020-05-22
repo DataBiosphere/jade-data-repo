@@ -20,7 +20,7 @@ public class IngestLoadTableStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         DatasetTable targetTable = IngestUtils.getDatasetTable(context, dataset);
         String stagingTableName = IngestUtils.getStagingTableName(context);
@@ -40,7 +40,7 @@ public class IngestLoadTableStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         Dataset dataset = IngestUtils.getDataset(context, datasetService);
         String stagingTableName = IngestUtils.getStagingTableName(context);
         bigQueryPdao.deleteDatasetTable(dataset, stagingTableName);

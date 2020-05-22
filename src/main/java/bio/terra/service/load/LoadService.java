@@ -4,6 +4,8 @@ import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadFileResultModel;
 import bio.terra.model.BulkLoadFileState;
 import bio.terra.model.BulkLoadResultModel;
+import bio.terra.model.BulkLoadHistoryModel;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.load.exception.LoadLockFailureException;
 import bio.terra.service.load.flight.LoadMapKeys;
 import bio.terra.stairway.FlightContext;
@@ -27,7 +29,7 @@ public class LoadService {
         this.loadDao = loadDao;
     }
 
-    public UUID lockLoad(String loadTag, String flightId) {
+    public UUID lockLoad(String loadTag, String flightId) throws InterruptedException {
         Load load = loadDao.lockLoad(loadTag, flightId);
         return load.getId();
     }
@@ -77,8 +79,8 @@ public class LoadService {
         return loadDao.findCandidates(loadId, candidatesToFind);
     }
 
-    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId) {
-        loadDao.setLoadFileSucceeded(loadId, targetPath, fileId);
+    public void setLoadFileSucceeded(UUID loadId, String targetPath, String fileId, FSFileInfo fileInfo) {
+        loadDao.setLoadFileSucceeded(loadId, targetPath, fileId, fileInfo);
     }
 
     public void setLoadFileFailed(UUID loadId, String targetPath, String error) {
@@ -99,5 +101,9 @@ public class LoadService {
 
     public List<BulkLoadFileResultModel> makeBulkLoadFileArray(UUID loadId) {
         return loadDao.makeBulkLoadFileArray(loadId);
+    }
+
+    public List<BulkLoadHistoryModel> makeLoadHistoryArray(UUID loadId, int chunkSize, int chunkNum) {
+        return loadDao.makeLoadHistoryArray(loadId, chunkSize, chunkNum);
     }
 }

@@ -1,9 +1,9 @@
 package bio.terra.service.filedata.google.firestore;
 
+import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.exception.FileSystemExecutionException;
-import bio.terra.service.dataset.Dataset;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.CollectionReference;
@@ -37,7 +37,7 @@ public class FireStoreDependencyDao {
         this.dataLocationService = dataLocationService;
     }
 
-    public boolean fileHasSnapshotReference(Dataset dataset, String fileId) {
+    public boolean fileHasSnapshotReference(Dataset dataset, String fileId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
@@ -56,21 +56,18 @@ public class FireStoreDependencyDao {
         return hasDependencies;
     }
 
-    private boolean hasReference(Query query) {
+    private boolean hasReference(Query query) throws InterruptedException {
         ApiFuture<QuerySnapshot> querySnapshot = query.get();
 
         try {
             List<QueryDocumentSnapshot> documents = querySnapshot.get().getDocuments();
             return (documents.size() > 0);
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("has reference - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("has reference - execution exception", ex);
         }
     }
 
-    public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) {
+    public List<String> getDatasetSnapshotFileIds(Dataset dataset, String snapshotId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
@@ -86,9 +83,6 @@ public class FireStoreDependencyDao {
                 fileIds.add(fireStoreDependency.getFileId());
             }
             return fileIds;
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("get file ids - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("get file ids - execution exception", ex);
         }
@@ -108,7 +102,7 @@ public class FireStoreDependencyDao {
         }
     }
 
-    public void deleteSnapshotFileDependencies(Dataset dataset, String snapshotId) {
+    public void deleteSnapshotFileDependencies(Dataset dataset, String snapshotId) throws InterruptedException {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         FireStoreProject fireStoreProject = FireStoreProject.get(dataProject.getGoogleProjectId());
         String dependencyCollectionName = getDatasetDependencyId(dataset.getId().toString());
@@ -122,10 +116,6 @@ public class FireStoreDependencyDao {
                 logger.info("deleting: " + docSnap.toString());
                 docSnap.getReference().delete();
             }
-
-        } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("delete dependencies - execution interrupted", ex);
         } catch (ExecutionException ex) {
             throw new FileSystemExecutionException("delete dependencies - execution exception", ex);
         }

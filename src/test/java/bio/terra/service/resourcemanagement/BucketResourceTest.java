@@ -5,7 +5,7 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.model.BillingProfileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.load.LoadDao;
 import bio.terra.service.resourcemanagement.exception.GoogleResourceNotFoundException;
 import bio.terra.service.resourcemanagement.google.GoogleBucketRequest;
@@ -62,7 +62,7 @@ public class BucketResourceTest {
     @Autowired private GoogleResourceDao resourceDao;
     @Autowired private DataLocationService dataLocationService;
     @Autowired private ProfileService profileService;
-    @MockBean private IamService samService;
+    @MockBean private IamProviderInterface samService;
 
     private BillingProfileModel profile;
     private Storage storage;
@@ -95,7 +95,7 @@ public class BucketResourceTest {
 
     @Test
     // create and delete the bucket, checking that the metadata and cloud state match what is expected
-    public void createAndDeleteBucketTest() {
+    public void createAndDeleteBucketTest() throws Exception {
         String bucketName = "testbucket_createanddeletebuckettest";
         String flightId = "createAndDeleteBucketTest";
         bucketNames.add(bucketName);
@@ -161,7 +161,7 @@ public class BucketResourceTest {
     @Test
     // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
     // bucket cloud resource exists, but the corresponding bucket_resource metadata row does not
-    public void bucketExistsBeforeMetadataTest() {
+    public void bucketExistsBeforeMetadataTest() throws Exception {
         logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
 
         String bucketName = "testbucket_bucketexistsbeforemetadatatest";
@@ -219,7 +219,7 @@ public class BucketResourceTest {
     @Test
     // this is testing one case of corrupt metadata (i.e. state of the cloud does not match state of the metadata)
     // bucket_resource metadata row exists, but the corresponding bucket cloud resource does not
-    public void noBucketButMetadataExistsTest() {
+    public void noBucketButMetadataExistsTest() throws Exception {
         logger.info("app property allowReuseExistingBuckets = " + resourceService.getAllowReuseExistingBuckets());
 
         String bucketName = "testbucket_nobucketbutmetadataexiststest";
@@ -291,7 +291,7 @@ public class BucketResourceTest {
         assertTrue("bucket metadata row no longer exists", exceptionThrown);
     }
 
-    private GoogleBucketRequest buildBucketRequest(String bucketName) {
+    private GoogleBucketRequest buildBucketRequest(String bucketName) throws Exception {
         // build project request
         String role = "roles/bigquery.jobUser";
         String stewardsGroupEmail = "group:JadeStewards-dev@dev.test.firecloud.org";

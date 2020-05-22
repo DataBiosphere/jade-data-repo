@@ -1,18 +1,16 @@
 package bio.terra.service.snapshot.flight.create;
 
-import bio.terra.model.SnapshotRequestAssetModel;
-import bio.terra.service.snapshot.SnapshotDao;
-import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.common.FlightUtils;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.snapshot.RowIdMatch;
-import bio.terra.service.snapshot.Snapshot;
-import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.snapshot.RowIdMatch;
+import bio.terra.service.snapshot.Snapshot;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -23,24 +21,21 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
-    private FireStoreDependencyDao dependencyDao;
-    private DatasetService datasetService;
+    private SnapshotService snapshotService;
     private SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotPrimaryDataAssetStep(BigQueryPdao bigQueryPdao,
                                               SnapshotDao snapshotDao,
-                                              FireStoreDependencyDao dependencyDao,
-                                              DatasetService datasetService,
+                                              SnapshotService snapshotService,
                                               SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
-        this.dependencyDao = dependencyDao;
-        this.datasetService = datasetService;
+        this.snapshotService = snapshotService;
         this.snapshotReq = snapshotReq;
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         /*
          * map field ids into row ids and validate
          * then pass the row id array into create snapshot
@@ -67,17 +62,8 @@ public class CreateSnapshotPrimaryDataAssetStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
-        // Remove any file dependencies created
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        for (SnapshotSource snapshotSource : snapshot.getSnapshotSources()) {
-            Dataset dataset = datasetService.retrieve(snapshotSource.getDataset().getId());
-            dependencyDao.deleteSnapshotFileDependencies(
-                dataset,
-                snapshot.getId().toString());
-        }
-
-        bigQueryPdao.deleteSnapshot(snapshot);
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
+        snapshotService.undoCreateSnapshot(snapshotReq.getName());
         return StepResult.getStepResultSuccess();
     }
 

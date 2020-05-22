@@ -42,7 +42,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         // We need a complete snapshot; use the snapshotService to get one.
         Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
 
@@ -80,7 +80,7 @@ public class CreateSnapshotFireStoreDataStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
         // Remove the snapshot file system and any file dependencies created
         Snapshot snapshot = snapshotService.retrieveByName(snapshotReq.getName());
         fileDao.deleteFilesFromSnapshot(snapshot);

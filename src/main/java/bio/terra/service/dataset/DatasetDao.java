@@ -55,25 +55,25 @@ public class DatasetDao {
     }
 
     /**
-     * Lock the dataset object before doing something with it (e.g. delete, bulk file load).
-     * This method returns successfully when there is a dataset object locked by this flight, and throws an exception
-     * in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
+     * Take an exclusive lock on the dataset object before doing something with it (e.g. delete).
+     * This method returns successfully when this flight has an exclusive lock on the dataset object, and
+     * throws an exception in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
      *     1. Update the dataset record to give this flight the lock.
      *     2. Throw an exception if no records were updated.
      * @param datasetId id of the dataset to lock, this is a unique column
      * @param flightId flight id that wants to lock the dataset
-     * @throws DatasetLockException if the dataset is locked by another flight
+     * @throws DatasetLockException if the dataset is locked by another flight, either a shared or exclusive lock
      * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lock(UUID datasetId, String flightId) {
+    public void lockExclusive(UUID datasetId, String flightId) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
 
         // update the dataset entry and lock it by setting the flight id
         String sql = "UPDATE dataset SET flightid = :flightid " +
-            "WHERE id = :datasetid AND (flightid IS NULL OR flightid = :flightid)";
+            "WHERE id = :datasetid AND (flightid IS NULL OR flightid = :flightid) AND CARDINALITY(sharedlock) = 0";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
@@ -93,19 +93,93 @@ public class DatasetDao {
     }
 
     /**
-     * Unlock the dataset object when finished doing something with it (e.g. delete, bulk file load).
-     * If the dataset is not locked by this flight, then the method is a no-op. It does not throw an exception in this
-     * case. So, multiple unlocks can succeed with no errors. The method does return a boolean indicating whether any
-     * rows were updated or not. So, callers can decide to throw an error if the unlock was a no-op.
+     * Release the exclusive lock on the dataset object when finished doing something with it (e.g. delete, create).
+     * If the dataset is not exclusively locked by this flight, then the method is a no-op. It does not throw an
+     * exception in this case. So, multiple unlocks can succeed with no errors. The method does return a boolean
+     * indicating whether any rows were updated or not. So, callers can decide to throw an error if the unlock
+     * was a no-op.
      * @param datasetId id of the dataset to unlock, this is a unique column
      * @param flightId flight id that wants to unlock the dataset
-     * @return true if a dataset was unlocked, false otherwise
+     * @return true if a dataset exclusive lock was released, false otherwise
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public boolean unlock(UUID datasetId, String flightId) {
+    public boolean unlockExclusive(UUID datasetId, String flightId) {
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE dataset SET flightid = NULL " +
             "WHERE id = :datasetid AND flightid = :flightid";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("datasetid", datasetId)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        logger.debug("numRowsUpdated=" + numRowsUpdated);
+        return (numRowsUpdated == 1);
+    }
+
+    /**
+     * Take a shared lock on the dataset object before doing something with it (e.g. file ingest, file delete).
+     * This method returns successfully when this flight has a shared lock on the dataset object, and
+     * throws an exception in all other cases. So, multiple locks can succeed with no errors. Logic flow of the method:
+     *     1. Update the dataset record to give this flight a shared lock.
+     *     2. Throw an exception if no records were updated.
+     * @param datasetId id of the dataset to lock, this is a unique column
+     * @param flightId flight id that wants to lock the dataset
+     * @throws DatasetLockException if another flight has an exclusive lock on the dataset
+     * @throws DatasetNotFoundException if the dataset does not exist
+     */
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public void lockShared(UUID datasetId, String flightId) {
+        if (flightId == null) {
+            throw new DatasetLockException("Locking flight id cannot be null");
+        }
+
+        // update the dataset entry and lock it by adding the flight id to the shared lock array column
+        String sql = "UPDATE dataset SET sharedlock = " +
+            // the SQL below appends flightid to an existing array
+            // it does this by:
+            //   1. append the flightid to the existing list: ARRAY_APPEND(sharedlock, :flightid::text)
+            //   2. convert the array to a list of rows: UNNEST
+            //   3. select only the distinct rows, to make sure we don't have duplicates: DISTINCT arrayelt
+            //   4. convert the rows back to an array: ARRAY_AGG
+            // the ARRAY_AGG function will return null if passed zero rows, but that will never be the case here
+            // because we are appending a new element, so there will always be at least one row
+            "(SELECT ARRAY_AGG(DISTINCT arrayelt) " +
+                "FROM UNNEST(ARRAY_APPEND(sharedlock, :flightid::text)) arrayelt) " +
+
+            "WHERE id = :datasetid AND flightid IS NULL";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+            .addValue("datasetid", datasetId)
+            .addValue("flightid", flightId);
+        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        logger.debug("numRowsUpdated=" + numRowsUpdated);
+
+        // if no rows were updated, then throw an exception
+        if (numRowsUpdated == 0) {
+            // this method checks if the dataset exists
+            // if it does not exist, then the method throws a DatasetNotFoundException
+            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
+            retrieveSummaryById(datasetId);
+
+            // otherwise, throw a lock exception
+            logger.debug("numRowsUpdated=" + numRowsUpdated);
+            throw new DatasetLockException("Failed to take a shared lock on the dataset");
+        }
+    }
+
+    /**
+     * Release the shared lock on the dataset object when finished doing something with it (e.g. file ingest/delete).
+     * If this flight does not have a shared lock on the dataset object, then the method is a no-op. It does not throw
+     * an exception in this case. So, multiple unlocks can succeed with no errors. The method does return a boolean
+     * indicating whether any rows were updated or not. So, callers can decide to throw an error if the unlock was
+     * a no-op.
+     * @param datasetId id of the dataset to unlock, this is a unique column
+     * @param flightId flight id that wants to unlock the dataset
+     * @return true if a dataset shared lock was released, false otherwise
+     */
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public boolean unlockShared(UUID datasetId, String flightId) {
+        // update the dataset entry to remove the flightid from the sharedlock list IF it is currently included there
+        String sql = "UPDATE dataset SET sharedlock = ARRAY_REMOVE(sharedlock, :flightid::text) " +
+            "WHERE id = :datasetid AND :flightid = ANY(sharedlock)";
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
@@ -126,8 +200,9 @@ public class DatasetDao {
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
         logger.debug("createAndLock dataset " + dataset.getName());
-        String sql = "INSERT INTO dataset (name, default_profile_id, flightid, description, additional_profile_ids) " +
-            "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids) ";
+        String sql = "INSERT INTO dataset " +
+            "(name, default_profile_id, flightid, description, additional_profile_ids, sharedlock) " +
+            "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids, ARRAY[]::TEXT[]) ";
         Array additionalProfileIds = DaoUtils.createSqlUUIDArray(connection, dataset.getAdditionalProfileIds());
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("name", dataset.getName())
@@ -151,6 +226,30 @@ public class DatasetDao {
         assetDao.createAssets(dataset);
 
         return datasetId;
+    }
+
+    protected String getExclusiveLock(UUID id) {
+        try {
+            String sql = "SELECT flightid FROM dataset WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            return jdbcTemplate.queryForObject(sql, params, String.class);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new DatasetNotFoundException("Dataset not found for id " + id);
+        }
+    }
+
+    protected String[] getSharedLocks(UUID id) {
+        try {
+            String sql = "SELECT sharedlock FROM dataset WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            Array arr = jdbcTemplate.queryForObject(sql, params, Array.class);
+            if (arr == null) {
+                throw new CorruptMetadataException("Dataset shared locks array column should not be null. id " + id);
+            }
+            return (String[])arr.getArray();
+        } catch (EmptyResultDataAccessException | SQLException ex) {
+            throw new DatasetNotFoundException("Dataset not found for id " + id);
+        }
     }
 
     @Transactional
@@ -201,7 +300,7 @@ public class DatasetDao {
     public DatasetSummary retrieveSummaryById(UUID id) {
         try {
             String sql = "SELECT " +
-                "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date " +
                 "FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -213,7 +312,7 @@ public class DatasetDao {
     public DatasetSummary retrieveSummaryByName(String name) {
         try {
             String sql = "SELECT " +
-                "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+                "id, name, description, default_profile_id, additional_profile_ids, created_date " +
                 "FROM dataset WHERE name = :name";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("name", name);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
@@ -247,7 +346,7 @@ public class DatasetDao {
             whereSql = " WHERE " + StringUtils.join(whereClauses, " AND ");
         }
         String sql = "SELECT " +
-            "id, name, description, default_profile_id, additional_profile_ids, created_date, flightid " +
+            "id, name, description, default_profile_id, additional_profile_ids, created_date " +
             "FROM dataset " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
@@ -266,8 +365,7 @@ public class DatasetDao {
                     .description(rs.getString("description"))
                     .defaultProfileId(rs.getObject("default_profile_id", UUID.class))
                     .additionalProfileIds(DaoUtils.getUUIDList(rs, "additional_profile_ids"))
-                    .createdDate(rs.getTimestamp("created_date").toInstant())
-                    .flightId(rs.getString("flightid"));
+                    .createdDate(rs.getTimestamp("created_date").toInstant());
         }
     }
 }

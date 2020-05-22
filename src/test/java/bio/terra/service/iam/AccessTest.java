@@ -1,5 +1,6 @@
 package bio.terra.service.iam;
 
+import bio.terra.common.PdaoConstant;
 import bio.terra.common.TestUtils;
 import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
@@ -23,11 +24,13 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -65,7 +68,7 @@ public class AccessTest extends UsersBase {
 
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private AuthService authService;
-    @Autowired private IamService iamService;
+    @Autowired private IamProviderInterface iamService;
     @Autowired private TestConfiguration testConfiguration;
 
     private String discovererToken;
@@ -251,6 +254,52 @@ public class AccessTest extends UsersBase {
 
         Storage discovererStorage = getStorage(discovererToken);
         assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
+    }
+
+    @Test
+    public void checkCustodianPermissions() throws  Exception {
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
+            "participant", "ingest-test/ingest-test-participant.json");
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+        request = dataRepoFixtures.buildSimpleIngest(
+            "sample", "ingest-test/ingest-test-sample.json");
+        dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
+
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        String datasetBqSnapshotName = PdaoConstant.PDAO_PREFIX + dataset.getName();
+
+        BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
+        try {
+            BigQueryFixtures.datasetExists(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
+            fail("custodian shouldn't be able to access bq dataset before it is shared with them");
+        } catch (IllegalStateException e) {
+            assertThat("checking message for pdao exception error",
+                e.getMessage(),
+                equalTo("existence check failed for " + datasetBqSnapshotName));
+        }
+
+        dataRepoFixtures.addDatasetPolicyMember(
+            steward(),
+            datasetId,
+            IamRole.CUSTODIAN,
+            custodian().getEmail());
+        DataRepoResponse<EnumerateDatasetModel> enumDatasets = dataRepoFixtures.enumerateDatasetsRaw(custodian());
+        assertThat("Custodian is authorized to enumerate datasets",
+            enumDatasets.getStatusCode(),
+            equalTo(HttpStatus.OK));
+
+        boolean custodianHasAccess =
+            BigQueryFixtures.hasAccess(custodianBigQuery, dataset.getDataProject(), datasetBqSnapshotName);
+
+        assertTrue("custodian can access the bq snapshot after it has been shared",
+            custodianHasAccess);
+
+        // gets the "sample" table and makes a table ref to use in the query
+        String tableRef = BigQueryFixtures.makeTableRef(dataset, dataset.getSchema().getTables().get(1).getName());
+        String sql = String.format("SELECT * FROM %s LIMIT %s", tableRef, 1000);
+        TableResult results = BigQueryFixtures.query(sql, custodianBigQuery);
+        Assert.assertEquals(7, results.getTotalRows());
     }
 
     private boolean canReadBlob(Storage storage, BlobId blobId) {

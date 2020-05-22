@@ -31,12 +31,14 @@ buildscript {
 plugins {
   id "com.google.cloud.tools.jib" version "1.6.1"
   id 'org.liquibase.gradle' version '2.0.1'
+  id 'antlr'
 }
 
 apply plugin: 'java'
 apply plugin: 'idea'
 apply plugin: 'org.springframework.boot'
 apply plugin: 'io.spring.dependency-management'
+apply plugin: 'antlr'
 
 apply plugin: 'checkstyle'
 apply plugin: 'findbugs'
@@ -141,7 +143,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
     } else {
-        implementation 'bio.terra:stairway:0.0.5-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.6-SNAPSHOT'
     }
 
     // Forcing this due to vulnerability issues
@@ -151,6 +153,8 @@ dependencies {
     compile ('com.fasterxml.jackson.core:jackson-core:2.10.2') {
         force = true
     }
+
+    antlr "org.antlr:antlr4:4.8"
 
     // Need groovy on the class path for the logback config. Could use XML and skip this dependency,
     // but the groovy config is... well... groovy.
@@ -178,12 +182,12 @@ dependencies {
 }
 
 def openapiSourceFile = 'src/main/resources/data-repository-openapi.yaml'
-def openapiTargetFolder = 'src/generated/java'
+def generatedOutputDir = 'src/generated/java'
 
 task generateApi {
     // specify the task inputs and outputs so gradle knows what to rebuild based on what has changed
     inputs.file("$projectDir/$openapiSourceFile")
-    outputs.dir("$projectDir/$openapiTargetFolder")
+    outputs.dir("$projectDir/$generatedOutputDir")
     doLast {
         def config = new CodegenConfigurator()
         config.setInputSpec("file:///$projectDir/$openapiSourceFile")
@@ -200,10 +204,14 @@ task generateApi {
                 'apiPackage'    : 'bio.terra.controller',
                 'modelPackage'  : 'bio.terra.model',
                 'invokerPackage': 'bio.terra',
-                'sourceFolder'  : openapiTargetFolder
+                'sourceFolder'  : generatedOutputDir
         ])
         new DefaultGenerator().opts(config.toClientOptInput()).generate()
     }
+}
+
+generateGrammarSource {
+    arguments += ["-visitor", "-long-messages"]
 }
 
 task unpack(type: Copy) {
@@ -213,7 +221,16 @@ task unpack(type: Copy) {
 }
 
 clean.doFirst {
-    delete("${projectDir}/$openapiTargetFolder")
+    delete("${projectDir}/$generatedOutputDir")
+}
+
+def excludePattern = 'generated-src/antlr/main/bio/terra/grammar/'
+def excludeGrammarPattern = '${buildDir}/' + excludePattern + '*'
+
+
+tasks.withType(Checkstyle) {
+    exclude excludeGrammarPattern
+    exclude "${buildDir}/generated-src/antlr/main/bio/terra/grammar/*"
 }
 
 sourceSets {
@@ -335,6 +352,7 @@ task testAll(type: Test) {
 }
 
 compileGeneratedJava.dependsOn generateApi
+compileGeneratedJava.dependsOn generateGrammarSource
 classes.dependsOn generatedClasses
 compileJava.dependsOn compileGeneratedJava
 ideaModule.dependsOn generateApi

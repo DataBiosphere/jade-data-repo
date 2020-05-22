@@ -8,5 +8,5 @@ import org.broadinstitute.dsde.workbench.client.sam.ApiException;
 
 @FunctionalInterface
 public interface SamFunction<R> {
-    R apply() throws ApiException;
+    R apply() throws ApiException, InterruptedException;
 }

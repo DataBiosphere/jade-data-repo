@@ -2,13 +2,12 @@ package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.dataset.exception.DatasetLockException;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.dataset.DatasetService;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
@@ -46,7 +45,7 @@ public class DeleteDatasetPrimaryDataStep implements Step {
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         Dataset dataset = datasetService.retrieve(datasetId);
         bigQueryPdao.deleteDataset(dataset);
         if (configService.testInsertFault(ConfigEnum.LOAD_SKIP_FILE_LOAD)) {
@@ -58,17 +57,12 @@ public class DeleteDatasetPrimaryDataStep implements Step {
 
         // this fault is used by the DatasetConnectedTest > testOverlappingDeletes
         if (configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT)) {
-            try {
-                logger.info("DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT");
-                while (!configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
-                    logger.info("Sleeping for CONTINUE FAULT");
-                    TimeUnit.SECONDS.sleep(5);
-                }
-                logger.info("DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
-            } catch (InterruptedException intEx) {
-                Thread.currentThread().interrupt();
-                throw new DatasetLockException("Unexpected interrupt during dataset delete lock fault", intEx);
+            logger.info("DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
             }
+            logger.info("DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT");
         }
 
         FlightMap map = context.getWorkingMap();

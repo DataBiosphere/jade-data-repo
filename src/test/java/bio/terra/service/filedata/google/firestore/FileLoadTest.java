@@ -6,6 +6,8 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
@@ -17,7 +19,7 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
-import bio.terra.service.iam.IamService;
+import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -73,7 +75,7 @@ public class FileLoadTest {
     private ConfigurationService configService;
 
     @MockBean
-    private IamService samService;
+    private IamProviderInterface samService;
 
     @SpyBean
     private DataLocationSelector dataLocationSelector;
@@ -135,6 +137,43 @@ public class FileLoadTest {
 
         assertThat(summary.getSucceededFiles(), equalTo(filesToLoad));
     }
+
+    // The purpose of this test is to have a long-running workload that completes successfully
+    // while we delete pods and have them recover.
+    @Test
+    public void longFileLoadTest() throws Exception {
+        // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
+        //  local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
+        //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
+        //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the fileLoadTest)
+        final int filesToLoad = 3;
+
+        String loadTag = Names.randomizeName("longtest");
+
+        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
+            .profileId(profileModel.getId())
+            .loadTag(loadTag)
+            .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
+
+        for (int i = 0; i < filesToLoad; i++) {
+            String tailPath = String.format("/loadtest/file-%02d.txt", i);
+            String sourcePath = "gs://jade-testdata" + tailPath;
+
+            BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
+            model.description("bulk load file " + i)
+                .sourcePath(sourcePath)
+                .targetPath(tailPath);
+            arrayLoad.addLoadArrayItem(model);
+        }
+
+        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
+        BulkLoadResultModel loadSummary = result.getLoadSummary();
+        logger.info("Total files    : " + loadSummary.getTotalFiles());
+        logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
+        logger.info("Failed files   : " + loadSummary.getFailedFiles());
+        logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+    }
+
     private BulkLoadRequestModel makeBulkFileLoad(String tagBase, int fileCount) {
         String testId = Names.randomizeName("test");
         String loadTag = tagBase + testId;
@@ -180,25 +219,25 @@ public class FileLoadTest {
     // target. That lets us build arrays with various numbers of failures and
     // adjust arrays to "fix" broken loads.
     private static String[] goodFileSource = new String[]{
-        "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam",
+        "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam", // 17GB
         "gs://jade-testdata/encodetest/files/2016/07/07/1fd31802-0ea3-4b75-961e-2fd9ac27a15c/ENCFF580QIE.bam.bai",
-        "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.bam",
+        "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.bam", // 2.7
         "gs://jade-testdata/encodetest/files/2017/08/24/80317b07-7e78-4223-a3a2-84991c3104be/ENCFF180PCI.bam.bai",
-        "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.bam",
+        "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.bam", // 1.9
         "gs://jade-testdata/encodetest/files/2017/08/24/807541ec-51e2-4aea-999f-ce600df9cdc7/ENCFF774RTX.bam.bai",
-        "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.bam",
+        "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.bam", // 16
         "gs://jade-testdata/encodetest/files/2017/08/24/8f198dd1-c2a4-443a-b4af-7ef2a0707e12/ENCFF678JJZ.bam.bai",
-        "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.bam",
+        "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.bam", // 3.3
         "gs://jade-testdata/encodetest/files/2017/08/24/ac0d9343-0435-490b-aa5d-2f14e8275a9e/ENCFF591XCX.bam.bai",
-        "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.bam",
+        "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.bam", // 12.5
         "gs://jade-testdata/encodetest/files/2017/08/24/cd3df621-4696-4fae-a2fc-2c666cafa5e2/ENCFF912JKA.bam.bai",
-        "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.bam",
+        "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.bam", // 14
         "gs://jade-testdata/encodetest/files/2017/08/24/d8fc70e5-2a02-49b3-bdcd-4eccf1fb4406/ENCFF097NAZ.bam.bai",
-        "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF168GKX.bam",
+        "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF168GKX.bam", // 11
         "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF168GKX.bam.bai",
-        "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.bam",
+        "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.bam", // 11
         "gs://jade-testdata/encodetest/files/2018/01/18/82aab61a-1e9b-43d3-8836-d9c54cf37dd6/ENCFF538GKX.bam.bai",
-        "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam",
+        "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam", // 14
         "gs://jade-testdata/encodetest/files/2018/05/04/289b5fd2-ea5e-4275-a56d-2185738737e0/ENCFF823AJQ.bam.bai"
     };
 

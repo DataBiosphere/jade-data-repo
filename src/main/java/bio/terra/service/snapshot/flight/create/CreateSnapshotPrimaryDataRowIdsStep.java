@@ -8,6 +8,7 @@ import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
@@ -23,18 +24,21 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
 
     private BigQueryPdao bigQueryPdao;
     private SnapshotDao snapshotDao;
+    private SnapshotService snapshotService;
     private SnapshotRequestModel snapshotReq;
 
     public CreateSnapshotPrimaryDataRowIdsStep(BigQueryPdao bigQueryPdao,
                                                SnapshotDao snapshotDao,
+                                               SnapshotService snapshotService,
                                                SnapshotRequestModel snapshotReq) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotDao = snapshotDao;
+        this.snapshotService = snapshotService;
         this.snapshotReq = snapshotReq;
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
         SnapshotRequestContentsModel contentsModel = snapshotReq.getContents().get(0);
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
@@ -60,10 +64,8 @@ public class CreateSnapshotPrimaryDataRowIdsStep implements Step {
     }
 
     @Override
-    public StepResult undoStep(FlightContext context) {
-        // Remove any file dependencies created
-        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotReq.getName());
-        bigQueryPdao.deleteSnapshot(snapshot);
+    public StepResult undoStep(FlightContext context) throws InterruptedException {
+        snapshotService.undoCreateSnapshot(snapshotReq.getName());
         return StepResult.getStepResultSuccess();
     }
 

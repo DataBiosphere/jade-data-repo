@@ -1,13 +1,14 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
-import bio.terra.service.filedata.exception.FileSystemExecutionException;
 import bio.terra.service.filedata.flight.FileMapKeys;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadMapKeys;
+import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
@@ -17,6 +18,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
+import bio.terra.stairway.exception.StairwayExecutionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +72,8 @@ public class IngestDriverStep implements Step {
         String loadIdString = workingMap.get(LoadMapKeys.LOAD_ID, String.class);
         UUID loadId = UUID.fromString(loadIdString);
 
+        GoogleBucketResource bucketResource = workingMap.get(FileMapKeys.BUCKET_INFO, GoogleBucketResource.class);
+
         try {
             // Check for launch orphans - these are loads in the RUNNING state that never
             // got recorded by stairway.
@@ -101,14 +105,21 @@ public class IngestDriverStep implements Step {
                         launchCount = candidateCount;
                     }
 
-                    launchLoads(context, launchCount, candidates.getCandidateFiles(), profileId, loadId);
+                    launchLoads(
+                        context,
+                        launchCount,
+                        candidates.getCandidateFiles(),
+                        profileId,
+                        loadId,
+                        bucketResource);
+
                     currentRunning += launchCount;
                 }
 
                 // Wait until some loads complete
                 waitForAny(context, loadId, concurrentFiles, currentRunning);
             }
-        } catch (DatabaseOperationException ex) {
+        } catch (DatabaseOperationException | StairwayExecutionException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
 
@@ -142,14 +153,9 @@ public class IngestDriverStep implements Step {
         }
     }
 
-    private void waiting() {
+    private void waiting() throws InterruptedException {
         logger.debug("Waiting for file loads to complete...");
-        try {
-            TimeUnit.SECONDS.sleep(driverWaitSeconds);
-        } catch (InterruptedException iex) {
-            Thread.currentThread().interrupt();
-            throw new FileSystemExecutionException("Bulk ingest driver interruped!", iex);
-        }
+        TimeUnit.SECONDS.sleep(driverWaitSeconds);
     }
 
     private void checkForOrphans(FlightContext context, UUID loadId)
@@ -209,7 +215,8 @@ public class IngestDriverStep implements Step {
                         throw new FileSystemCorruptException("no result map in flight state");
                     }
                     String fileId = resultMap.get(FileMapKeys.FILE_ID, String.class);
-                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId);
+                    FSFileInfo fileInfo = resultMap.get(FileMapKeys.FILE_INFO, FSFileInfo.class);
+                    loadService.setLoadFileSucceeded(loadId, loadFile.getTargetPath(), fileId, fileInfo);
                     break;
                 }
             }
@@ -228,7 +235,10 @@ public class IngestDriverStep implements Step {
                              int launchCount,
                              List<LoadFile> loadFiles,
                              String profileId,
-                             UUID loadId) throws DatabaseOperationException, InterruptedException {
+                             UUID loadId,
+                             GoogleBucketResource bucketInfo)
+        throws DatabaseOperationException, StairwayExecutionException, InterruptedException {
+
         Stairway stairway = context.getStairway();
 
         for (int i = 0; i < launchCount; i++) {
@@ -246,13 +256,15 @@ public class IngestDriverStep implements Step {
             FlightMap inputParameters = new FlightMap();
             inputParameters.put(FileMapKeys.DATASET_ID, datasetId);
             inputParameters.put(FileMapKeys.REQUEST, fileLoadModel);
+            inputParameters.put(FileMapKeys.BUCKET_INFO, bucketInfo);
 
             loadService.setLoadFileRunning(loadId, loadFile.getTargetPath(), flightId);
             // NOTE: this is the window where we have recorded a flight as RUNNING in the load_file
             // table, but it has not yet been launched. A failure in this window leaves "orphan"
             // loads that are marked running, but not actually started. We handle this
             // with the check for launch orphans at the beginning of the do() method.
-            stairway.submit(flightId, FileIngestWorkerFlight.class, inputParameters);
+            // We use submitToQueue to spread the file loaders across multiple instances of datarepo.
+            stairway.submitToQueue(flightId, FileIngestWorkerFlight.class, inputParameters);
         }
     }
 

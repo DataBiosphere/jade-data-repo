@@ -13,6 +13,8 @@ import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 
@@ -40,6 +42,8 @@ public class IngestPopulateFileStateFromFileStep implements Step {
     public StepResult doStep(FlightContext context) {
         // Ensure that file ingestion works with extra key-value pairs
         ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new JavaTimeModule())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 
         FlightMap inputParameters = context.getInputParameters();

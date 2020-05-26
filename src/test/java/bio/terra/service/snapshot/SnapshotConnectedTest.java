@@ -13,6 +13,7 @@ import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
@@ -143,6 +144,44 @@ public class SnapshotConnectedTest {
 
         SnapshotRequestModel snapshotRequest =
             makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+
+        getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
+    public void testQueryHappyPath() throws Exception {
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        SnapshotRequestModel snapshotRequest =
+            makeSnapshotTestRequest(datasetSummary, "snapshot-query-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+
+        getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
+    public void testFullViewsHappyPath() throws Exception {
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        SnapshotRequestModel snapshotRequest =
+            makeSnapshotTestRequest(datasetSummary, "snapshot-fullviews-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
@@ -392,9 +431,18 @@ public class SnapshotConnectedTest {
     private SnapshotRequestModel makeSnapshotTestRequest(DatasetSummaryModel datasetSummaryModel,
                                                          String resourcePath) throws Exception {
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
+        SnapshotRequestContentsModel content = snapshotRequest.getContents().get(0);
         // TODO SingleDatasetSnapshot
-        snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+        String newDatasetName = datasetSummaryModel.getName();
+        String origDatasetName = content.getDatasetName();
+        // swap in the correct dataset name (with the id at the end)
+        content.setDatasetName(newDatasetName);
         snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
+        if (content.getMode().equals(SnapshotRequestContentsModel.ModeEnum.BYQUERY)) {
+            // if its by query, also set swap in the correct dataset name in the query
+            String query = content.getQuerySpec().getQuery();
+            content.getQuerySpec().setQuery(query.replace(origDatasetName, newDatasetName));
+        }
         return snapshotRequest;
     }
 

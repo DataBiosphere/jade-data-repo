@@ -54,6 +54,11 @@ public class ApplicationConfiguration {
     private int loadDriverWaitSeconds;
 
     /**
+     * Number of files for the bulk file load to load file metadata into staging table
+     */
+    private int loadHistoryCopyChunkSize;
+
+    /**
      * Number of badly formed lines in a bulk load input file to return in the error details of
      * the error model
      */
@@ -64,6 +69,17 @@ public class ApplicationConfiguration {
      */
     private int loadFilePopulateBatchSize;
 
+    /**
+     * Name of the Kubernetes pod we are running in. If we are not in a pod, this defaults to
+     * a constant string in application properties.
+     */
+    private String podName;
+
+    /**
+     * Used to denote that we are running in the Kubernetes environment. This should NOT be changed
+     * in application.properties. It should only be reset by the Kubernetes deployment.
+     */
+    private boolean inKubernetes;
     /**
      * Pod shutdown timeout
      * TODO: better to have this passed in as an envvar from the K8s configuration so it is in sync.
@@ -151,6 +167,14 @@ public class ApplicationConfiguration {
         this.loadDriverWaitSeconds = loadDriverWaitSeconds;
     }
 
+    public int getLoadHistoryCopyChunkSize() {
+        return loadHistoryCopyChunkSize;
+    }
+
+    public void setLoadHistoryCopyChunkSize(int loadHistoryCopyChunkSize) {
+        this.loadHistoryCopyChunkSize = loadHistoryCopyChunkSize;
+    }
+
     public int getMaxBadLoadFileLineErrorsReported() {
         return maxBadLoadFileLineErrorsReported;
     }
@@ -173,6 +197,22 @@ public class ApplicationConfiguration {
 
     public void setShutdownTimeoutSeconds(int shutdownTimeoutSeconds) {
         this.shutdownTimeoutSeconds = shutdownTimeoutSeconds;
+    }
+
+    public String getPodName() {
+        return podName;
+    }
+
+    public void setPodName(String podName) {
+        this.podName = podName;
+    }
+
+    public boolean isInKubernetes() {
+        return inKubernetes;
+    }
+
+    public void setInKubernetes(boolean inKubernetes) {
+        this.inKubernetes = inKubernetes;
     }
 
     @Bean("jdbcTemplate")

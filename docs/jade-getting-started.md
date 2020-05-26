@@ -11,9 +11,10 @@ These instructions assume you use MacOS, and that you are on the internal Broad
 network or the VPN. If the VPN is not installed, follow the instructions
 [at this link](https://broad.io/vpn).
 
-> During this process, you will need your GitHub and Docker Hub username /
-password for multiple steps, so make sure to have those handy. If you don't have
-those yet, see the section below, otherwise you can skip to [Connect Accounts](#2-connect-accounts)
+> During this process, you will need your GitHub and Docker Hub username,
+password, and personal access token for multiple steps, so make sure to have
+those handy. If you don't have those yet, see the section below, otherwise you
+can skip to [Connect Accounts](#2-connect-accounts)
 
 ## 1. Create a GitHub and Docker Hub account
 
@@ -24,6 +25,9 @@ dependencies.
 Sign up to these services with your **personal** email:
   * https://github.com/join
   * https://hub.docker.com/signup
+
+Create a [personal access token](https://help.github.com/en/github/authenticating-to-github/creating-a-personal-access-token-for-the-command-line)
+so you can interact with GitHub on the command line.
 
 ## 2. Connect accounts
 
@@ -63,10 +67,15 @@ Once Homebrew is installed, there are a number of useful development tools that
 should be installed.
 
 1. [Git](https://git-scm.com/) is a version control tool for tracking changes in
-projects and code:
+projects and code. To ensure that secrets and passwords cannot accidentally be
+committed to repositories, [git-secrets](https://github.com/awslabs/git-secrets)
+is also installed:
 
 ```
 brew install git
+brew install git-secrets
+git clone https://github.com/broadinstitute/dsp-appsec-gitsecrets-client.git gitsecrets
+sh gitsecrets/gitsecrets.sh
 ```
 
 2. [jq](https://stedolan.github.io/jq/) is a command line JSON processing tool:
@@ -242,12 +251,17 @@ Follow the [Build and Run Locally](https://github.com/DataBiosphere/jade-data-re
 section in the [main readme](https://github.com/DataBiosphere/jade-data-repo#jade-data-repository---)
 to build `jade-data-repo`.
 
-* You may need to set environmental variables. Instances of `zzz` should be
-replaced by your initials or the environment (i.e. `dev`):
+* You will need to run `render-configs.sh` before running integration tests.
+
+* Certain environment variables need to be set beforehand. Instances of `zzz`
+should be replaced by your initials or the environment (i.e. `dev`):
 
 ```
 export VAULT_ADDR=https://clotho.broadinstitute.org:8200
 export PROXY_URL=https://jade-zzz.datarepo-dev.broadinstitute.org
+export GOOGLE_CLOUD_PROJECT=broad-jade-zzz
+export GOOGLE_APPLICATION_CREDENTIALS=/tmp/jade-dev-account.json
+export GOOGLE_SA_CERT=/tmp/jade-dev-account.pem
 ```
 
 * If you're not on a Broad computer, you may need to set the host to `localhost`
@@ -263,7 +277,16 @@ export HOST=localhost
 ./gradlew bootRun         # build jade-data-repo with Spring Boot features
 ./gradlew check           # linters and unit tests
 ./gradlew testConnected   # connected tests
+./gradlew testIntegrated  # integration tests
 ```
+
+* The first run of the integration tests should create a corresponding Google
+Cloud Project with the name `broad-jade-zzz-data`, where `zzz` is replaced by
+your initials. After this is created, Firestore needs to be enabled:
+  1. Go to the [Google Cloud Console](http://console.cloud.google.com/).
+  2. From the `DATA.TEST-TERRA.BIO` organization, select your newly created GCP
+  project: `broad-jade-zzz-data`.
+  3. Go to Firestore and enable firestore in **Native** mode.
 
 ### 2. Build `jade-data-repo-ui`
 

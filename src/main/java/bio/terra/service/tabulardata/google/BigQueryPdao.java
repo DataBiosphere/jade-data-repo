@@ -7,15 +7,19 @@ import bio.terra.common.PdaoLoadStatistics;
 import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
+import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.AssetSpecification;
+import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetDataProject;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
@@ -27,6 +31,7 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
 import com.google.cloud.bigquery.Acl;
@@ -67,11 +72,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
+import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 
 @Component
 @Profile("google")
@@ -80,13 +87,16 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private final String datarepoDnsName;
     private final DataLocationService dataLocationService;
+    private final DatasetService datasetService;
 
     @Autowired
     public BigQueryPdao(
         ApplicationConfiguration applicationConfiguration,
-        DataLocationService dataLocationService) {
+        DataLocationService dataLocationService,
+        DatasetService datasetService) {
         this.datarepoDnsName = applicationConfiguration.getDnsName();
         this.dataLocationService = dataLocationService;
+        this.datasetService = datasetService;
     }
 
     public BigQueryProject bigQueryProjectForDataset(Dataset dataset) throws InterruptedException {
@@ -151,6 +161,122 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return TableInfo.of(liveViewId, ViewDefinition.of(liveViewSql.render()));
     }
 
+    public void createStagingLoadHistoryTable(Dataset dataset, String tableName_FlightId) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+        try {
+            String datasetName = prefixName(dataset.getName());
+
+            if (bigQueryProject.tableExists(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId)) {
+                bigQueryProject.deleteTable(datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
+            }
+
+            bigQueryProject.createTable(
+                datasetName, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId, buildLoadDatasetSchema());
+        } catch (Exception ex) {
+            throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
+        }
+    }
+
+    public void deleteStagingLoadHistoryTable(Dataset dataset, String flightId) {
+        try {
+            deleteDatasetTable(dataset, PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+        } catch (Exception ex) {
+            throw new PdaoException("create staging load history table failed for " + dataset.getName(), ex);
+        }
+    }
+
+    private Schema buildLoadDatasetSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("load_time",  LegacySQLTypeName.TIMESTAMP)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("state", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.REQUIRED)
+            .build());
+        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+        fieldList.add(Field.newBuilder("error", LegacySQLTypeName.STRING)
+            .setMode(Field.Mode.NULLABLE)
+            .build());
+
+        return Schema.of(fieldList);
+    }
+
+    private static final String insertLoadHistoryToStagingTableTemplate =
+        "INSERT INTO `<project>.<dataset>.<stagingTable>`" +
+            " (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c, checksum_md5, error)" +
+            " VALUES <load_history_array:{v|('<load_tag>', '<load_time>', '<v.sourcePath>', '<v.targetPath>'," +
+            " '<v.state>', '<v.fileId>', '<v.checksumCRC>', '<v.checksumMD5>', '<v.error>')}; separator=\",\">";
+
+    public void loadHistoryToStagingTable(
+        Dataset dataset,
+        String tableName_FlightId,
+        String loadTag,
+        Instant loadTime,
+        List<BulkLoadHistoryModel> loadHistoryArray) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        ST sqlTemplate = new ST(insertLoadHistoryToStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", prefixName(dataset.getName()));
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + tableName_FlightId);
+
+        sqlTemplate.add("load_history_array", loadHistoryArray);
+        sqlTemplate.add("load_tag", loadTag);
+        sqlTemplate.add("load_time", loadTime);
+
+        bigQueryProject.query(sqlTemplate.render());
+    }
+
+    private static final String mergeLoadHistoryStagingTableTemplate =
+        "MERGE `<project>.<dataset>.<loadTable>` L" +
+            " USING `<project>.<dataset>.<stagingTable>` S" +
+            " ON S.load_tag = L.load_tag AND S.load_time = L.load_time" +
+                " AND S.file_id = L.file_id" +
+            " WHEN NOT MATCHED THEN" +
+                " INSERT (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c," +
+                    " checksum_md5, error)" +
+                " VALUES (load_tag, load_time, source_name, target_path, state, file_id, checksum_crc32c," +
+                    " checksum_md5, error)";
+
+    public void mergeStagingLoadHistoryTable(
+        Dataset dataset,
+        String flightId) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        String datasetName = prefixName(dataset.getName());
+
+        // Make sure load_history table exists in dataset, if not - add table
+        if (!tableExists(dataset, PDAO_LOAD_HISTORY_TABLE)) {
+            bigQueryProject.createTable(
+                    datasetName, PDAO_LOAD_HISTORY_TABLE, buildLoadDatasetSchema());
+        }
+
+        ST sqlTemplate = new ST(mergeLoadHistoryStagingTableTemplate);
+        sqlTemplate.add("project", bigQueryProject.getProjectId());
+        sqlTemplate.add("dataset", datasetName);
+        sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+        sqlTemplate.add("loadTable", PDAO_LOAD_HISTORY_TABLE);
+
+        bigQueryProject.query(sqlTemplate.render());
+    }
+
     @Override
     public boolean deleteDataset(Dataset dataset) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
@@ -163,7 +289,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "LEFT JOIN `<project>.<dataset>.<table>` AS T ON V.input_value = T.<column>";
 
     // compute the row ids from the input ids and validate all inputs have matches
-    // Add new public method that takes the asset and the snapshot source and the input values and
+
+
     // returns a structure with the matching row ids (suitable for calling create snapshot)
     // and any mismatched input values that don't have corresponding roww.
     // NOTE: In the fullness of time, we may not do this and kick the function into the UI.
@@ -215,6 +342,31 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return rowIdMatch;
     }
 
+    public void snapshotCreateBQDataset(BigQueryProject bigQueryProject, Snapshot snapshot) {
+        String snapshotName = snapshot.getName();
+        // Idempotency: delete possibly partial create.
+        if (bigQueryProject.datasetExists(snapshotName)) {
+            bigQueryProject.deleteDataset(snapshotName);
+        }
+        // create snapshot BQ dataset
+        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+    }
+
+    public void snapshotViewCreation(
+        String datasetBqDatasetName,
+        String snapshotName,
+        Snapshot snapshot,
+        String projectId,
+        BigQuery bigQuery,
+        BigQueryProject bigQueryProject) {
+        // create the views
+        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+
+        // set authorization on views
+        List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
+        bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+    }
+
     private static final String loadRootRowIdsTemplate =
         "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
             "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
@@ -234,11 +386,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String snapshotName = snapshot.getName();
         BigQuery bigQuery = bigQueryProject.getBigQuery();
 
-        // Idempotency: delete possibly partial create.
-        if (bigQueryProject.datasetExists(snapshotName)) {
-            bigQueryProject.deleteDataset(snapshotName);
-        }
-        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+        // create snapshot BQ dataset
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
 
         // create the row id table
         bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
@@ -284,13 +433,96 @@ public class BigQueryPdao implements PrimaryDataAccess {
         List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
         walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
 
-        // create the views
-        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
-
-        // set authorization on views
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
-        bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
     }
+
+    private static final String insertAllLiveViewDataTemplate =
+        "INSERT INTO `<project>.<snapshot>.<dataRepoTable>` " +
+            "(<dataRepoTableId>, <dataRepoRowId>) <liveViewTables>";
+
+    private static final String getLiveViewTableTemplate =
+        // TODO pull insert out and loop thru rest w UNION ()
+            "(SELECT '<tableId>', <dataRepoRowId> FROM `<project>.<dataset>.<liveView>`)";
+
+    private static final String mergeLiveViewTablesTemplate =
+        "<selectStatements; separator=\" UNION ALL \">";
+
+    private static final String validateSnapshotSizeTemplate =
+        "SELECT COUNT(1) FROM <project>.<snapshot>.<dataRepoTable>";
+
+
+    public String createSnaphotTableFromLiveViews(
+        BigQueryProject bigQueryProject,
+        List<DatasetTable> tables,
+        String datasetBqDatasetName) {
+
+        List<String> selectStatements = new ArrayList<>();
+
+        for (DatasetTable table : tables) {
+
+            TableId liveViewId = TableId.of(datasetBqDatasetName, table.getName());
+            String liveViewTableName = liveViewId.getTable();
+
+            ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
+            sqlTableTemplate.add("tableId", table.getId());
+            sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
+            sqlTableTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTableTemplate.add("dataset", datasetBqDatasetName);
+            sqlTableTemplate.add("liveView", liveViewTableName);
+            selectStatements.add(sqlTableTemplate.render());
+        }
+        ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
+        sqlMergeTablesTemplate.add("selectStatements", selectStatements);
+        return sqlMergeTablesTemplate.render();
+    }
+
+    public void createSnapshotWithLiveViews(
+        Snapshot snapshot,
+        Dataset dataset) throws InterruptedException {
+
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String projectId = bigQueryProject.getProjectId();
+        String snapshotName = snapshot.getName();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        String datasetBqDatasetName = prefixName(dataset.getName());
+
+        // create snapshot BQ dataset
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
+
+        // create the row id table (row id col and table id col)
+        bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+        // get source dataset table live views
+        List<DatasetTable> tables = dataset.getTables();
+
+        // create a snapshot table based on the live view data row ids
+        String liveViewTables = createSnaphotTableFromLiveViews(bigQueryProject, tables, datasetBqDatasetName);
+
+
+        ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
+        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+        sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
+        sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
+        sqlTemplate.add("liveViewTables", liveViewTables);
+
+        bigQueryProject.query(sqlTemplate.render());
+
+        ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
+        sqlValidateSnapshotTemplate.add("project", projectId);
+        sqlValidateSnapshotTemplate.add("snapshot", snapshotName);
+        sqlValidateSnapshotTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+
+        TableResult result = bigQueryProject.query(sqlValidateSnapshotTemplate.render());
+        if (result.getTotalRows() <= 0) {
+            throw new PdaoException("This snapshot is empty");
+        }
+
+        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+    }
+
 
     public void createSnapshotWithProvidedIds(
         Snapshot snapshot,
@@ -302,11 +534,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
         BigQuery bigQuery = bigQueryProject.getBigQuery();
         SnapshotRequestRowIdModel rowIdModel = contentsModel.getRowIdSpec();
 
-        // Idempotency: delete possibly partial create.
-        if (bigQueryProject.datasetExists(snapshotName)) {
-            bigQueryProject.deleteDataset(snapshotName);
-        }
-        bigQueryProject.createDataset(snapshotName, snapshot.getDescription());
+        // create snapshot BQ dataset
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
 
         // create the row id table
         bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
@@ -351,12 +580,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
         }
 
-        // create the views
-        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
-
-        // set authorization on views
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
-        bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
+        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
     @Override
@@ -624,33 +848,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return PDAO_PREFIX + name;
     }
 
-    private Schema buildLoadDatasetSchema() {
-        List<Field> fieldList = new ArrayList<>();
-        fieldList.add(Field.newBuilder("load_tag", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("load_time", LegacySQLTypeName.TIMESTAMP)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("source_name", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("target_path", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("file_id", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("checksum_crc32c", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-        fieldList.add(Field.newBuilder("checksum_md5", LegacySQLTypeName.STRING)
-            .setMode(Field.Mode.REQUIRED)
-            .build());
-
-        return Schema.of(fieldList);
-    }
-
     private Schema buildSoftDeletesSchema() {
         return Schema.of(Collections.singletonList(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING)));
     }
@@ -682,6 +879,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
             fieldList.add(fieldSpec);
         }
 
+        return Schema.of(fieldList);
+    }
+
+    private Schema tempTableSchema() {
+        List<Field> fieldList = new ArrayList<>();
+        fieldList.add(Field.of(PDAO_ROW_ID_COLUMN, LegacySQLTypeName.STRING));
         return Schema.of(fieldList);
     }
 
@@ -827,6 +1030,102 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    // insert the rowIds into the snapshot row ids table and then kick off the rest of the relationship walking
+    // once we have the row ids in addition to the asset spec, this should look familiar to wAsset
+    public void queryForRowIds(AssetSpecification assetSpecification,
+                               Snapshot snapshot,
+                               String sqlQuery) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+        String snapshotName = snapshot.getName();
+        Dataset dataset = snapshot.getSnapshotSources().get(0).getDataset();
+        String datasetBqDatasetName = prefixName(dataset.getName());
+        String projectId = bigQueryProject.getProjectId();
+        // TODO add additional validation that the col is the root col
+
+        // create snapshot bq dataset
+        try {
+
+            // create snapshot BQ dataset
+            snapshotCreateBQDataset(bigQueryProject, snapshot);
+
+            // now create a temp table with all the selected row ids based on the query in it
+            bigQueryProject.createTable(snapshotName, PDAO_TEMP_TABLE, tempTableSchema());
+
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlQuery)
+                .setDestinationTable(TableId.of(snapshotName, PDAO_TEMP_TABLE))
+                .setWriteDisposition(JobInfo.WriteDisposition.WRITE_APPEND)
+                .build();
+            try {
+                final TableResult query = bigQuery.query(queryConfig);
+                // get results and validate that it got back more than 0 value
+                if (query.getTotalRows() < 1) {
+                    // should this be a different error?
+                    throw new InvalidQueryException("Query returned 0 results");
+                }
+
+            } catch (InterruptedException ie) {
+                throw new PdaoException("Append query unexpectedly interrupted", ie);
+            }
+
+            // join on the root table to validate that the dataset's rootTable.rowid is never null
+            // and thus matches the PDAO_ROW_ID_COLUMN
+            AssetTable rootAssetTable = assetSpecification.getRootTable();
+            Table rootTable = rootAssetTable.getTable();
+            String datasetTableName = rootTable.getName();
+            String rootTableId = rootTable.getId().toString();
+
+            ST sqlTemplate = new ST(joinTablesToTestForMissingRowIds);
+            sqlTemplate.add("snapshotDatasetName", snapshotName);
+            sqlTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            sqlTemplate.add("datasetDatasetName", datasetBqDatasetName);
+            sqlTemplate.add("datasetTable", datasetTableName);
+            sqlTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN);
+
+            TableResult result = bigQueryProject.query(sqlTemplate.render());
+            FieldValueList mismatchedCount = result.getValues().iterator().next();
+            Long mismatchedCountLong = mismatchedCount.get(0).getLongValue();
+            if (mismatchedCountLong > 0) {
+                throw new MismatchedValueException("Query results did not match dataset root row ids");
+            }
+
+            // TODO should this be pulled up to the top of queryForRowIds() / added to snapshotCreateBQDataset() helper
+            bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+            // populate root row ids. Must happen before the relationship walk.
+            // NOTE: when we have multiple sources, we can put this into a loop
+
+
+            // insert into the PDAO_ROW_ID_TABLE the literal that is the table id
+            // and then all the row ids from the temp table
+            ST sqlLoadTemplate = new ST(loadRootRowIdsFromTempTableTemplate);
+            sqlLoadTemplate.add("project", projectId);
+            sqlLoadTemplate.add("snapshot", snapshotName);
+            sqlLoadTemplate.add("dataset", datasetBqDatasetName);
+            sqlLoadTemplate.add("tableId", rootTableId);
+            sqlLoadTemplate.add("commonColumn", PDAO_ROW_ID_COLUMN); // this is the disc from classic asset
+            sqlLoadTemplate.add("tempTable", PDAO_TEMP_TABLE);
+            bigQueryProject.query(sqlLoadTemplate.render());
+
+            //ST sqlValidateTemplate = new ST(validateRowIdsForRootTemplate);
+            // TODO do we want to reuse this validation? if yes, maybe mismatchedCount / query should be updated
+
+            // walk and populate relationship table row ids
+            List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(assetSpecification);
+            walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
+
+            // populate root row ids. Must happen before the relationship walk.
+            // NOTE: when we have multiple sources, we can put this into a loop
+            snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+
+        } catch (PdaoException ex) {
+            // TODO What if the select list doesn't match the temp table schema?
+            // TODO what if the query is invalid? Seems like there might be more to catch here.
+            throw new PdaoException("createSnapshot failed", ex);
+        }
+    }
+
+
     // NOTE: this will have to be re-written when we support relationships that include
     // more than one column.
     private static final String storeRowIdsForRelatedTableTemplate =
@@ -853,6 +1152,18 @@ public class BigQueryPdao implements PrimaryDataAccess {
     private static final String matchCrossArraysTemplate =
         "EXISTS (SELECT 1 FROM UNNEST(F.<fromColumn>) AS flat_from " +
             "JOIN UNNEST(T.<toColumn>) AS flat_to ON flat_from = flat_to)";
+
+    private static final String joinTablesToTestForMissingRowIds =
+        "SELECT COUNT(*) FROM <snapshotDatasetName>.<tempTable> " +
+            "LEFT JOIN <datasetDatasetName>.<datasetTable> USING ( <commonColumn> ) " +
+            "WHERE <datasetTable>.<commonColumn> IS NULL";
+
+    private static final String loadRootRowIdsFromTempTableTemplate =
+        "INSERT INTO `<project>.<snapshot>." + PDAO_ROW_ID_TABLE + "` " +
+            "(" + PDAO_TABLE_ID_COLUMN + "," + PDAO_ROW_ID_COLUMN + ") " +
+            "SELECT '<tableId>' AS " + PDAO_TABLE_ID_COLUMN + ", T.row_id AS " + PDAO_ROW_ID_COLUMN + " FROM (" +
+            "SELECT <commonColumn> AS row_id FROM `<snapshot>.<tempTable>` " +
+            ") AS T";
 
     /**
      * Given a relationship, join from the start table to the target table.

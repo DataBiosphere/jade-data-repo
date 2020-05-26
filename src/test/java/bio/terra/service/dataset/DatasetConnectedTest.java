@@ -358,6 +358,86 @@ public class DatasetConnectedTest {
     }
 
     @Test
+    public void testSharedLockTableIngest() throws Exception {
+        // create a dataset and check that it succeeds
+        String resourcePath = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest =
+            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+        // load a JSON file that contains the table rows to load into the test bucket
+        String resourceFileName = "snapshot-test-dataset-data-without-rowids.json";
+        String dirInCloud = "scratch/testSharedLockTableIngest/" + UUID.randomUUID().toString();
+        BlobInfo ingestTableBlob = BlobInfo
+            .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + resourceFileName)
+            .build();
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.create(ingestTableBlob,
+            IOUtils.toByteArray(getClass().getClassLoader().getResource(resourceFileName)));
+
+        // make sure the JSON file gets cleaned up on test teardown
+        connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
+
+        // enable wait in IngestCleanupStep
+        configService.setFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off the first table ingest. it should hang in the cleanup step.
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + resourceFileName;
+        IngestRequestModel ingestRequest1 = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("thetable")
+            .path(gsPath);
+        MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest1);
+
+        // check that the dataset metadata row has a shared lock
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock);
+        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks.length);
+
+        // kick off the second table ingest. it should hang in the cleanup step.
+        IngestRequestModel ingestRequest2 = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("thetable")
+            .path(gsPath);
+        MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest2);
+
+        // check that the dataset metadata row has two shared locks
+        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock);
+        sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has two shared locks", 2, sharedLocks.length);
+
+        // try to delete the dataset, confirm fails with a lock exception
+        MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
+        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel3.getMessage(),
+            startsWith("Failed to lock the dataset"));
+
+        // disable wait in IngestCleanupStep
+        configService.setFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the first table ingest
+        MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
+        connectedOperations.checkIngestTableResponse(response1);
+
+        // check the response from the second delete table ingest
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
+        connectedOperations.checkIngestTableResponse(response2);
+
+        // delete the dataset and check that it succeeds
+        connectedOperations.deleteTestDataset(summaryModel.getId());
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     public void testThatRetryFails() throws Exception {
         // create a dataset and check that it succeeds
         String resourcePathDatasetCreate = "snapshot-test-dataset.json";

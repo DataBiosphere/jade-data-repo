@@ -53,6 +53,9 @@ public class SnapshotRequestValidator implements Validator {
                     case BYASSET:
                         validateSnapshotAssetSpec(contents.getAssetSpec(), errors);
                         break;
+                    case BYFULLVIEW:
+                        // no additional validation necessary
+                        break;
                     case BYQUERY:
                         validateSnapshotQuerySpec(contents.getQuerySpec(), errors);
                         break;

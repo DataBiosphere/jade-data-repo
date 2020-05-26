@@ -25,12 +25,14 @@ public class LockDatasetStep implements Step {
     private final boolean suppressNotFoundException; // default to false
     private ConfigurationService configurationService;
 
-    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock, ConfigurationService configurationService) {
+    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock,
+                           ConfigurationService configurationService) {
         this(datasetDao, datasetId, sharedLock, false, configurationService);
     }
 
     public LockDatasetStep(DatasetDao datasetDao, UUID datasetId,
-                           boolean sharedLock, boolean suppressNotFoundException, ConfigurationService configurationService) {
+                           boolean sharedLock, boolean suppressNotFoundException,
+                           ConfigurationService configurationService) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
 

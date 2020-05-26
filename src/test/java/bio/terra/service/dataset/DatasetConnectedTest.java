@@ -22,8 +22,6 @@ import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.snapshot.SnapshotConnectedTest;
-import bio.terra.stairway.StepResult;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
@@ -32,7 +30,6 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import org.apache.commons.io.IOUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -61,9 +58,9 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
@@ -374,14 +371,16 @@ public class DatasetConnectedTest {
 
         // ingest a table
         String resourcePathTableIngest = "snapshot-test-dataset-data.csv";
+        Blob blob = putFileInBucket(resourcePathTableIngest);
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .table("thetable")
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
-            .path(putFileInBucket(resourcePathTableIngest));
+            .path("gs://" + blob.getBucket() + "/" + blob.getName());
         connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
 
         // remove csv file from bucket
+        deleteFileFromBucket(blob);
 
         // enable wait in LockDatasetStep
         configService.setFault(ConfigEnum.LOCK_DATASET_STOP_FAULT.name(), true);
@@ -407,16 +406,22 @@ public class DatasetConnectedTest {
         String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
         assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
 
-//        // try to do soft delete #2
-//        DataDeletionRequest softDeleteRequest2 = dataDeletionRequest()
-//            .tables(dataDeletionTableModels);
-//
-//        String softDeleteUrl2 = String.format("/api/repository/v1/datasets/%s/deletes", summaryModel.getId());
-//        MvcResult softDeleteResult2 = mvc.perform(
-//            post(softDeleteUrl2).contentType(MediaType.APPLICATION_JSON).content(TestUtils.mapToJson(softDeleteRequest2)))
-//            .andReturn();
+        // try to do soft delete #2
+        DataDeletionRequest softDeleteRequest2 = dataDeletionRequest()
+            .tables(dataDeletionTableModels);
+
+        String softDeleteUrl2 = String.format("/api/repository/v1/datasets/%s/deletes", summaryModel.getId());
+        MvcResult softDeleteResult2 = mvc.perform(
+            post(softDeleteUrl2).contentType(MediaType.APPLICATION_JSON)
+                .content(TestUtils.mapToJson(softDeleteRequest2)))
+            .andReturn();
 
         // check that soft delete fails to get exclusive lock
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(softDeleteResult2);
+        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("second soft delete failed to get exclusive lock",
+            errorModel2.getMessage(), containsString("Failed to lock the dataset"));
+
 
         // disable wait in LockDatasetStep
         configService.setFault(ConfigEnum.LOCK_DATASET_CONTINUE_FAULT.name(), true);
@@ -424,9 +429,15 @@ public class DatasetConnectedTest {
         // ensure that soft delete #1 finishes successfully
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(softDeleteResult1);
         assertEquals(response1.getStatus(), HttpStatus.OK.value());
+
+        // delete the dataset and check that it succeeds
+        connectedOperations.deleteTestDataset(summaryModel.getId());
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
-    private String putFileInBucket(String resourcesFileName) throws IOException {
+    private Blob putFileInBucket(String resourcesFileName) throws IOException {
         String bucketName = testConfig.getIngestbucket();
         String randomizedFileName = UUID.randomUUID().toString() + "-" + resourcesFileName;
         Storage storage = StorageOptions.getDefaultInstance().getService();
@@ -434,8 +445,12 @@ public class DatasetConnectedTest {
 
         BlobInfo stagingBlob = BlobInfo.newBuilder(bucketName, randomizedFileName).build();
         byte[] data = IOUtils.toByteArray(jsonLoader.getClassLoader().getResource(resourcesFileName));
-        Blob blob = storage.create(stagingBlob, data);
-        return "gs://" + blob.getBucket() + "/" + blob.getName();
+        return storage.create(stagingBlob, data);
+    }
+
+    private void deleteFileFromBucket(Blob blob) {
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.delete(blob.getBlobId());
     }
 
     private String writeListToScratch(String prefix, List<String> contents) throws IOException {

@@ -25,12 +25,10 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.sam.SamConfiguration;
-import com.google.api.Http;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
-import liquibase.precondition.ErrorPrecondition;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
@@ -188,8 +186,8 @@ public class ConnectedOperations {
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,
-                                                  String resourcePath,
-                                                  String infix) throws Exception {
+                                               String resourcePath,
+                                               String infix) throws Exception {
 
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
         String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
@@ -299,14 +297,15 @@ public class ConnectedOperations {
     public void deleteFile(String datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
-                .andReturn();
+            .andReturn();
         logger.info("deleting datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         checkDeleteResponse(response);
     }
 
-    public ErrorModel deleteFileExpectError(String datasetId, String fileId, HttpStatus expectedStatus) throws Exception {
+    public ErrorModel deleteFileExpectError(String datasetId, String fileId, HttpStatus expectedStatus)
+        throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();

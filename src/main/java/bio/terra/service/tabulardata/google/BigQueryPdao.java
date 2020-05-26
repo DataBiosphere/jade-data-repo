@@ -30,6 +30,7 @@ import bio.terra.service.snapshot.SnapshotDataProject;
 import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
+import bio.terra.service.snapshot.SnapshotTable;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
@@ -65,6 +66,7 @@ import org.stringtemplate.v4.ST;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -1515,5 +1517,24 @@ public class BigQueryPdao implements PrimaryDataAccess {
                     String.format("Could not match %s row ids for table %s", numMismatched, tableName));
             }
         }
+    }
+
+    private static final String rowCountTemplate = "SELECT COUNT(<rowId>) FROM `<project>.<dataset>.<table>`";
+
+    public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        Map<String, Long> rowCounts = new HashMap<>();
+        for (SnapshotTable snapshotTable : snapshot.getTables()) {
+            String tableName = snapshotTable.getName();
+            String sql = new ST(rowCountTemplate)
+                .add("rowId", PDAO_ROW_ID_COLUMN)
+                .add("project", bigQueryProject.getProjectId())
+                .add("dataset", snapshot.getName())
+                .add("table", tableName)
+                .render();
+            TableResult result = bigQueryProject.query(sql);
+            rowCounts.put(tableName, getSingleLongValue(result));
+        }
+        return rowCounts;
     }
 }

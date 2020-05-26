@@ -69,6 +69,7 @@ public class SnapshotCreateFlight extends Flight {
             default:
                 throw new InvalidSnapshotException("Snapshot does not have required mode information");
         }
+        addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
         addStep(new CreateSnapshotFireStoreDataStep(
             bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));

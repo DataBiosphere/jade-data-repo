@@ -24,6 +24,7 @@ public class DatasetTable implements Table {
     private List<Column> columns = Collections.emptyList();
     private List<Column> primaryKey = Collections.emptyList();
     private BigQueryPartitionConfigV1 bqPartitionConfig;
+    private Long rowCount;
 
     public UUID getId() {
         return id;
@@ -85,6 +86,16 @@ public class DatasetTable implements Table {
 
     public DatasetTable bigQueryPartitionConfig(BigQueryPartitionConfigV1 config) {
         this.bqPartitionConfig = config;
+        return this;
+    }
+
+    @Override
+    public Long getRowCount() {
+        return rowCount;
+    }
+
+    public DatasetTable setRowCount(Long rowCount) {
+        this.rowCount = rowCount;
         return this;
     }
 }

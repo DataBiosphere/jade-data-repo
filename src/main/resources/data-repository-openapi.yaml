@@ -1961,6 +1961,8 @@ definitions:
         $ref: '#/definitions/DatePartitionOptionsModel'
       intPartitionOptions:
         $ref: '#/definitions/IntPartitionOptionsModel'
+      rowCount:
+        type: integer
 
   DatePartitionOptionsModel:
     description: Describes how a date partition should be configured.

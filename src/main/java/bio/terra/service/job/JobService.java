@@ -16,7 +16,15 @@ import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
 import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.upgrade.MigrateConfiguration;
-import bio.terra.stairway.*;
+import bio.terra.stairway.ExceptionSerializer;
+import bio.terra.stairway.Flight;
+import bio.terra.stairway.FlightFilter;
+import bio.terra.stairway.FlightFilterOp;
+import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.FlightState;
+import bio.terra.stairway.FlightStatus;
+import bio.terra.stairway.Stairway;
+import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.StairwayHook;
 import bio.terra.stairway.HookAction;
 import bio.terra.stairway.exception.DatabaseOperationException;
@@ -71,22 +79,26 @@ public class JobService {
         StairwayHook hook = new StairwayHook() {
             @Override
             public HookAction startFlight(FlightContext context) {
-                return HookAction.FAULT;
+                logger.info("TEST STAIRWAY HOOKS: start flight");
+                return HookAction.CONTINUE;
             }
 
             @Override
             public HookAction startStep(FlightContext context) {
-                return HookAction.FAULT;
+                logger.info("TEST STAIRWAY HOOKS: start step");
+                return HookAction.CONTINUE;
             }
 
             @Override
             public HookAction endFlight(FlightContext context) {
-                return HookAction.FAULT;
+                logger.info("TEST STAIRWAY HOOKS: end flight");
+                return HookAction.CONTINUE;
             }
 
             @Override
             public HookAction endStep(FlightContext context) {
-                return HookAction.FAULT;
+                logger.info("TEST STAIRWAY HOOKS: end step");
+                return HookAction.CONTINUE;
             }
         };
         stairway = Stairway.newBuilder()

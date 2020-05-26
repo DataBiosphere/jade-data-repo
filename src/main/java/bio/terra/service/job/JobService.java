@@ -16,14 +16,9 @@ import bio.terra.service.job.exception.JobServiceShutdownException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
 import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.upgrade.MigrateConfiguration;
-import bio.terra.stairway.ExceptionSerializer;
-import bio.terra.stairway.Flight;
-import bio.terra.stairway.FlightFilter;
-import bio.terra.stairway.FlightFilterOp;
-import bio.terra.stairway.FlightMap;
-import bio.terra.stairway.FlightState;
-import bio.terra.stairway.FlightStatus;
-import bio.terra.stairway.Stairway;
+import bio.terra.stairway.*;
+import bio.terra.stairway.StairwayHook;
+import bio.terra.stairway.HookAction;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
@@ -73,11 +68,33 @@ public class JobService {
 
         logger.info("Creating Stairway: maxStairwayThreads = " + appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
+        StairwayHook hook = new StairwayHook() {
+            @Override
+            public HookAction startFlight(FlightContext context) {
+                return HookAction.FAULT;
+            }
+
+            @Override
+            public HookAction startStep(FlightContext context) {
+                return HookAction.FAULT;
+            }
+
+            @Override
+            public HookAction endFlight(FlightContext context) {
+                return HookAction.FAULT;
+            }
+
+            @Override
+            public HookAction endStep(FlightContext context) {
+                return HookAction.FAULT;
+            }
+        };
         stairway = Stairway.newBuilder()
             .maxParallelFlights(appConfig.getMaxStairwayThreads())
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
+            .stairwayHook(hook)
         .build();
     }
 

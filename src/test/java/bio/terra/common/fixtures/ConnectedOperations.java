@@ -123,7 +123,6 @@ public class ConnectedOperations {
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
             .thenAnswer((Answer<List<UUID>>) invocation
                 -> createdSnapshotIds.stream().map(UUID::fromString).collect(Collectors.toList()));
-
         doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
     }

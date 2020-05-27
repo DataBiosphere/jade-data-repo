@@ -39,6 +39,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -76,38 +77,48 @@ public class JobService {
 
         logger.info("Creating Stairway: maxStairwayThreads = " + appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-        StairwayHook hook = new StairwayHook() {
-            @Override
-            public HookAction startFlight(FlightContext context) {
-                logger.info("TEST STAIRWAY HOOKS: start flight");
-                return HookAction.CONTINUE;
-            }
-
-            @Override
-            public HookAction startStep(FlightContext context) {
-                logger.info("TEST STAIRWAY HOOKS: start step");
-                return HookAction.CONTINUE;
-            }
-
-            @Override
-            public HookAction endFlight(FlightContext context) {
-                logger.info("TEST STAIRWAY HOOKS: end flight");
-                return HookAction.CONTINUE;
-            }
-
-            @Override
-            public HookAction endStep(FlightContext context) {
-                logger.info("TEST STAIRWAY HOOKS: end step");
-                return HookAction.CONTINUE;
-            }
-        };
+        StairwayHook hooks = populateStairwayHooks();
         stairway = Stairway.newBuilder()
             .maxParallelFlights(appConfig.getMaxStairwayThreads())
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
-            .stairwayHook(hook)
+            .stairwayHook(hooks)
         .build();
+    }
+
+    private StairwayHook populateStairwayHooks(){
+        return new StairwayHook() {
+            @Override
+            public HookAction startFlight(FlightContext context) {
+                logger.info("Operation: {}, flightClass: {}, flightId: {}, timestamp: {}",
+                    "startFlight", context.getFlightClassName(), context.getFlightId(), Instant.now());
+                return HookAction.CONTINUE;
+            }
+
+            @Override
+            public HookAction startStep(FlightContext context) {
+                logger.info("Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}, timestamp: {}",
+                    "startStep", context.getFlightClassName(), context.getFlightId(), context.getStepIndex(),
+                    Instant.now());
+                return HookAction.CONTINUE;
+            }
+
+            @Override
+            public HookAction endFlight(FlightContext context) {
+                logger.info("Operation: {}, flightClass: {}, flightId: {}, timestamp: {}",
+                    "endFlight", context.getFlightClassName(), context.getFlightId(), Instant.now());
+                return HookAction.CONTINUE;
+            }
+
+            @Override
+            public HookAction endStep(FlightContext context) {
+                logger.info("Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}, timestamp: {}",
+                    "endStep", context.getFlightClassName(), context.getFlightId(), context.getStepIndex(),
+                    Instant.now());
+                return HookAction.CONTINUE;
+            }
+        };
     }
 
     /**

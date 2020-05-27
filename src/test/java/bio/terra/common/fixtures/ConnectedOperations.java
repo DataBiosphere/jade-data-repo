@@ -15,6 +15,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -25,6 +26,7 @@ import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.sam.SamConfiguration;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -32,6 +34,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
+import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +48,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.Matchers.equalTo;
@@ -55,6 +60,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -107,6 +113,9 @@ public class ConnectedOperations {
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.createDatasetResource(any(), any())).thenReturn(
             Collections.singletonList(samConfiguration.getStewardsGroupEmail()));
+        when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
+            .thenAnswer((Answer<List<UUID>>) invocation
+                -> createdDatasetIds.stream().map(UUID::fromString).collect(Collectors.toList()));
         doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
     }
@@ -224,6 +233,19 @@ public class ConnectedOperations {
     public ErrorModel getDatasetExpectError(String datasetId, HttpStatus expectedStatus) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
         return handleFailureCase(result.getResponse(), expectedStatus);
+    }
+
+    public EnumerateDatasetModel enumerateDatasets(String filter) throws Exception {
+        String direction = "desc"; // options: asc, desc
+        int limit = 10;
+        int offset = 0;
+        String sort = "created_date"; // options: name, description, created_date
+
+        String args = "direction=" + direction + "&limit=" + limit
+            + "&offset=" + offset + "&sort=" + sort; // + "&filter=" + filter;
+        MvcResult result = mvc.perform(get("/api/repository/v1/datasets?" + args)).andReturn();
+
+        return handleSuccessCase(result.getResponse(), EnumerateDatasetModel.class);
     }
 
     public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {
@@ -460,6 +482,36 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         return handleFailureCase(response);
+    }
+
+    public MockHttpServletResponse lookupFileRaw(String datasetId, String fileId) throws Exception {
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files/" + fileId;
+        MvcResult result = mvc.perform(get(url)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        return result.getResponse();
+    }
+
+    public FileModel lookupFileSuccess(String datasetId, String fileId) throws Exception {
+        MockHttpServletResponse response = lookupFileRaw(datasetId, fileId);
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
+    }
+
+    public MockHttpServletResponse lookupFileByPathRaw(String datasetId, String filePath, long depth) throws Exception {
+        String url = "/api/repository/v1/datasets/" + datasetId + "/filesystem/objects";
+        MvcResult result = mvc.perform(get(url)
+            .param("path", filePath)
+            .param("depth", Long.toString(depth))
+            .contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        return result.getResponse();
+    }
+
+    public FileModel lookupFileByPathSuccess(String datasetId, String filePath, long depth) throws Exception {
+        MockHttpServletResponse response = lookupFileByPathRaw(datasetId, filePath, depth);
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
     public FileModel lookupSnapshotFile(String snapshotId, String objectId) throws Exception {

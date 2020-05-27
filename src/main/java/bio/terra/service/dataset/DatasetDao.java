@@ -287,6 +287,17 @@ public class DatasetDao {
         return retrieveWorker(summary);
     }
 
+    /**
+     * This is a convenience wrapper that returns all datasets that are NOT exclusively locked.
+     * This method is intended for user-facing API calls (e.g. from RepositoryApiController).
+     * @param id the dataset id
+     * @return the DatasetSummary object
+     */
+    public Dataset retrieveAvailable(UUID id) {
+        DatasetSummary summary = retrieveSummaryById(id, true);
+        return retrieveWorker(summary);
+    }
+
     public Dataset retrieveByName(String name) {
         DatasetSummary summary = retrieveSummaryByName(name);
         return retrieveWorker(summary);
@@ -307,11 +318,30 @@ public class DatasetDao {
         }
     }
 
+    /**
+     * This is a convenience wrapper that returns all datasets, regardless of whether they are exclusively locked.
+     * Most places in the API code that are retrieving a dataset will call this method.
+     * @param id the dataset id
+     * @return the DatasetSummary object
+     */
     public DatasetSummary retrieveSummaryById(UUID id) {
+        return retrieveSummaryById(id, false);
+    }
+
+    /**
+     * Retrieves a DatasetSummary object from the dataset id.
+     * @param id the dataset id
+     * @param onlyRetrieveAvailable true to exclude datasets that are exclusively locked, false to include all datasets
+     * @return the DatasetSummary object
+     */
+    public DatasetSummary retrieveSummaryById(UUID id, boolean onlyRetrieveAvailable) {
         try {
             String sql = "SELECT " +
                 "id, name, description, default_profile_id, additional_profile_ids, created_date " +
                 "FROM dataset WHERE id = :id";
+            if (onlyRetrieveAvailable) { // exclude datasets that are exclusively locked
+                sql += " AND flightid IS NULL";
+            }
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
@@ -332,6 +362,7 @@ public class DatasetDao {
     }
 
     // does not return sub-objects with datasets
+    // excludes datasets that are exclusively locked
     public MetadataEnumeration<DatasetSummary> enumerate(
         int offset,
         int limit,
@@ -343,6 +374,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
         DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);
+        whereClauses.add(" flightid IS NULL"); // exclude datasets that are exclusively locked
 
         // get total count of objects
         String countSql = "SELECT count(id) AS total FROM dataset WHERE " +

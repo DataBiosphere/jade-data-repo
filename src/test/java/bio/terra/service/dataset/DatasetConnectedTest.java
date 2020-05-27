@@ -15,6 +15,7 @@ import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -748,6 +749,161 @@ public class DatasetConnectedTest {
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    public void testExcludeLockedFromDatasetLookups() throws Exception {
+        // create a dataset and check that it succeeds
+        String resourcePath = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest =
+            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+        // check that the dataset metadata row is unlocked
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row is not exclusively locked", exclusiveLock);
+        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
+
+        // retrieve the dataset and check that it finds it
+        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
+        assertEquals("Lookup unlocked dataset succeeds", summaryModel.getName(), datasetModel.getName());
+
+        // enumerate datasets and check that this dataset is included in the set
+        EnumerateDatasetModel enumerateDatasetModel = connectedOperations.enumerateDatasets(summaryModel.getName());
+        List<DatasetSummaryModel> enumeratedDatasets = enumerateDatasetModel.getItems();
+        boolean foundDatasetWithMatchingId = false;
+        for (DatasetSummaryModel enumeratedDataset : enumeratedDatasets) {
+            if (enumeratedDataset.getId().equals(summaryModel.getId())) {
+                foundDatasetWithMatchingId = true;
+                break;
+            }
+        }
+        assertTrue("Unlocked included in enumeration", foundDatasetWithMatchingId);
+
+        // enable wait in DeleteDatasetPrimaryDataStep
+        configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the dataset. this should hang before unlocking the dataset object.
+        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+
+        // check that the dataset metadata row has an exclusive lock
+        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNotNull("dataset row is exclusively locked", exclusiveLock);
+        sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
+
+        // retrieve the dataset and check that it returns not found
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+
+        // enumerate datasets and check that this dataset is not included in the set
+        enumerateDatasetModel = connectedOperations.enumerateDatasets(summaryModel.getName());
+        enumeratedDatasets = enumerateDatasetModel.getItems();
+        foundDatasetWithMatchingId = false;
+        for (DatasetSummaryModel enumeratedDataset : enumeratedDatasets) {
+            if (enumeratedDataset.getId().equals(summaryModel.getId())) {
+                foundDatasetWithMatchingId = true;
+                break;
+            }
+        }
+        assertFalse("Exclusively locked not included in enumeration", foundDatasetWithMatchingId);
+
+        // disable wait in DeleteDatasetPrimaryDataStep
+        configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Dataset delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void testExcludeLockedFromFileLookups() throws Exception {
+        // create a dataset and check that it succeeds
+        String resourcePath = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest =
+            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+        // check that the dataset metadata row is unlocked
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNull("dataset row is not exclusively locked", exclusiveLock);
+        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
+
+        // ingest a file
+        URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
+            null, null);
+        String targetPath1 = "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromFileLookups.txt";
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("testExcludeLockedFromFileLookups")
+            .mimeType("text/plain")
+            .targetPath(targetPath1)
+            .profileId(billingProfile.getId());
+        FileModel fileModel = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel);
+
+        // lookup the file by id and check that it's found
+        FileModel fileModelFromIdLookup =
+            connectedOperations.lookupFileSuccess(summaryModel.getId(), fileModel.getFileId());
+        assertEquals("File found by id lookup",
+            fileModel.getDescription(), fileModelFromIdLookup.getDescription());
+
+        // lookup the file by path and check that it's found
+        FileModel fileModelFromPathLookup =
+            connectedOperations.lookupFileByPathSuccess(summaryModel.getId(), fileModel.getPath(), -1);
+        assertEquals("File found by path lookup", fileModel.getDescription(), fileModelFromPathLookup.getDescription());
+
+        // enable wait in DeleteDatasetPrimaryDataStep
+        configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the dataset. this should hang before unlocking the dataset object.
+        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+
+        // check that the dataset metadata row has an exclusive lock
+        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
+        assertNotNull("dataset row is exclusively locked", exclusiveLock);
+        sharedLocks = datasetDao.getSharedLocks(datasetId);
+        assertEquals("dataset row has no shared lock", 0, sharedLocks.length);
+
+        // lookup the file by id and check that it's NOT found
+        MockHttpServletResponse response =
+            connectedOperations.lookupFileRaw(summaryModel.getId(), fileModel.getFileId());
+        assertEquals("File NOT found by id lookup", HttpStatus.NOT_FOUND, HttpStatus.valueOf(response.getStatus()));
+
+        // lookup the file by path and check that it's NOT found
+        response =
+            connectedOperations.lookupFileByPathRaw(summaryModel.getId(), fileModel.getPath(), -1);
+        assertEquals("File NOT found by path lookup", HttpStatus.NOT_FOUND, HttpStatus.valueOf(response.getStatus()));
+
+        // disable wait in DeleteDatasetPrimaryDataStep
+        configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Dataset delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // remove the file from the connectedoperation bookkeeping list
+        connectedOperations.removeFile(summaryModel.getId(), fileModel.getFileId());
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
     private List<String> getRowIdsFromBQTable(String datasetName, String tableName) throws Exception {
         String rowIdColumn = PdaoConstant.PDAO_ROW_ID_COLUMN;
         TableResult bqQueryResult = TestUtils.selectFromBigQueryDataset(bigQueryPdao, datasetDao, dataLocationService,
@@ -791,5 +947,4 @@ public class DatasetConnectedTest {
 
         return softDeleteRequest;
     }
-
 }

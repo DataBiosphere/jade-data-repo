@@ -1,5 +1,7 @@
 package bio.terra.service.dataset.flight.ingest;
 
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.dataset.DatasetService;
@@ -9,19 +11,33 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
+
 public class IngestCleanupStep implements Step {
     private Logger logger = LoggerFactory.getLogger("bio.terra.service.dataset.flight.ingest");
 
     private final DatasetService datasetService;
     private final BigQueryPdao bigQueryPdao;
+    private final ConfigurationService configService;
 
-    public IngestCleanupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao) {
+    public IngestCleanupStep(DatasetService datasetService, BigQueryPdao bigQueryPdao,
+                             ConfigurationService configService) {
         this.datasetService = datasetService;
         this.bigQueryPdao = bigQueryPdao;
+        this.configService = configService;
     }
 
     @Override
-    public StepResult doStep(FlightContext context) {
+    public StepResult doStep(FlightContext context) throws InterruptedException {
+        if (configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT)) {
+            logger.info("TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT");
+            while (!configService.testInsertFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT)) {
+                logger.info("Sleeping for CONTINUE FAULT");
+                TimeUnit.SECONDS.sleep(5);
+            }
+            logger.info("TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT");
+        }
+
         // We do not want to fail the insert because we fail to cleanup the staging table.
         // We log the failure and move on.
         String stagingTableName = "<unknown>";

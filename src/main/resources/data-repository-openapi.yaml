@@ -2529,6 +2529,7 @@ definitions:
         type: string
         enum:
           - byAsset
+          - byFullView
           - byQuery
           - byRowId
       assetSpec:
@@ -2537,7 +2538,6 @@ definitions:
         $ref: '#/definitions/SnapshotRequestQueryModel'
       rowIdSpec:
         $ref: '#/definitions/SnapshotRequestRowIdModel'
-
 
   SnapshotRequestAssetModel:
     description: |

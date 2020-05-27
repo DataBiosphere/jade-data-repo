@@ -8,18 +8,18 @@ import bio.terra.common.PrimaryDataAccess;
 import bio.terra.common.Table;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.grammar.exception.InvalidQueryException;
+import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestRowIdModel;
-import bio.terra.model.BulkLoadHistoryModel;
 import bio.terra.model.SnapshotRequestRowIdTableModel;
 import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.AssetTable;
+import bio.terra.service.dataset.BigQueryPartitionConfigV1;
 import bio.terra.service.dataset.Dataset;
-import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetDataProject;
+import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.IngestFailureException;
 import bio.terra.service.dataset.exception.IngestFileNotFoundException;
@@ -31,9 +31,9 @@ import bio.terra.service.snapshot.SnapshotMapColumn;
 import bio.terra.service.snapshot.SnapshotMapTable;
 import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
+import bio.terra.service.snapshot.exception.MismatchedValueException;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import bio.terra.service.tabulardata.exception.MismatchedRowIdException;
-import bio.terra.service.snapshot.exception.MismatchedValueException;
 import com.google.cloud.bigquery.Acl;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryError;
@@ -72,12 +72,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_EXTERNAL_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
+import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_COLUMN;
 import static bio.terra.common.PdaoConstant.PDAO_ROW_ID_TABLE;
 import static bio.terra.common.PdaoConstant.PDAO_TABLE_ID_COLUMN;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX;
 import static bio.terra.common.PdaoConstant.PDAO_TEMP_TABLE;
 
 @Component
@@ -289,7 +289,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "LEFT JOIN `<project>.<dataset>.<table>` AS T ON V.input_value = T.<column>";
 
     // compute the row ids from the input ids and validate all inputs have matches
-    // Add new public method that takes the asset and the snapshot source and the input values and
+
+
     // returns a structure with the matching row ids (suitable for calling create snapshot)
     // and any mismatched input values that don't have corresponding roww.
     // NOTE: In the fullness of time, we may not do this and kick the function into the UI.
@@ -434,6 +435,94 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
         snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
     }
+
+    private static final String insertAllLiveViewDataTemplate =
+        "INSERT INTO `<project>.<snapshot>.<dataRepoTable>` " +
+            "(<dataRepoTableId>, <dataRepoRowId>) <liveViewTables>";
+
+    private static final String getLiveViewTableTemplate =
+        // TODO pull insert out and loop thru rest w UNION ()
+            "(SELECT '<tableId>', <dataRepoRowId> FROM `<project>.<dataset>.<liveView>`)";
+
+    private static final String mergeLiveViewTablesTemplate =
+        "<selectStatements; separator=\" UNION ALL \">";
+
+    private static final String validateSnapshotSizeTemplate =
+        "SELECT COUNT(1) FROM <project>.<snapshot>.<dataRepoTable>";
+
+
+    public String createSnaphotTableFromLiveViews(
+        BigQueryProject bigQueryProject,
+        List<DatasetTable> tables,
+        String datasetBqDatasetName) {
+
+        List<String> selectStatements = new ArrayList<>();
+
+        for (DatasetTable table : tables) {
+
+            TableId liveViewId = TableId.of(datasetBqDatasetName, table.getName());
+            String liveViewTableName = liveViewId.getTable();
+
+            ST sqlTableTemplate = new ST(getLiveViewTableTemplate);
+            sqlTableTemplate.add("tableId", table.getId());
+            sqlTableTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
+            sqlTableTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTableTemplate.add("dataset", datasetBqDatasetName);
+            sqlTableTemplate.add("liveView", liveViewTableName);
+            selectStatements.add(sqlTableTemplate.render());
+        }
+        ST sqlMergeTablesTemplate = new ST(mergeLiveViewTablesTemplate);
+        sqlMergeTablesTemplate.add("selectStatements", selectStatements);
+        return sqlMergeTablesTemplate.render();
+    }
+
+    public void createSnapshotWithLiveViews(
+        Snapshot snapshot,
+        Dataset dataset) throws InterruptedException {
+
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String projectId = bigQueryProject.getProjectId();
+        String snapshotName = snapshot.getName();
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        String datasetBqDatasetName = prefixName(dataset.getName());
+
+        // create snapshot BQ dataset
+        snapshotCreateBQDataset(bigQueryProject, snapshot);
+
+        // create the row id table (row id col and table id col)
+        bigQueryProject.createTable(snapshotName, PDAO_ROW_ID_TABLE, rowIdTableSchema());
+
+        // get source dataset table live views
+        List<DatasetTable> tables = dataset.getTables();
+
+        // create a snapshot table based on the live view data row ids
+        String liveViewTables = createSnaphotTableFromLiveViews(bigQueryProject, tables, datasetBqDatasetName);
+
+
+        ST sqlTemplate = new ST(insertAllLiveViewDataTemplate);
+        sqlTemplate.add("project", projectId);
+        sqlTemplate.add("snapshot", snapshotName);
+        sqlTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+        sqlTemplate.add("dataRepoTableId", PDAO_TABLE_ID_COLUMN);
+        sqlTemplate.add("dataRepoRowId", PDAO_ROW_ID_COLUMN);
+        sqlTemplate.add("liveViewTables", liveViewTables);
+
+        bigQueryProject.query(sqlTemplate.render());
+
+        ST sqlValidateSnapshotTemplate = new ST(validateSnapshotSizeTemplate);
+        sqlValidateSnapshotTemplate.add("project", projectId);
+        sqlValidateSnapshotTemplate.add("snapshot", snapshotName);
+        sqlValidateSnapshotTemplate.add("dataRepoTable", PDAO_ROW_ID_TABLE);
+
+        TableResult result = bigQueryProject.query(sqlValidateSnapshotTemplate.render());
+        if (result.getTotalRows() <= 0) {
+            throw new PdaoException("This snapshot is empty");
+        }
+
+        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+    }
+
 
     public void createSnapshotWithProvidedIds(
         Snapshot snapshot,

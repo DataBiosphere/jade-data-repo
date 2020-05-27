@@ -329,19 +329,27 @@ public class ConnectedOperations {
         }
     }
 
-    public IngestResponseModel ingestTableSuccess(
-        String datasetId,
-        IngestRequestModel ingestRequestModel) throws Exception {
-
+    public MvcResult ingestTableRaw(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
 
-        MvcResult result = mvc.perform(post(url)
+        return mvc.perform(post(url)
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
             .andReturn();
+    }
+
+    public IngestResponseModel ingestTableSuccess(
+        String datasetId,
+        IngestRequestModel ingestRequestModel) throws Exception {
+        MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
+        IngestResponseModel ingestResponse = checkIngestTableResponse(response);
+        return ingestResponse;
+    }
+
+    public IngestResponseModel checkIngestTableResponse(MockHttpServletResponse response) throws Exception {
         IngestResponseModel ingestResponse =
             handleSuccessCase(response, IngestResponseModel.class);
         assertThat("ingest response has no bad rows", ingestResponse.getBadRowCount(), equalTo(0L));
@@ -350,12 +358,7 @@ public class ConnectedOperations {
     }
 
     public ErrorModel ingestTableFailure(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
-        String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
-        String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
-        MvcResult result = mvc.perform(post(url)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(jsonRequest))
-            .andReturn();
+        MvcResult result = ingestTableRaw(datasetId, ingestRequestModel);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         return handleFailureCase(response);
     }

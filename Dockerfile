@@ -5,9 +5,6 @@ FROM openjdk:8-jdk-alpine
 RUN groupadd -r app &&\
     useradd  -m -r -g app -d /home/app -s /sbin/nologin -c "Docker image user" app
 
-# volume mount
-VOLUME /tmp
-
 # Docker Args for build
 ARG DEPENDENCY=target/dependency
 
@@ -20,4 +17,4 @@ COPY --chown=app:app ${DEPENDENCY}/BOOT-INF/classes /home/app
 USER app
 
 # Application Entrypoint
-ENTRYPOINT ["java","-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005","-cp","/home/app:/home/app/lib/*","bio.terra.Main"]
+ENTRYPOINT ["java","-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005","-cp","home/app:home/app/lib/*","bio.terra.Main"]

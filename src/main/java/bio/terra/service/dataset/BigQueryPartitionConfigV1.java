@@ -14,12 +14,12 @@ public final class BigQueryPartitionConfigV1 {
     // we want or need to change the settings we collect about BQ
     // partitioning in the future, we'll still be able to distinguish
     // the "old" style of config stored in the DB.
-    @JsonProperty private final long version;
-    @JsonProperty private final Mode mode;
-    @JsonProperty private final String columnName;
-    @JsonProperty private final Long intMin;
-    @JsonProperty private final Long intMax;
-    @JsonProperty private final Long intInterval;
+    @JsonProperty private long version;
+    @JsonProperty private Mode mode;
+    @JsonProperty private String columnName;
+    @JsonProperty private Long intMin;
+    @JsonProperty private Long intMax;
+    @JsonProperty private Long intInterval;
 
     private BigQueryPartitionConfigV1(Mode mode, String columnName, Long intMin, Long intMax, Long intInterval) {
         this.version = 1;
@@ -29,6 +29,8 @@ public final class BigQueryPartitionConfigV1 {
         this.intMax = intMax;
         this.intInterval = intInterval;
     }
+
+    public BigQueryPartitionConfigV1() {}
 
     String getColumnName() {
         return this.columnName;

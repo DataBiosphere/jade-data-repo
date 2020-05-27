@@ -229,9 +229,11 @@ public class DatasetDao {
     }
 
     /**
-     * This method is intended for TESTING ONLY. It returns the internal state of the exclusive lock on a dataset.
-     * @param id the dataset id
-     * @return the flight id that holds the exclusive lock. null if no exclusive lock is taken out.
+     * TESTING ONLY. This method returns the internal state of the exclusive lock on a dataset.
+     * It is protected because it's for use in tests only.
+     * Currently, we don't expose the lock state of a dataset outside of the DAO for other API code to consume.
+     * @param id
+     * @return the flightid that holds an exclusive lock. null if none.
      */
     protected String getExclusiveLock(UUID id) {
         try {
@@ -244,7 +246,9 @@ public class DatasetDao {
     }
 
     /**
-     * This method is intended for TESTING ONLY. It returns the internal state of the shared locks on a dataset.
+     * TESTING ONLY. This method returns the internal state of the shared locks on a dataset.
+     * It is protected because it's for use in tests only.
+     * Currently, we don't expose the lock state of a dataset outside of the DAO for other API code to consume.
      * @param id the dataset id
      * @return the array of flight ids that hold shared locks. empty if no shared locks are taken out.
      */

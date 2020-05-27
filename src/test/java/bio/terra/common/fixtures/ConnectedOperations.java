@@ -16,6 +16,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
@@ -116,6 +117,9 @@ public class ConnectedOperations {
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
             .thenAnswer((Answer<List<UUID>>) invocation
                 -> createdDatasetIds.stream().map(UUID::fromString).collect(Collectors.toList()));
+        when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
+            .thenAnswer((Answer<List<UUID>>) invocation
+                -> createdSnapshotIds.stream().map(UUID::fromString).collect(Collectors.toList()));
         doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
     }
@@ -225,6 +229,11 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(response.getContentAsString(), SnapshotModel.class);
     }
 
+    public ErrorModel getSnapshotExpectError(String snapshotId, HttpStatus expectedStatus) throws Exception {
+        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + snapshotId)).andReturn();
+        return handleFailureCase(result.getResponse(), expectedStatus);
+    }
+
     public DatasetModel getDataset(String datasetId) throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets/" + datasetId)).andReturn();
         return handleSuccessCase(result.getResponse(), DatasetModel.class);
@@ -246,6 +255,19 @@ public class ConnectedOperations {
         MvcResult result = mvc.perform(get("/api/repository/v1/datasets?" + args)).andReturn();
 
         return handleSuccessCase(result.getResponse(), EnumerateDatasetModel.class);
+    }
+
+    public EnumerateSnapshotModel enumerateSnapshots(String filter) throws Exception {
+        String direction = "desc"; // options: asc, desc
+        int limit = 10;
+        int offset = 0;
+        String sort = "created_date"; // options: name, description, created_date
+
+        String args = "direction=" + direction + "&limit=" + limit
+            + "&offset=" + offset + "&sort=" + sort; // + "&filter=" + filter;
+        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots?" + args)).andReturn();
+
+        return handleSuccessCase(result.getResponse(), EnumerateSnapshotModel.class);
     }
 
     public SnapshotSummaryModel handleCreateSnapshotSuccessCase(MockHttpServletResponse response) throws Exception {

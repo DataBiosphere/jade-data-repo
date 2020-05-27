@@ -154,11 +154,15 @@ public class SnapshotService {
 
     /** Convenience wrapper around fetching an existing Snapshot object and converting it to a Model object.
      * Unlike the Snapshot object, the Model object includes a reference to the associated cloud project.
+     *
+     * Note that this method will only return a snapshot if it is NOT exclusively locked.
+     * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
+     * an exclusively locked snapshot to be returned (e.g. snapshot deletion).
      * @param id in UUID formant
      * @return a SnapshotModel = API output-friendly representation of the Snapshot
      */
-    public SnapshotModel retrieveModel(UUID id) {
-        Snapshot snapshot = retrieve(id);
+    public SnapshotModel retrieveAvailableSnapshotModel(UUID id) {
+        Snapshot snapshot = retrieveAvailable(id);
         SnapshotDataProject dataProject = dataLocationService.getProjectOrThrow(snapshot);
         return populateSnapshotModelFromSnapshot(snapshot).dataProject(dataProject.getGoogleProjectId());
     }
@@ -169,6 +173,14 @@ public class SnapshotService {
      */
     public Snapshot retrieve(UUID id) {
         return snapshotDao.retrieveSnapshot(id);
+    }
+
+    /** Fetch existing Snapshot object that is NOT exclusively locked.
+     * @param id in UUID format
+     * @return a Snapshot object
+     */
+    public Snapshot retrieveAvailable(UUID id) {
+        return snapshotDao.retrieveSnapshot(id, true);
     }
 
     /** Fetch existing Snapshot object using the name.

@@ -7,6 +7,7 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -339,8 +340,8 @@ public class SnapshotConnectedTest {
         assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
         // check that the snapshot metadata row is unlocked
-        SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryByName(snapshotModel.getName());
-        assertNull("snapshot row is unlocked", snapshotSummary.getFlightId());
+        String exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotModel.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
 
         // try to create the same snapshot again and check that it fails
         snapshotRequest.setName(snapshotModel.getName());
@@ -396,6 +397,84 @@ public class SnapshotConnectedTest {
 
         // confirm deleted
         getNonexistentSnapshot(summaryModel.getId());
+    }
+
+    @Test
+    public void testExcludeLockedFromSnapshotLookups() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(datasetSummary,
+            "snapshot-test-snapshot.json", "_d2_");
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        // retrieve the snapshot and check that it finds it
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId());
+        assertEquals("Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
+
+        // enumerate snapshots and check that this snapshot is included in the set
+        EnumerateSnapshotModel enumerateSnapshotModelModel =
+            connectedOperations.enumerateSnapshots(snapshotSummary.getName());
+        List<SnapshotSummaryModel> enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
+        boolean foundSnapshotWithMatchingId = false;
+        for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
+            if (enumeratedSnapshot.getId().equals(snapshotSummary.getId())) {
+                foundSnapshotWithMatchingId = true;
+                break;
+            }
+        }
+        assertTrue("Unlocked included in enumeration", foundSnapshotWithMatchingId);
+
+        // enable wait in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
+        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+
+        // check that the snapshot metadata row has an exclusive lock
+        exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+        // retrieve the snapshot and check that it returns not found
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+
+        // enumerate snapshots and check that this snapshot is not included in the set
+        enumerateSnapshotModelModel =
+            connectedOperations.enumerateSnapshots(snapshotSummary.getName());
+        enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
+        foundSnapshotWithMatchingId = false;
+        for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
+            if (enumeratedSnapshot.getId().equals(snapshotSummary.getId())) {
+                foundSnapshotWithMatchingId = true;
+                break;
+            }
+        }
+        assertFalse("Exclusively locked not included in enumeration", foundSnapshotWithMatchingId);
+
+        // disable wait in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Snapshot delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // try to fetch the snapshot again and confirm nothing is returned
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    public void testExcludeLockedFromSnapshotFileLookups() throws Exception {
+        // TODO: see similar test in datasetconnectedtest class
+        // note: need to use a dataset that includes filerefs, so that files get included in the snapshot
+        // I don't think the dataset used in the above test includes filerefs. check encode test maybe?
     }
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {

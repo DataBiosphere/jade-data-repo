@@ -152,6 +152,16 @@ public class SnapshotDao {
         return snapshotId;
     }
 
+    protected String getExclusiveLock(UUID id) {
+        try {
+            String sql = "SELECT flightid FROM snapshot WHERE id = :id";
+            MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
+            return jdbcTemplate.queryForObject(sql, params, String.class);
+        } catch (EmptyResultDataAccessException ex) {
+            throw new SnapshotNotFoundException("Snapshot not found for id " + id);
+        }
+    }
+
     private void createSnapshotSource(SnapshotSource snapshotSource) {
         String sql = "INSERT INTO snapshot_source (snapshot_id, dataset_id, asset_id)" +
                 " VALUES (:snapshot_id, :dataset_id, :asset_id)";
@@ -185,9 +195,28 @@ public class SnapshotDao {
         return rowsAffected > 0;
     }
 
+    /**
+     * This is a convenience wrapper that returns all snapshots, regardless of whether they are exclusively locked.
+     * Most places in the API code that are retrieving a snapshot will call this method.
+     * @param snapshotId the snapshot id
+     * @return the Snapshot object
+     */
     public Snapshot retrieveSnapshot(UUID snapshotId) {
+        return retrieveSnapshot(snapshotId, false);
+    }
+
+    /**
+     * Retrieves a Snapshot object from the snapshot id.
+     * @param snapshotId the snapshot id
+     * @param onlyRetrieveAvailable true to exclude snapshots that are exclusively locked, false to include all snapshots
+     * @return the Snapshot object
+     */
+    public Snapshot retrieveSnapshot(UUID snapshotId, boolean onlyRetrieveAvailable) {
         logger.debug("retrieve snapshot id: " + snapshotId);
         String sql = "SELECT * FROM snapshot WHERE id = :id";
+        if (onlyRetrieveAvailable) { // exclude snapshots that are exclusively locked
+            sql += " AND flightid IS NULL";
+        }
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", snapshotId);
         Snapshot snapshot = retrieveWorker(sql, params);
         if (snapshot == null) {
@@ -277,6 +306,7 @@ public class SnapshotDao {
         return snapshotSources;
     }
 
+    // excludes snapshots that are exclusively locked
     public MetadataEnumeration<SnapshotSummary> retrieveSnapshots(
         int offset,
         int limit,
@@ -289,6 +319,7 @@ public class SnapshotDao {
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
         DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);
+        whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
 
         // add the filter to the clause to get the actual items
         DaoUtils.addFilterClause(filter, params, whereClauses);
@@ -301,7 +332,7 @@ public class SnapshotDao {
         String countSql = "SELECT count(id) AS total FROM snapshot " + whereSql;
         Integer total = jdbcTemplate.queryForObject(countSql, params, Integer.class);
 
-        String sql = "SELECT id, name, description, created_date, profile_id, flightid FROM snapshot " + whereSql +
+        String sql = "SELECT id, name, description, created_date, profile_id FROM snapshot " + whereSql +
             DaoUtils.orderByClause(sort, direction) + " OFFSET :offset LIMIT :limit";
         params.addValue("offset", offset).addValue("limit", limit);
         List<SnapshotSummary> summaries = jdbcTemplate.query(sql, params, new SnapshotSummaryMapper());
@@ -335,7 +366,7 @@ public class SnapshotDao {
 
     public List<SnapshotSummary> retrieveSnapshotsForDataset(UUID datasetId) {
         try {
-            String sql = "SELECT snapshot.id, name, description, created_date, profile_id, flightid FROM snapshot " +
+            String sql = "SELECT snapshot.id, name, description, created_date, profile_id FROM snapshot " +
                 "JOIN snapshot_source ON snapshot.id = snapshot_source.snapshot_id " +
                 "WHERE snapshot_source.dataset_id = :datasetId";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("datasetId", datasetId);
@@ -370,8 +401,7 @@ public class SnapshotDao {
                 .name(rs.getString("name"))
                 .description(rs.getString("description"))
                 .createdDate(rs.getTimestamp("created_date").toInstant())
-                .profileId(rs.getObject("profile_id", UUID.class))
-                .flightId(rs.getString("flightid"));
+                .profileId(rs.getObject("profile_id", UUID.class));
         }
     }
 }

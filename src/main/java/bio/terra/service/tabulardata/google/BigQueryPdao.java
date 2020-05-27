@@ -1519,6 +1519,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }
     }
 
+    // we select from the live view here so that the row counts take into account rows that have been hard deleted
     private static final String rowCountTemplate = "SELECT COUNT(<rowId>) FROM `<project>.<dataset>.<table>`";
 
     public Map<String, Long> getSnapshotTableRowCounts(Snapshot snapshot) throws InterruptedException {

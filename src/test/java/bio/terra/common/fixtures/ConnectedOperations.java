@@ -27,8 +27,10 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.sam.SamConfiguration;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.slf4j.Logger;
@@ -41,9 +43,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static junit.framework.TestCase.fail;
@@ -524,6 +528,17 @@ public class ConnectedOperations {
                     fail("invalid response status");
             }
         }
+    }
+
+    private Blob putFileInBucket(String resourcesFileName) throws IOException {
+        String bucketName = testConfig.getIngestbucket();
+        String randomizedFileName = UUID.randomUUID().toString() + "-" + resourcesFileName;
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+
+
+        BlobInfo stagingBlob = BlobInfo.newBuilder(bucketName, randomizedFileName).build();
+        byte[] data = IOUtils.toByteArray(jsonLoader.getClassLoader().getResource(resourcesFileName));
+        return storage.create(stagingBlob, data);
     }
 
     // -- tracking methods --

@@ -452,15 +452,13 @@ public class DatasetConnectedTest {
         // ingest a table
         String resourcePathTableIngest = "snapshot-test-dataset-data.csv";
         Blob blob = putFileInBucket(resourcePathTableIngest);
+        connectedOperations.addScratchFile(blob.getName());
         IngestRequestModel ingestRequest = new IngestRequestModel()
             .table("thetable")
             .format(IngestRequestModel.FormatEnum.CSV)
             .csvSkipLeadingRows(1)
             .path("gs://" + blob.getBucket() + "/" + blob.getName());
         connectedOperations.ingestTableSuccess(summaryModel.getId(), ingestRequest);
-
-        // remove csv file from bucket
-        deleteFileFromBucket(blob);
 
         // enable wait in LockDatasetStep
         configService.setFault(ConfigEnum.LOCK_DATASET_STOP_FAULT.name(), true);
@@ -517,6 +515,7 @@ public class DatasetConnectedTest {
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
+    // put in connectedoperations
     private Blob putFileInBucket(String resourcesFileName) throws IOException {
         String bucketName = testConfig.getIngestbucket();
         String randomizedFileName = UUID.randomUUID().toString() + "-" + resourcesFileName;
@@ -533,6 +532,7 @@ public class DatasetConnectedTest {
         storage.delete(blob.getBlobId());
     }
 
+    // put in testutils
     private String writeListToScratch(String prefix, List<String> contents) throws IOException {
         Storage storage = StorageOptions.getDefaultInstance().getService();
         String targetPath = "scratch/" + prefix + "/" + UUID.randomUUID().toString() + ".csv";
@@ -545,6 +545,8 @@ public class DatasetConnectedTest {
         return String.format("gs://%s/%s", blob.getBucket(), targetPath);
     }
 
+
+    // move to datasetfixtures
     private DataDeletionTableModel deletionTableFile(String tableName, String path) {
         DataDeletionGcsFileModel deletionGcsFileModel = new DataDeletionGcsFileModel()
             .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
@@ -554,6 +556,7 @@ public class DatasetConnectedTest {
             .gcsFileSpec(deletionGcsFileModel);
     }
 
+    // move to datasetfixtures
     private DataDeletionRequest dataDeletionRequest() {
         return new DataDeletionRequest()
             .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)

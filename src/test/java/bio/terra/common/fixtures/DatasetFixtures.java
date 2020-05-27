@@ -3,6 +3,9 @@ package bio.terra.common.fixtures;
 import bio.terra.model.AssetModel;
 import bio.terra.model.AssetTableModel;
 import bio.terra.model.ColumnModel;
+import bio.terra.model.DataDeletionGcsFileModel;
+import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DataDeletionTableModel;
 import bio.terra.model.RelationshipModel;
 import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.DatasetRequestModel;
@@ -96,5 +99,20 @@ public final class DatasetFixtures {
             .description("This is a sample dataset definition")
             .defaultProfileId(UUID.randomUUID().toString())
             .schema(buildSchema());
+    }
+
+    public static DataDeletionTableModel deletionTableFile(String tableName, String path) {
+        DataDeletionGcsFileModel deletionGcsFileModel = new DataDeletionGcsFileModel()
+            .fileType(DataDeletionGcsFileModel.FileTypeEnum.CSV)
+            .path(path);
+        return new DataDeletionTableModel()
+            .tableName(tableName)
+            .gcsFileSpec(deletionGcsFileModel);
+    }
+
+    public static DataDeletionRequest dataDeletionRequest() {
+        return new DataDeletionRequest()
+            .deleteType(DataDeletionRequest.DeleteTypeEnum.SOFT)
+            .specType(DataDeletionRequest.SpecTypeEnum.GCSFILE);
     }
 }

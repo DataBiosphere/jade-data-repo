@@ -40,6 +40,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -87,35 +89,36 @@ public class JobService {
         .build();
     }
 
-    private StairwayHook populateStairwayHooks(){
+    private static final String FlightLogFormat = "Operation: {}, flightClass: {}, flightId: {}, timestamp: {}";
+    private static final String StepLogFormat = "Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}," +
+        "timestamp: {}";
+    private StairwayHook populateStairwayHooks() {
         return new StairwayHook() {
             @Override
             public HookAction startFlight(FlightContext context) {
-                logger.info("Operation: {}, flightClass: {}, flightId: {}, timestamp: {}",
-                    "startFlight", context.getFlightClassName(), context.getFlightId(), Instant.now());
+                logger.info(FlightLogFormat, "startFlight", context.getFlightClassName(),
+                    context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
                 return HookAction.CONTINUE;
             }
 
             @Override
             public HookAction startStep(FlightContext context) {
-                logger.info("Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}, timestamp: {}",
-                    "startStep", context.getFlightClassName(), context.getFlightId(), context.getStepIndex(),
-                    Instant.now());
+                logger.info(StepLogFormat, "startStep", context.getFlightClassName(), context.getFlightId(),
+                    context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
                 return HookAction.CONTINUE;
             }
 
             @Override
             public HookAction endFlight(FlightContext context) {
-                logger.info("Operation: {}, flightClass: {}, flightId: {}, timestamp: {}",
-                    "endFlight", context.getFlightClassName(), context.getFlightId(), Instant.now());
+                logger.info(FlightLogFormat, "endFlight", context.getFlightClassName(),
+                    context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
                 return HookAction.CONTINUE;
             }
 
             @Override
             public HookAction endStep(FlightContext context) {
-                logger.info("Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}, timestamp: {}",
-                    "endStep", context.getFlightClassName(), context.getFlightId(), context.getStepIndex(),
-                    Instant.now());
+                logger.info(StepLogFormat, "endStep", context.getFlightClassName(), context.getFlightId(),
+                    context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
                 return HookAction.CONTINUE;
             }
         };

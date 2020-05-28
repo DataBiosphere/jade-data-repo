@@ -24,9 +24,6 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.FlightState;
 import bio.terra.stairway.FlightStatus;
 import bio.terra.stairway.Stairway;
-import bio.terra.stairway.FlightContext;
-import bio.terra.stairway.StairwayHook;
-import bio.terra.stairway.HookAction;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
@@ -39,9 +36,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -79,49 +73,13 @@ public class JobService {
 
         logger.info("Creating Stairway: maxStairwayThreads = " + appConfig.getMaxStairwayThreads());
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
-        StairwayHook hooks = populateStairwayHooks();
         stairway = Stairway.newBuilder()
             .maxParallelFlights(appConfig.getMaxStairwayThreads())
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
-            .stairwayHook(hooks)
+            .stairwayHook(new StairwayLoggingHooks())
         .build();
-    }
-
-    private static final String FlightLogFormat = "Operation: {}, flightClass: {}, flightId: {}, timestamp: {}";
-    private static final String StepLogFormat = "Operation: {}, flightClass: {}, flightId: {}, stepIndex: {}," +
-        "timestamp: {}";
-    private StairwayHook populateStairwayHooks() {
-        return new StairwayHook() {
-            @Override
-            public HookAction startFlight(FlightContext context) {
-                logger.info(FlightLogFormat, "startFlight", context.getFlightClassName(),
-                    context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-                return HookAction.CONTINUE;
-            }
-
-            @Override
-            public HookAction startStep(FlightContext context) {
-                logger.info(StepLogFormat, "startStep", context.getFlightClassName(), context.getFlightId(),
-                    context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-                return HookAction.CONTINUE;
-            }
-
-            @Override
-            public HookAction endFlight(FlightContext context) {
-                logger.info(FlightLogFormat, "endFlight", context.getFlightClassName(),
-                    context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-                return HookAction.CONTINUE;
-            }
-
-            @Override
-            public HookAction endStep(FlightContext context) {
-                logger.info(StepLogFormat, "endStep", context.getFlightClassName(), context.getFlightId(),
-                    context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-                return HookAction.CONTINUE;
-            }
-        };
     }
 
     /**

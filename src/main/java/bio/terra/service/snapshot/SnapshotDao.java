@@ -8,6 +8,7 @@ import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import bio.terra.service.snapshot.exception.SnapshotLockException;
 import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +30,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -341,6 +343,23 @@ public class SnapshotDao {
         } catch (EmptyResultDataAccessException ex) {
             //this is ok - used during dataset delete to validate no snapshots reference the dataset
             return Collections.emptyList();
+        }
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
+    public void updateSnapshotTableRowCounts(Snapshot snapshot, Map<String, Long> tableRowCounts) {
+        String sql = "UPDATE snapshot_table SET row_count = :rowCount " +
+            "WHERE parent_id = :snapshotId AND name = :tableName";
+        for (SnapshotTable snapshotTable : snapshot.getTables()) {
+            String tableName = snapshotTable.getName();
+            if (!tableRowCounts.containsKey(tableName)) {
+                throw new MissingRowCountsException("Missing counts for " + tableName);
+            }
+            MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("rowCount", tableRowCounts.get(tableName))
+                .addValue("snapshotId", snapshot.getId())
+                .addValue("tableName", tableName);
+            jdbcTemplate.update(sql, params);
         }
     }
 

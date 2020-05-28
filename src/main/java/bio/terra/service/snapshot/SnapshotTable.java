@@ -11,6 +11,7 @@ public class SnapshotTable implements Table {
     private UUID id;
     private String name;
     private List<Column> columns = Collections.emptyList();
+    private Long rowCount;
 
     public UUID getId() {
         return id;
@@ -36,6 +37,16 @@ public class SnapshotTable implements Table {
 
     public SnapshotTable columns(List<Column> columns) {
         this.columns = columns;
+        return this;
+    }
+
+    @Override
+    public Long getRowCount() {
+        return rowCount;
+    }
+
+    public SnapshotTable rowCount(long rowCount) {
+        this.rowCount = rowCount;
         return this;
     }
 }

@@ -17,6 +17,7 @@ import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
@@ -56,6 +57,7 @@ import org.stringtemplate.v4.ST;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -129,6 +131,9 @@ public class SnapshotConnectedTest {
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
 
         SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        List<TableModel> tables = snapshotModel.getTables();
+        assertThat("there's a table", tables.size(), equalTo(1));
+        assertThat("rowCount is getting set correctly", tables.get(0).getRowCount(), equalTo(3));
 
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
@@ -209,12 +214,24 @@ public class SnapshotConnectedTest {
                 "dataset-minimal-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-        getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        List<TableModel> tables = snapshotModel.getTables();
+        Optional<TableModel> participantTable = tables
+            .stream()
+            .filter(t -> t.getName().equals("participant"))
+            .findFirst();
+        Optional<TableModel> sampleTable = tables
+            .stream()
+            .filter(t -> t.getName().equals("sample"))
+            .findFirst();
+        assertThat("participant table exists", participantTable.isPresent(), equalTo(true));
+        assertThat("sample table exists", sampleTable.isPresent(), equalTo(true));
         long snapshotParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(1L));
+        assertThat("participant row count matches expectation", participantTable.get().getRowCount(), equalTo(1));
         long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", snapshotSamples, equalTo(2L));
+        assertThat("sample row count matches expectation", sampleTable.get().getRowCount(), equalTo(2));
     }
 
     @Test

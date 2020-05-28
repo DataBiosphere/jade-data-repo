@@ -420,11 +420,11 @@ public class SnapshotService {
                 .profileId(snapshot.getProfileId().toString())
                 .source(snapshot.getSnapshotSources()
                         .stream()
-                        .map(source -> makeSourceModelFromSource(source))
+                        .map(this::makeSourceModelFromSource)
                         .collect(Collectors.toList()))
                 .tables(snapshot.getTables()
                         .stream()
-                        .map(table -> makeTableModelFromTable(table))
+                        .map(this::makeTableModelFromTable)
                         .collect(Collectors.toList()));
     }
 
@@ -451,11 +451,13 @@ public class SnapshotService {
 
     // TODO: share these methods with dataset table in some common place
     private TableModel makeTableModelFromTable(Table table) {
+        Long rowCount = table.getRowCount();
         return new TableModel()
                 .name(table.getName())
+                .rowCount(rowCount != null ? rowCount.intValue() : null)
                 .columns(table.getColumns()
                         .stream()
-                        .map(column -> makeColumnModelFromColumn(column))
+                        .map(this::makeColumnModelFromColumn)
                         .collect(Collectors.toList()));
     }
 

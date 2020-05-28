@@ -12,6 +12,7 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.resourcemanagement.ProfileDao;
+import bio.terra.service.snapshot.exception.MissingRowCountsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,6 +88,12 @@ public class SnapshotDaoTest {
         snapshotDao.delete(snapshotId);
         datasetDao.delete(datasetId);
         profileDao.deleteBillingProfileById(profileId);
+    }
+
+    @Test(expected = MissingRowCountsException.class)
+    public void testMissingRowCounts() throws Exception {
+        Snapshot snapshot = snapshotService.makeSnapshotFromSnapshotRequest(snapshotRequest);
+        snapshotDao.updateSnapshotTableRowCounts(snapshot, Collections.emptyMap());
     }
 
     @Test

@@ -1,6 +1,8 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
@@ -42,24 +44,24 @@ public class IngestDriverStep implements Step {
     private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
     private final LoadService loadService;
+    private final ConfigurationService configurationService;
     private final String datasetId;
     private final String loadTag;
-    private final int concurrentFiles;
     private final int maxFailedFileLoads;
     private final int driverWaitSeconds;
     private final String profileId;
 
     public IngestDriverStep(LoadService loadService,
+                            ConfigurationService configurationService,
                             String datasetId,
                             String loadTag,
-                            int concurrentFiles,
                             int maxFailedFileLoads,
                             int driverWaitSeconds,
                             String profileId) {
         this.loadService = loadService;
+        this.configurationService = configurationService;
         this.datasetId = datasetId;
         this.loadTag = loadTag;
-        this.concurrentFiles = concurrentFiles;
         this.maxFailedFileLoads = maxFailedFileLoads;
         this.driverWaitSeconds = driverWaitSeconds;
         this.profileId = profileId;
@@ -81,6 +83,7 @@ public class IngestDriverStep implements Step {
 
             // Load Loop
             while (true) {
+                int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
                 // Get the state of active and failed loads
                 LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentFiles);
 

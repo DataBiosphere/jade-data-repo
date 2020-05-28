@@ -3,6 +3,7 @@ package bio.terra.service.filedata.flight.ingest;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.BulkLoadArrayRequestModel;
 import bio.terra.model.BulkLoadRequestModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamProviderInterface;
@@ -46,11 +47,11 @@ public class FileIngestBulkFlight extends Flight {
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        ConfigurationService configurationService = (ConfigurationService) appContext.getBean("configurationService");
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
-        int concurrentFiles = inputParameters.get(LoadMapKeys.CONCURRENT_FILES, Integer.class);
         int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
         int fileChunkSize = inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
         boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
@@ -111,9 +112,9 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
         addStep(new IngestDriverStep(
             loadService,
+            configurationService,
             datasetId,
             loadTag,
-            concurrentFiles,
             maxFailedFileLoads,
             driverWaitSeconds,
             profileId));

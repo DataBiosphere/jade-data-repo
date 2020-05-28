@@ -2,8 +2,8 @@
 FROM openjdk:8-jdk-alpine
 
 # Create an app user so our program doesn't run as root.
-RUN groupadd -r app &&\
-    useradd  -m -r -g app -d /home/app -s /sbin/nologin -c "Docker image user" app
+RUN addgroup -g 1000 -S app
+RUN adduser -u 1000 -S app -G app -h /home/app -s /sbin/nologin
 
 # Docker Args for build
 ARG DEPENDENCY=target/dependency

@@ -47,12 +47,11 @@ public class CreateDatasetAssetStep implements Step {
         return datasetService.retrieve(datasetId);
     }
 
-    private AssetSpecification getNewAssetSpec(FlightContext context) {
+    private AssetSpecification getNewAssetSpec(FlightContext context, Dataset dataset) {
         // get Asset Model and convert it to a spec
         AssetModel assetModel = context.getInputParameters().get(
             JobMapKeys.REQUEST.getKeyName(), AssetModel.class);
 
-        Dataset dataset = getDataset(context);
         List<DatasetTable> datasetTables = dataset.getTables();
         Map<String, DatasetRelationship> relationshipMap = new HashMap<>();
         Map<String, DatasetTable> tablesMap = new HashMap<>();
@@ -75,7 +74,7 @@ public class CreateDatasetAssetStep implements Step {
         Dataset dataset = getDataset(context);
         FlightMap map = context.getWorkingMap();
         // get the dataset assets that already exist --asset name needs to be unique
-        AssetSpecification newAssetSpecification = getNewAssetSpec(context);
+        AssetSpecification newAssetSpecification = getNewAssetSpec(context, dataset);
         List<AssetSpecification> datasetAssetSpecificationList = dataset.getAssetSpecifications();
         if (datasetAssetSpecificationList.stream()
             .anyMatch(asset -> asset.getName().equalsIgnoreCase(newAssetSpecification.getName()))) {
@@ -92,7 +91,7 @@ public class CreateDatasetAssetStep implements Step {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        assetDao.create(newAssetSpecification, getDataset(context).getId());
+        assetDao.create(newAssetSpecification, dataset.getId());
         map.put(JobMapKeys.STATUS_CODE.getKeyName(), HttpStatus.CREATED);
         return StepResult.getStepResultSuccess();
     }
@@ -101,7 +100,7 @@ public class CreateDatasetAssetStep implements Step {
     public StepResult undoStep(FlightContext context) {
         Dataset dataset = getDataset(context);
         // Search the Asset list in the dataset object to see if the asset you were trying to create got created.
-        AssetSpecification newAssetSpecification = getNewAssetSpec(context);
+        AssetSpecification newAssetSpecification = getNewAssetSpec(context, dataset);
         Optional<AssetSpecification> assetSpecificationToDelete =
             dataset.getAssetSpecificationByName(newAssetSpecification.getName());
         // This only works if we are sure asset names are unique.

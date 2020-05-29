@@ -55,7 +55,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -481,7 +480,7 @@ public class ConnectedOperations {
 
     public void resetConfiguration() throws Exception {
         String url = "/api/repository/v1/configs/reset";
-        MvcResult result = mvc.perform(put(url)
+        mvc.perform(put(url)
             .contentType(MediaType.APPLICATION_JSON))
             .andExpect(status().isNoContent()) // HTTP status 204
             .andReturn();

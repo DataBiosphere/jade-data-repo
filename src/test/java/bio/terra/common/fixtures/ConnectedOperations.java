@@ -55,10 +55,12 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Common code for creating and deleting datasets and snapshots via MockMvc
@@ -274,11 +276,9 @@ public class ConnectedOperations {
     }
 
     public void deleteTestDataset(String id) throws Exception {
-        // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         checkDeleteResponse(response);
-
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -479,6 +479,14 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), DRSObject.class);
     }
 
+    public void resetConfiguration() throws Exception {
+        String url = "/api/repository/v1/configs/reset";
+        MvcResult result = mvc.perform(put(url)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent()) // HTTP status 204
+            .andReturn();
+    }
+
     public MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
         MvcResult result = inResult;
         while (true) {
@@ -562,6 +570,9 @@ public class ConnectedOperations {
     }
 
     public void teardown() throws Exception {
+        // call the reset configuration endpoint to disable all faults
+        resetConfiguration();
+
         if (deleteOnTeardown) {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets

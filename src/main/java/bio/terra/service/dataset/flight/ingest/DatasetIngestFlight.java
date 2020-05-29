@@ -31,12 +31,12 @@ public class DatasetIngestFlight extends Flight {
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
 
         addStep(new LockDatasetStep(datasetDao, datasetId, true));
-        addStep(new IngestSetupStep(datasetService));
+        addStep(new IngestSetupStep(datasetService, configService));
         addStep(new IngestLoadTableStep(datasetService, bigQueryPdao));
         addStep(new IngestRowIdsStep(datasetService, bigQueryPdao));
         addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
         addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
-        addStep(new IngestCleanupStep(datasetService, bigQueryPdao, configService));
+        addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, true));
     }
 }

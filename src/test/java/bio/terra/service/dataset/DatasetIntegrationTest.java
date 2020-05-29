@@ -357,5 +357,5 @@ public class DatasetIntegrationTest extends UsersBase {
 
         // there should be (7 - 5) = 2 rows "visible" in the sample table
         assertTableCount(bigQuery, dataset, "sample", 2L);
-    }DatasetConnectedTest.java
+    }
 }

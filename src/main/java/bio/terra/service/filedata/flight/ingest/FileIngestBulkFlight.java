@@ -10,6 +10,7 @@ import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.flight.VerifyAuthorizationStep;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
 import bio.terra.service.load.flight.LoadMapKeys;
@@ -48,6 +49,7 @@ public class FileIngestBulkFlight extends Flight {
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configurationService = (ConfigurationService) appContext.getBean("configurationService");
+        KubeService kubeService = (KubeService) appContext.getBean("kubeService");
 
         // Common input parameters
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -113,6 +115,7 @@ public class FileIngestBulkFlight extends Flight {
         addStep(new IngestDriverStep(
             loadService,
             configurationService,
+            kubeService,
             datasetId,
             loadTag,
             maxFailedFileLoads,

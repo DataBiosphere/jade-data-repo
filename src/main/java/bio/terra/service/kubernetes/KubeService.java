@@ -120,6 +120,13 @@ public class KubeService {
         return true;
     }
 
+    public int getActivePodCount() {
+        if (inKubernetes) {
+            return podListener.getActivePodCount();
+        }
+        return 1;
+    }
+
     CoreV1Api makeCoreApi() {
         try {
             ApiClient client = ClientBuilder.cluster().build();

@@ -110,8 +110,8 @@ public class KubePodListener implements Runnable {
 
     public int getActivePodCount() {
         int count = 0;
-        for(boolean d : podMap.values()){
-            if (d){
+        for (boolean d : podMap.values()) {
+            if (d) {
                 count++;
             }
         }

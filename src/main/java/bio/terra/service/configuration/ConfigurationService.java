@@ -122,6 +122,10 @@ public class ConfigurationService {
         return lookupByEnum(configEnum).getCurrentValue();
     }
 
+    public <T> T getScaledValue(ConfigEnum configEnum) {
+        return lookupByEnum(configEnum).getScaledValue();
+    }
+
     void addFaultCounted(ConfigEnum configEnum,
                          int skipFor,
                          int insert,

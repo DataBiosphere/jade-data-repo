@@ -6,6 +6,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
@@ -43,8 +44,10 @@ import java.util.concurrent.TimeUnit;
 public class IngestDriverStep implements Step {
     private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
+    private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
     private final LoadService loadService;
     private final ConfigurationService configurationService;
+    private final KubeService kubeService;
     private final String datasetId;
     private final String loadTag;
     private final int maxFailedFileLoads;
@@ -53,6 +56,7 @@ public class IngestDriverStep implements Step {
 
     public IngestDriverStep(LoadService loadService,
                             ConfigurationService configurationService,
+                            KubeService kubeService,
                             String datasetId,
                             String loadTag,
                             int maxFailedFileLoads,
@@ -60,6 +64,7 @@ public class IngestDriverStep implements Step {
                             String profileId) {
         this.loadService = loadService;
         this.configurationService = configurationService;
+        this.kubeService = kubeService;
         this.datasetId = datasetId;
         this.loadTag = loadTag;
         this.maxFailedFileLoads = maxFailedFileLoads;
@@ -81,11 +86,17 @@ public class IngestDriverStep implements Step {
             // got recorded by stairway.
             checkForOrphans(context, loadId);
 
+            // Start listening to pod so that we can scale our LOAD_CONCURRENT_FILES parameter
+            kubeService.startPodListener();
             // Load Loop
             while (true) {
-                int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+                // TODO: figure out where should actually live
+                // Originally thinking I would want to do this calculation in ConfigurationService
+                int podCount = kubeService.getActivePodCount();
+                int concurrentFiles = configurationService.getScaledValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+                int scaledConcurrentFiles = podCount * concurrentFiles;
                 // Get the state of active and failed loads
-                LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentFiles);
+                LoadCandidates candidates = getLoadCandidates(context, loadId, scaledConcurrentFiles);
 
                 int currentRunning = candidates.getRunningLoads().size();
                 int candidateCount = candidates.getCandidateFiles().size();
@@ -96,14 +107,14 @@ public class IngestDriverStep implements Step {
 
                 // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
                 if (candidates.getFailedLoads() > maxFailedFileLoads) {
-                    waitForAll(context, loadId, concurrentFiles);
+                    waitForAll(context, loadId, scaledConcurrentFiles);
                     break;
                 }
 
                 // Launch new loads
-                if (currentRunning < concurrentFiles) {
+                if (currentRunning < scaledConcurrentFiles) {
                     // Compute how many loads to launch
-                    int launchCount = concurrentFiles - currentRunning;
+                    int launchCount = scaledConcurrentFiles - currentRunning;
                     if (candidateCount < launchCount) {
                         launchCount = candidateCount;
                     }
@@ -120,17 +131,19 @@ public class IngestDriverStep implements Step {
                 }
 
                 // Wait until some loads complete
-                waitForAny(context, loadId, concurrentFiles, currentRunning);
+                waitForAny(context, loadId, scaledConcurrentFiles, currentRunning);
             }
         } catch (DatabaseOperationException | StairwayExecutionException ex) {
+            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
-
+        kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
+        kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         return StepResult.getStepResultSuccess();
     }
 

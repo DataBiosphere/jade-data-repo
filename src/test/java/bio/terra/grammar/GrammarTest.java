@@ -67,6 +67,32 @@ public class GrammarTest {
         assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
     }
 
+
+    @Test
+    public void testJoin() {
+        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar JOIN baz.quux ON foo.bar.x = baz.quux.y");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+    }
+
+    @Test
+    public void testJoinWhere() {
+        Query query = Query.parse("SELECT foo.quux.datarepo_row_id FROM foo.bar JOIN foo.quux ON foo.bar.x = foo.quux.x WHERE foo.quux.z IN ('box')");
+        List<String> columnNames = query.getColumnNames();
+        //assertThat("there are four columns", columnNames.size(), equalTo(4));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "z"));
+    }
+
+    @Test
+    public void testWhere() {
+        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE baz.quux.z IN ('box')");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are two columns", columnNames.size(), equalTo(2));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "z"));
+    }
+
+
     @Test(expected = InvalidQueryException.class)
     public void testColumnNotFullyQualifiedName() {
         // note that the col `datarepo_row_id` does not have a table or dataset attached

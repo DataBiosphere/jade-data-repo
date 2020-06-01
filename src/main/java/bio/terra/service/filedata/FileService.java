@@ -178,12 +178,12 @@ public class FileService {
     }
 
     FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) {
-        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+        Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveById(snapshot, fileId, depth, true);
     }
 
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) {
-        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+        Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveByPath(snapshot, path, depth, true);
     }
 

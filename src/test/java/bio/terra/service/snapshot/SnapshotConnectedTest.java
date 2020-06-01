@@ -580,12 +580,14 @@ public class SnapshotConnectedTest {
             // lookup the snapshot file by id and check that it's NOT found
         MockHttpServletResponse failedGetSnapshotByIdResponse =
             connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
-        //assertEquals("Snapshot file NOT found by DRS id lookup", HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
+        assertEquals("Snapshot file NOT found by DRS id lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
 
         // lookup the snapshot file by path and check that it's NOT found
         MockHttpServletResponse failedGetSnapshotByPathResponse =
             connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
-        //assertEquals("Snapshot file NOT found by path lookup", HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
+        assertEquals("Snapshot file NOT found by path lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
 
         // disable wait in DeleteSnapshotPrimaryDataStep
         configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);

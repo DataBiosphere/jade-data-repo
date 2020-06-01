@@ -545,24 +545,34 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
-    public FileModel lookupSnapshotFile(String snapshotId, String objectId) throws Exception {
+    public MockHttpServletResponse lookupSnapshotFileRaw(String snapshotId, String objectId) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/files/" + objectId;
         MvcResult result = mvc.perform(get(url)
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
-
-        return TestUtils.mapFromJson(result.getResponse().getContentAsString(), FileModel.class);
+        return result.getResponse();
     }
 
-    public FileModel lookupSnapshotFileByPath(String snapshotId, String path, long depth) throws Exception {
+    public FileModel lookupSnapshotFileSuccess(String snapshotId, String objectId) throws Exception {
+        MockHttpServletResponse response = lookupSnapshotFileRaw(snapshotId, objectId);
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
+    }
+
+    public MockHttpServletResponse lookupSnapshotFileByPathRaw(String snapshotId, String path, long depth) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects";
         MvcResult result = mvc.perform(get(url)
             .param("path", path)
             .param("depth", Long.toString(depth))
             .contentType(MediaType.APPLICATION_JSON))
             .andReturn();
+        return result.getResponse();
+    }
 
-        return TestUtils.mapFromJson(result.getResponse().getContentAsString(), FileModel.class);
+    public FileModel lookupSnapshotFileByPathSuccess(String snapshotId, String path, long depth) throws Exception {
+        MockHttpServletResponse response = lookupSnapshotFileByPathRaw(snapshotId, path, depth);
+        assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
+        return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
     public DRSObject drsGetObjectSuccess(String drsObjectId, boolean expand) throws Exception {

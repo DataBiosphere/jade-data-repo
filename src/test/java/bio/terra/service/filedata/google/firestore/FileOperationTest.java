@@ -44,6 +44,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -112,6 +114,7 @@ public class FileOperationTest {
     @SpyBean
     private DataLocationSelector dataLocationSelector;
 
+    private static Logger logger = LoggerFactory.getLogger(FileOperationTest.class);
     private int validFileCounter;
     private String coreBillingAccountId;
     private BillingProfileModel profileModel;
@@ -453,7 +456,7 @@ public class FileOperationTest {
     @Test
     public void multiFileLoadSuccessTest() throws Exception {
         BulkLoadRequestModel loadRequest =
-            makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, new boolean[]{true, true, true, true});
+            makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, false, new boolean[]{true, true, true, true});
 
         BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
         checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
@@ -466,7 +469,7 @@ public class FileOperationTest {
     @Test
     public void multiFileLoadFailRetryTest() throws Exception {
         BulkLoadRequestModel loadRequest =
-            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, new boolean[]{true, false, true, false});
+            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, false, new boolean[]{true, false, true, false});
         loadRequest.maxFailedFileLoads(4);
         String loadTag = loadRequest.getLoadTag();
 
@@ -474,17 +477,26 @@ public class FileOperationTest {
         checkLoadSummary(result, loadTag, 4, 2, 2, 0);
 
         loadRequest =
-            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, new boolean[]{true, true, true, true});
+            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, false, new boolean[]{true, true, true, true});
         loadRequest.loadTag(loadTag);
         result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
         checkLoadSummary(result, loadTag, 4, 4, 0, 0);
     }
 
     @Test
+    public void multiFileLoadSuccessExtraKeysTest() throws Exception {
+        BulkLoadRequestModel loadRequest =
+            makeBulkFileLoad("multiFileLoadSuccessExtraKeys", 0, 0, true, new boolean[]{true, true, true, true});
+
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
+    }
+
+    @Test
     public void multiFileLoadBadLineTest() throws Exception {
         // part 1: test that we exit with the bad line error when we have fewer than the max
         BulkLoadRequestModel loadRequest =
-            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, new boolean[]{true, false, true, false});
+            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, false, new boolean[]{true, false, true, false});
         loadRequest.maxFailedFileLoads(4);
 
         ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
@@ -494,7 +506,7 @@ public class FileOperationTest {
 
         // part 2: test that we exit with bad line error when we have more than the max
         loadRequest =
-            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, new boolean[]{true, true, true, true});
+            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, false, new boolean[]{true, true, true, true});
         loadRequest.maxFailedFileLoads(4);
 
         errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
@@ -544,6 +556,7 @@ public class FileOperationTest {
     private BulkLoadRequestModel makeBulkFileLoad(String tagBase,
                                                   int startIndex,
                                                   int badLines,
+                                                  boolean addExtraKeys,
                                                   boolean[] validPattern) {
         int fileCount = validPattern.length;
         String testId = Names.randomizeName("test");
@@ -564,6 +577,11 @@ public class FileOperationTest {
             for (int i = 0; i < fileCount; i++) {
                 BulkLoadFileModel fileModel = getFileModel(validPattern[i], startIndex + i, testId);
                 String fileLine = objectMapper.writeValueAsString(fileModel) + "\n";
+                // Inject extra key-value pairs into file lines
+                if (addExtraKeys) {
+                    fileLine = fileLine.replaceFirst("^\\{", "{\"customKey\":\"customValue\",");
+                    logger.info("Added extra keys: " + fileLine);
+                }
                 writer.write(fileLine);
             }
         } catch (IOException ex) {

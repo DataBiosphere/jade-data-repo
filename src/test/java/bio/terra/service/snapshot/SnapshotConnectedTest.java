@@ -3,10 +3,12 @@ package bio.terra.service.snapshot;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
+import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
@@ -21,6 +23,8 @@ import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.ProfileDao;
@@ -37,6 +41,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,6 +61,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -102,6 +108,8 @@ public class SnapshotConnectedTest {
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
+    @Autowired private DrsIdService drsIdService;
+    //@Autowired private EncodeFileTest encodeFileTest;
 
     @MockBean
     private IamProviderInterface samService;
@@ -487,7 +495,122 @@ public class SnapshotConnectedTest {
         connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
-    private DatasetSummaryModel setupMinimalDataset() throws Exception {
+    @Test
+    public void testExcludeLockedFromSnapshotFileLookups() throws Exception {
+        // create a dataset
+        DatasetSummaryModel datasetSummary = createTestDataset("simple-with-filerefs-dataset.json");
+
+        // ingest a file
+        URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
+            null, null);
+        String targetFilePath =
+            "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromSnapshotFileLookups.txt";
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("testExcludeLockedFromSnapshotFileLookups")
+            .mimeType("text/plain")
+            .targetPath(targetFilePath)
+            .profileId(billingProfile.getId());
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetSummary.getId(), fileLoadModel);
+
+        // generate a JSON file with the fileref
+        String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"" + fileModel.getFileId() + "\"}\n";
+
+        // load a JSON file that contains the table rows to load into the test bucket
+        String jsonFileName = "this-better-pass.json";
+        String dirInCloud = "scratch/testExcludeLockedFromSnapshotFileLookups/" + UUID.randomUUID().toString();
+        BlobInfo ingestTableBlob = BlobInfo
+            .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + jsonFileName)
+            .build();
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.create(ingestTableBlob, jsonLine.getBytes());
+
+        // make sure the JSON file gets cleaned up on test teardown
+        connectedOperations.addScratchFile(dirInCloud + "/" + jsonFileName);
+
+        // ingest the tabular data from the JSON file we just generated
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + jsonFileName;
+        IngestRequestModel ingestRequest1 = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("tableA")
+            .path(gsPath);
+        connectedOperations.ingestTableSuccess(datasetSummary.getId(), ingestRequest1);
+
+        // create a snapshot
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(
+            datasetSummary, "simple-with-filerefs-snapshot.json", "");
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        // retrieve the snapshot and check that it finds it
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId());
+        assertEquals("Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
+
+        String fileUri = getFileRefIdFromSnapshot(snapshotSummary); // TODO, this needs to be dried up
+        DrsId drsId = drsIdService.fromUri(fileUri);
+        DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
+        String filePath = drsObject.getAliases().get(0);
+
+        // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will already check)
+        FileModel fsObjById =
+            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
+        assertEquals("Retrieve snapshot file by DRS id matches desc", fsObjById.getDescription(), fileLoadModel.getDescription());
+
+        // lookup the snapshot file by DRS path and check that it's found
+        FileModel fsObjByPath =
+            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
+        assertEquals("Retrieve snapshot file by path matches desc", fsObjByPath.getDescription(), fileLoadModel.getDescription());
+        assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
+
+        // now the snapshot exists....let's get it locked!
+
+        // enable wait in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
+        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
+
+        // check that the snapshot metadata row has an exclusive lock
+        exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+            // lookup the snapshot file by id and check that it's NOT found
+        MockHttpServletResponse failedGetSnapshotByIdResponse =
+            connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
+        //assertEquals("Snapshot file NOT found by DRS id lookup", HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
+
+        // lookup the snapshot file by path and check that it's NOT found
+        MockHttpServletResponse failedGetSnapshotByPathResponse =
+            connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
+        //assertEquals("Snapshot file NOT found by path lookup", HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
+
+        // disable wait in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // check the response from the snapshot delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Snapshot delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // delete the dataset and check that it succeeds
+        connectedOperations.deleteTestDataset(datasetSummary.getId());
+
+        // remove the file from the connectedoperation bookkeeping list
+        connectedOperations.removeFile(datasetSummary.getId(), fileModel.getFileId());
+
+        // try to fetch the snapshot again and confirm nothing is returned
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(datasetSummary.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    private
+    DatasetSummaryModel setupMinimalDataset() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("dataset-minimal.json");
         loadCsvData(datasetSummary.getId(), "participant", "dataset-minimal-participant.csv");
         loadCsvData(datasetSummary.getId(), "sample", "dataset-minimal-sample.csv");
@@ -671,6 +794,32 @@ public class SnapshotConnectedTest {
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue countValue = row.get(0);
         return countValue.getLongValue();
+    }
+
+    private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
+        SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
+        BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
+
+        StringBuilder builder = new StringBuilder()
+            .append("SELECT file_ref FROM `")
+            .append(dataProject.getGoogleProjectId())
+            .append('.')
+            .append(snapshot.getName())
+            .append(".tableA` AS T") // TODO this is wonky witth "tableA"
+            .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
+
+        String sql = builder.toString();
+        try {
+            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+            TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
+            FieldValueList row = result.iterateAll().iterator().next();
+            FieldValue idValue = row.get(0);
+            String drsUri = idValue.getStringValue();
+            return drsUri;
+        } catch (InterruptedException ie) {
+            throw new PdaoException("get file ref id from snapshot unexpectedly interrupted", ie);
+        }
     }
 
 }

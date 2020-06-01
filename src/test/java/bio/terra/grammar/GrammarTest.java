@@ -86,12 +86,19 @@ public class GrammarTest {
 
     @Test
     public void testWhere() {
-        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE baz.quux.z IN ('box')");
+        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE baz.quux.x IN ('lux') AND baz.quux.y IN ('box') ");
         List<String> columnNames = query.getColumnNames();
-        assertThat("there are two columns", columnNames.size(), equalTo(2));
-        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "z"));
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
     }
 
+    @Test(expected = InvalidQueryException.class)
+    public void testWhere1000Genomes() {
+        Query.parse("SELECT 1000GenomesDataset.sample_info.datarepo_row_id FROM 1000GenomesDataset" +
+            ".sample_info JOIN a1000GenomesDataset.pedigree ON 1000GenomesDataset.pedigree.Family_ID = " +
+            "1000GenomesDataset.sample_info.Family_ID WHERE 1000GenomesDataset.pedigree.Relationship IN (\"child\") " +
+            "AND 1000GenomesDataset.sample_info.Gender  IN (\"male\")");
+    }
 
     @Test(expected = InvalidQueryException.class)
     public void testColumnNotFullyQualifiedName() {

@@ -18,7 +18,6 @@ import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleRandomBackoff;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.ApplicationContext;
 
 /*
@@ -41,7 +40,6 @@ public class FileIngestBulkFlight extends Flight {
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         LoadService loadService = (LoadService)appContext.getBean("loadService");
-        ObjectMapper objectMapper = (ObjectMapper)appContext.getBean("objectMapper");
         ApplicationConfiguration appConfig = (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         DataLocationService locationService = (DataLocationService)appContext.getBean("dataLocationService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
@@ -104,7 +102,6 @@ public class FileIngestBulkFlight extends Flight {
         } else {
             addStep(new IngestPopulateFileStateFromFileStep(
                 loadService,
-                objectMapper,
                 appConfig.getMaxBadLoadFileLineErrorsReported(),
                 appConfig.getLoadFilePopulateBatchSize()));
         }

@@ -17,6 +17,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.concurrent.TimeUnit;
+
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
@@ -24,6 +26,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 @Category(Integration.class)
 public class KubeServiceTest extends UsersBase {
     private static final Logger logger = LoggerFactory.getLogger(KubeServiceTest.class);
+    private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
+
     @Autowired
     private KubeService kubeService;
     @Autowired
@@ -41,14 +45,18 @@ public class KubeServiceTest extends UsersBase {
     @Test
     public void testPodCount() throws Exception {
         try {
+            logger.info("testPodCount: Starting Pod Listener");
+            kubeService.startPodListener();
             int podCount = kubeService.getActivePodCount();
             logger.info("testPodCount: podCount: {};", podCount);
             int concurrentFiles = configurationService.getScaledValue(ConfigEnum.LOAD_CONCURRENT_FILES);
             logger.info("testPodCount: concurrentFiles: {};", concurrentFiles);
             int scaledConcurrentFiles = podCount * concurrentFiles;
             logger.info("testPodCount: scaledConcurrentFiles: {}", scaledConcurrentFiles);
+            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         } catch (Exception ex) {
             logger.info("testPodCount Error: {}", ex);
+            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         }
     }
 }

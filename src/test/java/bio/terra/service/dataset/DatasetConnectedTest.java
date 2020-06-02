@@ -388,6 +388,7 @@ public class DatasetConnectedTest {
             .table("thetable")
             .path(gsPath);
         MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest1);
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
         UUID datasetId = UUID.fromString(summaryModel.getId());
@@ -402,6 +403,7 @@ public class DatasetConnectedTest {
             .table("thetable")
             .path(gsPath);
         MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest2);
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
         exclusiveLock = datasetDao.getExclusiveLock(datasetId);
@@ -471,8 +473,11 @@ public class DatasetConnectedTest {
 
         // load a CSV file that contains the table rows to soft delete into the test bucket
         String softDeleteRowId = "8c52c63e-8d9f-4cfc-82d0-0f916b2404c1";
+        List<String> softDeleteRowIds = new ArrayList<>();
+        softDeleteRowIds.add(softDeleteRowId); // add the same rowid twice
+        softDeleteRowIds.add(softDeleteRowId);
         DataDeletionRequest softDeleteRequest = uploadInputFileAndBuildSoftDeleteRequest(
-            dirInCloud, "testRepeatedSoftDelete.csv", tableName, Collections.singletonList(softDeleteRowId));
+            dirInCloud, "testRepeatedSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
         connectedOperations.softDeleteSuccess(summaryModel.getId(), softDeleteRequest);
@@ -663,9 +668,13 @@ public class DatasetConnectedTest {
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
 
         // load a CSV file that contains the table rows to soft delete into the test bucket
-        String softDeleteRowId = "badrowid";
+        String softDeleteBadRowId = "badrowid";
+        String softDeleteGoodRowId = "8c52c63e-8d9f-4cfc-82d0-0f916b2404c1";
+        List<String> softDeleteRowIds = new ArrayList<>();
+        softDeleteRowIds.add(softDeleteBadRowId);
+        softDeleteRowIds.add(softDeleteGoodRowId);
         DataDeletionRequest softDeleteRequest = uploadInputFileAndBuildSoftDeleteRequest(
-            dirInCloud, "testBadSoftDelete.csv", tableName, Collections.singletonList(softDeleteRowId));
+            dirInCloud, "testBadSoftDelete.csv", tableName, softDeleteRowIds);
 
         // make the soft delete request and wait for it to return
         MvcResult softDeleteResult = connectedOperations.softDeleteRaw(summaryModel.getId(), softDeleteRequest);
@@ -676,7 +685,8 @@ public class DatasetConnectedTest {
         // check that the size of the live table matches what we expect
         List<String> liveTableRowIds = getRowIdsFromBQTable(summaryModel.getName(), tableName);
         assertEquals("Size of live table is 4", 4, liveTableRowIds.size());
-        assertFalse("Bad row id is not in live table", liveTableRowIds.contains(softDeleteRowId));
+        assertFalse("Bad row id is not in live table", liveTableRowIds.contains(softDeleteBadRowId));
+        assertTrue("Good row id is in live table", liveTableRowIds.contains(softDeleteGoodRowId));
 
         // note: the soft delete table name is not exposed to end users, so to check that the state of the
         // soft delete table is correct, I'm reaching into our internals to fetch the table name
@@ -685,9 +695,10 @@ public class DatasetConnectedTest {
         String internalSoftDeleteTableName = internalDatasetTableObj.getSoftDeleteTableName();
 
         // check that the size of the soft delete table matches what we expect
-        List<String> softDeleteRowIds = getRowIdsFromBQTable(summaryModel.getName(), internalSoftDeleteTableName);
-        assertEquals("Size of soft delete table is 0", 0, softDeleteRowIds.size());
-        assertFalse("Bad row id is not in soft delete table", softDeleteRowIds.contains(softDeleteRowId));
+        List<String> softDeleteRowIdsFromBQ = getRowIdsFromBQTable(summaryModel.getName(), internalSoftDeleteTableName);
+        assertEquals("Size of soft delete table is 0", 0, softDeleteRowIdsFromBQ.size());
+        assertFalse("Bad row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteBadRowId));
+        assertFalse("Good row id is not in soft delete table", softDeleteRowIdsFromBQ.contains(softDeleteGoodRowId));
 
         // delete the dataset and check that it succeeds
         connectedOperations.deleteTestDataset(summaryModel.getId());

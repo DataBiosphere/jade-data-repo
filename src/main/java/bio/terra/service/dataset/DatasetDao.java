@@ -228,6 +228,11 @@ public class DatasetDao {
         return datasetId;
     }
 
+    /**
+     * This method is intended for TESTING ONLY. It returns the internal state of the exclusive lock on a dataset.
+     * @param id the dataset id
+     * @return the flight id that holds the exclusive lock. null if no exclusive lock is taken out.
+     */
     protected String getExclusiveLock(UUID id) {
         try {
             String sql = "SELECT flightid FROM dataset WHERE id = :id";
@@ -238,6 +243,11 @@ public class DatasetDao {
         }
     }
 
+    /**
+     * This method is intended for TESTING ONLY. It returns the internal state of the shared locks on a dataset.
+     * @param id the dataset id
+     * @return the array of flight ids that hold shared locks. empty if no shared locks are taken out.
+     */
     protected String[] getSharedLocks(UUID id) {
         try {
             String sql = "SELECT sharedlock FROM dataset WHERE id = :id";

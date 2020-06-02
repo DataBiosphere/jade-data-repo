@@ -231,7 +231,7 @@ public class ConfigurationService {
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
 
-        // File delete lock faults. These are used by DatasetConnectedTest > testSharedLockFileDelete
+        // Table ingest lock faults. These are used by DatasetConnectedTest > testSharedLockTableIngest
         addFaultCounted(TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);

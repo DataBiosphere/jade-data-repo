@@ -365,21 +365,21 @@ public class SnapshotConnectedTest {
         SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary,
             "snapshot-test-snapshot.json", "_d2_");
 
-        // enable wait in DeleteSnapshotPrimaryDataStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteSnapshotPrimaryDataStep
         configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // try to delete the snapshot
         MvcResult result1 = mvc.perform(delete("/api/repository/v1/snapshots/" + summaryModel.getId())).andReturn();
 
-        // try to delete the snapshot again
+        // try to delete the snapshot again, this should fail with a lock exception
+        // note: asserts are below outside the hang block
         MvcResult result2 = mvc.perform(delete("/api/repository/v1/snapshots/" + summaryModel.getId())).andReturn();
-        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
-        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat("delete failed on lock exception", errorModel2.getMessage(),
-            startsWith("Failed to lock the snapshot"));
 
-        // disable wait in DeleteSnapshotPrimaryDataStep
+        // disable hang in DeleteSnapshotPrimaryDataStep
         configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
 
         // check the response from the first delete request
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
@@ -387,6 +387,12 @@ public class SnapshotConnectedTest {
             connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
         assertEquals("First delete returned successfully",
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // check the response from the second delete request
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
+        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel2.getMessage(),
+            startsWith("Failed to lock the snapshot"));
 
         // confirm deleted
         getNonexistentSnapshot(summaryModel.getId());

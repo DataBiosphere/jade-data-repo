@@ -94,7 +94,6 @@ public class DatasetConnectedTest {
 
         DatasetSummaryModel datasetSummaryModel = connectedOperations.createDataset(datasetRequest);
         assertNotNull("created dataset successfully the first time", datasetSummaryModel);
-        connectedOperations.addDataset(datasetSummaryModel.getId());
 
         // fetch the dataset and confirm the metadata matches the request
         DatasetModel datasetModel = connectedOperations.getDataset(datasetSummaryModel.getId());
@@ -127,25 +126,24 @@ public class DatasetConnectedTest {
         datasetRequest
             .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(billingProfile.getId());
-
         DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-        connectedOperations.addDataset(summaryModel.getId());
 
-        // enable wait in DeleteDatasetPrimaryDataStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteDatasetPrimaryDataStep
         configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // try to delete the dataset
         MvcResult result1 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // try to delete the dataset again
         MvcResult result2 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
-        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
-        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat("delete failed on lock exception", errorModel2.getMessage(),
-            startsWith("Failed to lock the dataset"));
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
-        // disable wait in DeleteDatasetPrimaryDataStep
+        // disable hang in DeleteDatasetPrimaryDataStep
         configService.setFault(ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
 
         // check the response from the first delete request
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
@@ -153,6 +151,12 @@ public class DatasetConnectedTest {
             connectedOperations.handleSuccessCase(response1, DeleteResponseModel.class);
         assertEquals("First delete returned successfully",
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // check that the second delete failed with a lock exception
+        MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
+        ErrorModel errorModel2 = connectedOperations.handleFailureCase(response2, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel2.getMessage(),
+            startsWith("Failed to lock the dataset"));
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
@@ -167,11 +171,11 @@ public class DatasetConnectedTest {
         datasetRequest
             .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(billingProfile.getId());
-
         DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-        connectedOperations.addDataset(summaryModel.getId());
 
-        // enable wait in IngestFileIdStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in IngestFileIdStep
         configService.setFault(ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // try to ingest a file
@@ -191,12 +195,10 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
+        // note: asserts are below outside the hang block
         UUID datasetId = UUID.fromString(summaryModel.getId());
-        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-        assertNull("dataset row has no exclusive lock", exclusiveLock);
-        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
-        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
-        assertEquals("dataset row has one shared lock", 1, sharedLocks.length);
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
         // try to ingest a separate file
         String targetPath2 = "/mm/" + Names.randomizeName("testdir") + "/testfile2.txt";
@@ -213,21 +215,28 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
-        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-        assertNull("dataset row has no exclusive lock", exclusiveLock);
-        sharedLocks = datasetDao.getSharedLocks(datasetId);
-        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
-        assertEquals("dataset row has two shared locks", 2, sharedLocks.length);
+        // note: asserts are below outside the hang block
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
-        // try to delete the dataset, confirm fails with a lock exception
+        // try to delete the dataset, this should fail with a lock exception
+        // note: asserts are below outside the hang block
         MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
-        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
-        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat("delete failed on lock exception", errorModel3.getMessage(),
-            startsWith("Failed to lock the dataset"));
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
-        // disable wait in IngestFileIdStep
+        // disable hang in IngestFileIdStep
         configService.setFault(ConfigEnum.FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the dataset metadata row has a shared lock during the first ingest request
+        assertNull("dataset row has no exclusive lock", exclusiveLock1);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks1);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks1.length);
+
+        // check that the dataset metadata row has two shared locks while both ingests are running
+        assertNull("dataset row has no exclusive lock", exclusiveLock2);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks2);
+        assertEquals("dataset row has two shared locks", 2, sharedLocks2.length);
 
         // check the response from the first ingest request
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
@@ -239,7 +248,13 @@ public class DatasetConnectedTest {
         FileModel fileModel2 = connectedOperations.handleSuccessCase(response2, FileModel.class);
         assertEquals("file description 2 correct", fileLoadModel2.getDescription(), fileModel2.getDescription());
 
-        // delete the dataset and check that it succeeds
+        // check the response from the delete request, confirm fails with a lock exception
+        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
+        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel3.getMessage(),
+            startsWith("Failed to lock the dataset"));
+
+        // delete the dataset again and check that it succeeds now that there are no outstanding locks
         connectedOperations.deleteTestDataset(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
@@ -255,7 +270,6 @@ public class DatasetConnectedTest {
         datasetRequest
             .name(Names.randomizeName(datasetRequest.getName()))
             .defaultProfileId(billingProfile.getId());
-
         DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
 
         // ingest two files
@@ -279,7 +293,9 @@ public class DatasetConnectedTest {
             .profileId(billingProfile.getId());
         FileModel fileModel2 = connectedOperations.ingestFileSuccess(summaryModel.getId(), fileLoadModel2);
 
-        // enable wait in DeleteFileLookupStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteFileLookupStep
         configService.setFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // try to delete the first file
@@ -289,12 +305,10 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
+        // note: asserts are below outside the hang block
         UUID datasetId = UUID.fromString(summaryModel.getId());
-        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-        assertNull("dataset row has no exclusive lock", exclusiveLock);
-        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
-        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
-        assertEquals("dataset row has one shared lock", 1, sharedLocks.length);
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
         // try to delete the second file
         MvcResult result2 = mvc.perform(
@@ -303,21 +317,28 @@ public class DatasetConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
-        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-        assertNull("dataset row has no exclusive lock", exclusiveLock);
-        sharedLocks = datasetDao.getSharedLocks(datasetId);
-        assertNotNull("dataset row has a shared lock taken out", sharedLocks);
-        assertEquals("dataset row has two shared locks", 2, sharedLocks.length);
+        // note: asserts are below outside the hang block
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
-        // try to delete the dataset, confirm fails with a lock exception
+        // try to delete the dataset, this should fail with a lock exception
+        // note: asserts are below outside the hang block
         MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
-        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
-        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat("delete failed on lock exception", errorModel3.getMessage(),
-            startsWith("Failed to lock the dataset"));
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
-        // disable wait in DeleteFileLookupStep
+        // disable hang in DeleteFileLookupStep
         configService.setFault(ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the dataset metadata row has a shared lock during the first file delete
+        assertNull("dataset row has no exclusive lock", exclusiveLock1);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks1);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks1.length);
+
+        // check that the dataset metadata row has two shared locks while both file deletes are running
+        assertNull("dataset row has no exclusive lock", exclusiveLock2);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks2);
+        assertEquals("dataset row has two shared locks", 2, sharedLocks2.length);
 
         // check the response from the first delete file request
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
@@ -331,7 +352,13 @@ public class DatasetConnectedTest {
         connectedOperations.checkDeleteResponse(response2);
         connectedOperations.removeFile(summaryModel.getId(), fileModel2.getFileId());
 
-        // delete the dataset and check that it succeeds
+        // check that the delete request launched while the dataset had shared locks on it, failed with a lock exception
+        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
+        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel3.getMessage(),
+            startsWith("Failed to lock the dataset"));
+
+        // delete the dataset again and check that it succeeds now that there are no outstanding locks
         connectedOperations.deleteTestDataset(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
@@ -362,7 +389,9 @@ public class DatasetConnectedTest {
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + resourceFileName);
 
-        // enable wait in IngestCleanupStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in IngestSetupStep
         configService.setFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off the first table ingest. it should hang in the cleanup step.
@@ -372,13 +401,13 @@ public class DatasetConnectedTest {
             .table("thetable")
             .path(gsPath);
         MvcResult result1 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest1);
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has a shared lock
+        // note: asserts are below outside the hang block
         UUID datasetId = UUID.fromString(summaryModel.getId());
-        String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-        assertNull("dataset row has no exclusive lock", exclusiveLock);
-        String[] sharedLocks = datasetDao.getSharedLocks(datasetId);
-        assertEquals("dataset row has one shared lock", 1, sharedLocks.length);
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
 
         // kick off the second table ingest. it should hang in the cleanup step.
         IngestRequestModel ingestRequest2 = new IngestRequestModel()
@@ -386,22 +415,29 @@ public class DatasetConnectedTest {
             .table("thetable")
             .path(gsPath);
         MvcResult result2 = connectedOperations.ingestTableRaw(summaryModel.getId(), ingestRequest2);
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
         // check that the dataset metadata row has two shared locks
-        exclusiveLock = datasetDao.getExclusiveLock(datasetId);
-        assertNull("dataset row has no exclusive lock", exclusiveLock);
-        sharedLocks = datasetDao.getSharedLocks(datasetId);
-        assertEquals("dataset row has two shared locks", 2, sharedLocks.length);
+        // note: asserts are below outside the hang block
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks2 = datasetDao.getSharedLocks(datasetId);
 
-        // try to delete the dataset, confirm fails with a lock exception
+        // try to delete the dataset, this should fail with a lock exception
+        // note: asserts are below outside the hang block
         MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
-        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
-        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
-        assertThat("delete failed on lock exception", errorModel3.getMessage(),
-            startsWith("Failed to lock the dataset"));
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
-        // disable wait in IngestCleanupStep
+        // disable hang in IngestSetupStep
         configService.setFault(ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the dataset metadata row has a shared lock during the first table ingest
+        assertNull("dataset row has no exclusive lock", exclusiveLock1);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks1.length);
+
+        // check that the dataset metadata row has two shared locks while both table ingests are running
+        assertNull("dataset row has no exclusive lock", exclusiveLock2);
+        assertEquals("dataset row has two shared locks", 2, sharedLocks2.length);
 
         // check the response from the first table ingest
         MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
@@ -411,7 +447,14 @@ public class DatasetConnectedTest {
         MockHttpServletResponse response2 = connectedOperations.validateJobModelAndWait(result2);
         connectedOperations.checkIngestTableResponse(response2);
 
-        // delete the dataset and check that it succeeds
+        // check that the delete launched while both the table ingests had shared locks taken out,
+        // failed with a lock exception
+        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
+        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel3.getMessage(),
+            startsWith("Failed to lock the dataset"));
+
+        // delete the dataset again and check that it succeeds now that there are no outstanding locks
         connectedOperations.deleteTestDataset(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned

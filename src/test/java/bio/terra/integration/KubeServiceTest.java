@@ -3,8 +3,6 @@ package bio.terra.integration;
 import bio.terra.common.category.Integration;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
-import bio.terra.service.filedata.google.firestore.FileLoadTest;
-import bio.terra.service.iam.IamRole;
 import bio.terra.service.kubernetes.KubeService;
 import org.junit.After;
 import org.junit.Before;
@@ -18,9 +16,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.not;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -48,6 +43,7 @@ public class KubeServiceTest extends UsersBase {
         int podCount = kubeService.getActivePodCount();
         int concurrentFiles = configurationService.getScaledValue(ConfigEnum.LOAD_CONCURRENT_FILES);
         int scaledConcurrentFiles = podCount * concurrentFiles;
-        logger.info("podCount: {}; concurrentFiles: {}; scaledConcurrentFiles: {}", podCount, concurrentFiles, scaledConcurrentFiles);
+        logger.info("podCount: {}; concurrentFiles: {}; scaledConcurrentFiles: {}",
+            podCount, concurrentFiles, scaledConcurrentFiles);
     }
 }

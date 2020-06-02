@@ -124,7 +124,7 @@ public class KubeService {
 
     public int getActivePodCount() {
         logger.info("activePodCount: inkubernetes val: {}", inKubernetes);
-        if (inKubernetes) {
+        if (podListener != null) {
             int podCount = podListener.getActivePodCount();
             logger.info("activePodCount: {}", podCount);
             return podCount;

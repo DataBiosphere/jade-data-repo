@@ -86,8 +86,6 @@ public class IngestDriverStep implements Step {
             // got recorded by stairway.
             checkForOrphans(context, loadId);
 
-            // Start listening to pod so that we can scale our LOAD_CONCURRENT_FILES parameter
-            kubeService.startPodListener();
             // Load Loop
             while (true) {
                 // TODO: figure out where should actually live
@@ -134,16 +132,13 @@ public class IngestDriverStep implements Step {
                 waitForAny(context, loadId, scaledConcurrentFiles, currentRunning);
             }
         } catch (DatabaseOperationException | StairwayExecutionException ex) {
-            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
-        kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) {
-        kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         return StepResult.getStepResultSuccess();
     }
 

@@ -17,6 +17,7 @@ import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -163,6 +164,120 @@ public class DatasetServiceTest {
             equalTo(true));
 
         datasetDao.delete(datasetId);
+    }
+
+    @Test
+    public void addMultipleDatasetAssetSpecificationsShouldFail() throws Exception {
+        UUID datasetId = createDataset("dataset-create-test.json");
+        String assetName = "assetName";
+        // get created dataset
+        Dataset createdDataset = datasetDao.retrieve(datasetId);
+        assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
+
+        AssetModel assetModel1 = new AssetModel()
+            .name(assetName)
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+
+        AssetModel assetModel2 = new AssetModel()
+            .name(assetName)
+            .rootTable("participant")
+            .rootColumn("id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+
+        // add first asset to the dataset
+        String jobId1 = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel1, testUser);
+        flightIdsList.add(jobId1);
+
+        boolean assetAdd1 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId1, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
+        Assert.assertTrue(assetAdd1);
+
+        // get dataset
+        Dataset dataset = datasetDao.retrieve(datasetId);
+
+        // make sure the dataset has the expected asset
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        // add second asset to dataset, this should fail because it has the same name as the first
+        String jobId2 = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel2, testUser);
+        flightIdsList.add(jobId2);
+
+        boolean assetAdd2 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId2, testUser).getJobStatus().equals(JobModel.JobStatusEnum.FAILED)
+        );
+        Assert.assertTrue(assetAdd2);
+
+        // make sure the first asset we created hasn't been deleted during the undo step
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        datasetDao.delete(datasetId);
+    }
+
+    @Test
+    public void addAssetSpecWithSameNameToMultipleDatasetsShouldPass() throws Exception {
+        UUID datasetId1 = createDataset("dataset-create-test.json");
+        UUID datasetId2 = createDataset("dataset-create-test.json");
+        String assetName = "assetName";
+        // get created dataset
+        Dataset createdDataset = datasetDao.retrieve(datasetId1);
+        assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
+
+        AssetModel assetModel = new AssetModel()
+            .name(assetName)
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+
+        // add first asset to the dataset
+        String jobId1 = datasetService.addDatasetAssetSpecifications(datasetId1.toString(), assetModel, testUser);
+        flightIdsList.add(jobId1);
+
+        boolean assetAdd1 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId1, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
+        Assert.assertTrue(assetAdd1);
+
+        // get dataset 1
+        Dataset dataset = datasetDao.retrieve(datasetId1);
+
+        // make sure the dataset has the expected asset
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        // add asset tp second dataset
+        String jobId2 = datasetService.addDatasetAssetSpecifications(datasetId2.toString(), assetModel, testUser);
+        flightIdsList.add(jobId2);
+
+        boolean assetAdd2 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId2, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
+        Assert.assertTrue(assetAdd2);
+
+        Dataset dataset2 = datasetDao.retrieve(datasetId2);
+        // make sure the first asset we created hasn't been deleted during the undo step
+        assertThat("dataset has an additional asset spec", dataset2.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset2.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        datasetDao.delete(datasetId1);
+        datasetDao.delete(datasetId2);
     }
 
     @Test

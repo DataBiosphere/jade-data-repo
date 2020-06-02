@@ -3,10 +3,14 @@ package bio.terra.service.dataset;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Column;
+import bio.terra.service.dataset.exception.InvalidAssetException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
@@ -34,6 +38,14 @@ public class AssetDao {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Create a new AssetSpecification. If a DuplicateKeyException is thrown,
+     * catch it and throw an InvalidAssetException
+     * @param assetSpecification
+     * @param datasetId
+     * @return
+     */
+    @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID create(AssetSpecification assetSpecification, UUID datasetId) {
         String sql = "INSERT INTO asset_specification (dataset_id, name, root_table_id, root_column_id) " +
                 "VALUES (:dataset_id, :name, :root_table_id, :root_column_id)";
@@ -43,7 +55,12 @@ public class AssetDao {
         params.addValue("root_table_id", assetSpecification.getRootTable().getTable().getId());
         params.addValue("root_column_id", assetSpecification.getRootColumn().getDatasetColumn().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
-        jdbcTemplate.update(sql, params, keyHolder);
+        try {
+            jdbcTemplate.update(sql, params, keyHolder);
+        } catch (DuplicateKeyException e) {
+            throw new InvalidAssetException("Asset name already exists: " + assetSpecification.getName(), e);
+        }
+
         UUID assetSpecId = keyHolder.getId();
         assetSpecification.id(assetSpecId);
 

@@ -114,12 +114,16 @@ public class ConnectedOperations {
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
         when(samService.createDatasetResource(any(), any())).thenReturn(
             Collections.singletonList(samConfiguration.getStewardsGroupEmail()));
+
+        // when asked what datasets/snapshots the caller has access to, return all the datasets/snapshots contained
+        // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASET)))
             .thenAnswer((Answer<List<UUID>>) invocation
                 -> createdDatasetIds.stream().map(UUID::fromString).collect(Collectors.toList()));
         when(samService.listAuthorizedResources(any(), eq(IamResourceType.DATASNAPSHOT)))
             .thenAnswer((Answer<List<UUID>>) invocation
                 -> createdSnapshotIds.stream().map(UUID::fromString).collect(Collectors.toList()));
+
         doNothing().when(samService).deleteSnapshotResource(any(), any());
         doNothing().when(samService).deleteDatasetResource(any(), any());
     }
@@ -244,7 +248,7 @@ public class ConnectedOperations {
         return handleFailureCase(result.getResponse(), expectedStatus);
     }
 
-    public EnumerateDatasetModel enumerateDatasets(String filter) throws Exception {
+    public MvcResult enumerateDatasetsRaw(String filter) throws Exception {
         String direction = "desc"; // options: asc, desc
         int limit = 10;
         int offset = 0;
@@ -252,12 +256,15 @@ public class ConnectedOperations {
 
         String args = "direction=" + direction + "&limit=" + limit
             + "&offset=" + offset + "&sort=" + sort; // + "&filter=" + filter;
-        MvcResult result = mvc.perform(get("/api/repository/v1/datasets?" + args)).andReturn();
+        return mvc.perform(get("/api/repository/v1/datasets?" + args)).andReturn();
+    }
 
+    public EnumerateDatasetModel enumerateDatasets(String filter) throws Exception {
+        MvcResult result = enumerateDatasetsRaw(filter);
         return handleSuccessCase(result.getResponse(), EnumerateDatasetModel.class);
     }
 
-    public EnumerateSnapshotModel enumerateSnapshots(String filter) throws Exception {
+    public MvcResult enumerateSnapshotsRaw(String filter) throws Exception {
         String direction = "desc"; // options: asc, desc
         int limit = 10;
         int offset = 0;
@@ -265,8 +272,11 @@ public class ConnectedOperations {
 
         String args = "direction=" + direction + "&limit=" + limit
             + "&offset=" + offset + "&sort=" + sort; // + "&filter=" + filter;
-        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots?" + args)).andReturn();
+        return mvc.perform(get("/api/repository/v1/snapshots?" + args)).andReturn();
+    }
 
+    public EnumerateSnapshotModel enumerateSnapshots(String filter) throws Exception {
+        MvcResult result = enumerateSnapshotsRaw(filter);
         return handleSuccessCase(result.getResponse(), EnumerateSnapshotModel.class);
     }
 

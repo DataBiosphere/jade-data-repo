@@ -152,6 +152,12 @@ public class SnapshotDao {
         return snapshotId;
     }
 
+    /**
+     * This method is protected because it's for use in tests only.
+     * Currently, we don't expose the lock state of a snapshot outside of the DAO for other API code to consume.
+     * @param id
+     * @return the flightid that holds an exclusive lock. null if none.
+     */
     protected String getExclusiveLockState(UUID id) {
         try {
             String sql = "SELECT flightid FROM snapshot WHERE id = :id";
@@ -196,7 +202,17 @@ public class SnapshotDao {
     }
 
     /**
-     * This is a convenience wrapper that returns all snapshots, regardless of whether they are exclusively locked.
+     * This is a convenience wrapper that returns a snapshot only if it is NOT exclusively locked.
+     * This method is intended for user-facing API calls (e.g. from RepositoryApiController).
+     * @param snapshotId the snapshot id
+     * @return the Snapshot object
+     */
+    public Snapshot retrieveAvailableSnapshot(UUID snapshotId) {
+        return retrieveSnapshot(snapshotId, true);
+    }
+
+    /**
+     * This is a convenience wrapper that returns a snapshot, regardless of whether it is exclusively locked.
      * Most places in the API code that are retrieving a snapshot will call this method.
      * @param snapshotId the snapshot id
      * @return the Snapshot object
@@ -208,7 +224,8 @@ public class SnapshotDao {
     /**
      * Retrieves a Snapshot object from the snapshot id.
      * @param snapshotId the snapshot id
-     * @param onlyRetrieveAvailable true to exclude snapshots that are exclusively locked, false to include all snapshots
+     * @param onlyRetrieveAvailable true to exclude snapshots that are exclusively locked,
+     *                              false to include all snapshots
      * @return the Snapshot object
      */
     public Snapshot retrieveSnapshot(UUID snapshotId, boolean onlyRetrieveAvailable) {
@@ -306,19 +323,30 @@ public class SnapshotDao {
         return snapshotSources;
     }
 
-    // excludes snapshots that are exclusively locked
+    /**
+     * Fetch a list of all the available snapshots.
+     * This method returns summary objects, which do not include sub-objects associated with snapshots (e.g. tables).
+     * Note that this method will only return snapshots that are NOT exclusively locked.
+     * @param offset skip this many snapshots from the beginning of the list (intended for "scrolling" behavior)
+     * @param limit only return this many snapshots in the list
+     * @param sort field for order by clause. possible values are: name, description, created_date
+     * @param direction asc or desc
+     * @param filter string to match (SQL ILIKE) in snapshots name or description
+     * @param accessibleSnapshotIds list of snapshots ids that caller has access to (fetched from IAM service)
+     * @return a list of dataset summary objects
+     */
     public MetadataEnumeration<SnapshotSummary> retrieveSnapshots(
         int offset,
         int limit,
         String sort,
         String direction,
         String filter,
-        List<UUID> accessibleDatasetIds) {
+        List<UUID> accessibleSnapshotIds) {
         logger.debug("retrieve snapshots offset: " + offset + " limit: " + limit + " sort: " + sort +
             " direction: " + direction + " filter:" + filter);
         MapSqlParameterSource params = new MapSqlParameterSource();
         List<String> whereClauses = new ArrayList<>();
-        DaoUtils.addAuthzIdsClause(accessibleDatasetIds, params, whereClauses);
+        DaoUtils.addAuthzIdsClause(accessibleSnapshotIds, params, whereClauses);
         whereClauses.add(" flightid IS NULL"); // exclude snapshots that are exclusively locked
 
         // add the filter to the clause to get the actual items

@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
@@ -429,22 +430,41 @@ public class SnapshotConnectedTest {
         }
         assertTrue("Unlocked included in enumeration", foundSnapshotWithMatchingId);
 
-        // enable wait in DeleteSnapshotPrimaryDataStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteSnapshotPrimaryDataStep
         configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
-        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        MvcResult deleteResult =
+            mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
 
-        // check that the snapshot metadata row has an exclusive lock
+        // note: asserts are below outside the hang block
         exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
-        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
 
         // retrieve the snapshot and check that it returns not found
-        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+        // note: asserts are below outside the hang block
+        MvcResult retrieveResult =
+            mvc.perform(get("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
 
         // enumerate snapshots and check that this snapshot is not included in the set
+        // note: asserts are below outside the hang block
+        MvcResult enumerateResult = connectedOperations.enumerateSnapshotsRaw(snapshotSummary.getName());
+
+        // disable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the snapshot metadata row has an exclusive lock after kicking off the delete
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+        // check that the retrieve snapshot returned not found
+        connectedOperations.handleFailureCase(retrieveResult.getResponse(), HttpStatus.NOT_FOUND);
+
+        // check that the enumerate snapshots returned successfully and that this snapshot is not included in the set
         enumerateSnapshotModelModel =
-            connectedOperations.enumerateSnapshots(snapshotSummary.getName());
+            connectedOperations.handleSuccessCase(enumerateResult.getResponse(), EnumerateSnapshotModel.class);
         enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
         foundSnapshotWithMatchingId = false;
         for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
@@ -454,9 +474,6 @@ public class SnapshotConnectedTest {
             }
         }
         assertFalse("Exclusively locked not included in enumeration", foundSnapshotWithMatchingId);
-
-        // disable wait in DeleteSnapshotPrimaryDataStep
-        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
 
         // check the response from the delete request
         MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);

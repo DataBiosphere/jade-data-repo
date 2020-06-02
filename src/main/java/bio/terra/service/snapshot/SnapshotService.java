@@ -180,7 +180,7 @@ public class SnapshotService {
      * @return a Snapshot object
      */
     public Snapshot retrieveAvailable(UUID id) {
-        return snapshotDao.retrieveSnapshot(id, true);
+        return snapshotDao.retrieveAvailableSnapshot(id);
     }
 
     /** Fetch existing Snapshot object using the name.

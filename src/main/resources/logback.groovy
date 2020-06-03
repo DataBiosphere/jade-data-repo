@@ -30,4 +30,4 @@ logger("liquibase.executor", WARN)
 logger("io.swagger.models.parameters.AbstractSerializableParameter", ERROR)
 
 // root sets the default logging level and appenders
-root(INFO, ["Console-Appender", "File-Appender"])
+root(INFO, ["Console-Appender"])

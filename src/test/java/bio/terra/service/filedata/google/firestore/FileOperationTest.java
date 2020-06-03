@@ -31,11 +31,8 @@ import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -44,6 +41,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -56,14 +55,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.TestUtils.bigQueryProjectForDatasetName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -112,6 +109,7 @@ public class FileOperationTest {
     @SpyBean
     private DataLocationSelector dataLocationSelector;
 
+    private static Logger logger = LoggerFactory.getLogger(FileOperationTest.class);
     private int validFileCounter;
     private String coreBillingAccountId;
     private BillingProfileModel profileModel;
@@ -299,25 +297,10 @@ public class FileOperationTest {
         }
     }
 
-    private static final String queryForIdsTemplate =
-        "SELECT <columns> FROM `<project>.<dataset>.<table>`";
-
     // Get the count of rows in a table or view
     private TableResult queryLoadHistoryTable(String columns) throws Exception {
-        String datasetName = bigQueryPdao.prefixName(datasetSummary.getName());
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetSummary.getName());
-        String bigQueryProjectId = bigQueryProject.getProjectId();
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
-
-        ST sqlTemplate = new ST(queryForIdsTemplate);
-        sqlTemplate.add("columns", columns);
-        sqlTemplate.add("project", bigQueryProjectId);
-        sqlTemplate.add("dataset", datasetName);
-        sqlTemplate.add("table", PDAO_LOAD_HISTORY_TABLE);
-
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
-        return bigQuery.query(queryConfig);
+        return TestUtils.selectFromBigQueryDataset(
+            bigQueryPdao, datasetDao, dataLocationService, datasetSummary.getName(), PDAO_LOAD_HISTORY_TABLE, columns);
     }
 
     @Test
@@ -453,7 +436,7 @@ public class FileOperationTest {
     @Test
     public void multiFileLoadSuccessTest() throws Exception {
         BulkLoadRequestModel loadRequest =
-            makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, new boolean[]{true, true, true, true});
+            makeBulkFileLoad("multiFileLoadSuccessTest", 0, 0, false, new boolean[]{true, true, true, true});
 
         BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
         checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
@@ -466,7 +449,7 @@ public class FileOperationTest {
     @Test
     public void multiFileLoadFailRetryTest() throws Exception {
         BulkLoadRequestModel loadRequest =
-            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, new boolean[]{true, false, true, false});
+            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, false, new boolean[]{true, false, true, false});
         loadRequest.maxFailedFileLoads(4);
         String loadTag = loadRequest.getLoadTag();
 
@@ -474,17 +457,26 @@ public class FileOperationTest {
         checkLoadSummary(result, loadTag, 4, 2, 2, 0);
 
         loadRequest =
-            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, new boolean[]{true, true, true, true});
+            makeBulkFileLoad("multiFileLoadFailRetry", 0, 0, false, new boolean[]{true, true, true, true});
         loadRequest.loadTag(loadTag);
         result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
         checkLoadSummary(result, loadTag, 4, 4, 0, 0);
     }
 
     @Test
+    public void multiFileLoadSuccessExtraKeysTest() throws Exception {
+        BulkLoadRequestModel loadRequest =
+            makeBulkFileLoad("multiFileLoadSuccessExtraKeys", 0, 0, true, new boolean[]{true, true, true, true});
+
+        BulkLoadResultModel result = connectedOperations.ingestBulkFileSuccess(datasetSummary.getId(), loadRequest);
+        checkLoadSummary(result, loadRequest.getLoadTag(), 4, 4, 0, 0);
+    }
+
+    @Test
     public void multiFileLoadBadLineTest() throws Exception {
         // part 1: test that we exit with the bad line error when we have fewer than the max
         BulkLoadRequestModel loadRequest =
-            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, new boolean[]{true, false, true, false});
+            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 3, false, new boolean[]{true, false, true, false});
         loadRequest.maxFailedFileLoads(4);
 
         ErrorModel errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
@@ -494,7 +486,7 @@ public class FileOperationTest {
 
         // part 2: test that we exit with bad line error when we have more than the max
         loadRequest =
-            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, new boolean[]{true, true, true, true});
+            makeBulkFileLoad("multiFileLoadBadLineSuccess", 0, 6, false, new boolean[]{true, true, true, true});
         loadRequest.maxFailedFileLoads(4);
 
         errorModel = connectedOperations.ingestBulkFileFailure(datasetSummary.getId(), loadRequest);
@@ -544,6 +536,7 @@ public class FileOperationTest {
     private BulkLoadRequestModel makeBulkFileLoad(String tagBase,
                                                   int startIndex,
                                                   int badLines,
+                                                  boolean addExtraKeys,
                                                   boolean[] validPattern) {
         int fileCount = validPattern.length;
         String testId = Names.randomizeName("test");
@@ -564,6 +557,11 @@ public class FileOperationTest {
             for (int i = 0; i < fileCount; i++) {
                 BulkLoadFileModel fileModel = getFileModel(validPattern[i], startIndex + i, testId);
                 String fileLine = objectMapper.writeValueAsString(fileModel) + "\n";
+                // Inject extra key-value pairs into file lines
+                if (addExtraKeys) {
+                    fileLine = fileLine.replaceFirst("^\\{", "{\"customKey\":\"customValue\",");
+                    logger.info("Added extra keys: " + fileLine);
+                }
                 writer.write(fileLine);
             }
         } catch (IOException ex) {

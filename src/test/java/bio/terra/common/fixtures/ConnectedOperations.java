@@ -10,6 +10,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -59,6 +60,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 // Common code for creating and deleting datasets and snapshots via MockMvc
@@ -274,11 +276,9 @@ public class ConnectedOperations {
     }
 
     public void deleteTestDataset(String id) throws Exception {
-        // We only use this for @After, so we don't check return values
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + id)).andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         checkDeleteResponse(response);
-
     }
 
     public void deleteTestProfile(String id) throws Exception {
@@ -391,6 +391,20 @@ public class ConnectedOperations {
         return fileModel;
     }
 
+    public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {
+        String softDeleteUrl = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
+        return mvc.perform(
+            post(softDeleteUrl).contentType(MediaType.APPLICATION_JSON).content(TestUtils.mapToJson(softDeleteRequest)))
+            .andReturn();
+    }
+
+    public DeleteResponseModel softDeleteSuccess(String datasetId, DataDeletionRequest softDeleteRequest)
+        throws Exception {
+        MvcResult result = softDeleteRaw(datasetId, softDeleteRequest);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleSuccessCase(response, DeleteResponseModel.class);
+    }
+
     public BulkLoadArrayResultModel ingestArraySuccess(String datasetId,
                                                        BulkLoadArrayRequestModel loadModel) throws Exception {
         MvcResult result = ingestArrayRaw(datasetId, loadModel);
@@ -479,6 +493,14 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(result.getResponse().getContentAsString(), DRSObject.class);
     }
 
+    public void resetConfiguration() throws Exception {
+        String url = "/api/repository/v1/configs/reset";
+        mvc.perform(put(url)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNoContent()) // HTTP status 204
+            .andReturn();
+    }
+
     public MockHttpServletResponse validateJobModelAndWait(MvcResult inResult) throws Exception {
         MvcResult result = inResult;
         while (true) {
@@ -562,6 +584,9 @@ public class ConnectedOperations {
     }
 
     public void teardown() throws Exception {
+        // call the reset configuration endpoint to disable all faults
+        resetConfiguration();
+
         if (deleteOnTeardown) {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets

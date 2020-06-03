@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight.datadelete;
 
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.LockDatasetStep;
@@ -27,6 +28,7 @@ public class DatasetDataDeleteFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao) appContext.getBean("bigQueryPdao");
         IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
+        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
 
         // get data from inputs that steps need
         String datasetId = inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class);
@@ -38,16 +40,16 @@ public class DatasetDataDeleteFlight extends Flight {
             IamAction.UPDATE_DATA));
 
         // need to lock, need dataset name and flight id
-        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), false));
+        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
 
         // validate tables exist, check access to files, and create external temp tables
         addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));
 
         // insert into soft delete table
-        addStep(new DataDeletionStep(bigQueryPdao, datasetService));
+        addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService));
 
         // unlock
-        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), false));
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
 
         // cleanup
         addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));

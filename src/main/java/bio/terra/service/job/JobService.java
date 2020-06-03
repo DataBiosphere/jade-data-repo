@@ -78,6 +78,7 @@ public class JobService {
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
+            .stairwayHook(new StairwayLoggingHooks())
         .build();
     }
 

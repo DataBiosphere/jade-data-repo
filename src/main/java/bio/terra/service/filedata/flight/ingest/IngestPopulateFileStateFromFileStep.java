@@ -11,7 +11,10 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 
@@ -24,22 +27,25 @@ import java.util.UUID;
 // Populate the files to be loaded from the incoming array
 public class IngestPopulateFileStateFromFileStep implements Step {
     private final LoadService loadService;
-    private final ObjectMapper objectMapper;
     private final int maxBadLines;
     private final int batchSize;
 
     public IngestPopulateFileStateFromFileStep(LoadService loadService,
-                                               ObjectMapper objectMapper,
                                                int maxBadLines,
                                                int batchSize) {
         this.loadService = loadService;
-        this.objectMapper = objectMapper;
         this.maxBadLines = maxBadLines;
         this.batchSize = batchSize;
     }
 
     @Override
     public StepResult doStep(FlightContext context) {
+        // Ensure that file ingestion works with extra key-value pairs
+        ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new Jdk8Module())
+            .registerModule(new JavaTimeModule())
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
+
         FlightMap inputParameters = context.getInputParameters();
         BulkLoadRequestModel loadRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), BulkLoadRequestModel.class);

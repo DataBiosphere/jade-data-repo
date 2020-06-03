@@ -1436,7 +1436,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private static final String insertSoftDeleteTemplate =
         "INSERT INTO `<project>.<dataset>.<softDeleteTable>` " +
-        "SELECT DISTINCT <rowId> FROM `<project>.<dataset>.<softDeleteExtTable>`";
+        "SELECT DISTINCT E.<rowId> FROM `<project>.<dataset>.<softDeleteExtTable>` E " +
+        "LEFT JOIN `<project>.<dataset>.<softDeleteTable>` S USING (<rowId>) " +
+        "WHERE S.<rowId> IS NULL";
 
     /**
      * Insert row ids into the corresponding soft delete table for each table provided.
@@ -1476,20 +1478,20 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     /**
-     * This join should pair up every rowId in the external table with a corresponding match in the live view. If there
-     * isn't a match in the live view, then V.rowId will be null and we count that as a mismatch.
+     * This join should pair up every rowId in the external table with a corresponding match in the raw table. If there
+     * isn't a match in the raw table, then R.rowId will be null and we count that as a mismatch.
      *
-     * Note that since this is joining against the live view, an attempt to soft delete a rowId that has already been
-     * soft deleted will result in a mismatch.
+     * Note that since this is joining against the raw table, not the the live view, an attempt to soft delete a rowId
+     * that has already been soft deleted will not result in a mismatch.
      */
     private static final String validateSoftDeleteTemplate =
         "SELECT COUNT(E.<rowId>) FROM `<project>.<dataset>.<softDeleteExtTable>` E " +
-        "LEFT JOIN `<project>.<dataset>.<liveView>` V USING (<rowId>) " +
-        "WHERE V.<rowId> IS NULL";
+        "LEFT JOIN `<project>.<dataset>.<rawTable>` R USING (<rowId>) " +
+        "WHERE R.<rowId> IS NULL";
 
     /**
      * Goes through each of the provided tables and checks to see if the proposed row ids to soft delete exist in the
-     * dataset table. This will error out on the first sign of mismatch.
+     * raw dataset table. This will error out on the first sign of mismatch.
      *
      * @param dataset dataset repo concept object
      * @param tables list of table specs from the DataDeletionRequest
@@ -1501,12 +1503,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         for (DataDeletionTableModel table : tables) {
             String tableName = table.getTableName();
+            String rawTableName = dataset.getTableByName(tableName).get().getRawTableName();
             String sql = new ST(validateSoftDeleteTemplate)
                 .add("rowId", PDAO_ROW_ID_COLUMN)
                 .add("project", bigQueryProject.getProjectId())
                 .add("dataset", prefixName(dataset.getName()))
                 .add("softDeleteExtTable", externalTableName(tableName, suffix))
-                .add("liveView", tableName)
+                .add("rawTable", rawTableName)
                 .render();
             TableResult result = bigQueryProject.query(sql);
             long numMismatched = getSingleLongValue(result);

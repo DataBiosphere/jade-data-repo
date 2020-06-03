@@ -31,11 +31,8 @@ import bio.terra.service.resourcemanagement.DataLocationSelector;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
-import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.FieldValueList;
-import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
@@ -58,14 +55,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.stringtemplate.v4.ST;
 
 import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
-import static bio.terra.common.TestUtils.bigQueryProjectForDatasetName;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
@@ -302,25 +297,10 @@ public class FileOperationTest {
         }
     }
 
-    private static final String queryForIdsTemplate =
-        "SELECT <columns> FROM `<project>.<dataset>.<table>`";
-
     // Get the count of rows in a table or view
     private TableResult queryLoadHistoryTable(String columns) throws Exception {
-        String datasetName = bigQueryPdao.prefixName(datasetSummary.getName());
-        BigQueryProject bigQueryProject = bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetSummary.getName());
-        String bigQueryProjectId = bigQueryProject.getProjectId();
-        BigQuery bigQuery = bigQueryProject.getBigQuery();
-
-        ST sqlTemplate = new ST(queryForIdsTemplate);
-        sqlTemplate.add("columns", columns);
-        sqlTemplate.add("project", bigQueryProjectId);
-        sqlTemplate.add("dataset", datasetName);
-        sqlTemplate.add("table", PDAO_LOAD_HISTORY_TABLE);
-
-        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
-        return bigQuery.query(queryConfig);
+        return TestUtils.selectFromBigQueryDataset(
+            bigQueryPdao, datasetDao, dataLocationService, datasetSummary.getName(), PDAO_LOAD_HISTORY_TABLE, columns);
     }
 
     @Test

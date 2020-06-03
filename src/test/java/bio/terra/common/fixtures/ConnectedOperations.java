@@ -10,6 +10,7 @@ import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
+import bio.terra.model.DataDeletionRequest;
 import bio.terra.model.DatasetModel;
 import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.DatasetSummaryModel;
@@ -388,6 +389,20 @@ public class ConnectedOperations {
         addFile(datasetId, fileModel.getFileId());
 
         return fileModel;
+    }
+
+    public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {
+        String softDeleteUrl = String.format("/api/repository/v1/datasets/%s/deletes", datasetId);
+        return mvc.perform(
+            post(softDeleteUrl).contentType(MediaType.APPLICATION_JSON).content(TestUtils.mapToJson(softDeleteRequest)))
+            .andReturn();
+    }
+
+    public DeleteResponseModel softDeleteSuccess(String datasetId, DataDeletionRequest softDeleteRequest)
+        throws Exception {
+        MvcResult result = softDeleteRaw(datasetId, softDeleteRequest);
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        return handleSuccessCase(response, DeleteResponseModel.class);
     }
 
     public BulkLoadArrayResultModel ingestArraySuccess(String datasetId,

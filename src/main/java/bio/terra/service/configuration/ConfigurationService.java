@@ -35,6 +35,8 @@ import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLI
 import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_SKIP_FILE_LOAD;
 import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
 import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
@@ -231,6 +233,11 @@ public class ConfigurationService {
         addFaultCounted(TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        // soft delete lock faults. These are used by DatasetConnectedTest > testConcurrentSoftDeletes
+        addFaultCounted(SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
+            ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultSimple(SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
     }
 
 }

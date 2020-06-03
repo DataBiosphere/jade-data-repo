@@ -121,14 +121,13 @@ public class KubeService {
     }
 
     public int getActivePodCount() {
-        logger.info("activePodCount: inkubernetes val: {}", inKubernetes);
         if (podListener != null) {
             int podCount = podListener.getActivePodCount();
-            logger.info("activePodCount: {}", podCount);
             return podCount;
         }
-        logger.info("activePodCount - default: {}", 1);
-        return 1;
+        int defaultPodCount = 1;
+        logger.info("KubeService ActivePodCount - default val: {}", defaultPodCount);
+        return defaultPodCount;
     }
 
     CoreV1Api makeCoreApi() {

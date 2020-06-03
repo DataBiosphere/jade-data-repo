@@ -48,6 +48,8 @@ public class KubeServiceTest extends UsersBase {
     @Test
     public void testPodCount() throws Exception {
         try {
+            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
+            kubeService.startPodListener();
             int podCount = kubeService.getActivePodCount();
             logger.info("testPodCount: podCount: {};", podCount);
             assertThat("pod count should be 1", podCount, equalTo(1));
@@ -57,7 +59,6 @@ public class KubeServiceTest extends UsersBase {
             logger.info("testPodCount: scaledConcurrentFiles: {}", scaledConcurrentFiles);
         } catch (Exception ex) {
             logger.info("testPodCount Error: {}", ex);
-            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         }
     }
 }

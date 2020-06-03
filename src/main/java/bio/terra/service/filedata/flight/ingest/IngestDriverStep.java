@@ -44,7 +44,6 @@ import java.util.concurrent.TimeUnit;
 public class IngestDriverStep implements Step {
     private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
-    private static final int POD_LISTENER_SHUTDOWN_TIMEOUT = 2;
     private final LoadService loadService;
     private final ConfigurationService configurationService;
     private final KubeService kubeService;

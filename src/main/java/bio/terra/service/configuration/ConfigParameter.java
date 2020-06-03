@@ -12,29 +12,17 @@ public class ConfigParameter<T> extends ConfigBase {
 
     private final T originalValue;
     private T currentValue;
-    private T scaledValue;
 
     // -- Instance methods --
     ConfigParameter(ConfigEnum configEnum, T value) {
         super(ConfigModel.ConfigTypeEnum.PARAMETER, configEnum);
         this.originalValue = value;
         this.currentValue = value;
-        this.scaledValue = value;
     }
 
     @Override
     public T getCurrentValue() {
         return currentValue;
-    }
-
-    @Override
-    public T getScaledValue() {
-       //TODO get pod count
-        // scaled val = pod count * current value
-        // Right now, I'm getting the pod count in the Driver step
-        // Seems like it would be to much to wire up to kubeservice here
-        scaledValue = currentValue;
-        return scaledValue;
     }
 
     @Override

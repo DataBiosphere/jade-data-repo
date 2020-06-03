@@ -88,10 +88,8 @@ public class IngestDriverStep implements Step {
 
             // Load Loop
             while (true) {
-                // TODO: figure out where should actually live
-                // Originally thinking I would want to do this calculation in ConfigurationService
                 int podCount = kubeService.getActivePodCount();
-                int concurrentFiles = configurationService.getScaledValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+                int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
                 int scaledConcurrentFiles = podCount * concurrentFiles;
                 // Get the state of active and failed loads
                 LoadCandidates candidates = getLoadCandidates(context, loadId, scaledConcurrentFiles);

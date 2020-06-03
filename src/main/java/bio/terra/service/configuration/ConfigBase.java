@@ -29,10 +29,6 @@ public abstract class ConfigBase {
         throw new InvalidConfigTypeException("Config is not a parameter: " + configEnum.name());
     }
 
-    public <T> T getScaledValue() {
-        throw new InvalidConfigTypeException("Config is not a parameter: " + configEnum.name());
-    }
-
     void validateType(ConfigModel.ConfigTypeEnum expectedConfigType) {
         if (configType != expectedConfigType) {
             throw new ValidationException("Mismatched config type: " + getName() +

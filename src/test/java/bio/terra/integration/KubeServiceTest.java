@@ -19,6 +19,9 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
+
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
@@ -45,15 +48,13 @@ public class KubeServiceTest extends UsersBase {
     @Test
     public void testPodCount() throws Exception {
         try {
-            logger.info("testPodCount: Starting Pod Listener");
-            kubeService.startPodListener();
             int podCount = kubeService.getActivePodCount();
             logger.info("testPodCount: podCount: {};", podCount);
-            int concurrentFiles = configurationService.getScaledValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+            assertThat("pod count should be 1", podCount, equalTo(1));
+            int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
             logger.info("testPodCount: concurrentFiles: {};", concurrentFiles);
             int scaledConcurrentFiles = podCount * concurrentFiles;
             logger.info("testPodCount: scaledConcurrentFiles: {}", scaledConcurrentFiles);
-            kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);
         } catch (Exception ex) {
             logger.info("testPodCount Error: {}", ex);
             kubeService.stopPodListener(TimeUnit.SECONDS, POD_LISTENER_SHUTDOWN_TIMEOUT);

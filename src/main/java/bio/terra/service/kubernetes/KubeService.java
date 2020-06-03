@@ -94,8 +94,6 @@ public class KubeService {
      * Launch the pod listener thread.
      */
     public void startPodListener() {
-        // TODO Remove before merging!!
-        logger.info("inKubernetes val: {}", inKubernetes);
         if (inKubernetes) {
             podListener = new KubePodListener(jobShutdownState, namespace, podName);
             podListenerThread = new Thread(podListener);

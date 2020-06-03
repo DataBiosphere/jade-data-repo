@@ -111,10 +111,10 @@ public class KubePodListener implements Runnable {
     public int getActivePodCount() {
         int count = 0;
         logger.info("KubePodListener getActivePodCount: {}", podMap.size());
-        for (String k : podMap.keySet()) {
-            Boolean d = podMap.get(k);
-            logger.info("KubePodListener getActivePodCount: ({},{})", k, d);
-            if (d) {
+        for (Map.Entry<String, Boolean> entry : podMap.entrySet()) {
+            logger.info("KubePodListener getActivePodCount: ({},{})",
+                entry.getKey(), entry.getValue());
+            if (entry.getValue()) {
                 count++;
                 logger.info("KubePodListener getActivePodCount: count: {}", count);
             }

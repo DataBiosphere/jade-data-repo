@@ -80,7 +80,7 @@ public class GrammarTest {
     public void testJoinWhere() {
         Query query = Query.parse("SELECT foo.quux.datarepo_row_id FROM foo.bar JOIN foo.quux ON foo.bar.x = foo.quux.x WHERE foo.quux.z IN ('box')");
         List<String> columnNames = query.getColumnNames();
-        //assertThat("there are four columns", columnNames.size(), equalTo(4));
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
         assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "z"));
     }
 

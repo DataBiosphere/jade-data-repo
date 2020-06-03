@@ -244,11 +244,11 @@ public class DataRepoFixtures {
 
     public DataRepoResponse<JobModel> createSnapshotWithRequestLaunch(
         TestConfiguration.User user,
-        DatasetSummaryModel datasetSummaryModel,
+        String datasetName,
         SnapshotRequestModel requestModel) throws Exception {
         BillingProfileModel billingProfileModel = this.createBillingProfile(user);
         requestModel.setName(Names.randomizeName(requestModel.getName()));
-        requestModel.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
+        requestModel.getContents().get(0).setDatasetName(datasetName);
         requestModel.setProfileId(billingProfileModel.getId());
         String json = TestUtils.mapToJson(requestModel);
 
@@ -262,7 +262,7 @@ public class DataRepoFixtures {
     public DataRepoResponse<JobModel> createSnapshotLaunch(
         TestConfiguration.User user, DatasetSummaryModel datasetSummaryModel, String filename) throws Exception {
         SnapshotRequestModel requestModel = jsonLoader.loadObject(filename, SnapshotRequestModel.class);
-        return createSnapshotWithRequestLaunch(user, datasetSummaryModel, requestModel);
+        return createSnapshotWithRequestLaunch(user, datasetSummaryModel.getName(), requestModel);
     }
 
     public SnapshotSummaryModel resolveCreateSnapshot(
@@ -280,10 +280,10 @@ public class DataRepoFixtures {
 
     public SnapshotSummaryModel createSnapshotWithRequest(
         TestConfiguration.User user,
-        DatasetSummaryModel datasetSummaryModel,
+        String datasetName,
         SnapshotRequestModel snapshotRequest) throws Exception {
         DataRepoResponse<JobModel> jobResponse =
-            createSnapshotWithRequestLaunch(user, datasetSummaryModel, snapshotRequest);
+            createSnapshotWithRequestLaunch(user, datasetName, snapshotRequest);
         return resolveCreateSnapshot(user, jobResponse);
     }
 

@@ -85,6 +85,7 @@ public class KubePodListener implements Runnable {
                         } else if (StringUtils.equals(operation, "DELETED")) {
                             // TODO: call Stairway to inform it of a deleted pod
                             Boolean deletedPod = podMap.get(podName);
+                            logger.info("Api pod deleted: ({}, {})", podName, deletedPod);
                             if (deletedPod != null && !deletedPod) {
                                 logger.info("Deleted api pod: " + podName);
                                 podMap.put(podName, false);

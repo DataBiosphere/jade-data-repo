@@ -152,7 +152,7 @@ public class SnapshotDao {
         return snapshotId;
     }
 
-    protected String getExclusiveLock(UUID id) {
+    protected String getExclusiveLockState(UUID id) {
         try {
             String sql = "SELECT flightid FROM snapshot WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);

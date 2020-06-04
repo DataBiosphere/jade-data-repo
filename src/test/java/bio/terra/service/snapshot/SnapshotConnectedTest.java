@@ -339,7 +339,7 @@ public class SnapshotConnectedTest {
         assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotModel.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // try to create the same snapshot again and check that it fails
@@ -409,7 +409,7 @@ public class SnapshotConnectedTest {
             "snapshot-test-snapshot.json", "_d2_");
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // retrieve the snapshot and check that it finds it
@@ -436,7 +436,7 @@ public class SnapshotConnectedTest {
         MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
 
         // check that the snapshot metadata row has an exclusive lock
-        exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
         assertNotNull("snapshot row is exclusively locked", exclusiveLock);
 
         // retrieve the snapshot and check that it returns not found

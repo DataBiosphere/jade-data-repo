@@ -36,7 +36,6 @@ import java.util.concurrent.TimeUnit;
  * - take a postgres lock on the deployment table to serialize instances running this algorithm
  * - read the deployment row
  * - If the id = the KubeService id, we return false - we are not the first through with that deployment id.
-<<<<<<< HEAD
  * - If the id != the KubeService id and the row is locked, we spin until the row is unlocked and return false.
  *    TODO: validate that the locker is still alive by listing pods
  * - If the id != the KubeService id and the row is unlocked:
@@ -47,15 +46,6 @@ import java.util.concurrent.TimeUnit;
  * -- update the deployment row, unlocking the row and releasing any waiting DRmanagers
  * That is because we need to hold the migration lock during Stairway migration.
  *
-=======
- * - If the id != the KubeService id and the row is locked, we spin until the row is unlocked.
- *    TODO: validate that the locker is still alive by listing pods
- * - If the id != the KubeService id and the row is unlocked:
- * -- update the deployment row with the new deployment and mark that this pod owns the lock
-
- * --- perform the migrate according to the configuration settings
- * --- update the deployment row, unlocking the row and releasing any waiting DRmanagers
->>>>>>> d302a09... Got multi-pod migrate working
  * This is vulnerable to failure: if this pod crashes still holding the deployment lock, we will be stuck and
  * have to clear it by hand.
  *
@@ -128,23 +118,29 @@ public class Migrate {
         // Get the unique id of this deployment
         String deploymentUid = kubeService.getApiDeploymentUid();
 
-        // Figure out what we should do, based on the state
-        MigrateAction action = checkDeploymentState(deploymentUid);
-        switch (action) {
-            case NOTHING:
-                logger.info("Deployment id matches - no action taken");
-                break;
+        // Figure out what we should do, based on the state. This is in a loop so that if the deployment
+        // lock is stuck, we can manually clear it and one of the waiting-for-unlock DRmanagers can
+        // perform migration.
 
-            case MIGRATE:
-                logger.info("Deployment locked deployment - migrating");
-                migrateDatabase(
-                    dataRepoJdbcConfiguration.getChangesetFile(),
-                    dataRepoJdbcConfiguration.getDataSource());
-                return true;
+        boolean retry = true;
+        while (retry) {
+            MigrateAction action = checkDeploymentState(deploymentUid);
+            switch (action) {
+                case NOTHING:
+                    logger.info("Deployment id matches - no action taken");
+                    return false;
 
-            case WAIT_FOR_UNLOCK:
-                waitForUnlock(deploymentUid);
-                break;
+                case MIGRATE:
+                    logger.info("Deployment locked deployment - migrating");
+                    migrateDatabase(
+                        dataRepoJdbcConfiguration.getChangesetFile(),
+                        dataRepoJdbcConfiguration.getDataSource());
+                    return true;
+
+                case WAIT_FOR_UNLOCK:
+                    retry = waitForUnlock(deploymentUid);
+                    break;
+            }
         }
         return false;
     }
@@ -161,7 +157,13 @@ public class Migrate {
         releaseDeploymentLock();
     }
 
-    public void waitForUnlock(String deploymentUid) {
+    /**
+     * Wait for another DRmanager to perform the migration.
+     *
+     * @param deploymentUid deployment id we are trying to upgrade to
+     * @return true if this DRmanager should retry the migration. False if migration succeeded.
+     */
+    public boolean waitForUnlock(String deploymentUid) {
         try {
             while (true) {
                 logger.info("Deployment locked - waiting");
@@ -174,10 +176,11 @@ public class Migrate {
                     if (row.getLockingPodName() == null) {
                         logger.info("Deployment unlocked - continuing");
                         if (StringUtils.equals(row.getId(), deploymentUid)) {
-                            logger.info("Deployment unlocked - continuing");
-                            return;
+                            logger.info("Deployment properly set - continuing");
+                            return false;
                         }
-                        throw new MigrateException("Other pod failed to migrate - exiting");
+                        // Other pod failed to migrate. Try again.
+                        return true;
                     }
                 } catch (SQLException ex) {
                     throw new MigrateException("Failed to connect to database", ex);

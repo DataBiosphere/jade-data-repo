@@ -61,6 +61,9 @@ public class JobService {
     private final KubeService kubeService;
     private final JobShutdownState jobShutdownState;
     private final Migrate migrate;
+
+    // TODO: this class reliably returns the Spring class loader whereas the JobService class does not.
+    //  It is a mystery worth solving at some point.
     private final FireStoreDao fireStoreDao;
 
     @Autowired

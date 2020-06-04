@@ -178,7 +178,7 @@ dependencies {
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
     generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
 
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
+    //developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
 

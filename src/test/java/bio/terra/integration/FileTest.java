@@ -88,10 +88,10 @@ public class FileTest extends UsersBase {
     @Test
     public void longFileLoadTest() throws Exception {
         // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
-        //  local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
+        //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
         //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
         //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the fileLoadTest)
-        final int filesToLoad = 4;
+        final int filesToLoad = 16;
 
         String loadTag = Names.randomizeName("longtest");
 

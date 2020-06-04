@@ -22,6 +22,7 @@ import java.util.Map;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.CREATE_SNAPSHOT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
@@ -205,6 +206,7 @@ public class ConfigurationService {
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);
+        addFaultSimple(CREATE_SNAPSHOT_FAULT);
         addFaultCounted(SAM_TIMEOUT_FAULT, 0, -1, 25, ConfigFaultCountedModel.RateStyleEnum.FIXED);
 
         // Skip File Load fault is intended for bulk load infrastructure testing. It executes the bulk

@@ -293,6 +293,17 @@ public class DataRepoFixtures {
         return snapshotResponse.getResponseObject().get();
     }
 
+    public void resolveCreateBadSnapshot(
+        TestConfiguration.User user,
+        DataRepoResponse<JobModel> jobResponse) throws Exception {
+        assertTrue("snapshot create launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
+        assertTrue("snapshot create launch response is present", jobResponse.getResponseObject().isPresent());
+
+        DataRepoResponse<SnapshotSummaryModel> snapshotResponse = dataRepoClient.waitForResponse(
+            user, jobResponse, SnapshotSummaryModel.class);
+        assertThat("snapshot create is unsuccessful", snapshotResponse.getStatusCode(), equalTo(HttpStatus.INTERNAL_SERVER_ERROR));
+    }
+
     public SnapshotSummaryModel createSnapshotWithRequest(
         TestConfiguration.User user,
         String datasetName,
@@ -300,6 +311,15 @@ public class DataRepoFixtures {
         DataRepoResponse<JobModel> jobResponse =
             createSnapshotWithRequestLaunch(user, datasetName, snapshotRequest);
         return resolveCreateSnapshot(user, jobResponse);
+    }
+
+    public void createSnapshotWithBadRequest(
+        TestConfiguration.User user,
+        String datasetName,
+        SnapshotRequestModel snapshotRequest) throws Exception {
+        DataRepoResponse<JobModel> jobResponse =
+            createSnapshotWithRequestLaunch(user, datasetName, snapshotRequest);
+        resolveCreateBadSnapshot(user, jobResponse);
     }
 
     public SnapshotSummaryModel createSnapshot(

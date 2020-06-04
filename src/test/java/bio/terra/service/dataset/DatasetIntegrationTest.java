@@ -28,6 +28,10 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
+import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.snapshot.SnapshotDao;
+import bio.terra.service.snapshot.exception.SnapshotNotFoundException;
+import bio.terra.service.tabulardata.google.BigQueryProject;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
@@ -61,6 +65,7 @@ import java.util.stream.StreamSupport;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -77,9 +82,12 @@ public class DatasetIntegrationTest extends UsersBase {
     private static Logger logger = LoggerFactory.getLogger(DatasetIntegrationTest.class);
 
     @Autowired private DataRepoClient dataRepoClient;
+    @Autowired private DatasetDao datasetDao;
+    @Autowired private DataLocationService dataLocationService;
     @Autowired private JsonLoader jsonLoader;
     @Autowired private DataRepoFixtures dataRepoFixtures;
     @Autowired private AuthService authService;
+    @Autowired private SnapshotDao snapshotDao;
     @Autowired private TestConfiguration testConfiguration;
 
     private String stewardToken;
@@ -449,5 +457,40 @@ public class DatasetIntegrationTest extends UsersBase {
         ingestResponse = dataRepoFixtures.ingestJsonData(steward(), datasetId, ingestRequest);
         assertThat("correct sample row count", ingestResponse.getRowCount(), equalTo(7L));
         return datasetId;
+    }
+
+    @Test(expected = SnapshotNotFoundException.class)
+    public void testSnapshotCreationUndo() throws Exception {
+        // create a dataset
+        DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
+        DatasetModel datasetModel = dataRepoFixtures.getDataset(steward(), datasetSummaryModel.getId());
+
+        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+            datasetDao, dataLocationService, datasetSummaryModel.getName());
+
+        // ====================================================
+        // have the snapshot creation fail
+        // by calling the fault insertion
+        dataRepoFixtures.setFault(steward(), ConfigEnum.CREATE_SNAPSHOT_FAULT.name(), true);
+
+        // Try to create a full views snapshot
+        SnapshotRequestModel requestModel =
+            jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+
+        dataRepoFixtures.createSnapshotWithBadRequest(steward(),
+            datasetModel.getName(), requestModel);
+
+        // unset fault
+        dataRepoFixtures.setFault(steward(), ConfigEnum.CREATE_SNAPSHOT_FAULT.name(), false);
+
+        // make sure undo is completed successfully
+
+        boolean snapshotExists = bigQueryProject.datasetExists(requestModel.getName());
+        assertFalse("Cant find snapshot as expected", snapshotExists);
+
+        // check to see if the row in the database is there
+
+        // attempt to find the snapshot (make sure we dont)
+        snapshotDao.retrieveSnapshotByName(requestModel.getName());
     }
 }

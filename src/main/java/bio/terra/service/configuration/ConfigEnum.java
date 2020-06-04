@@ -24,6 +24,7 @@ public enum ConfigEnum {
     // -- faults --
     SAM_TIMEOUT_FAULT,
     CREATE_ASSET_FAULT,
+    CREATE_SNAPSHOT_FAULT,
     // TODO: When we do DR-737 and attach data to faults, these two can be combined into one.
     LOAD_LOCK_CONFLICT_STOP_FAULT,
     LOAD_LOCK_CONFLICT_CONTINUE_FAULT,

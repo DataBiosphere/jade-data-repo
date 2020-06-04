@@ -28,6 +28,7 @@ public class SnapshotCreateFlight extends Flight {
 
         // get the required objects to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
+        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         SnapshotDao snapshotDao = (SnapshotDao)appContext.getBean("snapshotDao");
         SnapshotService snapshotService = (SnapshotService)appContext.getBean("snapshotService");
         BigQueryPdao bigQueryPdao = (BigQueryPdao)appContext.getBean("bigQueryPdao");
@@ -36,7 +37,6 @@ public class SnapshotCreateFlight extends Flight {
         IamService iamClient = (IamService)appContext.getBean("iamService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
-        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
         GoogleResourceService resourceService =
             (GoogleResourceService) appContext.getBean("googleResourceService");

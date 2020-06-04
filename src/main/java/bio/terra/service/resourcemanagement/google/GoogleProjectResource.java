@@ -5,51 +5,57 @@ import java.util.Map;
 import java.util.UUID;
 
 public class GoogleProjectResource {
-    private GoogleProjectRequest googleProjectRequest;
+    private UUID profileId;
+    private String googleProjectId;
+    private List<String> serviceIds;
+    private Map<String, List<String>> roleIdentityMapping;
     private UUID repositoryId;
     private String googleProjectNumber;
 
+    // Default constructor for JSON serdes
     public GoogleProjectResource() {
-        this.googleProjectRequest = new GoogleProjectRequest();
     }
 
     public GoogleProjectResource(GoogleProjectRequest googleProjectRequest) {
-        this.googleProjectRequest = googleProjectRequest;
-    }
-
-    public String getGoogleProjectId() {
-        return googleProjectRequest.getProjectId();
-    }
-
-    public GoogleProjectResource googleProjectId(String googleProjectId) {
-        googleProjectRequest.projectId(googleProjectId);
-        return this;
+        this.profileId = googleProjectRequest.getProfileId();
+        this.googleProjectId = googleProjectRequest.getProjectId();
+        this.serviceIds = googleProjectRequest.getServiceIds();
+        this.roleIdentityMapping = googleProjectRequest.getRoleIdentityMapping();
     }
 
     public UUID getProfileId() {
-        return googleProjectRequest.getProfileId();
+        return profileId;
     }
 
     public GoogleProjectResource profileId(UUID profileId) {
-        googleProjectRequest.profileId(profileId);
+        this.profileId = profileId;
+        return this;
+    }
+
+    public String getGoogleProjectId() {
+        return googleProjectId;
+    }
+
+    public GoogleProjectResource googleProjectId(String googleProjectId) {
+        this.googleProjectId = googleProjectId;
         return this;
     }
 
     public List<String> getServiceIds() {
-        return googleProjectRequest.getServiceIds();
+        return serviceIds;
     }
 
     public GoogleProjectResource serviceIds(List<String> serviceIds) {
-        googleProjectRequest.serviceIds(serviceIds);
+        this.serviceIds = serviceIds;
         return this;
     }
 
     public Map<String, List<String>> getRoleIdentityMapping() {
-        return googleProjectRequest.getRoleIdentityMapping();
+        return roleIdentityMapping;
     }
 
     public GoogleProjectResource roleIdentityMapping(Map<String, List<String>> roleIdentityMapping) {
-        googleProjectRequest.roleIdentityMapping(roleIdentityMapping);
+        this.roleIdentityMapping = roleIdentityMapping;
         return this;
     }
 

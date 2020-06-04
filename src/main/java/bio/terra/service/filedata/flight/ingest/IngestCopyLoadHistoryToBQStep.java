@@ -67,7 +67,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                         loadTag,
                         loadTime,
                         loadHistoryArray);
-                    TimeUnit.SECONDS.sleep(1);
+                    TimeUnit.SECONDS.sleep(5);
                 }
             }
             // copy from staging to actual BQ table

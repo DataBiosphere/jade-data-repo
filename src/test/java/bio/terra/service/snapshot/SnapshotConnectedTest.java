@@ -13,6 +13,8 @@ import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -60,8 +62,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
 
+import java.net.URI;
 import java.util.ArrayList;
-import java.util.concurrent.TimeUnit;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -109,7 +111,6 @@ public class SnapshotConnectedTest {
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
     @Autowired private DrsIdService drsIdService;
-    //@Autowired private EncodeFileTest encodeFileTest;
 
     @MockBean
     private IamProviderInterface samService;
@@ -541,12 +542,8 @@ public class SnapshotConnectedTest {
             datasetSummary, "simple-with-filerefs-snapshot.json", "");
 
         // check that the snapshot metadata row is unlocked
-        String exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
         assertNull("snapshot row is unlocked", exclusiveLock);
-
-        // retrieve the snapshot and check that it finds it
-        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId());
-        assertEquals("Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
 
         String fileUri = getFileRefIdFromSnapshot(snapshotSummary); // TODO, this needs to be dried up
         DrsId drsId = drsIdService.fromUri(fileUri);
@@ -574,7 +571,7 @@ public class SnapshotConnectedTest {
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
 
         // check that the snapshot metadata row has an exclusive lock
-        exclusiveLock = snapshotDao.getExclusiveLock(UUID.fromString(snapshotSummary.getId()));
+        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
         assertNotNull("snapshot row is exclusively locked", exclusiveLock);
 
             // lookup the snapshot file by id and check that it's NOT found

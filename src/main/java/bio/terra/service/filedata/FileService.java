@@ -177,11 +177,13 @@ public class FileService {
         return fileModelFromFSItem(fsItem);
     }
 
+    // note: this method only returns snapshots that are NOT exclusively locked
     FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) {
         Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveById(snapshot, fileId, depth, true);
     }
 
+    // note: this method only returns snapshots that are NOT exclusively locked
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) {
         Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveByPath(snapshot, path, depth, true);

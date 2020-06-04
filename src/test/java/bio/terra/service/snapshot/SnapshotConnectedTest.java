@@ -563,10 +563,13 @@ public class SnapshotConnectedTest {
 
         // now the snapshot exists....let's get it locked!
 
-        // enable wait in DeleteSnapshotPrimaryDataStep
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteSnapshotPrimaryDataStep
         configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
 
         // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
+        // note: asserts are below outside the hang block
         MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
 
@@ -574,7 +577,10 @@ public class SnapshotConnectedTest {
         exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
         assertNotNull("snapshot row is exclusively locked", exclusiveLock);
 
-            // lookup the snapshot file by id and check that it's NOT found
+        // disable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+
+        // lookup the snapshot file by id and check that it's NOT found
         MockHttpServletResponse failedGetSnapshotByIdResponse =
             connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
         assertEquals("Snapshot file NOT found by DRS id lookup",
@@ -585,9 +591,6 @@ public class SnapshotConnectedTest {
             connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
         assertEquals("Snapshot file NOT found by path lookup",
             HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
-
-        // disable wait in DeleteSnapshotPrimaryDataStep
-        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
 
         // check the response from the snapshot delete request
         MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);

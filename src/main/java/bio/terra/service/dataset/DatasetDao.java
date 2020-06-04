@@ -232,7 +232,7 @@ public class DatasetDao {
      * TESTING ONLY. This method returns the internal state of the exclusive lock on a dataset.
      * It is protected because it's for use in tests only.
      * Currently, we don't expose the lock state of a dataset outside of the DAO for other API code to consume.
-     * @param id
+     * @param id the dataset id
      * @return the flightid that holds an exclusive lock. null if none.
      */
     protected String getExclusiveLock(UUID id) {

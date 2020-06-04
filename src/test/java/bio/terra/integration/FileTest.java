@@ -22,6 +22,7 @@ import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -85,13 +86,15 @@ public class FileTest extends UsersBase {
 
     // The purpose of this test is to have a long-running workload that completes successfully
     // while we delete pods and have them recover.
+    // Marked ignore for normal testing.
+    @Ignore
     @Test
     public void longFileLoadTest() throws Exception {
         // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
         //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
         //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
         //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the fileLoadTest)
-        final int filesToLoad = 16;
+        final int filesToLoad = 25;
 
         String loadTag = Names.randomizeName("longtest");
 

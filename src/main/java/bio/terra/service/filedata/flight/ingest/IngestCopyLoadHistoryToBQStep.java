@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 
 public class IngestCopyLoadHistoryToBQStep implements Step {
@@ -67,9 +68,11 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                         loadTime,
                         loadHistoryArray);
                 }
+                // copy from staging to actual BQ table
+                bigQueryPdao.mergeStagingLoadHistoryTable(dataset, tableName_FlightId);
+                bigQueryPdao.clearStagingLoadHistoryTable(dataset, tableName_FlightId, loadTag);
+                TimeUnit.SECONDS.sleep(1);
             }
-            // copy from staging to actual BQ table
-            bigQueryPdao.mergeStagingLoadHistoryTable(dataset, tableName_FlightId);
             bigQueryPdao.deleteStagingLoadHistoryTable(dataset, tableName_FlightId);
         } catch (Exception ex) {
             logger.error("Failure deleting load history staging table for flight: " + flightId, ex);

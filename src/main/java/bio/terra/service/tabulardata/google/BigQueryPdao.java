@@ -279,6 +279,30 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.query(sqlTemplate.render());
     }
 
+    private static final String deleteData = "DELETE FROM `<project>.<dataset>.<stagingTable>` S" +
+        " WHERE S.load_tag = '<loadTag>'";
+
+    public void clearStagingLoadHistoryTable(
+        Dataset dataset,
+        String flightId,
+        String loadTag) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
+
+        String datasetName = prefixName(dataset.getName());
+
+        // Make sure load_history table exists in dataset, if not - add table
+        if (tableExists(dataset, PDAO_LOAD_HISTORY_TABLE)) {
+
+            ST sqlTemplate = new ST(deleteData);
+            sqlTemplate.add("project", bigQueryProject.getProjectId());
+            sqlTemplate.add("dataset", datasetName);
+            sqlTemplate.add("stagingTable", PDAO_LOAD_HISTORY_STAGING_TABLE_PREFIX + flightId);
+            sqlTemplate.add("loadTag", loadTag);
+
+            bigQueryProject.query(sqlTemplate.render());
+        }
+    }
+
     @Override
     public boolean deleteDataset(Dataset dataset) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);

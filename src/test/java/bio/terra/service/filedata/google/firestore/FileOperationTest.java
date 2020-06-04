@@ -264,6 +264,15 @@ public class FileOperationTest {
     @Test
     public void arrayMultiFileLoadSuccessTest() throws Exception {
         int fileCount = 10;
+
+        // Test copying load_history data in chunks
+        ConfigModel loadHistoryChunkSize = configService.getConfig(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE.name());
+        loadHistoryChunkSize.setParameter(new ConfigParameterModel().value("2"));
+        ConfigGroupModel configGroupModel = new ConfigGroupModel()
+            .label("FileOperationTestMultiFileLoad")
+            .addGroupItem(loadHistoryChunkSize);
+        configService.setConfig(configGroupModel);
+
         BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
 
         BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
@@ -281,7 +290,7 @@ public class FileOperationTest {
         ArrayList<String> ids = new ArrayList<>();
         queryLoadHistoryTableResult.iterateAll().forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
 
-        assertThat("Number of files in datarepo_load_history table match load summary", fileCount, equalTo(ids.size()));
+        assertThat("Number of files in datarepo_load_history table match load summary", ids.size(), equalTo(fileCount));
         for (String bq_file_id:ids) {
             assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
                 fileIdMap.containsValue(bq_file_id));

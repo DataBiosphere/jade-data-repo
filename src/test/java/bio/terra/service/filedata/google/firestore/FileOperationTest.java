@@ -286,7 +286,7 @@ public class FileOperationTest {
         ArrayList<String> ids = new ArrayList<>();
         queryLoadHistoryTableResult.iterateAll().forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
 
-        assertThat("Number of files in datarepo_load_history table match load summary", fileCount, equalTo(ids.size()));
+        assertThat("Number of files in datarepo_load_history table match load summary", ids.size(), equalTo(fileCount));
         for (String bq_file_id:ids) {
             assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
                 fileIdMap.containsValue(bq_file_id));

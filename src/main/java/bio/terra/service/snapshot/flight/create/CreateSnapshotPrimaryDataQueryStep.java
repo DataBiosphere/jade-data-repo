@@ -66,7 +66,7 @@ public class CreateSnapshotPrimaryDataQueryStep implements Step {
         String datasetName = datasetNames.get(0);
 
         Dataset dataset = datasetService.retrieveByName(datasetName);
-        DatasetModel datasetModel = datasetService.retrieveModel(dataset.getId());
+        DatasetModel datasetModel = datasetService.retrieveModel(dataset);
 
         // get asset out of dataset
         Optional<AssetSpecification> assetSpecOp = dataset.getAssetSpecificationByName(snapshotAssetName);

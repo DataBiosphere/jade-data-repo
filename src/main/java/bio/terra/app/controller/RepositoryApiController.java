@@ -155,7 +155,7 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<DatasetModel> retrieveDataset(@PathVariable("id") String id) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASET, id, IamAction.READ_DATASET);
-        return new ResponseEntity<>(datasetService.retrieveModel(UUID.fromString(id)), HttpStatus.OK);
+        return new ResponseEntity<>(datasetService.retrieveAvailableDatasetModel(UUID.fromString(id)), HttpStatus.OK);
     }
 
     @Override
@@ -368,7 +368,7 @@ public class RepositoryApiController implements RepositoryApi {
     @Override
     public ResponseEntity<SnapshotModel> retrieveSnapshot(@PathVariable("id") String id) {
         iamService.verifyAuthorization(getAuthenticatedInfo(), IamResourceType.DATASNAPSHOT, id, IamAction.READ_DATA);
-        SnapshotModel snapshotModel = snapshotService.retrieveModel(UUID.fromString(id));
+        SnapshotModel snapshotModel = snapshotService.retrieveAvailableSnapshotModel(UUID.fromString(id));
         return new ResponseEntity<>(snapshotModel, HttpStatus.OK);
     }
 

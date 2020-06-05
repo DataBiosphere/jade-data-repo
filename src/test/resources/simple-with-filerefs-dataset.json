@@ -1,0 +1,26 @@
+{
+  "name":        "SimpleWithFilerefs",
+  "description": "This is a sample dataset definition with filerefs",
+  "defaultProfileId": "deadbeef-face-cafe-bead-0ddba11deed5",
+  "schema":      {
+    "tables":        [
+      {
+        "name":    "tableA",
+        "columns": [
+          {"name": "name", "datatype": "string"},
+          {"name": "file", "datatype": "fileref"}
+        ]
+      }
+    ],
+    "assets":        [
+      {
+        "name":   "simpleasset",
+        "rootTable": "tableA",
+        "rootColumn": "name",
+        "tables": [
+          {"name": "tableA", "columns": []}
+        ]
+      }
+    ]
+  }
+}

@@ -59,6 +59,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
@@ -339,8 +340,8 @@ public class SnapshotConnectedTest {
         assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
         // check that the snapshot metadata row is unlocked
-        SnapshotSummary snapshotSummary = snapshotDao.retrieveSummaryByName(snapshotModel.getName());
-        assertNull("snapshot row is unlocked", snapshotSummary.getFlightId());
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
 
         // try to create the same snapshot again and check that it fails
         snapshotRequest.setName(snapshotModel.getName());
@@ -396,6 +397,93 @@ public class SnapshotConnectedTest {
 
         // confirm deleted
         getNonexistentSnapshot(summaryModel.getId());
+    }
+
+    @Test
+    public void testExcludeLockedFromSnapshotLookups() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(datasetSummary,
+            "snapshot-test-snapshot.json", "_d2_");
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        // retrieve the snapshot and check that it finds it
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(snapshotSummary.getId());
+        assertEquals("Lookup unlocked snapshot succeeds", snapshotSummary.getName(), snapshotModel.getName());
+
+        // enumerate snapshots and check that this snapshot is included in the set
+        EnumerateSnapshotModel enumerateSnapshotModelModel =
+            connectedOperations.enumerateSnapshots(snapshotSummary.getName());
+        List<SnapshotSummaryModel> enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
+        boolean foundSnapshotWithMatchingId = false;
+        for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
+            if (enumeratedSnapshot.getId().equals(snapshotSummary.getId())) {
+                foundSnapshotWithMatchingId = true;
+                break;
+            }
+        }
+        assertTrue("Unlocked included in enumeration", foundSnapshotWithMatchingId);
+
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
+        MvcResult deleteResult =
+            mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
+
+        // note: asserts are below outside the hang block
+        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+
+        // retrieve the snapshot and check that it returns not found
+        // note: asserts are below outside the hang block
+        MvcResult retrieveResult =
+            mvc.perform(get("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+
+        // enumerate snapshots and check that this snapshot is not included in the set
+        // note: asserts are below outside the hang block
+        MvcResult enumerateResult = connectedOperations.enumerateSnapshotsRaw(snapshotSummary.getName());
+
+        // disable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the snapshot metadata row has an exclusive lock after kicking off the delete
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+        // check that the retrieve snapshot returned not found
+        connectedOperations.handleFailureCase(retrieveResult.getResponse(), HttpStatus.NOT_FOUND);
+
+        // check that the enumerate snapshots returned successfully and that this snapshot is not included in the set
+        enumerateSnapshotModelModel =
+            connectedOperations.handleSuccessCase(enumerateResult.getResponse(), EnumerateSnapshotModel.class);
+        enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
+        foundSnapshotWithMatchingId = false;
+        for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
+            if (enumeratedSnapshot.getId().equals(snapshotSummary.getId())) {
+                foundSnapshotWithMatchingId = true;
+                break;
+            }
+        }
+        assertFalse("Exclusively locked not included in enumeration", foundSnapshotWithMatchingId);
+
+        // check the response from the delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Snapshot delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // try to fetch the snapshot again and confirm nothing is returned
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
     private DatasetSummaryModel setupMinimalDataset() throws Exception {

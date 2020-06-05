@@ -147,13 +147,23 @@ public class FileService {
         return fileModelFromFSItem(fsItem);
     }
 
+    /**
+     * Note that this method will only return a file if the encompassing dataset is NOT exclusively locked.
+     * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
+     * an exclusively locked dataset to be returned (e.g. file deletion).
+     */
     FSItem lookupFSItem(String datasetId, String fileId, int depth) {
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+        Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
         return fileDao.retrieveById(dataset, fileId, depth, true);
     }
 
+    /**
+     * Note that this method will only return a file if the encompassing dataset is NOT exclusively locked.
+     * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
+     * an exclusively locked dataset to be returned (e.g. file deletion).
+     */
     FSItem lookupFSItemByPath(String datasetId, String path, int depth) {
-        Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
+        Dataset dataset = datasetService.retrieveAvailable(UUID.fromString(datasetId));
         return fileDao.retrieveByPath(dataset, path, depth, true);
     }
 

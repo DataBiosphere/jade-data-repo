@@ -38,7 +38,10 @@ public class GcsPdaoTest {
             storage.create(BlobInfo.newBuilder(testBlob).build());
             Blob blob = GcsPdao.getBlobFromGsPath(storage, "gs://" + testBlob.getBucket() + "/" + testBlob.getName());
             Assert.assertNotNull(blob);
-            Assert.assertEquals(blob.getBlobId(), testBlob);
+
+            BlobId actualId = blob.getBlobId();
+            Assert.assertEquals(testBlob.getBucket(), actualId.getBucket());
+            Assert.assertEquals(testBlob.getName(), actualId.getName());
         } finally {
             storage.delete(testBlob);
         }

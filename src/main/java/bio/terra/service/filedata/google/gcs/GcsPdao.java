@@ -177,26 +177,20 @@ public class GcsPdao {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
     }
 
-    public static Blob getBlobFromGsPath(Storage storage, String gspath) {
-        String sourceBucket;
-        String sourcePath;
+    private static final String gsProtocol = "gs://";
 
-        try {
-            URI sourceUri = URI.create(gspath);
-            if (!StringUtils.equals(sourceUri.getScheme(), "gs")) {
-                throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
-            }
-            if (sourceUri.getPort() != -1) {
-                throw new PdaoInvalidUriException("Path must not have a port specified: '" + gspath + "'");
-            }
-            sourceBucket = sourceUri.getAuthority();
-            sourcePath = StringUtils.removeStart(sourceUri.getPath(), "/");
-        } catch (IllegalArgumentException ex) {
-            throw new PdaoInvalidUriException("Invalid gs path: '" + gspath + "'", ex);
+    public static Blob getBlobFromGsPath(Storage storage, String gspath) {
+        if (!StringUtils.startsWith(gspath, gsProtocol)) {
+            throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
         }
 
-        if (sourceBucket == null || sourcePath == null) {
-            throw new PdaoInvalidUriException("Invalid gs path: '" + gspath + "'");
+        String noGsUri = StringUtils.substring(gspath, gsProtocol.length());
+        String sourceBucket = StringUtils.substringBefore(noGsUri, "/");
+        String sourcePath = StringUtils.substringAfter(noGsUri, "/");
+
+        // GCS bucket names must be at least 3 characters long (which would put the slash at index 3).
+        if (sourceBucket.length() < 3) {
+            throw new PdaoInvalidUriException("Bucket name too short in gs path: '" + gspath + "'");
         }
 
         Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));

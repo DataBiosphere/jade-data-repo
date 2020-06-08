@@ -3,7 +3,6 @@ package bio.terra.service.snapshot;
 import bio.terra.app.configuration.ConnectedTestConfiguration;
 import bio.terra.common.TestUtils;
 import bio.terra.common.category.Connected;
-import bio.terra.common.exception.PdaoException;
 import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
@@ -545,7 +544,7 @@ public class SnapshotConnectedTest {
         String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
         assertNull("snapshot row is unlocked", exclusiveLock);
 
-        String fileUri = getFileRefIdFromSnapshot(snapshotSummary); // TODO, this needs to be dried up
+        String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
         DrsId drsId = drsIdService.fromUri(fileUri);
         DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
         String filePath = drsObject.getAliases().get(0);
@@ -798,30 +797,26 @@ public class SnapshotConnectedTest {
         return countValue.getLongValue();
     }
 
+    private static final String queryForRefIdTemplate =
+        "SELECT file_ref FROM `<project>.<snapshot>.<table>` WHERE file_ref IS NOT NULL";
+
+    // Technically a helper method, but so specific to testExcludeLockedFromSnapshotFileLookups, likely not re-useable
     private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
         Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
         SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
         BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
 
-        StringBuilder builder = new StringBuilder()
-            .append("SELECT file_ref FROM `")
-            .append(dataProject.getGoogleProjectId())
-            .append('.')
-            .append(snapshot.getName())
-            .append(".tableA` AS T") // TODO this is wonky witth "tableA"
-            .append(" WHERE T.file_ref IS NOT NULL LIMIT 1");
+        ST sqlTemplate = new ST(queryForRefIdTemplate);
+        sqlTemplate.add("project", dataProject.getGoogleProjectId());
+        sqlTemplate.add("snapshot", snapshot.getName());
+        sqlTemplate.add("table", "tableA");
 
-        String sql = builder.toString();
-        try {
-            QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
-            TableResult result = bigQueryProject.getBigQuery().query(queryConfig);
-            FieldValueList row = result.iterateAll().iterator().next();
-            FieldValue idValue = row.get(0);
-            String drsUri = idValue.getStringValue();
-            return drsUri;
-        } catch (InterruptedException ie) {
-            throw new PdaoException("get file ref id from snapshot unexpectedly interrupted", ie);
-        }
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        TableResult result = bigQuery.query(queryConfig);
+        FieldValueList row = result.iterateAll().iterator().next();
+        FieldValue idValue = row.get(0);
+        return idValue.getStringValue();
     }
 
 }

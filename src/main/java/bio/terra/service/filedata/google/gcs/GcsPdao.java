@@ -188,9 +188,12 @@ public class GcsPdao {
         String sourceBucket = StringUtils.substringBefore(noGsUri, "/");
         String sourcePath = StringUtils.substringAfter(noGsUri, "/");
 
-        // GCS bucket names must be at least 3 characters long (which would put the slash at index 3).
+        // GCS bucket names must be at least 3 characters long.
         if (sourceBucket.length() < 3) {
             throw new PdaoInvalidUriException("Bucket name too short in gs path: '" + gspath + "'");
+        }
+        if (sourcePath.isEmpty()) {
+            throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
         }
 
         Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));

@@ -76,6 +76,11 @@ public class GcsPdaoTest {
         GcsPdao.getBlobFromGsPath(storage, "gs://ab/some-path");
     }
 
+    @Test(expected = PdaoInvalidUriException.class)
+    public void testGetBlobNoObjectName() {
+        GcsPdao.getBlobFromGsPath(storage, "gs://bucket");
+    }
+
     @Test(expected = PdaoSourceFileNotFoundException.class)
     public void testGetBlobNonexistent() {
         GcsPdao.getBlobFromGsPath(storage, "gs://" + testConfig.getIngestbucket() + "/file-doesnt-exist");

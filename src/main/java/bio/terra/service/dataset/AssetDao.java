@@ -39,8 +39,8 @@ public class AssetDao {
     }
 
     /**
-     * Create a new AssetSpecification. If a DuplicateKeyException is thrown,
-     * catch it and throw an InvalidAssetException
+     * Create a new AssetSpecification. If you try to create an asset with the same name as an existing
+     * one for the same dataset, this method throws an InvalidAssetException.
      * @param assetSpecification the AssetSpecification being created
      * @param datasetId the ID of the dataset corresponding to the AssetSpecification being created
      * @return

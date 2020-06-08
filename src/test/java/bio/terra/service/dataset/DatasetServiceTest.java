@@ -271,7 +271,8 @@ public class DatasetServiceTest {
         Assert.assertTrue(assetAdd2);
 
         Dataset dataset2 = datasetDao.retrieve(datasetId2);
-        // make sure the first asset we created hasn't been deleted during the undo step
+
+        // make sure the second dataset has the expected asset
         assertThat("dataset has an additional asset spec", dataset2.getAssetSpecifications().size(), equalTo(3));
         assertThat("dataset has expected asset", dataset2.getAssetSpecificationByName(assetName).isPresent(),
             equalTo(true));

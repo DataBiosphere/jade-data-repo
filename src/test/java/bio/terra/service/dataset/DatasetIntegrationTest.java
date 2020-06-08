@@ -32,6 +32,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -83,6 +84,12 @@ public class DatasetIntegrationTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
+        dataRepoFixtures.resetConfig(steward());
+    }
+
+    @After
+    public void teardown() throws Exception {
+        dataRepoFixtures.resetConfig(steward());
     }
 
     @Test

@@ -41,8 +41,8 @@ public class AssetDao {
     /**
      * Create a new AssetSpecification. If a DuplicateKeyException is thrown,
      * catch it and throw an InvalidAssetException
-     * @param assetSpecification
-     * @param datasetId
+     * @param assetSpecification the AssetSpecification being created
+     * @param datasetId the ID of the dataset corresponding to the AssetSpecification being created
      * @return
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)

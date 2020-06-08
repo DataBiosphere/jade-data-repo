@@ -3,9 +3,6 @@ databaseChangeLog:
       id: datasetUniqueAsset
       author: myessail
       changes:
-#        - sql:
-#            comment: populate the sharedlock column with empty array
-#            sql: UPDATE asset_specification SET name = '{}'
         - addUniqueConstraint:
             catalogName: datarepo
             columnNames: dataset_id, name

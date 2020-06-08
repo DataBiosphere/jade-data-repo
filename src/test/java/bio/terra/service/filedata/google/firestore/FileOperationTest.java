@@ -57,7 +57,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
@@ -204,16 +203,12 @@ public class FileOperationTest {
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";
-        URI uribadfile = new URI("gs",
-            testConfig.getIngestbucket(),
-            badfile,
-            null,
-            null);
+        String uribadfile = "gs://" + testConfig.getIngestbucket() + "/" + badfile;
         String badPath = "/dd/files/" + Names.randomizeName("dir") + badfile;
 
         fileLoadModel = new FileLoadModel()
             .profileId(profileModel.getId())
-            .sourcePath(uribadfile.toString())
+            .sourcePath(uribadfile)
             .description(testDescription)
             .mimeType(testMimeType)
             .targetPath(badPath);
@@ -658,17 +653,13 @@ public class FileOperationTest {
         return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
-    private FileLoadModel makeFileLoad(String profileId) throws Exception {
+    private FileLoadModel makeFileLoad(String profileId) {
         String targetDir = Names.randomizeName("dir");
-        URI uri = new URI("gs",
-            testConfig.getIngestbucket(),
-            "/files/" + testPdfFile,
-            null,
-            null);
+        String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + testPdfFile;
         String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
 
         return new FileLoadModel()
-            .sourcePath(uri.toString())
+            .sourcePath(uri)
             .description(testDescription)
             .mimeType(testMimeType)
             .targetPath(targetPath)

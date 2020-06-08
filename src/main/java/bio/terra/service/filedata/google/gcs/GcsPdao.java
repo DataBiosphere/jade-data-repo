@@ -177,26 +177,38 @@ public class GcsPdao {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
     }
 
-    public static Blob getBlobFromGsPath(Storage storage, String gspath) {
-        String sourceBucket;
-        String sourcePath;
+    private static final String GS_PROTOCOL = "gs://";
+    private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
 
-        try {
-            URI sourceUri = URI.create(gspath);
-            if (!StringUtils.equals(sourceUri.getScheme(), "gs")) {
-                throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
-            }
-            if (sourceUri.getPort() != -1) {
-                throw new PdaoInvalidUriException("Path must not have a port specified: '" + gspath + "'");
-            }
-            sourceBucket = sourceUri.getAuthority();
-            sourcePath = StringUtils.removeStart(sourceUri.getPath(), "/");
-        } catch (IllegalArgumentException ex) {
-            throw new PdaoInvalidUriException("Invalid gs path: '" + gspath + "'", ex);
+    public static Blob getBlobFromGsPath(Storage storage, String gspath) {
+        if (!StringUtils.startsWith(gspath, GS_PROTOCOL)) {
+            throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
         }
 
-        if (sourceBucket == null || sourcePath == null) {
-            throw new PdaoInvalidUriException("Invalid gs path: '" + gspath + "'");
+        String noGsUri = StringUtils.substring(gspath, GS_PROTOCOL.length());
+        String sourceBucket = StringUtils.substringBefore(noGsUri, "/");
+        String sourcePath = StringUtils.substringAfter(noGsUri, "/");
+
+        /*
+         * GCS bucket names must:
+         *   1. Match the regex '[a-z0-9_.\-]{3,222}
+         *   2. With a max of 63 characters between each '.'
+         *
+         * https://cloud.google.com/storage/docs/naming-buckets#requirements
+         */
+        if (!sourceBucket.matches(GS_BUCKET_PATTERN)) {
+            throw new PdaoInvalidUriException("Invalid bucket name in gs path: '" + gspath + "'");
+        }
+        String[] bucketComponents = sourceBucket.split("\\.");
+        for (String component: bucketComponents) {
+            if (component.length() > 63) {
+                throw new PdaoInvalidUriException(
+                    "Component name '" + component + "' too long in gs path: '" + gspath + "'");
+            }
+        }
+
+        if (sourcePath.isEmpty()) {
+            throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
         }
 
         Blob sourceBlob = storage.get(BlobId.of(sourceBucket, sourcePath));

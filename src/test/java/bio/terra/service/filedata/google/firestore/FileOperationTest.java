@@ -145,6 +145,7 @@ public class FileOperationTest {
 
     @After
     public void teardown() throws Exception {
+        configService.reset();
         connectedOperations.teardown();
     }
 

@@ -228,8 +228,8 @@ public class DataRepoFixtures {
                                 AssetModel assetModel) throws Exception {
         // TODO add the assetModel as a builder object
         DataRepoResponse<JobModel> response = addDatasetAssetRaw(user, datasetId, assetModel);
-        assertThat(assetModel + " asset specification is successfully added",
-            response.getStatusCode(), equalTo(HttpStatus.ACCEPTED));
+        assertTrue(assetModel + " asset specification is successfully added",
+            response.getStatusCode().is2xxSuccessful());
     }
 
     // snapshots

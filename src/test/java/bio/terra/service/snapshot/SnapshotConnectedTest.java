@@ -574,20 +574,25 @@ public class SnapshotConnectedTest {
 
         // check that the snapshot metadata row has an exclusive lock
         exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
-        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
-
-        // disable hang in DeleteSnapshotPrimaryDataStep
-        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
 
         // lookup the snapshot file by id and check that it's NOT found
         MockHttpServletResponse failedGetSnapshotByIdResponse =
             connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
-        assertEquals("Snapshot file NOT found by DRS id lookup",
-            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
 
         // lookup the snapshot file by path and check that it's NOT found
         MockHttpServletResponse failedGetSnapshotByPathResponse =
             connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
+
+        // disable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the snapshot metadata row has an exclusive lock after kicking off the delete
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+        assertEquals("Snapshot file NOT found by DRS id lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
+
         assertEquals("Snapshot file NOT found by path lookup",
             HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
 

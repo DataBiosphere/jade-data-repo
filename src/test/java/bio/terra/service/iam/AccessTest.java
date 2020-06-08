@@ -181,7 +181,7 @@ public class AccessTest extends UsersBase {
             steward(),
             datasetSummaryModel.getId(),
             profileId,
-            gsPath + "/files/File%20Design%20Notes.pdf",
+            gsPath + "/files/File Design Notes.pdf",
             "/foo/bar");
 
         // Step 2. Ingest one row into the study 'file' table with a reference to that ingested file

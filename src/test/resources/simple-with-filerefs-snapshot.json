@@ -1,0 +1,16 @@
+{
+  "name":        "SimpleWithFilerefsSnapshot",
+  "description": "Simple snapshot",
+  "contents": [
+    {
+      "datasetName": "SimpleWithFilerefs",
+      "mode": "byAsset",
+      "assetSpec": {
+        "assetName": "simpleasset",
+        "rootValues": [
+          "name1"
+        ]
+      }
+    }
+  ]
+}

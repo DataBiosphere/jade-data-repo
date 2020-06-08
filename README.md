@@ -1,4 +1,4 @@
-# [jade-data-repository](https://jade-terra.datarepo-prod.broadinstitute.org/) &middot; [![GitHub license](https://img.shields.io/github/license/DataBiosphere/jade-data-repo)](https://github.com/DataBiosphere/jade-data-repo/blob/develop/LICENSE.md) [![TravisCI](https://travis-ci.org/DataBiosphere/jade-data-repo.svg?branch=develop)](https://travis-ci.org/DataBiosphere/jade-data-repo)
+# [jade-data-repository](https://jade-terra.datarepo-prod.broadinstitute.org/) &middot; [![GitHub license](https://img.shields.io/github/license/DataBiosphere/jade-data-repo)](https://github.com/DataBiosphere/jade-data-repo/blob/develop/LICENSE.md) [![TravisCI](https://travis-ci.org/DataBiosphere/jade-data-repo.svg?branch=develop)](https://travis-ci.org/DataBiosphere/jade-data-repo) 
 
 The [Terra](https://terra.bio/) Data Repository built by the Jade team as part of the
 [Data Biosphere](https://medium.com/@benedictpaten/a-data-biosphere-for-biomedical-research-d212bbfae95d).

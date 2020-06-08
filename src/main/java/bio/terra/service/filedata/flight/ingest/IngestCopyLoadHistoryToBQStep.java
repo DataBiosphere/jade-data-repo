@@ -25,19 +25,22 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     private final String datasetIdString;
     private final BigQueryPdao bigQueryPdao;
     private final int fileChunkSize;
+    private final int waitSeconds;
 
     public IngestCopyLoadHistoryToBQStep(LoadService loadService,
                                          DatasetService datasetService,
                                          String loadTag,
                                          String datasetId,
                                          BigQueryPdao bigQueryPdao,
-                                         int fileChunkSize) {
+                                         int fileChunkSize,
+                                         int waitSeconds) {
         this.loadService = loadService;
         this.loadTag = loadTag;
         this.datasetIdString = datasetId;
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.fileChunkSize = fileChunkSize;
+        this.waitSeconds = waitSeconds;
     }
 
     @Override
@@ -67,7 +70,9 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                         loadTag,
                         loadTime,
                         loadHistoryArray);
-                    TimeUnit.SECONDS.sleep(5);
+                    // Sleep to avoid BQ rate limit error
+                    // From quick survey of logs, longest time to complete load query: 3 seconds
+                    TimeUnit.SECONDS.sleep(waitSeconds);
                 }
             }
             // copy from staging to actual BQ table

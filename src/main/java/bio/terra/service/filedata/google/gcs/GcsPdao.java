@@ -177,21 +177,36 @@ public class GcsPdao {
         fileAclOp(AclOp.ACL_OP_DELETE, dataset, fileIds, readersPolicyEmail);
     }
 
-    private static final String gsProtocol = "gs://";
+    private static final String GS_PROTOCOL = "gs://";
+    private static final String GS_BUCKET_PATTERN = "[a-z0-9_.\\-]{3,222}";
 
     public static Blob getBlobFromGsPath(Storage storage, String gspath) {
-        if (!StringUtils.startsWith(gspath, gsProtocol)) {
+        if (!StringUtils.startsWith(gspath, GS_PROTOCOL)) {
             throw new PdaoInvalidUriException("Path is not a gs path: '" + gspath + "'");
         }
 
-        String noGsUri = StringUtils.substring(gspath, gsProtocol.length());
+        String noGsUri = StringUtils.substring(gspath, GS_PROTOCOL.length());
         String sourceBucket = StringUtils.substringBefore(noGsUri, "/");
         String sourcePath = StringUtils.substringAfter(noGsUri, "/");
 
-        // GCS bucket names must be at least 3 characters long.
-        if (sourceBucket.length() < 3) {
-            throw new PdaoInvalidUriException("Bucket name too short in gs path: '" + gspath + "'");
+        /*
+         * GCS bucket names must:
+         *   1. Match the regex '[a-z0-9_.\-]{3,222}
+         *   2. With a max of 63 characters between each '.'
+         *
+         * https://cloud.google.com/storage/docs/naming-buckets#requirements
+         */
+        if (!sourceBucket.matches(GS_BUCKET_PATTERN)) {
+            throw new PdaoInvalidUriException("Invalid bucket name in gs path: '" + gspath + "'");
         }
+        String[] bucketComponents = sourceBucket.split("\\.");
+        for (String component: bucketComponents) {
+            if (component.length() > 63) {
+                throw new PdaoInvalidUriException(
+                    "Component name '" + component + "' too long in gs path: '" + gspath + "'");
+            }
+        }
+
         if (sourcePath.isEmpty()) {
             throw new PdaoInvalidUriException("Missing object name in gs path: '" + gspath + "'");
         }

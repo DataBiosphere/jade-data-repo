@@ -77,6 +77,30 @@ public class GcsPdaoTest {
     }
 
     @Test(expected = PdaoInvalidUriException.class)
+    public void testGetBlobBucketNameTooLong() {
+        StringBuilder bucket = new StringBuilder();
+        for (int i = 0; i < 222; i++) {
+            if (i != 0) bucket.append(".");
+            bucket.append("component");
+        }
+        GcsPdao.getBlobFromGsPath(storage, "gs://" + bucket.toString() + "/some-path");
+    }
+
+    @Test(expected = PdaoInvalidUriException.class)
+    public void testGetBlobBucketNameComponentTooLong() {
+        StringBuilder bucket = new StringBuilder();
+        for (int i = 0; i < 64; i++) {
+            bucket.append("a");
+        }
+        GcsPdao.getBlobFromGsPath(storage, "gs://" + bucket.toString() + "/some-path");
+    }
+
+    @Test(expected = PdaoInvalidUriException.class)
+    public void testGetBlobBucketInvalidCharacters() {
+        GcsPdao.getBlobFromGsPath(storage, "gs://AFSDAFADSFADSFASF@@@@/foo");
+    }
+
+    @Test(expected = PdaoInvalidUriException.class)
     public void testGetBlobNoObjectName() {
         GcsPdao.getBlobFromGsPath(storage, "gs://bucket");
     }

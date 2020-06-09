@@ -559,7 +559,8 @@ public class ConnectedOperations {
         return TestUtils.mapFromJson(response.getContentAsString(), FileModel.class);
     }
 
-    public MockHttpServletResponse lookupSnapshotFileByPathRaw(String snapshotId, String path, long depth) throws Exception {
+    public MockHttpServletResponse lookupSnapshotFileByPathRaw(
+        String snapshotId, String path, long depth) throws Exception {
         String url = "/api/repository/v1/snapshots/" + snapshotId + "/filesystem/objects";
         MvcResult result = mvc.perform(get(url)
             .param("path", path)

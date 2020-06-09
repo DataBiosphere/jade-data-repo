@@ -3,15 +3,14 @@ package bio.terra.service.dataset;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
-import bio.terra.service.dataset.exception.DatasetLockException;
-import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.exception.InvalidDatasetException;
+import bio.terra.service.dataset.exception.*;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -30,6 +29,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
+import static bio.terra.common.DaoUtils.retryQuery;
 
 @Repository
 public class DatasetDao {
@@ -149,7 +150,15 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        int numRowsUpdated = 0;
+        try {
+            numRowsUpdated = jdbcTemplate.update(sql, params);
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                throw new RetryQueryException("Retry");
+            }
+            throw new FatalQueryException("Don't Retry");
+        }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
 
         // if no rows were updated, then throw an exception

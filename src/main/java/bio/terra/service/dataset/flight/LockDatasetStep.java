@@ -44,6 +44,12 @@ public class LockDatasetStep implements Step {
         try {
             if (sharedLock) {
                 datasetDao.lockShared(datasetId, context.getFlightId());
+                /*} catch(DataAccessException dataAccessException){
+                    if(retryQuery(dataAccessException)){
+                        return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
+                    }
+                    return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL);
+                }*/
             } else {
                 datasetDao.lockExclusive(datasetId, context.getFlightId());
             }

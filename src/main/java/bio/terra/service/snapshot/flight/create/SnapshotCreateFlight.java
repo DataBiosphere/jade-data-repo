@@ -15,6 +15,7 @@ import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import org.springframework.context.ApplicationContext;
 
 public class SnapshotCreateFlight extends Flight {
@@ -33,18 +34,13 @@ public class SnapshotCreateFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
 
-        AuthenticatedUserRequest userReq = inputParameters.get(
-            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
 
-        // 1. metadata step - create the snapshot object in postgres
-        // 2. primary data step - make the big query dataset with views
-        // 3. firestore data step - make the firestore file system for the snapshot
-        // 4. firestore compute step - calculate checksums and sizes for all directories in the snapshot
-        // 5. authorize snapshot - set permissions on BQ and files to enable access
-        // 6. unlock step - unlock the snapshot metadata row
+        // create the snapshot metadata object in postgres and lock it
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
+
+        // Make the big query dataset with views and populate row id filtering tables.
         // Depending on the type of snapshot, the primary data step will differ:
         // TODO: this assumes single-dataset snapshots, will need to add a loop for multiple
         switch (snapshotReq.getContents().get(0).getMode()) {
@@ -69,19 +65,40 @@ public class SnapshotCreateFlight extends Flight {
             default:
                 throw new InvalidSnapshotException("Snapshot does not have required mode information");
         }
+
+        // compute the row counts for each of the snapshot tables and store in metadata
         addStep(new CountSnapshotTableRowsStep(bigQueryPdao, snapshotDao, snapshotReq));
+
+        // Make the firestore file system for the snapshot
+
         addStep(new CreateSnapshotFireStoreDataStep(
             bigQueryPdao, snapshotService, dependencyDao, datasetService, snapshotReq, fileDao));
+
+        // Calculate checksums and sizes for all directories in the snapshot
         addStep(new CreateSnapshotFireStoreComputeStep(snapshotService, snapshotReq, fileDao));
-        addStep(new AuthorizeSnapshot(
-            bigQueryPdao,
-            iamClient,
+
+        // Create the IAM resource and readers for the snapshot
+        // The IAM code contains retries, so we don't make a retry rule here.
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        addStep(new SnapshotAuthzIamStep(iamClient, snapshotService, snapshotReq, userReq));
+
+        // Google says that ACL change propagation happens in a few seconds, but can take 5-7 minutes. The max
+        // operation timeout is generous.
+        RetryRuleExponentialBackoff pdaoAclRetryRule =
+            new RetryRuleExponentialBackoff(2, 30, 600);
+
+        // Apply the IAM readers to the BQ dataset
+        addStep(new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService), pdaoAclRetryRule);
+
+        // Apply the IAM readers to the GCS files
+        addStep(new SnapshotAuthzFileAclStep(
             dependencyDao,
             snapshotService,
             gcsPdao,
-            datasetService,
-            snapshotReq,
-            userReq));
+            datasetService), pdaoAclRetryRule);
+
+        // unlock the snapshot metadata row
         addStep(new UnlockSnapshotStep(snapshotDao, null));
     }
 }

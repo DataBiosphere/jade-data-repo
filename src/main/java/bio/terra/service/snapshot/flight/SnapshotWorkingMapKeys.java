@@ -5,4 +5,5 @@ public final class SnapshotWorkingMapKeys {
     }
 
     public static final String SNAPSHOT_ID = "snapshotId";
+    public static final String POLICY_EMAIL = "policyEmail";
 }

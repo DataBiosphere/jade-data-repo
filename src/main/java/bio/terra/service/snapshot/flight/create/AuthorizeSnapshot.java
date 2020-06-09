@@ -4,7 +4,6 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
-import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -25,15 +24,15 @@ import java.util.List;
 import java.util.UUID;
 
 public class AuthorizeSnapshot implements Step {
-    private IamService sam;
-    private BigQueryPdao bigQueryPdao;
-    private FireStoreDependencyDao fireStoreDao;
-    private SnapshotService snapshotService;
-    private GcsPdao gcsPdao;
-    private DatasetService datasetService;
-    private SnapshotRequestModel snapshotRequestModel;
-    private AuthenticatedUserRequest userReq;
-    private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
+    private final IamService sam;
+    private final BigQueryPdao bigQueryPdao;
+    private final FireStoreDependencyDao fireStoreDao;
+    private final SnapshotService snapshotService;
+    private final GcsPdao gcsPdao;
+    private final DatasetService datasetService;
+    private final SnapshotRequestModel snapshotRequestModel;
+    private final AuthenticatedUserRequest userReq;
+    private static final Logger logger = LoggerFactory.getLogger(AuthorizeSnapshot.class);
 
     public AuthorizeSnapshot(BigQueryPdao bigQueryPdao,
                              IamService sam,

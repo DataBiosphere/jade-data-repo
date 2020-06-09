@@ -49,8 +49,7 @@ public class CreateDatasetAuthzBqJobUserStep implements Step {
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        FlightMap workingMap = context.getWorkingMap();
-
+        // TODO:
         return StepResult.getStepResultSuccess();
     }
 }

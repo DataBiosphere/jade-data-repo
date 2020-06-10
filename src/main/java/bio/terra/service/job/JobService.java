@@ -201,6 +201,8 @@ public class JobService {
 
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceShutdownException("Job service interrupted", ex);
         }
     }
 

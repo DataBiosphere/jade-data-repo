@@ -62,6 +62,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
 
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -523,7 +524,7 @@ public class SnapshotConnectedTest {
             .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + jsonFileName)
             .build();
         Storage storage = StorageOptions.getDefaultInstance().getService();
-        storage.create(ingestTableBlob, jsonLine.getBytes());
+        storage.create(ingestTableBlob, jsonLine.getBytes(StandardCharsets.UTF_8));
 
         // make sure the JSON file gets cleaned up on test teardown
         connectedOperations.addScratchFile(dirInCloud + "/" + jsonFileName);
@@ -552,12 +553,14 @@ public class SnapshotConnectedTest {
         // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will already check)
         FileModel fsObjById =
             connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
-        assertEquals("Retrieve snapshot file by DRS id matches desc", fsObjById.getDescription(), fileLoadModel.getDescription());
+        assertEquals("Retrieve snapshot file by DRS id matches desc", fsObjById.getDescription(),
+            fileLoadModel.getDescription());
 
         // lookup the snapshot file by DRS path and check that it's found
         FileModel fsObjByPath =
             connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
-        assertEquals("Retrieve snapshot file by path matches desc", fsObjByPath.getDescription(), fileLoadModel.getDescription());
+        assertEquals("Retrieve snapshot file by path matches desc",
+            fsObjByPath.getDescription(), fileLoadModel.getDescription());
         assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
 
         // now the snapshot exists....let's get it locked!
@@ -569,7 +572,8 @@ public class SnapshotConnectedTest {
 
         // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
         // note: asserts are below outside the hang block
-        MvcResult deleteResult = mvc.perform(delete("/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        MvcResult deleteResult = mvc.perform(delete(
+            "/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
         TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
 
         // check that the snapshot metadata row has an exclusive lock
@@ -615,8 +619,7 @@ public class SnapshotConnectedTest {
         connectedOperations.getDatasetExpectError(datasetSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
-    private
-    DatasetSummaryModel setupMinimalDataset() throws Exception {
+    private DatasetSummaryModel setupMinimalDataset() throws Exception {
         DatasetSummaryModel datasetSummary = createTestDataset("dataset-minimal.json");
         loadCsvData(datasetSummary.getId(), "participant", "dataset-minimal-participant.csv");
         loadCsvData(datasetSummary.getId(), "sample", "dataset-minimal-sample.csv");

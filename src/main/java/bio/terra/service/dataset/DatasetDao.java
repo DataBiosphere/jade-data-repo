@@ -3,6 +3,7 @@ package bio.terra.service.dataset;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.exception.*;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
@@ -155,9 +156,9 @@ public class DatasetDao {
             numRowsUpdated = jdbcTemplate.update(sql, params);
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {
-                throw new RetryQueryException("Retry");
+                throw new RetryQueryException("Retry", dataAccessException);
             }
-            throw new FatalQueryException("Don't Retry");
+            throw dataAccessException;
         }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
 

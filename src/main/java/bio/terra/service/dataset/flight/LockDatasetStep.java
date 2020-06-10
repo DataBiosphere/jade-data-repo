@@ -3,8 +3,7 @@ package bio.terra.service.dataset.flight;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
-import bio.terra.service.dataset.exception.FatalQueryException;
-import bio.terra.service.dataset.exception.RetryQueryException;
+import bio.terra.common.exception.RetryQueryException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -49,8 +48,6 @@ public class LockDatasetStep implements Step {
                     datasetDao.lockShared(datasetId, context.getFlightId());
                 } catch (RetryQueryException retryQueryException) {
                     return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
-                } catch (FatalQueryException fatalQueryException) {
-                    return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL);
                 }
             } else {
                 datasetDao.lockExclusive(datasetId, context.getFlightId());

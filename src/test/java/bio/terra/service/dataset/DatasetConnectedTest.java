@@ -280,6 +280,77 @@ public class DatasetConnectedTest {
     }
 
     @Test
+    public void testRetryAcquireSharedLock() throws Exception {
+        // create a dataset and check that it succeeds
+        String resourcePath = "snapshot-test-dataset.json";
+        DatasetRequestModel datasetRequest =
+            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
+
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in IngestFileIdStep
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), true);
+
+        // try to ingest a file
+        URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
+            null, null);
+        String targetPath1 = "/mm/" + Names.randomizeName("testdir") + "/testfile1.txt";
+        FileLoadModel fileLoadModel1 = new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("file 1")
+            .mimeType("text/plain")
+            .targetPath(targetPath1)
+            .profileId(billingProfile.getId());
+        MvcResult result1 = mvc.perform(post("/api/repository/v1/datasets/" + summaryModel.getId() + "/files")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(TestUtils.mapToJson(fileLoadModel1)))
+            .andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
+        // disable hang in IngestFileIdStep
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), false);
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
+
+        // check that the dataset metadata row has a shared lock
+        // note: asserts are below outside the hang block
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
+
+        // try to delete the dataset, this should fail with a lock exception
+        // note: asserts are below outside the hang block
+        MvcResult result3 = mvc.perform(delete("/api/repository/v1/datasets/" + summaryModel.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch
+        // ====================================================
+
+        // check that the dataset metadata row has a shared lock during the first ingest request
+        assertNull("dataset row has no exclusive lock", exclusiveLock1);
+        assertNotNull("dataset row has a shared lock taken out", sharedLocks1);
+        assertEquals("dataset row has one shared lock", 1, sharedLocks1.length);
+
+        // check the response from the first ingest request
+        MockHttpServletResponse response1 = connectedOperations.validateJobModelAndWait(result1);
+        FileModel fileModel1 = connectedOperations.handleSuccessCase(response1, FileModel.class);
+        assertEquals("file description 1 correct", fileLoadModel1.getDescription(), fileModel1.getDescription());
+
+
+        // check the response from the delete request, confirm fails with a lock exception
+        MockHttpServletResponse response3 = connectedOperations.validateJobModelAndWait(result3);
+        ErrorModel errorModel3 = connectedOperations.handleFailureCase(response3, HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat("delete failed on lock exception", errorModel3.getMessage(),
+            startsWith("Failed to lock the dataset"));
+
+        // delete the dataset again and check that it succeeds now that there are no outstanding locks
+        connectedOperations.deleteTestDataset(summaryModel.getId());
+
+        // try to fetch the dataset again and confirm nothing is returned
+       //  connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     public void testSharedLockFileDelete() throws Exception {
         // create a dataset and check that it succeeds
         String resourcePath = "snapshot-test-dataset.json";

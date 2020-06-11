@@ -11,9 +11,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.*;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -129,7 +127,7 @@ public class DatasetDao {
      * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lockShared(UUID datasetId, String flightId) {
+    public void lockShared(UUID datasetId, String flightId, boolean insertFault) throws TransientDataAccessException {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
@@ -153,6 +151,12 @@ public class DatasetDao {
             .addValue("flightid", flightId);
         int numRowsUpdated = 0;
         try {
+            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            if (insertFault) {
+                logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+                throw new OptimisticLockingFailureException(
+                    "TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+            }
             numRowsUpdated = jdbcTemplate.update(sql, params);
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {

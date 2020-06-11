@@ -47,7 +47,8 @@ public class DatasetDataDeleteFlight extends Flight {
             IamAction.UPDATE_DATA));
 
         // need to lock, need dataset name and flight id
-        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
+        addStep(new LockDatasetStep(datasetDao, configService, UUID.fromString(datasetId), true),
+            lockDatasetRetry);
 
         // validate tables exist, check access to files, and create external temp tables
         addStep(new CreateExternalTablesStep(bigQueryPdao, datasetService));

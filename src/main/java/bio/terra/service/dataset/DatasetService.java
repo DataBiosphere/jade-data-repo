@@ -60,6 +60,14 @@ public class DatasetService {
         return datasetDao.retrieve(id);
     }
 
+    /** Fetch existing Dataset object that is NOT exclusively locked.
+     * @param id in UUID format
+     * @return a Dataset object
+     */
+    public Dataset retrieveAvailable(UUID id) {
+        return datasetDao.retrieveAvailable(id);
+    }
+
     /** Fetch existing Dataset object using the name.
      * @param name
      * @return a Dataset object
@@ -71,11 +79,15 @@ public class DatasetService {
 
     /** Convenience wrapper around fetching an existing Dataset object and converting it to a Model object.
      * Unlike the Dataset object, the Model object includes a reference to the associated cloud project.
+     *
+     * Note that this method will only return a dataset if it is NOT exclusively locked.
+     * It is intended for user-facing calls (e.g. from RepositoryApiController), not internal calls that may require
+     * an exclusively locked dataset to be returned (e.g. dataset deletion).
      * @param id in UUID formant
      * @return a DatasetModel = API output-friendly representation of the Dataset
      */
-    public DatasetModel retrieveModel(UUID id) {
-        Dataset dataset = retrieve(id);
+    public DatasetModel retrieveAvailableDatasetModel(UUID id) {
+        Dataset dataset = retrieveAvailable(id);
         return retrieveModel(dataset);
     }
 

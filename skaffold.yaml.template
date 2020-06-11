@@ -25,8 +25,8 @@ deploy:
       valuesFiles:
       - https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/TEMP/TEMPSecrets.yaml
     - name: TEMP-jade
-      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.1.9/datarepo-0.1.9.tgz
-      version: 0.1.9
+      chartPath: https://github.com/broadinstitute/datarepo-helm/releases/download/datarepo-0.1.10/datarepo-0.1.10.tgz
+      version: 0.1.10
       namespace: TEMP
       remote: true
       values:

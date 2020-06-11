@@ -23,6 +23,9 @@ import bio.terra.model.EnumerateDatasetModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
@@ -32,6 +35,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -83,6 +87,12 @@ public class DatasetIntegrationTest extends UsersBase {
     public void setup() throws Exception {
         super.setup();
         stewardToken = authService.getDirectAccessAuthToken(steward().getEmail());
+        dataRepoFixtures.resetConfig(steward());
+    }
+
+    @After
+    public void teardown() throws Exception {
+        dataRepoFixtures.resetConfig(steward());
     }
 
     @Test
@@ -290,6 +300,12 @@ public class DatasetIntegrationTest extends UsersBase {
         assertThat("count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
     }
 
+    private void assertSnapshotTableCount(BigQuery bigQuery, SnapshotModel snapshot, String tableName, Long n) {
+        String sql = "SELECT count(*) FROM " + BigQueryFixtures.makeTableRef(snapshot, tableName);
+        TableResult result = BigQueryFixtures.query(sql, bigQuery);
+        assertThat("count matches", result.getValues().iterator().next().get(0).getLongValue(), equalTo(n));
+    }
+
     public String ingestedDataset() throws Exception {
         DatasetSummaryModel datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         String datasetId = datasetSummaryModel.getId();
@@ -357,5 +373,68 @@ public class DatasetIntegrationTest extends UsersBase {
 
         // there should be (7 - 5) = 2 rows "visible" in the sample table
         assertTableCount(bigQuery, dataset, "sample", 2L);
+    }
+
+    @Test
+    public void testSoftDeleteNotInFullView() throws Exception {
+        String datasetId = ingestedDataset();
+
+        // get row ids
+        DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+        BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
+        List<String> participantRowIds = getRowIds(bigQuery, dataset, "participant", 3L);
+        List<String> sampleRowIds = getRowIds(bigQuery, dataset, "sample", 2L);
+
+        // swap in these row ids in the request
+        SnapshotRequestModel requestModelAll =
+            jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+        requestModelAll.getContents().get(0).datasetName(dataset.getName());
+
+        SnapshotSummaryModel snapshotSummaryAll =
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
+                dataset.getName(),
+                requestModelAll);
+
+        SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
+
+        assertSnapshotTableCount(bigQuery, snapshotAll, "participant", 5L);
+        assertSnapshotTableCount(bigQuery, snapshotAll, "sample", 7L);
+
+        // write them to GCS
+        String participantPath = writeListToScratch("softDel", participantRowIds);
+        String samplePath = writeListToScratch("softDel", sampleRowIds);
+
+        // build the deletion request with pointers to the two files with row ids to soft delete
+        List<DataDeletionTableModel> dataDeletionTableModels = Arrays.asList(
+            deletionTableFile("participant", participantPath),
+            deletionTableFile("sample", samplePath));
+        DataDeletionRequest request = dataDeletionRequest()
+            .tables(dataDeletionTableModels);
+
+        // send off the soft delete request
+        dataRepoFixtures.deleteData(steward(), datasetId, request);
+
+        // make sure the new counts make sense
+        assertTableCount(bigQuery, dataset, "participant", 2L);
+        assertTableCount(bigQuery, dataset, "sample", 5L);
+
+        // make full views snapshot
+        SnapshotRequestModel requestModelLess =
+            jsonLoader.loadObject("ingest-test-snapshot-fullviews.json", SnapshotRequestModel.class);
+        requestModelLess.getContents().get(0).datasetName(dataset.getName());
+
+        SnapshotSummaryModel snapshotSummaryLess =
+            dataRepoFixtures.createSnapshotWithRequest(steward(),
+                dataset.getName(),
+                requestModelLess);
+
+        SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId());
+        // make sure the old counts stayed the same
+        assertSnapshotTableCount(bigQuery, snapshotAll, "participant", 5L);
+        assertSnapshotTableCount(bigQuery, snapshotAll, "sample", 7L);
+
+        // make sure the new counts make sense
+        assertSnapshotTableCount(bigQuery, snapshotLess, "participant", 2L);
+        assertSnapshotTableCount(bigQuery, snapshotLess, "sample", 5L);
     }
 }

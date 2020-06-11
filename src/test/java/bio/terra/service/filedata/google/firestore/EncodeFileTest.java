@@ -157,9 +157,9 @@ public class EncodeFileTest {
         String filePath = drsObject.getAliases().get(0);
 
         FileModel fsObjById =
-            connectedOperations.lookupSnapshotFile(snapshotSummary.getId(), drsId.getFsObjectId());
+            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
         FileModel fsObjByPath =
-            connectedOperations.lookupSnapshotFileByPath(snapshotSummary.getId(), filePath, 0);
+            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
         assertThat("Retrieve snapshot file objects match", fsObjById, equalTo(fsObjByPath));
         assertThat("Load tag is stored", fsObjById.getFileDetail().getLoadTag(), equalTo(loadTag));
 
@@ -233,7 +233,7 @@ public class EncodeFileTest {
                               String snapshotId,
                               String datasetPath,
                               int inDepth) throws Exception {
-        FileModel fsObj = connectedOperations.lookupSnapshotFileByPath(snapshotId, datasetPath, inDepth);
+        FileModel fsObj = connectedOperations.lookupSnapshotFileByPathSuccess(snapshotId, datasetPath, inDepth);
         int maxDepth = checkSnapEnum(dirmap, 0, fsObj);
         int depth = (inDepth == -1) ? MAX_DIRECTORY_DEPTH : inDepth;
         assertThat("Depth is correct", maxDepth, equalTo(depth));

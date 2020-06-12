@@ -42,7 +42,6 @@ public class DatasetCreateFlight extends Flight {
             appConfig.getResourceId(),
             IamAction.CREATE_DATASET));
 
-
         DatasetRequestModel datasetRequest =
             inputParameters.get(JobMapKeys.REQUEST.getKeyName(), DatasetRequestModel.class);
         addStep(new CreateDatasetMetadataStep(datasetDao, datasetRequest));

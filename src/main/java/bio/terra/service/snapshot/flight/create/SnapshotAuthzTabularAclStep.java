@@ -1,6 +1,7 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.common.exception.PdaoException;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -18,15 +19,20 @@ import org.slf4j.LoggerFactory;
 
 import java.util.UUID;
 
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
+
 public class SnapshotAuthzTabularAclStep implements Step {
     private final BigQueryPdao bigQueryPdao;
     private final SnapshotService snapshotService;
+    private final ConfigurationService configService;
     private static final Logger logger = LoggerFactory.getLogger(SnapshotAuthzTabularAclStep.class);
 
     public SnapshotAuthzTabularAclStep(BigQueryPdao bigQueryPdao,
-                                       SnapshotService snapshotService) {
+                                       SnapshotService snapshotService,
+                                       ConfigurationService configService) {
         this.bigQueryPdao = bigQueryPdao;
         this.snapshotService = snapshotService;
+        this.configService = configService;
     }
 
     @Override
@@ -38,6 +44,10 @@ public class SnapshotAuthzTabularAclStep implements Step {
         String readersPolicyEmail = workingMap.get(SnapshotWorkingMapKeys.POLICY_EMAIL, String.class);
 
         try {
+            if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {
+                throw new BigQueryException(400, "Fake IAM failure", new BigQueryError("reasonTBD", "fake", "fake"));
+            }
+
             bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);
         } catch (BigQueryException ex) {
             // TODO: OK, so how do I know it is an IAM error and not some other error?

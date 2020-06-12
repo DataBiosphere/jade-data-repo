@@ -272,10 +272,13 @@ public class DatasetIntegrationTest extends UsersBase {
 
     // TODO: wildcard test, validation tests, empty file, missing file, fault insertion on creating ext tables
 
-    private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n) {
+    private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)
+        throws InterruptedException {
+
         String tableRef = BigQueryFixtures.makeTableRef(dataset, tableName);
         String sql = String.format("SELECT %s FROM %s LIMIT %s", PdaoConstant.PDAO_ROW_ID_COLUMN, tableRef, n);
-        TableResult result = BigQueryFixtures.query(sql, bigQuery);
+        TableResult result = BigQueryFixtures.queryWithRetry(sql, bigQuery);
+
         assertThat("got right num of row ids back", result.getTotalRows(), equalTo(n));
         return StreamSupport.stream(result.getValues().spliterator(), false)
             .map(fieldValues -> fieldValues.get(0).getStringValue())

@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight.create;
 
 import bio.terra.common.exception.PdaoException;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
@@ -19,17 +20,22 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.UUID;
 
+import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
+
 public class CreateDatasetAuthzPrimaryDataStep implements Step {
     private static final Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzPrimaryDataStep.class);
 
     private final BigQueryPdao bigQueryPdao;
     private final DatasetService datasetService;
+    private final ConfigurationService configService;
 
     public CreateDatasetAuthzPrimaryDataStep(
         BigQueryPdao bigQueryPdao,
-        DatasetService datasetService) {
+        DatasetService datasetService,
+        ConfigurationService configService) {
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
+        this.configService = configService;
     }
 
     @Override
@@ -39,6 +45,10 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
         List<String> policyEmails = workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, List.class);
         Dataset dataset = datasetService.retrieve(datasetId);
         try {
+            if (configService.testInsertFault(DATASET_GRANT_ACCESS_FAULT)) {
+                throw new BigQueryException(400, "Fake IAM failure", new BigQueryError("reasonTBD", "fake", "fake"));
+            }
+
             bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails);
         } catch (BigQueryException ex) {
             // TODO: OK, so how do I know it is an IAM error and not some other error?

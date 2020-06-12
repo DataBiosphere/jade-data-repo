@@ -1,18 +1,19 @@
 package bio.terra.service.snapshot.flight.create;
 
 import bio.terra.model.SnapshotRequestModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
-import bio.terra.service.snapshot.exception.InvalidSnapshotException;
-import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
-import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
+import bio.terra.service.snapshot.exception.InvalidSnapshotException;
+import bio.terra.service.snapshot.flight.UnlockSnapshotStep;
+import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.RetryRuleExponentialBackoff;
@@ -33,6 +34,7 @@ public class SnapshotCreateFlight extends Flight {
         IamService iamClient = (IamService)appContext.getBean("iamService");
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
+        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
 
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -89,14 +91,15 @@ public class SnapshotCreateFlight extends Flight {
             new RetryRuleExponentialBackoff(2, 30, 600);
 
         // Apply the IAM readers to the BQ dataset
-        addStep(new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService), pdaoAclRetryRule);
+        addStep(new SnapshotAuthzTabularAclStep(bigQueryPdao, snapshotService, configService), pdaoAclRetryRule);
 
         // Apply the IAM readers to the GCS files
         addStep(new SnapshotAuthzFileAclStep(
             dependencyDao,
             snapshotService,
             gcsPdao,
-            datasetService), pdaoAclRetryRule);
+            datasetService,
+            configService), pdaoAclRetryRule);
 
         // unlock the snapshot metadata row
         addStep(new UnlockSnapshotStep(snapshotDao, null));

@@ -19,6 +19,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
@@ -254,6 +255,17 @@ public class AccessTest extends UsersBase {
 
         Storage discovererStorage = getStorage(discovererToken);
         assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
+    }
+
+    @Test
+    public void fileAclFaultTest() throws Exception {
+        try {
+            // Run the fileAclTest with the SNAPSHOT_GRANT_FILE_ACCESS_FAULT on
+            dataRepoFixtures.setFault(steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
+            fileAclTest();
+        } finally {
+            dataRepoFixtures.resetConfig(steward());
+        }
     }
 
     @Test

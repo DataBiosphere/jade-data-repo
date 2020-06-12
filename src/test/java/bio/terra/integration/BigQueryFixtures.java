@@ -15,7 +15,9 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
+import org.apache.commons.lang.StringUtils;
 
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -62,6 +64,44 @@ public final class BigQueryFixtures {
         } catch (InterruptedException | BigQueryException e) {
             e.printStackTrace(System.out);
             throw new IllegalStateException("Query failed", e);
+        }
+    }
+
+    /**
+     * Run a query in BigQuery with retries
+     *
+     * The BigQuery query is in an exponential backoff loop so that it tolerates access failures due to
+     * GCP IAM update propagation. See DR-875 and the document:
+     * <a href="https://docs.google.com/document/d/18j1ldbbXn-5Zyji5pHjx3CEg-SRQan2P2olY_6gAPUA">IAM Propagation Note
+     * </a>
+     *
+     * @param sql query string to execute
+     * @param bigQuery authenticated BigQuery object to use
+     * @return TableResult object returned from BigQuery
+     */
+    private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
+    private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
+    private static final int RETRY_MAX_SLEEP_SECONDS = 420;
+
+    public static TableResult queryWithRetry(String sql, BigQuery bigQuery) throws InterruptedException {
+        int sleptSeconds = 0;
+        int sleepSeconds = RETRY_INITIAL_INTERVAL_SECONDS;
+        while (true) {
+            try {
+                QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+                return bigQuery.query(queryConfig);
+            } catch (BigQueryException ex) {
+                if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS) &&
+                    (ex.getCode() == 403) &&
+                    StringUtils.equals(ex.getReason(), "accessDenied")) {
+
+                    TimeUnit.SECONDS.sleep(sleepSeconds);
+                    sleptSeconds += sleepSeconds;
+                    sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
+                } else {
+                    throw ex;
+                }
+            }
         }
     }
 

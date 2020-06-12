@@ -124,11 +124,13 @@ public class SnapshotConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+        configService.reset();
     }
 
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        configService.reset();
     }
 
     @Test
@@ -150,6 +152,14 @@ public class SnapshotConnectedTest {
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
 
         getNonexistentSnapshot(snapshotModel.getId());
+    }
+
+    @Test
+    public void testFaultyPath() throws Exception {
+        // Run the happy path test, but insert the GRANT ACCESS faults to simulate IAM propagation failures
+        configService.setFault(ConfigEnum.DATASET_GRANT_ACCESS_FAULT.name(), true);
+        configService.setFault(ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT.name(), true);
+        testHappyPath();
     }
 
     @Test

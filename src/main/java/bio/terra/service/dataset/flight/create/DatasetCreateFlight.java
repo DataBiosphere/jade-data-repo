@@ -2,6 +2,7 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.model.DatasetRequestModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.UnlockDatasetStep;
@@ -33,6 +34,7 @@ public class DatasetCreateFlight extends Flight {
         IamProviderInterface iamClient = (IamProviderInterface) appContext.getBean("iamProvider");
         ApplicationConfiguration appConfig = (ApplicationConfiguration) appContext.getBean("applicationConfiguration");
         GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
+        ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
 
         addStep(new VerifyAuthorizationStep(
             iamClient,
@@ -58,9 +60,9 @@ public class DatasetCreateFlight extends Flight {
         // operation timeout is generous.
         RetryRuleExponentialBackoff pdaoAclRetryRule =
             new RetryRuleExponentialBackoff(2, 30, 600);
-        addStep(new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService), pdaoAclRetryRule);
-        // The underlying service provides retries so we do not need to retry for BQ Job User step at this time
+        addStep(new CreateDatasetAuthzPrimaryDataStep(bigQueryPdao, datasetService, configService), pdaoAclRetryRule);
 
+        // The underlying service provides retries so we do not need to retry for BQ Job User step at this time
         addStep(new CreateDatasetAuthzBqJobUserStep(iamClient, bigQueryPdao, datasetService, userReq, resourceService));
 
         addStep(new UnlockDatasetStep(datasetDao, false));

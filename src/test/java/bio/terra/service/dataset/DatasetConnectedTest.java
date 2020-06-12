@@ -93,11 +93,13 @@ public class DatasetConnectedTest {
         connectedOperations.stubOutSamCalls(samService);
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+        configService.reset();
     }
 
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        configService.reset();
     }
 
     @Test

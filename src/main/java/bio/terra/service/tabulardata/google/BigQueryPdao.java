@@ -1029,6 +1029,8 @@ public class BigQueryPdao implements PrimaryDataAccess {
                 relationship.getToTableId(),
                 projectId,
                 bigQuery);
+            // In an effort to test the table quota
+            TimeUnit.SECONDS.sleep(10);
         }
     }
 

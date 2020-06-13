@@ -2,7 +2,7 @@ name: Update devs api image
 on:
   push:
     branches:
-      - develop
+      - jh-DR-967-auto-version
 jobs:
   update_image:
     strategy:
@@ -20,6 +20,10 @@ jobs:
           repository: 'broadinstitute/datarepo-helm-definitions'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: datarepo-helm-definitions
+      - name: "Bump the tag to a new version"
+        uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
+        with:
+          actions_subcommand: 'bumper'
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions@0.6.0
         with:
@@ -35,7 +39,7 @@ jobs:
         uses: broadinstitute/datarepo-actions@0.6.0
         with:
           actions_subcommand: 'deploytagupdate'
-          helm_env_prefix: 'integration-1,integration-2,integration-3,integration-4,integration-5'
+          helm_env_prefix: 'integration-4,integration-5'
       - name: Slack job status
         if: always()
         uses: broadinstitute/action-slack@v2

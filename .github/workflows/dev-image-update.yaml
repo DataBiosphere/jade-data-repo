@@ -24,6 +24,8 @@ jobs:
         uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
         with:
           actions_subcommand: 'bumper'
+          role_id: ${{ secrets.ROLE_ID }}
+          secret_id: ${{ secrets.SECRET_ID }}
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
         with:

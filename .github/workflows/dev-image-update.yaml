@@ -2,7 +2,7 @@ name: Update devs api image
 on:
   push:
     branches:
-      - jh-DR-967-auto-version
+      - develop
 jobs:
   update_image:
     strategy:
@@ -33,23 +33,23 @@ jobs:
           actions_subcommand: 'gradlebuild'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          #      - name: "Check and edit Helm definition for dev"
-          #        uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
-          #        with:
-          #          actions_subcommand: 'deploytagupdate'
-          #          helm_env_prefix: dev
-          #      - name: "Check and edit Helm definition for integration"
-          #        uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
-          #        with:
-          #          actions_subcommand: 'deploytagupdate'
-          #          helm_env_prefix: 'integration-4,integration-5'
+      - name: "Check and edit Helm definition for dev"
+        uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
+        with:
+          actions_subcommand: 'deploytagupdate'
+          helm_env_prefix: dev
+      - name: "Check and edit Helm definition for integration"
+        uses: broadinstitute/datarepo-actions@jh-DR-967-auto-version
+        with:
+          actions_subcommand: 'deploytagupdate'
+          helm_env_prefix: 'integration-4,integration-5'
       - name: Slack job status
         if: always()
         uses: broadinstitute/action-slack@v2
         with:
           status: ${{ job.status }}
           author_name: Integration Test
-          only_mention_fail: jhert
+          only_mention_fail: smark,jhert
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

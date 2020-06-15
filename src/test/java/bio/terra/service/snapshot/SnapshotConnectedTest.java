@@ -126,7 +126,8 @@ public class SnapshotConnectedTest {
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
         datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");    }
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+    }
 
     @After
     public void tearDown() throws Exception {
@@ -135,68 +136,22 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testHappyPath() throws Exception {
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-        List<TableModel> tables = snapshotModel.getTables();
-        assertThat("there's a table", tables.size(), equalTo(1));
-        assertThat("rowCount is getting set correctly", tables.get(0).getRowCount(), equalTo(3));
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-test-snapshot.json");
     }
 
     @Test
     public void testRowIdsHappyPath() throws Exception {
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-row-ids-test-snapshot.json");
     }
 
     @Test
     public void testQueryHappyPath() throws Exception {
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-query-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-query-test-snapshot.json");
     }
 
     @Test
     public void testFullViewsHappyPath() throws Exception {
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-fullviews-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-fullviews-test-snapshot.json");
     }
 
     @Test
@@ -467,7 +422,7 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // try to fetch the snapshot again and confirm nothing is returned
-        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+        getNonexistentSnapshot(snapshotSummary.getId());
     }
 
     @Test
@@ -588,7 +543,8 @@ public class SnapshotConnectedTest {
         connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());
 
         // try to fetch the snapshot again and confirm nothing is returned
-        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+        getNonexistentSnapshot(snapshotSummary.getId());
+
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
     }
@@ -747,13 +703,7 @@ public class SnapshotConnectedTest {
     }
 
     private void getNonexistentSnapshot(String id) throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
-                .andReturn();
-
-        MockHttpServletResponse response = result.getResponse();
-        ErrorModel errorModel = TestUtils.mapFromJson(response.getContentAsString(), ErrorModel.class);
-        assertThat("proper not found error", errorModel.getMessage(), startsWith("Snapshot not found"));
+        connectedOperations.getSnapshotExpectError(id, HttpStatus.NOT_FOUND);
     }
 
     private static final String queryForCountTemplate =
@@ -799,6 +749,21 @@ public class SnapshotConnectedTest {
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue idValue = row.get(0);
         return idValue.getStringValue();
+    }
+
+    private void snapshotHappyPathTestingHelper(String path) throws Exception {
+        SnapshotRequestModel snapshotRequest =
+            makeSnapshotTestRequest(datasetSummary, path);
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+
+        getNonexistentSnapshot(snapshotModel.getId());
     }
 
 }

@@ -451,8 +451,6 @@ public class ConnectedOperations {
                                             FileLoadModel fileLoadModel,
                                             ConfigurationService configService,
                                             DatasetDao datasetDao) throws Exception {
-        // no shared locks to start
-        String[] sharedLocks0 = datasetDao.getSharedLocks(UUID.fromString(datasetId));
         // Insert fault into shared lock
         configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), true);
 
@@ -468,14 +466,13 @@ public class ConnectedOperations {
 
         // Remove insertion of shared lock fault
         configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), false);
-        TimeUnit.SECONDS.sleep(5); // give the flight time to get shared lock
-        String[] sharedLocks1 = datasetDao.getSharedLocks(UUID.fromString(datasetId));
+        TimeUnit.SECONDS.sleep(5); // give the flight time to succeed now that fault is removed
         // ====================================================
 
-        assertEquals("no shared locks to start", 0, sharedLocks0.length);
         assertEquals("no shared locks after first call", 0, sharedLocks.length);
-        assertEquals("One shared lock after fault removed", 1, sharedLocks1.length);
 
+        // Check if the flight successfully completed
+        // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         FileModel fileModel = handleSuccessCase(response, FileModel.class);

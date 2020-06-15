@@ -260,7 +260,6 @@ public class FileOperationTest {
 
         FileModel fileModel = connectedOperations.retryAcquireLockIngestFileSuccess(
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
-        // String[] sharedLocks1 = datasetDao.getSharedLocks(UUID.fromString(datasetSummary.getId()));
 
         assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
     }

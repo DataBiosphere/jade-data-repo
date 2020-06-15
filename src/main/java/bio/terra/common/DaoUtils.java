@@ -83,6 +83,7 @@ public final class DaoUtils {
         return Arrays.asList((String[]) sqlArray.getArray());
     }
 
+    // Based on Exception returned, determine if we should attempt to retry an operation/stairway step
     public static boolean retryQuery(DataAccessException dataAccessException) {
         if (ExceptionUtils.hasCause(dataAccessException, RecoverableDataAccessException.class) ||
             ExceptionUtils.hasCause(dataAccessException, TransientDataAccessException.class)) {

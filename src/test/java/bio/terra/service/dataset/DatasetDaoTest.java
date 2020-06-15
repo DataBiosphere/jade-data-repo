@@ -289,7 +289,7 @@ public class DatasetDaoTest {
 
             // 1. take out a shared lock
             // confirm that there are no exclusive locks and one shared lock
-            datasetDao.lockShared(datasetId, "flightid1", false);
+            datasetDao.lockShared(datasetId, "flightid1", null);
             exclusiveLock = datasetDao.getExclusiveLock(datasetId);
             assertNull("no exclusive lock after step 1", exclusiveLock);
             sharedLocks = datasetDao.getSharedLocks(datasetId);
@@ -298,7 +298,7 @@ public class DatasetDaoTest {
 
             // 2. take out another shared lock
             // confirm that there are no exclusive locks and two shared locks
-            datasetDao.lockShared(datasetId, "flightid2", false);
+            datasetDao.lockShared(datasetId, "flightid2", null);
             exclusiveLock = datasetDao.getExclusiveLock(datasetId);
             assertNull("no exclusive lock after step 2", exclusiveLock);
             sharedLocks = datasetDao.getSharedLocks(datasetId);
@@ -338,11 +338,11 @@ public class DatasetDaoTest {
 
             // 6. take out five shared locks
             // confirm that there are no exclusive locks and six shared locks
-            datasetDao.lockShared(datasetId, "flightid5", false);
-            datasetDao.lockShared(datasetId, "flightid6", false);
-            datasetDao.lockShared(datasetId, "flightid7", false);
-            datasetDao.lockShared(datasetId, "flightid8", false);
-            datasetDao.lockShared(datasetId, "flightid9", false);
+            datasetDao.lockShared(datasetId, "flightid5", null);
+            datasetDao.lockShared(datasetId, "flightid6", null);
+            datasetDao.lockShared(datasetId, "flightid7", null);
+            datasetDao.lockShared(datasetId, "flightid8", null);
+            datasetDao.lockShared(datasetId, "flightid9", null);
             exclusiveLock = datasetDao.getExclusiveLock(datasetId);
             assertNull("no exclusive lock after step 6", exclusiveLock);
             sharedLocks = datasetDao.getSharedLocks(datasetId);
@@ -385,7 +385,7 @@ public class DatasetDaoTest {
             // confirm that it fails with a DatasetLockException
             threwLockException = false;
             try {
-                datasetDao.lockShared(datasetId, "flightid11", false);
+                datasetDao.lockShared(datasetId, "flightid11", null);
             } catch (DatasetLockException dlEx) {
                 threwLockException = true;
             }
@@ -473,7 +473,7 @@ public class DatasetDaoTest {
 
             // 1. take out a shared lock
             // confirm that there is no exclusive lock and one shared lock
-            datasetDao.lockShared(datasetId, "flightid30", false);
+            datasetDao.lockShared(datasetId, "flightid30", null);
             exclusiveLock = datasetDao.getExclusiveLock(datasetId);
             assertNull("no exclusive lock after step 1", exclusiveLock);
             sharedLocks = datasetDao.getSharedLocks(datasetId);
@@ -482,7 +482,7 @@ public class DatasetDaoTest {
 
             // 2. try to take out a shared lock again with the same flightid
             // confirm that the shared lock is still there and there is no exclusive lock
-            datasetDao.lockShared(datasetId, "flightid30", false);
+            datasetDao.lockShared(datasetId, "flightid30", null);
             exclusiveLock = datasetDao.getExclusiveLock(datasetId);
             assertNull("no exclusive lock after step 2", exclusiveLock);
             sharedLocks = datasetDao.getSharedLocks(datasetId);
@@ -544,7 +544,7 @@ public class DatasetDaoTest {
         // confirm that it fails with a DatasetNotFoundkException
         threwNotFoundException = false;
         try {
-            datasetDao.lockShared(nonExistentDatasetId, "flightid41", false);
+            datasetDao.lockShared(nonExistentDatasetId, "flightid41", null);
         } catch (DatasetNotFoundException dnfEx) {
             threwNotFoundException = true;
         }

@@ -258,10 +258,18 @@ public class FileOperationTest {
     public void retryAndAcquireSharedLock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
-        FileModel fileModel = connectedOperations.retryAcquireLockIngestFileSuccess(
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            true,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
 
-        assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
+    @Test
+    public void retryAndFailAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            false,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 
     // -- array bulk load --

@@ -430,16 +430,7 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         FileModel fileModel = handleSuccessCase(response, FileModel.class);
-        assertThat("description matches", fileModel.getDescription(),
-            CoreMatchers.equalTo(fileLoadModel.getDescription()));
-        assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
-            CoreMatchers.equalTo(fileLoadModel.getMimeType()));
-
-        for (DRSChecksum checksum : fileModel.getChecksums()) {
-            assertTrue("valid checksum type",
-                (StringUtils.equals(checksum.getType(), "crc32c") ||
-                    StringUtils.equals(checksum.getType(), "md5")));
-        }
+        checkSuccessfulFileLoad(fileLoadModel, fileModel);
 
         logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
         addFile(datasetId, fileModel.getFileId());
@@ -447,12 +438,17 @@ public class ConnectedOperations {
         return fileModel;
     }
 
-    public FileModel retryAcquireLockIngestFileSuccess(String datasetId,
-                                            FileLoadModel fileLoadModel,
-                                            ConfigurationService configService,
-                                            DatasetDao datasetDao) throws Exception {
+    public void retryAcquireLockIngestFileSuccess(
+        boolean attemptRetry,
+        String datasetId,
+        FileLoadModel fileLoadModel,
+        ConfigurationService configService,
+        DatasetDao datasetDao) throws Exception {
         // Insert fault into shared lock
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), true);
+        ConfigEnum faultToInsert = attemptRetry ?
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT :
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
+        configService.setFault(faultToInsert.name(), true);
 
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/files";
@@ -465,17 +461,23 @@ public class ConnectedOperations {
         String[] sharedLocks = datasetDao.getSharedLocks(UUID.fromString(datasetId));
 
         // Remove insertion of shared lock fault
-        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), false);
-        TimeUnit.SECONDS.sleep(5); // give the flight time to succeed now that fault is removed
+        configService.setFault(faultToInsert.name(), false);
         // ====================================================
 
         assertEquals("no shared locks after first call", 0, sharedLocks.length);
 
-        // Check if the flight successfully completed
-        // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
         MockHttpServletResponse response = validateJobModelAndWait(result);
+        if (attemptRetry) {
+            // Check if the flight successfully completed
+            // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
+            FileModel fileModel = handleSuccessCase(response, FileModel.class);
+            checkSuccessfulFileLoad(fileLoadModel, fileModel);
+        } else {
+            handleFailureCase(response);
+        }
+    }
 
-        FileModel fileModel = handleSuccessCase(response, FileModel.class);
+    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -486,11 +488,6 @@ public class ConnectedOperations {
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));
         }
-
-        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
-        addFile(datasetId, fileModel.getFileId());
-
-        return fileModel;
     }
 
     public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {

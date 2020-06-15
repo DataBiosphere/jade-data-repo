@@ -4,7 +4,9 @@ import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.dataset.exception.*;
+import bio.terra.service.dataset.exception.DatasetLockException;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidDatasetException;
 import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.common.MetadataEnumeration;
 import org.apache.commons.lang3.StringUtils;
@@ -127,7 +129,7 @@ public class DatasetDao {
      * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lockShared(UUID datasetId, String flightId, boolean insertFault) {
+    public void lockShared(UUID datasetId, String flightId, DataAccessException faultToInsert) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
@@ -152,10 +154,9 @@ public class DatasetDao {
         int numRowsUpdated = 0;
         try {
             // used for test DatasetConnectedTest > testRetryAcquireSharedLock
-            if (insertFault) {
+            if (faultToInsert != null) {
                 logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
-                throw new OptimisticLockingFailureException(
-                    "TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+                throw faultToInsert;
             }
             numRowsUpdated = jdbcTemplate.update(sql, params);
         } catch (DataAccessException dataAccessException) {

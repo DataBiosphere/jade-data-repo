@@ -2,6 +2,7 @@ package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.JobModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
@@ -63,7 +64,8 @@ public class JobService {
                       ApplicationContext applicationContext,
                       KubeService kubeService,
                       JobShutdownState jobShutdownState,
-                      ObjectMapper objectMapper) {
+                      ObjectMapper objectMapper,
+                      PerformanceLogger performanceLogger) {
         this.samService = samService;
         this.appConfig = appConfig;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
@@ -78,7 +80,7 @@ public class JobService {
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
-            .stairwayHook(new StairwayLoggingHooks())
+            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
         .build();
     }
 

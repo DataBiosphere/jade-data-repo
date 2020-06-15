@@ -34,6 +34,9 @@ jobs:
         with:
           build-root-directory: datarepo-client
           arguments: artifactoryPublish
+        env:
+          ARTIFACTORY_USER: ${{ secrets.ARTIFACTORY_USER }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions@0.9.0
         with:

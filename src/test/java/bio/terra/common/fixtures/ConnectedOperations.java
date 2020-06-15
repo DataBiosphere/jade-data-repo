@@ -26,6 +26,9 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.sam.SamConfiguration;
@@ -423,6 +426,55 @@ public class ConnectedOperations {
             .contentType(MediaType.APPLICATION_JSON)
             .content(jsonRequest))
             .andReturn();
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+
+        FileModel fileModel = handleSuccessCase(response, FileModel.class);
+        assertThat("description matches", fileModel.getDescription(),
+            CoreMatchers.equalTo(fileLoadModel.getDescription()));
+        assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
+            CoreMatchers.equalTo(fileLoadModel.getMimeType()));
+
+        for (DRSChecksum checksum : fileModel.getChecksums()) {
+            assertTrue("valid checksum type",
+                (StringUtils.equals(checksum.getType(), "crc32c") ||
+                    StringUtils.equals(checksum.getType(), "md5")));
+        }
+
+        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
+        addFile(datasetId, fileModel.getFileId());
+
+        return fileModel;
+    }
+
+    public FileModel retryAcquireLockIngestFileSuccess(String datasetId,
+                                            FileLoadModel fileLoadModel,
+                                            ConfigurationService configService,
+                                            DatasetDao datasetDao) throws Exception {
+        // no shared locks to start
+        String[] sharedLocks0 = datasetDao.getSharedLocks(UUID.fromString(datasetId));
+        // Insert fault into shared lock
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), true);
+
+        String jsonRequest = TestUtils.mapToJson(fileLoadModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+
+        TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
+        String[] sharedLocks = datasetDao.getSharedLocks(UUID.fromString(datasetId));
+
+        // Remove insertion of shared lock fault
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT.name(), false);
+        TimeUnit.SECONDS.sleep(5); // give the flight time to get shared lock
+        String[] sharedLocks1 = datasetDao.getSharedLocks(UUID.fromString(datasetId));
+        // ====================================================
+
+        assertEquals("no shared locks to start", 0, sharedLocks0.length);
+        assertEquals("no shared locks after first call", 0, sharedLocks.length);
+        assertEquals("One shared lock after fault removed", 1, sharedLocks1.length);
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
 

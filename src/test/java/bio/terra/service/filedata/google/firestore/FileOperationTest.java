@@ -254,6 +254,17 @@ public class FileOperationTest {
             containsString("gs path"));
     }
 
+    @Test
+    public void retryAndAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        FileModel fileModel = connectedOperations.retryAcquireLockIngestFileSuccess(
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+        // String[] sharedLocks1 = datasetDao.getSharedLocks(UUID.fromString(datasetSummary.getId()));
+
+        assertThat("file path matches", fileModel.getPath(), equalTo(fileLoadModel.getTargetPath()));
+    }
+
     // -- array bulk load --
 
     @Test

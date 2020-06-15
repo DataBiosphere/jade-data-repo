@@ -127,7 +127,7 @@ public class DatasetDao {
      * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lockShared(UUID datasetId, String flightId, boolean insertFault) throws TransientDataAccessException {
+    public void lockShared(UUID datasetId, String flightId, boolean insertFault) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }

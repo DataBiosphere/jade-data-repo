@@ -19,7 +19,33 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static bio.terra.service.configuration.ConfigEnum.*;
+import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_INGESTS;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_DRIVER_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_SKIP_FILE_LOAD;
+import static bio.terra.service.configuration.ConfigEnum.SAM_OPERATION_TIMEOUT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_INITIAL_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_RETRY_MAXIMUM_WAIT_SECONDS;
+import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_LOCK_FAULT;
 
 @Component
 public class ConfigurationService {

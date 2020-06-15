@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - develop
+      - fb-jh-DR-1026-artifactory-publish
 jobs:
   update_image:
     strategy:

@@ -26,8 +26,8 @@ jobs:
           actions_subcommand: 'bumper'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
-          # version_file_path: datarepo-client/build.gradle
-          # version_variable_name: version
+          version_file_path: datarepo-client/build.gradle
+          version_variable_name: version
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: "Build new delevop docker image"
         uses: broadinstitute/datarepo-actions@0.8.1

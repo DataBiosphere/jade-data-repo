@@ -299,7 +299,7 @@ public class SnapshotConnectedTest {
 
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        getNonexistentSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -338,7 +338,7 @@ public class SnapshotConnectedTest {
             startsWith("Failed to lock the snapshot"));
 
         // confirm deleted
-        getNonexistentSnapshot(summaryModel.getId());
+        connectedOperations.getSnapshotExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -422,7 +422,7 @@ public class SnapshotConnectedTest {
             DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
 
         // try to fetch the snapshot again and confirm nothing is returned
-        getNonexistentSnapshot(snapshotSummary.getId());
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
@@ -543,7 +543,7 @@ public class SnapshotConnectedTest {
         connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());
 
         // try to fetch the snapshot again and confirm nothing is returned
-        getNonexistentSnapshot(snapshotSummary.getId());
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
 
         // try to fetch the dataset again and confirm nothing is returned
         connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
@@ -702,10 +702,6 @@ public class SnapshotConnectedTest {
         return snapshotModel;
     }
 
-    private void getNonexistentSnapshot(String id) throws Exception {
-        connectedOperations.getSnapshotExpectError(id, HttpStatus.NOT_FOUND);
-    }
-
     private static final String queryForCountTemplate =
         "SELECT COUNT(*) FROM `<project>.<snapshot>.<table>`";
 
@@ -762,8 +758,7 @@ public class SnapshotConnectedTest {
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
 }

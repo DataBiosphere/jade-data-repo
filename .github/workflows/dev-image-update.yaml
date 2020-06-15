@@ -2,7 +2,7 @@ name: Update devs api image
 on:
   push:
     branches:
-      - jh-DR-967-auto-version
+      - develop
 jobs:
   update_image:
     strategy:

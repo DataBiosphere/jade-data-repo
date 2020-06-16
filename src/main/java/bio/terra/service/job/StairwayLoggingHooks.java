@@ -27,6 +27,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     public HookAction startFlight(FlightContext context) {
         logger.info(FlightLogFormat, "startFlight", context.getFlightClassName(),
             context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+        performanceLogger.timerStart("stairwayFlight" + context.getFlightId());
         return HookAction.CONTINUE;
     }
 
@@ -34,9 +35,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     public HookAction startStep(FlightContext context) {
         logger.info(StepLogFormat, "startStep", context.getFlightClassName(), context.getFlightId(),
             context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-
-        performanceLogger.timerStart(context.getFlightId());
-
+        performanceLogger.timerStart("stairwayStep" + context.getFlightId());
         return HookAction.CONTINUE;
     }
 
@@ -44,6 +43,8 @@ public class StairwayLoggingHooks implements StairwayHook {
     public HookAction endFlight(FlightContext context) {
         logger.info(FlightLogFormat, "endFlight", context.getFlightClassName(),
             context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
+        performanceLogger.timerEndAndLog("stairwayFlight" + context.getFlightId(), context.getFlightId(),
+            context.getFlightClassName(), "endFlight");
         return HookAction.CONTINUE;
     }
 
@@ -51,10 +52,8 @@ public class StairwayLoggingHooks implements StairwayHook {
     public HookAction endStep(FlightContext context) {
         logger.info(StepLogFormat, "endStep", context.getFlightClassName(), context.getFlightId(),
             context.getStepIndex(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-
-        performanceLogger.timerEndAndLog(context.getFlightId(), context.getFlightId(),
+        performanceLogger.timerEndAndLog("stairwayStep" + context.getFlightId(), context.getFlightId(),
             context.getFlightClassName(), "endStep", context.getStepIndex());
-
         return HookAction.CONTINUE;
     }
 }

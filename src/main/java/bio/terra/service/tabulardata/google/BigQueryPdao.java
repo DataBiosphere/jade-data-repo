@@ -356,15 +356,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void snapshotViewCreation(
         String datasetBqDatasetName,
-        String snapshotName,
         Snapshot snapshot,
         String projectId,
         BigQuery bigQuery,
         BigQueryProject bigQueryProject) {
         // create the views
-        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshot, projectId, bigQuery);
 
         // set authorization on views
+        String snapshotName = snapshot.getName();
         List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
         bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
     }
@@ -435,7 +435,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
         walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
 
-        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
     private static final String insertAllLiveViewDataTemplate =
@@ -522,7 +522,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             throw new PdaoException("This snapshot is empty");
         }
 
-        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
 
@@ -582,7 +582,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
         }
 
-        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
     @Override
@@ -1118,7 +1118,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
-            snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+            snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
 
         } catch (PdaoException ex) {
             // TODO What if the select list doesn't match the temp table schema?
@@ -1226,7 +1226,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private List<String> createViews( // TODO this creates the views, but what deletes them?
         String datasetBqDatasetName,
-        String snapshotName,
         Snapshot snapshot,
         String projectId,
         BigQuery bigQuery) {
@@ -1234,6 +1233,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
             SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            String snapshotName = snapshot.getName();
 
             // Find the table map for the table. If there is none, we skip it.
             // NOTE: for now, we know that there will be one, because we generate it directly.

@@ -132,12 +132,12 @@ public final class BigQueryFixtures {
     public static String queryForDrsId(BigQuery bigQuery,
                                        SnapshotModel snapshotModel,
                                        String tableName,
-                                       String columnName) {
+                                       String columnName) throws InterruptedException {
         String sql = String.format("SELECT %s FROM %s WHERE %s IS NOT NULL LIMIT 1",
             columnName,
             makeTableRef(snapshotModel, tableName),
             columnName);
-        TableResult ids = BigQueryFixtures.query(sql, bigQuery);
+        TableResult ids = BigQueryFixtures.queryWithRetry(sql, bigQuery);
         assertThat("Got one row", ids.getTotalRows(), equalTo(1L));
 
         String drsUri = null;

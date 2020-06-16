@@ -16,6 +16,8 @@ import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -28,6 +30,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public final class BigQueryFixtures {
+    private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
     private static final int SAM_TIMEOUT_SECONDS = 400;
 
     private BigQueryFixtures() {
@@ -81,7 +84,7 @@ public final class BigQueryFixtures {
      */
     private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
     private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
-    private static final int RETRY_MAX_SLEEP_SECONDS = 420;
+    private static final int RETRY_MAX_SLEEP_SECONDS = 600;
 
     public static TableResult queryWithRetry(String sql, BigQuery bigQuery) throws InterruptedException {
         int sleptSeconds = 0;
@@ -91,12 +94,16 @@ public final class BigQueryFixtures {
                 QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
                 return bigQuery.query(queryConfig);
             } catch (BigQueryException ex) {
+                logger.info("Caught BQ exception: code=" + ex.getCode()
+                    + " reason=" + ex.getReason()
+                    + " msg=" + ex.getMessage());
                 if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS) &&
                     (ex.getCode() == 403) &&
                     StringUtils.equals(ex.getReason(), "accessDenied")) {
 
                     TimeUnit.SECONDS.sleep(sleepSeconds);
                     sleptSeconds += sleepSeconds;
+                    logger.info("Slept " + sleepSeconds + " total slept " + sleptSeconds);
                     sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
                 } else {
                     throw ex;

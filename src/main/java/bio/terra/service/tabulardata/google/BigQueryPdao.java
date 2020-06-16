@@ -624,7 +624,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
+    public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException { // TODO is this what should delete the views?
         return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
     }
 
@@ -1224,7 +1224,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>')";
 
-    private List<String> createViews(
+    private List<String> createViews( // TODO this creates the views, but what deletes them?
         String datasetBqDatasetName,
         String snapshotName,
         Snapshot snapshot,
@@ -1266,6 +1266,29 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             return tableName;
         }).collect(Collectors.toList());
+    }
+
+    private void deleteViews(
+        String snapshotName,
+        Snapshot snapshot) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        snapshot.getTables().forEach(table -> {
+            // Build the FROM clause from the source
+            // NOTE: we can put this in a loop when we do multiple sources
+            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+
+            // Find the table map for the table. If there is none, we skip it.
+            // NOTE: for now, we know that there will be one, because we generate it directly.
+            // In the future when we have more than one, we can just return.
+            SnapshotMapTable mapTable = lookupMapTable(table, source);
+            if (mapTable == null) {
+                throw new PdaoException("No matching map table for snapshot table " + table.getName());
+            }
+            // delete the view
+            String tableName = table.getName();
+            logger.info("Deleting view " + snapshotName + "." + tableName);
+            bigQueryProject.deleteTable(snapshotName, tableName);
+        });
     }
 
     private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {

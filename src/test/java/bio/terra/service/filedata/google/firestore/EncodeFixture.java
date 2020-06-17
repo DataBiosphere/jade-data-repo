@@ -105,7 +105,7 @@ public class EncodeFixture {
         // TODO: Add dataProject to SnapshotSummaryModel?
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian, snapshotSummary.getId());
         String readerToken = authService.getDirectAccessAuthToken(reader.getEmail());
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
         return snapshotSummary;

@@ -54,6 +54,11 @@ public class ApplicationConfiguration {
     private int loadDriverWaitSeconds;
 
     /**
+     * Number of seconds to wait between loads of data into laod_history table
+     */
+    private int loadHistoryWaitSeconds;
+
+    /**
      * Number of files for the bulk file load to load file metadata into staging table
      */
     private int loadHistoryCopyChunkSize;
@@ -165,6 +170,14 @@ public class ApplicationConfiguration {
 
     public void setLoadDriverWaitSeconds(int loadDriverWaitSeconds) {
         this.loadDriverWaitSeconds = loadDriverWaitSeconds;
+    }
+
+    public int getLoadHistoryWaitSeconds() {
+        return loadHistoryWaitSeconds;
+    }
+
+    public void setLoadHistoryWaitSeconds(int loadQueryHistorySeconds) {
+        this.loadHistoryWaitSeconds = loadQueryHistorySeconds;
     }
 
     public int getLoadHistoryCopyChunkSize() {

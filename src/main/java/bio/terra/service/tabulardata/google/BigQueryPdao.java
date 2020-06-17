@@ -624,7 +624,13 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException { // TODO is this what should delete the views?
+    public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String projectId = bigQueryProject.getProjectId();
+        String datasetName = snapshot.getSnapshotSources().get(0).getDataset().getName();
+        String datasetBqDatasetName = prefixName(datasetName);
+
+        deleteViewsandAcls(datasetBqDatasetName, snapshot, projectId);
         return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
     }
 

@@ -1274,7 +1274,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }).collect(Collectors.toList());
     }
 
-    private void deleteViews(
+    private void deleteViewsandAcls(
         String datasetBqDatasetName,
         Snapshot snapshot,
         String projectId) throws InterruptedException {

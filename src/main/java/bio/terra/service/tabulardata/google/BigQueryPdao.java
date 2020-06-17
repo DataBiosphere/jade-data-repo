@@ -1308,7 +1308,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 
-    private void deleteViews(
+    private void deleteViewsandAcls(
         String datasetBqDatasetName,
         Snapshot snapshot,
         String projectId) throws InterruptedException {

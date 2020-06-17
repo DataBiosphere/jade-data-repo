@@ -58,6 +58,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         try {
             Instant loadTime = context.getStairway().getFlightState(flightId).getSubmitted();
             bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName_FlightId);
+            TimeUnit.SECONDS.sleep(waitSeconds);
 
             while (loadHistoryArray == null || loadHistoryArray.size() == fileChunkSize) {
                 loadHistoryArray = loadService.makeLoadHistoryArray(loadId, fileChunkSize, (chunkNum * fileChunkSize));

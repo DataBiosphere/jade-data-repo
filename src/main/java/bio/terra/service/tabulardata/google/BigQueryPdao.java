@@ -1275,10 +1275,11 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     private void deleteViews(
-        String snapshotName,
-        Snapshot snapshot) throws InterruptedException {
+        String datasetBqDatasetName,
+        Snapshot snapshot,
+        String projectId) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        snapshot.getTables().forEach(table -> {
+        List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
             SnapshotSource source = snapshot.getSnapshotSources().get(0);
@@ -1290,11 +1291,19 @@ public class BigQueryPdao implements PrimaryDataAccess {
             if (mapTable == null) {
                 throw new PdaoException("No matching map table for snapshot table " + table.getName());
             }
-            // delete the view
-            String tableName = table.getName();
+            // get the list of table names
+            return table.getName();
+        }).collect(Collectors.toList());
+
+        // delete the views
+        String snapshotName = snapshot.getName();
+        viewsToDelete.forEach(tableName -> {
             logger.info("Deleting view " + snapshotName + "." + tableName);
             bigQueryProject.deleteTable(snapshotName, tableName);
         });
+
+        List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
+        bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 
     private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {

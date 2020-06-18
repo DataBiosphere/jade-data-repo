@@ -636,7 +636,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetName = snapshot.getSnapshotSources().get(0).getDataset().getName();
         String datasetBqDatasetName = prefixName(datasetName);
 
-        deleteViewsandAcls(datasetBqDatasetName, snapshot, projectId);
+        deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
         return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
     }
 
@@ -1304,38 +1304,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
         // delete the view Acls
         String snapshotName = snapshot.getName();
         viewsToDelete.forEach(tableName -> logger.info("Deleting ACLs for view " + snapshotName + "." + tableName));
-        List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
-        bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
-    }
-
-    private void deleteViewsandAcls(
-        String datasetBqDatasetName,
-        Snapshot snapshot,
-        String projectId) throws InterruptedException {
-        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
-        List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
-            // Build the FROM clause from the source
-            // NOTE: we can put this in a loop when we do multiple sources
-            SnapshotSource source = snapshot.getSnapshotSources().get(0);
-
-            // Find the table map for the table. If there is none, we skip it.
-            // NOTE: for now, we know that there will be one, because we generate it directly.
-            // In the future when we have more than one, we can just return.
-            SnapshotMapTable mapTable = lookupMapTable(table, source);
-            if (mapTable == null) {
-                throw new PdaoException("No matching map table for snapshot table " + table.getName());
-            }
-            // get the list of table names
-            return table.getName();
-        }).collect(Collectors.toList());
-
-        // delete the views
-        String snapshotName = snapshot.getName();
-        viewsToDelete.forEach(tableName -> {
-            logger.info("Deleting view " + snapshotName + "." + tableName);
-            bigQueryProject.deleteTable(snapshotName, tableName);
-        });
-
         List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }

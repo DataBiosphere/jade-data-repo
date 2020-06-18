@@ -636,7 +636,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetName = snapshot.getSnapshotSources().get(0).getDataset().getName();
         String datasetBqDatasetName = prefixName(datasetName);
 
-        deleteViewsandAcls(datasetBqDatasetName, snapshot, projectId);
+        deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
         return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
     }
 
@@ -1280,7 +1280,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         }).collect(Collectors.toList());
     }
 
-    private void deleteViewsandAcls(
+    private void deleteViewAcls(
         String datasetBqDatasetName,
         Snapshot snapshot,
         String projectId) throws InterruptedException {
@@ -1301,13 +1301,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
             return table.getName();
         }).collect(Collectors.toList());
 
-        // delete the views
+        // delete the view Acls
         String snapshotName = snapshot.getName();
-        viewsToDelete.forEach(tableName -> {
-            logger.info("Deleting view " + snapshotName + "." + tableName);
-            bigQueryProject.deleteTable(snapshotName, tableName);
-        });
-
+        viewsToDelete.forEach(tableName -> logger.info("Deleting ACLs for view " + snapshotName + "." + tableName));
         List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
         bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }

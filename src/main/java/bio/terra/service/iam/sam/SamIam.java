@@ -178,8 +178,11 @@ public class SamIam implements IamProviderInterface {
                 IamResourceType.DATASET.toString(),
                 datasetId.toString(),
                 role.toString());
-            rolePolicies.add(getPolicyGroupEmailFromResponse(results));
+            String policyEmail = getPolicyGroupEmailFromResponse(results);
+            rolePolicies.add(policyEmail);
+            logger.debug("Dataset Policy Group Email: {}; Role: {}", role.toString(), policyEmail);
         }
+
         return rolePolicies;
     }
 
@@ -227,7 +230,9 @@ public class SamIam implements IamProviderInterface {
             IamResourceType.DATASNAPSHOT.toString(),
             snapshotId.toString(),
             IamRole.READER.toString());
-        return getPolicyGroupEmailFromResponse(results);
+        String policyEmail = getPolicyGroupEmailFromResponse(results);
+        logger.debug("Snapshot Reader Policy Group Email:  {} ", policyEmail);
+        return policyEmail;
     }
 
     @Override

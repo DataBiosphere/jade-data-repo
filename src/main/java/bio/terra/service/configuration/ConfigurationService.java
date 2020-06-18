@@ -48,6 +48,8 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.LOAD_HISTORY_WAIT_SECONDS;
+
 
 @Component
 public class ConfigurationService {
@@ -197,6 +199,7 @@ public class ConfigurationService {
         addParameter(LOAD_CONCURRENT_INGESTS, appConfiguration.getLoadConcurrentIngests());
         addParameter(LOAD_DRIVER_WAIT_SECONDS, appConfiguration.getLoadDriverWaitSeconds());
         addParameter(LOAD_HISTORY_COPY_CHUNK_SIZE, appConfiguration.getLoadHistoryCopyChunkSize());
+        addParameter(LOAD_HISTORY_WAIT_SECONDS, appConfiguration.getLoadHistoryWaitSeconds());
 
         // -- Faults --
         addFaultSimple(CREATE_ASSET_FAULT);

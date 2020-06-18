@@ -10,15 +10,7 @@ import bio.terra.integration.DataRepoFixtures;
 import bio.terra.integration.DataRepoResponse;
 import bio.terra.integration.GcsFixtures;
 import bio.terra.integration.UsersBase;
-import bio.terra.model.DRSObject;
-import bio.terra.model.DatasetModel;
-import bio.terra.model.DatasetSummaryModel;
-import bio.terra.model.EnumerateDatasetModel;
-import bio.terra.model.FileModel;
-import bio.terra.model.IngestRequestModel;
-import bio.terra.model.IngestResponseModel;
-import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.model.*;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
@@ -46,6 +38,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -167,6 +160,13 @@ public class AccessTest extends UsersBase {
         assertThat("reader can access the snapshot after it has been shared",
             readerHasAccess,
             equalTo(true));
+    }
+
+    @Test
+    public void checkPermissions() throws Exception {
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        dataRepoFixtures.addDatasetPolicyMember(
+            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @Test

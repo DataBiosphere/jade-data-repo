@@ -166,8 +166,8 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        IamResourceType iamResourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) + "/" +
-                resourceId + "/policies/" + role.toString() + "/members",
+        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType)
+                + "/" + resourceId + "/policies/" + role.toString() + "/members",
             TestUtils.mapToJson(req), PolicyResponse.class);
     }
 
@@ -176,7 +176,8 @@ public class DataRepoFixtures {
                                                       IamRole role,
                                                       String newMemberEmail,
                                                       IamResourceType iamResourceType) throws Exception {
-        DataRepoResponse<PolicyResponse> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, iamResourceType);
+        DataRepoResponse<PolicyResponse> response =
+            addPolicyMemberRaw(user, resourceId, role, newMemberEmail, iamResourceType);
         assertThat(iamResourceType + " policy member is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
         return response.getResponseObject().get();

@@ -38,7 +38,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -160,13 +159,6 @@ public class AccessTest extends UsersBase {
         assertThat("reader can access the snapshot after it has been shared",
             readerHasAccess,
             equalTo(true));
-    }
-
-    @Test
-    public void checkPermissions() throws Exception {
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
-        dataRepoFixtures.addDatasetPolicyMember(
-            steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
     }
 
     @Test

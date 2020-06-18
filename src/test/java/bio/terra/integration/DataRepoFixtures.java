@@ -5,7 +5,32 @@ import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.common.fixtures.ProfileFixtures;
-import bio.terra.model.*;
+import bio.terra.model.AssetModel;
+import bio.terra.model.BillingProfileModel;
+import bio.terra.model.BillingProfileRequestModel;
+import bio.terra.model.BulkLoadArrayRequestModel;
+import bio.terra.model.BulkLoadArrayResultModel;
+import bio.terra.model.ConfigGroupModel;
+import bio.terra.model.ConfigListModel;
+import bio.terra.model.ConfigModel;
+import bio.terra.model.DRSObject;
+import bio.terra.model.DataDeletionRequest;
+import bio.terra.model.DatasetModel;
+import bio.terra.model.DatasetRequestModel;
+import bio.terra.model.DatasetSummaryModel;
+import bio.terra.model.DeleteResponseModel;
+import bio.terra.model.EnumerateDatasetModel;
+import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.ErrorModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
+import bio.terra.model.IngestRequestModel;
+import bio.terra.model.IngestResponseModel;
+import bio.terra.model.JobModel;
+import bio.terra.model.PolicyMemberRequest;
+import bio.terra.model.SnapshotModel;
+import bio.terra.model.SnapshotRequestModel;
+import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.filedata.DrsResponse;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -160,7 +185,7 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public DataRepoResponse<PolicyResponse> addPolicyMemberRaw(TestConfiguration.User user,
+    public DataRepoResponse<Object> addPolicyMemberRaw(TestConfiguration.User user,
                                                        String resourceId,
                                                        IamRole role,
                                                        String userEmail,
@@ -168,19 +193,18 @@ public class DataRepoFixtures {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
         return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType)
                 + "/" + resourceId + "/policies/" + role.toString() + "/members",
-            TestUtils.mapToJson(req), PolicyResponse.class);
+            TestUtils.mapToJson(req), null);
     }
 
-    public PolicyResponse addPolicyMember(TestConfiguration.User user,
+    public void addPolicyMember(TestConfiguration.User user,
                                                       String resourceId,
                                                       IamRole role,
                                                       String newMemberEmail,
                                                       IamResourceType iamResourceType) throws Exception {
-        DataRepoResponse<PolicyResponse> response =
+        DataRepoResponse<Object> response =
             addPolicyMemberRaw(user, resourceId, role, newMemberEmail, iamResourceType);
         assertThat(iamResourceType + " policy member is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
-        return response.getResponseObject().get();
     }
 
 
@@ -189,15 +213,7 @@ public class DataRepoFixtures {
                                                    String datasetId,
                                                    IamRole role,
                                                    String newMemberEmail) throws Exception {
-        PolicyResponse pr = addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
-
-        logger.info("AddPolicyMember: Dataset Policy for resource Id: {}, new policy: {}, member: {}, role: {}",
-            datasetId, pr, newMemberEmail, role);
-        PolicyModel cp = pr.getPolicies().get(0);
-
-        assertThat("Policy should be for custodian", role.toString(), equalTo(cp.getName()));
-        assertTrue("Policy member should include custodian email",
-            cp.getMembers().contains(newMemberEmail));
+        addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
     }
 
     // adding dataset asset
@@ -224,14 +240,7 @@ public class DataRepoFixtures {
                                        String snapshotId,
                                        IamRole role,
                                        String newMemberEmail) throws Exception {
-        PolicyResponse pr =  addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
-        logger.info("AddPolicyMember: Snapshot Policy for resource Id: {}, new policy: {}, member: {}, role: {}",
-            snapshotId, pr, newMemberEmail, role);
-        PolicyModel cp = pr.getPolicies().get(0);
-
-        assertThat("Policy role should match", role.toString(), equalTo(cp.getName()));
-        assertTrue("Policy member should include email",
-            cp.getMembers().contains(newMemberEmail));
+        addPolicyMember(user, snapshotId, role, newMemberEmail, IamResourceType.DATASNAPSHOT);
     }
 
     public DataRepoResponse<JobModel> createSnapshotWithRequestLaunch(

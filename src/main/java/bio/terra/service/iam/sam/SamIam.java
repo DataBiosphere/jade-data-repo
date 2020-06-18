@@ -180,7 +180,7 @@ public class SamIam implements IamProviderInterface {
                 role.toString());
             String policyEmail = getPolicyGroupEmailFromResponse(results);
             rolePolicies.add(policyEmail);
-            logger.info("Dataset Policy Group Email: {}; Role: {}", role.toString(), policyEmail);
+            logger.debug("Dataset Policy Group Email: {}; Role: {}", role.toString(), policyEmail);
         }
 
         return rolePolicies;
@@ -231,7 +231,7 @@ public class SamIam implements IamProviderInterface {
             snapshotId.toString(),
             IamRole.READER.toString());
         String policyEmail = getPolicyGroupEmailFromResponse(results);
-        logger.info("Snapshot Reader Policy Group Email:  {} ", policyEmail);
+        logger.debug("Snapshot Reader Policy Group Email:  {} ", policyEmail);
         return policyEmail;
     }
 

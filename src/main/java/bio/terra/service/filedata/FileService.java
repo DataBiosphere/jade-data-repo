@@ -97,6 +97,8 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .addParameter(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
                 configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
+            .addParameter(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
+                configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
             .submit();
     }
 
@@ -123,6 +125,8 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .addParameter(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
                 configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
+            .addParameter(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
+                configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
             .submit();
     }
 

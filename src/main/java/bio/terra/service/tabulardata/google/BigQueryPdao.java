@@ -637,7 +637,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         String datasetBqDatasetName = prefixName(datasetName);
 
         deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
-        return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
+        return bigQueryProject.deleteDataset(snapshot.getName());
     }
 
     private List<Acl> convertToViewAcls(String projectId, String datasetName, List<String> tableNames) {

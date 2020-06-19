@@ -82,6 +82,7 @@ public class KubeService {
                 String podName = item.getMetadata().getName();
                 if (StringUtils.contains(podName, API_POD_FILTER)) {
                     podList.add(podName);
+                    logger.info("KubeService: Pod name {}", podName);
                 }
             }
             return podList;

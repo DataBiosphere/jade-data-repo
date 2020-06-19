@@ -15,6 +15,7 @@ public final class KubeFixture {
     @Autowired private KubeService kubeService;
 
     public List<String> listAllPods() {
+        kubeService.startPodListener();
         return kubeService.getApiPodList();
     }
 }

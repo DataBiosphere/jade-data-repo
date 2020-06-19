@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.snapshot.Snapshot;
@@ -13,7 +14,6 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,16 +50,7 @@ public class SnapshotAuthzTabularAclStep implements Step {
 
             bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);
         } catch (BigQueryException ex) {
-            // TODO: OK, so how do I know it is an IAM error and not some other error?
-            //  First, I just scan for IAM in the message text and I log the BigQueryError reason. Then I
-            //  can come back to this code and be more explicit about the reason.
-            //  This is a cut'n'paste from CreateDatasetAuthzPrimaryDataStep. When we fix it there,
-            //  we should also fix it here.
-            BigQueryError bqError = ex.getError();
-            if (bqError != null) {
-                logger.info("BigQueryError: reason=" + bqError.getReason() + " message=" + bqError.getMessage());
-            }
-            if (StringUtils.contains(ex.getMessage(), "IAM")) {
+            if (FlightUtils.isBigQueryIamPropagationError(ex)) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
             }
             throw new PdaoException("Caught BQ exception while granting read access to snapshot", ex);

@@ -20,9 +20,7 @@ public class OneDataLocationSelector implements DataLocationSelector {
         this.resourceConfiguration = resourceConfiguration;
     }
 
-    private String oneProject() {
-        return resourceConfiguration.getProjectId() + "-data";
-    }
+    private String oneProject() { return resourceConfiguration.getSingleDataProjectId(); }
 
     @Override
     public String projectIdForDataset(Dataset dataset) {

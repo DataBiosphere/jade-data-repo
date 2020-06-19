@@ -345,9 +345,10 @@ public class SnapshotConnectedTest {
         connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
 
         // now after deleting the snapshot, make sure you can create it again and the delete worked!
-        snapshotRequest.setName(snapshotModel.getName());
-        response = performCreateSnapshot(snapshotRequest, null);
-        SnapshotSummaryModel summaryModelSequel = validateSnapshotCreated(snapshotRequest, response);
+        SnapshotRequestModel snapshotRequestNext = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
+        snapshotRequestNext.setName(snapshotModel.getName());
+        response = performCreateSnapshot(snapshotRequestNext, null);
+        SnapshotSummaryModel summaryModelSequel = validateSnapshotCreated(snapshotRequestNext, response);
 
         // then delete it a final time for cleanup
         connectedOperations.deleteTestSnapshot(summaryModelSequel.getId());

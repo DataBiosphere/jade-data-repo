@@ -45,7 +45,8 @@ public class SnapshotAuthzTabularAclStep implements Step {
 
         try {
             if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {
-                throw new BigQueryException(400, "Fake IAM failure", new BigQueryError("reasonTBD", "fake", "fake"));
+                throw new BigQueryException(400, "IAM setPolicy fake failure",
+                    new BigQueryError("invalid", "fake", "IAM setPolicy fake failure"));
             }
 
             bigQueryPdao.addReaderGroupToSnapshot(snapshot, readersPolicyEmail);

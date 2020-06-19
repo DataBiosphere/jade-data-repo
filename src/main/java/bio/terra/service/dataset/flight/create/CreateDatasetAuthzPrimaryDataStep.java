@@ -46,7 +46,8 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
         Dataset dataset = datasetService.retrieve(datasetId);
         try {
             if (configService.testInsertFault(DATASET_GRANT_ACCESS_FAULT)) {
-                throw new BigQueryException(400, "Fake IAM failure", new BigQueryError("reasonTBD", "fake", "fake"));
+                throw new BigQueryException(400, "IAM setPolicy fake failure",
+                    new BigQueryError("invalid", "fake", "IAM setPolicy fake failure"));
             }
 
             bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails);

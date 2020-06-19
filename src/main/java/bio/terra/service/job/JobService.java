@@ -62,9 +62,6 @@ public class JobService {
     private final JobShutdownState jobShutdownState;
     private final Migrate migrate;
 
-    // TODO: this class reliably returns the Spring class loader whereas the JobService class does not.
-    //  It is a mystery worth solving at some point.
-    private final FireStoreDao fireStoreDao;
 
     @Autowired
     public JobService(IamService samService,
@@ -85,7 +82,6 @@ public class JobService {
         this.migrateConfiguration = migrateConfiguration;
         this.jobShutdownState = jobShutdownState;
         this.migrate = migrate;
-        this.fireStoreDao = fireStoreDao;
 
         String projectId = googleResourceConfiguration.getProjectId();
         String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
@@ -102,6 +98,8 @@ public class JobService {
             .stairwayClusterName(stairwayClusterName)
             .projectId(projectId)
             .enableWorkQueue(appConfig.isInKubernetes())
+            // TODO: the FireStoreDao class reliably returns the Spring class loader that seems to work for all TDR
+            //  classes, whereas the JobService class does not. It is a mystery worth solving at some point.
             .classLoader(fireStoreDao.getClass().getClassLoader())
             .build();
     }
@@ -113,16 +111,6 @@ public class JobService {
      */
     public void initialize() {
         try {
-            // Order is important here. We start the kubeListener so we see any pod deletes as we are starting up.
-            // Then we initialize Stairway and gets its list of recorded pods.
-            // We compute the difference between pods it has recorded and pods we know about. Recorded pods that
-            // do not exist are considered obsolete. We don't want a window where a running pod could get onto the
-            // stairway list, but not be in our pod list. So we get Stairway's list first. If a pod records
-            // itself in Stairway after that point we won't consider it obsolete. (If we did it in the other order,
-            // a pod could not be on the pod list, then start up and make it onto the Stairway list before we
-            // retrieved it. We would think that pod was obsolete.)
-            // Finally, we ask Stairway to recover and start servicing requests.
-
             List<String> recordedStairways;
             boolean weMigrated = false;
             try {
@@ -138,6 +126,14 @@ public class JobService {
                 }
             }
 
+            // Order is important here. There are two concerns we need to handle:
+            // 1. We need to avoid a window where a running pod could get onto the Stairway list, but not be
+            //    on the pod list. That is why we get the recorded list from Stairway *before* we read the Kubernetes
+            //    pod list.
+            // 2. We want to clean up pods that fail, so we start the kubePodListener as early as possible so we
+            //    detect pods that get deleted. The Stairway recovery method called by kubePodListener works once
+            //    Stairway initialization is done, so it is safe to start the listener before we have called
+            //    Stairway recoveryAndStart
             kubeService.startPodListener(stairway);
 
             // Lookup all of the stairway instances we know about

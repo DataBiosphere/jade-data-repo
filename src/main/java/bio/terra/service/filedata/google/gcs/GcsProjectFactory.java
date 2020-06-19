@@ -1,7 +1,5 @@
 package bio.terra.service.filedata.google.gcs;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -9,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class GcsProjectFactory {
-    private static final Logger logger = LoggerFactory.getLogger(GcsProjectFactory.class);
     private static final ConcurrentHashMap<String, GcsProject> gcsProjectCache = new ConcurrentHashMap<>();
 
     private final GcsConfiguration gcsConfiguration;

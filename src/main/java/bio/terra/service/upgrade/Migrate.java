@@ -261,6 +261,9 @@ public class Migrate {
         }
     }
 
+    // SQL State for table does not exist
+    private static final String PSQL_TABLE_NOT_EXIST = "42P01";
+
     private DeploymentRow getDeploymentRow(Connection connection) {
         final String readSql = "SELECT id, locking_pod_name FROM migrate.deployment_v1 WHERE dep_version = 1";
         DeploymentRow row = null;
@@ -274,7 +277,7 @@ public class Migrate {
                     .lockingPodName(rs.getString("locking_pod_name"));
             }
         } catch (PSQLException ex) {
-            if (!StringUtils.equals(ex.getSQLState(), "42P01")) {
+            if (!StringUtils.equals(ex.getSQLState(), PSQL_TABLE_NOT_EXIST)) {
                 throw new MigrateException("Select deployment failed", ex);
             }
         } catch (SQLException ex) {

@@ -31,7 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles({"google", "connectedtest"})
+@ActiveProfiles("google")
 @Category(Unit.class)
 public class SnapshotValidationTest {
 

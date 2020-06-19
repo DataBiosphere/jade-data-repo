@@ -122,7 +122,10 @@ public class KubePodListener implements Runnable {
                 logger.info("KubePodListener caught exception: " + exception);
             }
 
-            // Exponential backoff retry after an exception
+            // Exponential backoff retry after an exception from the watch
+            // Now and then, the watch gets a network timeout. This loop restarts it. We don't want a
+            // hard failure to just continue to loop, so if it hits the error WATCH_RETRIES times in a
+            // row, we bail out of the listener.
             if (consecutiveRetryCount >= WATCH_RETRIES) {
                 logger.error("KubePodListener exiting - exceeded max consecutive retries", exception);
                 return;

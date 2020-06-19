@@ -77,6 +77,7 @@ public class IngestTest extends UsersBase {
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(5L));
     }
 
+    @Ignore
     @Test
     public void ingestWildcardSuffix() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
@@ -85,6 +86,7 @@ public class IngestTest extends UsersBase {
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(7L));
     }
 
+    @Ignore
     @Test
     public void ingestWildcardMiddle() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
@@ -93,6 +95,7 @@ public class IngestTest extends UsersBase {
         assertThat("correct participant row count", ingestResponse.getRowCount(), equalTo(6L));
     }
 
+    @Ignore
     @Test
     public void ingestBuildSnapshot() throws Exception {
         IngestRequestModel ingestRequest = dataRepoFixtures.buildSimpleIngest(
@@ -115,6 +118,7 @@ public class IngestTest extends UsersBase {
         createdSnapshotIds.add(snapshotSummary.getId());
     }
 
+    @Ignore
     @Test
     public void ingestUnauthorizedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
@@ -131,6 +135,7 @@ public class IngestTest extends UsersBase {
             equalTo(HttpStatus.UNAUTHORIZED));
     }
 
+    @Ignore
     @Test
     public void ingestAppendNoPkTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
@@ -142,6 +147,7 @@ public class IngestTest extends UsersBase {
         assertThat("correct file row count", ingestResponse.getRowCount(), equalTo(1L));
     }
 
+    @Ignore
     @Test
     public void ingestBadPathTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", "totally-legit-file.json");
@@ -155,6 +161,7 @@ public class IngestTest extends UsersBase {
             containsString("not found"));
     }
 
+    @Ignore
     @Test
     public void ingestEmptyPatternTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", "prefix-matching-nothing/*");
@@ -168,6 +175,7 @@ public class IngestTest extends UsersBase {
             containsString("not found"));
     }
 
+    @Ignore
     @Test
     public void ingestBadBucketPatternTest() throws Exception {
         IngestRequestModel request = new IngestRequestModel()
@@ -184,6 +192,7 @@ public class IngestTest extends UsersBase {
             containsString("not supported"));
     }
 
+    @Ignore
     @Test
     public void ingestBadMultiWildcardTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", "ingest-prefix/*/ingest/suffix/*.json");
@@ -197,6 +206,7 @@ public class IngestTest extends UsersBase {
             containsString("not supported"));
     }
 
+    @Ignore
     @Test
     public void ingestSingleFileMalformedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
@@ -211,6 +221,7 @@ public class IngestTest extends UsersBase {
             hasItem(containsString("too many errors")));
     }
 
+    @Ignore
     @Test
     public void ingestWildcardMalformedTest() throws Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(

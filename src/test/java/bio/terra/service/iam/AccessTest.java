@@ -32,6 +32,7 @@ import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -94,6 +95,7 @@ public class AccessTest extends UsersBase {
         return GcsFixtures.getStorage(googleCredentials);
     }
 
+    @Ignore
     @Test
     public void checkShared() throws  Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
@@ -169,6 +171,7 @@ public class AccessTest extends UsersBase {
             equalTo(true));
     }
 
+    @Ignore
     @Test
     public void fileAclTest() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
@@ -256,6 +259,7 @@ public class AccessTest extends UsersBase {
         assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
     }
 
+    @Ignore
     @Test
     public void checkCustodianPermissions() throws  Exception {
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(

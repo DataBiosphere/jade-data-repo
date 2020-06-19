@@ -14,6 +14,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamRole;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -74,6 +75,7 @@ public class SimpleScenarioFaultTests extends UsersBase {
         }
     }
 
+    @Ignore
     @Test
     public void testSamTimeout() throws Exception {
         ConfigGroupModel configGroup = buildConfigGroup(ConfigFaultCountedModel.RateStyleEnum.FIXED);

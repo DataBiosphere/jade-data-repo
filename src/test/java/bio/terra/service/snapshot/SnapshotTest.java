@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.TableResult;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -99,6 +100,7 @@ public class SnapshotTest extends UsersBase {
     }
 
 
+    @Ignore
     @Test
     public void snapshotUnauthorizedPermissionsTest() throws Exception {
         DataRepoResponse<JobModel> createSnapLaunchResp =
@@ -129,6 +131,7 @@ public class SnapshotTest extends UsersBase {
             equalTo(0));
     }
 
+    @Ignore
     @Test
     public void snapshotRowIdsHappyPathTest() throws Exception {
         // fetch rowIds from the ingested dataset by querying the participant table
@@ -170,6 +173,7 @@ public class SnapshotTest extends UsersBase {
         // TODO: get the snapshot and make sure the number of rows matches with the row ids input
     }
 
+    @Ignore
     @Test
     public void snapshotByQueryHappyPathTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
@@ -191,6 +195,7 @@ public class SnapshotTest extends UsersBase {
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
     }
 
+    @Ignore
     @Test
     public void snapshotByFullViewHappyPathTest() throws Exception {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);

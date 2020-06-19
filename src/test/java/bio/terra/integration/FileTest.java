@@ -17,6 +17,7 @@ import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -80,6 +81,7 @@ public class FileTest extends UsersBase {
 
     // DR-612 filesystem corruption test; use a non-existent file to make sure everything errors
     // Do file ingests in parallel using a filename that will cause failure
+    @Ignore
     @Test
     public void fileParallelFailedLoadTest() throws Exception {
         List<DataRepoResponse<JobModel>> responseList = new ArrayList<>();
@@ -110,6 +112,7 @@ public class FileTest extends UsersBase {
         assertThat("No unexpected failures", failureCount, equalTo(0));
     }
 
+    @Ignore
     @Test
     @SuppressFBWarnings(
         value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE",

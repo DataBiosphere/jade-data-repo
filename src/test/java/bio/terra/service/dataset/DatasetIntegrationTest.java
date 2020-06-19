@@ -37,6 +37,7 @@ import com.google.cloud.storage.StorageOptions;
 import com.google.common.base.Charsets;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -95,6 +96,7 @@ public class DatasetIntegrationTest extends UsersBase {
         dataRepoFixtures.resetConfig(steward());
     }
 
+    @Ignore
     @Test
     public void datasetHappyPath() throws Exception {
         DatasetSummaryModel summaryModel = dataRepoFixtures.createDataset(steward(), "it-dataset-omop.json");
@@ -143,6 +145,7 @@ public class DatasetIntegrationTest extends UsersBase {
         }
     }
 
+    @Ignore
     @Test
     public void datasetUnauthorizedPermissionsTest() throws Exception {
         dataRepoFixtures.createDatasetError(custodian(), "dataset-minimal.json", HttpStatus.UNAUTHORIZED);
@@ -216,6 +219,7 @@ public class DatasetIntegrationTest extends UsersBase {
         }
     }
 
+    @Ignore
     @Test
     public void testAssetCreationUndo() throws Exception {
         // create a dataset
@@ -321,6 +325,7 @@ public class DatasetIntegrationTest extends UsersBase {
         return datasetId;
     }
 
+    @Ignore
     @Test
     public void testSoftDeleteHappyPath() throws Exception {
         String datasetId = ingestedDataset();
@@ -350,6 +355,7 @@ public class DatasetIntegrationTest extends UsersBase {
         assertTableCount(bigQuery, dataset, "sample", 5L);
     }
 
+    @Ignore
     @Test
     public void wildcardSoftDelete() throws Exception {
         String datasetId = ingestedDataset();
@@ -375,6 +381,7 @@ public class DatasetIntegrationTest extends UsersBase {
         assertTableCount(bigQuery, dataset, "sample", 2L);
     }
 
+    @Ignore
     @Test
     public void testSoftDeleteNotInFullView() throws Exception {
         String datasetId = ingestedDataset();

@@ -16,6 +16,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import com.google.cloud.bigquery.BigQuery;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -59,6 +60,7 @@ public class DrsTest extends UsersBase {
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummary.getId());
     }
 
+    @Ignore
     @Test
     public void drsHackyTest() throws Exception {
         // Get a DRS ID from the dataset

@@ -1230,7 +1230,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             "S." + PDAO_ROW_ID_COLUMN + " = R." + PDAO_ROW_ID_COLUMN + " AND " +
             "R." + PDAO_TABLE_ID_COLUMN + " = '<tableId>')";
 
-    private List<String> createViews( // TODO this creates the views, but what deletes them?
+    private List<String> createViews(
         String datasetBqDatasetName,
         Snapshot snapshot,
         String projectId,

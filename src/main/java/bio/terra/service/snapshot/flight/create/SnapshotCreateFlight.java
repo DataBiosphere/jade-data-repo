@@ -9,6 +9,8 @@ import bio.terra.service.filedata.google.gcs.GcsPdao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
+import bio.terra.service.resourcemanagement.DataLocationService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceService;
 import bio.terra.service.snapshot.SnapshotDao;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
@@ -35,6 +37,8 @@ public class SnapshotCreateFlight extends Flight {
         GcsPdao gcsPdao = (GcsPdao) appContext.getBean("gcsPdao");
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
+        DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
+        GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
 
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
@@ -100,6 +104,12 @@ public class SnapshotCreateFlight extends Flight {
             gcsPdao,
             datasetService,
             configService), pdaoAclRetryRule);
+
+        addStep(new SnapshotAuthzBqJobUserStep(
+            snapshotService,
+            dataLocationService,
+            resourceService,
+            snapshotReq.getName()));
 
         // unlock the snapshot metadata row
         addStep(new UnlockSnapshotStep(snapshotDao, null));

@@ -43,7 +43,7 @@ public class CreateDatasetAuthzBqJobUserStep implements Step {
         DatasetModel datasetModel = datasetService.retrieveModel(dataset);
 
         // The underlying service provides retries so we do not need to retry this operation
-        resourceService.grantPoliciesBqJobUser(datasetModel, policyEmails);
+        resourceService.grantPoliciesBqJobUser(datasetModel.getDataProject(), policyEmails);
         return StepResult.getStepResultSuccess();
     }
 

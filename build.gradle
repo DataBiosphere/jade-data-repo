@@ -51,8 +51,10 @@ if (hasProperty('buildScan')) {
         termsOfServiceUrl = 'https://gradle.com/terms-of-service'
         termsOfServiceAgree = 'yes'
         def ns = System.getenv("NAMESPACEINUSE") ?: "integration-1"
-        buildFinished {
-            link "🔗 JUMP to StackDriver Logs", "https://console.cloud.google.com/logs/viewer?interval=NO_LIMIT&project=broad-jade-integration&folder&organizationId&minLogLevel=0&expandAll=false&timestamp=2020-06-19T17:45:16.936000000Z&customFacets=&limitCustomFacetWidth=true&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22broad-jade-integration%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22integration-master%22%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22&scrollTimestamp=2020-06-19T17:02:58.628780367Z"
+        def startTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+        buildFinished { ->
+            def endTest = new Date().format("yyyy-MM-dd'T'HH:mm:ss'Z'", TimeZone.getTimeZone("UTC"))
+            link "Jump to StackDriver Logs 🔗 ", "https://console.cloud.google.com/logs/viewer?interval=CUSTOM&project=broad-jade-integration&folder&organizationId&minLogLevel=0&expandAll=false&customFacets=&limitCustomFacetWidth=true&scrollTimestamp=${startTest}&dateRangeStart=${startTest}&dateRangeEnd=${endTest}&advancedFilter=resource.type%3D%22k8s_container%22%0Aresource.labels.project_id%3D%22broad-jade-integration%22%0Aresource.labels.location%3D%22us-central1%22%0Aresource.labels.cluster_name%3D%22integration-master%22%0Aresource.labels.namespace_name%3D%22${ns}%22%0Alabels.k8s-pod%2Fcomponent%3D%22${ns}-jade-datarepo-api%22"
         }
     }
 }

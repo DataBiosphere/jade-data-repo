@@ -62,7 +62,7 @@ public class DrsTest extends UsersBase {
     @Test
     public void drsHackyTest() throws Exception {
         // Get a DRS ID from the dataset
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
             snapshotModel,
             "file",

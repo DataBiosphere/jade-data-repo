@@ -19,6 +19,7 @@ import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.ReadChannel;
@@ -229,7 +230,7 @@ public class AccessTest extends UsersBase {
         //
         // We make a BigQuery context for the reader in the test project. The reader doesn't have access
         // to run queries in the dataset project.
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(testConfiguration.getGoogleProjectId(), readerToken);
+        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
         // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
@@ -254,6 +255,17 @@ public class AccessTest extends UsersBase {
 
         Storage discovererStorage = getStorage(discovererToken);
         assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
+    }
+
+    @Test
+    public void fileAclFaultTest() throws Exception {
+        try {
+            // Run the fileAclTest with the SNAPSHOT_GRANT_FILE_ACCESS_FAULT on
+            dataRepoFixtures.setFault(steward(), ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT.name(), true);
+            fileAclTest();
+        } finally {
+            dataRepoFixtures.resetConfig(steward());
+        }
     }
 
     @Test

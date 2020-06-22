@@ -43,24 +43,6 @@ Give your service account access to dev GCR:
 
     gsutil iam ch serviceAccount:[PROJECT_NUMBER]-compute@developer.gserviceaccount.com:objectViewer gs://artifacts.broad-jade-dev.appspot.com
 
-### Deploy to your Google project
-
-The deployment script expects a few environment variables to be set:
-- GOOGLE_CLOUD_PROJECT (broad-jade-initials)
-- ENVIRONMENT (dev)
-- SUFFIX (initials)
-
-So to deploy to my broad-jade-jh project, I would run:
-
-    GOOGLE_CLOUD_PROJECT=broad-jade-jh ENVIRONMENT=dev SUFFIX=jh ./ops/deploy.sh
-
-Again, this deployment script is set to pull secrets out of Vault, so it uses the ENVIRONMENT and SUFFIX variables in
-order to construct the right paths for lookups. Once you have deployed, you should have a set of pods and services
-running inside of Kubernetes that are exposed via a Load Balancer and is accessible to the web.
-
-It is useful to have the [jade-data-repo-ui](https://github.com/DataBiosphere/jade-data-repo-ui) repository checked out
-next to this one, as the deployment script will automatically deploy the UI if it sees the directory.
-
 ### Using cloud code and skaffold
 
 Once you have deployed to GKE, if you are developing on the API it might be useful to update the API container image
@@ -162,7 +144,7 @@ skaffold run
     ```
     datarepo.gcs.allowReuseExistingBuckets=false
     ```
-    - You can override the default value for connected and integration tests by adding a line to 
+    - You can override the default value for connected and integration tests by adding a line to
     `application-connectedtest.properties` and `application-integrationtest.properties`.
     ```
     datarepo.gcs.allowReuseExistingBuckets=true
@@ -184,7 +166,7 @@ skaffold run
       datarepoGcsAllowreuseexistingbuckets:
     ```
     - Release a new version of the chart. Talk to DevOps to do this.
-3. To override properties for specific environments (e.g. integration), modify the 
+3. To override properties for specific environments (e.g. integration), modify the
 [environment-specific override Data Repo charts](https://github.com/broadinstitute/datarepo-helm-definitions).
     - Find the [deployment.yaml](https://github.com/broadinstitute/datarepo-helm-definitions/blob/master/integration/integration-1/integration-1Deployment.yaml)
     for the specific environment.

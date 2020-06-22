@@ -87,39 +87,42 @@ public class DatasetConnectedTest {
     @MockBean private IamProviderInterface samService;
 
     private BillingProfileModel billingProfile;
+    private DatasetRequestModel datasetRequest;
+    private DatasetSummaryModel summaryModel;
 
     @Before
     public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(samService);
+        configService.reset();
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+        // create a dataset and check that it succeeds
+        String resourcePath = "snapshot-test-dataset.json";
+        datasetRequest =
+            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
+        datasetRequest
+            .name(Names.randomizeName(datasetRequest.getName()))
+            .defaultProfileId(billingProfile.getId());
+        summaryModel = connectedOperations.createDataset(datasetRequest);
     }
 
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        configService.reset();
     }
 
     @Test
     public void testDuplicateName() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-
-        DatasetSummaryModel datasetSummaryModel = connectedOperations.createDataset(datasetRequest);
-        assertNotNull("created dataset successfully the first time", datasetSummaryModel);
+        assertNotNull("created dataset successfully the first time", summaryModel);
 
         // fetch the dataset and confirm the metadata matches the request
-        DatasetModel datasetModel = connectedOperations.getDataset(datasetSummaryModel.getId());
+        DatasetModel datasetModel = connectedOperations.getDataset(summaryModel.getId());
         assertNotNull("fetched dataset successfully after creation", datasetModel);
         assertEquals("fetched dataset name matches request", datasetRequest.getName(), datasetModel.getName());
 
         // check that the dataset metadata row is unlocked
-        String exclusiveLock = datasetDao.getExclusiveLock(UUID.fromString(datasetSummaryModel.getId()));
+        String exclusiveLock = datasetDao.getExclusiveLock(UUID.fromString(summaryModel.getId()));
         assertNull("dataset row is unlocked", exclusiveLock);
 
         // try to create the same dataset again and check that it fails
@@ -129,23 +132,14 @@ public class DatasetConnectedTest {
             errorModel.getMessage(), containsString("Dataset name already exists"));
 
         // delete the dataset and check that it succeeds
-        connectedOperations.deleteTestDataset(datasetSummaryModel.getId());
+        connectedOperations.deleteTestDataset(summaryModel.getId());
 
         // try to fetch the dataset again and confirm nothing is returned
-        connectedOperations.getDatasetExpectError(datasetSummaryModel.getId(), HttpStatus.NOT_FOUND);
+        connectedOperations.getDatasetExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
     public void testOverlappingDeletes() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
         // ====================================================
         // enable hang in DeleteDatasetPrimaryDataStep
@@ -182,15 +176,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testSharedLockFileIngest() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
         // ====================================================
         // enable hang in IngestFileIdStep
@@ -281,15 +266,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testSharedLockFileDelete() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // ingest two files
         URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
             null, null);
@@ -385,15 +361,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testSharedLockTableIngest() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // load a JSON file that contains the table rows to load into the test bucket
         String resourceFileName = "snapshot-test-dataset-data-without-rowids.json";
         String dirInCloud = "scratch/testSharedLockTableIngest/" + UUID.randomUUID().toString();
@@ -481,15 +448,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testRepeatedSoftDelete() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePathDatasetCreate = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePathDatasetCreate, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // load a CSV file that contains the table rows to load into the test bucket
         String resourceFileName = "snapshot-test-dataset-data.csv";
         String dirInCloud = "scratch/testRepeatedSoftDelete/" + UUID.randomUUID().toString();
@@ -563,15 +521,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testConcurrentSoftDeletes() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePathDatasetCreate = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePathDatasetCreate, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // load a CSV file that contains the table rows to load into the test bucket
         String resourceFileName = "snapshot-test-dataset-data.csv";
         String dirInCloud = "scratch/testConcurrentSoftDeletes/" + UUID.randomUUID().toString();
@@ -677,15 +626,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testBadSoftDelete() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePathDatasetCreate = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePathDatasetCreate, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // load a CSV file that contains the table rows to load into the test bucket
         String resourceFileName = "snapshot-test-dataset-data.csv";
         String dirInCloud = "scratch/testBadSoftDelete/" + UUID.randomUUID().toString();
@@ -752,15 +692,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testExcludeLockedFromDatasetLookups() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // check that the dataset metadata row is unlocked
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock = datasetDao.getExclusiveLock(datasetId);
@@ -843,15 +774,6 @@ public class DatasetConnectedTest {
 
     @Test
     public void testExcludeLockedFromFileLookups() throws Exception {
-        // create a dataset and check that it succeeds
-        String resourcePath = "snapshot-test-dataset.json";
-        DatasetRequestModel datasetRequest =
-            jsonLoader.loadObject(resourcePath, DatasetRequestModel.class);
-        datasetRequest
-            .name(Names.randomizeName(datasetRequest.getName()))
-            .defaultProfileId(billingProfile.getId());
-        DatasetSummaryModel summaryModel = connectedOperations.createDataset(datasetRequest);
-
         // check that the dataset metadata row is unlocked
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock = datasetDao.getExclusiveLock(datasetId);

@@ -15,7 +15,11 @@ import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.FieldValueList;
 import com.google.cloud.bigquery.QueryJobConfiguration;
 import com.google.cloud.bigquery.TableResult;
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +30,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public final class BigQueryFixtures {
+    private static final Logger logger = LoggerFactory.getLogger(BigQueryFixtures.class);
     private static final int SAM_TIMEOUT_SECONDS = 400;
 
     private BigQueryFixtures() {
@@ -65,6 +70,48 @@ public final class BigQueryFixtures {
         }
     }
 
+    /**
+     * Run a query in BigQuery with retries
+     *
+     * The BigQuery query is in an exponential backoff loop so that it tolerates access failures due to
+     * GCP IAM update propagation. See DR-875 and the document:
+     * <a href="https://docs.google.com/document/d/18j1ldbbXn-5Zyji5pHjx3CEg-SRQan2P2olY_6gAPUA">IAM Propagation Note
+     * </a>
+     *
+     * @param sql query string to execute
+     * @param bigQuery authenticated BigQuery object to use
+     * @return TableResult object returned from BigQuery
+     */
+    private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
+    private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
+    private static final int RETRY_MAX_SLEEP_SECONDS = 600;
+
+    public static TableResult queryWithRetry(String sql, BigQuery bigQuery) throws InterruptedException {
+        int sleptSeconds = 0;
+        int sleepSeconds = RETRY_INITIAL_INTERVAL_SECONDS;
+        while (true) {
+            try {
+                QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sql).build();
+                return bigQuery.query(queryConfig);
+            } catch (BigQueryException ex) {
+                logger.info("Caught BQ exception: code=" + ex.getCode()
+                    + " reason=" + ex.getReason()
+                    + " msg=" + ex.getMessage());
+                if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS) &&
+                    (ex.getCode() == 403) &&
+                    StringUtils.equals(ex.getReason(), "accessDenied")) {
+
+                    TimeUnit.SECONDS.sleep(sleepSeconds);
+                    sleptSeconds += sleepSeconds;
+                    logger.info("Slept " + sleepSeconds + " total slept " + sleptSeconds);
+                    sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
+                } else {
+                    throw ex;
+                }
+            }
+        }
+    }
+
     public static String makeTableRef(SnapshotModel snapshotModel, String tableName) {
         return String.format("`%s.%s.%s`",
             snapshotModel.getDataProject(),
@@ -85,12 +132,12 @@ public final class BigQueryFixtures {
     public static String queryForDrsId(BigQuery bigQuery,
                                        SnapshotModel snapshotModel,
                                        String tableName,
-                                       String columnName) {
+                                       String columnName) throws InterruptedException {
         String sql = String.format("SELECT %s FROM %s WHERE %s IS NOT NULL LIMIT 1",
             columnName,
             makeTableRef(snapshotModel, tableName),
             columnName);
-        TableResult ids = BigQueryFixtures.query(sql, bigQuery);
+        TableResult ids = BigQueryFixtures.queryWithRetry(sql, bigQuery);
         assertThat("Got one row", ids.getTotalRows(), equalTo(1L));
 
         String drsUri = null;

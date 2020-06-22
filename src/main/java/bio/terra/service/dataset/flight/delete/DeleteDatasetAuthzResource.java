@@ -1,7 +1,7 @@
 package bio.terra.service.dataset.flight.delete;
 
 import bio.terra.service.iam.AuthenticatedUserRequest;
-import bio.terra.service.dataset.flight.create.CreateDatasetAuthzResource;
+import bio.terra.service.dataset.flight.create.CreateDatasetAuthzBqJobUserStep;
 import bio.terra.service.iam.IamService;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
@@ -22,7 +22,7 @@ public class DeleteDatasetAuthzResource implements Step {
         this.userReq = userReq;
     }
 
-    private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzResource.class);
+    private static Logger logger = LoggerFactory.getLogger(CreateDatasetAuthzBqJobUserStep.class);
 
     @Override
     public StepResult doStep(FlightContext context) {

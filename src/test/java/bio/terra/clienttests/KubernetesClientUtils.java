@@ -13,7 +13,7 @@ import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
@@ -25,10 +25,12 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-public class KubernetesClientUtils {
+public final class KubernetesClientUtils {
 
     private static GoogleCredentials applicationDefaultCredentials;
     private static CoreV1Api kubernetesClientObject;
+
+    private KubernetesClientUtils() { }
 
     public static AccessToken getApplicationDefaultAccessToken() throws IOException {
         if (applicationDefaultCredentials == null) {
@@ -73,7 +75,9 @@ public class KubernetesClientUtils {
         String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
 
         // load the kubeconfig object from the file
-        KubeConfig kubeConfig = KubeConfig.loadKubeConfig(new FileReader(kubeConfigPath));
+        InputStreamReader filereader =
+            new InputStreamReader(new FileInputStream(kubeConfigPath), Charset.forName("UTF-8"));
+        KubeConfig kubeConfig = KubeConfig.loadKubeConfig(filereader);
 
         // get a refreshed SA access token and its expiration time
         AccessToken accessToken = getApplicationDefaultAccessToken();
@@ -162,6 +166,7 @@ public class KubernetesClientUtils {
         return list.getItems();
     }
 
+    // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
     public static void main(String[] args) throws Exception {
         CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
         for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {

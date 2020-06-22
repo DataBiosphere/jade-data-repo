@@ -118,7 +118,7 @@ dependencies {
     compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
-    compile 'com.google.cloud:google-cloud-storage:1.92.0'
+    compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
     compile 'io.springfox:springfox-swagger-ui:2.9.2'
     compile 'io.springfox:springfox-swagger2:2.9.2'

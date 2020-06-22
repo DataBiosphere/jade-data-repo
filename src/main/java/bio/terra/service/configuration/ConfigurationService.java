@@ -24,6 +24,7 @@ import static bio.terra.service.configuration.ConfigEnum.BUCKET_LOCK_CONFLICT_ST
 import static bio.terra.service.configuration.ConfigEnum.CREATE_ASSET_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.DATASET_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_BULK_FILES_MAX;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_CONCURRENT_FILES;
@@ -33,6 +34,8 @@ import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLI
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_DELETE_LOCK_CONFLICT_STOP_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.TABLE_INGEST_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
@@ -241,6 +244,10 @@ public class ConfigurationService {
         addFaultCounted(SOFT_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(SOFT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        addFaultCounted(DATASET_GRANT_ACCESS_FAULT, 0, 3, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultCounted(SNAPSHOT_GRANT_ACCESS_FAULT, 0, 3, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
+        addFaultCounted(SNAPSHOT_GRANT_FILE_ACCESS_FAULT, 0, 3, 100, ConfigFaultCountedModel.RateStyleEnum.FIXED);
     }
 
 }

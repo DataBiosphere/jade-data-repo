@@ -123,6 +123,7 @@ public class SnapshotConnectedTest {
     @Before
     public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(samService);
+        configService.reset();
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
         datasetSummary = createTestDataset("snapshot-test-dataset.json");
@@ -132,11 +133,20 @@ public class SnapshotConnectedTest {
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        configService.reset();
     }
 
     @Test
     public void testHappyPath() throws Exception {
         snapshotHappyPathTestingHelper("snapshot-test-snapshot.json");
+    }
+
+    @Test
+    public void testFaultyPath() throws Exception {
+        // Run the happy path test, but insert the GRANT ACCESS faults to simulate IAM propagation failures
+        configService.setFault(ConfigEnum.DATASET_GRANT_ACCESS_FAULT.name(), true);
+        configService.setFault(ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT.name(), true);
+        testHappyPath();
     }
 
     @Test

@@ -93,6 +93,7 @@ public class DatasetConnectedTest {
     @Before
     public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(samService);
+        configService.reset();
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
         // create a dataset and check that it succeeds
@@ -108,6 +109,7 @@ public class DatasetConnectedTest {
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        configService.reset();
     }
 
     @Test

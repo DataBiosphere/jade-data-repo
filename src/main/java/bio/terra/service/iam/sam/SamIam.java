@@ -219,7 +219,7 @@ public class SamIam implements IamProviderInterface {
             new AccessPolicyMembership().roles(Collections.singletonList(IamRole.DISCOVERER.toString())));
 
         ResourcesApi samResourceApi = samResourcesApi(userReq.getRequiredToken());
-        logger.debug(req.toString());
+        logger.debug("SAM request: " + req.toString());
 
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);

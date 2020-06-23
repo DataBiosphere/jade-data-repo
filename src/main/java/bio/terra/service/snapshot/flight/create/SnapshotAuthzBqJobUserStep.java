@@ -11,7 +11,7 @@ import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
 
-import java.util.List;
+import java.util.Collections;
 
 public class SnapshotAuthzBqJobUserStep implements Step {
     private final SnapshotService snapshotService;
@@ -36,16 +36,18 @@ public class SnapshotAuthzBqJobUserStep implements Step {
         Snapshot snapshot = snapshotService.retrieveByName(snapshotName);
         SnapshotDataProject projectForSnapshot = dataLocationService.getOrCreateProject(snapshot);
 
-        List<String> policyEmails = workingMap.get(SnapshotWorkingMapKeys.POLICY_EMAIL, List.class);
+        String policyEmail = workingMap.get(SnapshotWorkingMapKeys.POLICY_EMAIL, String.class);
 
         // The underlying service provides retries so we do not need to retry this operation
-        resourceService.grantPoliciesBqJobUser(projectForSnapshot.getGoogleProjectId(), policyEmails);
+        resourceService.grantPoliciesBqJobUser(
+            projectForSnapshot.getGoogleProjectId(),
+            Collections.singletonList(policyEmail));
+
         return StepResult.getStepResultSuccess();
     }
 
     @Override
     public StepResult undoStep(FlightContext context) throws InterruptedException {
-        // TODO:
         return StepResult.getStepResultSuccess();
     }
 }

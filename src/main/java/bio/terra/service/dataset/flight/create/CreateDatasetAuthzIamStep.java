@@ -9,6 +9,7 @@ import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,6 +34,7 @@ public class CreateDatasetAuthzIamStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         List<String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
+        logger.info("policyEmails: " + StringUtils.join(policyEmails, ", "));
         workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
         return StepResult.getStepResultSuccess();
     }

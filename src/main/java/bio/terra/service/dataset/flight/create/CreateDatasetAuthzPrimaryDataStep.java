@@ -14,6 +14,7 @@ import bio.terra.stairway.StepResult;
 import bio.terra.stairway.StepStatus;
 import com.google.cloud.bigquery.BigQueryError;
 import com.google.cloud.bigquery.BigQueryException;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,6 +44,7 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
         List<String> policyEmails = workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, List.class);
+        logger.info("policyEmails: " + StringUtils.join(policyEmails, ", "));
         Dataset dataset = datasetService.retrieve(datasetId);
         try {
             if (configService.testInsertFault(DATASET_GRANT_ACCESS_FAULT)) {

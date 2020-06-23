@@ -9,14 +9,12 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
-import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 @Primary
 @Profile({"perftest"})
@@ -31,7 +29,7 @@ import java.util.UUID;
  * Any time there is a new type of information that we want to include in performance logs, there are 2 options:
  *   - Add the new field to the format string in this class and add optional arguments to the log methods that accept
  *     a value for this new field.
- *   - Specify the new information as a serializable object (e.g. String or property of a POJO) and pass it to the
+ *   - Specify the new information as an object (e.g. String or property of a POJO) and pass it to the
  *     existing log methods with the additionalInfo parameter.
  *  New types of information that seem broadly useful should use the first option and those that will probably only
  *  be used in a small number of places should use the second option.
@@ -55,6 +53,8 @@ public class PerformanceLoggerON implements PerformanceLogger {
     private static final ThreadLocal<Map<String, Instant>> startTimeMap =
         ThreadLocal.withInitial(() -> new HashMap<>());
 
+    private static final ThreadLocal<Long> logCounter = ThreadLocal.withInitial(() -> Long.valueOf(0));
+
     @Autowired
     public PerformanceLoggerON(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -62,22 +62,22 @@ public class PerformanceLoggerON implements PerformanceLogger {
     }
 
     public void log(String jobId, String className, String operationName,
-                    long elapsedTime, long integerCount, Serializable additionalInfo) {
+                    Duration elapsedTime, long integerCount, Object additionalInfo) {
         // serialize the additional info object to JSON
         String additionalInfoStr = "";
         if (additionalInfo != null) {
             try {
                 additionalInfoStr = objectMapper.writeValueAsString(additionalInfo);
             } catch (JsonProcessingException jsonEx) {
-                // if we hit a serialization error with the additional information object, use an empty string
+                // if we hit a serialization error with the additional information object, log the string anyway
                 // and log the error separately for debugging
                 logger.info("Failure serializing additionalInfo to JSON. " + additionalInfo.toString());
-                additionalInfoStr = "";
+                additionalInfoStr = additionalInfo.toString();
             }
         }
 
         logger.info(PerformanceLogFormat, currentTimestamp(), jobId, className, operationName,
-            elapsedTime, integerCount, additionalInfoStr);
+            elapsedTime.toString(), integerCount, additionalInfoStr);
     }
 
     /**
@@ -89,7 +89,9 @@ public class PerformanceLoggerON implements PerformanceLogger {
 
     public String timerStart() {
         // generate a timer reference id to use for tracking
-        String timerId = UUID.randomUUID().toString();
+        long logCounterVal = logCounter.get();
+        String timerId = Thread.currentThread().getId() + "-" + logCounterVal;
+        logCounter.set(logCounterVal == Long.MAX_VALUE ? 0 : logCounterVal + 1);
 
         timerStart(timerId);
 
@@ -109,7 +111,7 @@ public class PerformanceLoggerON implements PerformanceLogger {
     }
 
     public void timerEndAndLog(String timerId, String jobId, String className, String operationName,
-                               long integerCount, Serializable additionalInfo) {
+                               long integerCount, Object additionalInfo) {
         Instant endTime = Instant.now();
 
         // if the timer reference id is not found, then just log a timestamp for the event
@@ -117,12 +119,12 @@ public class PerformanceLoggerON implements PerformanceLogger {
         Instant startTime = startTimeMap.get().remove(timerId);
         if (startTime == null) {
             logger.info("Lookup of performance timer entry failed. " + timerId);
-            log(jobId, className, operationName, 0, integerCount, additionalInfo);
+            log(jobId, className, operationName, Duration.ZERO, integerCount, additionalInfo);
             return;
         }
 
         // calculate the elapsed time and include it in the log
-        long elapsedTimeNS = Duration.between(startTime, endTime).getNano();
-        log(jobId, className, operationName, elapsedTimeNS, integerCount, additionalInfo);
+        Duration elapsedTime = Duration.between(startTime, endTime);
+        log(jobId, className, operationName, elapsedTime, integerCount, additionalInfo);
     }
 }

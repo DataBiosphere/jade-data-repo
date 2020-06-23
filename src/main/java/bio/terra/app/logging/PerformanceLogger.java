@@ -1,6 +1,6 @@
 package bio.terra.app.logging;
 
-import java.io.Serializable;
+import java.time.Duration;
 
 /**
  * This class specifies the interface for performance logging.
@@ -17,23 +17,24 @@ public interface PerformanceLogger {
      * Log a timestamp for an event, specified with a job id, class and operation names.
      */
     default void log(String jobId, String className, String operationName) {
-        log(jobId, className, operationName, 0, 0, null);
+        log(jobId, className, operationName, Duration.ZERO, 0, null);
     }
 
     /**
      * Log a timestamp, elapsed time and integer count for an event.
      */
     default void log(String jobId, String className, String operationName,
-                    long elapsedTime, long integerCount) {
+                    Duration elapsedTime, long integerCount) {
         log(jobId, className, operationName, elapsedTime, integerCount, null);
     }
 
     /**
      * Log a timestamp, elapsed time, integer count, and any additional information for an event.
-     * The additional information is specified as any Serializable object (e.g. String, properties of a POJO).
+     * The additional information is specified as any object (e.g. String, properties of a POJO). The String
+     * representation of this object will be serialized into JSON before logging.
      */
     void log(String jobId, String className, String operationName,
-             long timeDurationMS, long integerCount, Serializable additionalInfo);
+             Duration elapsedTime, long integerCount, Object additionalInfo);
 
     /**
      * Start a timer for an event and generate an id to reference the timer.
@@ -83,10 +84,11 @@ public interface PerformanceLogger {
     /**
      * End a timer for an event, given the timer reference id.
      * Log a timestamp, the time duration, event information (job id, class and operation names), an integer count,
-     * and any additional information for an event. The additional information is specified as any Serializable object
-     * (e.g. String, properties of a POJO).
+     * and any additional information for an event. The additional information is specified as any object
+     * (e.g. String, properties of a POJO). The String representation of this object will be serialized into JSON
+     * before logging.
      * @param timerId the timer reference id
      */
     void timerEndAndLog(String timerId, String jobId, String className, String operationName,
-                        long integerCount, Serializable additionalInfo);
+                        long integerCount, Object additionalInfo);
 }

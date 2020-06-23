@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.Serializable;
+import java.time.Duration;
 
 @Component
 
@@ -28,14 +28,14 @@ public class PerformanceLoggerOFF implements PerformanceLogger {
     }
 
     public void log(String jobId, String className, String operationName,
-                    long elapsedTime, long integerCount, Serializable additionalInfo) { }
+                    Duration elapsedTime, long integerCount, Object additionalInfo) { }
 
     public String timerStart() {
-        return null;
+        return "";
     }
 
     public void timerStart(String timerId) { }
 
     public void timerEndAndLog(String timerId, String jobId, String className, String operationName,
-                               long integerCount, Serializable additionalInfo) { }
+                               long integerCount, Object additionalInfo) { }
 }

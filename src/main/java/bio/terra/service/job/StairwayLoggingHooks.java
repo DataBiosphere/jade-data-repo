@@ -27,7 +27,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     public HookAction startFlight(FlightContext context) {
         logger.info(FlightLogFormat, "startFlight", context.getFlightClassName(),
             context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-        performanceLogger.timerStart("stairwayFlight" + context.getFlightId());
+        performanceLogger.log(context.getFlightId(), context.getFlightClassName(), "startFlight");
         return HookAction.CONTINUE;
     }
 
@@ -43,8 +43,7 @@ public class StairwayLoggingHooks implements StairwayHook {
     public HookAction endFlight(FlightContext context) {
         logger.info(FlightLogFormat, "endFlight", context.getFlightClassName(),
             context.getFlightId(), Instant.now().atZone(ZoneId.of("Z")).format(DateTimeFormatter.ISO_INSTANT));
-        performanceLogger.timerEndAndLog("stairwayFlight" + context.getFlightId(), context.getFlightId(),
-            context.getFlightClassName(), "endFlight");
+        performanceLogger.log(context.getFlightId(), context.getFlightClassName(), "endFlight");
         return HookAction.CONTINUE;
     }
 

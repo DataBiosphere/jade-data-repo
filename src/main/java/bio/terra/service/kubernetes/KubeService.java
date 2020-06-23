@@ -3,11 +3,15 @@ package bio.terra.service.kubernetes;
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.service.job.JobShutdownState;
 import bio.terra.service.kubernetes.exception.KubeApiException;
+import bio.terra.stairway.Stairway;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1DeploymentList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.ClientBuilder;
@@ -21,8 +25,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static bio.terra.service.kubernetes.KubeConstants.API_POD_FILTER;
@@ -33,8 +38,8 @@ import static bio.terra.service.kubernetes.KubeConstants.KUBE_NAMESPACE_FILE;
  * This is primarily used to detect DRmanager pods going away so that we can recover
  * their flights in Stairway.
  */
-@Component
 @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+@Component
 public class KubeService {
     private static final Logger logger = LoggerFactory.getLogger(KubeService.class);
 
@@ -56,7 +61,7 @@ public class KubeService {
         if (inKubernetes) {
             this.namespace = readFileIntoString(KUBE_NAMESPACE_FILE);
         } else {
-            this.namespace = "none";
+            this.namespace = "nonamespace";
         }
 
         logger.info("Kubernetes configuration: inKube: " + inKubernetes +
@@ -65,37 +70,70 @@ public class KubeService {
     }
 
     /**
-     * Get a list of the API pods from Kubernetes
-     * @return list of pod names containing the API_POD_FILTER string; null if not in kubernetes
+     * Get a list of the API pods from Kubernetes. It is returned as a set to make probing for specific
+     * names easy.
+     * @return set of pod names containing the API_POD_FILTER string; null if not in kubernetes
      */
-    public List<String> getApiPodList() {
+    public Set<String> getApiPodList() {
+        Set<String> pods = new HashSet<>();
         if (!inKubernetes) {
-            return null;
+            return pods;
         }
 
-        List<String> podList = new ArrayList<>();
         try {
             CoreV1Api api = makeCoreApi();
-
             V1PodList list = api.listNamespacedPod(namespace, null, null, null, null, null, null, null, null, null);
             for (V1Pod item : list.getItems()) {
                 String podName = item.getMetadata().getName();
                 if (StringUtils.contains(podName, API_POD_FILTER)) {
-                    podList.add(podName);
+                    pods.add(podName);
                 }
             }
-            return podList;
+            return pods;
         } catch (ApiException ex) {
             throw new KubeApiException("Error listing pods", ex);
         }
     }
 
+    public String getApiDeploymentUid() {
+        // We want deployment to be unique for every run in the non-Kubernetes environment
+        String uid = "fake" + UUID.randomUUID().toString();
+        if (inKubernetes) {
+            V1Deployment deployment = getApiDeployment();
+            if (deployment != null) {
+                uid = deployment.getMetadata().getUid();
+            }
+        }
+        return uid;
+    }
+
+    // Common method to pull out the api deployment. We expect to have only one api deployment. If there is more than
+    // one, this will return the first one it finds.
+    private V1Deployment getApiDeployment() {
+        try {
+            AppsV1Api appsapi = makeDeploymentApi();
+            V1DeploymentList deployments =
+                appsapi.listNamespacedDeployment(namespace, null, null, null, null, null, null, null, null, null);
+
+            for (V1Deployment item : deployments.getItems()) {
+                String deploymentName = item.getMetadata().getName();
+                if (StringUtils.contains(deploymentName, API_POD_FILTER)) {
+                    return item;
+                }
+
+            }
+        } catch (ApiException ex) {
+            throw new KubeApiException("Error listing deployments", ex);
+        }
+        return null;
+    }
+
     /**
      * Launch the pod listener thread.
      */
-    public void startPodListener() {
+    public void startPodListener(Stairway stairway) {
         if (inKubernetes) {
-            podListener = new KubePodListener(jobShutdownState, namespace, podName);
+            podListener = new KubePodListener(jobShutdownState, stairway, namespace, podName);
             podListenerThread = new Thread(podListener);
             podListenerThread.start();
         }
@@ -120,7 +158,7 @@ public class KubeService {
         return true;
     }
 
-    CoreV1Api makeCoreApi() {
+    private CoreV1Api makeCoreApi() {
         try {
             ApiClient client = ClientBuilder.cluster().build();
             Configuration.setDefaultApiClient(client);
@@ -128,6 +166,24 @@ public class KubeService {
         } catch (IOException ex) {
             throw new KubeApiException("Error making core API", ex);
         }
+    }
+
+    private AppsV1Api makeDeploymentApi() {
+        try {
+            ApiClient client = ClientBuilder.cluster().build();
+            Configuration.setDefaultApiClient(client);
+            return new AppsV1Api();
+        } catch (IOException ex) {
+            throw new KubeApiException("Error making deployment API", ex);
+        }
+    }
+
+    public String getPodName() {
+        return podName;
+    }
+
+    public String getNamespace() {
+        return namespace;
     }
 
     private String readFileIntoString(String path) {

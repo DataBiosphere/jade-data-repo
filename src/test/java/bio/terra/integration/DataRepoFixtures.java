@@ -191,8 +191,8 @@ public class DataRepoFixtures {
                                                        String userEmail,
                                                        IamResourceType iamResourceType) throws Exception {
         PolicyMemberRequest req = new PolicyMemberRequest().email(userEmail);
-        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) + "/" +
-                resourceId + "/policies/" + role.toString() + "/members",
+        return dataRepoClient.post(user, "/api/repository/v1/" + TestUtils.getHttpPathString(iamResourceType) +
+                "/" + resourceId + "/policies/" + role.toString() + "/members",
             TestUtils.mapToJson(req), null);
     }
 
@@ -201,7 +201,8 @@ public class DataRepoFixtures {
                                 IamRole role,
                                 String newMemberEmail,
                                 IamResourceType iamResourceType) throws Exception {
-        DataRepoResponse<Object> response = addPolicyMemberRaw(user, resourceId, role, newMemberEmail, iamResourceType);
+        DataRepoResponse<Object> response =
+            addPolicyMemberRaw(user, resourceId, role, newMemberEmail, iamResourceType);
         assertThat(iamResourceType + " policy member is successfully added",
             response.getStatusCode(), equalTo(HttpStatus.OK));
     }
@@ -209,9 +210,9 @@ public class DataRepoFixtures {
 
     // adding dataset policy
     public void addDatasetPolicyMember(TestConfiguration.User user,
-                                     String datasetId,
-                                     IamRole role,
-                                     String newMemberEmail) throws Exception {
+                                                   String datasetId,
+                                                   IamRole role,
+                                                   String newMemberEmail) throws Exception {
         addPolicyMember(user, datasetId, role, newMemberEmail, IamResourceType.DATASET);
     }
 

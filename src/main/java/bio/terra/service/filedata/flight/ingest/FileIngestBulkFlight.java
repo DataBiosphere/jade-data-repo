@@ -17,6 +17,7 @@ import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
@@ -50,6 +51,7 @@ public class FileIngestBulkFlight extends Flight {
         String loadTag = inputParameters.get(LoadMapKeys.LOAD_TAG, String.class);
         int concurrentFiles = inputParameters.get(LoadMapKeys.CONCURRENT_FILES, Integer.class);
         int driverWaitSeconds = inputParameters.get(LoadMapKeys.DRIVER_WAIT_SECONDS, Integer.class);
+        int loadHistoryWaitSeconds = inputParameters.get(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS, Integer.class);
         int fileChunkSize = inputParameters.get(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE, Integer.class);
         boolean isArray = inputParameters.get(LoadMapKeys.IS_ARRAY, Boolean.class);
         // TODO: for reserving a bulk load slot:
@@ -74,6 +76,8 @@ public class FileIngestBulkFlight extends Flight {
 
         RetryRuleRandomBackoff createBucketRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+
+        RetryRuleExponentialBackoff driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
 
         // The flight plan:
         // 0. Verify authorization to do the ingest
@@ -106,6 +110,7 @@ public class FileIngestBulkFlight extends Flight {
                 appConfig.getLoadFilePopulateBatchSize()));
         }
         addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
+
         addStep(new IngestDriverStep(
             loadService,
             datasetId,
@@ -113,7 +118,8 @@ public class FileIngestBulkFlight extends Flight {
             concurrentFiles,
             maxFailedFileLoads,
             driverWaitSeconds,
-            profileId));
+            profileId), driverRetry);
+
         if (isArray) {
             addStep(new IngestBulkArrayResponseStep(loadService, loadTag));
         } else {
@@ -126,7 +132,8 @@ public class FileIngestBulkFlight extends Flight {
             loadTag,
             datasetId,
             bigQueryPdao,
-            fileChunkSize));
+            fileChunkSize,
+            loadHistoryWaitSeconds));
         addStep(new IngestCleanFileStateStep(loadService));
         // 9. TODO: release bulk load slot
         addStep(new LoadUnlockStep(loadService));

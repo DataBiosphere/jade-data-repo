@@ -1,19 +1,19 @@
 package bio.terra.service.filedata.google.gcs;
 
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
-import bio.terra.service.filedata.google.firestore.FireStoreFile;
-import bio.terra.service.dataset.Dataset;
-import bio.terra.service.filedata.FSFile;
-import bio.terra.service.filedata.FSFileInfo;
-import bio.terra.service.filedata.FSItem;
-import bio.terra.model.FileLoadModel;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.common.exception.PdaoFileCopyException;
 import bio.terra.common.exception.PdaoInvalidUriException;
 import bio.terra.common.exception.PdaoSourceFileNotFoundException;
+import bio.terra.model.FileLoadModel;
+import bio.terra.service.dataset.Dataset;
+import bio.terra.service.filedata.FSFile;
+import bio.terra.service.filedata.FSFileInfo;
+import bio.terra.service.filedata.FSItem;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
+import bio.terra.service.filedata.google.firestore.FireStoreFile;
+import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleBucketResource;
 import bio.terra.service.resourcemanagement.google.GoogleProjectResource;
-import bio.terra.service.resourcemanagement.DataLocationService;
 import com.google.cloud.storage.Acl;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 import java.net.URI;
@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
-@Profile("google")
 public class GcsPdao {
     private static final Logger logger = LoggerFactory.getLogger(GcsPdao.class);
     private static final int DATASET_DELETE_BATCH_SIZE = 1000;
@@ -42,15 +41,18 @@ public class GcsPdao {
     private final GcsProjectFactory gcsProjectFactory;
     private final DataLocationService dataLocationService;
     private final FireStoreDao fileDao;
+    private final ApplicationContext applicationContext;
 
     @Autowired
     public GcsPdao(
         GcsProjectFactory gcsProjectFactory,
         DataLocationService dataLocationService,
-        FireStoreDao fileDao) {
+        FireStoreDao fileDao,
+        ApplicationContext applicationContext) {
         this.gcsProjectFactory = gcsProjectFactory;
         this.dataLocationService = dataLocationService;
         this.fileDao = fileDao;
+        this.applicationContext = applicationContext;
     }
 
     private Storage storageForBucket(GoogleBucketResource bucketResource) {

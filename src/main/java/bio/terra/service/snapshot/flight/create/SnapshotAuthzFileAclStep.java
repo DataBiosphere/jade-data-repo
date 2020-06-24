@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot.flight.create;
 
+import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
@@ -58,6 +59,14 @@ public class SnapshotAuthzFileAclStep implements Step {
         // TODO: when we support multiple datasets, we can generate more than one copy of this
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
         //  in its own scope. For now, we know there is exactly one dataset and we take shortcuts.
+
+        try {
+            configService.fault(ConfigEnum.CREATE_SNAPSHOT_FAULT, () -> {
+                throw new RuntimeException("fault insertion");
+            });
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         SnapshotSource snapshotSource = snapshot.getSnapshotSources().get(0);
         String datasetId = snapshotSource.getDataset().getId().toString();

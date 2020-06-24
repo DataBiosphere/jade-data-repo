@@ -1,16 +1,20 @@
 package bio.terra.clienttests;
 
+import bio.terra.service.kubernetes.KubeService;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodList;
+import io.kubernetes.client.openapi.apis.ExtensionsV1beta1Api;
+import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -20,15 +24,16 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 public final class KubernetesClientUtils {
 
     private static GoogleCredentials applicationDefaultCredentials;
     private static CoreV1Api kubernetesClientObject;
+    private static final String defaultNameSpace = "default";
+    private static AppsV1Api appsV1Api;
+    // private static ExtensionsV1beta1Api V1BetaApi;
+    private static final Logger logger = LoggerFactory.getLogger(KubernetesClientUtils.class);
 
     private KubernetesClientUtils() { }
 
@@ -131,7 +136,12 @@ public final class KubernetesClientUtils {
         // object from the global configuration
         Configuration.setDefaultApiClient(client);
 
-        return new CoreV1Api();
+        // ExtensionsV1beta1Api extensionV1Api = new ExtensionsV1beta1Api();
+        // extensionV1Api.setApiClient(client);
+        // V1BetaApi = extensionV1Api;
+        appsV1Api = new AppsV1Api(client);
+
+        return new CoreV1Api(client);
     }
 
     /**
@@ -159,6 +169,24 @@ public final class KubernetesClientUtils {
         return outputLines;
     }
 
+    public static void scaleDeployment(String deploymentName, int numberOfReplicas)
+        throws ApiException {
+
+        V1Deployment deploy =
+            appsV1Api.readNamespacedDeployment(
+                deploymentName, defaultNameSpace, null, null, null);
+        logger.info("exisiting deploy replicas: {}", deploy.getSpec().getReplicas());
+        try {
+            V1DeploymentSpec newSpec = deploy.getSpec().replicas(numberOfReplicas);
+            V1Deployment newDeploy = deploy.spec(newSpec);
+            appsV1Api.replaceNamespacedDeployment(
+                deploymentName, defaultNameSpace, newDeploy, null, null, null);
+            logger.info("new deploy replicas: {}", newDeploy.getSpec().getReplicas());
+        } catch (ApiException ex) {
+            logger.error("Scale the pod failed for Deployment:" + deploymentName, ex);
+        }
+    }
+
     public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {
         // TODO: add try/catch for refresh token
         V1PodList list =
@@ -166,9 +194,12 @@ public final class KubernetesClientUtils {
         return list.getItems();
     }
 
+
     // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
     public static void main(String[] args) throws Exception {
         CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
+        scaleDeployment("sh-jade-datarepo-api", 2);
+        scaleDeployment("sh-jade-datarepo-api", 1);
         for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
             System.out.println(item.getMetadata().getName());
         }

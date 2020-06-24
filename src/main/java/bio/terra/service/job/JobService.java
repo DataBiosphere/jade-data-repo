@@ -2,6 +2,7 @@ package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.JobModel;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
@@ -74,7 +75,8 @@ public class JobService {
                       JobShutdownState jobShutdownState,
                       Migrate migrate,
                       FireStoreDao fireStoreDao,
-                      ObjectMapper objectMapper) {
+                      ObjectMapper objectMapper,
+                      PerformanceLogger performanceLogger) {
         this.samService = samService;
         this.appConfig = appConfig;
         this.kubeService = kubeService;
@@ -94,7 +96,7 @@ public class JobService {
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
-            .stairwayHook(new StairwayLoggingHooks())
+            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
             .stairwayClusterName(stairwayClusterName)
             .projectId(projectId)
             .enableWorkQueue(appConfig.isInKubernetes())

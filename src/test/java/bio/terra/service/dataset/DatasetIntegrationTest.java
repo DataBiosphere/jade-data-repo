@@ -99,11 +99,11 @@ public class DatasetIntegrationTest extends UsersBase {
     public void teardown() throws Exception {
         dataRepoFixtures.resetConfig(steward());
         for (String snapshotId : snapshotIds) {
-            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
+            dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }
 
         if (datasetId != null) {
-            dataRepoFixtures.deleteDataset(steward(), datasetId);
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
     }
 
@@ -348,9 +348,10 @@ public class DatasetIntegrationTest extends UsersBase {
                 requestModelAll);
         snapshotIds.add(snapshotSummaryAll.getId());
         SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
+        BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
 
-        assertSnapshotTableCount(bigQuery, snapshotAll, "participant", 5L);
-        assertSnapshotTableCount(bigQuery, snapshotAll, "sample", 7L);
+        assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);
+        assertSnapshotTableCount(bigQueryAll, snapshotAll, "sample", 7L);
 
         // write them to GCS
         String participantPath = writeListToScratch("softDel", participantRowIds);
@@ -382,13 +383,15 @@ public class DatasetIntegrationTest extends UsersBase {
         snapshotIds.add(snapshotSummaryLess.getId());
 
         SnapshotModel snapshotLess = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryLess.getId());
+        BigQuery bigQueryLess = BigQueryFixtures.getBigQuery(snapshotLess.getDataProject(), stewardToken);
+
         // make sure the old counts stayed the same
-        assertSnapshotTableCount(bigQuery, snapshotAll, "participant", 5L);
-        assertSnapshotTableCount(bigQuery, snapshotAll, "sample", 7L);
+        assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);
+        assertSnapshotTableCount(bigQueryAll, snapshotAll, "sample", 7L);
 
         // make sure the new counts make sense
-        assertSnapshotTableCount(bigQuery, snapshotLess, "participant", 2L);
-        assertSnapshotTableCount(bigQuery, snapshotLess, "sample", 5L);
+        assertSnapshotTableCount(bigQueryLess, snapshotLess, "participant", 2L);
+        assertSnapshotTableCount(bigQueryLess, snapshotLess, "sample", 5L);
     }
 
     private List<String> getRowIds(BigQuery bigQuery, DatasetModel dataset, String tableName, Long n)

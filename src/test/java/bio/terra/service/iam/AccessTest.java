@@ -97,10 +97,10 @@ public class AccessTest extends UsersBase {
     @After
     public void teardown() throws Exception {
         for (String snapshotId : snapshotIds) {
-            dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
+            dataRepoFixtures.deleteSnapshotLog(steward(), snapshotId);
         }
         if (datasetId != null) {
-            dataRepoFixtures.deleteDataset(steward(), datasetId);
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
     }
 

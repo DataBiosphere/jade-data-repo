@@ -1,20 +1,20 @@
 package bio.terra.service.filedata;
 
 import bio.terra.common.TestUtils;
-import bio.terra.common.category.Integration;
 import bio.terra.common.auth.AuthService;
+import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.integration.BigQueryFixtures;
 import bio.terra.integration.DataRepoFixtures;
-import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import bio.terra.integration.UsersBase;
 import bio.terra.model.DRSChecksum;
 import bio.terra.model.DRSObject;
 import bio.terra.model.FileModel;
 import bio.terra.model.SnapshotModel;
-import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.filedata.google.firestore.EncodeFixture;
 import com.google.cloud.bigquery.BigQuery;
 import org.apache.commons.lang3.StringUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -50,13 +50,22 @@ public class DrsTest extends UsersBase {
 
     private String readerToken;
     private SnapshotModel snapshotModel;
+    private String datasetId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
-        SnapshotSummaryModel snapshotSummary = encodeFixture.setupEncode(steward(), custodian(), reader());
-        snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummary.getId());
+        EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
+        snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
+        datasetId = setupResult.getDatasetId();
+        logger.info("setup complete");
+    }
+
+    @After
+    public void teardown() throws Exception {
+        dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotModel.getId());
+        dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
     }
 
     @Test

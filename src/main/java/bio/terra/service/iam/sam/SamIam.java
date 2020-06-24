@@ -202,6 +202,10 @@ public class SamIam implements IamProviderInterface {
         if (readersList == null) {
             readersList = Collections.emptyList();
         }
+        List<String> fullReadersList = new ArrayList<>(readersList);
+
+        // give the snapshot creator reader access
+        fullReadersList.add(userReq.getEmail());
 
         req.setResourceId(snapshotId.toString());
         req.addPoliciesItem(
@@ -213,7 +217,7 @@ public class SamIam implements IamProviderInterface {
             createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
         req.addPoliciesItem(
             IamRole.READER.toString(),
-            createAccessPolicy(IamRole.READER.toString(), readersList));
+            createAccessPolicy(IamRole.READER.toString(), fullReadersList));
         req.addPoliciesItem(
             IamRole.DISCOVERER.toString(),
             new AccessPolicyMembership().roles(Collections.singletonList(IamRole.DISCOVERER.toString())));

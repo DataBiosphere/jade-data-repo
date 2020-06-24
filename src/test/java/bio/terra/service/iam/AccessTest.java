@@ -31,6 +31,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,6 +48,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -78,6 +81,7 @@ public class AccessTest extends UsersBase {
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
+    private List<String> snapshotIds;
 
     @Before
     public void setup() throws Exception {
@@ -85,9 +89,29 @@ public class AccessTest extends UsersBase {
         discovererToken = authService.getDirectAccessAuthToken(discoverer().getEmail());
         readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
         custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
+        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+        datasetId = null;
+        snapshotIds = new ArrayList<>();
+    }
+
+    @After
+    public void teardown() throws Exception {
+        for (String snapshotId : snapshotIds) {
+            dataRepoFixtures.deleteSnapshot(steward(), snapshotId);
+        }
+        if (datasetId != null) {
+            dataRepoFixtures.deleteDataset(steward(), datasetId);
+        }
+    }
+
+    private void makeIngestTestDataset() throws Exception {
         datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "ingest-test-dataset.json");
         datasetId = datasetSummaryModel.getId();
-        profileId = dataRepoFixtures.createBillingProfile(steward()).getId();
+    }
+
+    private void makeAclTestDataset() throws Exception {
+        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        datasetId = datasetSummaryModel.getId();
     }
 
     private Storage getStorage(String token) {
@@ -97,6 +121,7 @@ public class AccessTest extends UsersBase {
 
     @Test
     public void checkShared() throws  Exception {
+        makeIngestTestDataset();
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
@@ -106,6 +131,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+
         String datasetBqSnapshotName = "datarepo_" + dataset.getName();
 
         BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);
@@ -172,7 +198,8 @@ public class AccessTest extends UsersBase {
 
     @Test
     public void fileAclTest() throws Exception {
-        datasetSummaryModel = dataRepoFixtures.createDataset(steward(), "file-acl-test-dataset.json");
+        makeAclTestDataset();
+
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
 
@@ -204,12 +231,12 @@ public class AccessTest extends UsersBase {
 
         assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
 
-        // Step 3. Create a snapshot exposing the one row and grant read access to our reader.
+        // Create a snapshot exposing the one row and grant read access to our reader.
         SnapshotSummaryModel snapshotSummaryModel = dataRepoFixtures.createSnapshot(
             custodian(),
             datasetSummaryModel,
             "file-acl-test-snapshot.json");
-
+        snapshotIds.add(snapshotSummaryModel.getId());
         SnapshotModel snapshotModel = dataRepoFixtures.getSnapshot(custodian(), snapshotSummaryModel.getId());
 
         dataRepoFixtures.addSnapshotPolicyMember(
@@ -220,11 +247,12 @@ public class AccessTest extends UsersBase {
 
         AuthenticatedUserRequest authenticatedReaderRequest =
             new AuthenticatedUserRequest().email(reader().getEmail()).token(Optional.of(readerToken));
-        assertThat("correctly added reader", iamService.isAuthorized(
+        boolean authorized = iamService.isAuthorized(
             authenticatedReaderRequest,
             IamResourceType.DATASNAPSHOT,
             snapshotModel.getId(),
-            IamAction.READ_DATA), equalTo(true));
+            IamAction.READ_DATA);
+        assertTrue("correctly added reader", authorized);
 
         // Step 4. Wait for SAM to sync the access change out to GCP.
         //
@@ -270,6 +298,7 @@ public class AccessTest extends UsersBase {
 
     @Test
     public void checkCustodianPermissions() throws  Exception {
+        makeIngestTestDataset();
         IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
             "participant", "ingest-test/ingest-test-participant.json");
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
@@ -279,6 +308,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.ingestJsonData(steward(), datasetId, request);
 
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
+
         String datasetBqSnapshotName = PdaoConstant.PDAO_PREFIX + dataset.getName();
 
         BigQuery custodianBigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), custodianToken);

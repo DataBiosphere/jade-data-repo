@@ -195,6 +195,9 @@ public class IngestDriverStep implements Step {
 
             switch (flightState.getFlightStatus()) {
                 case RUNNING:
+                case WAITING:
+                case READY:
+                case QUEUED:
                     realRunningLoads.add(loadFile);
                     break;
 

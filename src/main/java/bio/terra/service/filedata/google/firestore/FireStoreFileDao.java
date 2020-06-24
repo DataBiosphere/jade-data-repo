@@ -29,7 +29,7 @@ import java.util.function.Consumer;
 class FireStoreFileDao {
     private final Logger logger = LoggerFactory.getLogger(FireStoreFileDao.class);
 
-    private FireStoreUtils fireStoreUtils;
+    private final FireStoreUtils fireStoreUtils;
 
     @Autowired
     FireStoreFileDao(FireStoreUtils fireStoreUtils) {

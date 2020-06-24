@@ -99,12 +99,8 @@ repositories {
 
 configurations {
     generatedCompile
-    developmentOnly
-    runtimeClasspath {
-        extendsFrom developmentOnly
-    }
+    runtimeClasspath
 }
-
 
 // Exclude the Spring logger, so everything will use SLF4J
 configurations.all {
@@ -120,6 +116,7 @@ dependencies {
     compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
     compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
+    compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
     compile 'io.springfox:springfox-swagger-ui:2.9.2'
     compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
@@ -143,7 +140,7 @@ dependencies {
         implementation group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
         implementation group: 'org.openapitools', name: 'jackson-databind-nullable', version: '0.2.1'
     } else {
-        implementation 'bio.terra:stairway:0.0.8-SNAPSHOT'
+        implementation 'bio.terra:stairway:0.0.9-SNAPSHOT'
     }
 
     // Forcing this due to vulnerability issues
@@ -177,7 +174,6 @@ dependencies {
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
     generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
 
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
 

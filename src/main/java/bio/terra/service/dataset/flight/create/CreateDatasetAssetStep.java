@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.AssetModel;
-import bio.terra.model.ErrorModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;
@@ -80,7 +79,7 @@ public class CreateDatasetAssetStep implements Step {
 
         // get the dataset assets that already exist --asset name needs to be unique
         AssetSpecification newAssetSpecification = getNewAssetSpec(context, dataset);
-        List<AssetSpecification> datasetAssetSpecificationList = dataset.getAssetSpecifications();
+        // List<AssetSpecification> datasetAssetSpecificationList = dataset.getAssetSpecifications();
 
         // add a fault that forces an exception to make sure the undo works
         try {

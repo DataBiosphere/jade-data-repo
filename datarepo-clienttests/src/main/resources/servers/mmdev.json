@@ -1,0 +1,7 @@
+{
+  "name": "mmdev",
+  "uri": "https://jade-mm.datarepo-dev.broadinstitute.org",
+  "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
+  "region": "us-central1",
+  "project": "broad-jade-dev"
+}

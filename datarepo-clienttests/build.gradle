@@ -1,0 +1,47 @@
+plugins {
+    id 'java'
+    id "com.google.cloud.tools.jib" version "1.6.1"
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-release-local/'
+    }
+    maven {
+        url 'https://broadinstitute.jfrog.io/broadinstitute/libs-snapshot-local/'
+    }
+}
+
+dependencies {
+    testImplementation('org.junit.jupiter:junit-jupiter-api:5.4.2')
+    testRuntime('org.junit.jupiter:junit-jupiter-engine:5.4.2')
+
+    implementation 'bio.terra:datarepo-client:1.0.12-SNAPSHOT'
+
+    compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
+    compile 'com.google.api-client:google-api-client:1.23.0'
+    compile 'com.google.oauth-client:google-oauth-client-jetty:1.23.0'
+    compile 'com.google.apis:google-api-services-people:v1-rev277-1.23.0'
+    compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.20.0'
+}
+
+group 'bio.terra'
+version '1.0-SNAPSHOT'
+sourceCompatibility = 1.8
+
+test {
+    useJUnitPlatform()
+
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+application {
+    ext {
+        javaMainClass = "runner.TestRunner"
+    }
+    mainClassName = javaMainClass
+}

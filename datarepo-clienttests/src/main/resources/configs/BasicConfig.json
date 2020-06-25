@@ -1,0 +1,11 @@
+{
+  "name": "BasicConfig",
+  "serverSpecificationFile": "mmdev.json",
+  "testScripts": [
+    {
+      "name": "ServiceStatus",
+      "numberToRun": 1,
+      "timeout": "PT30S"
+    }
+  ]
+}

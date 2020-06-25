@@ -65,5 +65,6 @@ public class TestConfiguration implements SpecificationInterface {
             System.out.println();
             testScript.display();
         }
+        System.out.println();
     }
 }

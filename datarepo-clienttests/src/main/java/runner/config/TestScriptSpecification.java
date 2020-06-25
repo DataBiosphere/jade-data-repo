@@ -2,16 +2,17 @@ package runner.config;
 
 import runner.TestScript;
 
-import java.time.Duration;
-import java.time.format.DateTimeParseException;
+import java.util.concurrent.TimeUnit;
 
 public class TestScriptSpecification implements SpecificationInterface {
     public String name;
-    public long numberToRun;
-    public String timeout;
+    public int totalNumberToRun;
+    public int numberToRunInParallel;
+    public long expectedTimeForEach;
+    public String expectedTimeForEachUnit;
 
     public Class<? extends TestScript> scriptClass;
-    public Duration timeoutObj;
+    public TimeUnit expectedTimeForEachUnitObj;
 
     public static final String scriptsPackage = "testscripts";
 
@@ -22,11 +23,17 @@ public class TestScriptSpecification implements SpecificationInterface {
      * The timeout string is parsed into a Duration; the name is converted into a Java class reference.
      */
     public void validate() {
-        try {
-            timeoutObj = Duration.parse(timeout);
-        } catch (DateTimeParseException dtpEx) {
-            throw new IllegalArgumentException("Timeout format not supported: " + timeout, dtpEx);
+        if (totalNumberToRun <= 0) {
+            throw new IllegalArgumentException("Total number to run must be >=0.");
         }
+        if (numberToRunInParallel <= 0) {
+            throw new IllegalArgumentException("Number to run in parallel must be >=0.");
+        }
+        if (expectedTimeForEach <= 0) {
+            throw new IllegalArgumentException("Expected time for each must be >=0.");
+        }
+
+        expectedTimeForEachUnitObj = TimeUnit.valueOf(expectedTimeForEachUnit);
 
         try {
             Class<?> scriptClassGeneric = Class.forName(scriptsPackage + "." + name);
@@ -38,7 +45,9 @@ public class TestScriptSpecification implements SpecificationInterface {
 
     public void display() {
         System.out.println("Test Script: " + name);
-        System.out.println("  numberToRun: " + numberToRun);
-        System.out.println("  timeout: " + timeoutObj);
+        System.out.println("  totalNumberToRun: " + totalNumberToRun);
+        System.out.println("  numberToRunInParallel: " + numberToRunInParallel);
+        System.out.println("  expectedTimeForEach: " + expectedTimeForEach);
+        System.out.println("  expectedTimeForEachUnit: " + expectedTimeForEachUnitObj);
     }
 }

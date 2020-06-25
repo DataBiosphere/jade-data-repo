@@ -4,8 +4,10 @@
   "testScripts": [
     {
       "name": "ServiceStatus",
-      "numberToRun": 1,
-      "timeout": "PT30S"
+      "totalNumberToRun": 10,
+      "numberToRunInParallel": 2,
+      "expectedTimeForEach": "5",
+      "expectedTimeForEachUnit": "SECONDS"
     }
   ]
 }

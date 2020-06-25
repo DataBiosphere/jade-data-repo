@@ -13,14 +13,9 @@ public class ServiceStatus extends runner.TestScript {
     }
 
 
-    public void userJourney() {
+    public void userJourney() throws ApiException {
         UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi();
-
-        try {
-            unauthenticatedApi.serviceStatus();
-        } catch (ApiException apiEx) {
-            System.out.println("Service status endpoint threw exception: " + apiEx.getMessage());
-        }
+        unauthenticatedApi.serviceStatus();
 
         int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
         System.out.println("Service status: " + httpStatus);

@@ -6,15 +6,11 @@ import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 
 import javax.ws.rs.client.Client;
-import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -55,8 +51,10 @@ class TestRunner {
         Configuration.setDefaultApiClient(apiClient);
 
         // call the setup method of each test script
-        for (TestScript testScript : scripts) {
+        for (TestScript testScript : scripts) try {
             testScript.setup();
+        } catch (Exception setupEx) {
+            // TODO: handle exception in setup -- skip user journeys and go straight to cleanup
         }
 
         // for each test script
@@ -100,11 +98,13 @@ class TestRunner {
         }
 
         // call the cleanup method of each test script
-        for (TestScript testScript : scripts) {
+        for (TestScript testScript : scripts) try {
             testScript.cleanup();
+        } catch (Exception cleanupEx) {
+            // TODO: handle exception in cleanup -- finish calling other cleanups, then return
         }
 
-        // compile and return the results
+        // compile and return the results from all thread pools
         List<UserJourneyResult> results = new ArrayList<>();
         for (int ctr = 0; ctr < scripts.size(); ctr++) {
             List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
@@ -113,13 +113,16 @@ class TestRunner {
             for (Future<UserJourneyResult> userJourneyFuture : userJourneyFutureList) {
                 UserJourneyResult result = null;
                 if (userJourneyFuture.isDone()) try {
+                    // user journey thread completed and populated its own return object, which may include an exception
                     result = userJourneyFuture.get();
                     result.completed = true;
                 } catch (ExecutionException execEx) {
+                    // user journey thread threw an exception and didn't populate its own return object
                     result = new UserJourneyResult(testScriptSpecification.name, "");
-                    result.completed = true;
+                    result.completed = false;
                     result.exceptionThrown = execEx;
                 } else {
+                    // user journey either was never started or got cancelled before it finished
                     result = new UserJourneyResult(testScriptSpecification.name, "");
                     result.completed = false;
                 }

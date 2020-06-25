@@ -154,7 +154,9 @@ public class DataRepoFixtures {
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(TestConfiguration.User user, String datasetId) throws Exception {
+    public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(TestConfiguration.User user, String datasetId)
+        throws Exception {
+
         DataRepoResponse<JobModel> jobResponse = deleteDatasetLaunch(user, datasetId);
         assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
@@ -338,7 +340,9 @@ public class DataRepoFixtures {
         assertGoodDeleteResponse(deleteResponse);
     }
 
-    public DataRepoResponse<DeleteResponseModel> deleteSnapshotLog(TestConfiguration.User user, String snapshotId) throws Exception {
+    public DataRepoResponse<DeleteResponseModel> deleteSnapshotLog(TestConfiguration.User user, String snapshotId)
+        throws Exception {
+
         DataRepoResponse<JobModel> jobResponse = deleteSnapshotLaunch(user, snapshotId);
         assertTrue("snapshot delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("snapshot delete launch response is present", jobResponse.getResponseObject().isPresent());

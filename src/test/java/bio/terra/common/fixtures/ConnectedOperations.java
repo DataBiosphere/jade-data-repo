@@ -204,26 +204,49 @@ public class ConnectedOperations {
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,
-                                                  String resourcePath,
-                                                  String infix) throws Exception {
+                                               String resourcePath,
+                                               String infix) throws Exception {
 
+        MockHttpServletResponse response = launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
+        SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
+
+        return snapshotSummary;
+    }
+
+    public ErrorModel createSnapshotExpectError(
+        DatasetSummaryModel datasetSummaryModel,
+        String resourcePath,
+        String infix,
+        HttpStatus expectedStatus) throws Exception {
+
+        MockHttpServletResponse response = launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
+        return handleFailureCase(response, expectedStatus);
+    }
+
+    private MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
+                                                         String resourcePath,
+                                                         String infix) throws Exception {
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
         String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
-        snapshotRequest.setName(snapshotName);
 
+        return launchCreateSnapshotName(datasetSummaryModel, snapshotRequest, snapshotName);
+    }
+
+    public MockHttpServletResponse launchCreateSnapshotName(
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotRequestModel snapshotRequest,
+        String snapshotName) throws Exception {
         // TODO: the next two lines assume SingleDatasetSnapshot
         snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
         snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
-
+        snapshotRequest.setName(snapshotName);
         MvcResult result = mvc.perform(post("/api/repository/v1/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(snapshotRequest)))
             .andReturn();
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
-
-        return snapshotSummary;
+        return response;
     }
 
     public SnapshotModel getSnapshot(String snapshotId) throws Exception {
@@ -350,7 +373,7 @@ public class ConnectedOperations {
     public void deleteTestFile(String datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
-                .andReturn();
+            .andReturn();
         logger.info("deleting datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));

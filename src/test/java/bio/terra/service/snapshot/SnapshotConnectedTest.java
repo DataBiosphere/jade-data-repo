@@ -41,7 +41,6 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
@@ -68,7 +67,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import static bio.terra.common.PdaoConstant.PDAO_PREFIX;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -115,7 +113,6 @@ public class SnapshotConnectedTest {
     @MockBean
     private IamProviderInterface samService;
 
-    private String snapshotOriginalName;
     private BillingProfileModel billingProfile;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
     private DatasetSummaryModel datasetSummary;
@@ -175,11 +172,11 @@ public class SnapshotConnectedTest {
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetMinimalSummary,
-                "dataset-minimal-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetMinimalSummary);
+        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(
+            datasetMinimalSummary,
+            "dataset-minimal-snapshot.json",
+            "");
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(summaryModel.getId());
         List<TableModel> tables = snapshotModel.getTables();
         Optional<TableModel> participantTable = tables
             .stream()
@@ -210,11 +207,10 @@ public class SnapshotConnectedTest {
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetArraySummary,
-            "snapshot-array-struct.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-        getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetArraySummary);
+        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(
+            datasetArraySummary,
+            "snapshot-array-struct.json",
+            "");
 
         long snapshotParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(2L));
@@ -234,21 +230,18 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testEnumeration() throws Exception {
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
-
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
         // Just make sure we get the same snapshot summary that we made.
         List<SnapshotSummaryModel> snapshotList = new ArrayList<>();
+        List<UUID> snapshotIds = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_en_");
-            SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+            SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(
+                datasetSummary,
+                "snapshot-test-snapshot.json",
+                "_en_");
             snapshotList.add(summaryModel);
+            snapshotIds.add(UUID.fromString(summaryModel.getId()));
         }
-
-        List<UUID> snapshotIds = snapshotList
-            .stream()
-            .map(snapshot -> UUID.fromString(snapshot.getId()))
-            .collect(Collectors.toList());
 
         when(samService.listAuthorizedResources(any(), any())).thenReturn(snapshotIds);
         EnumerateSnapshotModel enumResponse = enumerateTestSnapshots();
@@ -276,23 +269,22 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testBadData() throws Exception {
-        SnapshotRequestModel badDataRequest = makeSnapshotTestRequest(datasetSummary,
-                "snapshot-test-snapshot-baddata.json");
-
-        MockHttpServletResponse response = performCreateSnapshot(badDataRequest, "_baddata_");
-        ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
+        ErrorModel errorModel = connectedOperations.createSnapshotExpectError(datasetSummary,
+            "snapshot-test-snapshot-baddata.json",
+            "_baddata_",
+            HttpStatus.BAD_REQUEST);
         assertThat(errorModel.getMessage(), containsString("Fred"));
     }
 
     @Test
     public void testDuplicateName() throws Exception {
         // create a snapshot
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary,
+            "snapshot-test-snapshot.json",
+            "_dup_");
 
         // fetch the snapshot and confirm the metadata matches the request
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(summaryModel.getId());
         assertNotNull("fetched snapshot successfully after creation", snapshotModel);
 
         // check that the snapshot metadata row is unlocked
@@ -300,10 +292,13 @@ public class SnapshotConnectedTest {
         assertNull("snapshot row is unlocked", exclusiveLock);
 
         // try to create the same snapshot again and check that it fails
-        snapshotRequest.setName(snapshotModel.getName());
-        response = performCreateSnapshot(snapshotRequest, null);
-        ErrorModel errorModel = handleCreateSnapshotFailureCase(response);
-        assertThat(response.getStatus(), equalTo(HttpStatus.BAD_REQUEST.value()));
+        SnapshotRequestModel snapshotRequest = jsonLoader.loadObject("snapshot-test-snapshot.json",
+            SnapshotRequestModel.class);
+        MockHttpServletResponse response = connectedOperations.launchCreateSnapshotName(datasetSummary,
+            snapshotRequest,
+            snapshotModel.getName());
+
+        ErrorModel errorModel = connectedOperations.handleFailureCase(response, HttpStatus.BAD_REQUEST);
         assertThat("error message includes name conflict",
             errorModel.getMessage(), containsString("Snapshot name already exists"));
 
@@ -647,38 +642,6 @@ public class SnapshotConnectedTest {
             .andReturn();
     }
 
-    private MockHttpServletResponse performCreateSnapshot(SnapshotRequestModel snapshotRequest, String infix)
-        throws Exception {
-        snapshotOriginalName = snapshotRequest.getName();
-        MvcResult result = launchCreateSnapshot(snapshotRequest, infix);
-        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
-        return response;
-    }
-
-    private SnapshotSummaryModel validateSnapshotCreated(SnapshotRequestModel snapshotRequest,
-                                                         MockHttpServletResponse response) throws Exception {
-        SnapshotSummaryModel summaryModel = connectedOperations.handleCreateSnapshotSuccessCase(response);
-
-        assertThat(summaryModel.getDescription(), equalTo(snapshotRequest.getDescription()));
-        assertThat(summaryModel.getName(), equalTo(snapshotRequest.getName()));
-
-        // Reset the name in the snapshot request
-        snapshotRequest.setName(snapshotOriginalName);
-
-        return summaryModel;
-    }
-
-    private ErrorModel handleCreateSnapshotFailureCase(MockHttpServletResponse response) throws Exception {
-        String responseBody = response.getContentAsString();
-        HttpStatus responseStatus = HttpStatus.valueOf(response.getStatus());
-        assertFalse("Expect create snapshot failure", responseStatus.is2xxSuccessful());
-
-        assertTrue("Error model was returned on failure",
-                StringUtils.contains(responseBody, "message"));
-
-        return TestUtils.mapFromJson(responseBody, ErrorModel.class);
-    }
-
     private EnumerateSnapshotModel enumerateTestSnapshots() throws Exception {
         MvcResult result = mvc.perform(get("/api/repository/v1/snapshots?offset=0&limit=1000"))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
@@ -693,12 +656,8 @@ public class SnapshotConnectedTest {
     private SnapshotModel getTestSnapshot(String id,
                                         SnapshotRequestModel snapshotRequest,
                                         DatasetSummaryModel datasetSummary) throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
-                .andReturn();
 
-        MockHttpServletResponse response = result.getResponse();
-        SnapshotModel snapshotModel = objectMapper.readValue(response.getContentAsString(), SnapshotModel.class);
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(id);
 
         assertThat(snapshotModel.getDescription(), equalTo(snapshotRequest.getDescription()));
         assertThat(snapshotModel.getName(), startsWith(snapshotRequest.getName()));
@@ -758,13 +717,8 @@ public class SnapshotConnectedTest {
     }
 
     private void snapshotHappyPathTestingHelper(String path) throws Exception {
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, path);
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
+        SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary, path, "_thp_");
+        SnapshotModel snapshotModel = connectedOperations.getSnapshot(summaryModel.getId());
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
         // Duplicate delete should work
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());

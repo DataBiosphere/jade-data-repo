@@ -8,12 +8,14 @@ import bio.terra.model.BillingProfileRequestModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -56,6 +58,9 @@ public class OneProjectPerProfileIdSelectorTest {
     @Autowired
     private ConnectedOperations connectedOperations;
 
+    @Autowired
+    private ConfigurationService configService;
+
     @MockBean
     private IamProviderInterface iamService;
 
@@ -64,6 +69,11 @@ public class OneProjectPerProfileIdSelectorTest {
         connectedOperations.stubOutSamCalls(iamService);
     }
 
+    @After
+    public void tearDown() throws Exception {
+        connectedOperations.teardown();
+        configService.reset();
+    }
     @Test
     public void shouldGetCorrectIdForDataset() throws Exception {
         String coreBillingAccountId = resourceConfiguration.getCoreBillingAccount();

@@ -2,7 +2,6 @@ package bio.terra.service.dataset.flight.create;
 
 import bio.terra.common.FlightUtils;
 import bio.terra.model.AssetModel;
-import bio.terra.model.ErrorModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.AssetDao;

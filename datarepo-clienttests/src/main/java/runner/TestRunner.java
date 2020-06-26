@@ -51,10 +51,10 @@ class TestRunner {
         Configuration.setDefaultApiClient(apiClient);
 
         // call the setup method of each test script
-        for (TestScript testScript : scripts) try {
-            testScript.setup();
-        } catch (Exception setupEx) {
-            // TODO: handle exception in setup -- skip user journeys and go straight to cleanup
+        Exception setupExceptionThrown = callTestScriptSetups();
+        if (setupExceptionThrown != null) {
+            callTestScriptCleanups(); // ignore any exceptions thrown by cleanup methods
+            throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
         }
 
         // for each test script
@@ -98,10 +98,9 @@ class TestRunner {
         }
 
         // call the cleanup method of each test script
-        for (TestScript testScript : scripts) try {
-            testScript.cleanup();
-        } catch (Exception cleanupEx) {
-            // TODO: handle exception in cleanup -- finish calling other cleanups, then return
+        Exception cleanupExceptionThrown = callTestScriptCleanups();
+        if (cleanupExceptionThrown != null) {
+            throw new RuntimeException("Error calling test script cleanup methods.", cleanupExceptionThrown);
         }
 
         // compile and return the results from all thread pools
@@ -132,6 +131,45 @@ class TestRunner {
         return results;
     }
 
+    /**
+     * Call the setup() method of each TestScript class.
+     * If one of the classes throws an exception, stop looping through the remaining setup methods and return the
+     * exception.
+     * @return the exception thrown, null if none
+     */
+    Exception callTestScriptSetups() {
+        for (TestScript testScript : scripts) {
+            try {
+                testScript.setup();
+            } catch (Exception setupEx) {
+                // return the first exception thrown and stop looping through the setup methods
+                return setupEx;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Call the cleanup() method of each TestScript class.
+     * If any of the classes throws an exception, keep looping through the remaining cleanup methods before returning.
+     * Save the first exception thrown and return it.
+     * @return the first exception thrown, null if none
+     */
+    Exception callTestScriptCleanups() {
+        Exception exceptionThrown = null;
+        for (TestScript testScript : scripts) {
+            try {
+                testScript.cleanup();
+            } catch (Exception cleanupEx) {
+                // save the first exception thrown, keep looping through the remaining cleanup methods before returning
+                if (exceptionThrown == null) {
+                    exceptionThrown = cleanupEx;
+                }
+            }
+        }
+        return exceptionThrown;
+    }
+
     static class UserJourneyThread implements Callable<UserJourneyResult> {
         TestScript testScript;
         String testScriptName;
@@ -155,7 +193,7 @@ class TestRunner {
 
     static void printHelp() {
         System.out.println("Specify test configuration file as first argument.");
-        System.out.println("  e.g. ../gradlew :run --args=\"BasicConfig.json\"");
+        System.out.println("  e.g. ../gradlew :run --args=\"BasicUnauthenticated.json\"");
     }
 
     public static void main(String[] args) throws Exception {

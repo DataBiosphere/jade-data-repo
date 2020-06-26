@@ -1,10 +1,10 @@
 {
-  "name": "BasicConfig",
+  "name": "BasicAuthenticated",
   "serverSpecificationFile": "mmdev.json",
   "testScripts": [
     {
-      "name": "ServiceStatus",
-      "totalNumberToRun": 10,
+      "name": "EnumerateProfiles",
+      "totalNumberToRun": 1,
       "numberToRunInParallel": 2,
       "expectedTimeForEach": "5",
       "expectedTimeForEachUnit": "SECONDS"

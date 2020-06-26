@@ -5,15 +5,15 @@ import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
+import bio.terra.service.iam.IamRole;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class CreateDatasetAuthzIamStep implements Step {
@@ -33,8 +33,7 @@ public class CreateDatasetAuthzIamStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        List<String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
-        logger.info("policyEmails: " + StringUtils.join(policyEmails, ", "));
+        Map<IamRole, String> policyEmails = iamClient.createDatasetResource(userReq, datasetId);
         workingMap.put(DatasetWorkingMapKeys.POLICY_EMAILS, policyEmails);
         return StepResult.getStepResultSuccess();
     }

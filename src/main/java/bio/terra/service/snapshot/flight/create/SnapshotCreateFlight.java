@@ -26,7 +26,7 @@ public class SnapshotCreateFlight extends Flight {
     public SnapshotCreateFlight(FlightMap inputParameters, Object applicationContext) {
         super(inputParameters, applicationContext);
 
-        // get the required daos to pass into the steps
+        // get the required objects to pass into the steps
         ApplicationContext appContext = (ApplicationContext) applicationContext;
         SnapshotDao snapshotDao = (SnapshotDao)appContext.getBean("snapshotDao");
         SnapshotService snapshotService = (SnapshotService)appContext.getBean("snapshotService");
@@ -38,10 +38,12 @@ public class SnapshotCreateFlight extends Flight {
         DatasetService datasetService = (DatasetService) appContext.getBean("datasetService");
         ConfigurationService configService = (ConfigurationService) appContext.getBean("configurationService");
         DataLocationService dataLocationService = (DataLocationService) appContext.getBean("dataLocationService");
-        GoogleResourceService resourceService = (GoogleResourceService) appContext.getBean("googleResourceService");
+        GoogleResourceService resourceService =
+            (GoogleResourceService) appContext.getBean("googleResourceService");
 
         SnapshotRequestModel snapshotReq = inputParameters.get(
             JobMapKeys.REQUEST.getKeyName(), SnapshotRequestModel.class);
+        String snapshotName = snapshotReq.getName();
 
         // create the snapshot metadata object in postgres and lock it
         addStep(new CreateSnapshotMetadataStep(snapshotDao, snapshotService, snapshotReq));
@@ -109,9 +111,9 @@ public class SnapshotCreateFlight extends Flight {
             snapshotService,
             dataLocationService,
             resourceService,
-            snapshotReq.getName()));
+            snapshotName));
 
-        // unlock the snapshot metadata row
+       // unlock the snapshot metadata row
         addStep(new UnlockSnapshotStep(snapshotDao, null));
     }
 }

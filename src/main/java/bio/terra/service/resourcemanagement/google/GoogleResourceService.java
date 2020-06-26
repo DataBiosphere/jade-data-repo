@@ -48,6 +48,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -394,7 +395,7 @@ public class GoogleResourceService {
         return newProject(projectRequest, googleProjectId);
     }
 
-    public void grantPoliciesBqJobUser(String dataProject, List<String> policyEmails)
+    public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
 
         Map<String, List<String>> policyMap = new HashMap<>();

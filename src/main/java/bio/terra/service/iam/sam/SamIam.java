@@ -142,13 +142,13 @@ public class SamIam implements IamProviderInterface {
     }
 
     @Override
-    public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+    public Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
         throws InterruptedException {
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createDatasetResourceInner(userReq, datasetId));
     }
 
-    private List<String> createDatasetResourceInner(AuthenticatedUserRequest userReq,
+    private Map<IamRole, String> createDatasetResourceInner(AuthenticatedUserRequest userReq,
                                                     UUID datasetId) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
         req.setResourceId(datasetId.toString());
@@ -171,30 +171,26 @@ public class SamIam implements IamProviderInterface {
 
         // we'll want all of these roles to have read access to the underlying data,
         // so we sync and return the emails for the policies that get created by SAM
-        ArrayList<String> rolePolicies = new ArrayList<>();
-        for (IamRole role :
-            Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
-            Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-                IamResourceType.DATASET.toString(),
-                datasetId.toString(),
-                role.toString());
-            String policyEmail = getPolicyGroupEmailFromResponse(results);
-            rolePolicies.add(policyEmail);
-            logger.debug("Dataset Policy Group Email: {}; Role: {}", role.toString(), policyEmail);
+        Map<IamRole, String> policies = new HashMap<>();
+        for (IamRole role : Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
+            String policy = syncOnePolicy(userReq, IamResourceType.DATASET, datasetId, role);
+            policies.put(role, policy);
         }
 
-        return rolePolicies;
+        return policies;
     }
 
     @Override
-    public String createSnapshotResource(AuthenticatedUserRequest userReq,
-                                         UUID snapshotId,
-                                         List<String> readersList) throws InterruptedException {
+    public Map<IamRole, String> createSnapshotResource(
+        AuthenticatedUserRequest userReq,
+        UUID snapshotId,
+        List<String> readersList) throws InterruptedException {
+
         SamRetry samRetry = new SamRetry(configurationService);
         return samRetry.perform(() -> createSnapshotResourceInner(userReq, snapshotId, readersList));
     }
 
-    private String createSnapshotResourceInner(AuthenticatedUserRequest userReq,
+    private Map<IamRole, String> createSnapshotResourceInner(AuthenticatedUserRequest userReq,
                                                UUID snapshotId,
                                                List<String> readersList) throws ApiException {
         CreateResourceCorrectRequest req = new CreateResourceCorrectRequest();
@@ -202,10 +198,10 @@ public class SamIam implements IamProviderInterface {
         if (readersList == null) {
             readersList = Collections.emptyList();
         }
+        // Add the as custodian to the reader policy
         List<String> fullReadersList = new ArrayList<>(readersList);
-
-        // give the snapshot creator reader access
-        fullReadersList.add(userReq.getEmail());
+        String custodianEmail = userReq.getEmail();
+        fullReadersList.add(custodianEmail);
 
         req.setResourceId(snapshotId.toString());
         req.addPoliciesItem(
@@ -214,7 +210,7 @@ public class SamIam implements IamProviderInterface {
                 Collections.singletonList(samConfig.getStewardsGroupEmail())));
         req.addPoliciesItem(
             IamRole.CUSTODIAN.toString(),
-            createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(userReq.getEmail())));
+            createAccessPolicy(IamRole.CUSTODIAN.toString(), Collections.singletonList(custodianEmail)));
         req.addPoliciesItem(
             IamRole.READER.toString(),
             createAccessPolicy(IamRole.READER.toString(), fullReadersList));
@@ -228,14 +224,26 @@ public class SamIam implements IamProviderInterface {
         // create the resource in sam
         createResourceCorrectCall(samResourceApi.getApiClient(), IamResourceType.DATASNAPSHOT.toString(), req);
 
-        // sync the readers policy
-        // Map[WorkbenchEmail, Seq[SyncReportItem]]
+        // sync the policies
+        Map<IamRole, String> policies = new HashMap<>();
+        String policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.READER);
+        policies.put(IamRole.READER, policy);
+        policy = syncOnePolicy(userReq, IamResourceType.DATASNAPSHOT, snapshotId, IamRole.CUSTODIAN);
+        policies.put(IamRole.CUSTODIAN, policy);
+        return policies;
+    }
+
+    private String syncOnePolicy(AuthenticatedUserRequest userReq,
+                                 IamResourceType resourceType,
+                                 UUID id,
+                                 IamRole role) throws ApiException {
         Map<String, List<Object>> results = samGoogleApi(userReq.getRequiredToken()).syncPolicy(
-            IamResourceType.DATASNAPSHOT.toString(),
-            snapshotId.toString(),
-            IamRole.READER.toString());
+            resourceType.toString(),
+            id.toString(),
+            role.toString());
         String policyEmail = getPolicyGroupEmailFromResponse(results);
-        logger.debug("Snapshot Reader Policy Group Email:  {} ", policyEmail);
+        logger.debug("Policy Group Resource: {} Role: {} Email:  {} ",
+            resourceType.toString(), role.toString(), policyEmail);
         return policyEmail;
     }
 

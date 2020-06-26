@@ -28,6 +28,7 @@ import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.sam.SamConfiguration;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -47,8 +48,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -110,10 +112,16 @@ public class ConnectedOperations {
     }
 
     public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
-        when(samService.createSnapshotResource(any(), any(), any())).thenReturn("hi@hi.com");
+        Map<IamRole, String> snapshotPolicies = new HashMap<>();
+        snapshotPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
+        snapshotPolicies.put(IamRole.READER,  "hi@hi.com");
+        Map<IamRole, String> datasetPolicies = new HashMap<>();
+        datasetPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
+        datasetPolicies.put(IamRole.STEWARD,  "hi@hi.com");
+
+        when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-        when(samService.createDatasetResource(any(), any())).thenReturn(
-            Collections.singletonList(samConfiguration.getStewardsGroupEmail()));
+        when(samService.createDatasetResource(any(), any())).thenReturn(datasetPolicies);
 
         // when asked what datasets/snapshots the caller has access to, return all the datasets/snapshots contained
         // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.
@@ -223,7 +231,7 @@ public class ConnectedOperations {
         return handleFailureCase(response, expectedStatus);
     }
 
-    private MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
+    public MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
                                                          String resourcePath,
                                                          String infix) throws Exception {
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);

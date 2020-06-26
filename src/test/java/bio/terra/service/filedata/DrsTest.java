@@ -48,14 +48,14 @@ public class DrsTest extends UsersBase {
     @Autowired private AuthService authService;
     @Autowired private TestConfiguration testConfiguration;
 
-    private String readerToken;
+    private String custodianToken;
     private SnapshotModel snapshotModel;
     private String datasetId;
 
     @Before
     public void setup() throws Exception {
         super.setup();
-        readerToken = authService.getDirectAccessAuthToken(reader().getEmail());
+        custodianToken = authService.getDirectAccessAuthToken(custodian().getEmail());
         EncodeFixture.SetupResult setupResult = encodeFixture.setupEncode(steward(), custodian(), reader());
         snapshotModel = dataRepoFixtures.getSnapshot(custodian(), setupResult.getSummaryModel().getId());
         datasetId = setupResult.getDatasetId();
@@ -70,9 +70,10 @@ public class DrsTest extends UsersBase {
 
     @Test
     public void drsHackyTest() throws Exception {
-        // Get a DRS ID from the dataset
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
+        // Get a DRS ID from the dataset using the custodianToken.
+        // Note: the reader does not have permission to run big query jobs anywhere.
+        BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryCustodian,
             snapshotModel,
             "file",
             "file_ref");

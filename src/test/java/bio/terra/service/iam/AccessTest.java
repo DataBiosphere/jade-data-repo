@@ -203,7 +203,7 @@ public class AccessTest extends UsersBase {
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
 
-        // Step 1. Ingest a file into the dataset
+        // Ingest a file into the dataset
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         FileModel fileModel = dataRepoFixtures.ingestFile(
             steward(),
@@ -212,7 +212,7 @@ public class AccessTest extends UsersBase {
             gsPath + "/files/File Design Notes.pdf",
             "/foo/bar");
 
-        // Step 2. Ingest one row into the study 'file' table with a reference to that ingested file
+        // Ingest one row into the study 'file' table with a reference to that ingested file
         String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileModel.getFileId());
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
         BlobInfo targetBlobInfo = BlobInfo
@@ -224,8 +224,7 @@ public class AccessTest extends UsersBase {
             writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
         }
 
-        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest(
-            "file", targetPath);
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
         IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
             steward(), datasetSummaryModel.getId(), request);
 
@@ -254,24 +253,22 @@ public class AccessTest extends UsersBase {
             IamAction.READ_DATA);
         assertTrue("correctly added reader", authorized);
 
-        // Step 4. Wait for SAM to sync the access change out to GCP.
-        //
-        // We make a BigQuery context for the reader in the test project. The reader doesn't have access
-        // to run queries in the dataset project.
-        BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
-        BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
+        // The reader does not have permission to make queries in any project,
+        // so we have to use the custodian to look up the DRS id.
+        BigQuery bigQueryCustodian = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), custodianToken);
+        BigQueryFixtures.hasAccess(bigQueryCustodian, snapshotModel.getDataProject(), snapshotModel.getName());
 
-        // Step 5. Read and validate the DRS URI from the file ref column in the 'file' table.
-        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryReader,
+        // Read and validate the DRS URI from the file ref column in the 'file' table.
+        String drsObjectId = BigQueryFixtures.queryForDrsId(bigQueryCustodian,
             snapshotModel,
             "file",
             "file_ref");
 
-        // Step 6. Use DRS API to lookup the file by DRS ID (pulled out of the URI).
+        // Use DRS API to lookup the file by DRS ID (pulled out of the URI).
         DRSObject drsObject = dataRepoFixtures.drsGetObject(reader(), drsObjectId);
         String gsuri = TestUtils.validateDrsAccessMethods(drsObject.getAccessMethods());
 
-        // Step 7. Try to read the file of the gs path as reader and discoverer
+        // Try to read the file of the gs path as reader and discoverer
         String[] strings = gsuri.split("/", 4);
 
         String bucketName = strings[2];

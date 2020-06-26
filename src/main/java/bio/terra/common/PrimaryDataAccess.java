@@ -5,6 +5,7 @@ import bio.terra.service.snapshot.SnapshotSource;
 import bio.terra.service.snapshot.RowIdMatch;
 import bio.terra.service.dataset.Dataset;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -89,7 +90,7 @@ public interface PrimaryDataAccess {
      */
     void addReaderGroupToSnapshot(Snapshot snapshot, String readersEmail) throws InterruptedException;
 
-    void grantReadAccessToDataset(Dataset dataset, List<String> readerEmails) throws InterruptedException;
+    void grantReadAccessToDataset(Dataset dataset, Collection<String> policyGroupEmails) throws InterruptedException;
 
     /**
      * Checks to see if a dataset exists

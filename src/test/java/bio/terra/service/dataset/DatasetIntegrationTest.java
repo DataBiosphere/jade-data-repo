@@ -348,6 +348,7 @@ public class DatasetIntegrationTest extends UsersBase {
                 requestModelAll);
         snapshotIds.add(snapshotSummaryAll.getId());
         SnapshotModel snapshotAll = dataRepoFixtures.getSnapshot(steward(), snapshotSummaryAll.getId());
+        // The steward is the custodian in this case, so is a reader in big query.
         BigQuery bigQueryAll = BigQueryFixtures.getBigQuery(snapshotAll.getDataProject(), stewardToken);
 
         assertSnapshotTableCount(bigQueryAll, snapshotAll, "participant", 5L);

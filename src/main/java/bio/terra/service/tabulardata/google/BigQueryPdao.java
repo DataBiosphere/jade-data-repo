@@ -65,6 +65,7 @@ import org.stringtemplate.v4.ST;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -593,7 +594,9 @@ public class BigQueryPdao implements PrimaryDataAccess {
     }
 
     @Override
-    public void grantReadAccessToDataset(Dataset dataset, List<String> policyGroupEmails) throws InterruptedException {
+    public void grantReadAccessToDataset(Dataset dataset, Collection<String> policyGroupEmails)
+        throws InterruptedException {
+
         BigQueryProject bigQueryProject = bigQueryProjectForDataset(dataset);
         List<Acl> policyGroupAcls = policyGroupEmails
             .stream()

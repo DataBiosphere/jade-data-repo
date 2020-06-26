@@ -1,14 +1,21 @@
 package runner;
 
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.client.Configuration;
+import com.google.auth.oauth2.AccessToken;
+import com.google.auth.oauth2.GoogleCredentials;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
+import runner.config.TestUserSpecification;
+import utils.AuthenticationUtils;
 
 import javax.ws.rs.client.Client;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
@@ -22,6 +29,7 @@ class TestRunner {
     List<TestScript> scripts;
     List<ThreadPoolExecutor> threadPools;
     List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
+    Map<String, ApiClient> apiClientsForUsers; // testUser -> apiClient
 
     Client httpClient; // TODO: singleton ok or change to have one per ApiClient?
     static long secondsToWaitForPoolShutdown = 60;
@@ -31,9 +39,10 @@ class TestRunner {
         this.scripts = new ArrayList<>();
         this.threadPools = new ArrayList<>();
         this.userJourneyFutureLists = new ArrayList<>();
+        this.apiClientsForUsers = new HashMap<>();
     }
 
-    List<UserJourneyResult> executeTestConfiguration() throws InterruptedException {
+    List<UserJourneyResult> executeTestConfiguration() throws InterruptedException, IOException {
         // get an instance of each test script class
         for (TestScriptSpecification testScriptSpecification : config.testScripts) {
             try {
@@ -45,15 +54,25 @@ class TestRunner {
             }
         }
 
-        // setup the default API client for the setup/cleanup methods to use
-        ApiClient apiClient = new ApiClient();
-        apiClient.setBasePath(config.server.uri);
-        Configuration.setDefaultApiClient(apiClient);
+        // get an instance of the API client per test user
+        List<String> userScopes = Arrays.asList("openid", "email", "profile");
+        for (TestUserSpecification testUser : config.testUsers) {
+            ApiClient apiClient = new ApiClient();
+            apiClient.setBasePath("https://jade-mm.datarepo-dev.broadinstitute.org");
+            GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser, userScopes);
+            AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
+            apiClient.setAccessToken(userAccessToken.getTokenValue());
+
+            apiClientsForUsers.put(testUser.name, apiClient);
+        }
+
+        // TODO: how to map test script to test users? for now, limit it to one test user
+        ApiClient apiClient = apiClientsForUsers.get(config.testUsers.get(0).name);
 
         // call the setup method of each test script
-        Exception setupExceptionThrown = callTestScriptSetups();
+        Exception setupExceptionThrown = callTestScriptSetups(apiClient);
         if (setupExceptionThrown != null) {
-            callTestScriptCleanups(); // ignore any exceptions thrown by cleanup methods
+            callTestScriptCleanups(apiClient); // ignore any exceptions thrown by cleanup methods
             throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
         }
 
@@ -69,7 +88,7 @@ class TestRunner {
 
             // kick off the user journey(s), one per thread
             List<UserJourneyThread> userJourneyThreads = Collections.nCopies(testScriptSpecification.totalNumberToRun,
-                new UserJourneyThread(testScript, testScriptSpecification.name));
+                new UserJourneyThread(testScript, testScriptSpecification.name, apiClient));
 
             // TODO: support different patterns of kicking off user journeys. here they're all queued at once
             List<Future<UserJourneyResult>> userJourneyFutures = threadPool.invokeAll(userJourneyThreads);
@@ -98,7 +117,7 @@ class TestRunner {
         }
 
         // call the cleanup method of each test script
-        Exception cleanupExceptionThrown = callTestScriptCleanups();
+        Exception cleanupExceptionThrown = callTestScriptCleanups(apiClient);
         if (cleanupExceptionThrown != null) {
             throw new RuntimeException("Error calling test script cleanup methods.", cleanupExceptionThrown);
         }
@@ -137,10 +156,10 @@ class TestRunner {
      * exception.
      * @return the exception thrown, null if none
      */
-    Exception callTestScriptSetups() {
+    Exception callTestScriptSetups(ApiClient apiClient) {
         for (TestScript testScript : scripts) {
             try {
-                testScript.setup();
+                testScript.setup(apiClient);
             } catch (Exception setupEx) {
                 // return the first exception thrown and stop looping through the setup methods
                 return setupEx;
@@ -155,11 +174,11 @@ class TestRunner {
      * Save the first exception thrown and return it.
      * @return the first exception thrown, null if none
      */
-    Exception callTestScriptCleanups() {
+    Exception callTestScriptCleanups(ApiClient apiClient) {
         Exception exceptionThrown = null;
         for (TestScript testScript : scripts) {
             try {
-                testScript.cleanup();
+                testScript.cleanup(apiClient);
             } catch (Exception cleanupEx) {
                 // save the first exception thrown, keep looping through the remaining cleanup methods before returning
                 if (exceptionThrown == null) {
@@ -173,17 +192,19 @@ class TestRunner {
     static class UserJourneyThread implements Callable<UserJourneyResult> {
         TestScript testScript;
         String testScriptName;
+        ApiClient apiClient;
 
-        public UserJourneyThread(TestScript testScript, String testScriptName) {
+        public UserJourneyThread(TestScript testScript, String testScriptName, ApiClient apiClient) {
             this.testScript = testScript;
             this.testScriptName = testScriptName;
+            this.apiClient = apiClient;
         }
 
         public UserJourneyResult call() {
             UserJourneyResult result = new UserJourneyResult(testScriptName, Thread.currentThread().getName());
 
             try {
-                testScript.userJourney();
+                testScript.userJourney(apiClient);
             } catch (Exception ex) {
                 result.exceptionThrown = ex;
             }
@@ -201,6 +222,7 @@ class TestRunner {
         if (args.length < 1) {
             printHelp();
             // TODO: also print list of available test configurations
+            return;
         }
 
         // read in configuration, validate it, and print to stdout

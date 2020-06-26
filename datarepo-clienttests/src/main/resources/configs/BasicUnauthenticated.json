@@ -9,5 +9,6 @@
       "expectedTimeForEach": "5",
       "expectedTimeForEachUnit": "SECONDS"
     }
-  ]
+  ],
+  "testUserFiles": ["neville.json"]
 }

@@ -4,10 +4,11 @@
   "testScripts": [
     {
       "name": "EnumerateProfiles",
-      "totalNumberToRun": 1,
+      "totalNumberToRun": 5,
       "numberToRunInParallel": 2,
       "expectedTimeForEach": "5",
       "expectedTimeForEachUnit": "SECONDS"
     }
-  ]
+  ],
+  "testUserFiles": ["dumbledore.json"]
 }

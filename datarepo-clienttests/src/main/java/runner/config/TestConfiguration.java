@@ -4,13 +4,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TestConfiguration implements SpecificationInterface {
     public String name;
     public String serverSpecificationFile;
+    public List<String> testUserFiles;
+
     public ServerSpecification server;
     public List<TestScriptSpecification> testScripts;
+    public List<TestUserSpecification> testUsers = new ArrayList<>();
 
     public static final String resourceDirectory = "configs";
 
@@ -27,6 +31,16 @@ public class TestConfiguration implements SpecificationInterface {
         // read in the server file
         inputStream = getJSONFileHandle(ServerSpecification.resourceDirectory + "/" + testConfig.serverSpecificationFile);
         testConfig.server = objectMapper.readValue(inputStream, ServerSpecification.class);
+
+        // read in the test user files and the nested service account files
+        for (String testUserFile : testConfig.testUserFiles) {
+            inputStream = getJSONFileHandle(TestUserSpecification.resourceDirectory + "/" + testUserFile);
+            TestUserSpecification testUser = objectMapper.readValue(inputStream, TestUserSpecification.class);
+
+            inputStream = getJSONFileHandle(ServiceAccountSpecification.resourceDirectory + "/" + testUser.delegatorServiceAccountFile);
+            testUser.delegatorServiceAccount = objectMapper.readValue(inputStream, ServiceAccountSpecification.class);
+            testConfig.testUsers.add(testUser);
+        }
 
         return testConfig;
     }
@@ -54,6 +68,10 @@ public class TestConfiguration implements SpecificationInterface {
         for (TestScriptSpecification testScript : testScripts) {
             testScript.validate();
         }
+
+        for (TestUserSpecification testUser : testUsers) {
+            testUser.validate();
+        }
     }
 
     public void display() {
@@ -65,6 +83,12 @@ public class TestConfiguration implements SpecificationInterface {
             System.out.println();
             testScript.display();
         }
+
+        for (TestUserSpecification testUser : testUsers) {
+            System.out.println();
+            testUser.display();
+        }
+
         System.out.println();
     }
 }

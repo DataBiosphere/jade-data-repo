@@ -1,6 +1,7 @@
 package testscripts;
 
 import bio.terra.datarepo.api.UnauthenticatedApi;
+import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
 
 public class ServiceStatus extends runner.TestScript {
@@ -13,8 +14,8 @@ public class ServiceStatus extends runner.TestScript {
     }
 
 
-    public void userJourney() throws ApiException {
-        UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi();
+    public void userJourney(ApiClient apiClient) throws ApiException {
+        UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
         unauthenticatedApi.serviceStatus();
 
         int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();

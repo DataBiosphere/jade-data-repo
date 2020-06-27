@@ -31,6 +31,7 @@ import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,6 +53,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -276,7 +278,7 @@ public class AccessTest extends UsersBase {
         BlobId blobId = BlobId.of(bucketName, blobName);
 
         Storage readerStorage = getStorage(readerToken);
-        assertTrue("Reader can read some bytes of the file", canReadBlob(readerStorage, blobId));
+        assertTrue("Reader can read some bytes of the file", canReadBlobRetry(readerStorage, blobId));
 
         Storage discovererStorage = getStorage(discovererToken);
         assertFalse("Discoverer can not read the file", canReadBlob(discovererStorage, blobId));
@@ -341,14 +343,42 @@ public class AccessTest extends UsersBase {
         Assert.assertEquals(7, results.getTotalRows());
     }
 
-    private boolean canReadBlob(Storage storage, BlobId blobId) {
+    private boolean canReadBlob(Storage storage, BlobId blobId) throws Exception {
         try (ReadChannel reader = storage.reader(blobId)) {
             ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
             int bytesRead = reader.read(bytes);
             return (bytesRead > 0);
-        } catch (Exception e) {
-            e.printStackTrace(System.out);
-            return false;
+        } catch (Exception ex) {
+            logger.info("Caught exception", ex);
+        }
+        return false;
+    }
+
+    private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
+    private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
+    private static final int RETRY_MAX_SLEEP_SECONDS = 420;
+
+    private boolean canReadBlobRetry(Storage storage, BlobId blobId) throws Exception {
+        int sleptSeconds = 0;
+        int sleepSeconds = RETRY_INITIAL_INTERVAL_SECONDS;
+        while (true) {
+            try (ReadChannel reader = storage.reader(blobId)) {
+                ByteBuffer bytes = ByteBuffer.allocate(64 * 1024);
+                int bytesRead = reader.read(bytes);
+                return (bytesRead > 0);
+            } catch (Exception ex) {
+                logger.info("Caught IO exception: " + ex.getMessage());
+                if ((sleptSeconds < RETRY_MAX_SLEEP_SECONDS) &&
+                    StringUtils.contains(ex.getMessage(), "Forbidden")) {
+
+                    TimeUnit.SECONDS.sleep(sleepSeconds);
+                    sleptSeconds += sleepSeconds;
+                    logger.info("Slept " + sleepSeconds + " total slept " + sleptSeconds);
+                    sleepSeconds = Math.min(2 * sleepSeconds, RETRY_MAX_INTERVAL_SECONDS);
+                } else {
+                    throw ex;
+                }
+            }
         }
     }
 

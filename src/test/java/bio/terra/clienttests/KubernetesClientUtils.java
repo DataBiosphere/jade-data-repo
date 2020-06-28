@@ -6,13 +6,11 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
-import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.*;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -22,7 +20,10 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 public final class KubernetesClientUtils {
 
@@ -30,7 +31,6 @@ public final class KubernetesClientUtils {
     private static CoreV1Api kubernetesClientObject;
     private static final String defaultNameSpace = "default";
     private static AppsV1Api appsV1Api;
-    // private static ExtensionsV1beta1Api V1BetaApi;
     private static final Logger logger = LoggerFactory.getLogger(KubernetesClientUtils.class);
 
     private KubernetesClientUtils() { }
@@ -134,12 +134,9 @@ public final class KubernetesClientUtils {
         // object from the global configuration
         Configuration.setDefaultApiClient(client);
 
-        // ExtensionsV1beta1Api extensionV1Api = new ExtensionsV1beta1Api();
-        // extensionV1Api.setApiClient(client);
-        // V1BetaApi = extensionV1Api;
         appsV1Api = new AppsV1Api(client);
 
-        return new CoreV1Api(client);
+        return new CoreV1Api();
     }
 
     /**

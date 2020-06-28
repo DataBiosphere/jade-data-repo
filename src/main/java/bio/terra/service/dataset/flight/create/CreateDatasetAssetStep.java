@@ -79,7 +79,6 @@ public class CreateDatasetAssetStep implements Step {
 
         // get the dataset assets that already exist --asset name needs to be unique
         AssetSpecification newAssetSpecification = getNewAssetSpec(context, dataset);
-        // List<AssetSpecification> datasetAssetSpecificationList = dataset.getAssetSpecifications();
 
         // add a fault that forces an exception to make sure the undo works
         try {

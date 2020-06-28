@@ -8,10 +8,7 @@ import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
 import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
-import io.kubernetes.client.openapi.models.V1Pod;
-import io.kubernetes.client.openapi.models.V1PodList;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1DeploymentSpec;
+import io.kubernetes.client.openapi.models.*;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
 
@@ -192,6 +189,17 @@ public final class KubernetesClientUtils {
         }
     }
 
+    public static void killDeployment(String namespace) throws ApiException {
+        V1Status deleteStatus =
+            kubernetesClientObject.deleteCollectionNamespacedPod(namespace,
+                    null, null,
+                    null, null, null,
+                    1, null, null,
+                    null, null, null,
+                    null, null, null);
+        logger.info("delete status: {}", deleteStatus.getStatus());
+    }
+
     public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {
         // TODO: add try/catch for refresh token
         V1PodList list =
@@ -203,6 +211,9 @@ public final class KubernetesClientUtils {
     // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
     public static void main(String[] args) throws Exception {
         CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
+        killDeployment("sh");
+        // KubernetesClientUtils.scaleDeployment("sh", 2);
+        // KubernetesClientUtils.scaleDeployment("sh", 1);
         for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
             System.out.println(item.getMetadata().getName());
         }

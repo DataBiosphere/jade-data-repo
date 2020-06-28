@@ -67,11 +67,44 @@ public class PodScalingTests extends UsersBase {
         KubernetesClientUtils.scaleDeployment(namespace, 1);
     }
 
+    public interface KubernetesScalingInterface {
+        void scalePods(int Count) throws ApiException;
+    }
+
+    class ScaleUpAndDown implements KubernetesScalingInterface {
+        public void scalePods(int count) throws ApiException {
+            if (count == 1) {
+                KubernetesClientUtils.scaleDeployment(namespace, 2);
+            }
+            if (count == 5) {
+                KubernetesClientUtils.scaleDeployment(namespace, 1);
+            }
+        }
+    }
+
+    @Test
+    public void scalePodsTest() throws Exception {
+        KubernetesScalingInterface scalar = new ScaleUpAndDown();
+        longFileLoadTest(scalar);
+    }
+
+    class DeletePods implements KubernetesScalingInterface {
+        public void scalePods(int count) throws ApiException {
+            if (count == 1) {
+                KubernetesClientUtils.killDeployment(namespace);
+            }
+        }
+    }
+
+    @Test
+    public void deletePodsTest() throws Exception {
+        KubernetesScalingInterface scalar = new DeletePods();
+        longFileLoadTest(scalar);
+    }
     // The purpose of this test is to have a long-running workload that completes successfully
     // while we delete pods and have them recover.
     // Marked ignore for normal testing.
-    @Test
-    public void longFileLoadTest() throws Exception {
+    private void longFileLoadTest(PodScalingTests.KubernetesScalingInterface scalingCallback) throws Exception {
         // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
         //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
         //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
@@ -98,10 +131,9 @@ public class PodScalingTests extends UsersBase {
                 .targetPath(targetPath);
             arrayLoad.addLoadArrayItem(model);
         }
-        KubernetesScalingInterface scalar = new ScaleUpAndDown();
 
         BulkLoadArrayResultModel result =
-            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, scalar);
+            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, scalingCallback);
         BulkLoadResultModel loadSummary = result.getLoadSummary();
         logger.info("Total files    : " + loadSummary.getTotalFiles());
         logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
@@ -109,20 +141,4 @@ public class PodScalingTests extends UsersBase {
         logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
     }
 
-
-    public interface KubernetesScalingInterface {
-        void scalePods(int Count) throws ApiException;
-    }
-
-    class ScaleUpAndDown implements KubernetesScalingInterface {
-        public void scalePods(int count) throws ApiException {
-            //scale!
-            if (count == 1) {
-                KubernetesClientUtils.scaleDeployment(namespace, 2);
-            }
-            if (count == 5) {
-                KubernetesClientUtils.scaleDeployment(namespace, 1);
-            }
-        }
-    }
 }

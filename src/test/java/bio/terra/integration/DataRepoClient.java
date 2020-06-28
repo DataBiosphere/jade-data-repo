@@ -120,6 +120,46 @@ public class DataRepoClient {
         return resultResponse;
     }
 
+    public <T> DataRepoResponse<T> waitForResponseAndScale(TestConfiguration.User user,
+                                                   DataRepoResponse<JobModel> jobModelResponse,
+                                                   Class<T> responseClass,
+                                                           PodScalingTests.KubernetesScalingInterface scalingCallback)
+                                                    throws Exception {
+        final int initialSeconds = 1;
+        final int maxSeconds = 16;
+
+        try {
+            int count = 0;
+            int sleepSeconds = initialSeconds;
+            while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
+                String location = getLocationHeader(jobModelResponse);
+                logger.info("try #{} for {}", ++count, location);
+
+                scalingCallback.scalePods(count);
+
+                TimeUnit.SECONDS.sleep(sleepSeconds);
+                jobModelResponse = get(user, location, JobModel.class);
+
+                int nextSeconds = 2 * sleepSeconds;
+                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
+            }
+        } catch (InterruptedException ex) {
+            logger.info("interrupted ex: {}", ex.getMessage());
+            ex.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+        }
+
+        if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
+            throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
+        }
+
+        String location = getLocationHeader(jobModelResponse);
+        DataRepoResponse<T> resultResponse = get(user, location, responseClass);
+
+        return resultResponse;
+    }
+
     private String getLocationHeader(DataRepoResponse<JobModel> jobModelResponse) {
         if (!jobModelResponse.getLocationHeader().isPresent()) {
             throw new IllegalStateException("No location header present!");

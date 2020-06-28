@@ -415,7 +415,9 @@ public class DataRepoFixtures {
     public BulkLoadArrayResultModel bulkLoadArray(
         TestConfiguration.User user,
         String datasetId,
-        BulkLoadArrayRequestModel requestModel) throws Exception {
+        BulkLoadArrayRequestModel requestModel,
+        boolean scaleDeployment,
+        PodScalingTests.KubernetesScalingInterface scalingCallback) throws Exception {
 
         String json = TestUtils.mapToJson(requestModel);
 
@@ -426,9 +428,16 @@ public class DataRepoFixtures {
             JobModel.class);
         assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
         assertTrue("bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
+        DataRepoResponse<BulkLoadArrayResultModel> response;
+        if (scaleDeployment) {
+            response =
+                dataRepoClient.waitForResponseAndScale(
+                    user, launchResponse, BulkLoadArrayResultModel.class, scalingCallback);
 
-        DataRepoResponse<BulkLoadArrayResultModel> response =
-            dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
+        } else {
+            response =
+                dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
+        }
         if (response.getStatusCode().is2xxSuccessful()) {
             assertThat("bulkLoadArray is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
             assertTrue("ingestFile response is present", response.getResponseObject().isPresent());

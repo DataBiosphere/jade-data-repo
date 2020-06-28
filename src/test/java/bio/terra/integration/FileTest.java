@@ -117,7 +117,8 @@ public class FileTest extends UsersBase {
             arrayLoad.addLoadArrayItem(model);
         }
 
-        BulkLoadArrayResultModel result = dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
+        BulkLoadArrayResultModel result = dataRepoFixtures.bulkLoadArray(
+            steward(), datasetId, arrayLoad, false, null);
         BulkLoadResultModel loadSummary = result.getLoadSummary();
         logger.info("Total files    : " + loadSummary.getTotalFiles());
         logger.info("Succeeded files: " + loadSummary.getSucceededFiles());

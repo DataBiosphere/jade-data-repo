@@ -31,11 +31,13 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.junit.Assert.assertEquals;
+
 public final class KubernetesClientUtils {
 
     private static GoogleCredentials applicationDefaultCredentials;
     private static CoreV1Api kubernetesClientObject;
-    private static final String defaultNameSpace = "default";
+    private static final String defaultNameSpace = "sh";
     private static AppsV1Api appsV1Api;
     private static final Logger logger = LoggerFactory.getLogger(KubernetesClientUtils.class);
 
@@ -170,19 +172,21 @@ public final class KubernetesClientUtils {
         return outputLines;
     }
 
-    public static void scaleDeployment(String deploymentName, int numberOfReplicas)
+    public static void scaleDeployment(String namespace, int numberOfReplicas)
         throws ApiException {
-
+        String deploymentName = namespace + "-jade-datarepo-api";
         V1Deployment deploy =
             appsV1Api.readNamespacedDeployment(
-                deploymentName, defaultNameSpace, null, null, null);
-        logger.info("exisiting deploy replicas: {}", deploy.getSpec().getReplicas());
+                deploymentName, namespace, null, null, null);
+        logger.info("existing deploy replicas: {}", deploy.getSpec().getReplicas());
         try {
             V1DeploymentSpec newSpec = deploy.getSpec().replicas(numberOfReplicas);
             V1Deployment newDeploy = deploy.spec(newSpec);
             appsV1Api.replaceNamespacedDeployment(
                 deploymentName, defaultNameSpace, newDeploy, null, null, null);
-            logger.info("new deploy replicas: {}", newDeploy.getSpec().getReplicas());
+            int newReplicaCount = newDeploy.getSpec().getReplicas();
+            logger.info("new deploy replicas: {}", newReplicaCount);
+            assertEquals("Deployment should have been successfully scaled", numberOfReplicas, newReplicaCount);
         } catch (ApiException ex) {
             logger.error("Scale the pod failed for Deployment:" + deploymentName, ex);
         }
@@ -199,8 +203,6 @@ public final class KubernetesClientUtils {
     // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
     public static void main(String[] args) throws Exception {
         CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
-        scaleDeployment("sh-jade-datarepo-api", 2);
-        scaleDeployment("sh-jade-datarepo-api", 1);
         for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
             System.out.println(item.getMetadata().getName());
         }

@@ -1,13 +1,14 @@
 package bio.terra.integration;
 
+import bio.terra.clienttests.KubernetesClientUtils;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.*;
 import bio.terra.service.iam.IamRole;
+import io.kubernetes.client.openapi.ApiException;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
@@ -28,6 +29,7 @@ public class PodScalingTests extends UsersBase {
 
     private static Logger logger = LoggerFactory.getLogger(PodScalingTests.class);
 
+
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
 
@@ -40,6 +42,9 @@ public class PodScalingTests extends UsersBase {
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
+    private String podName;
+    // TODO: Pass this in through config
+    private String namespace = "sh";
 
     @Before
     public void setup() throws Exception {
@@ -50,6 +55,8 @@ public class PodScalingTests extends UsersBase {
         logger.info("created dataset " + datasetId);
         dataRepoFixtures.addDatasetPolicyMember(
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
+        KubernetesClientUtils.getKubernetesClientObject();
+        KubernetesClientUtils.scaleDeployment(namespace, 1);
     }
 
     @After
@@ -57,12 +64,12 @@ public class PodScalingTests extends UsersBase {
         if (datasetId != null) {
             dataRepoFixtures.deleteDataset(steward(), datasetId);
         }
+        KubernetesClientUtils.scaleDeployment(namespace, 1);
     }
 
     // The purpose of this test is to have a long-running workload that completes successfully
     // while we delete pods and have them recover.
     // Marked ignore for normal testing.
-    @Ignore
     @Test
     public void longFileLoadTest() throws Exception {
         // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
@@ -70,8 +77,6 @@ public class PodScalingTests extends UsersBase {
         //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
         //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the fileLoadTest)
         final int filesToLoad = 25;
-        final int scaleUp = 5;
-        final int scaleBackDown = 15;
 
         String loadTag = Names.randomizeName("longtest");
 
@@ -93,12 +98,31 @@ public class PodScalingTests extends UsersBase {
                 .targetPath(targetPath);
             arrayLoad.addLoadArrayItem(model);
         }
+        KubernetesScalingInterface scalar = new ScaleUpAndDown();
 
-        BulkLoadArrayResultModel result = dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
+        BulkLoadArrayResultModel result =
+            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, scalar);
         BulkLoadResultModel loadSummary = result.getLoadSummary();
         logger.info("Total files    : " + loadSummary.getTotalFiles());
         logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
         logger.info("Failed files   : " + loadSummary.getFailedFiles());
         logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
+    }
+
+
+    public interface KubernetesScalingInterface {
+        void scalePods(int Count) throws ApiException;
+    }
+
+    class ScaleUpAndDown implements KubernetesScalingInterface {
+        public void scalePods(int count) throws ApiException {
+            //scale!
+            if (count == 1) {
+                KubernetesClientUtils.scaleDeployment(namespace, 2);
+            }
+            if (count == 5) {
+                KubernetesClientUtils.scaleDeployment(namespace, 1);
+            }
+        }
     }
 }

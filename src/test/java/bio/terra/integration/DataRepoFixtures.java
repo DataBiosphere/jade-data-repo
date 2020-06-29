@@ -419,8 +419,8 @@ public class DataRepoFixtures {
         TestConfiguration.User user,
         String datasetId,
         BulkLoadArrayRequestModel requestModel,
-        boolean scaleDeployment,
-        PodScalingTests.KubernetesScalingInterface scalingCallback) throws Exception {
+        boolean manipulateDeployment,
+        PodScalingTests.KubernetesAdjustmentInterface kubeCallback) throws Exception {
 
         String json = TestUtils.mapToJson(requestModel);
 
@@ -432,17 +432,22 @@ public class DataRepoFixtures {
         assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
         assertTrue("bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
         DataRepoResponse<BulkLoadArrayResultModel> response = null;
-        if (scaleDeployment) {
+
+        // PodScalingTests
+        if (manipulateDeployment) {
             try {
-                response =
-                    dataRepoClient.waitForResponseAndScale(
-                        user, launchResponse, BulkLoadArrayResultModel.class, scalingCallback);
+                // This inserts commands via the kubeCallback that change the kubernetes deploy
+                // while the request is getting processed
+                response = dataRepoClient.waitForResponseAndScale(
+                        user, launchResponse, BulkLoadArrayResultModel.class, kubeCallback);
             } catch (IOException ex) {
-                logger.info("First load and scale failed. Sleep for 30 seconds to wait for pod to come" +
-                    "back up. Then, trying response again");
+                // the kubeCallback could kill kubernetes pods causing the request to fail.
+                // This code gives the pods a chance to come back up retry the request
+                logger.info("Sleep for 30 seconds to wait for pod to come back up.");
                 TimeUnit.SECONDS.sleep(30);
-                response =
-                    dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
+                // this request does not include any deployment manipulation
+                response = dataRepoClient.waitForResponse(
+                    user, launchResponse, BulkLoadArrayResultModel.class);
             }
         } else {
             response =

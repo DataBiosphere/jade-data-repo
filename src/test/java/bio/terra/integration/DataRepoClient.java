@@ -124,7 +124,7 @@ public class DataRepoClient {
     public <T> DataRepoResponse<T> waitForResponseAndScale(TestConfiguration.User user,
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass,
-                                                           PodScalingTests.KubernetesScalingInterface scalingCallback)
+                                                           PodScalingTests.KubernetesAdjustmentInterface kubeCallback)
                                                     throws Exception {
         final int initialSeconds = 1;
         final int maxSeconds = 16;
@@ -136,7 +136,7 @@ public class DataRepoClient {
                 String location = getLocationHeader(jobModelResponse);
                 logger.info("try #{} for {}", ++count, location);
 
-                scalingCallback.scalePods(count);
+                kubeCallback.adjustDeployment(count);
 
                 TimeUnit.SECONDS.sleep(sleepSeconds);
                 jobModelResponse = get(user, location, JobModel.class);

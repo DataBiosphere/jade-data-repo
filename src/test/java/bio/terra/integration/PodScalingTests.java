@@ -65,23 +65,23 @@ public class PodScalingTests extends UsersBase {
         KubernetesClientUtils.scaleDeployment(namespace, 1);
     }
 
-    public interface KubernetesScalingInterface {
-        void scalePods(int Count) throws ApiException;
+    public interface KubernetesAdjustmentInterface {
+        void adjustDeployment(int apiRetryIteration) throws ApiException;
     }
 
     // Test scaling pods up and down during a file ingest
     @Test
     public void scalePodsTest() throws Exception {
-        KubernetesScalingInterface scalar = new ScaleUpAndDown();
-        longFileLoadTest(scalar);
+        KubernetesAdjustmentInterface scalePodModel = new ScaleUpAndDown();
+        longFileLoadTest(scalePodModel);
     }
 
-    class ScaleUpAndDown implements KubernetesScalingInterface {
-        public void scalePods(int count) throws ApiException {
-            if (count == 1) {
+    class ScaleUpAndDown implements KubernetesAdjustmentInterface {
+        public void adjustDeployment(int apiRetryIteration) throws ApiException {
+            if (apiRetryIteration == 1) {
                 KubernetesClientUtils.scaleDeployment(namespace, 2);
             }
-            if (count == 5) {
+            if (apiRetryIteration == 5) {
                 KubernetesClientUtils.scaleDeployment(namespace, 1);
             }
         }
@@ -90,14 +90,14 @@ public class PodScalingTests extends UsersBase {
 
     // Test killing pods and letting them come back up during a file ingest
     @Test
-    public void deletePodsTest() throws Exception {
-        KubernetesScalingInterface scalar = new DeletePods();
-        longFileLoadTest(scalar);
+    public void killPodsTest() throws Exception {
+        KubernetesAdjustmentInterface killPodModel = new DeletePods();
+        longFileLoadTest(killPodModel);
     }
 
-    class DeletePods implements KubernetesScalingInterface {
-        public void scalePods(int count) throws ApiException {
-            if (count == 4) {
+    class DeletePods implements KubernetesAdjustmentInterface {
+        public void adjustDeployment(int apiRetryIteration) throws ApiException {
+            if (apiRetryIteration == 4) {
                 KubernetesClientUtils.killDeployment(namespace);
             }
         }
@@ -108,7 +108,7 @@ public class PodScalingTests extends UsersBase {
     // The purpose of this test is to have a long-running workload that completes successfully
     // while we delete pods and have them recover.
     // Marked ignore for normal testing.
-    private void longFileLoadTest(PodScalingTests.KubernetesScalingInterface scalingCallback) throws Exception {
+    private void longFileLoadTest(PodScalingTests.KubernetesAdjustmentInterface kubeCallback) throws Exception {
         // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
         //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
         //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
@@ -137,7 +137,7 @@ public class PodScalingTests extends UsersBase {
         }
 
         BulkLoadArrayResultModel result =
-                dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, scalingCallback);
+                dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, kubeCallback);
         BulkLoadResultModel loadSummary = result.getLoadSummary();
         logger.info("Total files    : " + loadSummary.getTotalFiles());
         logger.info("Succeeded files: " + loadSummary.getSucceededFiles());

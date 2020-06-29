@@ -189,7 +189,7 @@ public final class KubernetesClientUtils {
         }
     }
 
-    public static void killDeployment(String namespace) throws ApiException {
+    public static void killPod(String namespace) throws ApiException {
         V1Status deleteStatus =
             kubernetesClientObject.deleteCollectionNamespacedPod(namespace,
                     null, null,
@@ -211,9 +211,6 @@ public final class KubernetesClientUtils {
     // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
     public static void main(String[] args) throws Exception {
         CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
-        killDeployment("sh");
-        // KubernetesClientUtils.scaleDeployment("sh", 2);
-        // KubernetesClientUtils.scaleDeployment("sh", 1);
         for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
             System.out.println(item.getMetadata().getName());
         }

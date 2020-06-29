@@ -98,7 +98,7 @@ public class PodScalingTests extends UsersBase {
     class DeletePods implements KubernetesAdjustmentInterface {
         public void adjustDeployment(int apiRetryIteration) throws ApiException {
             if (apiRetryIteration == 4) {
-                KubernetesClientUtils.killDeployment(namespace);
+                KubernetesClientUtils.killPod(namespace);
             }
         }
     }

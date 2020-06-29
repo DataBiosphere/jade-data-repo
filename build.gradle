@@ -99,12 +99,8 @@ repositories {
 
 configurations {
     generatedCompile
-    developmentOnly
-    runtimeClasspath {
-        extendsFrom developmentOnly
-    }
+    runtimeClasspath
 }
-
 
 // Exclude the Spring logger, so everything will use SLF4J
 configurations.all {
@@ -118,8 +114,9 @@ dependencies {
     compile 'com.google.apis:google-api-services-cloudresourcemanager:v1-rev549-1.25.0'
     compile 'com.google.apis:google-api-services-serviceusage:v1beta1-rev206-1.25.0'
     compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
-    compile 'com.google.cloud:google-cloud-storage:1.92.0'
+    compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile 'com.google.cloud:google-cloud-firestore:1.22.0'
+    compile group: 'com.google.cloud', name: 'google-cloud-pubsub', version: '1.104.1'
     compile 'io.springfox:springfox-swagger-ui:2.9.2'
     compile 'io.springfox:springfox-swagger2:2.9.2'
     compile 'org.apache.commons:commons-dbcp2:2.7.0'     // For database connection support
@@ -133,7 +130,7 @@ dependencies {
     compile 'org.springframework:spring-jdbc:5.1.9.RELEASE'
     compile 'org.broadinstitute.dsde.workbench:sam-client_2.12:0.1-9435410-SNAP'
     compile 'org.antlr:ST4:4.3'                          // String templating
-    compile group: 'io.kubernetes', name: 'client-java', version: '8.0.0'
+    compile group: 'io.kubernetes', name: 'client-java', version: '8.0.2'
 
     // This allows you to build with a local Stairway JAR file, instead of the one from the repository
     // For example, ./gradlew -Pstairwayjar=/Users/dd/code/stairway/build/libs/stairway-0.0.4-SNAPSHOT.jar
@@ -177,7 +174,6 @@ dependencies {
     generatedCompile 'io.springfox:springfox-swagger2:2.7.0'
     generatedCompile 'io.springfox:springfox-swagger-ui:2.7.0'
 
-    developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
 }
 

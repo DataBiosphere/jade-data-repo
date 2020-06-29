@@ -19,6 +19,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Optional;
@@ -148,6 +149,9 @@ public class DataRepoClient {
             ex.printStackTrace();
             Thread.currentThread().interrupt();
             throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+        } catch (IOException ex) {
+            logger.info("failed to write error model: {}", ex.getMessage());
+            throw ex;
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
@@ -189,10 +193,12 @@ public class DataRepoClient {
                                                       HttpEntity entity,
                                                       Class<T> responseClass,
                                                       Class<S> errorClass) throws Exception {
-        logger.info("api request: method={} path={}", method.toString(), path);
+
+        String url = testConfig.getJadeApiUrl() + path;
+        logger.info("api request: method={} path={}", method.toString(), url);
 
         ResponseEntity<String> response = restTemplate.exchange(
-            testConfig.getJadeApiUrl() + path,
+            url,
             method,
             entity,
             String.class);

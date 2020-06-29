@@ -29,7 +29,6 @@ public class PodScalingTests extends UsersBase {
 
     private static Logger logger = LoggerFactory.getLogger(PodScalingTests.class);
 
-
     @Autowired
     private DataRepoFixtures dataRepoFixtures;
 
@@ -42,7 +41,6 @@ public class PodScalingTests extends UsersBase {
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
-    private String podName;
     // TODO: Pass this in through config
     private String namespace = "sh";
 
@@ -71,6 +69,13 @@ public class PodScalingTests extends UsersBase {
         void scalePods(int Count) throws ApiException;
     }
 
+    // Test scaling pods up and down during a file ingest
+    @Test
+    public void scalePodsTest() throws Exception {
+        KubernetesScalingInterface scalar = new ScaleUpAndDown();
+        longFileLoadTest(scalar);
+    }
+
     class ScaleUpAndDown implements KubernetesScalingInterface {
         public void scalePods(int count) throws ApiException {
             if (count == 1) {
@@ -82,25 +87,24 @@ public class PodScalingTests extends UsersBase {
         }
     }
 
-    @Test
-    public void scalePodsTest() throws Exception {
-        KubernetesScalingInterface scalar = new ScaleUpAndDown();
-        longFileLoadTest(scalar);
-    }
 
-    class DeletePods implements KubernetesScalingInterface {
-        public void scalePods(int count) throws ApiException {
-            if (count == 1) {
-                KubernetesClientUtils.killDeployment(namespace);
-            }
-        }
-    }
-
+    // Test killing pods and letting them come back up during a file ingest
     @Test
     public void deletePodsTest() throws Exception {
         KubernetesScalingInterface scalar = new DeletePods();
         longFileLoadTest(scalar);
     }
+
+    class DeletePods implements KubernetesScalingInterface {
+        public void scalePods(int count) throws ApiException {
+            if (count == 4) {
+                KubernetesClientUtils.killDeployment(namespace);
+            }
+        }
+    }
+
+
+
     // The purpose of this test is to have a long-running workload that completes successfully
     // while we delete pods and have them recover.
     // Marked ignore for normal testing.
@@ -133,7 +137,7 @@ public class PodScalingTests extends UsersBase {
         }
 
         BulkLoadArrayResultModel result =
-            dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, scalingCallback);
+                dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, scalingCallback);
         BulkLoadResultModel loadSummary = result.getLoadSummary();
         logger.info("Total files    : " + loadSummary.getTotalFiles());
         logger.info("Succeeded files: " + loadSummary.getSucceededFiles());

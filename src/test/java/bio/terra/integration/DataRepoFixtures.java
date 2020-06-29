@@ -44,6 +44,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -428,12 +431,19 @@ public class DataRepoFixtures {
             JobModel.class);
         assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
         assertTrue("bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
-        DataRepoResponse<BulkLoadArrayResultModel> response;
+        DataRepoResponse<BulkLoadArrayResultModel> response = null;
         if (scaleDeployment) {
-            response =
-                dataRepoClient.waitForResponseAndScale(
-                    user, launchResponse, BulkLoadArrayResultModel.class, scalingCallback);
-
+            try {
+                response =
+                    dataRepoClient.waitForResponseAndScale(
+                        user, launchResponse, BulkLoadArrayResultModel.class, scalingCallback);
+            } catch (IOException ex) {
+                logger.info("First load and scale failed. Sleep for 30 seconds to wait for pod to come" +
+                    "back up. Then, trying response again");
+                TimeUnit.SECONDS.sleep(30);
+                response =
+                    dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
+            }
         } else {
             response =
                 dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);

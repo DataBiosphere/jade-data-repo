@@ -62,7 +62,7 @@ public class SnapshotAuthzFileAclStep implements Step {
 
         try {
             configService.fault(ConfigEnum.CREATE_SNAPSHOT_FAULT, () -> {
-                throw new RuntimeException("fault insertion");
+                throw new Exception("fault insertion");
             });
         } catch (Exception e) {
             throw new RuntimeException(e);

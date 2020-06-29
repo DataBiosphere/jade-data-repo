@@ -3,6 +3,9 @@ package runner;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.Configuration;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class TestScript {
 
     /**
@@ -14,7 +17,7 @@ public class TestScript {
      * The test script setup contains the API call(s) that we do not want to profile and will not be scaled to run
      * multiple in parallel. setup() is called once at the beginning of the test run.
      */
-    public void setup(ApiClient apiClient) throws Exception { }
+    public void setup(Map<String, ApiClient> apiClients) throws Exception { }
 
     /**
      * The test script userJourney contains the API call(s) that we want to profile and it may be scaled to run
@@ -28,7 +31,7 @@ public class TestScript {
      * The test script cleanup contains the API call(s) that we do not want to profile and will not be scaled to run
      * multiple in parallel. cleanup() is called once at the end of the test run.
      */
-    public void cleanup(ApiClient apiClient) throws Exception { }
+    public void cleanup(Map<String, ApiClient> apiClients) throws Exception { }
 
     /**
      * This method runs the test script methods in the expected order: setup, userJourney, cleanup.
@@ -38,11 +41,14 @@ public class TestScript {
     public static void main(String[] args) throws Exception {
         // get an instance of the script and the API client
         TestScript testScript = new TestScript();
-        ApiClient apiClient = Configuration.getDefaultApiClient();
 
-        testScript.setup(apiClient);
+        ApiClient apiClient = Configuration.getDefaultApiClient();
+        Map<String, ApiClient> apiClients = new HashMap<>();
+        apiClients.put("default", apiClient);
+
+        testScript.setup(apiClients);
         testScript.userJourney(apiClient);
-        testScript.cleanup(apiClient);
+        testScript.cleanup(apiClients);
     }
 }
 

@@ -87,10 +87,7 @@ public class DataRepoClient {
 
     public boolean pollForResponse(TestConfiguration.User user,
                                    DataRepoResponse<JobModel> jobModelResponse,
-                                   int pollTime,
-                                   int retryCount) throws Exception {
-        IOException lastException = null;
-        for(int i = 0; i < retryCount; i++) {
+                                   int pollTime) throws Exception {
             int totalSleep = 0;
             final int initialSeconds = 1;
             final int maxSeconds = 16;
@@ -116,17 +113,13 @@ public class DataRepoClient {
                 }
                 return true;
             } catch (IOException ex) {
-                logger.info("unable to load json");
-                lastException = ex;
-                TimeUnit.SECONDS.sleep(30);
+                throw ex;
             } catch (Exception ex) {
                 logger.info("interrupted ex: {}", ex.getMessage());
                 ex.printStackTrace();
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("unexpected interrupt waiting for response", ex);
             }
-        }
-        throw lastException;
     }
 
     public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
@@ -134,8 +127,6 @@ public class DataRepoClient {
                                                    Class<T> responseClass) throws Exception {
         final int initialSeconds = 1;
         final int maxSeconds = 16;
-        IOException lastException = null;
-        for (int i = 0; i < 4; i++) {
             try {
                 int count = 0;
                 int sleepSeconds = initialSeconds;
@@ -150,21 +141,16 @@ public class DataRepoClient {
                     sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
                 }
             } catch (IOException ex) {
-                logger.info("Try #{}: unable to load json. Retrying.", i + 1);
-                lastException = ex;
-                TimeUnit.SECONDS.sleep(30);
+                logger.info("unable to parse json");
+                throw ex;
             } catch (InterruptedException ex) {
                 logger.info("interrupted ex: {}", ex.getMessage());
                 ex.printStackTrace();
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("unexpected interrupt waiting for response", ex);
             }
-        }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
-            if (lastException != null){
-                throw lastException;
-            }
             throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
         }
 

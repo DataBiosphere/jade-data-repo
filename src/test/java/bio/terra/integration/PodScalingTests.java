@@ -137,43 +137,52 @@ public class PodScalingTests extends UsersBase {
 
         // kubeCallback.adjustDeployment();
         TestConfiguration.User stewardUser = steward();
-
+        boolean alreadyRun = false;
         // INITIAL REQUEST //
         DataRepoResponse<JobModel> launchResponse = null;
         IOException lastException = null;
+        IllegalStateException illegalStateException = null;
+        DataRepoResponse<BulkLoadArrayResultModel> response = null;
         for(int i = 0; i < 4; i++) {
             try {
                 launchResponse = dataRepoFixtures.buildBulkLoadArrayRequest(
                     stewardUser, datasetId, arrayLoad);
+                // MANIPULATE KUBERNETES DEPLOY //
+                alreadyRun = dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
+                if (!alreadyRun) {
+                    // kill pod/scale pod/etc
+                    // poll again
+                    // do something else
+                    logger.info("not yet complete");
+                    kubeUtils.killPod(namespace);
+
+                    // dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
+
+                }
+                 response =
+                    dataRepoClient.waitForResponse(stewardUser, launchResponse, BulkLoadArrayResultModel.class);
                 break;
             } catch (IOException ex) {
                 logger.info("Caught IOException. Sleeping then retry.");
                 TimeUnit.SECONDS.sleep(30);
                 lastException = ex;
+            } catch (IllegalStateException ex) {
+                logger.info("Caught IOException. Sleeping then retry.");
+                TimeUnit.SECONDS.sleep(30);
+                illegalStateException  = ex;
             }
         }
-        if (launchResponse == null && lastException != null) {
+        if (response == null && lastException != null) {
             throw lastException;
         }
-
-        // MANIPULATE KUBERNETES DEPLOY //
-        lastException = null;
-        boolean isComplete = false;
-        isComplete = dataRepoClient.pollForResponse(stewardUser, launchResponse, 5, 4);
-        if (!isComplete) {
-            // kill pod/scale pod/etc
-            // poll again
-            // do something else
-            logger.info("not yet complete");
-            kubeUtils.killPod(namespace);
-
-            // dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
-
+        if (response == null && illegalStateException != null) {
+            throw illegalStateException;
         }
 
+
+
         // actually get response
-        DataRepoResponse<BulkLoadArrayResultModel> response =
-                dataRepoClient.waitForResponse(stewardUser, launchResponse, BulkLoadArrayResultModel.class);
+
         // } catch (IOException ex) {
         // the kubeCallback could kill kubernetes pods causing the request to fail.
         // This code gives the pods a chance to come back up retry the request

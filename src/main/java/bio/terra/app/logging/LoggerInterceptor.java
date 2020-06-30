@@ -1,4 +1,4 @@
-package bio.terra.app.configuration;
+package bio.terra.app.logging;
 
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.AuthenticatedUserRequestFactory;

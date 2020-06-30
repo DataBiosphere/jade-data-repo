@@ -21,6 +21,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -136,21 +137,35 @@ public class PodScalingTests extends UsersBase {
 
         // kubeCallback.adjustDeployment();
         TestConfiguration.User stewardUser = steward();
-        // need to add some retry mechanism
-        //try {
-        DataRepoResponse<JobModel> launchResponse = dataRepoFixtures.buildBulkLoadArrayRequest(
-            stewardUser, datasetId, arrayLoad);
 
-        boolean isComplete = false;
+        // INITIAL REQUEST //
+        DataRepoResponse<JobModel> launchResponse = null;
         IOException lastException = null;
-        // need to catch errors here
-        isComplete = dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
+        for(int i = 0; i < 4; i++) {
+            try {
+                launchResponse = dataRepoFixtures.buildBulkLoadArrayRequest(
+                    stewardUser, datasetId, arrayLoad);
+                break;
+            } catch (IOException ex) {
+                logger.info("Caught IOException. Sleeping then retry.");
+                TimeUnit.SECONDS.sleep(30);
+                lastException = ex;
+            }
+        }
+        if (launchResponse == null && lastException != null) {
+            throw lastException;
+        }
+
+        // MANIPULATE KUBERNETES DEPLOY //
+        lastException = null;
+        boolean isComplete = false;
+        isComplete = dataRepoClient.pollForResponse(stewardUser, launchResponse, 5, 4);
         if (!isComplete) {
             // kill pod/scale pod/etc
             // poll again
             // do something else
             logger.info("not yet complete");
-            // kubeUtils.killPod(namespace);
+            kubeUtils.killPod(namespace);
 
             // dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
 

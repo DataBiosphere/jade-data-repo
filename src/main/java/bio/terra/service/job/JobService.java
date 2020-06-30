@@ -2,7 +2,9 @@ package bio.terra.service.job;
 
 import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
+import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.JobModel;
+import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -13,8 +15,11 @@ import bio.terra.service.job.exception.JobNotCompleteException;
 import bio.terra.service.job.exception.JobNotFoundException;
 import bio.terra.service.job.exception.JobResponseException;
 import bio.terra.service.job.exception.JobServiceShutdownException;
+import bio.terra.service.job.exception.JobServiceStartupException;
 import bio.terra.service.job.exception.JobUnauthorizedException;
 import bio.terra.service.kubernetes.KubeService;
+import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.upgrade.Migrate;
 import bio.terra.service.upgrade.MigrateConfiguration;
 import bio.terra.stairway.ExceptionSerializer;
 import bio.terra.stairway.Flight;
@@ -37,7 +42,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 @Component
@@ -54,32 +61,102 @@ public class JobService {
     private final MigrateConfiguration migrateConfiguration;
     private final KubeService kubeService;
     private final JobShutdownState jobShutdownState;
+    private final Migrate migrate;
+
 
     @Autowired
     public JobService(IamService samService,
                       ApplicationConfiguration appConfig,
                       StairwayJdbcConfiguration stairwayJdbcConfiguration,
                       MigrateConfiguration migrateConfiguration,
+                      GoogleResourceConfiguration googleResourceConfiguration,
                       ApplicationContext applicationContext,
                       KubeService kubeService,
                       JobShutdownState jobShutdownState,
-                      ObjectMapper objectMapper) {
+                      Migrate migrate,
+                      FireStoreDao fireStoreDao,
+                      ObjectMapper objectMapper,
+                      PerformanceLogger performanceLogger) {
         this.samService = samService;
         this.appConfig = appConfig;
+        this.kubeService = kubeService;
         this.stairwayJdbcConfiguration = stairwayJdbcConfiguration;
         this.migrateConfiguration = migrateConfiguration;
-        this.kubeService = kubeService;
         this.jobShutdownState = jobShutdownState;
+        this.migrate = migrate;
 
-        logger.info("Creating Stairway: maxStairwayThreads = " + appConfig.getMaxStairwayThreads());
+        String projectId = googleResourceConfiguration.getProjectId();
+        String stairwayClusterName = kubeService.getNamespace() + "-stairwaycluster";
+
+        logger.info("Creating Stairway: maxStairwayThreads: " + appConfig.getMaxStairwayThreads() +
+            " in project: " + projectId);
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
         stairway = Stairway.newBuilder()
             .maxParallelFlights(appConfig.getMaxStairwayThreads())
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
-            .stairwayHook(new StairwayLoggingHooks())
-        .build();
+            .stairwayHook(new StairwayLoggingHooks(performanceLogger))
+            .stairwayClusterName(stairwayClusterName)
+            .projectId(projectId)
+            .enableWorkQueue(appConfig.isInKubernetes())
+            // TODO: the FireStoreDao class reliably returns the Spring class loader that seems to work for all TDR
+            //  classes, whereas the JobService class does not. It is a mystery worth solving at some point.
+            .classLoader(fireStoreDao.getClass().getClassLoader())
+            .build();
+    }
+
+    /**
+     * This method is called from StartupInitializer as part of the sequence of migrating databases
+     * and recovering any jobs; i.e., Stairway flights. It lives in this class so that JobService encapsulates
+     * all Stairway interaction.
+     */
+    public void initialize() {
+        try {
+            List<String> recordedStairways;
+            boolean weMigrated = false;
+            try {
+                weMigrated = migrate.migrateDatabase();
+
+                // Initialize stairway - only do the stairway migration if we did the data repo migration
+                recordedStairways = stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
+                    (weMigrated && migrateConfiguration.getDropAllOnStart()),
+                    (weMigrated && migrateConfiguration.getUpdateAllOnStart()));
+            } finally {
+                if (weMigrated) {
+                    migrate.releaseMigrateLock();
+                }
+            }
+
+            // Order is important here. There are two concerns we need to handle:
+            // 1. We need to avoid a window where a running pod could get onto the Stairway list, but not be
+            //    on the pod list. That is why we get the recorded list from Stairway *before* we read the Kubernetes
+            //    pod list.
+            // 2. We want to clean up pods that fail, so we start the kubePodListener as early as possible so we
+            //    detect pods that get deleted. The Stairway recovery method called by kubePodListener works once
+            //    Stairway initialization is done, so it is safe to start the listener before we have called
+            //    Stairway recoveryAndStart
+            kubeService.startPodListener(stairway);
+
+            // Lookup all of the stairway instances we know about
+            Set<String> existingStairways = kubeService.getApiPodList();
+            List<String> obsoleteStairways = new LinkedList<>();
+
+            // Any instances that stairway knows about, but we cannot see are obsolete.
+            for (String recordedStairway : recordedStairways) {
+                if (!existingStairways.contains(recordedStairway)) {
+                    obsoleteStairways.add(recordedStairway);
+                }
+            }
+
+            // Recover and start stairway - step 3 of the stairway startup sequence
+            stairway.recoverAndStart(obsoleteStairways);
+
+        } catch (StairwayException stairwayEx) {
+            throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
+        } catch (InterruptedException ex) {
+            throw new JobServiceStartupException("Stairway startup process interrupted", ex);
+        }
     }
 
     /**
@@ -181,26 +258,6 @@ public class JobService {
             stairway.waitForFlight(jobId, null, null);
         } catch (StairwayException stairwayEx) {
             throw new InternalStairwayException(stairwayEx);
-        } catch (InterruptedException ex) {
-            throw new JobServiceShutdownException("Job service interrupted", ex);
-        }
-    }
-
-    /**
-     * This method is called from StartupInitializer as part of the sequence of migrating databases
-     * and recovering any jobs; i.e., Stairway flights. It is moved here so that JobService encapsulates
-     * all of the Stairway interaction.
-     */
-    public void initialize() {
-        try {
-            stairway.initialize(stairwayJdbcConfiguration.getDataSource(),
-                migrateConfiguration.getDropAllOnStart(),
-                migrateConfiguration.getUpdateAllOnStart());
-
-            kubeService.startPodListener();
-
-        } catch (StairwayException stairwayEx) {
-            throw new InternalStairwayException("Stairway initialization failed", stairwayEx);
         } catch (InterruptedException ex) {
             throw new JobServiceShutdownException("Job service interrupted", ex);
         }

@@ -7,10 +7,13 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
+import bio.terra.model.DRSObject;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.DeleteResponseModel;
 import bio.terra.model.EnumerateSnapshotModel;
 import bio.terra.model.ErrorModel;
+import bio.terra.model.FileLoadModel;
+import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -21,6 +24,8 @@ import bio.terra.model.TableModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.filedata.DrsId;
+import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.ProfileDao;
@@ -37,6 +42,7 @@ import com.google.cloud.storage.Storage;
 import com.google.cloud.storage.StorageOptions;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.hamcrest.CoreMatchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +61,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.stringtemplate.v4.ST;
 
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -102,6 +110,7 @@ public class SnapshotConnectedTest {
     @Autowired private ConnectedOperations connectedOperations;
     @Autowired private ConnectedTestConfiguration testConfig;
     @Autowired private ConfigurationService configService;
+    @Autowired private DrsIdService drsIdService;
 
     @MockBean
     private IamProviderInterface samService;
@@ -109,113 +118,68 @@ public class SnapshotConnectedTest {
     private String snapshotOriginalName;
     private BillingProfileModel billingProfile;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
+    private DatasetSummaryModel datasetSummary;
 
     @Before
     public void setup() throws Exception {
         connectedOperations.stubOutSamCalls(samService);
+        configService.reset();
         billingProfile =
             connectedOperations.createProfileForAccount(googleResourceConfiguration.getCoreBillingAccount());
+        datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
     }
 
     @After
     public void tearDown() throws Exception {
         connectedOperations.teardown();
+        configService.reset();
     }
 
     @Test
     public void testHappyPath() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+        snapshotHappyPathTestingHelper("snapshot-test-snapshot.json");
+    }
 
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-        List<TableModel> tables = snapshotModel.getTables();
-        assertThat("there's a table", tables.size(), equalTo(1));
-        assertThat("rowCount is getting set correctly", tables.get(0).getRowCount(), equalTo(3));
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+    @Test
+    public void testFaultyPath() throws Exception {
+        // Run the happy path test, but insert the GRANT ACCESS faults to simulate IAM propagation failures
+        configService.setFault(ConfigEnum.DATASET_GRANT_ACCESS_FAULT.name(), true);
+        configService.setFault(ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT.name(), true);
+        testHappyPath();
     }
 
     @Test
     public void testRowIdsHappyPath() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
-
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-row-ids-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-row-ids-test-snapshot.json");
     }
 
     @Test
     public void testQueryHappyPath() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
-
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-query-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-query-test-snapshot.json");
     }
 
     @Test
     public void testFullViewsHappyPath() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
-
-        SnapshotRequestModel snapshotRequest =
-            makeSnapshotTestRequest(datasetSummary, "snapshot-fullviews-test-snapshot.json");
-        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
-        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
-
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        // Duplicate delete should work
-        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-
-        getNonexistentSnapshot(snapshotModel.getId());
+        snapshotHappyPathTestingHelper("snapshot-fullviews-test-snapshot.json");
     }
 
     @Test
     public void testMinimal() throws Exception {
-        DatasetSummaryModel datasetSummary = setupMinimalDataset();
-        String datasetName = PDAO_PREFIX + datasetSummary.getName();
+        DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
+        String datasetName = PDAO_PREFIX + datasetMinimalSummary.getName();
         BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetSummary.getName());
+            datasetDao, dataLocationService, datasetMinimalSummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetMinimalSummary,
                 "dataset-minimal-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetMinimalSummary);
         List<TableModel> tables = snapshotModel.getTables();
         Optional<TableModel> participantTable = tables
             .stream()
@@ -237,20 +201,20 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testArrayStruct() throws Exception {
-        DatasetSummaryModel datasetSummary = setupArrayStructDataset();
-        String datasetName = PDAO_PREFIX + datasetSummary.getName();
+        DatasetSummaryModel datasetArraySummary = setupArrayStructDataset();
+        String datasetName = PDAO_PREFIX + datasetArraySummary.getName();
         BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, datasetSummary.getName());
+            datasetDao, dataLocationService, datasetArraySummary.getName());
         long datasetParticipants = queryForCount(datasetName, "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", datasetParticipants, equalTo(2L));
         long datasetSamples = queryForCount(datasetName, "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", datasetSamples, equalTo(5L));
 
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetArraySummary,
             "snapshot-array-struct.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "");
         SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
-        getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetArraySummary);
 
         long snapshotParticipants = queryForCount(summaryModel.getName(), "participant", bigQueryProject);
         assertThat("dataset participants loaded properly", snapshotParticipants, equalTo(2L));
@@ -260,8 +224,8 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testMinimalBadAsset() throws Exception {
-        DatasetSummaryModel datasetSummary = setupMinimalDataset();
-        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary,
+        DatasetSummaryModel datasetMinimalSummary = setupMinimalDataset();
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetMinimalSummary,
                 "dataset-minimal-snapshot-bad-asset.json");
         MvcResult result = launchCreateSnapshot(snapshotRequest, "");
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
@@ -270,8 +234,6 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testEnumeration() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
 
         // Other unit tests exercise the array bounds, so here we don't fuss with that here.
@@ -314,8 +276,6 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testBadData() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
         SnapshotRequestModel badDataRequest = makeSnapshotTestRequest(datasetSummary,
                 "snapshot-test-snapshot-baddata.json");
 
@@ -326,10 +286,6 @@ public class SnapshotConnectedTest {
 
     @Test
     public void testDuplicateName() throws Exception {
-        // create a dataset and load some tabular data
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
-
         // create a snapshot
         SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
         MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
@@ -353,15 +309,11 @@ public class SnapshotConnectedTest {
 
         // delete and confirm deleted
         connectedOperations.deleteTestSnapshot(snapshotModel.getId());
-        getNonexistentSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
     public void testOverlappingDeletes() throws Exception {
-        // create a dataset and load some tabular data
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
-
         // create a snapshot
         SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary,
             "snapshot-test-snapshot.json", "_d2_");
@@ -396,15 +348,11 @@ public class SnapshotConnectedTest {
             startsWith("Failed to lock the snapshot"));
 
         // confirm deleted
-        getNonexistentSnapshot(summaryModel.getId());
+        connectedOperations.getSnapshotExpectError(summaryModel.getId(), HttpStatus.NOT_FOUND);
     }
 
     @Test
     public void testExcludeLockedFromSnapshotLookups() throws Exception {
-        // create a dataset and load some tabular data
-        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
-        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
-
         // create a snapshot
         SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(datasetSummary,
             "snapshot-test-snapshot.json", "_d2_");
@@ -465,6 +413,7 @@ public class SnapshotConnectedTest {
         // check that the enumerate snapshots returned successfully and that this snapshot is not included in the set
         enumerateSnapshotModelModel =
             connectedOperations.handleSuccessCase(enumerateResult.getResponse(), EnumerateSnapshotModel.class);
+
         enumeratedSnapshots = enumerateSnapshotModelModel.getItems();
         foundSnapshotWithMatchingId = false;
         for (SnapshotSummaryModel enumeratedSnapshot : enumeratedSnapshots) {
@@ -486,18 +435,142 @@ public class SnapshotConnectedTest {
         connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
     }
 
+    @Test
+    public void testExcludeLockedFromSnapshotFileLookups() throws Exception {
+        // create a dataset
+        DatasetSummaryModel datasetRefSummary = createTestDataset("simple-with-filerefs-dataset.json");
+
+        // ingest a file
+        URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt",
+            null, null);
+        String targetFilePath =
+            "/mm/" + Names.randomizeName("testdir") + "/testExcludeLockedFromSnapshotFileLookups.txt";
+        FileLoadModel fileLoadModel = new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("testExcludeLockedFromSnapshotFileLookups")
+            .mimeType("text/plain")
+            .targetPath(targetFilePath)
+            .profileId(billingProfile.getId());
+        FileModel fileModel = connectedOperations.ingestFileSuccess(datasetRefSummary.getId(), fileLoadModel);
+
+        // generate a JSON file with the fileref
+        String jsonLine = "{\"name\":\"name1\", \"file_ref\":\"" + fileModel.getFileId() + "\"}\n";
+
+        // load a JSON file that contains the table rows to load into the test bucket
+        String jsonFileName = "this-better-pass.json";
+        String dirInCloud = "scratch/testExcludeLockedFromSnapshotFileLookups/" + UUID.randomUUID().toString();
+        BlobInfo ingestTableBlob = BlobInfo
+            .newBuilder(testConfig.getIngestbucket(), dirInCloud + "/" + jsonFileName)
+            .build();
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        storage.create(ingestTableBlob, jsonLine.getBytes(StandardCharsets.UTF_8));
+
+        // make sure the JSON file gets cleaned up on test teardown
+        connectedOperations.addScratchFile(dirInCloud + "/" + jsonFileName);
+
+        // ingest the tabular data from the JSON file we just generated
+        String gsPath = "gs://" + testConfig.getIngestbucket() + "/" + dirInCloud + "/" + jsonFileName;
+        IngestRequestModel ingestRequest1 = new IngestRequestModel()
+            .format(IngestRequestModel.FormatEnum.JSON)
+            .table("tableA")
+            .path(gsPath);
+        connectedOperations.ingestTableSuccess(datasetRefSummary.getId(), ingestRequest1);
+
+        // create a snapshot
+        SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(
+            datasetRefSummary, "simple-with-filerefs-snapshot.json", "");
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        String fileUri = getFileRefIdFromSnapshot(snapshotSummary);
+        DrsId drsId = drsIdService.fromUri(fileUri);
+        DRSObject drsObject = connectedOperations.drsGetObjectSuccess(drsId.toDrsObjectId(), false);
+        String filePath = drsObject.getAliases().get(0);
+
+        // lookup the snapshot file by DRS id, make sure it's returned (lookupSnapshotFileSuccess will already check)
+        FileModel fsObjById =
+            connectedOperations.lookupSnapshotFileSuccess(snapshotSummary.getId(), drsId.getFsObjectId());
+        assertEquals("Retrieve snapshot file by DRS id matches desc", fsObjById.getDescription(),
+            fileLoadModel.getDescription());
+
+        // lookup the snapshot file by DRS path and check that it's found
+        FileModel fsObjByPath =
+            connectedOperations.lookupSnapshotFileByPathSuccess(snapshotSummary.getId(), filePath, 0);
+        assertEquals("Retrieve snapshot file by path matches desc",
+            fsObjByPath.getDescription(), fileLoadModel.getDescription());
+        assertThat("Retrieve snapshot file objects match", fsObjById, CoreMatchers.equalTo(fsObjByPath));
+
+        // now the snapshot exists....let's get it locked!
+
+        // NO ASSERTS inside the block below where hang is enabled to reduce chance of failing before disabling the hang
+        // ====================================================
+        // enable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT.name(), true);
+
+        // kick off a request to delete the snapshot. this should hang before unlocking the snapshot object.
+        // note: asserts are below outside the hang block
+        MvcResult deleteResult = mvc.perform(delete(
+            "/api/repository/v1/snapshots/" + snapshotSummary.getId())).andReturn();
+        TimeUnit.SECONDS.sleep(5); // give the flight time to launch and get to the hang
+
+        // check that the snapshot metadata row has an exclusive lock
+        exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotSummary.getId()));
+
+        // lookup the snapshot file by id and check that it's NOT found
+        MockHttpServletResponse failedGetSnapshotByIdResponse =
+            connectedOperations.lookupSnapshotFileRaw(snapshotSummary.getId(), drsId.getFsObjectId());
+
+        // lookup the snapshot file by path and check that it's NOT found
+        MockHttpServletResponse failedGetSnapshotByPathResponse =
+            connectedOperations.lookupSnapshotFileByPathRaw(snapshotSummary.getId(), filePath, 0);
+
+        // disable hang in DeleteSnapshotPrimaryDataStep
+        configService.setFault(ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT.name(), true);
+        // ====================================================
+
+        // check that the snapshot metadata row has an exclusive lock after kicking off the delete
+        assertNotNull("snapshot row is exclusively locked", exclusiveLock);
+
+        assertEquals("Snapshot file NOT found by DRS id lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByIdResponse.getStatus()));
+
+        assertEquals("Snapshot file NOT found by path lookup",
+            HttpStatus.NOT_FOUND, HttpStatus.valueOf(failedGetSnapshotByPathResponse.getStatus()));
+
+        // check the response from the snapshot delete request
+        MockHttpServletResponse deleteResponse = connectedOperations.validateJobModelAndWait(deleteResult);
+        DeleteResponseModel deleteResponseModel =
+            connectedOperations.handleSuccessCase(deleteResponse, DeleteResponseModel.class);
+        assertEquals("Snapshot delete returned successfully",
+            DeleteResponseModel.ObjectStateEnum.DELETED, deleteResponseModel.getObjectState());
+
+        // delete the dataset and check that it succeeds
+        connectedOperations.deleteTestDataset(datasetRefSummary.getId());
+
+        // remove the file from the connectedoperation bookkeeping list
+        connectedOperations.removeFile(datasetRefSummary.getId(), fileModel.getFileId());
+
+        // try to fetch the snapshot again and confirm nothing is returned
+        connectedOperations.getSnapshotExpectError(snapshotSummary.getId(), HttpStatus.NOT_FOUND);
+
+        // try to fetch the dataset again and confirm nothing is returned
+        connectedOperations.getDatasetExpectError(datasetRefSummary.getId(), HttpStatus.NOT_FOUND);
+    }
+
     private DatasetSummaryModel setupMinimalDataset() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("dataset-minimal.json");
-        loadCsvData(datasetSummary.getId(), "participant", "dataset-minimal-participant.csv");
-        loadCsvData(datasetSummary.getId(), "sample", "dataset-minimal-sample.csv");
-        return  datasetSummary;
+        DatasetSummaryModel datasetMinimalSummary = createTestDataset("dataset-minimal.json");
+        loadCsvData(datasetMinimalSummary.getId(), "participant", "dataset-minimal-participant.csv");
+        loadCsvData(datasetMinimalSummary.getId(), "sample", "dataset-minimal-sample.csv");
+        return  datasetMinimalSummary;
     }
 
     private DatasetSummaryModel setupArrayStructDataset() throws Exception {
-        DatasetSummaryModel datasetSummary = createTestDataset("dataset-array-struct.json");
-        loadJsonData(datasetSummary.getId(), "participant", "dataset-array-struct-participant.json");
-        loadJsonData(datasetSummary.getId(), "sample", "dataset-array-struct-sample.json");
-        return  datasetSummary;
+        DatasetSummaryModel datasetArraySummary = createTestDataset("dataset-array-struct.json");
+        loadJsonData(datasetArraySummary.getId(), "participant", "dataset-array-struct-participant.json");
+        loadJsonData(datasetArraySummary.getId(), "sample", "dataset-array-struct-sample.json");
+        return  datasetArraySummary;
     }
 
     // create a dataset to create snapshots in and return its id
@@ -639,16 +712,6 @@ public class SnapshotConnectedTest {
         return snapshotModel;
     }
 
-    private void getNonexistentSnapshot(String id) throws Exception {
-        MvcResult result = mvc.perform(get("/api/repository/v1/snapshots/" + id))
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON_UTF8_VALUE))
-                .andReturn();
-
-        MockHttpServletResponse response = result.getResponse();
-        ErrorModel errorModel = TestUtils.mapFromJson(response.getContentAsString(), ErrorModel.class);
-        assertThat("proper not found error", errorModel.getMessage(), startsWith("Snapshot not found"));
-    }
-
     private static final String queryForCountTemplate =
         "SELECT COUNT(*) FROM `<project>.<snapshot>.<table>`";
 
@@ -670,6 +733,42 @@ public class SnapshotConnectedTest {
         FieldValueList row = result.iterateAll().iterator().next();
         FieldValue countValue = row.get(0);
         return countValue.getLongValue();
+    }
+
+    private static final String queryForRefIdTemplate =
+        "SELECT file_ref FROM `<project>.<snapshot>.<table>` WHERE file_ref IS NOT NULL";
+
+    // Technically a helper method, but so specific to testExcludeLockedFromSnapshotFileLookups, likely not re-useable
+    private String getFileRefIdFromSnapshot(SnapshotSummaryModel snapshotSummary) throws InterruptedException {
+        Snapshot snapshot = snapshotDao.retrieveSnapshotByName(snapshotSummary.getName());
+        SnapshotDataProject dataProject = dataLocationService.getOrCreateProject(snapshot);
+        BigQueryProject bigQueryProject = BigQueryProject.get(dataProject.getGoogleProjectId());
+        BigQuery bigQuery = bigQueryProject.getBigQuery();
+
+        ST sqlTemplate = new ST(queryForRefIdTemplate);
+        sqlTemplate.add("project", dataProject.getGoogleProjectId());
+        sqlTemplate.add("snapshot", snapshot.getName());
+        sqlTemplate.add("table", "tableA");
+
+        QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(sqlTemplate.render()).build();
+        TableResult result = bigQuery.query(queryConfig);
+        FieldValueList row = result.iterateAll().iterator().next();
+        FieldValue idValue = row.get(0);
+        return idValue.getStringValue();
+    }
+
+    private void snapshotHappyPathTestingHelper(String path) throws Exception {
+        SnapshotRequestModel snapshotRequest =
+            makeSnapshotTestRequest(datasetSummary, path);
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_thp_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        // Duplicate delete should work
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
     }
 
 }

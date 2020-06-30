@@ -57,7 +57,7 @@ public class FireStoreDao {
     public void createDirectoryEntry(Dataset dataset, FireStoreDirectoryEntry newEntry) {
         DatasetDataProject dataProject = dataLocationService.getProjectOrThrow(dataset);
         Firestore firestore = FireStoreProject.get(dataProject.getGoogleProjectId()).getFirestore();
-        String datasetId = newEntry.getDatasetId().toString();
+        String datasetId = newEntry.getDatasetId();
         directoryDao.createDirectoryEntry(firestore, datasetId, newEntry);
     }
 

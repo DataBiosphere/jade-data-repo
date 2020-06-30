@@ -158,7 +158,7 @@ public class SnapshotTest extends UsersBase {
 
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
-                datasetSummaryModel,
+                dataset.getName(),
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
@@ -183,7 +183,7 @@ public class SnapshotTest extends UsersBase {
               + datasetName + ".sample WHERE " + datasetName + ".sample.id ='sample6'");
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
-                datasetSummaryModel,
+                datasetName,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());
@@ -201,7 +201,7 @@ public class SnapshotTest extends UsersBase {
         requestModel.getContents().get(0).setDatasetName(datasetName);
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
-                datasetSummaryModel,
+                datasetName,
                 requestModel);
         TimeUnit.SECONDS.sleep(10);
         createdSnapshotIds.add(snapshotSummary.getId());

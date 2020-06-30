@@ -101,6 +101,8 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .addParameter(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
                 configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
+            .addParameter(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
+                configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
             .submit();
     }
 
@@ -131,6 +133,8 @@ public class FileService {
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .addParameter(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
                 configService.getParameterValue(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE))
+            .addParameter(LoadMapKeys.LOAD_HISTORY_WAIT_SECONDS,
+                configService.getParameterValue(ConfigEnum.LOAD_HISTORY_WAIT_SECONDS))
             .submit();
     }
 
@@ -177,13 +181,15 @@ public class FileService {
         return fileModelFromFSItem(fsItem);
     }
 
+    // note: this method only returns snapshots that are NOT exclusively locked
     FSItem lookupSnapshotFSItem(String snapshotId, String fileId, int depth) {
-        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+        Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveById(snapshot, fileId, depth, true);
     }
 
+    // note: this method only returns snapshots that are NOT exclusively locked
     FSItem lookupSnapshotFSItemByPath(String snapshotId, String path, int depth) {
-        Snapshot snapshot = snapshotService.retrieve(UUID.fromString(snapshotId));
+        Snapshot snapshot = snapshotService.retrieveAvailable(UUID.fromString(snapshotId));
         return fileDao.retrieveByPath(snapshot, path, depth, true);
     }
 

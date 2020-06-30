@@ -13,14 +13,6 @@ appender("Console-Appender", ConsoleAppender) {
         pattern = "%date %-5level [%thread] %logger{36}: %message%n"
     }
 }
-// Appender that sends to a file
-appender("File-Appender", FileAppender) {
-    file = "${LOG_PATH}/datarepo.log"
-    encoder(PatternLayoutEncoder) {
-        pattern = "%date %-5level [%thread]: %message%n"
-        outputPatternAsHeader = true
-    }
-}
 
 // You can set different logging configuration. For example, uncommenting the next line
 // will set all loggers in the Stairway package to log at debug level:

@@ -54,6 +54,11 @@ public class ApplicationConfiguration {
     private int loadDriverWaitSeconds;
 
     /**
+     * Number of seconds to wait between loads of data into laod_history table
+     */
+    private int loadHistoryWaitSeconds;
+
+    /**
      * Number of files for the bulk file load to load file metadata into staging table
      */
     private int loadHistoryCopyChunkSize;
@@ -80,10 +85,10 @@ public class ApplicationConfiguration {
      * in application.properties. It should only be reset by the Kubernetes deployment.
      */
     private boolean inKubernetes;
+
     /**
-     * Pod shutdown timeout
-     * TODO: better to have this passed in as an envvar from the K8s configuration so it is in sync.
-     *  For getting started, we use this timeout setting.
+     * Pod shutdown timeout. When constructed using our helm charts, the shutdown time is set both in the
+     * Kubernetes configuration and as an environment variable that controls this value.
      */
     private int shutdownTimeoutSeconds;
 
@@ -165,6 +170,14 @@ public class ApplicationConfiguration {
 
     public void setLoadDriverWaitSeconds(int loadDriverWaitSeconds) {
         this.loadDriverWaitSeconds = loadDriverWaitSeconds;
+    }
+
+    public int getLoadHistoryWaitSeconds() {
+        return loadHistoryWaitSeconds;
+    }
+
+    public void setLoadHistoryWaitSeconds(int loadQueryHistorySeconds) {
+        this.loadHistoryWaitSeconds = loadQueryHistorySeconds;
     }
 
     public int getLoadHistoryCopyChunkSize() {

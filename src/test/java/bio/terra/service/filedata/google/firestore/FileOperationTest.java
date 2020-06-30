@@ -57,7 +57,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.IOException;
-import java.net.URI;
 import java.util.*;
 
 import static bio.terra.common.PdaoConstant.PDAO_LOAD_HISTORY_TABLE;
@@ -145,6 +144,7 @@ public class FileOperationTest {
 
     @After
     public void teardown() throws Exception {
+        configService.reset();
         connectedOperations.teardown();
     }
 
@@ -204,16 +204,12 @@ public class FileOperationTest {
 
         // Error: Non-existent source file
         String badfile = "/I am not a file";
-        URI uribadfile = new URI("gs",
-            testConfig.getIngestbucket(),
-            badfile,
-            null,
-            null);
+        String uribadfile = "gs://" + testConfig.getIngestbucket() + "/" + badfile;
         String badPath = "/dd/files/" + Names.randomizeName("dir") + badfile;
 
         fileLoadModel = new FileLoadModel()
             .profileId(profileModel.getId())
-            .sourcePath(uribadfile.toString())
+            .sourcePath(uribadfile)
             .description(testDescription)
             .mimeType(testMimeType)
             .targetPath(badPath);
@@ -264,6 +260,15 @@ public class FileOperationTest {
     @Test
     public void arrayMultiFileLoadSuccessTest() throws Exception {
         int fileCount = 10;
+
+        // Test copying load_history data in chunks
+        ConfigModel loadHistoryChunkSize = configService.getConfig(ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE.name());
+        loadHistoryChunkSize.setParameter(new ConfigParameterModel().value("2"));
+        ConfigGroupModel configGroupModel = new ConfigGroupModel()
+            .label("FileOperationTestMultiFileLoad")
+            .addGroupItem(loadHistoryChunkSize);
+        configService.setConfig(configGroupModel);
+
         BulkLoadArrayRequestModel arrayLoad = makeSuccessArrayLoad("arrayMultiFileLoadSuccessTest", 0, fileCount);
 
         BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
@@ -281,7 +286,7 @@ public class FileOperationTest {
         ArrayList<String> ids = new ArrayList<>();
         queryLoadHistoryTableResult.iterateAll().forEach(r -> ids.add(r.get(columnToQuery).getStringValue()));
 
-        assertThat("Number of files in datarepo_load_history table match load summary", fileCount, equalTo(ids.size()));
+        assertThat("Number of files in datarepo_load_history table match load summary", ids.size(), equalTo(fileCount));
         for (String bq_file_id:ids) {
             assertNotNull("fileIdMap should contain File_id from datarepo_load_history",
                 fileIdMap.containsValue(bq_file_id));
@@ -658,17 +663,13 @@ public class FileOperationTest {
         return String.format("/dd/files/foo/ValidFileName%d.pdf", validFileCounter);
     }
 
-    private FileLoadModel makeFileLoad(String profileId) throws Exception {
+    private FileLoadModel makeFileLoad(String profileId) {
         String targetDir = Names.randomizeName("dir");
-        URI uri = new URI("gs",
-            testConfig.getIngestbucket(),
-            "/files/" + testPdfFile,
-            null,
-            null);
+        String uri = "gs://" + testConfig.getIngestbucket() + "/files/" + testPdfFile;
         String targetPath = "/dd/files/" + targetDir + "/" + testPdfFile;
 
         return new FileLoadModel()
-            .sourcePath(uri.toString())
+            .sourcePath(uri)
             .description(testDescription)
             .mimeType(testMimeType)
             .targetPath(targetPath)

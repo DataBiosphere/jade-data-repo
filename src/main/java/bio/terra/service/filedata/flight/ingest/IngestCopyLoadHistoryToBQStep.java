@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 
 public class IngestCopyLoadHistoryToBQStep implements Step {
@@ -24,19 +25,22 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
     private final String datasetIdString;
     private final BigQueryPdao bigQueryPdao;
     private final int fileChunkSize;
+    private final int waitSeconds;
 
     public IngestCopyLoadHistoryToBQStep(LoadService loadService,
                                          DatasetService datasetService,
                                          String loadTag,
                                          String datasetId,
                                          BigQueryPdao bigQueryPdao,
-                                         int fileChunkSize) {
+                                         int fileChunkSize,
+                                         int waitSeconds) {
         this.loadService = loadService;
         this.loadTag = loadTag;
         this.datasetIdString = datasetId;
         this.bigQueryPdao = bigQueryPdao;
         this.datasetService = datasetService;
         this.fileChunkSize = fileChunkSize;
+        this.waitSeconds = waitSeconds;
     }
 
     @Override
@@ -54,6 +58,7 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
         try {
             Instant loadTime = context.getStairway().getFlightState(flightId).getSubmitted();
             bigQueryPdao.createStagingLoadHistoryTable(dataset, tableName_FlightId);
+            TimeUnit.SECONDS.sleep(waitSeconds);
 
             while (loadHistoryArray == null || loadHistoryArray.size() == fileChunkSize) {
                 loadHistoryArray = loadService.makeLoadHistoryArray(loadId, fileChunkSize, (chunkNum * fileChunkSize));
@@ -66,6 +71,9 @@ public class IngestCopyLoadHistoryToBQStep implements Step {
                         loadTag,
                         loadTime,
                         loadHistoryArray);
+                    // Sleep to avoid BQ rate limit error
+                    // From quick survey of logs, longest time to complete load query: 3 seconds
+                    TimeUnit.SECONDS.sleep(waitSeconds);
                 }
             }
             // copy from staging to actual BQ table

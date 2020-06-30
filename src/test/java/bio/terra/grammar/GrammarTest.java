@@ -67,6 +67,39 @@ public class GrammarTest {
         assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
     }
 
+
+    @Test
+    public void testJoin() {
+        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar JOIN baz.quux ON foo.bar.x = baz.quux.y");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+    }
+
+    @Test
+    public void testJoinWhere() {
+        Query query = Query.parse("SELECT foo.quux.datarepo_row_id FROM foo.bar JOIN foo.quux ON foo.bar.x = foo.quux.x WHERE foo.quux.z IN ('box')");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "z"));
+    }
+
+    @Test
+    public void testWhere() {
+        Query query = Query.parse("SELECT baz.quux.datarepo_row_id FROM foo.bar, baz.quux WHERE baz.quux.x IN ('lux') AND baz.quux.y IN ('box') ");
+        List<String> columnNames = query.getColumnNames();
+        assertThat("there are three columns", columnNames.size(), equalTo(3));
+        assertThat("it found the right columns", columnNames, hasItems("datarepo_row_id", "x", "y"));
+    }
+
+    @Test(expected = InvalidQueryException.class)
+    public void testWhere1000Genomes() {
+        Query.parse("SELECT 1000GenomesDataset.sample_info.datarepo_row_id FROM 1000GenomesDataset" +
+            ".sample_info JOIN a1000GenomesDataset.pedigree ON 1000GenomesDataset.pedigree.Family_ID = " +
+            "1000GenomesDataset.sample_info.Family_ID WHERE 1000GenomesDataset.pedigree.Relationship IN (\"child\") " +
+            "AND 1000GenomesDataset.sample_info.Gender  IN (\"male\")");
+    }
+
     @Test(expected = InvalidQueryException.class)
     public void testColumnNotFullyQualifiedName() {
         // note that the col `datarepo_row_id` does not have a table or dataset attached

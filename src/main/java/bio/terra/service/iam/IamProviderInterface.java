@@ -5,6 +5,7 @@ import bio.terra.model.UserStatusInfo;
 import bio.terra.service.iam.exception.IamUnauthorizedException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -68,9 +69,10 @@ public interface IamProviderInterface {
      *
      * @param userReq authenticated user
      * @param datasetId id of the dataset
-     * @return List of policy group emails for the dataset policies
+     * @return Map of policy group emails for the dataset policies
      */
-    List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) throws InterruptedException;
+    Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws InterruptedException;
 
     /**
      * Create a snapshot IAM resource
@@ -80,9 +82,9 @@ public interface IamProviderInterface {
      * @param readersList list of emails of users to add as readers of the snapshot
      * @return Policy group email for the snapshot reader policy
      */
-    String createSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList)
-        throws InterruptedException;
-
+    Map<IamRole, String> createSnapshotResource(AuthenticatedUserRequest userReq,
+                                                UUID snapshotId,
+                                                List<String> readersList) throws InterruptedException;
 
     // -- policy membership support --
 

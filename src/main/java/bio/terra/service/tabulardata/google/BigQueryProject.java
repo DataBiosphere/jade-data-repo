@@ -17,6 +17,7 @@ import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TableResult;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,8 +128,10 @@ public final class BigQueryProject {
     public void addDatasetAcls(String datasetId, List<Acl> acls) {
         Dataset dataset = bigQuery.getDataset(datasetId);
         List<Acl> beforeAcls = dataset.getAcl();
+        logger.debug("Before acl: " + StringUtils.join(beforeAcls, ", "));
         ArrayList<Acl> newAcls = new ArrayList<>(beforeAcls);
         newAcls.addAll(acls);
+        logger.debug("New acl: " + StringUtils.join(newAcls, ", "));
         updateDatasetAcls(dataset, newAcls);
     }
 

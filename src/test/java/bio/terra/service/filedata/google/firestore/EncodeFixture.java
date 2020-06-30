@@ -50,9 +50,28 @@ public class EncodeFixture {
     @Autowired private AuthService authService;
     @Autowired private TestConfiguration testConfiguration;
 
+    public static class SetupResult {
+        private String datasetId;
+        private SnapshotSummaryModel summaryModel;
+
+        public SetupResult(String datasetId, SnapshotSummaryModel summaryModel) {
+            this.datasetId = datasetId;
+            this.summaryModel = summaryModel;
+        }
+
+        public String getDatasetId() {
+            return datasetId;
+        }
+
+        public SnapshotSummaryModel getSummaryModel() {
+            return summaryModel;
+        }
+    }
+
+
     // Create dataset, load files and tables. Create and return snapshot.
     // Steward owns dataset; custodian is custodian on dataset; reader has access to the snapshot.
-    public SnapshotSummaryModel setupEncode(
+    public SetupResult setupEncode(
         TestConfiguration.User steward,
         TestConfiguration.User custodian,
         TestConfiguration.User reader) throws Exception {
@@ -108,7 +127,7 @@ public class EncodeFixture {
         BigQuery bigQueryReader = BigQueryFixtures.getBigQuery(snapshotModel.getDataProject(), readerToken);
         BigQueryFixtures.hasAccess(bigQueryReader, snapshotModel.getDataProject(), snapshotModel.getName());
 
-        return snapshotSummary;
+        return new SetupResult(datasetId, snapshotSummary);
     }
 
     private String loadFiles(

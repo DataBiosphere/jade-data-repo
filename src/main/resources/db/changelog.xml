@@ -27,4 +27,5 @@
     <include file="changesets/20200404_addChecksum.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200420_datasetsharedlock.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200525_snapshottablerowcounts.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20200529_datasetuniqueasset.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

@@ -1,6 +1,5 @@
 package bio.terra.service.resourcemanagement.google;
 
-import bio.terra.model.DatasetModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.google.gcs.GcsProject;
@@ -49,6 +48,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -395,14 +395,14 @@ public class GoogleResourceService {
         return newProject(projectRequest, googleProjectId);
     }
 
-    public void grantPoliciesBqJobUser(DatasetModel datasetModel, List<String> policyEmails)
+    public void grantPoliciesBqJobUser(String dataProject, Collection<String> policyEmails)
         throws InterruptedException {
 
         Map<String, List<String>> policyMap = new HashMap<>();
         List<String> emails = policyEmails.stream().map((e) -> "group:" + e).collect(Collectors.toList());
         policyMap.put(BQ_JOB_USER_ROLE, emails);
 
-        enableIamPermissions(policyMap, datasetModel.getDataProject());
+        enableIamPermissions(policyMap, dataProject);
     }
 
     public GoogleProjectResource getProjectResourceById(UUID id) {

@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.FlightUtils;
 import bio.terra.common.exception.PdaoException;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -17,6 +18,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_ACCESS_FAULT;
@@ -41,7 +43,8 @@ public class SnapshotAuthzTabularAclStep implements Step {
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-        String readersPolicyEmail = workingMap.get(SnapshotWorkingMapKeys.POLICY_EMAIL, String.class);
+        Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+        String readersPolicyEmail = policies.get(IamRole.READER);
 
         try {
             if (configService.testInsertFault(SNAPSHOT_GRANT_ACCESS_FAULT)) {

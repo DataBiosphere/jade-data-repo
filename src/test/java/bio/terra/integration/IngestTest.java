@@ -60,11 +60,11 @@ public class IngestTest extends UsersBase {
     @After
     public void teardown() throws Exception {
         for (String snapshotId : createdSnapshotIds) {
-            dataRepoFixtures.deleteSnapshot(custodian(), snapshotId);
+            dataRepoFixtures.deleteSnapshotLog(custodian(), snapshotId);
         }
 
         if (datasetId != null) {
-            dataRepoFixtures.deleteDataset(steward(), datasetId);
+            dataRepoFixtures.deleteDatasetLog(steward(), datasetId);
         }
     }
 

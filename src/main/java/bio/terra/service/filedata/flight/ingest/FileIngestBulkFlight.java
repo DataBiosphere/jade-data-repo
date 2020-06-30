@@ -19,6 +19,7 @@ import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.Flight;
 import bio.terra.stairway.FlightMap;
+import bio.terra.stairway.RetryRuleExponentialBackoff;
 import bio.terra.stairway.RetryRuleRandomBackoff;
 import org.springframework.context.ApplicationContext;
 
@@ -79,6 +80,8 @@ public class FileIngestBulkFlight extends Flight {
         RetryRuleRandomBackoff createBucketRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
+        RetryRuleExponentialBackoff driverRetry = new RetryRuleExponentialBackoff(5, 20, 600);
+
         // The flight plan:
         // 0. Verify authorization to do the ingest
         // 1. Lock the load tag - only one flight operating on a load tag at a time
@@ -110,6 +113,7 @@ public class FileIngestBulkFlight extends Flight {
                 appConfig.getLoadFilePopulateBatchSize()));
         }
         addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
+
         addStep(new IngestDriverStep(
             loadService,
             configurationService,
@@ -118,7 +122,8 @@ public class FileIngestBulkFlight extends Flight {
             loadTag,
             maxFailedFileLoads,
             driverWaitSeconds,
-            profileId));
+            profileId), driverRetry);
+
         if (isArray) {
             addStep(new IngestBulkArrayResponseStep(loadService, loadTag));
         } else {

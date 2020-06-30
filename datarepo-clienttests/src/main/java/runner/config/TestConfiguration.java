@@ -1,8 +1,8 @@
 package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import utils.FileUtils;
 
-import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,36 +25,24 @@ public class TestConfiguration implements SpecificationInterface {
         ObjectMapper objectMapper = new ObjectMapper();
 
         // read in the test config file
-        InputStream inputStream = getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+        InputStream inputStream = FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
         TestConfiguration testConfig = objectMapper.readValue(inputStream, TestConfiguration.class);
 
         // read in the server file
-        inputStream = getJSONFileHandle(ServerSpecification.resourceDirectory + "/" + testConfig.serverSpecificationFile);
+        inputStream = FileUtils.getJSONFileHandle(ServerSpecification.resourceDirectory + "/" + testConfig.serverSpecificationFile);
         testConfig.server = objectMapper.readValue(inputStream, ServerSpecification.class);
 
         // read in the test user files and the nested service account files
         for (String testUserFile : testConfig.testUserFiles) {
-            inputStream = getJSONFileHandle(TestUserSpecification.resourceDirectory + "/" + testUserFile);
+            inputStream = FileUtils.getJSONFileHandle(TestUserSpecification.resourceDirectory + "/" + testUserFile);
             TestUserSpecification testUser = objectMapper.readValue(inputStream, TestUserSpecification.class);
 
-            inputStream = getJSONFileHandle(ServiceAccountSpecification.resourceDirectory + "/" + testUser.delegatorServiceAccountFile);
+            inputStream = FileUtils.getJSONFileHandle(ServiceAccountSpecification.resourceDirectory + "/" + testUser.delegatorServiceAccountFile);
             testUser.delegatorServiceAccount = objectMapper.readValue(inputStream, ServiceAccountSpecification.class);
             testConfig.testUsers.add(testUser);
         }
 
         return testConfig;
-    }
-
-    /**
-     * Build a stream handle to a JSON resource file.
-     * @throws FileNotFoundException
-     */
-    private static InputStream getJSONFileHandle(String resourceFilePath) throws FileNotFoundException {
-        InputStream inputStream = TestConfiguration.class.getClassLoader().getResourceAsStream(resourceFilePath);
-        if (inputStream == null) {
-            throw new FileNotFoundException("Resource file not found: " + resourceFilePath);
-        }
-        return inputStream;
     }
 
     /**

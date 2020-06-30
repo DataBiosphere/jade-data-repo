@@ -1,0 +1,14 @@
+{
+  "name": "LookupDataset",
+  "serverSpecificationFile": "mmdev.json",
+  "testScripts": [
+    {
+      "name": "RetrieveDataset",
+      "totalNumberToRun": 5,
+      "numberToRunInParallel": 3,
+      "expectedTimeForEach": "20",
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

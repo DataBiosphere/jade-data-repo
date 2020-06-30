@@ -10,11 +10,9 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
-import java.io.BufferedReader;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -25,37 +23,29 @@ import runner.config.ServerSpecification;
 
 public final class KubernetesClientUtils {
 
-  private static volatile CoreV1Api kubernetesClientObject;
-
-  private static final Object lockKubernetesClientObject = new Object();
+  private static CoreV1Api kubernetesClientObject;
 
   private KubernetesClientUtils() {}
 
-  public static CoreV1Api getKubernetesClientObject(ServerSpecification server) throws Exception {
-    if (kubernetesClientObject == null) {
-      synchronized (lockKubernetesClientObject) {
-        kubernetesClientObject = buildKubernetesClientObject(server);
-      }
-    }
+  public static CoreV1Api getKubernetesClientObject() {
     return kubernetesClientObject;
   }
 
-  private static CoreV1Api buildKubernetesClientObject(ServerSpecification server)
-      throws Exception {
-    // call the fetchGKECrednetials script that uses gcloud to generate the kubeconfig file
+  public static void buildKubernetesClientObject(ServerSpecification server) throws Exception {
+    // call the fetchGKECredentials script that uses gcloud to generate the kubeconfig file
     List<String> scriptArgs = new ArrayList<>();
     scriptArgs.add("tools/fetchGKECredentials.sh");
-    scriptArgs.add(server.clusterName);
+    scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);
-    executeCommand("sh", scriptArgs);
+    ProcessUtils.executeCommand("sh", scriptArgs);
 
     // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
     String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
 
     // load the kubeconfig object from the file
     InputStreamReader filereader =
-        new InputStreamReader(new FileInputStream(kubeConfigPath), Charset.forName("UTF-8"));
+        new InputStreamReader(new FileInputStream(kubeConfigPath), StandardCharsets.UTF_8);
     KubeConfig kubeConfig = KubeConfig.loadKubeConfig(filereader);
 
     // get a refreshed SA access token and its expiration time
@@ -114,39 +104,14 @@ public final class KubernetesClientUtils {
     // the client object from the global configuration
     Configuration.setDefaultApiClient(client);
 
-    return new CoreV1Api();
+    kubernetesClientObject = new CoreV1Api();
   }
 
-  /**
-   * Executes a command in a separate process.
-   *
-   * @param cmdArgs a list of the command line arguments=
-   * @return a List of the lines written to stdout
-   * @throws IOException
-   */
-  private static List<String> executeCommand(String cmd, List<String> cmdArgs) throws IOException {
-    // build and run process
-    cmdArgs.add(0, cmd);
-    ProcessBuilder procBuilder = new ProcessBuilder(cmdArgs);
-    Process proc = procBuilder.start();
-
-    // read in all lines written to stdout
-    BufferedReader bufferedReader =
-        new BufferedReader(new InputStreamReader(proc.getInputStream(), Charset.defaultCharset()));
-    String outputLine;
-    List<String> outputLines = new ArrayList<>();
-    while ((outputLine = bufferedReader.readLine()) != null) {
-      outputLines.add(outputLine);
-    }
-    bufferedReader.close();
-
-    return outputLines;
-  }
-
-  public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {
+  public static List<V1Pod> listKubernetesPods() throws ApiException {
     // TODO: add try/catch for refresh token
     V1PodList list =
-        k8sclient.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+        kubernetesClientObject.listPodForAllNamespaces(
+            null, null, null, null, null, null, null, null, null);
     return list.getItems();
   }
 }

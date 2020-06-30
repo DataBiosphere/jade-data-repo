@@ -3,7 +3,6 @@ package runner;
 import bio.terra.datarepo.client.ApiClient;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,6 +45,7 @@ class TestRunner {
     modifyHelmValuesAndDeploy();
 
     // update any Kubernetes properties specified by the test configuration
+    KubernetesClientUtils.buildKubernetesClientObject(config.server);
     modifyKubernetesPostDeployment();
 
     // get an instance of each test script class
@@ -252,8 +252,7 @@ class TestRunner {
 
     // the below code just lists the existing pods in the cluster, as an example of how to fetch and
     // call the Kubernetes client object
-    CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject(config.server);
-    for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
+    for (V1Pod item : KubernetesClientUtils.listKubernetesPods()) {
       System.out.println(item.getMetadata().getName());
     }
   }

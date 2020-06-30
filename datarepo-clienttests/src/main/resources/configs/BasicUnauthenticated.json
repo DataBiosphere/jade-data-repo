@@ -6,9 +6,9 @@
       "name": "ServiceStatus",
       "totalNumberToRun": 10,
       "numberToRunInParallel": 2,
-      "expectedTimeForEach": "5",
+      "expectedTimeForEach": 5,
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],
-  "testUserFiles": ["neville.json"]
+  "testUserFiles": ["neville.json", "mcgonagall.json"]
 }

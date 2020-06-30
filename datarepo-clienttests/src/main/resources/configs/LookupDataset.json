@@ -4,11 +4,11 @@
   "testScripts": [
     {
       "name": "RetrieveDataset",
-      "totalNumberToRun": 5,
+      "totalNumberToRun": 15,
       "numberToRunInParallel": 3,
-      "expectedTimeForEach": "20",
+      "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
     }
   ],
-  "testUserFiles": ["dumbledore.json"]
+  "testUserFiles": ["dumbledore.json", "voldemort.json"]
 }

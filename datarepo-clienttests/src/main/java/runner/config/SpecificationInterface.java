@@ -1,6 +1,7 @@
 package runner.config;
 
 public interface SpecificationInterface {
-    void validate();
-    void display();
+  void validate();
+
+  void display();
 }

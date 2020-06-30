@@ -11,7 +11,6 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.ClientBuilder;
 import io.kubernetes.client.util.KubeConfig;
-
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -27,151 +26,156 @@ import java.util.List;
 
 public final class KubernetesClientUtils {
 
-    private static GoogleCredentials applicationDefaultCredentials;
-    private static CoreV1Api kubernetesClientObject;
+  private static GoogleCredentials applicationDefaultCredentials;
+  private static CoreV1Api kubernetesClientObject;
 
-    private KubernetesClientUtils() { }
+  private KubernetesClientUtils() {}
 
-    public static AccessToken getApplicationDefaultAccessToken() throws IOException {
-        if (applicationDefaultCredentials == null) {
-            // get the application default credentials
-            applicationDefaultCredentials = ServiceAccountCredentials.getApplicationDefault();
+  public static AccessToken getApplicationDefaultAccessToken() throws IOException {
+    if (applicationDefaultCredentials == null) {
+      // get the application default credentials
+      applicationDefaultCredentials = ServiceAccountCredentials.getApplicationDefault();
 
-            // not sure when this case happens
-            if (applicationDefaultCredentials.createScopedRequired()) {
-                applicationDefaultCredentials = applicationDefaultCredentials.createScoped(
-                    Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
-            }
-        }
-
-        // refresh the token if needed before returning
-        applicationDefaultCredentials.refreshIfExpired();
-        return applicationDefaultCredentials.getAccessToken();
+      // not sure when this case happens
+      if (applicationDefaultCredentials.createScopedRequired()) {
+        applicationDefaultCredentials =
+            applicationDefaultCredentials.createScoped(
+                Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+      }
     }
 
-    public static CoreV1Api getKubernetesClientObject() throws Exception {
-        // TODO: move these to config (these values are for dev)
-        String clusterName = "gke_broad-jade-dev_us-central1_dev-master";
-        String region = "us-central1";
-        String project = "broad-jade-dev";
+    // refresh the token if needed before returning
+    applicationDefaultCredentials.refreshIfExpired();
+    return applicationDefaultCredentials.getAccessToken();
+  }
 
-        if (kubernetesClientObject == null) {
-            kubernetesClientObject = buildKubernetesClientObject(clusterName, region, project);
-        }
-        return kubernetesClientObject;
+  public static CoreV1Api getKubernetesClientObject() throws Exception {
+    // TODO: move these to config (these values are for dev)
+    String clusterName = "gke_broad-jade-dev_us-central1_dev-master";
+    String region = "us-central1";
+    String project = "broad-jade-dev";
+
+    if (kubernetesClientObject == null) {
+      kubernetesClientObject = buildKubernetesClientObject(clusterName, region, project);
     }
+    return kubernetesClientObject;
+  }
 
-    private static CoreV1Api buildKubernetesClientObject(String clusterName, String region, String project)
-        throws Exception {
-        // call the fetchGKECrednetials script that uses gcloud to generate the kubeconfig file
-        List<String> scriptArgs = new ArrayList<>();
-        scriptArgs.add("tools/fetchGKECredentials.sh");
-        scriptArgs.add(clusterName);
-        scriptArgs.add(region);
-        scriptArgs.add(project);
-        executeCommand("sh", scriptArgs);
+  private static CoreV1Api buildKubernetesClientObject(
+      String clusterName, String region, String project) throws Exception {
+    // call the fetchGKECrednetials script that uses gcloud to generate the kubeconfig file
+    List<String> scriptArgs = new ArrayList<>();
+    scriptArgs.add("tools/fetchGKECredentials.sh");
+    scriptArgs.add(clusterName);
+    scriptArgs.add(region);
+    scriptArgs.add(project);
+    executeCommand("sh", scriptArgs);
 
-        // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
-        String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
+    // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
+    String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
 
-        // load the kubeconfig object from the file
-        InputStreamReader filereader =
-            new InputStreamReader(new FileInputStream(kubeConfigPath), Charset.forName("UTF-8"));
-        KubeConfig kubeConfig = KubeConfig.loadKubeConfig(filereader);
+    // load the kubeconfig object from the file
+    InputStreamReader filereader =
+        new InputStreamReader(new FileInputStream(kubeConfigPath), Charset.forName("UTF-8"));
+    KubeConfig kubeConfig = KubeConfig.loadKubeConfig(filereader);
 
-        // get a refreshed SA access token and its expiration time
-        AccessToken accessToken = getApplicationDefaultAccessToken();
-        Instant tokenExpiration = accessToken.getExpirationTime().toInstant();
-        String expiryUTC = tokenExpiration.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
+    // get a refreshed SA access token and its expiration time
+    AccessToken accessToken = getApplicationDefaultAccessToken();
+    Instant tokenExpiration = accessToken.getExpirationTime().toInstant();
+    String expiryUTC = tokenExpiration.atZone(ZoneOffset.UTC).format(DateTimeFormatter.ISO_INSTANT);
 
-        // USERS: build list of one user, the SA
-        LinkedHashMap<String, Object> authConfigSA = new LinkedHashMap<>();
-        authConfigSA.put("access-token", accessToken.getTokenValue());
-        authConfigSA.put("expiry", expiryUTC);
+    // USERS: build list of one user, the SA
+    LinkedHashMap<String, Object> authConfigSA = new LinkedHashMap<>();
+    authConfigSA.put("access-token", accessToken.getTokenValue());
+    authConfigSA.put("expiry", expiryUTC);
 
-        LinkedHashMap<String, Object> authProviderSA = new LinkedHashMap<>();
-        authProviderSA.put("name", "gcp");
-        authProviderSA.put("runner", authConfigSA);
+    LinkedHashMap<String, Object> authProviderSA = new LinkedHashMap<>();
+    authProviderSA.put("name", "gcp");
+    authProviderSA.put("runner", authConfigSA);
 
-        LinkedHashMap<String, Object> userSA = new LinkedHashMap<>();
-        userSA.put("auth-provider", authProviderSA);
+    LinkedHashMap<String, Object> userSA = new LinkedHashMap<>();
+    userSA.put("auth-provider", authProviderSA);
 
-        LinkedHashMap<String, Object> userWrapperSA = new LinkedHashMap<>();
-        userWrapperSA.put("name", clusterName);
-        userWrapperSA.put("user", userSA);
+    LinkedHashMap<String, Object> userWrapperSA = new LinkedHashMap<>();
+    userWrapperSA.put("name", clusterName);
+    userWrapperSA.put("user", userSA);
 
-        ArrayList<Object> usersList = new ArrayList<>();
-        usersList.add(userWrapperSA);
+    ArrayList<Object> usersList = new ArrayList<>();
+    usersList.add(userWrapperSA);
 
-        // CONTEXTS: build list of one context, the specified cluster
-        LinkedHashMap<String, Object> context = new LinkedHashMap<>();
-        context.put("cluster", clusterName);
-        context.put("user", clusterName); // when is the user ever different from the cluster name?
+    // CONTEXTS: build list of one context, the specified cluster
+    LinkedHashMap<String, Object> context = new LinkedHashMap<>();
+    context.put("cluster", clusterName);
+    context.put("user", clusterName); // when is the user ever different from the cluster name?
 
-        LinkedHashMap<String, Object> contextWrapper = new LinkedHashMap<>();
-        contextWrapper.put("name", clusterName);
-        contextWrapper.put("context", context);
+    LinkedHashMap<String, Object> contextWrapper = new LinkedHashMap<>();
+    contextWrapper.put("name", clusterName);
+    contextWrapper.put("context", context);
 
-        ArrayList<Object> contextsList = new ArrayList<>();
-        contextsList.add(contextWrapper);
+    ArrayList<Object> contextsList = new ArrayList<>();
+    contextsList.add(contextWrapper);
 
-        // CLUSTERS: use the cluster list read in from the kubeconfig file, because I can't figure out how to get the
-        // certificate-authority-data and server address for the cluster via the Java client library, only with gcloud
-        ArrayList<Object> clusters = kubeConfig.getClusters();
+    // CLUSTERS: use the cluster list read in from the kubeconfig file, because I can't figure out
+    // how to get the
+    // certificate-authority-data and server address for the cluster via the Java client library,
+    // only with gcloud
+    ArrayList<Object> clusters = kubeConfig.getClusters();
 
-        // build the config object, replacing the contexts and users lists from the kubeconfig file with the ones
-        // constructed programmatically above
-        kubeConfig = new KubeConfig(contextsList, clusters, usersList);
-        kubeConfig.setContext(clusterName);
+    // build the config object, replacing the contexts and users lists from the kubeconfig file with
+    // the ones
+    // constructed programmatically above
+    kubeConfig = new KubeConfig(contextsList, clusters, usersList);
+    kubeConfig.setContext(clusterName);
 
-        // build the client object from the config
-        ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
+    // build the client object from the config
+    ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
 
-        // set the global default client to the one created above because the CoreV1Api constructor gets the client
-        // object from the global configuration
-        Configuration.setDefaultApiClient(client);
+    // set the global default client to the one created above because the CoreV1Api constructor gets
+    // the client
+    // object from the global configuration
+    Configuration.setDefaultApiClient(client);
 
-        return new CoreV1Api();
+    return new CoreV1Api();
+  }
+
+  /**
+   * Executes a command in a separate process.
+   *
+   * @param cmdArgs a list of the command line arguments=
+   * @return a List of the lines written to stdout
+   * @throws IOException
+   */
+  private static List<String> executeCommand(String cmd, List<String> cmdArgs) throws IOException {
+    // build and run process
+    cmdArgs.add(0, cmd);
+    ProcessBuilder procBuilder = new ProcessBuilder(cmdArgs);
+    Process proc = procBuilder.start();
+
+    // read in all lines written to stdout
+    BufferedReader bufferedReader =
+        new BufferedReader(new InputStreamReader(proc.getInputStream(), Charset.defaultCharset()));
+    String outputLine;
+    List<String> outputLines = new ArrayList<>();
+    while ((outputLine = bufferedReader.readLine()) != null) {
+      outputLines.add(outputLine);
     }
+    bufferedReader.close();
 
-    /**
-     * Executes a command in a separate process.
-     * @param cmdArgs a list of the command line arguments=
-     * @return a List of the lines written to stdout
-     * @throws IOException
-     */
-    private static List<String> executeCommand(String cmd, List<String> cmdArgs) throws IOException {
-        // build and run process
-        cmdArgs.add(0, cmd);
-        ProcessBuilder procBuilder = new ProcessBuilder(cmdArgs);
-        Process proc = procBuilder.start();
+    return outputLines;
+  }
 
-        // read in all lines written to stdout
-        BufferedReader bufferedReader =
-            new BufferedReader(new InputStreamReader(proc.getInputStream(), Charset.defaultCharset()));
-        String outputLine;
-        List<String> outputLines = new ArrayList<>();
-        while ((outputLine = bufferedReader.readLine()) != null) {
-            outputLines.add(outputLine);
-        }
-        bufferedReader.close();
+  public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {
+    // TODO: add try/catch for refresh token
+    V1PodList list =
+        k8sclient.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
+    return list.getItems();
+  }
 
-        return outputLines;
+  // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
+  public static void main(String[] args) throws Exception {
+    CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
+    for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
+      System.out.println(item.getMetadata().getName());
     }
-
-    public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {
-        // TODO: add try/catch for refresh token
-        V1PodList list =
-            k8sclient.listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
-        return list.getItems();
-    }
-
-    // example usage. need to be on the Broad VPN to talk to the dev cluster because of IP whitelist
-    public static void main(String[] args) throws Exception {
-        CoreV1Api k8sclient = KubernetesClientUtils.getKubernetesClientObject();
-        for (V1Pod item : KubernetesClientUtils.listKubernetesPods(k8sclient)) {
-            System.out.println(item.getMetadata().getName());
-        }
-    }
-
+  }
 }

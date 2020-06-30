@@ -3,6 +3,7 @@ package bio.terra.service.snapshot.flight.create;
 import bio.terra.common.exception.UnauthorizedException;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.IamService;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.flight.SnapshotWorkingMapKeys;
@@ -13,6 +14,7 @@ import bio.terra.stairway.StepResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.UUID;
 
 public class SnapshotAuthzIamStep implements Step {
@@ -38,8 +40,9 @@ public class SnapshotAuthzIamStep implements Step {
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
 
         // This returns the policy email created by Google to correspond to the readers list in SAM
-        String readersPolicyEmail = sam.createSnapshotResource(userReq, snapshotId, snapshotRequestModel.getReaders());
-        workingMap.put(SnapshotWorkingMapKeys.POLICY_EMAIL, readersPolicyEmail);
+        Map<IamRole, String> policies =
+            sam.createSnapshotResource(userReq, snapshotId, snapshotRequestModel.getReaders());
+        workingMap.put(SnapshotWorkingMapKeys.POLICY_MAP, policies);
         return StepResult.getStepResultSuccess();
     }
 

@@ -6,6 +6,7 @@ import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.flight.DatasetWorkingMapKeys;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.tabulardata.google.BigQueryPdao;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.FlightMap;
@@ -17,7 +18,7 @@ import com.google.cloud.bigquery.BigQueryException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static bio.terra.service.configuration.ConfigEnum.DATASET_GRANT_ACCESS_FAULT;
@@ -42,7 +43,7 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
     public StepResult doStep(FlightContext context) throws InterruptedException {
         FlightMap workingMap = context.getWorkingMap();
         UUID datasetId = workingMap.get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
-        List<String> policyEmails = workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, List.class);
+        Map<IamRole, String> policyEmails = workingMap.get(DatasetWorkingMapKeys.POLICY_EMAILS, Map.class);
         Dataset dataset = datasetService.retrieve(datasetId);
         try {
             if (configService.testInsertFault(DATASET_GRANT_ACCESS_FAULT)) {
@@ -50,7 +51,7 @@ public class CreateDatasetAuthzPrimaryDataStep implements Step {
                     new BigQueryError("invalid", "fake", "IAM setPolicy fake failure"));
             }
 
-            bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails);
+            bigQueryPdao.grantReadAccessToDataset(dataset, policyEmails.values());
         } catch (BigQueryException ex) {
             if (FlightUtils.isBigQueryIamPropagationError(ex)) {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);

@@ -3,6 +3,7 @@ package bio.terra.clienttests;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.auth.oauth2.ServiceAccountCredentials;
+import io.kubernetes.client.openapi.ApiCallback;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
@@ -20,10 +21,7 @@ import java.nio.charset.Charset;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +36,7 @@ public final class KubernetesClientUtils {
     private static AppsV1Api appsV1Api;
     private static final Logger logger = LoggerFactory.getLogger(KubernetesClientUtils.class);
 
-    private KubernetesClientUtils() { }
+    public KubernetesClientUtils() { }
 
     public static AccessToken getApplicationDefaultAccessToken() throws IOException {
         if (applicationDefaultCredentials == null) {
@@ -189,15 +187,37 @@ public final class KubernetesClientUtils {
         }
     }
 
-    public static void killPod(String namespace) throws ApiException {
-        V1Status deleteStatus =
-            kubernetesClientObject.deleteCollectionNamespacedPod(namespace,
-                    null, null,
-                    null, null, null,
-                    1, null, null,
-                    null, null, null,
-                    null, null, null);
-        logger.info("delete status: {}", deleteStatus.getStatus());
+
+    public class killPodCallback implements ApiCallback<V1Status> {
+        @Override
+        public void onFailure(ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
+            logger.error("Kill Pods Failed with Exception: {}", e.getMessage());
+        }
+        @Override
+        public void onSuccess(V1Status result, int statusCode, Map<String, List<String>> responseHeaders) {
+            logger.info("Kill pod finished with result: {}", result.getMetadata());
+        }
+
+        @Override
+        public void onUploadProgress(long bytesWritten, long contentLength, boolean done) {
+            return;
+        }
+
+        @Override
+        public void onDownloadProgress(long bytesRead, long contentLength, boolean done) {
+            return;
+        }
+    }
+
+
+    public void killPod(String namespace) throws ApiException {
+        ApiCallback<V1Status> callback = new killPodCallback();
+        kubernetesClientObject.deleteCollectionNamespacedPodAsync(namespace,
+            null, null,
+            null, null, null,
+            10, null, null,
+            null, null, null,
+            null, null, null, callback);
     }
 
     public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {

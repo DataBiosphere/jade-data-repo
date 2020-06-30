@@ -45,7 +45,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
@@ -415,15 +414,10 @@ public class DataRepoFixtures {
         return response.getResponseObject().get();
     }
 
-    public BulkLoadArrayResultModel bulkLoadArray(
-        TestConfiguration.User user,
-        String datasetId,
-        BulkLoadArrayRequestModel requestModel,
-        boolean manipulateDeployment,
-        PodScalingTests.KubernetesAdjustmentInterface kubeCallback) throws Exception {
-
+    public DataRepoResponse<JobModel> buildBulkLoadArrayRequest(TestConfiguration.User user,
+                                          String datasetId,
+                                          BulkLoadArrayRequestModel requestModel) throws Exception {
         String json = TestUtils.mapToJson(requestModel);
-
         DataRepoResponse<JobModel> launchResponse = dataRepoClient.post(
             user,
             "/api/repository/v1/datasets/" + datasetId + "/files/bulk/array",
@@ -431,38 +425,38 @@ public class DataRepoFixtures {
             JobModel.class);
         assertTrue("bulkLoadArray launch succeeded", launchResponse.getStatusCode().is2xxSuccessful());
         assertTrue("bulkloadArray launch response is present", launchResponse.getResponseObject().isPresent());
-        DataRepoResponse<BulkLoadArrayResultModel> response = null;
+        return launchResponse;
+    }
 
-        // PodScalingTests
-        if (manipulateDeployment) {
-            try {
-                // This inserts commands via the kubeCallback that change the kubernetes deploy
-                // while the request is getting processed
-                response = dataRepoClient.waitForResponseAndScale(
-                        user, launchResponse, BulkLoadArrayResultModel.class, kubeCallback);
-            } catch (IOException ex) {
-                // the kubeCallback could kill kubernetes pods causing the request to fail.
-                // This code gives the pods a chance to come back up retry the request
-                logger.info("Sleep for 30 seconds to wait for pod to come back up.");
-                TimeUnit.SECONDS.sleep(30);
-                // this request does not include any deployment manipulation
-                response = dataRepoClient.waitForResponse(
-                    user, launchResponse, BulkLoadArrayResultModel.class);
-            }
-        } else {
-            response =
-                dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
-        }
+    public BulkLoadArrayResultModel checkBulkArrayRequestStatus(DataRepoResponse<BulkLoadArrayResultModel> response,
+                                                                IOException lastException) throws IOException {
         if (response.getStatusCode().is2xxSuccessful()) {
             assertThat("bulkLoadArray is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
             assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
             return response.getResponseObject().get();
+        } else if (response == null && lastException != null) {
+            logger.error("bulkLoadArray failed: " + lastException.getMessage());
+            throw lastException;
         } else {
             ErrorModel errorModel = response.getErrorObject().orElse(null);
             logger.error("bulkLoadArray failed: " + errorModel);
             fail();
             return null; // Make findbugs happy
         }
+    }
+
+    public BulkLoadArrayResultModel bulkLoadArray(
+        TestConfiguration.User user,
+        String datasetId,
+        BulkLoadArrayRequestModel requestModel) throws Exception {
+
+        DataRepoResponse<JobModel> launchResponse = buildBulkLoadArrayRequest(user, datasetId, requestModel);
+
+        DataRepoResponse<BulkLoadArrayResultModel> response =
+            dataRepoClient.waitForResponse(user, launchResponse, BulkLoadArrayResultModel.class);
+
+        return checkBulkArrayRequestStatus(response, null);
+
     }
 
     public DataRepoResponse<FileModel> getFileByIdRaw(

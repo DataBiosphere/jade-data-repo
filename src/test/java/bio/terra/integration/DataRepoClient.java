@@ -58,7 +58,24 @@ public class DataRepoClient {
                                                         HttpMethod method,
                                                         HttpEntity entity,
                                                         Class<T> responseClass) throws Exception {
-        return new DataRepoResponse<T>(makeRequest(path, method, entity, responseClass, ErrorModel.class));
+        // retry a couple of times if IOException
+        IOException lastException = null;
+        DataRepoResponse<T> result = null;
+        for (int i = 0; i < 4; i++) {
+            try {
+                result = new DataRepoResponse<T>(makeRequest(path, method, entity, responseClass, ErrorModel.class));
+                break;
+            } catch (IOException ex) {
+                lastException = ex;
+                logger.info("Try #{} - Exception caught; Sleep for 30 seconds and retrying.", i + 1);
+                TimeUnit.SECONDS.sleep(30);
+            }
+        }
+        if (result == null && lastException != null) {
+            logger.info("failed to write json");
+            throw lastException;
+        }
+        return result;
     }
 
     public <T> DataRepoResponse<T> get(TestConfiguration.User user, String path, Class<T> responseClass)
@@ -85,6 +102,40 @@ public class DataRepoClient {
         return makeDataRepoRequest(path, HttpMethod.DELETE, entity, responseClass);
     }
 
+    public boolean pollForResponse(TestConfiguration.User user,
+                                   DataRepoResponse<JobModel> jobModelResponse,
+                                   int pollTime) throws Exception {
+        int totalSleep = 0;
+        final int initialSeconds = 1;
+        final int maxSeconds = 16;
+
+        try {
+            int count = 0;
+            int sleepSeconds = initialSeconds;
+            while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
+                if (totalSleep >= pollTime) {
+                    return false;
+                }
+                String location = getLocationHeader(jobModelResponse);
+                logger.info("try #{} for {}", ++count, location);
+
+
+                TimeUnit.SECONDS.sleep(sleepSeconds);
+                totalSleep += sleepSeconds;
+
+                jobModelResponse = get(user, location, JobModel.class);
+
+                int nextSeconds = 2 * sleepSeconds;
+                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
+            }
+        } catch (Exception ex) {
+            logger.info("interrupted ex: {}", ex.getMessage());
+            ex.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+        }
+        return true;
+    }
     public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
                                                    DataRepoResponse<JobModel> jobModelResponse,
                                                    Class<T> responseClass) throws Exception {
@@ -109,49 +160,6 @@ public class DataRepoClient {
             ex.printStackTrace();
             Thread.currentThread().interrupt();
             throw new IllegalStateException("unexpected interrupt waiting for response", ex);
-        }
-
-        if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
-            throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());
-        }
-
-        String location = getLocationHeader(jobModelResponse);
-        DataRepoResponse<T> resultResponse = get(user, location, responseClass);
-
-        return resultResponse;
-    }
-
-    public <T> DataRepoResponse<T> waitForResponseAndScale(TestConfiguration.User user,
-                                                   DataRepoResponse<JobModel> jobModelResponse,
-                                                   Class<T> responseClass,
-                                                           PodScalingTests.KubernetesAdjustmentInterface kubeCallback)
-                                                    throws Exception {
-        final int initialSeconds = 1;
-        final int maxSeconds = 16;
-
-        try {
-            int count = 0;
-            int sleepSeconds = initialSeconds;
-            while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
-                String location = getLocationHeader(jobModelResponse);
-                logger.info("try #{} for {}", ++count, location);
-
-                kubeCallback.adjustDeployment(count);
-
-                TimeUnit.SECONDS.sleep(sleepSeconds);
-                jobModelResponse = get(user, location, JobModel.class);
-
-                int nextSeconds = 2 * sleepSeconds;
-                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
-            }
-        } catch (InterruptedException ex) {
-            logger.info("interrupted ex: {}", ex.getMessage());
-            ex.printStackTrace();
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
-        } catch (IOException ex) {
-            logger.info("failed to write error model: {}", ex.getMessage());
-            throw ex;
         }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {

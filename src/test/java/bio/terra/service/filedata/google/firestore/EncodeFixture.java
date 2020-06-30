@@ -154,8 +154,7 @@ public class EncodeFixture {
             .profileId(profileId)
             .loadTag("encodeFixture");
 
-        BulkLoadArrayResultModel loadResult = dataRepoFixtures.bulkLoadArray(
-            user, datasetId, loadRequest, false, null);
+        BulkLoadArrayResultModel loadResult = dataRepoFixtures.bulkLoadArray(user, datasetId, loadRequest);
 
         Map<String, BulkLoadFileResultModel> resultMap = new HashMap<>();
         for (BulkLoadFileResultModel fileResult : loadResult.getLoadFileResults()) {

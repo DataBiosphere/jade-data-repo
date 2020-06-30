@@ -20,6 +20,8 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
+import java.io.IOException;
+
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles({"google", "integrationtest"})
@@ -41,6 +43,7 @@ public class PodScalingTests extends UsersBase {
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
     private String profileId;
+    private KubernetesClientUtils kubeUtils;
     // TODO: Pass this in through config
     private String namespace = "sh";
 
@@ -55,6 +58,7 @@ public class PodScalingTests extends UsersBase {
             steward(), datasetSummaryModel.getId(), IamRole.CUSTODIAN, custodian().getEmail());
         KubernetesClientUtils.getKubernetesClientObject();
         KubernetesClientUtils.scaleDeployment(namespace, 1);
+        kubeUtils = new KubernetesClientUtils();
     }
 
     @After
@@ -66,7 +70,7 @@ public class PodScalingTests extends UsersBase {
     }
 
     public interface KubernetesAdjustmentInterface {
-        void adjustDeployment(int apiRetryIteration) throws ApiException;
+        void adjustDeployment() throws ApiException;
     }
 
     // Test scaling pods up and down during a file ingest
@@ -77,13 +81,9 @@ public class PodScalingTests extends UsersBase {
     }
 
     class ScaleUpAndDown implements KubernetesAdjustmentInterface {
-        public void adjustDeployment(int apiRetryIteration) throws ApiException {
-            if (apiRetryIteration == 1) {
-                KubernetesClientUtils.scaleDeployment(namespace, 2);
-            }
-            if (apiRetryIteration == 5) {
-                KubernetesClientUtils.scaleDeployment(namespace, 1);
-            }
+        public void adjustDeployment() throws ApiException {
+            KubernetesClientUtils.scaleDeployment(namespace, 2);
+            KubernetesClientUtils.scaleDeployment(namespace, 1);
         }
     }
 
@@ -96,10 +96,8 @@ public class PodScalingTests extends UsersBase {
     }
 
     class DeletePods implements KubernetesAdjustmentInterface {
-        public void adjustDeployment(int apiRetryIteration) throws ApiException {
-            if (apiRetryIteration == 4) {
-                KubernetesClientUtils.killPod(namespace);
-            }
+        public void adjustDeployment() throws ApiException {
+            kubeUtils.killPod(namespace);
         }
     }
 
@@ -136,8 +134,41 @@ public class PodScalingTests extends UsersBase {
             arrayLoad.addLoadArrayItem(model);
         }
 
-        BulkLoadArrayResultModel result =
-                dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad, true, kubeCallback);
+        // kubeCallback.adjustDeployment();
+        TestConfiguration.User stewardUser = steward();
+        // need to add some retry mechanism
+        //try {
+        DataRepoResponse<JobModel> launchResponse = dataRepoFixtures.buildBulkLoadArrayRequest(
+            stewardUser, datasetId, arrayLoad);
+
+        boolean isComplete = false;
+        IOException lastException = null;
+        // need to catch errors here
+        isComplete = dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
+        if (!isComplete) {
+            // kill pod/scale pod/etc
+            // poll again
+            // do something else
+            logger.info("not yet complete");
+            // kubeUtils.killPod(namespace);
+
+            // dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
+
+        }
+
+        // actually get response
+        DataRepoResponse<BulkLoadArrayResultModel> response =
+                dataRepoClient.waitForResponse(stewardUser, launchResponse, BulkLoadArrayResultModel.class);
+        // } catch (IOException ex) {
+        // the kubeCallback could kill kubernetes pods causing the request to fail.
+        // This code gives the pods a chance to come back up retry the request
+        // IOException lastException = null;
+        // logger.info("Exception caught; Sleep for 30 seconds and retrying.");
+        // TimeUnit.SECONDS.sleep(30);}
+
+        BulkLoadArrayResultModel result = dataRepoFixtures.checkBulkArrayRequestStatus(response, lastException);
+
+        // BulkLoadArrayResultModel result = dataRepoFixtures.bulkLoadArray(steward(), datasetId, arrayLoad);
         BulkLoadResultModel loadSummary = result.getLoadSummary();
         logger.info("Total files    : " + loadSummary.getTotalFiles());
         logger.info("Succeeded files: " + loadSummary.getSucceededFiles());

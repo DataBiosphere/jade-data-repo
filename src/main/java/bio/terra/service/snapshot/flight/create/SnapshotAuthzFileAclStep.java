@@ -5,6 +5,7 @@ import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.filedata.google.firestore.FireStoreDependencyDao;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.snapshot.SnapshotService;
 import bio.terra.service.snapshot.SnapshotSource;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_GRANT_FILE_ACCESS_FAULT;
@@ -50,7 +52,8 @@ public class SnapshotAuthzFileAclStep implements Step {
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-        String readersPolicyEmail = workingMap.get(SnapshotWorkingMapKeys.POLICY_EMAIL, String.class);
+        Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+        String readersPolicyEmail = policies.get(IamRole.READER);
 
         // TODO: when we support multiple datasets, we can generate more than one copy of this
         //  step: one for each dataset. That is because each dataset keeps its file dependencies
@@ -87,7 +90,8 @@ public class SnapshotAuthzFileAclStep implements Step {
         UUID snapshotId = workingMap.get(SnapshotWorkingMapKeys.SNAPSHOT_ID, UUID.class);
         Snapshot snapshot = snapshotService.retrieve(snapshotId);
 
-        String readersPolicyEmail = workingMap.get(SnapshotWorkingMapKeys.POLICY_EMAIL, String.class);
+        Map<IamRole, String> policies = workingMap.get(SnapshotWorkingMapKeys.POLICY_MAP, Map.class);
+        String readersPolicyEmail = policies.get(IamRole.READER);
 
         // TODO: when we support multiple datasets, we can generate more than one copy of this
         //  step: one for each dataset. That is because each dataset keeps its file dependencies

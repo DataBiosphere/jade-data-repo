@@ -11,12 +11,14 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.BillingProfile;
 import bio.terra.service.resourcemanagement.ProfileDao;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -25,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -38,6 +39,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -166,6 +168,121 @@ public class DatasetServiceTest {
     }
 
     @Test
+    public void addMultipleDatasetAssetSpecificationsShouldFail() throws Exception {
+        UUID datasetId = createDataset("dataset-create-test.json");
+        String assetName = "assetName";
+        // get created dataset
+        Dataset createdDataset = datasetDao.retrieve(datasetId);
+        assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
+
+        AssetModel assetModel1 = new AssetModel()
+            .name(assetName)
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+
+        AssetModel assetModel2 = new AssetModel()
+            .name(assetName)
+            .rootTable("participant")
+            .rootColumn("id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+
+        // add first asset to the dataset
+        String jobId1 = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel1, testUser);
+        flightIdsList.add(jobId1);
+
+        boolean assetAdd1 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId1, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
+        Assert.assertTrue(assetAdd1);
+
+        // get dataset
+        Dataset dataset = datasetDao.retrieve(datasetId);
+
+        // make sure the dataset has the expected asset
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        // add second asset to dataset, this should fail because it has the same name as the first
+        String jobId2 = datasetService.addDatasetAssetSpecifications(datasetId.toString(), assetModel2, testUser);
+        flightIdsList.add(jobId2);
+
+        boolean assetAdd2 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId2, testUser).getJobStatus().equals(JobModel.JobStatusEnum.FAILED)
+        );
+        Assert.assertTrue(assetAdd2);
+
+        // make sure the first asset we created hasn't been deleted during the undo step
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        datasetDao.delete(datasetId);
+    }
+
+    @Test
+    public void addAssetSpecWithSameNameToMultipleDatasetsShouldPass() throws Exception {
+        UUID datasetId1 = createDataset("dataset-create-test.json");
+        UUID datasetId2 = createDataset("dataset-create-test.json");
+        String assetName = "assetName";
+        // get created dataset
+        Dataset createdDataset = datasetDao.retrieve(datasetId1);
+        assertThat("dataset already has two asset specs", createdDataset.getAssetSpecifications().size(), equalTo(2));
+
+        AssetModel assetModel = new AssetModel()
+            .name(assetName)
+            .rootTable("sample")
+            .rootColumn("participant_id")
+            .tables(Arrays.asList(
+                DatasetFixtures.buildAssetParticipantTable(),
+                DatasetFixtures.buildAssetSampleTable()))
+            .follow(Collections.singletonList("participant_sample"));
+
+        // add first asset to the dataset
+        String jobId1 = datasetService.addDatasetAssetSpecifications(datasetId1.toString(), assetModel, testUser);
+        flightIdsList.add(jobId1);
+
+        boolean assetAdd1 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId1, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
+        Assert.assertTrue(assetAdd1);
+
+        // get dataset 1
+        Dataset dataset = datasetDao.retrieve(datasetId1);
+
+        // make sure the dataset has the expected asset
+        assertThat("dataset has an additional asset spec", dataset.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        // add asset tp second dataset
+        String jobId2 = datasetService.addDatasetAssetSpecifications(datasetId2.toString(), assetModel, testUser);
+        flightIdsList.add(jobId2);
+
+        boolean assetAdd2 = TestUtils.eventualExpect(5, 60, true, () ->
+            jobService.retrieveJob(jobId2, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+        );
+        Assert.assertTrue(assetAdd2);
+
+        Dataset dataset2 = datasetDao.retrieve(datasetId2);
+
+        // make sure the second dataset has the expected asset
+        assertThat("dataset has an additional asset spec", dataset2.getAssetSpecifications().size(), equalTo(3));
+        assertThat("dataset has expected asset", dataset2.getAssetSpecificationByName(assetName).isPresent(),
+            equalTo(true));
+
+        datasetDao.delete(datasetId1);
+        datasetDao.delete(datasetId2);
+    }
+
+    @Test
     public void addDatasetBadAssetSpecification() throws Exception {
         UUID datasetId = createDataset("dataset-create-test.json");
         String assetName = "sample"; // This asset name already exists
@@ -187,23 +304,25 @@ public class DatasetServiceTest {
         flightIdsList.add(jobId);
 
         TestUtils.eventualExpect(5, 60, true, () ->
-            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.FAILED)
         );
 
-        JobService.JobResultWithStatus<ErrorModel> resultWithStatus =
-            jobService.retrieveJobResult(jobId, ErrorModel.class, testUser);
+        try {
+            try {
+                jobService.retrieveJobResult(jobId, ErrorModel.class, testUser);
+                fail("Expected invalid asset exception");
+            } catch (InvalidAssetException ex) {
+                assertThat("error message is correct", ex.getMessage(),
+                    equalTo("Asset name already exists: sample"));
+                // get dataset
+                Dataset dataset = datasetDao.retrieve(datasetId);
 
-        assertThat("error message is correct", resultWithStatus.getResult().getMessage(),
-            equalTo("Asset already exists: sample"));
-        assertThat("error status is correct", resultWithStatus.getStatusCode(),
-            equalTo(HttpStatus.BAD_REQUEST));
-
-        // get dataset
-        Dataset dataset = datasetDao.retrieve(datasetId);
-
-        // make sure the dataset has the expected asset
-        assertThat("dataset has no additional asset spec", dataset.getAssetSpecifications().size(), equalTo(2));
-        datasetDao.delete(datasetId);
+                // make sure the dataset has the expected asset
+                assertThat("dataset has no additional asset spec", dataset.getAssetSpecifications().size(), equalTo(2));
+            }
+        } finally {
+            datasetDao.delete(datasetId);
+        }
     }
 
     @Test

@@ -23,6 +23,10 @@ public class SnapshotTableDao {
         "WHERE parent_id = :parent_id";
     private static final String sqlSelectColumn = "SELECT id, name, type, array_of FROM snapshot_column " +
         "WHERE table_id = :table_id";
+    private static final String sqlDeleteTable = "DELETE FROM snapshot_table " +
+        "WHERE parent_id = :parent_id";
+    private static final String sqlDeleteColumn = "DELETE FROM snapshot_column " +
+        "WHERE table_id = :table_id";
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
@@ -81,5 +85,19 @@ public class SnapshotTableDao {
                     .name(rs.getString("name"))
                     .type(rs.getString("type"))
                     .arrayOf(rs.getBoolean("array_of")));
+    }
+
+    public boolean deleteTables(UUID parentId) {
+        int rowsAffected = jdbcTemplate.update(
+            sqlDeleteTable,
+            new MapSqlParameterSource().addValue("parent_id", parentId));
+        return rowsAffected > 0;
+    }
+
+    public boolean deleteColumns(Table table) {
+        int rowsAffected = jdbcTemplate.update(
+            sqlDeleteColumn,
+            new MapSqlParameterSource().addValue("table_id", table.getId()));
+        return rowsAffected > 0;
     }
 }

@@ -52,11 +52,11 @@ public class LockDatasetStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        DataAccessException faultInsert = getFaultToInsert();
+
         try {
             if (sharedLock) {
                 try {
-                    datasetDao.lockShared(datasetId, context.getFlightId(), faultInsert);
+                    datasetDao.lockShared(datasetId, context.getFlightId());
                 } catch (RetryQueryException retryQueryException) {
                     return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
                 }
@@ -93,17 +93,6 @@ public class LockDatasetStep implements Step {
         return StepResult.getStepResultSuccess();
     }
 
-    private DataAccessException getFaultToInsert() {
-        if (configService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT)) {
-            logger.info("LockDatasetStep - insert RETRY fault to throw during lockShared()");
-            return new OptimisticLockingFailureException(
-                "TEST RETRY SHARED LOCK - RETRIABLE EXCEPTION - insert fault, throwing shared lock exception");
-        } else if (configService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT)) {
-            logger.info("LockDatasetStep - insert FATAL fault to throw during lockShared()");
-            return new DataIntegrityViolationException(
-                "TEST RETRY SHARED LOCK - FATAL EXCEPTION - insert fault, throwing shared lock exception");
-        }
-        return null;
-    }
+
 }
 

@@ -4,6 +4,8 @@ import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
 import bio.terra.common.exception.RetryQueryException;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
@@ -43,6 +45,9 @@ public class DatasetDao {
     private final AssetDao assetDao;
 
     private static Logger logger = LoggerFactory.getLogger(DatasetDao.class);
+
+    @Autowired
+    private ConfigurationService configurationService;
 
     @Autowired
     public DatasetDao(DataRepoJdbcConfiguration jdbcConfiguration,
@@ -129,7 +134,7 @@ public class DatasetDao {
      * @throws DatasetNotFoundException if the dataset does not exist
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
-    public void lockShared(UUID datasetId, String flightId, DataAccessException faultToInsert) {
+    public void lockShared(UUID datasetId, String flightId) {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
@@ -151,6 +156,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
+        DataAccessException faultToInsert = getFaultToInsert();
         int numRowsUpdated = 0;
         try {
             // used for test DatasetConnectedTest > testRetryAcquireSharedLock
@@ -178,6 +184,19 @@ public class DatasetDao {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to take a shared lock on the dataset");
         }
+    }
+
+    private DataAccessException getFaultToInsert() {
+        if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT)) {
+            logger.info("LockDatasetStep - insert RETRY fault to throw during lockShared()");
+            return new OptimisticLockingFailureException(
+                "TEST RETRY SHARED LOCK - RETRIABLE EXCEPTION - insert fault, throwing shared lock exception");
+        } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT)) {
+            logger.info("LockDatasetStep - insert FATAL fault to throw during lockShared()");
+            return new DataIntegrityViolationException(
+                "TEST RETRY SHARED LOCK - FATAL EXCEPTION - insert fault, throwing shared lock exception");
+        }
+        return null;
     }
 
     /**

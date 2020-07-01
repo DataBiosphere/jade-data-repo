@@ -301,7 +301,9 @@ public class DataRepoFixtures {
 
         DataRepoResponse<SnapshotSummaryModel> snapshotResponse = dataRepoClient.waitForResponse(
             user, jobResponse, SnapshotSummaryModel.class);
-        assertThat("snapshot create is unsuccessful", snapshotResponse.getStatusCode(), equalTo(HttpStatus.INTERNAL_SERVER_ERROR));
+        assertThat("snapshot create is unsuccessful",
+            snapshotResponse.getStatusCode(),
+            equalTo(HttpStatus.INTERNAL_SERVER_ERROR));
     }
 
     public SnapshotSummaryModel createSnapshotWithRequest(

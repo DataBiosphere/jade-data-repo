@@ -267,7 +267,7 @@ public class DatasetDao {
      * @param id the dataset id
      * @return the array of flight ids that hold shared locks. empty if no shared locks are taken out.
      */
-    public String[] getSharedLocks(UUID id) {
+    protected String[] getSharedLocks(UUID id) {
         try {
             String sql = "SELECT sharedlock FROM dataset WHERE id = :id";
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);

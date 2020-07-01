@@ -29,6 +29,7 @@ import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -86,6 +87,7 @@ public class ConnectedOperations {
     private SamConfiguration samConfiguration;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
     private ConnectedTestConfiguration testConfig;
+    private DatasetDaoUtils datasetDaoUtils;
 
     private boolean deleteOnTeardown;
     private List<String> createdSnapshotIds;
@@ -489,7 +491,7 @@ public class ConnectedOperations {
             .andReturn();
 
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
-        String[] sharedLocks = datasetDao.getSharedLocks(UUID.fromString(datasetId));
+        String[] sharedLocks = datasetDaoUtils.getSharedLocks(UUID.fromString(datasetId));
 
         // Remove insertion of shared lock fault
         configService.setFault(faultToInsert.name(), false);

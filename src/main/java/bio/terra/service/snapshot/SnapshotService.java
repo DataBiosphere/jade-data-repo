@@ -257,6 +257,12 @@ public class SnapshotService {
             .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
     }
 
+    public void deleteSnapshotMetadataTables(String snapshotName) {
+        Snapshot snapshot = retrieveByName(snapshotName);
+        snapshotDao.deleteSnapshotMetadataTables(snapshot.getId());
+        snapshot.getTables().forEach(snapshotDao::deleteSnapshotMetadataColumns);
+    }
+
     public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
         return snapshotRequestModel.getContents()
             .stream()

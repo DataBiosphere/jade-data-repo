@@ -491,7 +491,8 @@ public class ConnectedOperations {
             .andReturn();
 
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
-        String[] sharedLocks = datasetDaoUtils.getSharedLocks(UUID.fromString(datasetId));
+        datasetDaoUtils = new DatasetDaoUtils();
+        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
 
         // Remove insertion of shared lock fault
         configService.setFault(faultToInsert.name(), false);

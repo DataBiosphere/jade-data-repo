@@ -1,7 +1,7 @@
 {
   "name":        "DatasetSimple103",
   "description": "Simple dataset definition",
-  "defaultProfileId": "80c0bc6a-9bed-4898-901f-5719c470b949",
+  "defaultProfileId": "",
   "schema":      {
     "tables":        [
       {

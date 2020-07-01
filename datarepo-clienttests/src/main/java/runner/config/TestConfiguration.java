@@ -9,6 +9,7 @@ import utils.FileUtils;
 public class TestConfiguration implements SpecificationInterface {
   public String name;
   public String serverSpecificationFile;
+  public String billingAccount;
   public List<String> testUserFiles;
 
   public ServerSpecification server;
@@ -72,8 +73,12 @@ public class TestConfiguration implements SpecificationInterface {
 
   public void display() {
     System.out.println("Test configuration: " + name);
+
     System.out.println();
     server.display();
+
+    System.out.println();
+    System.out.println("  Billing account: " + billingAccount);
 
     for (TestScriptSpecification testScript : testScripts) {
       System.out.println();

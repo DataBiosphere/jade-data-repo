@@ -53,6 +53,10 @@ class TestRunner {
       try {
         // TODO: allow TestScript constructors that take arguments
         TestScript testScriptInstance = testScriptSpecification.scriptClass.newInstance();
+
+        // set the billing account for the test script to use
+        testScriptInstance.setBillingAccount(config.billingAccount);
+
         scripts.add(testScriptInstance);
       } catch (IllegalAccessException | InstantiationException niEx) {
         throw new IllegalArgumentException(

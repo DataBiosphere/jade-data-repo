@@ -10,6 +10,19 @@ public class TestScript {
   /** Public constructor so that this class can be instantiated via reflection. */
   public TestScript() {}
 
+  protected String billingAccount;
+
+  /**
+   * Setter for the billing account property of this class. This property will be set by the Test
+   * Runner based on the current Test Configuration, and can be accessed by the Test scripts
+   * methods.
+   *
+   * @param billingAccount Google billing account id
+   */
+  public void setBillingAccount(String billingAccount) {
+    this.billingAccount = billingAccount;
+  }
+
   /**
    * The test script setup contains the API call(s) that we do not want to profile and will not be
    * scaled to run multiple in parallel. setup() is called once at the beginning of the test run.

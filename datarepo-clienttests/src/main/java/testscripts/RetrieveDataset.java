@@ -1,7 +1,9 @@
 package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
+import bio.terra.datarepo.model.BillingProfileModel;
 import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
@@ -19,6 +21,7 @@ public class RetrieveDataset extends runner.TestScript {
   }
 
   private String datasetCreator;
+  private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
 
   public void setup(Map<String, ApiClient> apiClients) throws Exception {
@@ -28,11 +31,19 @@ public class RetrieveDataset extends runner.TestScript {
 
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
+    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
-    // make the create request and wait for the job to finish
+    // create a new profile
+    billingProfileModel =
+        DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
+
+    System.out.println("successfully created profile: " + billingProfileModel.getProfileName());
+
+    // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
-        DataRepoUtils.createDataset(repositoryApi, "dataset-simple.json", true);
+        DataRepoUtils.createDataset(
+            repositoryApi, billingProfileModel.getId(), "dataset-simple.json", true);
 
     // save a reference to the dataset summary model so we can delete it in cleanup()
     datasetSummaryModel =
@@ -56,9 +67,10 @@ public class RetrieveDataset extends runner.TestScript {
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
     // get the ApiClient for the dataset creator
     ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
+    ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
 
-    // make the delete request and wait for the job to finish
+    // make the delete dataset request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
     deleteDatasetJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
@@ -66,5 +78,11 @@ public class RetrieveDataset extends runner.TestScript {
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
 
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
+
+    // delete the profile
+    DeleteResponseModel deleteProfileResponse =
+        resourcesApi.deleteProfile(billingProfileModel.getId());
+
+    System.out.println("successfully deleted profile: " + billingProfileModel.getProfileName());
   }
 }

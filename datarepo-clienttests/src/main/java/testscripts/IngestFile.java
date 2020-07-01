@@ -2,19 +2,22 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.DatasetModel;
 import bio.terra.datarepo.model.DatasetSummaryModel;
 import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.model.FileLoadModel;
+import bio.terra.datarepo.model.FileModel;
 import bio.terra.datarepo.model.JobModel;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import utils.DataRepoUtils;
+import utils.FileUtils;
 
-public class RetrieveDataset extends runner.TestScript {
+public class IngestFile extends runner.TestScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public RetrieveDataset() {
+  public IngestFile() {
     super();
   }
 
@@ -44,13 +47,27 @@ public class RetrieveDataset extends runner.TestScript {
 
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
-    DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
+
+    // TODO: parametrize this class to take the source file name/path. requires adding support for
+    // passing constructor arguments through test config
+    URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt", null, null);
+    String targetPath = "/mm/IngestFile/" + FileUtils.randomizeName("1KBfile") + ".txt";
+
+    FileLoadModel fileLoadModel =
+        new FileLoadModel()
+            .sourcePath(sourceUri.toString())
+            .description("IngestFile 1KB")
+            .mimeType("text/plain")
+            .targetPath(targetPath)
+            .profileId(datasetSummaryModel.getDefaultProfileId());
+    JobModel ingestFileJobResponse =
+        repositoryApi.ingestFile(datasetSummaryModel.getId(), fileLoadModel);
+    ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
+    FileModel fileModel =
+        DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
 
     System.out.println(
-        "successfully retrieved dataset: "
-            + datasetModel.getName()
-            + ", data project: "
-            + datasetModel.getDataProject());
+        "successfully ingested file: " + fileModel.getPath() + ", id: " + fileModel.getFileId());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

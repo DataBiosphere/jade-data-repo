@@ -1,8 +1,11 @@
 package utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
+import bio.terra.datarepo.model.DatasetRequestModel;
+import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
 
 public final class DataRepoUtils {
 
@@ -36,5 +39,35 @@ public final class DataRepoUtils {
 
     ObjectMapper objectMapper = new ObjectMapper();
     return objectMapper.convertValue(jobResult, resultClass);
+  }
+
+  public static JobModel createDataset(
+      RepositoryApi repositoryApi, String apipayloadFilename, boolean randomizeName)
+      throws Exception {
+    // use Jackson to map the stream contents to a DatasetRequestModel object
+    ObjectMapper objectMapper = new ObjectMapper();
+    InputStream datasetRequestFile =
+        FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);
+    DatasetRequestModel createDatasetRequest =
+        objectMapper.readValue(datasetRequestFile, DatasetRequestModel.class);
+
+    if (randomizeName) {
+      createDatasetRequest.setName(FileUtils.randomizeName(createDatasetRequest.getName()));
+    }
+
+    // make the create request and wait for the job to finish
+    JobModel createDatasetJobResponse = repositoryApi.createDataset(createDatasetRequest);
+    return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse);
+  }
+
+  public static <T> T expectJobSuccess(
+      RepositoryApi repositoryApi, JobModel jobResponse, Class<T> resultClass) throws Exception {
+    if (jobResponse.getJobStatus().equals(JobModel.JobStatusEnum.FAILED)) {
+      ErrorModel errorModel =
+          DataRepoUtils.getJobResult(repositoryApi, jobResponse, ErrorModel.class);
+      throw new RuntimeException("Job failed unexpectedly. " + errorModel);
+    }
+
+    return DataRepoUtils.getJobResult(repositoryApi, jobResponse, resultClass);
   }
 }

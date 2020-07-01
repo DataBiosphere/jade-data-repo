@@ -1,0 +1,14 @@
+{
+  "name": "LoadSingleFile",
+  "serverSpecificationFile": "mmdev.json",
+  "testScripts": [
+    {
+      "name": "IngestFile",
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 1,
+      "expectedTimeForEach": 60,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json"]
+}

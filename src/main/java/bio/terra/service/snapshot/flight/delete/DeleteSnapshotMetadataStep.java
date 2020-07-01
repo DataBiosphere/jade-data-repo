@@ -25,13 +25,17 @@ public class DeleteSnapshotMetadataStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
-        Snapshot snapshot = null;
+        Snapshot snapshot = null; // TODO why is this set to null?
         boolean found = false;
         try {
             found = snapshotDao.delete(snapshotId);
         } catch (SnapshotNotFoundException ex) {
             found = false;
         }
+
+        snapshotDao.deleteSnapshotMetadataTables(snapshotId);
+        Snapshot snapshotToDelete = snapshotDao.retrieveSnapshot(snapshotId);
+        snapshotToDelete.getTables().forEach(snapshotDao::deleteSnapshotMetadataColumns);
 
         DeleteResponseModel.ObjectStateEnum stateEnum =
             (found) ? DeleteResponseModel.ObjectStateEnum.DELETED : DeleteResponseModel.ObjectStateEnum.NOT_FOUND;

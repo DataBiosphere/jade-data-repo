@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.common.Table;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.common.MetadataEnumeration;
@@ -199,6 +200,16 @@ public class SnapshotDao {
         int rowsAffected = jdbcTemplate.update("DELETE FROM snapshot WHERE name = :name",
                 new MapSqlParameterSource().addValue("name", snapshotName));
         return rowsAffected > 0;
+    }
+
+    public boolean deleteSnapshotMetadataTables(UUID id) {
+        logger.debug("delete snapshot tables by id: " + id);
+        return snapshotTableDao.deleteTables(id);
+    }
+
+    public boolean deleteSnapshotMetadataColumns(Table table) { // should this be combined with the above?
+        logger.debug("delete snapshot columns by snapshot table: " + table);
+        return snapshotTableDao.deleteColumns(table);
     }
 
     /**

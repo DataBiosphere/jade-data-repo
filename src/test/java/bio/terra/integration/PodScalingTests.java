@@ -143,10 +143,11 @@ public class PodScalingTests extends UsersBase {
         IOException lastException = null;
         IllegalStateException illegalStateException = null;
         DataRepoResponse<BulkLoadArrayResultModel> response = null;
-        for(int i = 0; i < 4; i++) {
+
+        launchResponse = dataRepoFixtures.buildBulkLoadArrayRequest(
+            stewardUser, datasetId, arrayLoad);
+        for (int i = 0; i < 4; i++) {
             try {
-                launchResponse = dataRepoFixtures.buildBulkLoadArrayRequest(
-                    stewardUser, datasetId, arrayLoad);
                 // MANIPULATE KUBERNETES DEPLOY //
                 alreadyRun = dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
                 if (!alreadyRun) {
@@ -154,20 +155,20 @@ public class PodScalingTests extends UsersBase {
                     // poll again
                     // do something else
                     logger.info("not yet complete");
-                    kubeUtils.killPod(namespace);
+                    // kubeUtils.killPod(namespace);
 
                     // dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
 
                 }
-                 response =
-                    dataRepoClient.waitForResponse(stewardUser, launchResponse, BulkLoadArrayResultModel.class);
+                response = dataRepoClient.waitForResponse(
+                    stewardUser, launchResponse, BulkLoadArrayResultModel.class);
                 break;
             } catch (IOException ex) {
-                logger.info("Caught IOException. Sleeping then retry.");
+                logger.info("Caught IOException #{}. Sleeping then retrying.", i + 1);
                 TimeUnit.SECONDS.sleep(30);
                 lastException = ex;
             } catch (IllegalStateException ex) {
-                logger.info("Caught IOException. Sleeping then retry.");
+                logger.info("Caught IllegalStateException #{}. Sleeping then retrying.", i + 1);
                 TimeUnit.SECONDS.sleep(30);
                 illegalStateException  = ex;
             }

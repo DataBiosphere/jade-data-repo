@@ -88,38 +88,38 @@ public class DataRepoClient {
     public boolean pollForResponse(TestConfiguration.User user,
                                    DataRepoResponse<JobModel> jobModelResponse,
                                    int pollTime) throws Exception {
-            int totalSleep = 0;
-            final int initialSeconds = 1;
-            final int maxSeconds = 16;
+        int totalSleep = 0;
+        final int initialSeconds = 1;
+        final int maxSeconds = 16;
 
-            try {
-                int count = 0;
-                int sleepSeconds = initialSeconds;
-                while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
-                    if (totalSleep >= pollTime) {
-                        return false;
-                    }
-                    String location = getLocationHeader(jobModelResponse);
-                    logger.info("try #{} for {}", ++count, location);
-
-
-                    TimeUnit.SECONDS.sleep(sleepSeconds);
-                    totalSleep += sleepSeconds;
-
-                    jobModelResponse = get(user, location, JobModel.class);
-
-                    int nextSeconds = 2 * sleepSeconds;
-                    sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
+        try {
+            int count = 0;
+            int sleepSeconds = initialSeconds;
+            while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
+                if (totalSleep >= pollTime) {
+                    return false;
                 }
-                return true;
-            } catch (IOException ex) {
-                throw ex;
-            } catch (Exception ex) {
-                logger.info("interrupted ex: {}", ex.getMessage());
-                ex.printStackTrace();
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+                String location = getLocationHeader(jobModelResponse);
+                logger.info("try #{} for {}", ++count, location);
+
+
+                TimeUnit.SECONDS.sleep(sleepSeconds);
+                totalSleep += sleepSeconds;
+
+                jobModelResponse = get(user, location, JobModel.class);
+
+                int nextSeconds = 2 * sleepSeconds;
+                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
             }
+            return true;
+        } catch (IOException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            logger.info("interrupted ex: {}", ex.getMessage());
+            ex.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+        }
     }
 
     public <T> DataRepoResponse<T> waitForResponse(TestConfiguration.User user,
@@ -127,28 +127,28 @@ public class DataRepoClient {
                                                    Class<T> responseClass) throws Exception {
         final int initialSeconds = 1;
         final int maxSeconds = 16;
-            try {
-                int count = 0;
-                int sleepSeconds = initialSeconds;
-                while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
-                    String location = getLocationHeader(jobModelResponse);
-                    logger.info("try #{} for {}", ++count, location);
+        try {
+            int count = 0;
+            int sleepSeconds = initialSeconds;
+            while (jobModelResponse.getStatusCode() == HttpStatus.ACCEPTED) {
+                String location = getLocationHeader(jobModelResponse);
+                logger.info("try #{} for {}", ++count, location);
 
-                    TimeUnit.SECONDS.sleep(sleepSeconds);
-                    jobModelResponse = get(user, location, JobModel.class);
+                TimeUnit.SECONDS.sleep(sleepSeconds);
+                jobModelResponse = get(user, location, JobModel.class);
 
-                    int nextSeconds = 2 * sleepSeconds;
-                    sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
-                }
-            } catch (IOException ex) {
-                logger.info("unable to parse json");
-                throw ex;
-            } catch (InterruptedException ex) {
-                logger.info("interrupted ex: {}", ex.getMessage());
-                ex.printStackTrace();
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+                int nextSeconds = 2 * sleepSeconds;
+                sleepSeconds = (nextSeconds > maxSeconds) ? maxSeconds : nextSeconds;
             }
+        } catch (IOException ex) {
+            logger.info("unable to parse json");
+            throw ex;
+        } catch (InterruptedException ex) {
+            logger.info("interrupted ex: {}", ex.getMessage());
+            ex.printStackTrace();
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("unexpected interrupt waiting for response", ex);
+        }
 
         if (jobModelResponse.getStatusCode() != HttpStatus.OK) {
             throw new IllegalStateException("unexpected job status code: " + jobModelResponse.getStatusCode());

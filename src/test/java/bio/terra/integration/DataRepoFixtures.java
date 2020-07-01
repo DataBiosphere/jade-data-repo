@@ -462,15 +462,11 @@ public class DataRepoFixtures {
             assertThat("bulkLoadArray is successful", response.getStatusCode(), equalTo(HttpStatus.OK));
             assertTrue("ingestFile response is present", response.getResponseObject().isPresent());
             return response.getResponseObject().get();
-        } else if (response == null && lastException != null) {
-            logger.error("bulkLoadArray failed: " + lastException.getMessage());
-            throw lastException;
-        } else {
-            ErrorModel errorModel = response.getErrorObject().orElse(null);
-            logger.error("bulkLoadArray failed: " + errorModel);
-            fail();
-            return null; // Make findbugs happy
         }
+        ErrorModel errorModel = response.getErrorObject().orElse(null);
+        logger.error("bulkLoadArray failed: " + errorModel);
+        fail();
+        return null; // Make findbugs happy
     }
 
     public BulkLoadArrayResultModel bulkLoadArray(

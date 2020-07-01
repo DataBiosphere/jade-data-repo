@@ -188,7 +188,7 @@ public final class KubernetesClientUtils {
     }
 
 
-    public class killPodCallback implements ApiCallback<V1Status> {
+    public static class KillPodCallback implements ApiCallback<V1Status> {
         @Override
         public void onFailure(ApiException e, int statusCode, Map<String, List<String>> responseHeaders) {
             logger.error("Kill Pods Failed with Exception: {}", e.getMessage());
@@ -211,7 +211,7 @@ public final class KubernetesClientUtils {
 
 
     public void killPod(String namespace) throws ApiException {
-        ApiCallback<V1Status> callback = new killPodCallback();
+        ApiCallback<V1Status> callback = new KillPodCallback();
         kubernetesClientObject.deleteCollectionNamespacedPodAsync(namespace,
             null, null,
             null, null, null,

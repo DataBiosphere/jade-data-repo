@@ -97,8 +97,7 @@ public class IngestFile extends runner.TestScript {
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
 
     // delete the profile
-    DeleteResponseModel deleteProfileResponse =
-        resourcesApi.deleteProfile(billingProfileModel.getId());
+    resourcesApi.deleteProfile(billingProfileModel.getId());
 
     System.out.println("successfully deleted profile: " + billingProfileModel.getProfileName());
   }

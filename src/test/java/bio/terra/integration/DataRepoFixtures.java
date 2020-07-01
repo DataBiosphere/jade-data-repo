@@ -152,13 +152,27 @@ public class DataRepoFixtures {
     }
 
     public void deleteDataset(TestConfiguration.User user, String datasetId) throws Exception {
+        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteDatasetLog(user, datasetId);
+        assertGoodDeleteResponse(deleteResponse);
+    }
+
+    public DataRepoResponse<DeleteResponseModel> deleteDatasetLog(TestConfiguration.User user, String datasetId)
+        throws Exception {
+
         DataRepoResponse<JobModel> jobResponse = deleteDatasetLaunch(user, datasetId);
         assertTrue("dataset delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("dataset delete launch response is present", jobResponse.getResponseObject().isPresent());
 
         DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
             user, jobResponse, DeleteResponseModel.class);
-        assertGoodDeleteResponse(deleteResponse);
+        // if not successful, log the response
+        if (!deleteResponse.getStatusCode().is2xxSuccessful()) {
+            logger.error("delete operation failed");
+            if (deleteResponse.getErrorObject().isPresent()) {
+                logger.error("error object: " + deleteResponse.getErrorObject().get());
+            }
+        }
+        return deleteResponse;
     }
 
     public DataRepoResponse<EnumerateDatasetModel> enumerateDatasetsRaw(TestConfiguration.User user) throws Exception {
@@ -324,13 +338,27 @@ public class DataRepoFixtures {
     }
 
     public void deleteSnapshot(TestConfiguration.User user, String snapshotId) throws Exception {
+        DataRepoResponse<DeleteResponseModel> deleteResponse = deleteSnapshotLog(user, snapshotId);
+        assertGoodDeleteResponse(deleteResponse);
+    }
+
+    public DataRepoResponse<DeleteResponseModel> deleteSnapshotLog(TestConfiguration.User user, String snapshotId)
+        throws Exception {
+
         DataRepoResponse<JobModel> jobResponse = deleteSnapshotLaunch(user, snapshotId);
         assertTrue("snapshot delete launch succeeded", jobResponse.getStatusCode().is2xxSuccessful());
         assertTrue("snapshot delete launch response is present", jobResponse.getResponseObject().isPresent());
 
         DataRepoResponse<DeleteResponseModel> deleteResponse = dataRepoClient.waitForResponse(
             user, jobResponse, DeleteResponseModel.class);
-        assertGoodDeleteResponse(deleteResponse);
+        // if not successful, log the response
+        if (!deleteResponse.getStatusCode().is2xxSuccessful()) {
+            logger.error("delete operation failed");
+            if (deleteResponse.getErrorObject().isPresent()) {
+                logger.error("error object: " + deleteResponse.getErrorObject().get());
+            }
+        }
+        return deleteResponse;
     }
 
     public DataRepoResponse<JobModel> deleteSnapshotLaunch(TestConfiguration.User user, String snapshotId)
@@ -338,8 +366,8 @@ public class DataRepoFixtures {
         return dataRepoClient.delete(user, "/api/repository/v1/snapshots/" + snapshotId, JobModel.class);
     }
 
-
     private void assertGoodDeleteResponse(DataRepoResponse<DeleteResponseModel> deleteResponse) {
+
         assertThat("delete is successful", deleteResponse.getStatusCode(), equalTo(HttpStatus.OK));
         assertTrue("delete response is present", deleteResponse.getResponseObject().isPresent());
         DeleteResponseModel deleteModel = deleteResponse.getResponseObject().get();

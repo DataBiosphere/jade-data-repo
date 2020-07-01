@@ -84,7 +84,7 @@ public final class BigQueryFixtures {
      */
     private static final int RETRY_INITIAL_INTERVAL_SECONDS = 2;
     private static final int RETRY_MAX_INTERVAL_SECONDS = 30;
-    private static final int RETRY_MAX_SLEEP_SECONDS = 600;
+    private static final int RETRY_MAX_SLEEP_SECONDS = 420;
 
     public static TableResult queryWithRetry(String sql, BigQuery bigQuery) throws InterruptedException {
         int sleptSeconds = 0;

@@ -11,6 +11,7 @@ import bio.terra.model.DatasetRequestModel;
 import bio.terra.model.ErrorModel;
 import bio.terra.model.JobModel;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.service.dataset.exception.InvalidAssetException;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.job.JobService;
@@ -26,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -39,6 +39,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -303,23 +304,25 @@ public class DatasetServiceTest {
         flightIdsList.add(jobId);
 
         TestUtils.eventualExpect(5, 60, true, () ->
-            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.SUCCEEDED)
+            jobService.retrieveJob(jobId, testUser).getJobStatus().equals(JobModel.JobStatusEnum.FAILED)
         );
 
-        JobService.JobResultWithStatus<ErrorModel> resultWithStatus =
-            jobService.retrieveJobResult(jobId, ErrorModel.class, testUser);
+        try {
+            try {
+                jobService.retrieveJobResult(jobId, ErrorModel.class, testUser);
+                fail("Expected invalid asset exception");
+            } catch (InvalidAssetException ex) {
+                assertThat("error message is correct", ex.getMessage(),
+                    equalTo("Asset name already exists: sample"));
+                // get dataset
+                Dataset dataset = datasetDao.retrieve(datasetId);
 
-        assertThat("error message is correct", resultWithStatus.getResult().getMessage(),
-            equalTo("Asset already exists: sample"));
-        assertThat("error status is correct", resultWithStatus.getStatusCode(),
-            equalTo(HttpStatus.BAD_REQUEST));
-
-        // get dataset
-        Dataset dataset = datasetDao.retrieve(datasetId);
-
-        // make sure the dataset has the expected asset
-        assertThat("dataset has no additional asset spec", dataset.getAssetSpecifications().size(), equalTo(2));
-        datasetDao.delete(datasetId);
+                // make sure the dataset has the expected asset
+                assertThat("dataset has no additional asset spec", dataset.getAssetSpecifications().size(), equalTo(2));
+            }
+        } finally {
+            datasetDao.delete(datasetId);
+        }
     }
 
     @Test

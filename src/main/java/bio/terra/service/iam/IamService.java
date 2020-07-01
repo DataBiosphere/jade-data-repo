@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -110,7 +111,7 @@ public class IamService {
      * @param datasetId id of the dataset
      * @return List of policy group emails for the dataset policies
      */
-    public List<String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
+    public Map<IamRole, String> createDatasetResource(AuthenticatedUserRequest userReq, UUID datasetId) {
         try {
             return iamProvider.createDatasetResource(userReq, datasetId);
         } catch (InterruptedException ex) {
@@ -124,9 +125,11 @@ public class IamService {
      * @param userReq authenticated user
      * @param snapshotId id of the snapshot
      * @param readersList list of emails of users to add as readers of the snapshot
-     * @return Policy group email for the snapshot reader policy
+     * @return Policy group map
      */
-    public String createSnapshotResource(AuthenticatedUserRequest userReq, UUID snapshotId, List<String> readersList) {
+    public Map<IamRole, String> createSnapshotResource(AuthenticatedUserRequest userReq,
+                                                       UUID snapshotId,
+                                                       List<String> readersList) {
         try {
             return iamProvider.createSnapshotResource(userReq, snapshotId, readersList);
         } catch (InterruptedException ex) {

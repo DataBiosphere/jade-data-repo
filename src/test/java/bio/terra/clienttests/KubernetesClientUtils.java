@@ -211,13 +211,19 @@ public final class KubernetesClientUtils {
 
 
     public void killPod(String namespace) throws ApiException {
-        ApiCallback<V1Status> callback = new KillPodCallback();
+        /* ApiCallback<V1Status> callback = new KillPodCallback();
         kubernetesClientObject.deleteCollectionNamespacedPodAsync(namespace,
             null, null,
             null, null, null,
             10, null, null,
             null, null, null,
-            null, null, null, callback);
+            null, null, null, callback);*/
+        kubernetesClientObject.deleteCollectionNamespacedPod(namespace,
+            null, null,
+            null, null, null,
+            10, null, null,
+            null, null, null,
+            null, null, null);
     }
 
     public static List<V1Pod> listKubernetesPods(CoreV1Api k8sclient) throws ApiException {

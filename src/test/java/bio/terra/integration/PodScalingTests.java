@@ -155,7 +155,7 @@ public class PodScalingTests extends UsersBase {
                     // poll again
                     // do something else
                     logger.info("not yet complete");
-                    // kubeUtils.killPod(namespace);
+                    kubeUtils.killPod(namespace);
 
                     // dataRepoClient.pollForResponse(stewardUser, launchResponse, 5);
 

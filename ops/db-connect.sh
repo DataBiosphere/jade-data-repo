@@ -19,5 +19,5 @@ then
   exit 1 # error
 fi
 
-kubectl --namespace ${SUFFIX} run psql -it --serviceaccount=${SUFFIX}-jade-datarepo-api --restart=Never --rm --image postgres:9.6 -- \
+kubectl --namespace ${SUFFIX} run ${SUFFIX}-psql -it --serviceaccount=${SUFFIX}-jade-datarepo-api --restart=Never --rm --image postgres:9.6 -- \
     psql "postgresql://drmanager:${PW}@${SUFFIX}-jade-gcloud-sqlproxy.${SUFFIX}/${DB}"

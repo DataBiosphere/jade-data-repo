@@ -6,8 +6,6 @@ import bio.terra.common.fixtures.ConnectedOperations;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.Names;
 import bio.terra.model.BillingProfileModel;
-import bio.terra.model.BulkLoadArrayRequestModel;
-import bio.terra.model.BulkLoadArrayResultModel;
 import bio.terra.model.BulkLoadFileModel;
 import bio.terra.model.BulkLoadRequestModel;
 import bio.terra.model.BulkLoadResultModel;
@@ -37,6 +35,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -54,6 +53,7 @@ import static org.junit.Assert.fail;
 @AutoConfigureMockMvc
 @ActiveProfiles({"google", "connectedtest"})
 @Category(Connected.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class FileLoadTest {
     private static final Logger logger = LoggerFactory.getLogger(FileLoadTest.class);
 
@@ -141,42 +141,6 @@ public class FileLoadTest {
         connectedOperations.deleteTestDataset(datasetSummary.getId());
 
         assertThat(summary.getSucceededFiles(), equalTo(filesToLoad));
-    }
-
-    // The purpose of this test is to have a long-running workload that completes successfully
-    // while we delete pods and have them recover.
-    @Test
-    public void longFileLoadTest() throws Exception {
-        // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when they are
-        //  local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5 files per minute,
-        //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
-        //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the fileLoadTest)
-        final int filesToLoad = 3;
-
-        String loadTag = Names.randomizeName("longtest");
-
-        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
-            .profileId(profileModel.getId())
-            .loadTag(loadTag)
-            .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
-
-        for (int i = 0; i < filesToLoad; i++) {
-            String tailPath = String.format("/loadtest/file-%02d.txt", i);
-            String sourcePath = "gs://jade-testdata" + tailPath;
-
-            BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
-            model.description("bulk load file " + i)
-                .sourcePath(sourcePath)
-                .targetPath(tailPath);
-            arrayLoad.addLoadArrayItem(model);
-        }
-
-        BulkLoadArrayResultModel result = connectedOperations.ingestArraySuccess(datasetSummary.getId(), arrayLoad);
-        BulkLoadResultModel loadSummary = result.getLoadSummary();
-        logger.info("Total files    : " + loadSummary.getTotalFiles());
-        logger.info("Succeeded files: " + loadSummary.getSucceededFiles());
-        logger.info("Failed files   : " + loadSummary.getFailedFiles());
-        logger.info("Not Tried files: " + loadSummary.getNotTriedFiles());
     }
 
     private BulkLoadRequestModel makeBulkFileLoad(String tagBase, int fileCount) {

@@ -160,7 +160,7 @@ public class IngestDriverStep implements Step {
 
     private void checkForOrphans(FlightContext context, UUID loadId)
         throws DatabaseOperationException, InterruptedException {
-        // Check for launch orphans - these are loads in the RUNNING state that are in the load_files table
+        // Check for launch orphans - these are loads in the RUNNING state in the load_files table
         // in the database, but not known to Stairway. We revert them to NOT_TRIED before starting the
         // load loop.
         List<LoadFile> runningLoads = loadService.findRunningLoads(loadId);
@@ -168,6 +168,7 @@ public class IngestDriverStep implements Step {
             try {
                 context.getStairway().getFlightState(load.getFlightId());
             } catch (FlightNotFoundException ex) {
+                logger.debug("Resetting orphan file load from running to not tried: " + load.getLoadId());
                 loadService.setLoadFileNotTried(load.getLoadId(), load.getTargetPath());
             }
         }
@@ -246,7 +247,7 @@ public class IngestDriverStep implements Step {
 
         for (int i = 0; i < launchCount; i++) {
             LoadFile loadFile = loadFiles.get(i);
-            String flightId = stairway.createFlightId().toString();
+            String flightId = stairway.createFlightId();
 
             FileLoadModel fileLoadModel = new FileLoadModel()
                 .sourcePath(loadFile.getSourcePath())

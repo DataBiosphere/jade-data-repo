@@ -273,7 +273,7 @@ class TestRunner {
 
   static void printHelp() {
     System.out.println("Specify test configuration file as first argument.");
-    System.out.println("  e.g. ../gradlew :run --args=\"BasicUnauthenticated.json\"");
+    System.out.println("  e.g. ./gradlew :run --args=\"BasicUnauthenticated.json\"");
   }
 
   public static void main(String[] args) throws Exception {

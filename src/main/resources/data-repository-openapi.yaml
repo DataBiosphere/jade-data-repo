@@ -2004,7 +2004,7 @@ definitions:
       interval:
         description: >
           The size to use when dividing the partitioning range into "buckets".
-          (max - min) / (this value) cannot be larger than 40,000.
+          (max - min) / (this value) cannot be larger than 4,000.
         type: integer
         format: int64
 

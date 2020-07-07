@@ -93,10 +93,6 @@ public class FileService {
             .addParameter(LoadMapKeys.IS_ARRAY, false)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
-            .addParameter(LoadMapKeys.CONCURRENT_INGESTS,
-                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_INGESTS))
-            .addParameter(LoadMapKeys.CONCURRENT_FILES,
-                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
             .addParameter(LoadMapKeys.DRIVER_WAIT_SECONDS,
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .addParameter(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,
@@ -125,10 +121,6 @@ public class FileService {
             .addParameter(LoadMapKeys.IS_ARRAY, true)
             .addParameter(JobMapKeys.DATASET_ID.getKeyName(), datasetId)
             .addParameter(LoadMapKeys.LOAD_TAG, loadTag)
-            .addParameter(LoadMapKeys.CONCURRENT_INGESTS,
-                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_INGESTS))
-            .addParameter(LoadMapKeys.CONCURRENT_FILES,
-                configService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES))
             .addParameter(LoadMapKeys.DRIVER_WAIT_SECONDS,
                 configService.getParameterValue(ConfigEnum.LOAD_DRIVER_WAIT_SECONDS))
             .addParameter(LoadMapKeys.LOAD_HISTORY_COPY_CHUNK_SIZE,

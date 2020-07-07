@@ -2,18 +2,16 @@ package bio.terra.common.auth;
 
 import bio.terra.common.configuration.TestConfiguration;
 import com.google.api.client.auth.oauth2.TokenResponseException;
-import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
-import com.google.api.client.http.javanet.NetHttpTransport;
-import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.security.GeneralSecurityException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,13 +25,12 @@ public class AuthService {
     private List<String> directAccessScopes = Arrays.asList(
         "https://www.googleapis.com/auth/bigquery",
         "https://www.googleapis.com/auth/devstorage.full_control");
-    private NetHttpTransport httpTransport;
-    private JacksonFactory jsonFactory = JacksonFactory.getDefaultInstance();
     private File pemfile;
     private String saEmail;
-    private Map<String, String> userTokens = new HashMap<>();
-    private Map<String, String> directAccessTokens = new HashMap<>();
     private TestConfiguration testConfig;
+
+    private Map<String, GoogleCredentials> userCreds = new HashMap<>();
+    private Map<String, GoogleCredentials> directAccessCreds = new HashMap<>();
 
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
@@ -41,52 +38,50 @@ public class AuthService {
         Optional<String> pemfilename = Optional.ofNullable(testConfig.getJadePemFileName());
         pemfilename.ifPresent(s -> pemfile = new File(s));
         saEmail = testConfig.getJadeEmail();
-        httpTransport = GoogleNetHttpTransport.newTrustedTransport();
     }
 
     public String getAuthToken(String userEmail) {
-        if (!userTokens.containsKey(userEmail)) {
-            userTokens.put(userEmail, makeToken(userEmail));
-        }
-        return userTokens.get(userEmail);
+        return getCredentials(userEmail).getAccessToken().getTokenValue();
     }
 
     public String getDirectAccessAuthToken(String userEmail) {
-        if (!directAccessTokens.containsKey(userEmail)) {
-            directAccessTokens.put(userEmail, makeDirectAccessToken(userEmail));
+        if (!directAccessCreds.containsKey(userEmail)) {
+            directAccessCreds.put(userEmail, makeDirectAccessCredentials(userEmail));
         }
-        return directAccessTokens.get(userEmail);
+        return directAccessCreds.get(userEmail).getAccessToken().getTokenValue();
     }
 
-    private GoogleCredential buildCredential(String email, List<String> scopes)
-            throws IOException, GeneralSecurityException {
+    public GoogleCredentials getCredentials(String userEmail) {
+        if (!userCreds.containsKey(userEmail)) {
+            userCreds.put(userEmail, makeToken(userEmail));
+        }
+        return userCreds.get(userEmail);
+    }
+
+    private GoogleCredentials buildCredentials(String email, List<String> scopes) throws IOException {
         if (!Optional.ofNullable(pemfile).isPresent()) {
             throw new IllegalStateException(String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
         }
-        return new GoogleCredential.Builder()
-            .setTransport(httpTransport)
-            .setJsonFactory(jsonFactory)
-            .setServiceAccountId(saEmail)
-            .setServiceAccountPrivateKeyFromPemFile(pemfile)
-            .setServiceAccountScopes(scopes)
-            .setServiceAccountUser(email)
-            .build();
+        return ServiceAccountCredentials.fromStream(new FileInputStream(pemfile))
+            .createDelegated(email)
+            .createScoped(scopes);
     }
 
-    private String makeDirectAccessToken(String userEmail) {
+    private GoogleCredentials makeDirectAccessCredentials(String userEmail) {
         List<String> allScopes = Stream.of(
             userLoginScopes,
             directAccessScopes)
             .flatMap(Collection::stream)
             .collect(Collectors.toList());
-        return makeTokenForScopes(userEmail, allScopes);
+
+        return makeCredentialsForScopes(userEmail, allScopes);
     }
 
-    private String makeTokenForScopes(String userEmail, List<String> scopes) {
+    private GoogleCredentials makeCredentialsForScopes(String userEmail, List<String> scopes) {
         try {
-            GoogleCredential cred = buildCredential(userEmail, scopes);
-            cred.refreshToken();
-            return cred.getAccessToken();
+            GoogleCredentials creds = buildCredentials(userEmail, scopes);
+            creds.refresh();
+            return creds;
         } catch (TokenResponseException e) {
             logger.error("Encountered " + e.getStatusCode() + " error getting access token.");
         } catch (Exception ioe) {
@@ -95,8 +90,8 @@ public class AuthService {
         throw new RuntimeException("unable to get access token");
     }
 
-    private String makeToken(String userEmail) {
-        return makeTokenForScopes(userEmail, userLoginScopes);
+    private GoogleCredentials makeToken(String userEmail) {
+        return makeCredentialsForScopes(userEmail, userLoginScopes);
     }
 
 }

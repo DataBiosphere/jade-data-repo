@@ -1,5 +1,6 @@
 package bio.terra.integration;
 
+import bio.terra.common.auth.AuthService;
 import bio.terra.common.category.Integration;
 import bio.terra.common.configuration.TestConfiguration;
 import bio.terra.common.fixtures.Names;
@@ -13,6 +14,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.model.IngestResponseModel;
 import bio.terra.model.JobModel;
+import bio.terra.service.dataset.flight.ingest.IngestUtils;
 import bio.terra.service.iam.IamRole;
 import com.google.cloud.WriteChannel;
 import com.google.cloud.storage.BlobId;
@@ -61,6 +63,9 @@ public class FileTest extends UsersBase {
 
     @Autowired
     private TestConfiguration testConfiguration;
+
+    @Autowired
+    private AuthService authService;
 
     private DatasetSummaryModel datasetSummaryModel;
     private String datasetId;
@@ -155,6 +160,47 @@ public class FileTest extends UsersBase {
         }
 
         assertThat("No unexpected failures", failureCount, equalTo(0));
+    }
+
+    public void fileReadFromDatasetTest() throws Exception {
+        String gsPath = "gs://" + testConfiguration.getIngestbucket();
+        String filePath = "/foo/bar";
+
+        FileModel fileModel = dataRepoFixtures.ingestFile(
+            steward(), datasetId, profileId, gsPath + "/files/File Design Notes.pdf", filePath);
+        String fileId = fileModel.getFileId();
+
+        String json = String.format("{\"file_id\":\"foo\",\"file_ref\":\"%s\"}", fileId);
+
+        String targetPath = "scratch/file" + UUID.randomUUID().toString() + ".json";
+        BlobInfo targetBlobInfo = BlobInfo
+            .newBuilder(BlobId.of(testConfiguration.getIngestbucket(), targetPath))
+            .build();
+
+        Storage storage = StorageOptions.getDefaultInstance().getService();
+        try (WriteChannel writer = storage.writer(targetBlobInfo)) {
+            writer.write(ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8)));
+        }
+
+        IngestRequestModel request = dataRepoFixtures.buildSimpleIngest("file", targetPath);
+        IngestResponseModel ingestResponseModel = dataRepoFixtures.ingestJsonData(
+            steward(), datasetId, request);
+
+        assertThat("1 Row was ingested", ingestResponseModel.getRowCount(), equalTo(1L));
+
+        // ensure steward can read ingested file
+        String accessUrl = fileModel.getFileDetail().getAccessUrl();
+        IngestUtils.GsUrlParts accessParts = IngestUtils.parseBlobUri(accessUrl);
+
+        BlobId accessBlob = BlobId.of(accessParts.getBucket(), accessParts.getPath());
+        storage = StorageOptions
+            .newBuilder()
+            .setCredentials(authService.getCredentials(steward().getEmail()))
+            .build()
+            .getService();
+
+        String gsJson = new String(storage.readAllBytes(accessBlob), StandardCharsets.UTF_8);
+        assertThat("Steward can access dataset files", gsJson, equalTo(json));
     }
 
     @Test

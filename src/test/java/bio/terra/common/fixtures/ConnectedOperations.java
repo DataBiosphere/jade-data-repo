@@ -463,10 +463,7 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         FileModel fileModel = handleSuccessCase(response, FileModel.class);
-        checkSuccessfulFileLoad(fileLoadModel, fileModel);
-
-        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
-        addFile(datasetId, fileModel.getFileId());
+        checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
 
         return fileModel;
     }
@@ -504,13 +501,13 @@ public class ConnectedOperations {
             // Check if the flight successfully completed
             // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
             FileModel fileModel = handleSuccessCase(response, FileModel.class);
-            checkSuccessfulFileLoad(fileLoadModel, fileModel);
+            checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
         } else {
             handleFailureCase(response);
         }
     }
 
-    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel) {
+    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -521,6 +518,9 @@ public class ConnectedOperations {
                 (StringUtils.equals(checksum.getType(), "crc32c") ||
                     StringUtils.equals(checksum.getType(), "md5")));
         }
+
+        logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
+        addFile(datasetId, fileModel.getFileId());
     }
 
     public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {

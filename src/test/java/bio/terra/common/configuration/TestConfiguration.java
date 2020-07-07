@@ -13,7 +13,6 @@ import java.util.List;
 public class TestConfiguration {
     private String jadeApiUrl;
     private String jadePemFileName;
-    private String jadeJsonFileName;
     private String jadeEmail;
     private String ingestbucket;
     private List<User> users = new ArrayList<>();
@@ -72,14 +71,6 @@ public class TestConfiguration {
 
     public void setJadePemFileName(String jadePemFileName) {
         this.jadePemFileName = jadePemFileName;
-    }
-
-    public String getJadeJsonFileName() {
-        return jadeJsonFileName;
-    }
-
-    public void setJadeJsonFileName(String jadeJsonFileName) {
-        this.jadeJsonFileName = jadeJsonFileName;
     }
 
     public String getJadeEmail() {

@@ -3,14 +3,11 @@ package bio.terra.common.auth;
 import bio.terra.common.configuration.TestConfiguration;
 import com.google.api.client.auth.oauth2.TokenResponseException;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.auth.oauth2.ServiceAccountCredentials;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -25,7 +22,6 @@ public class AuthService {
     private List<String> directAccessScopes = Arrays.asList(
         "https://www.googleapis.com/auth/bigquery",
         "https://www.googleapis.com/auth/devstorage.full_control");
-    private File jsonFile;
     private String saEmail;
     private TestConfiguration testConfig;
 
@@ -35,8 +31,6 @@ public class AuthService {
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
         this.testConfig = testConfig;
-        Optional<String> jsonFilename = Optional.ofNullable(testConfig.getJadeJsonFileName());
-        jsonFilename.ifPresent(s -> jsonFile = new File(s));
         saEmail = testConfig.getJadeEmail();
     }
 
@@ -59,10 +53,7 @@ public class AuthService {
     }
 
     private GoogleCredentials buildCredentials(String email, List<String> scopes) throws IOException {
-        if (!Optional.ofNullable(jsonFile).isPresent()) {
-            throw new IllegalStateException(String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
-        }
-        return ServiceAccountCredentials.fromStream(new FileInputStream(jsonFile))
+        return GoogleCredentials.getApplicationDefault()
             .createDelegated(email)
             .createScoped(scopes);
     }

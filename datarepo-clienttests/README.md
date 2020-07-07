@@ -81,7 +81,7 @@ resources/configs directory. Below are the required fields:
   * billingAccount: Google billing account to use
   * kubernetes: Kubernetes-related settings that will be set after deploying the application and before executing any 
   tests
-    * numberOfInitialPods: (optional) Initial number of pods, defaults to 1 [implementation pending]
+    * numberOfInitialPods: (optional) Initial number of pods, defaults to 1
   * application: Application-related settings that will be set before deploying the application and executing any tests
     * maxStairwayThreads: (optional) defaults to 20 [implementation pending]
     * maxBulkFileLoad: (optional) defaults to 1000000 [implementation pending]

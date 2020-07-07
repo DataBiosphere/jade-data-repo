@@ -5,7 +5,11 @@ import com.google.auth.oauth2.GoogleCredentials;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.Configuration;
+import io.kubernetes.client.openapi.apis.AppsV1Api;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1DeploymentList;
+import io.kubernetes.client.openapi.models.V1DeploymentSpec;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.ClientBuilder;
@@ -21,19 +25,31 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import runner.config.ServerSpecification;
 
+// TODO: add try/catch for refresh token around all utils methods
 public final class KubernetesClientUtils {
 
-  private static CoreV1Api kubernetesClientObject;
+  private static int maximumSecondsToWaitForReplicaSetSizeChange = 500;
+  private static int secondsIntervalToPollReplicaSetSizeChange = 5;
+
+  public static final String componentLabel = "app.kubernetes.io/component";
+  public static final String apiComponentLabel = "api";
+
+  private static CoreV1Api kubernetesClientCoreObject;
+  private static AppsV1Api kubernetesClientAppsObject;
 
   private KubernetesClientUtils() {}
 
-  public static CoreV1Api getKubernetesClientObject() {
-    return kubernetesClientObject;
+  public static CoreV1Api getKubernetesClientCoreObject() {
+    return kubernetesClientCoreObject;
+  }
+
+  public static AppsV1Api getKubernetesClientAppsObject() {
+    return kubernetesClientAppsObject;
   }
 
   /**
-   * Build the singleton Kubernetes client object. This method should be called once at the
-   * beginning of a test run, and then all subsequent fetches should use the getter method instead.
+   * Build the singleton Kubernetes client objects. This method should be called once at the
+   * beginning of a test run, and then all subsequent fetches should use the getter methods instead.
    *
    * @param server the server specification that points to the relevant Kubernetes cluster
    */
@@ -106,33 +122,143 @@ public final class KubernetesClientUtils {
     // build the client object from the config
     ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
 
-    // set the global default client to the one created above because the CoreV1Api constructor gets
-    // the client object from the global configuration
+    // set the global default client to the one created above because the CoreV1Api and AppsV1Api
+    // constructors get the client object from the global configuration
     Configuration.setDefaultApiClient(client);
 
-    kubernetesClientObject = new CoreV1Api();
+    kubernetesClientCoreObject = new CoreV1Api();
+    kubernetesClientAppsObject = new AppsV1Api();
   }
 
   /**
    * List all the pods in the given namespace, or in the whole cluster if the namespace is not
    * specified (i.e. null or empty string).
    *
-   * @param namespace to list the pods in. empty string or null to list the pods in the whole
-   *     cluster instead
+   * @param namespace to list the pods in
    * @return list of Kubernetes pods
    */
-  public static List<V1Pod> listKubernetesPods(String namespace) throws ApiException {
-    // TODO: add try/catch for refresh token
+  public static List<V1Pod> listPods(String namespace) throws ApiException {
     V1PodList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
-          kubernetesClientObject.listPodForAllNamespaces(
+          kubernetesClientCoreObject.listPodForAllNamespaces(
               null, null, null, null, null, null, null, null, null);
     } else {
       list =
-          kubernetesClientObject.listNamespacedPod(
+          kubernetesClientCoreObject.listNamespacedPod(
               namespace, null, null, null, null, null, null, null, null, null);
     }
     return list.getItems();
+  }
+
+  /**
+   * List all the deployments in the given namespace, or in the whole cluster if the namespace is
+   * not specified (i.e. null or empty string).
+   *
+   * @param namespace to list the deployments in
+   * @return list of Kubernetes deployments
+   */
+  public static List<V1Deployment> listDeployments(String namespace) throws ApiException {
+    V1DeploymentList list;
+    if (namespace == null || namespace.isEmpty()) {
+      list =
+          kubernetesClientAppsObject.listDeploymentForAllNamespaces(
+              null, null, null, null, null, null, null, null, null);
+    } else {
+      list =
+          kubernetesClientAppsObject.listNamespacedDeployment(
+              namespace, null, null, null, null, null, null, null, null, null);
+    }
+    return list.getItems();
+  }
+
+  /**
+   * Get the API deployment in the given namespace, or in the whole cluster if the namespace is not
+   * specified (i.e. null or empty string). This method expects that there is a single API
+   * deployment in the namespace.
+   *
+   * @param namespace to get the API deployment from
+   * @return the API deployment, null if not found
+   */
+  public static V1Deployment getApiDeployment(String namespace) throws ApiException {
+    // loop through the deployments in the namespace
+    // find the one that matches the api component label
+    return listDeployments(namespace).stream()
+        .filter(
+            deployment ->
+                deployment.getMetadata().getLabels().get(componentLabel).equals(apiComponentLabel))
+        .findFirst()
+        .orElse(null);
+  }
+
+  /**
+   * Change the size of the replica set. Note that this just sends a request to change the size, it
+   * does not wait to make sure the size is actually updated.
+   *
+   * @param deployment the deployment object to modify
+   * @param numberOfReplicas the new size of the replica set to scale to
+   */
+  public static V1Deployment changeReplicaSetSize(V1Deployment deployment, int numberOfReplicas)
+      throws ApiException {
+    V1DeploymentSpec existingSpec = deployment.getSpec();
+    deployment.setSpec(existingSpec.replicas(numberOfReplicas));
+    return kubernetesClientAppsObject.replaceNamespacedDeployment(
+        deployment.getMetadata().getName(),
+        deployment.getMetadata().getNamespace(),
+        deployment,
+        null,
+        null,
+        null);
+  }
+
+  /**
+   * Wait until the size of the replica set matches the specified number of pods. Times out after
+   * {@link KubernetesClientUtils#maximumSecondsToWaitForReplicaSetSizeChange} seconds. Polls in
+   * intervals of {@link KubernetesClientUtils#secondsIntervalToPollReplicaSetSizeChange} seconds.
+   *
+   * @param deployment the deployment object to poll
+   * @param numberOfReplicas the eventual expected size of the replica set
+   */
+  public static void waitForReplicaSetSizeChange(V1Deployment deployment, int numberOfReplicas)
+      throws Exception {
+    int pollCtr =
+        Math.floorDiv(
+            maximumSecondsToWaitForReplicaSetSizeChange, secondsIntervalToPollReplicaSetSizeChange);
+
+    // get the component label from the deployment object
+    // this will be "api" for most cases, since that's what we're interested in scaling.
+    String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
+    String namespace = deployment.getMetadata().getNamespace();
+
+    // loop through the pods in the namespace
+    // find the ones that match the deployment component label (e.g. find all the API pods)
+    long numPods =
+        listPods(namespace).stream()
+            .filter(
+                pod ->
+                    deploymentComponentLabel.equals(
+                        pod.getMetadata().getLabels().get(componentLabel)))
+            .count();
+
+    while (numPods != numberOfReplicas && pollCtr >= 0) {
+      Thread.sleep(secondsIntervalToPollReplicaSetSizeChange);
+      numPods =
+          listPods(namespace).stream()
+              .filter(
+                  pod ->
+                      deploymentComponentLabel.equals(
+                          pod.getMetadata().getLabels().get(componentLabel)))
+              .count();
+      pollCtr--;
+    }
+
+    if (numPods != numberOfReplicas) {
+      throw new RuntimeException(
+          "Timed out waiting for replica set size to change. (numPods="
+              + numPods
+              + ", numberOfReplicas="
+              + numberOfReplicas
+              + ")");
+    }
   }
 }

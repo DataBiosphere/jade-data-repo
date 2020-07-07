@@ -3,6 +3,7 @@ package runner;
 import bio.terra.datarepo.client.ApiClient;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
+import io.kubernetes.client.openapi.models.V1Deployment;
 import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -255,12 +256,25 @@ class TestRunner {
   }
 
   void modifyKubernetesPostDeployment() throws Exception {
-    // TODO: modify Kubernetes settings post-deployment
+    // set the initial number of pods in the API deployment replica set
+    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment(config.server.namespace);
+    if (apiDeployment == null) {
+      throw new RuntimeException("API deployment not found.");
+    }
+    System.out.println(
+        "pod count before set initial replica set size: "
+            + KubernetesClientUtils.listPods(config.server.namespace).size());
+    apiDeployment =
+        KubernetesClientUtils.changeReplicaSetSize(
+            apiDeployment, config.kubernetes.numberOfInitialPods);
+    KubernetesClientUtils.waitForReplicaSetSizeChange(
+        apiDeployment, config.kubernetes.numberOfInitialPods);
 
-    // the below code just lists the existing pods in the cluster, as an example of how to fetch and
-    // call the Kubernetes client object
-    for (V1Pod item : KubernetesClientUtils.listKubernetesPods(config.server.namespace)) {
-      System.out.println(item.getMetadata().getName());
+    // print out the current pods
+    List<V1Pod> pods = KubernetesClientUtils.listPods(config.server.namespace);
+    System.out.println("initial number of pods: " + pods.size());
+    for (V1Pod pod : pods) {
+      System.out.println("  pod: " + pod.getMetadata().getName());
     }
   }
 

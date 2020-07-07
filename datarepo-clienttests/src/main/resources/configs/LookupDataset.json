@@ -2,7 +2,9 @@
   "name": "LookupDataset",
   "serverSpecificationFile": "mmdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
-  "kubernetes": {},
+  "kubernetes": {
+    "numberOfInitialPods" : 2
+  },
   "application": {},
   "testScripts": [
     {

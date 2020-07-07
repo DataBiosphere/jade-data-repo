@@ -20,15 +20,23 @@ public final class DataRepoUtils {
   // ====================================================================
   // General client utility methods
 
+  /**
+   * Wait until the job finishes, either successfully or not. Times out after {@link
+   * DataRepoUtils#maximumSecondsToWaitForJob} seconds. Polls in intervals of {@link
+   * DataRepoUtils#secondsIntervalToPollJob} seconds.
+   *
+   * @param repositoryApi the api object to use
+   * @param job the job model to poll
+   */
   public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
       throws Exception {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForJob, secondsIntervalToPollJob);
     job = repositoryApi.retrieveJob(job.getId());
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
+      Thread.sleep(secondsIntervalToPollJob);
       job = repositoryApi.retrieveJob(job.getId());
       pollCtr--;
-      Thread.sleep(secondsIntervalToPollJob);
     }
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
@@ -39,6 +47,15 @@ public final class DataRepoUtils {
     return job;
   }
 
+  /**
+   * Fetch the job result and de-serialize it to the specified result class. This method expects
+   * that the job has already completed, either successfully or not.
+   *
+   * @param repositoryApi the api object to use
+   * @param job the job model that has completed
+   * @param resultClass the expected (model) class of the result
+   * @return the de-serialized result
+   */
   public static <T> T getJobResult(RepositoryApi repositoryApi, JobModel job, Class<T> resultClass)
       throws Exception {
     Object jobResult = repositoryApi.retrieveJobResult(job.getId());
@@ -47,6 +64,17 @@ public final class DataRepoUtils {
     return objectMapper.convertValue(jobResult, resultClass);
   }
 
+  /**
+   * Check the job status. If successful, fetch the job result and de-serialize it to the specified
+   * result class. If failed, throw an exception that includes the error model. This method expects
+   * that the job has already completed.
+   *
+   * @param repositoryApi the api object to use
+   * @param jobResponse the job model that has completed
+   * @param resultClass the expected (model) class of the result
+   * @return the de-serialized result
+   * @throws RuntimeException if the job status is failed
+   */
   public static <T> T expectJobSuccess(
       RepositoryApi repositoryApi, JobModel jobResponse, Class<T> resultClass) throws Exception {
     if (jobResponse.getJobStatus().equals(JobModel.JobStatusEnum.FAILED)) {
@@ -61,6 +89,17 @@ public final class DataRepoUtils {
   // ====================================================================
   // Endpoint-specific utility methods
 
+  /**
+   * Create a dataset and wait for the job to finish.
+   *
+   * @param repositoryApi the api object to use
+   * @param profileId the billing profile id
+   * @param apipayloadFilename the name of the create dataset payload file in the apipayloads
+   *     resources directory
+   * @param randomizeName true to append a random number at the end of the dataset name, false
+   *     otherwise
+   * @return the completed job model
+   */
   public static JobModel createDataset(
       RepositoryApi repositoryApi,
       String profileId,
@@ -84,6 +123,16 @@ public final class DataRepoUtils {
     return DataRepoUtils.waitForJobToFinish(repositoryApi, createDatasetJobResponse);
   }
 
+  /**
+   * Create a billing profile.
+   *
+   * @param resourcesApi the api object to use
+   * @param billingAccount the Google billing account id
+   * @param profileName the name of the new profile
+   * @param randomizeName true to append a random number at the end of the profile name, false
+   *     otherwise
+   * @return the created billing profile model
+   */
   public static BillingProfileModel createProfile(
       ResourcesApi resourcesApi, String billingAccount, String profileName, boolean randomizeName)
       throws Exception {

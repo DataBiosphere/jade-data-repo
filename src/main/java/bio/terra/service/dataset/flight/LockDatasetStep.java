@@ -3,6 +3,7 @@ package bio.terra.service.dataset.flight;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
+import bio.terra.common.exception.RetryQueryException;
 import bio.terra.stairway.FlightContext;
 import bio.terra.stairway.Step;
 import bio.terra.stairway.StepResult;
@@ -21,12 +22,14 @@ public class LockDatasetStep implements Step {
     private final boolean sharedLock; // default to false
     private final boolean suppressNotFoundException; // default to false
 
-    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId, boolean sharedLock) {
+    public LockDatasetStep(DatasetDao datasetDao,
+                           UUID datasetId,
+                           boolean sharedLock) {
         this(datasetDao, datasetId, sharedLock, false);
     }
 
-    public LockDatasetStep(DatasetDao datasetDao, UUID datasetId,
-                           boolean sharedLock, boolean suppressNotFoundException) {
+    public LockDatasetStep(DatasetDao datasetDao,
+                           UUID datasetId, boolean sharedLock, boolean suppressNotFoundException) {
         this.datasetDao = datasetDao;
         this.datasetId = datasetId;
 
@@ -41,14 +44,17 @@ public class LockDatasetStep implements Step {
 
     @Override
     public StepResult doStep(FlightContext context) {
+
         try {
             if (sharedLock) {
                 datasetDao.lockShared(datasetId, context.getFlightId());
             } else {
                 datasetDao.lockExclusive(datasetId, context.getFlightId());
             }
-
             return StepResult.getStepResultSuccess();
+        } catch (RetryQueryException retryQueryException) {
+            // fault inserted during lockShared
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         } catch (DatasetLockException ex) {
             logger.debug("Issue locking this Dataset", ex);
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);

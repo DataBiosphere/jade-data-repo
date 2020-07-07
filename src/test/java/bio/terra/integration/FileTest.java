@@ -103,7 +103,8 @@ public class FileTest extends UsersBase {
 
         String loadTag = Names.randomizeName("longtest");
 
-        BulkLoadArrayRequestModel arrayLoad = new BulkLoadArrayRequestModel()
+        BulkLoadArrayRequestModel
+            arrayLoad = new BulkLoadArrayRequestModel()
             .profileId(profileId)
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.

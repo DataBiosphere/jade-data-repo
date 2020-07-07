@@ -26,6 +26,10 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
 import bio.terra.service.iam.IamRole;
@@ -83,6 +87,7 @@ public class ConnectedOperations {
     private SamConfiguration samConfiguration;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
     private ConnectedTestConfiguration testConfig;
+    private DatasetDaoUtils datasetDaoUtils;
 
     private boolean deleteOnTeardown;
     private List<String> createdSnapshotIds;
@@ -458,6 +463,51 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         FileModel fileModel = handleSuccessCase(response, FileModel.class);
+        checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
+
+        return fileModel;
+    }
+
+    public void retryAcquireLockIngestFileSuccess(
+        boolean attemptRetry,
+        String datasetId,
+        FileLoadModel fileLoadModel,
+        ConfigurationService configService,
+        DatasetDao datasetDao) throws Exception {
+        // Insert fault into shared lock
+        ConfigEnum faultToInsert = attemptRetry ?
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT :
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
+        configService.setFault(faultToInsert.name(), true);
+
+        String jsonRequest = TestUtils.mapToJson(fileLoadModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+
+        TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
+        datasetDaoUtils = new DatasetDaoUtils();
+        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+
+        // Remove insertion of shared lock fault
+        configService.setFault(faultToInsert.name(), false);
+
+        assertEquals("no shared locks after first call", 0, sharedLocks.length);
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        if (attemptRetry) {
+            // Check if the flight successfully completed
+            // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
+            FileModel fileModel = handleSuccessCase(response, FileModel.class);
+            checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
+        } else {
+            handleFailureCase(response);
+        }
+    }
+
+    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -471,8 +521,6 @@ public class ConnectedOperations {
 
         logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
         addFile(datasetId, fileModel.getFileId());
-
-        return fileModel;
     }
 
     public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {

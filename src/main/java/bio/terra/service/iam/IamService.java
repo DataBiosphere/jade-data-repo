@@ -120,6 +120,21 @@ public class IamService {
     }
 
     /**
+     * Get the Google group emails associated with a dataset resource
+     *
+     * @param userReq authenticated user
+     * @param datasetId id of the dataset
+     * @return Map from IAM roles to Google group emails
+     */
+    public Map<IamRole, String> getDatasetPolicyEmails(AuthenticatedUserRequest userReq, UUID datasetId) {
+        try {
+            return iamProvider.getDatasetPolicyEmails(userReq, datasetId);
+        } catch (InterruptedException ex) {
+            throw new IamUnavailableException("service unavailable");
+        }
+    }
+
+    /**
      * Create a snapshot IAM resource
      *
      * @param userReq authenticated user

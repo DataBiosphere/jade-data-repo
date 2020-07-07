@@ -23,6 +23,7 @@ import org.broadinstitute.dsde.workbench.client.sam.api.UsersApi;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyMembership;
 import org.broadinstitute.dsde.workbench.client.sam.model.AccessPolicyResponseEntry;
 import org.broadinstitute.dsde.workbench.client.sam.model.ResourceAndAccessPolicy;
+import org.broadinstitute.dsde.workbench.client.sam.model.SyncStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -177,6 +178,26 @@ public class SamIam implements IamProviderInterface {
             policies.put(role, policy);
         }
 
+        return policies;
+    }
+
+    @Override
+    public Map<IamRole, String> getDatasetPolicyEmails(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws InterruptedException {
+        SamRetry samRetry = new SamRetry(configurationService);
+        return samRetry.perform(() -> getDatasetPolicyEmailsInner(userReq, datasetId));
+    }
+
+    private Map<IamRole, String> getDatasetPolicyEmailsInner(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws ApiException {
+
+        GoogleApi samGoogleApi = samGoogleApi(userReq.getRequiredToken());
+        Map<IamRole, String> policies = new HashMap<>();
+        for (IamRole role : Arrays.asList(IamRole.STEWARD, IamRole.CUSTODIAN, IamRole.INGESTER)) {
+            SyncStatus status =
+                samGoogleApi.syncStatus(IamResourceType.DATASET.name(), datasetId.toString(), role.name());
+            policies.put(role, status.getEmail());
+        }
         return policies;
     }
 

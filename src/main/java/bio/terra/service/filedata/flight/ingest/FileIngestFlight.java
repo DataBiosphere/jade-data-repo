@@ -12,6 +12,8 @@ import bio.terra.service.filedata.FileService;
 import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.filedata.google.firestore.FireStoreUtils;
 import bio.terra.service.filedata.google.gcs.GcsPdao;
+import bio.terra.service.iam.AuthenticatedUserRequest;
+import bio.terra.service.iam.IamService;
 import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.load.LoadService;
 import bio.terra.service.load.flight.LoadLockStep;
@@ -44,6 +46,7 @@ public class FileIngestFlight extends Flight {
         ApplicationConfiguration appConfig =
             (ApplicationConfiguration)appContext.getBean("applicationConfiguration");
         ConfigurationService configService = (ConfigurationService)appContext.getBean("configurationService");
+        IamService iamClient = (IamService)appContext.getBean("iamService");
 
         UUID datasetId = UUID.fromString(inputParameters.get(JobMapKeys.DATASET_ID.getKeyName(), String.class));
         Dataset dataset = datasetService.retrieve(datasetId);
@@ -54,6 +57,9 @@ public class FileIngestFlight extends Flight {
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
         RetryRuleRandomBackoff createBucketRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+
+        AuthenticatedUserRequest userReq = inputParameters.get(
+            JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this
@@ -70,18 +76,20 @@ public class FileIngestFlight extends Flight {
         //    decision about where we will put the file and remember it persistently in the working map before
         //    we copy the file in. That allows the copy undo to know the location to look at to delete the file.
         // 5. Copy the file into the bucket. Return the gspath, checksum, size, and create time in the working map.
-        // 6. Create the file entry in the filesystem. The file object takes the gspath, checksum, size, and create
+        // 6. Grant read access on the file to stewards, custodians, and ingesters for the dataset.
+        // 7. Create the file entry in the filesystem. The file object takes the gspath, checksum, size, and create
         //    time of the actual file in GCS. That ensures that the file info we return on REST API (and DRS) lookups
         //    matches what users will see when they examine the GCS object. When the file entry is (atomically)
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
-        // 7. Unlock the load tag
-        // 8. Unlock the dataset
+        // 8. Unlock the load tag
+        // 9. Unlock the dataset
         addStep(new LockDatasetStep(datasetDao, datasetId, true));
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);
         addStep(new IngestFilePrimaryDataLocationStep(locationService, profileId), createBucketRetry);
         addStep(new IngestFilePrimaryDataStep(dataset, gcsPdao, configService));
+        addStep(new IngestFileAuthzStep(dataset, gcsPdao, iamClient, userReq));
         addStep(new IngestFileFileStep(fileDao, fileService, dataset), fileSystemRetry);
         addStep(new LoadUnlockStep(loadService));
         addStep(new UnlockDatasetStep(datasetDao, datasetId, true));

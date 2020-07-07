@@ -75,6 +75,15 @@ public interface IamProviderInterface {
         throws InterruptedException;
 
     /**
+     * Get the policy group emails for a dataset IAM resource
+     *
+     * @param userReq authenticated user
+     * @param datasetId id of the dataset
+     */
+    Map<IamRole, String> getDatasetPolicyEmails(AuthenticatedUserRequest userReq, UUID datasetId)
+        throws InterruptedException;
+
+    /**
      * Create a snapshot IAM resource
      *
      * @param userReq authenticated user

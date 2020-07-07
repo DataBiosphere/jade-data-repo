@@ -158,6 +158,16 @@ public class KubeService {
         return true;
     }
 
+    public int getActivePodCount() {
+        if (podListener != null) {
+            int podCount = podListener.getActivePodCount();
+            return podCount;
+        }
+        int defaultPodCount = 1;
+        logger.info("KubeService ActivePodCount - default val: {}", defaultPodCount);
+        return defaultPodCount;
+    }
+
     private CoreV1Api makeCoreApi() {
         try {
             ApiClient client = ClientBuilder.cluster().build();

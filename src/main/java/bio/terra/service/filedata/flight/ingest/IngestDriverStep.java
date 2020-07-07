@@ -1,9 +1,12 @@
 package bio.terra.service.filedata.flight.ingest;
 
 import bio.terra.model.FileLoadModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.filedata.FSFileInfo;
 import bio.terra.service.filedata.exception.FileSystemCorruptException;
 import bio.terra.service.filedata.flight.FileMapKeys;
+import bio.terra.service.kubernetes.KubeService;
 import bio.terra.service.load.LoadCandidates;
 import bio.terra.service.load.LoadFile;
 import bio.terra.service.load.LoadService;
@@ -42,24 +45,27 @@ public class IngestDriverStep implements Step {
     private final Logger logger = LoggerFactory.getLogger(IngestDriverStep.class);
 
     private final LoadService loadService;
+    private final ConfigurationService configurationService;
+    private final KubeService kubeService;
     private final String datasetId;
     private final String loadTag;
-    private final int concurrentFiles;
     private final int maxFailedFileLoads;
     private final int driverWaitSeconds;
     private final String profileId;
 
     public IngestDriverStep(LoadService loadService,
+                            ConfigurationService configurationService,
+                            KubeService kubeService,
                             String datasetId,
                             String loadTag,
-                            int concurrentFiles,
                             int maxFailedFileLoads,
                             int driverWaitSeconds,
                             String profileId) {
         this.loadService = loadService;
+        this.configurationService = configurationService;
+        this.kubeService = kubeService;
         this.datasetId = datasetId;
         this.loadTag = loadTag;
-        this.concurrentFiles = concurrentFiles;
         this.maxFailedFileLoads = maxFailedFileLoads;
         this.driverWaitSeconds = driverWaitSeconds;
         this.profileId = profileId;
@@ -81,8 +87,11 @@ public class IngestDriverStep implements Step {
 
             // Load Loop
             while (true) {
+                int podCount = kubeService.getActivePodCount();
+                int concurrentFiles = configurationService.getParameterValue(ConfigEnum.LOAD_CONCURRENT_FILES);
+                int scaledConcurrentFiles = podCount * concurrentFiles;
                 // Get the state of active and failed loads
-                LoadCandidates candidates = getLoadCandidates(context, loadId, concurrentFiles);
+                LoadCandidates candidates = getLoadCandidates(context, loadId, scaledConcurrentFiles);
 
                 int currentRunning = candidates.getRunningLoads().size();
                 int candidateCount = candidates.getCandidateFiles().size();
@@ -93,14 +102,14 @@ public class IngestDriverStep implements Step {
 
                 // Test for exceeding max failed loads; if so, wait for all RUNNINGs to finish
                 if (candidates.getFailedLoads() > maxFailedFileLoads) {
-                    waitForAll(context, loadId, concurrentFiles);
+                    waitForAll(context, loadId, scaledConcurrentFiles);
                     break;
                 }
 
                 // Launch new loads
-                if (currentRunning < concurrentFiles) {
+                if (currentRunning < scaledConcurrentFiles) {
                     // Compute how many loads to launch
-                    int launchCount = concurrentFiles - currentRunning;
+                    int launchCount = scaledConcurrentFiles - currentRunning;
                     if (candidateCount < launchCount) {
                         launchCount = candidateCount;
                     }
@@ -117,12 +126,11 @@ public class IngestDriverStep implements Step {
                 }
 
                 // Wait until some loads complete
-                waitForAny(context, loadId, concurrentFiles, currentRunning);
+                waitForAny(context, loadId, scaledConcurrentFiles, currentRunning);
             }
         } catch (DatabaseOperationException | StairwayExecutionException ex) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY, ex);
         }
-
         return StepResult.getStepResultSuccess();
     }
 

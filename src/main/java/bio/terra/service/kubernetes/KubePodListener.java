@@ -101,8 +101,8 @@ public class KubePodListener implements Runnable {
                                 try {
                                     logger.info("Attempting clean up of deleted stairway instance: " + podName);
                                     stairway.recoverStairway(podName);
-                                    Boolean deletedPod = podMap.get(podName);
-                                    if (deletedPod != null && !deletedPod) {
+                                    Boolean deletedPodValue = podMap.get(podName);
+                                    if (deletedPodValue != null && deletedPodValue) {
                                         logger.info("Deleted api pod: " + podName);
                                         podMap.put(podName, false);
                                     }
@@ -150,5 +150,16 @@ public class KubePodListener implements Runnable {
 
     public Map<String, Boolean> getPodMap() {
         return podMap;
+    }
+
+    public int getActivePodCount() {
+        int count = 0;
+        for (Boolean isActive : podMap.values()) {
+            if (isActive) {
+                count++;
+            }
+        }
+        logger.info("KubePodListener ActivePodCount: {} of {} pods active", count, podMap.size());
+        return count;
     }
 }

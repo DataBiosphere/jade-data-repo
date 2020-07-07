@@ -496,7 +496,6 @@ public class ConnectedOperations {
 
         // Remove insertion of shared lock fault
         configService.setFault(faultToInsert.name(), false);
-        // ====================================================
 
         assertEquals("no shared locks after first call", 0, sharedLocks.length);
 

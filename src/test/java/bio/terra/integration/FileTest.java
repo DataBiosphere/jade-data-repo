@@ -163,6 +163,7 @@ public class FileTest extends UsersBase {
         assertThat("No unexpected failures", failureCount, equalTo(0));
     }
 
+    @Test
     public void fileReadFromDatasetTest() throws Exception {
         String gsPath = "gs://" + testConfiguration.getIngestbucket();
         String filePath = "/foo/bar";

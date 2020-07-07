@@ -1,5 +1,6 @@
 package runner.config;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import runner.TestScript;
 
@@ -9,6 +10,7 @@ public class TestScriptSpecification implements SpecificationInterface {
   public int numberToRunInParallel;
   public long expectedTimeForEach;
   public String expectedTimeForEachUnit;
+  public List<String> parameters;
 
   public Class<? extends TestScript> scriptClass;
   public TimeUnit expectedTimeForEachUnitObj;
@@ -48,5 +50,8 @@ public class TestScriptSpecification implements SpecificationInterface {
     System.out.println("  numberToRunInParallel: " + numberToRunInParallel);
     System.out.println("  expectedTimeForEach: " + expectedTimeForEach);
     System.out.println("  expectedTimeForEachUnit: " + expectedTimeForEachUnitObj);
+
+    String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
+    System.out.println("  parameters: " + parametersStr);
   }
 }

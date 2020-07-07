@@ -3,6 +3,7 @@ package runner;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.Configuration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class TestScript {
@@ -14,14 +15,21 @@ public class TestScript {
 
   /**
    * Setter for the billing account property of this class. This property will be set by the Test
-   * Runner based on the current Test Configuration, and can be accessed by the Test scripts
-   * methods.
+   * Runner based on the current Test Configuration, and can be accessed by the Test Script methods.
    *
    * @param billingAccount Google billing account id
    */
   public void setBillingAccount(String billingAccount) {
     this.billingAccount = billingAccount;
   }
+
+  /**
+   * Setter for any parameters required by the test script. These parameters will be set by the Test
+   * Runner based on the current Test Configuration, and can be used by the Test script methods.
+   *
+   * @param parameters list of string parameters supplied by the test configuration
+   */
+  public void setParameters(List<String> parameters) throws Exception {}
 
   /**
    * The test script setup contains the API call(s) that we do not want to profile and will not be

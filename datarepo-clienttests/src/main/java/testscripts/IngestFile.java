@@ -10,6 +10,7 @@ import bio.terra.datarepo.model.FileLoadModel;
 import bio.terra.datarepo.model.FileModel;
 import bio.terra.datarepo.model.JobModel;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,9 +24,23 @@ public class IngestFile extends runner.TestScript {
     super();
   }
 
+  private URI sourceFileURI;
   private String datasetCreator;
   private BillingProfileModel billingProfileModel;
   private DatasetSummaryModel datasetSummaryModel;
+
+  public void setParameters(List<String> parameters) throws Exception {
+    if (parameters == null || parameters.size() == 0) {
+      throw new IllegalArgumentException(
+          "Must provide a URI for the source file in the parameters list");
+    } else
+      try {
+        sourceFileURI = new URI(parameters.get(0));
+      } catch (URISyntaxException synEx) {
+        throw new RuntimeException("Error parsing source file URI: " + parameters.get(0), synEx);
+      }
+    System.out.println("source file URI: " + sourceFileURI);
+  }
 
   public void setup(Map<String, ApiClient> apiClients) throws Exception {
     // pick the first user to be the dataset creator
@@ -59,15 +74,12 @@ public class IngestFile extends runner.TestScript {
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
-    // TODO: parametrize this class to take the source file name/path. requires adding support for
-    // passing constructor arguments through test config
-    URI sourceUri = new URI("gs", "jade-testdata", "/fileloadprofiletest/1KBfile.txt", null, null);
-    String targetPath = "/mm/IngestFile/" + FileUtils.randomizeName("1KBfile") + ".txt";
+    String targetPath = "/mm/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
     FileLoadModel fileLoadModel =
         new FileLoadModel()
-            .sourcePath(sourceUri.toString())
-            .description("IngestFile 1KB")
+            .sourcePath(sourceFileURI.toString())
+            .description("IngestFile")
             .mimeType("text/plain")
             .targetPath(targetPath)
             .profileId(datasetSummaryModel.getDefaultProfileId());
@@ -78,7 +90,12 @@ public class IngestFile extends runner.TestScript {
         DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
 
     System.out.println(
-        "successfully ingested file: " + fileModel.getPath() + ", id: " + fileModel.getFileId());
+        "successfully ingested file: "
+            + fileModel.getPath()
+            + ", id: "
+            + fileModel.getFileId()
+            + ", size: "
+            + fileModel.getSize());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {

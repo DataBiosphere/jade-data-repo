@@ -5,8 +5,17 @@
   "testScripts": [
     {
       "name": "IngestFile",
-      "totalNumberToRun": 1,
-      "numberToRunInParallel": 1,
+      "parameters": ["gs://jade-testdata/fileloadprofiletest/1KBfile.txt"],
+      "totalNumberToRun": 3,
+      "numberToRunInParallel": 2,
+      "expectedTimeForEach": 60,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "IngestFile",
+      "parameters": ["gs://jade-testdata/fileloadprofiletest/10KBfile.txt"],
+      "totalNumberToRun": 3,
+      "numberToRunInParallel": 2,
       "expectedTimeForEach": 60,
       "expectedTimeForEachUnit": "SECONDS"
     }

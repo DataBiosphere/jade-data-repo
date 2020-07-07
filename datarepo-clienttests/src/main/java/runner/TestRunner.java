@@ -19,6 +19,7 @@ import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestUserSpecification;
 import utils.AuthenticationUtils;
+import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
 class TestRunner {
@@ -51,11 +52,13 @@ class TestRunner {
     // get an instance of each test script class
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
       try {
-        // TODO: allow TestScript constructors that take arguments
         TestScript testScriptInstance = testScriptSpecification.scriptClass.newInstance();
 
         // set the billing account for the test script to use
         testScriptInstance.setBillingAccount(config.billingAccount);
+
+        // set any parameters specified by the configuration
+        testScriptInstance.setParameters(testScriptSpecification.parameters);
 
         scripts.add(testScriptInstance);
       } catch (IllegalAccessException | InstantiationException niEx) {
@@ -274,13 +277,21 @@ class TestRunner {
   static void printHelp() {
     System.out.println("Specify test configuration file as first argument.");
     System.out.println("  e.g. ./gradlew :run --args=\"BasicUnauthenticated.json\"");
+    System.out.println();
+    System.out.println("The following test configuration files were found:");
+
+    // print out the available test configuration found in the resources directory
+    List<String> availableTestConfigs =
+        FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory + "/");
+    for (String testConfigFileName : availableTestConfigs) {
+      System.out.println("  " + testConfigFileName);
+    }
   }
 
   public static void main(String[] args) throws Exception {
     // if no args specified, print help
     if (args.length < 1) {
       printHelp();
-      // TODO: also print list of available test configurations
       return;
     }
 

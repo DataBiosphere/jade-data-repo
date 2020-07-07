@@ -3,6 +3,9 @@ package bio.terra.service.dataset;
 import bio.terra.app.configuration.DataRepoJdbcConfiguration;
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.DaoUtils;
+import bio.terra.common.exception.RetryQueryException;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.dataset.exception.InvalidDatasetException;
@@ -12,8 +15,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DuplicateKeyException;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.*;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -31,6 +33,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static bio.terra.common.DaoUtils.retryQuery;
+
 @Repository
 public class DatasetDao {
 
@@ -41,6 +45,9 @@ public class DatasetDao {
     private final AssetDao assetDao;
 
     private static Logger logger = LoggerFactory.getLogger(DatasetDao.class);
+
+    @Autowired
+    private ConfigurationService configurationService;
 
     @Autowired
     public DatasetDao(DataRepoJdbcConfiguration jdbcConfiguration,
@@ -149,7 +156,21 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        DataAccessException faultToInsert = getFaultToInsert();
+        int numRowsUpdated = 0;
+        try {
+            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            if (faultToInsert != null) {
+                logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+                throw faultToInsert;
+            }
+            numRowsUpdated = jdbcTemplate.update(sql, params);
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                throw new RetryQueryException("Retry", dataAccessException);
+            }
+            throw dataAccessException;
+        }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
 
         // if no rows were updated, then throw an exception
@@ -163,6 +184,19 @@ public class DatasetDao {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to take a shared lock on the dataset");
         }
+    }
+
+    private DataAccessException getFaultToInsert() {
+        if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT)) {
+            logger.info("LockDatasetStep - insert RETRY fault to throw during lockShared()");
+            return new OptimisticLockingFailureException(
+                "TEST RETRY SHARED LOCK - RETRIABLE EXCEPTION - insert fault, throwing shared lock exception");
+        } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT)) {
+            logger.info("LockDatasetStep - insert FATAL fault to throw during lockShared()");
+            return new DataIntegrityViolationException(
+                "TEST RETRY SHARED LOCK - FATAL EXCEPTION - insert fault, throwing shared lock exception");
+        }
+        return null;
     }
 
     /**

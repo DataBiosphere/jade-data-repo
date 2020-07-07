@@ -44,7 +44,10 @@ public class FileDeleteFlight extends Flight {
         //  We should NOT put code like that in the flight constructor.
         Dataset dataset = datasetService.retrieve(UUID.fromString(datasetId));
 
-        RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff fileSystemRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff lockDatasetRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this
@@ -57,7 +60,8 @@ public class FileDeleteFlight extends Flight {
         // 4. Delete the directory entry
         // This flight updates GCS and firestore in exactly the reverse order of create, so no new
         // data structure states are introduced by this flight.
-        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
+        addStep(new LockDatasetStep(datasetDao, UUID.fromString(datasetId), true),
+            lockDatasetRetry);
         addStep(new DeleteFileLookupStep(fileDao, fileId, dataset, dependencyDao, configService), fileSystemRetry);
         addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));

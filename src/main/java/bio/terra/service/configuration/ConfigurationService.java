@@ -48,6 +48,8 @@ import static bio.terra.service.configuration.ConfigEnum.SAM_TIMEOUT_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_CONTINUE_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.SNAPSHOT_DELETE_LOCK_CONFLICT_STOP_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_HISTORY_COPY_CHUNK_SIZE;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_HISTORY_WAIT_SECONDS;
 
 
@@ -229,6 +231,10 @@ public class ConfigurationService {
         addFaultCounted(FILE_INGEST_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,
             ConfigFaultCountedModel.RateStyleEnum.FIXED);
         addFaultSimple(FILE_INGEST_LOCK_CONFLICT_CONTINUE_FAULT);
+
+        // File Ingest - aquire shared lock fault. These are used by FileOperationTest > retryAndAcquireSharedLock
+        addFaultSimple(FILE_INGEST_SHARED_LOCK_FATAL_FAULT);
+        addFaultSimple(FILE_INGEST_SHARED_LOCK_RETRY_FAULT);
 
         // File delete lock faults. These are used by DatasetConnectedTest > testSharedLockFileDelete
         addFaultCounted(FILE_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,

@@ -255,6 +255,24 @@ public class FileOperationTest {
             containsString("gs path"));
     }
 
+    @Test
+    public void retryAndAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            true,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
+    @Test
+    public void retryAndFailAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            false,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
     // -- array bulk load --
 
     @Test

@@ -13,6 +13,8 @@ public class TestConfiguration implements SpecificationInterface {
   public List<String> testUserFiles;
 
   public ServerSpecification server;
+  public KubernetesSpecification kubernetes;
+  public ApplicationSpecification application;
   public List<TestScriptSpecification> testScripts;
   public List<TestUserSpecification> testUsers = new ArrayList<>();
 
@@ -52,6 +54,14 @@ public class TestConfiguration implements SpecificationInterface {
       testConfig.testUsers.add(testUser);
     }
 
+    // instantiate default kubernetes, application specification objects if null
+    if (testConfig.kubernetes == null) {
+      testConfig.kubernetes = new KubernetesSpecification();
+    }
+    if (testConfig.application == null) {
+      testConfig.application = new ApplicationSpecification();
+    }
+
     return testConfig;
   }
 
@@ -61,6 +71,8 @@ public class TestConfiguration implements SpecificationInterface {
    */
   public void validate() {
     server.validate();
+    kubernetes.validate();
+    application.validate();
 
     for (TestScriptSpecification testScript : testScripts) {
       testScript.validate();
@@ -76,6 +88,12 @@ public class TestConfiguration implements SpecificationInterface {
 
     System.out.println();
     server.display();
+
+    System.out.println();
+    kubernetes.display();
+
+    System.out.println();
+    application.display();
 
     System.out.println();
     System.out.println("  Billing account: " + billingAccount);

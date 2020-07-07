@@ -79,6 +79,17 @@ resources/configs directory. Below are the required fields:
   * name: Name of the configuration
   * serverSpecificationFile: Name of a file in the resources/servers directory that specifies the server to test against
   * billingAccount: Google billing account to use
+  * kubernetes: Kubernetes-related settings that will be set after deploying the application and before executing any 
+  tests
+    * numberOfInitialPods: (optional) Initial number of pods, defaults to 1 [implementation pending]
+  * application: Application-related settings that will be set before deploying the application and executing any tests
+    * maxStairwayThreads: (optional) defaults to 20 [implementation pending]
+    * maxBulkFileLoad: (optional) defaults to 1000000 [implementation pending]
+    * loadConcurrentFiles: (optional) defaults to 4 [implementation pending]
+    * loadConcurrentIngests: (optional) defaults to 2 [implementation pending]
+    * inKubernetes: (optional) defaults to false [implementation pending]
+    * loadHistoryCopyChunkSize: (optional) defaults to 1000 [implementation pending]
+    * loadHistoryWaitSeconds: (optional) defaults to 2 [implementation pending]
   * testScripts: List of test script specifications (i.e. instance of the TestScriptSpecification POJO class, serialized
   into JSON). Each specification should include the below required fields:
     * name: Name of the test script class to run
@@ -104,6 +115,7 @@ resources/servers directory. Below are the required fields:
   * clusterShortName: Name of the cluster, stripped of the region and project qualifiers
   * region: Region where the cluster is running
   * project: Google project under which the cluster is running
+  * namespace: (optional) Name of the Kubernetes namespace where the Data Repo instance is deployed
 
 #### Add a new test user specification
 A test user specification is an instance of the TestUserSpecification POJO class, serialized into JSON and saved in the

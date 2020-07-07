@@ -259,7 +259,7 @@ class TestRunner {
 
     // the below code just lists the existing pods in the cluster, as an example of how to fetch and
     // call the Kubernetes client object
-    for (V1Pod item : KubernetesClientUtils.listKubernetesPods()) {
+    for (V1Pod item : KubernetesClientUtils.listKubernetesPods(config.server.namespace)) {
       System.out.println(item.getMetadata().getName());
     }
   }

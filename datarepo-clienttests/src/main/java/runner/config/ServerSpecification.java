@@ -7,6 +7,7 @@ public class ServerSpecification implements SpecificationInterface {
   public String clusterShortName;
   public String region;
   public String project;
+  public String namespace;
 
   public static final String resourceDirectory = "servers";
 
@@ -37,5 +38,6 @@ public class ServerSpecification implements SpecificationInterface {
     System.out.println("  clusterShortName: " + clusterShortName);
     System.out.println("  region: " + region);
     System.out.println("  project: " + project);
+    System.out.println("  namespace: " + namespace);
   }
 }

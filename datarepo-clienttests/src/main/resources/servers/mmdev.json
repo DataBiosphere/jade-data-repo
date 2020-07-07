@@ -4,5 +4,6 @@
   "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
   "clusterShortName": "dev-master",
   "region": "us-central1",
-  "project": "broad-jade-dev"
+  "project": "broad-jade-dev",
+  "namespace": "mm"
 }

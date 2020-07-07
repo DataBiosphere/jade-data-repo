@@ -31,6 +31,12 @@ public final class KubernetesClientUtils {
     return kubernetesClientObject;
   }
 
+  /**
+   * Build the singleton Kubernetes client object. This method should be called once at the
+   * beginning of a test run, and then all subsequent fetches should use the getter method instead.
+   *
+   * @param server the server specification that points to the relevant Kubernetes cluster
+   */
   public static void buildKubernetesClientObject(ServerSpecification server) throws Exception {
     // call the fetchGKECredentials script that uses gcloud to generate the kubeconfig file
     List<String> scriptArgs = new ArrayList<>();
@@ -107,11 +113,26 @@ public final class KubernetesClientUtils {
     kubernetesClientObject = new CoreV1Api();
   }
 
-  public static List<V1Pod> listKubernetesPods() throws ApiException {
+  /**
+   * List all the pods in the given namespace, or in the whole cluster if the namespace is not
+   * specified (i.e. null or empty string).
+   *
+   * @param namespace to list the pods in. empty string or null to list the pods in the whole
+   *     cluster instead
+   * @return list of Kubernetes pods
+   */
+  public static List<V1Pod> listKubernetesPods(String namespace) throws ApiException {
     // TODO: add try/catch for refresh token
-    V1PodList list =
-        kubernetesClientObject.listPodForAllNamespaces(
-            null, null, null, null, null, null, null, null, null);
+    V1PodList list;
+    if (namespace == null || namespace.isEmpty()) {
+      list =
+          kubernetesClientObject.listPodForAllNamespaces(
+              null, null, null, null, null, null, null, null, null);
+    } else {
+      list =
+          kubernetesClientObject.listNamespacedPod(
+              namespace, null, null, null, null, null, null, null, null, null);
+    }
     return list.getItems();
   }
 }

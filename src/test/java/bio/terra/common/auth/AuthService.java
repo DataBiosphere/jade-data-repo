@@ -25,7 +25,7 @@ public class AuthService {
     private List<String> directAccessScopes = Arrays.asList(
         "https://www.googleapis.com/auth/bigquery",
         "https://www.googleapis.com/auth/devstorage.full_control");
-    private File pemfile;
+    private File jsonFile;
     private String saEmail;
     private TestConfiguration testConfig;
 
@@ -35,8 +35,8 @@ public class AuthService {
     @Autowired
     public AuthService(TestConfiguration testConfig) throws Exception {
         this.testConfig = testConfig;
-        Optional<String> pemfilename = Optional.ofNullable(testConfig.getJadePemFileName());
-        pemfilename.ifPresent(s -> pemfile = new File(s));
+        Optional<String> jsonFilename = Optional.ofNullable(testConfig.getJadeJsonFileName());
+        jsonFilename.ifPresent(s -> jsonFile = new File(s));
         saEmail = testConfig.getJadeEmail();
     }
 
@@ -59,10 +59,10 @@ public class AuthService {
     }
 
     private GoogleCredentials buildCredentials(String email, List<String> scopes) throws IOException {
-        if (!Optional.ofNullable(pemfile).isPresent()) {
+        if (!Optional.ofNullable(jsonFile).isPresent()) {
             throw new IllegalStateException(String.format("pemfile not found: %s", testConfig.getJadePemFileName()));
         }
-        return ServiceAccountCredentials.fromStream(new FileInputStream(pemfile))
+        return ServiceAccountCredentials.fromStream(new FileInputStream(jsonFile))
             .createDelegated(email)
             .createScoped(scopes);
     }

@@ -21,6 +21,7 @@ import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
+import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;
@@ -176,7 +177,6 @@ public class BigQueryPdaoTest {
     @Test
     public void datasetTest() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
-        bigQueryPdao.createDataset(dataset);
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -201,6 +201,8 @@ public class BigQueryPdaoTest {
             .build();
 
         try {
+            bigQueryPdao.createDataset(dataset);
+
             storage.create(participantBlob, readFile("ingest-test-participant.json"));
             storage.create(sampleBlob, readFile("ingest-test-sample.json"));
             storage.create(fileBlob, readFile("ingest-test-file.json"));
@@ -403,17 +405,65 @@ public class BigQueryPdaoTest {
     @Test
     public void testGetFullViews() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
-        String datasetBqDatasetName = bigQueryPdao.prefixName(dataset.getName());
 
-        BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
-            datasetDao, dataLocationService, dataset.getName());
+        // Stage tabular data for ingest.
+        String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
 
-        DatasetTable participantTable = getTable(dataset, "participant");
-        DatasetTable sampleTable = getTable(dataset, "sample");
-        DatasetTable fileTable = getTable(dataset, "file");
-        List<DatasetTable> tables = Arrays.asList(participantTable, sampleTable, fileTable);
+        String bucket = testConfig.getIngestbucket();
 
-        bigQueryPdao.createSnaphotTableFromLiveViews(bigQueryProject, tables, datasetBqDatasetName);
+        BlobInfo participantBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-participant.json")
+            .build();
+        BlobInfo sampleBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-sample.json")
+            .build();
+        BlobInfo fileBlob = BlobInfo
+            .newBuilder(bucket, targetPath + "ingest-test-file.json")
+            .build();
+
+        try {
+            bigQueryPdao.createDataset(dataset);
+
+            storage.create(participantBlob, readFile("ingest-test-participant.json"));
+            storage.create(sampleBlob, readFile("ingest-test-sample.json"));
+            storage.create(fileBlob, readFile("ingest-test-file.json"));
+
+            // Ingest staged data into the new dataset.
+            IngestRequestModel ingestRequest = new IngestRequestModel()
+                .format(IngestRequestModel.FormatEnum.JSON);
+
+            String datasetId = dataset.getId().toString();
+            connectedOperations.ingestTableSuccess(datasetId,
+                ingestRequest.table("participant").path(gsPath(participantBlob)));
+            connectedOperations.ingestTableSuccess(datasetId,
+                ingestRequest.table("sample").path(gsPath(sampleBlob)));
+            connectedOperations.ingestTableSuccess(datasetId,
+                ingestRequest.table("file").path(gsPath(fileBlob)));
+
+            // Create a full-view snapshot!
+            DatasetSummaryModel datasetSummary = DatasetJsonConversion.datasetSummaryModelFromDatasetSummary(
+                dataset.getDatasetSummary());
+            SnapshotSummaryModel snapshotSummary = connectedOperations.createSnapshot(datasetSummary,
+                "snapshot-fullviews-test-snapshot.json", "");
+            SnapshotModel snapshot = connectedOperations.getSnapshot(snapshotSummary.getId());
+
+            BigQueryProject bigQueryProject = TestUtils.bigQueryProjectForDatasetName(
+                datasetDao, dataLocationService, dataset.getName());
+            Assert.assertThat(snapshot.getTables().size(), is(equalTo(3)));
+            List<String> participantIds = queryForIds(snapshot.getName(), "participant", bigQueryProject);
+            List<String> sampleIds = queryForIds(snapshot.getName(), "sample", bigQueryProject);
+            List<String> fileIds = queryForIds(snapshot.getName(), "file", bigQueryProject);
+
+            Assert.assertThat(participantIds, containsInAnyOrder(
+                "participant_1", "participant_2", "participant_3", "participant_4", "participant_5"));
+            Assert.assertThat(sampleIds, containsInAnyOrder(
+                "sample1", "sample2", "sample3", "sample4", "sample5", "sample6", "sample7"));
+            Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
+        } finally {
+            storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
+            bigQueryPdao.deleteDataset(dataset);
+            datasetDao.delete(dataset.getId());
+        }
     }
 
     @Test

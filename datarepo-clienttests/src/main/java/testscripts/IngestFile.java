@@ -74,7 +74,7 @@ public class IngestFile extends runner.TestScript {
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
 
-    String targetPath = "/mm/IngestFile/" + FileUtils.randomizeName("") + ".txt";
+    String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 
     FileLoadModel fileLoadModel =
         new FileLoadModel()

@@ -1,0 +1,19 @@
+{
+  "name": "LookupDataset",
+  "serverSpecificationFile": "mmdev.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {
+    "numberOfInitialPods" : 2
+  },
+  "application": {},
+  "testScripts": [
+    {
+      "name": "RetrieveDataset",
+      "totalNumberToRun": 15,
+      "numberToRunInParallel": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "voldemort.json"]
+}

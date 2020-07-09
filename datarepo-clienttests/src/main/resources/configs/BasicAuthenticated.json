@@ -1,0 +1,17 @@
+{
+  "name": "BasicAuthenticated",
+  "serverSpecificationFile": "mmdev.json",
+  "billingAccount": "00708C-45D19D-27AAFA",
+  "kubernetes": {},
+  "application": {},
+  "testScripts": [
+    {
+      "name": "EnumerateProfiles",
+      "totalNumberToRun": 5,
+      "numberToRunInParallel": 2,
+      "expectedTimeForEach": 5,
+      "expectedTimeForEachUnit": "SECONDS"
+    }
+  ],
+  "testUserFiles": ["dumbledore.json", "hermione.json"]
+}

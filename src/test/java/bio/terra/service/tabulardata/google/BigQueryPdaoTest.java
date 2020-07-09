@@ -109,6 +109,11 @@ public class BigQueryPdaoTest {
         return "pdaotest" + StringUtils.remove(UUID.randomUUID().toString(), '-');
     }
 
+    // NOTE: This method bypasses the `connectedOperations` object, and creates a dataset
+    // using lower-level method calls. This means that the dataset entry isn't auto-cleaned
+    // as part of `connectedOperations.teardown()`. If you forget to manually delete any
+    // datasets from the DAO at the end of a test, you'll see a FK violation when `connectedOperations`
+    // tries to delete the resource profile generated in `setup()`.
     private Dataset readDataset(String requestFile) throws Exception {
         DatasetRequestModel datasetRequest = jsonLoader.loadObject(requestFile, DatasetRequestModel.class);
         datasetRequest
@@ -284,6 +289,8 @@ public class BigQueryPdaoTest {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(),
                 fileBlob.getBlobId(), missingPkBlob.getBlobId(), nullPkBlob.getBlobId());
             bigQueryPdao.deleteDataset(dataset);
+            // Need to manually clean up the DAO because `readDataset` bypasses the
+            // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
     }
@@ -342,6 +349,8 @@ public class BigQueryPdaoTest {
             bigQueryProject.getBigQuery().query(queryConfig);
         } finally {
             bigQueryPdao.deleteDataset(dataset);
+            // Need to manually clean up the DAO because `readDataset` bypasses the
+            // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
     }
@@ -462,6 +471,8 @@ public class BigQueryPdaoTest {
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
             bigQueryPdao.deleteDataset(dataset);
+            // Need to manually clean up the DAO because `readDataset` bypasses the
+            // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
     }
@@ -478,6 +489,8 @@ public class BigQueryPdaoTest {
             bigQueryPdao.createSoftDeleteExternalTable(dataset, badGsUri, "participant", suffix);
         } finally {
             bigQueryPdao.deleteDataset(dataset);
+            // Need to manually clean up the DAO because `readDataset` bypasses the
+            // `connectedOperations` object, so we can't rely on its auto-teardown logic.
             datasetDao.delete(dataset.getId());
         }
     }

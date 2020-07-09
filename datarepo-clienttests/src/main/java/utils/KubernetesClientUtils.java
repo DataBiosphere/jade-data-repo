@@ -241,7 +241,7 @@ public final class KubernetesClientUtils {
             .count();
 
     while (numPods != numberOfReplicas && pollCtr >= 0) {
-      Thread.sleep(secondsIntervalToPollReplicaSetSizeChange);
+      Thread.sleep(secondsIntervalToPollReplicaSetSizeChange * 1000);
       numPods =
           listPods(namespace).stream()
               .filter(

@@ -8,6 +8,7 @@ public class ServerSpecification implements SpecificationInterface {
   public String region;
   public String project;
   public String namespace;
+  public String helmApiDeploymentFilePath;
 
   public static final String resourceDirectory = "servers";
 
@@ -28,6 +29,8 @@ public class ServerSpecification implements SpecificationInterface {
       throw new IllegalArgumentException("Server cluster region cannot be empty");
     } else if (project == null || project.equals("")) {
       throw new IllegalArgumentException("Server cluster project cannot be empty");
+    } else if (helmApiDeploymentFilePath == null || helmApiDeploymentFilePath.equals("")) {
+      throw new IllegalArgumentException("Server Helm API deployment file path cannot be empty");
     }
   }
 
@@ -39,5 +42,6 @@ public class ServerSpecification implements SpecificationInterface {
     System.out.println("  region: " + region);
     System.out.println("  project: " + project);
     System.out.println("  namespace: " + namespace);
+    System.out.println("  helmApiDeploymentFilePath: " + helmApiDeploymentFilePath);
   }
 }

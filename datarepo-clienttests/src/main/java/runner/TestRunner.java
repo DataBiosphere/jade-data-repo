@@ -40,6 +40,7 @@ class TestRunner {
   List<TestScript> scripts;
   List<ThreadPoolExecutor> threadPools;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
+  List<UserJourneyResult> userJourneyResults;
   Map<String, ApiClient> apiClientsForUsers; // testUser -> apiClient
   // TODO: have ApiClients share an HTTP client, or one per each is ok?
 
@@ -50,16 +51,21 @@ class TestRunner {
     this.scripts = new ArrayList<>();
     this.threadPools = new ArrayList<>();
     this.userJourneyFutureLists = new ArrayList<>();
+    this.userJourneyResults = new ArrayList<>();
     this.apiClientsForUsers = new HashMap<>();
   }
 
-  List<UserJourneyResult> executeTestConfiguration() throws Exception {
+  void executeTestConfiguration() throws Exception {
     // specify any value overrides in the Helm chart, then deploy
-    // modifyHelmValuesAndDeploy();
+    if (!config.server.skipDeployment) {
+      // modifyHelmValuesAndDeploy();
+    }
 
     // update any Kubernetes properties specified by the test configuration
-    KubernetesClientUtils.buildKubernetesClientObject(config.server);
-    modifyKubernetesPostDeployment();
+    if (!config.server.skipKubernetes) {
+      KubernetesClientUtils.buildKubernetesClientObject(config.server);
+      modifyKubernetesPostDeployment();
+    }
 
     // get an instance of the API client per test user
     List<String> userScopes = Arrays.asList("openid", "email", "profile");
@@ -107,6 +113,12 @@ class TestRunner {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
+      // add a description to the user journey threads/results that includes any parameters
+      String userJourneyDescription = testScriptSpecification.name;
+      if (testScriptSpecification.parameters != null) {
+        userJourneyDescription += ": " + String.join(",", testScriptSpecification.parameters);
+      }
+
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
@@ -118,7 +130,7 @@ class TestRunner {
       for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
         ApiClient apiClient = apiClientList.get(ujCtr % apiClientList.size());
         userJourneyThreads.add(
-            new UserJourneyThread(testScript, testScriptSpecification.name, apiClient));
+            new UserJourneyThread(testScript, userJourneyDescription, apiClient));
       }
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
@@ -153,21 +165,7 @@ class TestRunner {
       }
     }
 
-    // call the cleanup method of each test script
-    Exception cleanupExceptionThrown = callTestScriptCleanups();
-    if (cleanupExceptionThrown != null) {
-      throw new RuntimeException(
-          "Error calling test script cleanup methods.", cleanupExceptionThrown);
-    }
-
-    // delete the deployment and restore any Kubernetes settings
-    teardownClusterAndDeployment();
-
-    // cleanup data project
-    cleanupLeftoverTestData();
-
-    // compile and return the results from all thread pools
-    List<UserJourneyResult> results = new ArrayList<>();
+    // compile the results from all thread pools
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
@@ -191,10 +189,27 @@ class TestRunner {
           result = new UserJourneyResult(testScriptSpecification.name, "");
           result.completed = false;
         }
-        results.add(result);
+        userJourneyResults.add(result);
       }
     }
-    return results;
+
+    // call the cleanup method of each test script
+    Exception cleanupExceptionThrown = callTestScriptCleanups();
+    if (cleanupExceptionThrown != null) {
+      throw new RuntimeException(
+          "Error calling test script cleanup methods.", cleanupExceptionThrown);
+    }
+
+    // delete the deployment and restore any Kubernetes settings
+    if (!config.server.skipDeployment) {
+      deleteDeployment();
+    }
+    if (!config.server.skipKubernetes) {
+      restoreKubernetesSettings();
+    }
+
+    // cleanup data project
+    cleanupLeftoverTestData();
   }
 
   /**
@@ -240,24 +255,28 @@ class TestRunner {
 
   static class UserJourneyThread implements Callable<UserJourneyResult> {
     TestScript testScript;
-    String testScriptName;
+    String userJourneyDescription;
     ApiClient apiClient;
 
-    public UserJourneyThread(TestScript testScript, String testScriptName, ApiClient apiClient) {
+    public UserJourneyThread(
+        TestScript testScript, String userJourneyDescription, ApiClient apiClient) {
       this.testScript = testScript;
-      this.testScriptName = testScriptName;
+      this.userJourneyDescription = userJourneyDescription;
       this.apiClient = apiClient;
     }
 
     public UserJourneyResult call() {
       UserJourneyResult result =
-          new UserJourneyResult(testScriptName, Thread.currentThread().getName());
+          new UserJourneyResult(userJourneyDescription, Thread.currentThread().getName());
 
+      long startTime = System.nanoTime();
       try {
         testScript.userJourney(apiClient);
       } catch (Exception ex) {
         result.exceptionThrown = ex;
       }
+      result.elapsedTime = System.nanoTime() - startTime;
+
       return result;
     }
   }
@@ -441,14 +460,24 @@ class TestRunner {
     }
   }
 
-  void teardownClusterAndDeployment() {
-    // TODO: delete DR Manager deployment, restore any Kubernetes settings
+  void deleteDeployment() {
+    // TODO: delete DR Manager deployment
+  }
+
+  void restoreKubernetesSettings() {
+    // TODO: restore Kubernetes settings (where to get the default values -- save from before, or
+    // some other place?)
   }
 
   void cleanupLeftoverTestData() {
     // TODO: cleanup any cloud resources/permissions generated by the test
     // no need to cleanup any DR Manager metadata because each test run re-deploys with a clean
-    // database
+    // database, but reporting that it was left hanging around would be helpful
+  }
+
+  void calculateResultStatistics() {
+    // TODO: calculate mean/median response time for all completed user journey threads, group by
+    // userjourney description
   }
 
   static void printHelp() {
@@ -479,11 +508,22 @@ class TestRunner {
 
     // get an instance of a runner and tell it to execute the configuration
     TestRunner runner = new TestRunner(testConfiguration);
-    List<UserJourneyResult> results = runner.executeTestConfiguration();
+    Exception runnerEx = null;
+    try {
+      runner.executeTestConfiguration();
+    } catch (Exception ex) {
+      runnerEx = ex; // save exception to display after printing the results
+    }
 
     // print the results to stdout
-    for (UserJourneyResult result : results) {
+    for (UserJourneyResult result : runner.userJourneyResults) {
       result.display();
     }
+    if (runnerEx != null) {
+      runnerEx.printStackTrace(System.out);
+    }
+
+    // calculate any relevant statistics about the user journeys and print them out
+    runner.calculateResultStatistics();
   }
 }

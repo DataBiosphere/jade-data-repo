@@ -1,5 +1,6 @@
 {
   "name": "LookupDataset",
+  "description": "Two users retrieve a dataset repeatedly, concurrently.",
   "serverSpecificationFile": "mmdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {

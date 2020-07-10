@@ -8,7 +8,7 @@
   "application": {},
   "testScripts": [
     {
-      "name": "RetrieveDataset",
+      "name": "RetrieveSnapshot",
       "totalNumberToRun": 15,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,

@@ -1,5 +1,6 @@
 {
   "name": "localhost",
+  "description": "Server running locally. Helm deployment and any modifications to Kubernetes are disabled.",
   "uri": "http://localhost:8080/",
   "skipDeployment": "true",
   "skipKubernetes": "true"

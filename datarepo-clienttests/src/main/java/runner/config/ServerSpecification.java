@@ -2,6 +2,7 @@ package runner.config;
 
 public class ServerSpecification implements SpecificationInterface {
   public String name;
+  public String description = "";
   public String uri;
   public String clusterName;
   public String clusterShortName;
@@ -45,6 +46,7 @@ public class ServerSpecification implements SpecificationInterface {
 
   public void display() {
     System.out.println("Server: " + name);
+    System.out.println("  description: " + description);
     System.out.println("  uri: " + uri);
     System.out.println("  clusterName: " + clusterName);
     System.out.println("  clusterShortName: " + clusterShortName);

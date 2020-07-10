@@ -1,0 +1,6 @@
+{
+  "name": "localhost",
+  "uri": "http://localhost:8080/",
+  "skipDeployment": "true",
+  "skipKubernetes": "true"
+}

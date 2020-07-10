@@ -55,11 +55,15 @@ class TestRunner {
 
   List<UserJourneyResult> executeTestConfiguration() throws Exception {
     // specify any value overrides in the Helm chart, then deploy
-    // modifyHelmValuesAndDeploy();
+    if (!config.server.skipDeployment) {
+      modifyHelmValuesAndDeploy();
+    }
 
     // update any Kubernetes properties specified by the test configuration
-    KubernetesClientUtils.buildKubernetesClientObject(config.server);
-    modifyKubernetesPostDeployment();
+    if (!config.server.skipKubernetes) {
+      KubernetesClientUtils.buildKubernetesClientObject(config.server);
+      modifyKubernetesPostDeployment();
+    }
 
     // get an instance of the API client per test user
     List<String> userScopes = Arrays.asList("openid", "email", "profile");
@@ -161,7 +165,12 @@ class TestRunner {
     }
 
     // delete the deployment and restore any Kubernetes settings
-    teardownClusterAndDeployment();
+    if (!config.server.skipDeployment) {
+      deleteDeployment();
+    }
+    if (!config.server.skipKubernetes) {
+      restoreKubernetesSettings();
+    }
 
     // cleanup data project
     cleanupLeftoverTestData();
@@ -441,8 +450,13 @@ class TestRunner {
     }
   }
 
-  void teardownClusterAndDeployment() {
+  void deleteDeployment() {
     // TODO: delete DR Manager deployment, restore any Kubernetes settings
+  }
+
+  void restoreKubernetesSettings() {
+    // TODO: restore Kubernetes settings (where to get the default values -- save from before, or
+    // some other place?)
   }
 
   void cleanupLeftoverTestData() {

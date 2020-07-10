@@ -9,6 +9,8 @@ public class ServerSpecification implements SpecificationInterface {
   public String project;
   public String namespace;
   public String helmApiDeploymentFilePath;
+  public boolean skipKubernetes = false;
+  public boolean skipDeployment = false;
 
   public static final String resourceDirectory = "servers";
 
@@ -21,16 +23,23 @@ public class ServerSpecification implements SpecificationInterface {
   public void validate() {
     if (uri == null || uri.equals("")) {
       throw new IllegalArgumentException("Server URI cannot be empty");
-    } else if (clusterName == null || clusterName.equals("")) {
-      throw new IllegalArgumentException("Server cluster name cannot be empty");
-    } else if (clusterShortName == null || clusterShortName.equals("")) {
-      throw new IllegalArgumentException("Server cluster short name cannot be empty");
-    } else if (region == null || region.equals("")) {
-      throw new IllegalArgumentException("Server cluster region cannot be empty");
-    } else if (project == null || project.equals("")) {
-      throw new IllegalArgumentException("Server cluster project cannot be empty");
-    } else if (helmApiDeploymentFilePath == null || helmApiDeploymentFilePath.equals("")) {
-      throw new IllegalArgumentException("Server Helm API deployment file path cannot be empty");
+    }
+
+    if (!skipKubernetes) {
+      if (clusterName == null || clusterName.equals("")) {
+        throw new IllegalArgumentException("Server cluster name cannot be empty");
+      } else if (clusterShortName == null || clusterShortName.equals("")) {
+        throw new IllegalArgumentException("Server cluster short name cannot be empty");
+      } else if (region == null || region.equals("")) {
+        throw new IllegalArgumentException("Server cluster region cannot be empty");
+      } else if (project == null || project.equals("")) {
+        throw new IllegalArgumentException("Server cluster project cannot be empty");
+      }
+    }
+    if (!skipDeployment) {
+      if (helmApiDeploymentFilePath == null || helmApiDeploymentFilePath.equals("")) {
+        throw new IllegalArgumentException("Server Helm API deployment file path cannot be empty");
+      }
     }
   }
 

@@ -1,7 +1,5 @@
 package bio.terra.app.logging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -16,11 +14,7 @@ import java.time.Duration;
 @Component
 public class PerformanceLoggerOFF implements PerformanceLogger {
 
-    private static Logger logger = LoggerFactory.getLogger(PerformanceLoggerOFF.class);
-
-    public PerformanceLoggerOFF() {
-        logger.info("Performance logging OFF");
-    }
+    public PerformanceLoggerOFF() { }
 
     public boolean isEnabled() {
         return false;

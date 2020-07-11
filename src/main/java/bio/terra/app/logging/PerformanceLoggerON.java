@@ -53,7 +53,6 @@ public class PerformanceLoggerON implements PerformanceLogger {
 
     public PerformanceLoggerON() {
         this.objectMapper = new ObjectMapper();
-        logger.info("Performance logging ON");
     }
 
     public boolean isEnabled() {

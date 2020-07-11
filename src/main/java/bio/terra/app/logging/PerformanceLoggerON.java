@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
@@ -15,10 +14,6 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
-
-@Primary
-@Profile({"perftest"})
-@Component
 
 /**
  * This class implements ENABLED performance logging. It is used when the "perftest" profile is active.
@@ -34,9 +29,10 @@ import java.util.Map;
  *  New types of information that seem broadly useful should use the first option and those that will probably only
  *  be used in a small number of places should use the second option.
  */
+@Component
+@Profile("perftest")
+@Primary
 public class PerformanceLoggerON implements PerformanceLogger {
-
-    public static final boolean isPerformanceLoggingEnabled = true;
 
     private ObjectMapper objectMapper;
 
@@ -55,10 +51,13 @@ public class PerformanceLoggerON implements PerformanceLogger {
 
     private static final ThreadLocal<Long> logCounter = ThreadLocal.withInitial(() -> Long.valueOf(0));
 
-    @Autowired
-    public PerformanceLoggerON(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public PerformanceLoggerON() {
+        this.objectMapper = new ObjectMapper();
         logger.info("Performance logging ON");
+    }
+
+    public boolean isEnabled() {
+        return true;
     }
 
     public void log(String jobId, String className, String operationName,

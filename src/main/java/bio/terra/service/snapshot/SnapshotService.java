@@ -3,6 +3,7 @@ package bio.terra.service.snapshot;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
@@ -19,6 +20,7 @@ import bio.terra.model.SnapshotSourceModel;
 import bio.terra.model.SnapshotSummaryModel;
 import bio.terra.model.TableModel;
 import bio.terra.service.dataset.AssetColumn;
+import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.AssetTable;
 import bio.terra.service.dataset.Dataset;
@@ -30,6 +32,7 @@ import bio.terra.service.job.JobMapKeys;
 import bio.terra.service.job.JobService;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.snapshot.exception.AssetNotFoundException;
+import bio.terra.service.snapshot.exception.CorruptMetadataException;
 import bio.terra.service.snapshot.exception.InvalidSnapshotException;
 import bio.terra.service.snapshot.flight.create.SnapshotCreateFlight;
 import bio.terra.service.snapshot.flight.delete.SnapshotDeleteFlight;
@@ -322,6 +325,51 @@ public class SnapshotService {
 
         snapshotSource.snapshotMapTables(mapTableList);
         snapshot.snapshotTables(tableList);
+
+        List<Relationship> sourceRelationships = asset.getAssetRelationships()
+            .stream()
+            .map(AssetRelationship::getDatasetRelationship)
+            .collect(Collectors.toList());
+        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshot));
+    }
+
+    private Column getColumnByNameOrThrow(Table table, String columnName) {
+        Map<String, Column> columnLookup = table.getColumnsMap();
+        if (!columnLookup.containsKey(columnName)) {
+            String message = String.format("Cannot find column %s in table %s", columnName, table.getName());
+            throw new CorruptMetadataException(message);
+        }
+        return columnLookup.get(columnName);
+    }
+
+    private List<Relationship> createSnapshotRelationships(List<Relationship> sourceRelationships, Snapshot snapshot) {
+        // We'll copy the asset relationships into the snapshot.
+        List<Relationship> snapshotRelationships = new ArrayList<>();
+        Map<String, SnapshotTable> tableLookup = snapshot.getTables()
+            .stream()
+            .collect(Collectors.toMap(SnapshotTable::getName, Function.identity()));
+
+        for (Relationship sourceRelationship : sourceRelationships) {
+            String fromTableName = sourceRelationship.getFromTable().getName();
+            String fromColumnName = sourceRelationship.getFromColumn().getName();
+            String toTableName = sourceRelationship.getToTable().getName();
+            String toColumnName = sourceRelationship.getToColumn().getName();
+
+            if (!tableLookup.containsKey(fromTableName) || !tableLookup.containsKey(toTableName)) {
+                throw new CorruptMetadataException("Relationship mentions table that can't be found");
+            }
+            SnapshotTable fromTable = tableLookup.get(fromTableName);
+            Column fromColumn = getColumnByNameOrThrow(fromTable, fromColumnName);
+            SnapshotTable toTable = tableLookup.get(toTableName);
+            Column toColumn = getColumnByNameOrThrow(toTable, toColumnName);
+            snapshotRelationships.add(new Relationship()
+                .name(sourceRelationship.getName())
+                .fromTable(fromTable)
+                .fromColumn(fromColumn)
+                .toTable(toTable)
+                .toColumn(toColumn));
+        }
+        return snapshotRelationships;
     }
 
     private void conjureSnapshotTablesFromRowIds(SnapshotRequestRowIdModel requestRowIdModel,

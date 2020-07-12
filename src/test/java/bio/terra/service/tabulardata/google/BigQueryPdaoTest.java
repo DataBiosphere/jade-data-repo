@@ -21,7 +21,6 @@ import bio.terra.service.dataset.DatasetUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
-import bio.terra.service.snapshot.Snapshot;
 import bio.terra.service.tabulardata.exception.BadExternalFileException;
 import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.JobInfo;

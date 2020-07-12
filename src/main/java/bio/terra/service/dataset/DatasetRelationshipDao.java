@@ -2,6 +2,7 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Column;
+import bio.terra.common.Relationship;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -13,36 +14,36 @@ import java.util.Map;
 import java.util.UUID;
 
 @Repository
-public class RelationshipDao {
+public class DatasetRelationshipDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public RelationshipDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public DatasetRelationshipDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
     // part of a transaction propagated from DatasetDao
     public void createDatasetRelationships(Dataset dataset) {
-        for (DatasetRelationship rel : dataset.getRelationships()) {
+        for (Relationship rel : dataset.getRelationships()) {
             create(rel);
         }
     }
 
-    protected void create(DatasetRelationship datasetRelationship) {
+    protected void create(Relationship relationship) {
         String sql = "INSERT INTO dataset_relationship " +
                 "(name, from_table, from_column, to_table, to_column) VALUES " +
                 "(:name, :from_table, :from_column, :to_table, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", datasetRelationship.getName())
-                .addValue("from_table", datasetRelationship.getFromTable().getId())
-                .addValue("from_column", datasetRelationship.getFromColumn().getId())
-                .addValue("to_table", datasetRelationship.getToTable().getId())
-                .addValue("to_column", datasetRelationship.getToColumn().getId());
+                .addValue("name", relationship.getName())
+                .addValue("from_table", relationship.getFromTable().getId())
+                .addValue("from_column", relationship.getFromColumn().getId())
+                .addValue("to_table", relationship.getToTable().getId())
+                .addValue("to_column", relationship.getToColumn().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID relationshipId = keyHolder.getId();
-        datasetRelationship.id(relationshipId);
+        relationship.id(relationshipId);
     }
 
     public void retrieve(Dataset dataset) {
@@ -53,7 +54,7 @@ public class RelationshipDao {
             retrieveDatasetRelationships(columnIds, dataset.getTablesById(), dataset.getAllColumnsById()));
     }
 
-    private List<DatasetRelationship> retrieveDatasetRelationships(
+    private List<Relationship> retrieveDatasetRelationships(
             List<UUID> columnIds,
             Map<UUID, DatasetTable> tables,
             Map<UUID, Column> columns) {
@@ -61,7 +62,7 @@ public class RelationshipDao {
                 + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
-                new DatasetRelationship()
+                new Relationship()
                         .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name"))
                         .fromTable(tables.get(rs.getObject("from_table", UUID.class)))

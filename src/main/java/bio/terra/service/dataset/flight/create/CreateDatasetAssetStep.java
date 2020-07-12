@@ -8,7 +8,7 @@ import bio.terra.service.dataset.AssetDao;
 import bio.terra.service.dataset.AssetSpecification;
 import bio.terra.service.dataset.Dataset;
 import bio.terra.service.dataset.DatasetJsonConversion;
-import bio.terra.service.dataset.DatasetRelationship;
+import bio.terra.common.Relationship;
 import bio.terra.service.dataset.DatasetService;
 import bio.terra.service.dataset.DatasetTable;
 import bio.terra.service.dataset.exception.InvalidAssetException;
@@ -56,13 +56,13 @@ public class CreateDatasetAssetStep implements Step {
             JobMapKeys.REQUEST.getKeyName(), AssetModel.class);
 
         List<DatasetTable> datasetTables = dataset.getTables();
-        Map<String, DatasetRelationship> relationshipMap = new HashMap<>();
+        Map<String, Relationship> relationshipMap = new HashMap<>();
         Map<String, DatasetTable> tablesMap = new HashMap<>();
 
         datasetTables.forEach(datasetTable ->
             tablesMap.put(datasetTable.getName(), datasetTable));
 
-        List<DatasetRelationship> datasetRelationships = dataset.getRelationships();
+        List<Relationship> datasetRelationships = dataset.getRelationships();
 
         datasetRelationships.forEach(relationship -> relationshipMap
             .put(relationship.getName(), relationship));

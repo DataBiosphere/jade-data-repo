@@ -71,7 +71,7 @@ public final class AuthenticationUtils {
         // TODO: remove this before merging - this is a workaround for something Mariko is looking into
         credential = applicationDefaultCredential.createScoped(
             Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
-      credential.refreshIfExpired();ß
+      credential.refreshIfExpired();
       return credential.getAccessToken();
     } catch (IOException ioEx) {
       throw new RuntimeException("Error refreshing access token", ioEx);

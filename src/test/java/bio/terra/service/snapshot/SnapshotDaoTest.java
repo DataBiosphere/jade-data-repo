@@ -138,7 +138,11 @@ public class SnapshotDaoTest {
                 equalTo(2));
 
         // Verify map table
-        SnapshotMapTable mapTable = source.getSnapshotMapTables().get(0);
+        SnapshotMapTable mapTable = source.getSnapshotMapTables()
+            .stream()
+            .filter(t -> t.getFromTable().getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
         Table datasetTable = dataset.getTables()
             .stream()
             .filter(t -> t.getName().equals("thetable"))

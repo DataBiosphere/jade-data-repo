@@ -68,9 +68,11 @@ public final class AuthenticationUtils {
 
   public static AccessToken getAccessToken(GoogleCredentials credential) {
     try {
-        // TODO: remove this before merging - this is a workaround for something Mariko is looking into
-        credential = applicationDefaultCredential.createScoped(
-            Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+      // TODO: remove this before merging - this is a workaround for something Mariko is looking
+      // into
+      credential =
+          applicationDefaultCredential.createScoped(
+              Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
       credential.refreshIfExpired();
       return credential.getAccessToken();
     } catch (IOException ioEx) {

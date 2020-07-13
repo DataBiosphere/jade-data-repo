@@ -1,0 +1,11 @@
+{
+  "name": "shdev",
+  "description": "Developer namespace (sh) in Jade dev cluster.",
+  "uri": "https://jade-sh.datarepo-dev.broadinstitute.org",
+  "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
+  "clusterShortName": "dev-master",
+  "region": "us-central1",
+  "project": "broad-jade-dev",
+  "namespace": "sh",
+  "helmApiDeploymentFilePath": "datarepo-helm-definitions/dev/sh/shDeployment.YAML"
+}

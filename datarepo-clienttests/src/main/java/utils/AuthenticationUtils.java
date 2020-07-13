@@ -6,6 +6,7 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -67,7 +68,10 @@ public final class AuthenticationUtils {
 
   public static AccessToken getAccessToken(GoogleCredentials credential) {
     try {
-      credential.refreshIfExpired();
+        // TODO: remove this before merging - this is a workaround for something Mariko is looking into
+        credential = applicationDefaultCredential.createScoped(
+            Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+      credential.refreshIfExpired();ß
       return credential.getAccessToken();
     } catch (IOException ioEx) {
       throw new RuntimeException("Error refreshing access token", ioEx);

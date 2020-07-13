@@ -6,7 +6,6 @@ import com.google.auth.oauth2.ServiceAccountCredentials;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,8 +57,8 @@ public final class AuthenticationUtils {
       synchronized (lockApplicationDefaultCredential) {
         applicationDefaultCredential = GoogleCredentials.getApplicationDefault();
         // if (applicationDefaultCredential.createScopedRequired()) { // when is this true?
-        //   applicationDefaultCredential = applicationDefaultCredential.createScoped(
-        //     Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+        // applicationDefaultCredential = applicationDefaultCredential.createScoped(
+        // Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
         // }
       }
     }
@@ -70,9 +69,9 @@ public final class AuthenticationUtils {
     try {
       // TODO: remove this before merging - this is a workaround for something Mariko is looking
       // into
-      credential =
-          applicationDefaultCredential.createScoped(
-              Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));
+      /*credential =
+      applicationDefaultCredential.createScoped(
+          Collections.singletonList("https://www.googleapis.com/auth/cloud-platform"));*/
       credential.refreshIfExpired();
       return credential.getAccessToken();
     } catch (IOException ioEx) {

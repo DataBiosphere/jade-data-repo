@@ -9,6 +9,8 @@ import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -485,7 +487,24 @@ public class SnapshotService {
                 .tables(snapshot.getTables()
                         .stream()
                         .map(this::makeTableModelFromTable)
+                        .collect(Collectors.toList()))
+                .relationships(snapshot.getRelationships()
+                        .stream()
+                        .map(this::makeRelationshipModelFromRelationship)
                         .collect(Collectors.toList()));
+    }
+
+    private RelationshipModel makeRelationshipModelFromRelationship(Relationship relationship) {
+        RelationshipTermModel fromModel = new RelationshipTermModel()
+            .table(relationship.getFromTable().getName())
+            .column(relationship.getFromColumn().getName());
+        RelationshipTermModel toModel = new RelationshipTermModel()
+            .table(relationship.getToTable().getName())
+            .column(relationship.getToColumn().getName());
+        return new RelationshipModel()
+            .name(relationship.getName())
+            .from(fromModel)
+            .to(toModel);
     }
 
     private SnapshotSourceModel makeSourceModelFromSource(SnapshotSource source) {

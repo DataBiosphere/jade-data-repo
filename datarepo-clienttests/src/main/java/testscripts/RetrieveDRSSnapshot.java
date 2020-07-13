@@ -1,10 +1,12 @@
 package testscripts;
 
+import bio.terra.datarepo.api.DataRepositoryServiceApi;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
 import com.google.cloud.storage.*;
+import org.apache.commons.lang3.StringUtils;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
@@ -15,10 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class RetrieveSnapshot extends runner.TestScript {
+public class RetrieveDRSSnapshot extends runner.TestScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
-  public RetrieveSnapshot() {
+  public RetrieveDRSSnapshot() {
     super();
   }
 
@@ -135,12 +137,18 @@ public class RetrieveSnapshot extends runner.TestScript {
 
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+    DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
 
     SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
+    snapshotModel.getTables().get(0).getColumns();
+
+      String dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + fileModel.getFileId();
+    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);// TODO do I need to set a filter?
+
 
     System.out.println(
         "successfully retrieved snaphot: "
-            + snapshotModel.getName()
+            + object.getName()
             + ", data project: "
             + snapshotModel.getDataProject());
   }

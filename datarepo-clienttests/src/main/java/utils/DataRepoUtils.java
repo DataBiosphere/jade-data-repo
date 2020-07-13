@@ -2,12 +2,7 @@ package utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
-import bio.terra.datarepo.model.BillingProfileModel;
-import bio.terra.datarepo.model.BillingProfileRequestModel;
-import bio.terra.datarepo.model.DatasetRequestModel;
-import bio.terra.datarepo.model.ErrorModel;
-import bio.terra.datarepo.model.JobModel;
-import bio.terra.datarepo.model.SnapshotRequestModel;
+import bio.terra.datarepo.model.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
@@ -154,7 +149,7 @@ public final class DataRepoUtils {
    * Create a snapshot and wait for the job to finish.
    *
    * @param repositoryApi the api object to use
-   * @param profileId the billing profile id
+   * @param datasetSummaryModel the summary of the dataset used by the snapshot
    * @param apipayloadFilename the name of the create snapshot payload file in the apipayloads
    *     resources directory
    * @param randomizeName true to append a random number at the end of the snapshot name, false
@@ -163,7 +158,7 @@ public final class DataRepoUtils {
    */
   public static JobModel createSnapshot(
       RepositoryApi repositoryApi,
-      String profileId,
+      DatasetSummaryModel datasetSummaryModel,
       String apipayloadFilename,
       boolean randomizeName)
       throws Exception {
@@ -173,7 +168,11 @@ public final class DataRepoUtils {
         FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);
     SnapshotRequestModel createSnapshotRequest =
         objectMapper.readValue(snapshotRequestFile, SnapshotRequestModel.class);
-    // createSnapshotRequest.defaultProfileId(profileId);
+    createSnapshotRequest.setProfileId(datasetSummaryModel.getDefaultProfileId());
+    if (createSnapshotRequest.getContents().size() > 1) {
+      throw new UnsupportedOperationException("This test requires content to be 1");
+    }
+    createSnapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
 
     if (randomizeName) {
       createSnapshotRequest.setName(FileUtils.randomizeName(createSnapshotRequest.getName()));

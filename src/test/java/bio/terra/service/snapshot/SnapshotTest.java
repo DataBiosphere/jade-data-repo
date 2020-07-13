@@ -226,5 +226,6 @@ public class SnapshotTest extends UsersBase {
         createdSnapshotIds.add(snapshotSummary.getId());
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+        assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
 }

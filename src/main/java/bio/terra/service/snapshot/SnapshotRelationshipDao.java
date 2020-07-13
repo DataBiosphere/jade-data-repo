@@ -27,7 +27,7 @@ public class SnapshotRelationshipDao {
     }
 
     // part of a transaction propagated from SnapshotDao
-    public void createDatasetRelationships(Snapshot snapshot) {
+    public void createSnapshotRelationships(Snapshot snapshot) {
         for (Relationship rel : snapshot.getRelationships()) {
             create(rel);
         }
@@ -62,7 +62,7 @@ public class SnapshotRelationshipDao {
             Map<UUID, SnapshotTable> tables,
             Map<UUID, Column> columns) {
         String sql = "SELECT id, name, from_table, from_column, to_table, to_column "
-                + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
+                + "FROM snapshot_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
                 new Relationship()

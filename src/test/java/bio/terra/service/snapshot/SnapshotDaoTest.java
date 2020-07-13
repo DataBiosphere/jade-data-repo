@@ -1,5 +1,6 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.common.Relationship;
 import bio.terra.common.category.Unit;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.common.fixtures.JsonLoader;
@@ -116,7 +117,7 @@ public class SnapshotDaoTest {
 
         assertThat("correct number of tables created",
                 fromDB.getTables().size(),
-                equalTo(1));
+                equalTo(2));
 
         assertThat("correct number of sources created",
                 fromDB.getSnapshotSources().size(),
@@ -134,12 +135,20 @@ public class SnapshotDaoTest {
 
         assertThat("correct number of map tables",
                 source.getSnapshotMapTables().size(),
-                equalTo(1));
+                equalTo(2));
 
         // Verify map table
         SnapshotMapTable mapTable = source.getSnapshotMapTables().get(0);
-        Table datasetTable = dataset.getTables().get(0);
-        Table snapshotTable = snapshot.getTables().get(0);
+        Table datasetTable = dataset.getTables()
+            .stream()
+            .filter(t -> t.getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
+        Table snapshotTable = snapshot.getTables()
+            .stream()
+            .filter(t -> t.getName().equals("thetable"))
+            .findFirst()
+            .orElseThrow(AssertionError::new);
 
         assertThat("correct map table dataset table",
                 mapTable.getFromTable().getId(),
@@ -166,6 +175,21 @@ public class SnapshotDaoTest {
         assertThat("correct map column snapshot column",
                 mapColumn.getToColumn().getId(),
                 equalTo(snapshotColumn.getId()));
+
+        List<Relationship> relationships = fromDB.getRelationships();
+        assertThat("a relationship comes back", relationships.size(), equalTo(1));
+        Relationship relationship = relationships.get(0);
+        Table fromTable = relationship.getFromTable();
+        Column fromColumn = relationship.getFromColumn();
+        Table toTable = relationship.getToTable();
+        Column toColumn = relationship.getToColumn();
+        assertThat("from table name matches", fromTable.getName(), equalTo("thetable"));
+        assertThat("from column name matches", fromColumn.getName(), equalTo("thecolumn"));
+        assertThat("to table name matches", toTable.getName(), equalTo("anothertable"));
+        assertThat("to column name matches", toColumn.getName(), equalTo("anothercolumn"));
+        assertThat("relationship points to the snapshot table",
+            fromTable.getId(),
+            equalTo(snapshotTable.getId()));
     }
 
     @Test

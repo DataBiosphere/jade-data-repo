@@ -328,6 +328,7 @@ public class SnapshotService {
         snapshotSource.snapshotMapTables(mapTableList);
         snapshot.snapshotTables(tableList);
 
+        // now that the new snapshot tables are set, we map from the asset relationships into snapshot relationships
         List<Relationship> sourceRelationships = asset.getAssetRelationships()
             .stream()
             .map(AssetRelationship::getDatasetRelationship)
@@ -344,7 +345,16 @@ public class SnapshotService {
         return columnLookup.get(columnName);
     }
 
-    private List<Relationship> createSnapshotRelationships(List<Relationship> sourceRelationships, Snapshot snapshot) {
+    /**
+     * Map from a list of source relationships (from a dataset or asset) into snapshot relationships. This does the
+     * mapping based on table names not being changed from the source to the destination currently since we do not
+     * expose the functionality to do this (even though the schema supports it).
+     *
+     * @param sourceRelationships relationships from a dataset or asset
+     * @param snapshot snapshot that has already had its tables set
+     * @return a list of relationships tied to the snapshot tables
+     */
+    public List<Relationship> createSnapshotRelationships(List<Relationship> sourceRelationships, Snapshot snapshot) {
         // We'll copy the asset relationships into the snapshot.
         List<Relationship> snapshotRelationships = new ArrayList<>();
         Map<String, SnapshotTable> tableLookup = snapshot.getTables()
@@ -419,21 +429,36 @@ public class SnapshotService {
                     mapColumnList.add(snapshotMapColumn);
                 });
         }
+        // pass through all of the relationships that touch request tables from the dataset into the snapshot
+        List<Relationship> sourceRelationships = dataset.getRelationships()
+            .stream()
+            .filter(r -> requestCoversRelationship(r, requestTableLookup))
+            .collect(Collectors.toList());
+        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshot));
     }
 
+    private boolean requestCoversRelationship(Relationship relationship,
+                                              Map<String, SnapshotRequestRowIdTableModel> requestTableLookup) {
+        String fromTableName = relationship.getFromTable().getName();
+        String toTableName = relationship.getToTable().getName();
+        String fromColumnName = relationship.getFromColumn().getName();
+        String toColumnName = relationship.getToColumn().getName();
+
+        return requestTableLookup.containsKey(fromTableName)
+            && requestTableLookup.containsKey(toTableName)
+            && requestTableLookup.get(fromTableName).getColumns().contains(fromColumnName)
+            && requestTableLookup.get(toTableName).getColumns().contains(toColumnName);
+    }
 
     private void conjureSnapshotTablesFromDatasetTables(Snapshot snapshot,
                                                  SnapshotSource snapshotSource) {
         // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
-
         // for each dataset table specified in the request, create a table in the snapshot with the same name
         Dataset dataset = snapshotSource.getDataset();
         List<SnapshotTable> tableList = new ArrayList<>();
         List<SnapshotMapTable> mapTableList = new ArrayList<>();
 
         for (DatasetTable datasetTable : dataset.getTables()) {
-
-
             List<Column> columnList = new ArrayList<>();
             List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
 
@@ -461,6 +486,8 @@ public class SnapshotService {
         // set the snapshot tables and mapping
         snapshot.snapshotTables(tableList);
         snapshotSource.snapshotMapTables(mapTableList);
+        // pass through all of the relationships from the dataset into the snapshot
+        snapshot.relationships(createSnapshotRelationships(dataset.getRelationships(), snapshot));
     }
 
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {

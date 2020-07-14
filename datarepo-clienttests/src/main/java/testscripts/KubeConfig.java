@@ -92,6 +92,7 @@ public class KubeConfig extends runner.TestScript {
       String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
       String targetPath = "/" + loadTag + tailPath;
 
+      BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
       model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);
       arrayLoad.addLoadArrayItem(model);
     }

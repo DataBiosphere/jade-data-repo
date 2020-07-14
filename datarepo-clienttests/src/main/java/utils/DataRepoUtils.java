@@ -32,11 +32,14 @@ public final class DataRepoUtils {
       throws Exception {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForJob, secondsIntervalToPollJob);
     job = repositoryApi.retrieveJob(job.getId());
+    int tryCount = 1;
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      System.out.println("sleeping, Pollctr: " + pollCtr);
+      System.out.println("Sleeping. try #"+tryCount + "For Job: "+job.getDescription());
+      // converting seconds to milliseconds
       Thread.sleep(secondsIntervalToPollJob * 1000);
       job = repositoryApi.retrieveJob(job.getId());
+      tryCount++;
       pollCtr--;
     }
 

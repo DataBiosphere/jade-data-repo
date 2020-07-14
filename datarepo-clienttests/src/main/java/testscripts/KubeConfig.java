@@ -28,9 +28,11 @@ public class KubeConfig extends runner.TestScript {
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() == 0) {
       throw new IllegalArgumentException(
-          "Must provide a number of files to load in the parameters list");
+          "Must provide a number of files to load between 1 and 25 in the parameters list");
     } else {
-      filesToLoad = Integer.parseInt(parameters.get(0));
+        // filesToLoad should be between 1 and 25. Default to 25.
+        int filesToLoadParam = Integer.parseInt(parameters.get(0));
+        filesToLoad = filesToLoadParam <= 25 && filesToLoadParam > 0 ? filesToLoadParam : 25;
     }
   }
 
@@ -65,7 +67,6 @@ public class KubeConfig extends runner.TestScript {
 
   // The purpose of this test is to have a long-running workload that completes successfully
   // while we delete pods and have them recover.
-  // Marked ignore for normal testing.
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     // TODO - get namespace passed in
@@ -80,18 +81,14 @@ public class KubeConfig extends runner.TestScript {
     /*---------------------------------------------*/
     /* Manipulating kubernetes pods while scaling */
     bulkLoadArrayJobResponse =
-        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      System.out.println("*TODO*Scaling pods to 1");
-      // deployment = KubernetesClientUtils.changeReplicaSetSize(deployment, 1);
-      // KubernetesClientUtils.waitForReplicaSetSizeChange(deployment, 1);
+      System.out.println("Scaling pods down to 1");
       modifyKubernetesPostDeployment("sh", 1);
       bulkLoadArrayJobResponse =
-          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 120);
+          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        System.out.println("*TODO*Scaling pods to 4");
-        // deployment = KubernetesClientUtils.changeReplicaSetSize(deployment, 3);
-        // KubernetesClientUtils.waitForReplicaSetSizeChange(deployment, 3);
+        System.out.println("Scaling pods back up to 4");
         modifyKubernetesPostDeployment("sh", 3);
       }
     }

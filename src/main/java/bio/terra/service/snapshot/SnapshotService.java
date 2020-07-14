@@ -260,7 +260,8 @@ public class SnapshotService {
         return snapshot.name(snapshotRequestModel.getName())
             .description(snapshotRequestModel.getDescription())
             .snapshotSources(Collections.singletonList(snapshotSource))
-            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
+            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()))
+            .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
     }
 
     public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
@@ -328,13 +329,6 @@ public class SnapshotService {
 
         snapshotSource.snapshotMapTables(mapTableList);
         snapshot.snapshotTables(tableList);
-
-        // now that the new snapshot tables are set, we map from the asset relationships into snapshot relationships
-        List<Relationship> sourceRelationships = asset.getAssetRelationships()
-            .stream()
-            .map(AssetRelationship::getDatasetRelationship)
-            .collect(Collectors.toList());
-        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshotSource));
     }
 
     /**
@@ -367,22 +361,19 @@ public class SnapshotService {
             UUID toTableId = sourceRelationship.getToTable().getId();
             UUID toColumnId = sourceRelationship.getToColumn().getId();
 
-            if (!tableLookup.containsKey(fromTableId) || !tableLookup.containsKey(toTableId) ||
-                    !columnLookup.containsKey(fromColumnId) || !columnLookup.containsKey(toColumnId)) {
-                String message = String.format("Relationship %s mentions table(s) and/or column(s) that can't be found",
-                    sourceRelationship.getName());
-                throw new CorruptMetadataException(message);
+            if (tableLookup.containsKey(fromTableId) && tableLookup.containsKey(toTableId) &&
+                    columnLookup.containsKey(fromColumnId) && columnLookup.containsKey(toColumnId)) {
+                Table fromTable = tableLookup.get(fromTableId);
+                Column fromColumn = columnLookup.get(fromColumnId);
+                Table toTable = tableLookup.get(toTableId);
+                Column toColumn = columnLookup.get(toColumnId);
+                snapshotRelationships.add(new Relationship()
+                    .name(sourceRelationship.getName())
+                    .fromTable(fromTable)
+                    .fromColumn(fromColumn)
+                    .toTable(toTable)
+                    .toColumn(toColumn));
             }
-            Table fromTable = tableLookup.get(fromTableId);
-            Column fromColumn = columnLookup.get(fromColumnId);
-            Table toTable = tableLookup.get(toTableId);
-            Column toColumn = columnLookup.get(toColumnId);
-            snapshotRelationships.add(new Relationship()
-                .name(sourceRelationship.getName())
-                .fromTable(fromTable)
-                .fromColumn(fromColumn)
-                .toTable(toTable)
-                .toColumn(toColumn));
         }
         return snapshotRelationships;
     }
@@ -432,25 +423,6 @@ public class SnapshotService {
                     mapColumnList.add(snapshotMapColumn);
                 });
         }
-        // pass through all of the relationships that touch request tables from the dataset into the snapshot
-        List<Relationship> sourceRelationships = dataset.getRelationships()
-            .stream()
-            .filter(r -> requestCoversRelationship(r, requestTableLookup))
-            .collect(Collectors.toList());
-        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshotSource));
-    }
-
-    private boolean requestCoversRelationship(Relationship relationship,
-                                              Map<String, SnapshotRequestRowIdTableModel> requestTableLookup) {
-        String fromTableName = relationship.getFromTable().getName();
-        String toTableName = relationship.getToTable().getName();
-        String fromColumnName = relationship.getFromColumn().getName();
-        String toColumnName = relationship.getToColumn().getName();
-
-        return requestTableLookup.containsKey(fromTableName)
-            && requestTableLookup.containsKey(toTableName)
-            && requestTableLookup.get(fromTableName).getColumns().contains(fromColumnName)
-            && requestTableLookup.get(toTableName).getColumns().contains(toColumnName);
     }
 
     private void conjureSnapshotTablesFromDatasetTables(Snapshot snapshot,
@@ -489,8 +461,6 @@ public class SnapshotService {
         // set the snapshot tables and mapping
         snapshot.snapshotTables(tableList);
         snapshotSource.snapshotMapTables(mapTableList);
-        // pass through all of the relationships from the dataset into the snapshot
-        snapshot.relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
     }
 
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {

@@ -286,12 +286,12 @@ public class BigQueryPdao implements PrimaryDataAccess {
         return bigQueryProject.deleteDataset(prefixName(dataset.getName()));
     }
 
+    // NOTE: The CAST here should be valid for all column types but ARRAYs.
+    // We validate that asset root columns are non-arrays as part of dataset creation.
+    // https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules
     private static final String mapValuesToRowsTemplate =
         "SELECT T." + PDAO_ROW_ID_COLUMN + ", V.input_value FROM (" +
             "SELECT input_value FROM UNNEST([<inputVals:{v|'<v>'}; separator=\",\">]) AS input_value) AS V " +
-            // NOTE: The CAST here should be valid for all column types but ARRAYs.
-            // We validate that asset root columns are non-arrays as part of dataset creation.
-            // https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules
             "LEFT JOIN `<project>.<dataset>.<table>` AS T ON V.input_value = CAST(T.<column> AS STRING)";
 
     // compute the row ids from the input ids and validate all inputs have matches

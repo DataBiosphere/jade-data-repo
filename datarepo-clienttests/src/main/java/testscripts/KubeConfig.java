@@ -83,11 +83,13 @@ public class KubeConfig extends runner.TestScript {
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       System.out.println("*TODO*Scaling pods to 1");
       KubernetesClientUtils.changeReplicaSetSize(deployment, 1);
+      KubernetesClientUtils.waitForReplicaSetSizeChange(deployment, 1);
       bulkLoadArrayJobResponse =
-          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
+          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 120);
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
         System.out.println("*TODO*Scaling pods to 4");
         KubernetesClientUtils.changeReplicaSetSize(deployment, 3);
+        KubernetesClientUtils.waitForReplicaSetSizeChange(deployment, 2);
       }
     }
     /*---------------------------------------------*/

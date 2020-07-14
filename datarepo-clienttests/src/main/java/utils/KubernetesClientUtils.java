@@ -201,20 +201,26 @@ public final class KubernetesClientUtils {
    */
   public static V1Deployment changeReplicaSetSize(V1Deployment deployment, int numberOfReplicas)
       throws ApiException {
+    V1Deployment deploy = null;
     try {
-        V1DeploymentSpec existingSpec = deployment.getSpec();
-        deployment.setSpec(existingSpec.replicas(numberOfReplicas));
-        V1Deployment deploy = kubernetesClientAppsObject.replaceNamespacedDeployment(
-            deployment.getMetadata().getName(),
-            deployment.getMetadata().getNamespace(),
-            deployment,
-            null,
-            null,
-            null);
-        return deploy;
+      V1DeploymentSpec existingSpec = deployment.getSpec();
+      deployment.setSpec(existingSpec.replicas(numberOfReplicas));
+      deploy =
+          kubernetesClientAppsObject.replaceNamespacedDeployment(
+              deployment.getMetadata().getName(),
+              deployment.getMetadata().getNamespace(),
+              deployment,
+              null,
+              null,
+              null);
     } catch (ApiException ex) {
-        System.out.println("Scale the pod failed for Deployment:" + deploymentName, ex);
+      System.out.println(
+          "Scale the pod failed for Deployment. Exception: "
+              + ex.getMessage()
+              + ex.getStackTrace());
+      throw ex;
     }
+    return deploy;
   }
 
   /**

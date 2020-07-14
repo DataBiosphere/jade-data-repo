@@ -195,6 +195,7 @@ public class LoadDao {
         return queryByState(loadId, state, limit);
     }
 
+    @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public LoadCandidates findCandidates(UUID loadId, int candidatesToFind) {
         final String countFailedSql = "SELECT count(*) AS failed FROM load_file" +
             " WHERE load_id = :load_id AND state = :state";
@@ -252,6 +253,7 @@ public class LoadDao {
                     }
                     switch (state) {
                         case RUNNING:
+                            logger.info("Unexpected running loads: " + rs.getInt("statecount"));
                             throw new CorruptMetadataException("No loads should be running!");
 
                         case FAILED:

@@ -26,8 +26,13 @@ import bio.terra.model.JobModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestModel;
 import bio.terra.model.SnapshotSummaryModel;
+import bio.terra.service.configuration.ConfigEnum;
+import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.iam.IamResourceType;
+import bio.terra.service.iam.IamRole;
 import bio.terra.service.iam.sam.SamConfiguration;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
@@ -47,8 +52,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -81,6 +87,7 @@ public class ConnectedOperations {
     private SamConfiguration samConfiguration;
     private Storage storage = StorageOptions.getDefaultInstance().getService();
     private ConnectedTestConfiguration testConfig;
+    private DatasetDaoUtils datasetDaoUtils;
 
     private boolean deleteOnTeardown;
     private List<String> createdSnapshotIds;
@@ -110,10 +117,16 @@ public class ConnectedOperations {
     }
 
     public void stubOutSamCalls(IamProviderInterface samService) throws Exception {
-        when(samService.createSnapshotResource(any(), any(), any())).thenReturn("hi@hi.com");
+        Map<IamRole, String> snapshotPolicies = new HashMap<>();
+        snapshotPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
+        snapshotPolicies.put(IamRole.READER,  "hi@hi.com");
+        Map<IamRole, String> datasetPolicies = new HashMap<>();
+        datasetPolicies.put(IamRole.CUSTODIAN, "hi@hi.com");
+        datasetPolicies.put(IamRole.STEWARD,  "hi@hi.com");
+
+        when(samService.createSnapshotResource(any(), any(), any())).thenReturn(snapshotPolicies);
         when(samService.isAuthorized(any(), any(), any(), any())).thenReturn(Boolean.TRUE);
-        when(samService.createDatasetResource(any(), any())).thenReturn(
-            Collections.singletonList(samConfiguration.getStewardsGroupEmail()));
+        when(samService.createDatasetResource(any(), any())).thenReturn(datasetPolicies);
 
         // when asked what datasets/snapshots the caller has access to, return all the datasets/snapshots contained
         // in the bookkeeping lists (createdDatasetIds/createdDatasetIds) in this class.
@@ -204,26 +217,49 @@ public class ConnectedOperations {
     }
 
     public SnapshotSummaryModel createSnapshot(DatasetSummaryModel datasetSummaryModel,
-                                                  String resourcePath,
-                                                  String infix) throws Exception {
+                                               String resourcePath,
+                                               String infix) throws Exception {
 
+        MockHttpServletResponse response = launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
+        SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
+
+        return snapshotSummary;
+    }
+
+    public ErrorModel createSnapshotExpectError(
+        DatasetSummaryModel datasetSummaryModel,
+        String resourcePath,
+        String infix,
+        HttpStatus expectedStatus) throws Exception {
+
+        MockHttpServletResponse response = launchCreateSnapshot(datasetSummaryModel, resourcePath, infix);
+        return handleFailureCase(response, expectedStatus);
+    }
+
+    public MockHttpServletResponse launchCreateSnapshot(DatasetSummaryModel datasetSummaryModel,
+                                                         String resourcePath,
+                                                         String infix) throws Exception {
         SnapshotRequestModel snapshotRequest = jsonLoader.loadObject(resourcePath, SnapshotRequestModel.class);
         String snapshotName = Names.randomizeNameInfix(snapshotRequest.getName(), infix);
-        snapshotRequest.setName(snapshotName);
 
+        return launchCreateSnapshotName(datasetSummaryModel, snapshotRequest, snapshotName);
+    }
+
+    public MockHttpServletResponse launchCreateSnapshotName(
+        DatasetSummaryModel datasetSummaryModel,
+        SnapshotRequestModel snapshotRequest,
+        String snapshotName) throws Exception {
         // TODO: the next two lines assume SingleDatasetSnapshot
         snapshotRequest.getContents().get(0).setDatasetName(datasetSummaryModel.getName());
         snapshotRequest.profileId(datasetSummaryModel.getDefaultProfileId());
-
+        snapshotRequest.setName(snapshotName);
         MvcResult result = mvc.perform(post("/api/repository/v1/snapshots")
             .contentType(MediaType.APPLICATION_JSON)
             .content(TestUtils.mapToJson(snapshotRequest)))
             .andReturn();
 
         MockHttpServletResponse response = validateJobModelAndWait(result);
-        SnapshotSummaryModel snapshotSummary = handleCreateSnapshotSuccessCase(response);
-
-        return snapshotSummary;
+        return response;
     }
 
     public SnapshotModel getSnapshot(String snapshotId) throws Exception {
@@ -350,7 +386,7 @@ public class ConnectedOperations {
     public void deleteTestFile(String datasetId, String fileId) throws Exception {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
-                .andReturn();
+            .andReturn();
         logger.info("deleting datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
@@ -427,6 +463,51 @@ public class ConnectedOperations {
         MockHttpServletResponse response = validateJobModelAndWait(result);
 
         FileModel fileModel = handleSuccessCase(response, FileModel.class);
+        checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
+
+        return fileModel;
+    }
+
+    public void retryAcquireLockIngestFileSuccess(
+        boolean attemptRetry,
+        String datasetId,
+        FileLoadModel fileLoadModel,
+        ConfigurationService configService,
+        DatasetDao datasetDao) throws Exception {
+        // Insert fault into shared lock
+        ConfigEnum faultToInsert = attemptRetry ?
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT :
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
+        configService.setFault(faultToInsert.name(), true);
+
+        String jsonRequest = TestUtils.mapToJson(fileLoadModel);
+        String url = "/api/repository/v1/datasets/" + datasetId + "/files";
+        MvcResult result = mvc.perform(post(url)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(jsonRequest))
+            .andReturn();
+
+        TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
+        datasetDaoUtils = new DatasetDaoUtils();
+        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+
+        // Remove insertion of shared lock fault
+        configService.setFault(faultToInsert.name(), false);
+
+        assertEquals("no shared locks after first call", 0, sharedLocks.length);
+
+        MockHttpServletResponse response = validateJobModelAndWait(result);
+        if (attemptRetry) {
+            // Check if the flight successfully completed
+            // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
+            FileModel fileModel = handleSuccessCase(response, FileModel.class);
+            checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
+        } else {
+            handleFailureCase(response);
+        }
+    }
+
+    private void checkSuccessfulFileLoad(FileLoadModel fileLoadModel, FileModel fileModel, String datasetId) {
         assertThat("description matches", fileModel.getDescription(),
             CoreMatchers.equalTo(fileLoadModel.getDescription()));
         assertThat("mime type matches", fileModel.getFileDetail().getMimeType(),
@@ -440,8 +521,6 @@ public class ConnectedOperations {
 
         logger.info("addFile datasetId:{} objectId:{}", datasetId, fileModel.getFileId());
         addFile(datasetId, fileModel.getFileId());
-
-        return fileModel;
     }
 
     public MvcResult softDeleteRaw(String datasetId, DataDeletionRequest softDeleteRequest) throws Exception {

@@ -471,7 +471,7 @@ public class DatasetValidationsTest {
             .columns(Collections.singletonList(column))
             .partitionMode(TableModel.PartitionModeEnum.INT)
             .intPartitionOptions(
-                new IntPartitionOptionsModel().column(column.getName()).min(0L).max(80000L).interval(1L));
+                new IntPartitionOptionsModel().column(column.getName()).min(0L).max(4001L).interval(1L));
         DatasetRequestModel req = buildDatasetRequest();
         req.getSchema()
             .tables(Collections.singletonList(table))

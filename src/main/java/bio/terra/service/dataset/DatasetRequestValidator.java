@@ -141,9 +141,9 @@ public class DatasetRequestValidator implements Validator {
                 errors.rejectValue("schema", "InvalidIntPartitionInterval",
                     "Partition interval must be >= 1");
             }
-            if (max > min && interval > 0 && (max - min) / interval > 40000L) {
+            if (max > min && interval > 0 && (max - min) / interval > 4000L) {
                 errors.rejectValue("schema", "TooManyIntPartitions",
-                    "Cannot configure more than 40K partitions through min, max, and interval");
+                    "Cannot configure more than 4K partitions through min, max, and interval");
             }
         }
     }

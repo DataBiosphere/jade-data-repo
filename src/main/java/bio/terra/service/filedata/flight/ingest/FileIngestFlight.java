@@ -51,6 +51,9 @@ public class FileIngestFlight extends Flight {
         FileLoadModel fileLoadModel = inputParameters.get(JobMapKeys.REQUEST.getKeyName(), FileLoadModel.class);
         String profileId = fileLoadModel.getProfileId();
 
+        RetryRuleRandomBackoff lockDatasetRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+
         RetryRuleRandomBackoff fileSystemRetry = new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
         RetryRuleRandomBackoff createBucketRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
@@ -76,7 +79,7 @@ public class FileIngestFlight extends Flight {
         //    created in the file firestore collection, the file becomes visible for REST API lookups.
         // 7. Unlock the load tag
         // 8. Unlock the dataset
-        addStep(new LockDatasetStep(datasetDao, datasetId, true));
+        addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
         addStep(new LoadLockStep(loadService));
         addStep(new IngestFileIdStep(configService));
         addStep(new IngestFileDirectoryStep(fileDao, fireStoreUtils, dataset), fileSystemRetry);

@@ -9,7 +9,7 @@ public class TestUserSpecification implements SpecificationInterface {
 
   public static final String resourceDirectory = "testusers";
 
-  public TestUserSpecification() {}
+  TestUserSpecification() {}
 
   /**
    * Validate the test user specification read in from the JSON file. None of the properties should
@@ -29,5 +29,8 @@ public class TestUserSpecification implements SpecificationInterface {
     System.out.println("Test User: " + name);
     System.out.println("  userEmail: " + userEmail);
     System.out.println("  delegatorServiceAccountFile: " + delegatorServiceAccountFile);
+
+    System.out.println();
+    delegatorServiceAccount.display();
   }
 }

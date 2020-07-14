@@ -41,10 +41,18 @@ public final class KubernetesClientUtils {
   private KubernetesClientUtils() {}
 
   public static CoreV1Api getKubernetesClientCoreObject() {
+    if (kubernetesClientCoreObject == null) {
+      throw new UnsupportedOperationException(
+          "Kubernetes client core object is not setup. Check the server configuration skipKubernetes property.");
+    }
     return kubernetesClientCoreObject;
   }
 
   public static AppsV1Api getKubernetesClientAppsObject() {
+    if (kubernetesClientAppsObject == null) {
+      throw new UnsupportedOperationException(
+          "Kubernetes client apps object is not setup. Check the server configuration skipKubernetes property.");
+    }
     return kubernetesClientAppsObject;
   }
 
@@ -142,12 +150,12 @@ public final class KubernetesClientUtils {
     V1PodList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
-          kubernetesClientCoreObject.listPodForAllNamespaces(
-              null, null, null, null, null, null, null, null, null);
+          getKubernetesClientCoreObject()
+              .listPodForAllNamespaces(null, null, null, null, null, null, null, null, null);
     } else {
       list =
-          kubernetesClientCoreObject.listNamespacedPod(
-              namespace, null, null, null, null, null, null, null, null, null);
+          getKubernetesClientCoreObject()
+              .listNamespacedPod(namespace, null, null, null, null, null, null, null, null, null);
     }
     return list.getItems();
   }
@@ -163,12 +171,13 @@ public final class KubernetesClientUtils {
     V1DeploymentList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
-          kubernetesClientAppsObject.listDeploymentForAllNamespaces(
-              null, null, null, null, null, null, null, null, null);
+          getKubernetesClientAppsObject()
+              .listDeploymentForAllNamespaces(null, null, null, null, null, null, null, null, null);
     } else {
       list =
-          kubernetesClientAppsObject.listNamespacedDeployment(
-              namespace, null, null, null, null, null, null, null, null, null);
+          getKubernetesClientAppsObject()
+              .listNamespacedDeployment(
+                  namespace, null, null, null, null, null, null, null, null, null);
     }
     return list.getItems();
   }
@@ -203,13 +212,14 @@ public final class KubernetesClientUtils {
       throws ApiException {
     V1DeploymentSpec existingSpec = deployment.getSpec();
     deployment.setSpec(existingSpec.replicas(numberOfReplicas));
-    return kubernetesClientAppsObject.replaceNamespacedDeployment(
-        deployment.getMetadata().getName(),
-        deployment.getMetadata().getNamespace(),
-        deployment,
-        null,
-        null,
-        null);
+    return getKubernetesClientAppsObject()
+        .replaceNamespacedDeployment(
+            deployment.getMetadata().getName(),
+            deployment.getMetadata().getNamespace(),
+            deployment,
+            null,
+            null,
+            null);
   }
 
   /**

@@ -9,13 +9,13 @@ public class ServerSpecification implements SpecificationInterface {
   public String region;
   public String project;
   public String namespace;
-  public String helmApiDeploymentFilePath;
+  public DeploymentScriptSpecification deploymentScript;
   public boolean skipKubernetes = false;
   public boolean skipDeployment = false;
 
   public static final String resourceDirectory = "servers";
 
-  public ServerSpecification() {}
+  ServerSpecification() {}
 
   /**
    * Validate the server specification read in from the JSON file. None of the properties should be
@@ -38,9 +38,10 @@ public class ServerSpecification implements SpecificationInterface {
       }
     }
     if (!skipDeployment) {
-      if (helmApiDeploymentFilePath == null || helmApiDeploymentFilePath.equals("")) {
-        throw new IllegalArgumentException("Server Helm API deployment file path cannot be empty");
+      if (deploymentScript == null) {
+        throw new IllegalArgumentException("Server deployment script must be defined");
       }
+      deploymentScript.validate();
     }
   }
 
@@ -53,6 +54,12 @@ public class ServerSpecification implements SpecificationInterface {
     System.out.println("  region: " + region);
     System.out.println("  project: " + project);
     System.out.println("  namespace: " + namespace);
-    System.out.println("  helmApiDeploymentFilePath: " + helmApiDeploymentFilePath);
+    System.out.println("  skipKubernetes: " + skipKubernetes);
+    System.out.println("  skipDeployment: " + skipDeployment);
+
+    if (!skipDeployment) {
+      System.out.println();
+      deploymentScript.display();
+    }
   }
 }

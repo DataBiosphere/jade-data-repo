@@ -7,5 +7,9 @@
   "region": "us-central1",
   "project": "broad-jade-dev",
   "namespace": "mm",
-  "helmApiDeploymentFilePath": "datarepo-helm-definitions/dev/mm/mmDeployment.YAML"
+  "deploymentScript": {
+    "name": "ModularHelmChart",
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/mm/datarepo-api.yaml"]
+  },
+  "skipDeployment": false
 }

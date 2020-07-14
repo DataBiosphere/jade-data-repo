@@ -19,8 +19,11 @@ public final class ProcessUtils {
    * @throws IOException
    */
   public static List<String> executeCommand(String cmd, List<String> cmdArgs) throws IOException {
-    // build and run process
+    // build the full command string
     cmdArgs.add(0, cmd);
+    System.out.println("Executing command: " + String.join(" ", cmdArgs));
+
+    // build and run process
     ProcessBuilder procBuilder = new ProcessBuilder(cmdArgs);
     Process proc = procBuilder.start();
 
@@ -33,6 +36,12 @@ public final class ProcessUtils {
       outputLines.add(outputLine);
     }
     bufferedReader.close();
+
+    // print out the output for debugging
+    System.out.println("Command output (stdout): ");
+    for (String cmdOutputLine : outputLines) {
+      System.out.println(cmdOutputLine);
+    }
 
     return outputLines;
   }

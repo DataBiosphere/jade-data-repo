@@ -44,15 +44,28 @@ public class DatasetRequestValidator implements Validator {
     private static class SchemaValidationContext {
 
         private HashMap<String, HashSet<String>> tableColumnMap;
+        private HashMap<String, HashSet<String>> tableArrayColumns;
         private HashSet<String> relationshipNameSet;
 
         SchemaValidationContext() {
             tableColumnMap = new HashMap<>();
+            tableArrayColumns = new HashMap<>();
             relationshipNameSet = new HashSet<>();
         }
 
-        void addTable(String tableName, List<String> columnNames) {
-            tableColumnMap.put(tableName, new HashSet<>(columnNames));
+        void addTable(String tableName, List<ColumnModel> columns) {
+            HashSet<String> colNames = new HashSet<>();
+            HashSet<String> arrayCols = new HashSet<>();
+
+            for (ColumnModel col : columns) {
+                colNames.add(col.getName());
+                if (col.isArrayOf()) {
+                    arrayCols.add(col.getName());
+                }
+            }
+
+            tableColumnMap.put(tableName, colNames);
+            tableArrayColumns.put(tableName, arrayCols);
         }
 
         void addRelationship(String relationshipName) {
@@ -65,6 +78,11 @@ public class DatasetRequestValidator implements Validator {
 
         boolean isValidTableColumn(String tableName, String columnName) {
             return isValidTable(tableName) && tableColumnMap.get(tableName).contains(columnName);
+        }
+
+        boolean isArrayColumn(String tableName, String columnName) {
+            return isValidTableColumn(tableName, columnName) &&
+                tableArrayColumns.get(tableName).contains(columnName);
         }
 
         boolean isValidRelationship(String relationshipName) {
@@ -170,7 +188,7 @@ public class DatasetRequestValidator implements Validator {
                 }
             }
 
-            context.addTable(tableName, columnNames);
+            context.addTable(tableName, columns);
         }
 
         TableModel.PartitionModeEnum mode = table.getPartitionMode();
@@ -260,15 +278,21 @@ public class DatasetRequestValidator implements Validator {
     private void validateAsset(AssetModel asset, Errors errors, SchemaValidationContext context) {
         List<AssetTableModel> assetTables = asset.getTables();
 
+        String rootTable = asset.getRootTable();
+        String rootColumn = asset.getRootColumn();
+
         if (assetTables != null) {
             boolean hasRootTable = false;
             for (AssetTableModel assetTable : assetTables) {
                 validateAssetTable(assetTable, errors, context);
-                if (assetTable.getName().equals(asset.getRootTable())) {
-                    if (!context.isValidTableColumn(asset.getRootTable(), asset.getRootColumn())) {
+                if (assetTable.getName().equals(rootTable)) {
+                    if (!context.isValidTableColumn(rootTable, rootColumn)) {
                         errors.rejectValue("schema", "InvalidRootColumn",
-                            "Invalid root table column. Table: " + asset.getRootTable() +
-                                " Column: " + asset.getRootColumn());
+                            "Invalid root table column. Table: " + rootTable + " Column: " + rootColumn);
+                    } else if (context.isArrayColumn(rootTable, rootColumn)) {
+                        errors.rejectValue("schema", "InvalidArrayRootColumn",
+                            "Invalid use of array column as asset root. Table: " +
+                                rootTable + " Column: " + rootColumn);
                     }
                     hasRootTable = true;
                 }

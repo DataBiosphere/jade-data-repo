@@ -290,8 +290,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         "SELECT T." + PDAO_ROW_ID_COLUMN + ", V.input_value FROM (" +
             "SELECT input_value FROM UNNEST([<inputVals:{v|'<v>'}; separator=\",\">]) AS input_value) AS V " +
             // NOTE: The CAST here should be valid for all column types but ARRAYs.
-            // It's unlikely an array would be used as an asset root, so that should be OK?
-            // But it'd be good to validate if so.
+            // We validate that asset root columns are non-arrays as part of dataset creation.
             // https://cloud.google.com/bigquery/docs/reference/standard-sql/conversion_rules
             "LEFT JOIN `<project>.<dataset>.<table>` AS T ON V.input_value = CAST(T.<column> AS STRING)";
 

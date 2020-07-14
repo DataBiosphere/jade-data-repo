@@ -21,6 +21,7 @@ public class StairwayLoggingHooks implements StairwayHook {
 
     public StairwayLoggingHooks(PerformanceLogger performanceLogger) {
         this.performanceLogger = performanceLogger;
+        logger.info("Performance logging " + (performanceLogger.isEnabled() ? "ON" : "OFF"));
     }
 
     @Override

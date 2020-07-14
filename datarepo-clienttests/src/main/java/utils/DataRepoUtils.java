@@ -9,6 +9,7 @@ import bio.terra.datarepo.model.ErrorModel;
 import bio.terra.datarepo.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 public final class DataRepoUtils {
 
@@ -35,9 +36,8 @@ public final class DataRepoUtils {
     int tryCount = 1;
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      System.out.println("Sleeping. try #" + tryCount + "For Job: " + job.getDescription());
-      // converting seconds to milliseconds
-      Thread.sleep(secondsIntervalToPollJob * 1000);
+      System.out.println("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
+      TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
       job = repositoryApi.retrieveJob(job.getId());
       tryCount++;
       pollCtr--;

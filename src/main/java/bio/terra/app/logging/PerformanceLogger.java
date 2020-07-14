@@ -9,9 +9,9 @@ import java.time.Duration;
 public interface PerformanceLogger {
 
     /**
-     * True if performance logging is enabled, false otherwise.
+     * Returns true if performance logging is enabled, false otherwise.
      */
-    boolean isPerformanceLoggingEnabled = false;
+    boolean isEnabled();
 
     /**
      * Log a timestamp for an event, specified with a job id, class and operation names.

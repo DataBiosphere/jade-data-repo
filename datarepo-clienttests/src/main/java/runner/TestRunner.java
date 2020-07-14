@@ -15,7 +15,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,12 +67,10 @@ class TestRunner {
     }
 
     // get an instance of the API client per test user
-    List<String> userScopes = Arrays.asList("openid", "email", "profile");
     for (TestUserSpecification testUser : config.testUsers) {
       ApiClient apiClient = new ApiClient();
       apiClient.setBasePath(config.server.uri);
-      GoogleCredentials userCredential =
-          AuthenticationUtils.getDelegatedUserCredential(testUser, userScopes);
+      GoogleCredentials userCredential = AuthenticationUtils.getDelegatedUserCredential(testUser);
       AccessToken userAccessToken = AuthenticationUtils.getAccessToken(userCredential);
       apiClient.setAccessToken(userAccessToken.getTokenValue());
 

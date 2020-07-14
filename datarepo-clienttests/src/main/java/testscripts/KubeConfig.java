@@ -4,13 +4,11 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
-import io.kubernetes.client.openapi.models.V1Deployment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import utils.DataRepoUtils;
 import utils.FileUtils;
-import utils.KubernetesClientUtils;
 
 public class KubeConfig extends runner.TestScript {
 
@@ -66,18 +64,44 @@ public class KubeConfig extends runner.TestScript {
   // while we delete pods and have them recover.
   // Marked ignore for normal testing.
   public void userJourney(ApiClient apiClient) throws Exception {
-    // TODO: want this to run about 5 minutes on 2 DRmanager instances. The speed of loads is when
-    // they are
-    //  not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do 2.5
-    // files per minute,
-    //  so two instances should do 5 files per minute. To run 5 minutes we should run 25 files.
-    //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like
-    // the fileLoadTest)
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     // TODO - get namespace passed in
-    V1Deployment deployment =
-        KubernetesClientUtils.getApiDeployment("sh" /*config.server.namespace*/);
+    // V1Deployment deployment =
+    //    KubernetesClientUtils.getApiDeployment("sh" /*config.server.namespace*/);
 
+    // set up and start bulk load job
+    BulkLoadArrayRequestModel arrayLoad = buildBulkLoadFileRequest();
+    JobModel bulkLoadArrayJobResponse =
+        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+
+    /*---------------------------------------------*/
+    /* Manipulating kubernetes pods while scaling */
+    bulkLoadArrayJobResponse =
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
+    if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      System.out.println("*TODO*Scaling pods to 1");
+      // KubernetesClientUtils.changeReplicaSetSize(deployment, 1);
+      bulkLoadArrayJobResponse =
+          DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
+      if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+        System.out.println("*TODO*Scaling pods to 4");
+        // KubernetesClientUtils.changeReplicaSetSize(deployment, 3);
+      }
+    }
+    /*---------------------------------------------*/
+
+    // wait for the job to complete and print out results
+    getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
+  }
+
+  // This should run about 5 minutes on 2 DRmanager instances. The speed of loads is when
+  // they are not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do
+  // 2.5
+  // files per minute, so two instances should do 5 files per minute. To run 5 minutes we should run
+  // 25 files.
+  //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like the
+  // fileLoadTest)
+  private BulkLoadArrayRequestModel buildBulkLoadFileRequest() {
     String loadTag = FileUtils.randomizeName("longtest");
 
     BulkLoadArrayRequestModel arrayLoad =
@@ -102,22 +126,11 @@ public class KubeConfig extends runner.TestScript {
       arrayLoad.addLoadArrayItem(model);
     }
 
-    JobModel bulkLoadArrayJobResponse =
-        repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+    return arrayLoad;
+  }
 
-    bulkLoadArrayJobResponse =
-        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
-    if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      System.out.println("Scaling pods to 1");
-      KubernetesClientUtils.changeReplicaSetSize(deployment, 1);
-    }
-    bulkLoadArrayJobResponse =
-        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
-    if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      System.out.println("Scaling pods to 4");
-      KubernetesClientUtils.changeReplicaSetSize(deployment, 3);
-    }
-
+  private void getAndDisplayResults(RepositoryApi repositoryApi, JobModel bulkLoadArrayJobResponse)
+      throws Exception {
     bulkLoadArrayJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
     BulkLoadArrayResultModel result =

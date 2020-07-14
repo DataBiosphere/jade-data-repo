@@ -23,9 +23,9 @@ jobs:
         uses: "WyriHaximus/github-action-get-previous-tag@master"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-      - name: 'Checkout jade-data-repo-ui repo'
+      - name: 'Checkout DataBiosphere/jade-data-repo-ui repo'
         uses: actions/checkout@v2
         with:
-          repository: 'broadinstitute/jade-data-repo-ui'
+          repository: 'DataBiosphere/jade-data-repo-ui'
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: jade-data-repo-ui

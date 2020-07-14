@@ -34,7 +34,7 @@ public final class DataRepoUtils {
     job = repositoryApi.retrieveJob(job.getId());
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      Thread.sleep(secondsIntervalToPollJob);
+      Thread.sleep(secondsIntervalToPollJob * 1000);
       job = repositoryApi.retrieveJob(job.getId());
       pollCtr--;
     }

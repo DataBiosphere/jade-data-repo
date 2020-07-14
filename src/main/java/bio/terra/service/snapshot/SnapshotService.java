@@ -44,6 +44,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -333,47 +334,49 @@ public class SnapshotService {
             .stream()
             .map(AssetRelationship::getDatasetRelationship)
             .collect(Collectors.toList());
-        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshot));
-    }
-
-    private Column getColumnByNameOrThrow(Table table, String columnName) {
-        Map<String, Column> columnLookup = table.getColumnsMap();
-        if (!columnLookup.containsKey(columnName)) {
-            String message = String.format("Cannot find column %s in table %s", columnName, table.getName());
-            throw new CorruptMetadataException(message);
-        }
-        return columnLookup.get(columnName);
+        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshotSource));
     }
 
     /**
-     * Map from a list of source relationships (from a dataset or asset) into snapshot relationships. This does the
-     * mapping based on table names not being changed from the source to the destination currently since we do not
-     * expose the functionality to do this (even though the schema supports it).
+     * Map from a list of source relationships (from a dataset or asset) into snapshot relationships.
      *
      * @param sourceRelationships relationships from a dataset or asset
-     * @param snapshot snapshot that has already had its tables set
+     * @param snapshotSource source with mapping between dataset tables and columns -> snapshot tables and columns
      * @return a list of relationships tied to the snapshot tables
      */
-    public List<Relationship> createSnapshotRelationships(List<Relationship> sourceRelationships, Snapshot snapshot) {
+    public List<Relationship> createSnapshotRelationships(List<Relationship> sourceRelationships,
+                                                          SnapshotSource snapshotSource) {
         // We'll copy the asset relationships into the snapshot.
         List<Relationship> snapshotRelationships = new ArrayList<>();
-        Map<String, SnapshotTable> tableLookup = snapshot.getTables()
-            .stream()
-            .collect(Collectors.toMap(SnapshotTable::getName, Function.identity()));
+
+        // Create lookups from dataset table and column ids -> snapshot tables and columns, respectively
+        Map<UUID, Table> tableLookup = new HashMap<>();
+        Map<UUID, Column> columnLookup = new HashMap<>();
+
+        for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
+            tableLookup.put(mapTable.getFromTable().getId(),  mapTable.getToTable());
+
+            for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
+                columnLookup.put(mapColumn.getFromColumn().getId(), mapColumn.getToColumn());
+            }
+        }
 
         for (Relationship sourceRelationship : sourceRelationships) {
-            String fromTableName = sourceRelationship.getFromTable().getName();
-            String fromColumnName = sourceRelationship.getFromColumn().getName();
-            String toTableName = sourceRelationship.getToTable().getName();
-            String toColumnName = sourceRelationship.getToColumn().getName();
+            UUID fromTableId = sourceRelationship.getFromTable().getId();
+            UUID fromColumnId = sourceRelationship.getFromColumn().getId();
+            UUID toTableId = sourceRelationship.getToTable().getId();
+            UUID toColumnId = sourceRelationship.getToColumn().getId();
 
-            if (!tableLookup.containsKey(fromTableName) || !tableLookup.containsKey(toTableName)) {
-                throw new CorruptMetadataException("Relationship mentions table that can't be found");
+            if (!tableLookup.containsKey(fromTableId) || !tableLookup.containsKey(toTableId) ||
+                    !columnLookup.containsKey(fromColumnId) || !columnLookup.containsKey(toColumnId)) {
+                String message = String.format("Relationship %s mentions table(s) and/or column(s) that can't be found",
+                    sourceRelationship.getName());
+                throw new CorruptMetadataException(message);
             }
-            SnapshotTable fromTable = tableLookup.get(fromTableName);
-            Column fromColumn = getColumnByNameOrThrow(fromTable, fromColumnName);
-            SnapshotTable toTable = tableLookup.get(toTableName);
-            Column toColumn = getColumnByNameOrThrow(toTable, toColumnName);
+            Table fromTable = tableLookup.get(fromTableId);
+            Column fromColumn = columnLookup.get(fromColumnId);
+            Table toTable = tableLookup.get(toTableId);
+            Column toColumn = columnLookup.get(toColumnId);
             snapshotRelationships.add(new Relationship()
                 .name(sourceRelationship.getName())
                 .fromTable(fromTable)
@@ -434,7 +437,7 @@ public class SnapshotService {
             .stream()
             .filter(r -> requestCoversRelationship(r, requestTableLookup))
             .collect(Collectors.toList());
-        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshot));
+        snapshot.relationships(createSnapshotRelationships(sourceRelationships, snapshotSource));
     }
 
     private boolean requestCoversRelationship(Relationship relationship,
@@ -487,7 +490,7 @@ public class SnapshotService {
         snapshot.snapshotTables(tableList);
         snapshotSource.snapshotMapTables(mapTableList);
         // pass through all of the relationships from the dataset into the snapshot
-        snapshot.relationships(createSnapshotRelationships(dataset.getRelationships(), snapshot));
+        snapshot.relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
     }
 
     public SnapshotSummaryModel makeSummaryModelFromSummary(SnapshotSummary snapshotSummary) {

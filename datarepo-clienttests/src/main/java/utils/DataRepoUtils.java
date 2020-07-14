@@ -51,6 +51,31 @@ public final class DataRepoUtils {
     return job;
   }
 
+    /**
+     * Poll for running job. Polls for designated time.
+     *
+     * @param repositoryApi the api object to use
+     * @param job the job model to poll
+     * @param pollTime time for the job to poll before returning
+     */
+    public static JobModel pollForRunningJob(RepositoryApi repositoryApi, JobModel job, int pollTime)
+        throws Exception {
+        int pollCtr = Math.floorDiv(pollTime, secondsIntervalToPollJob);
+        job = repositoryApi.retrieveJob(job.getId());
+        int tryCount = 1;
+
+        while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
+            System.out.println("Sleeping. try #"+tryCount + "For Job: "+job.getDescription());
+            // converting seconds to milliseconds
+            Thread.sleep(secondsIntervalToPollJob * 1000);
+            job = repositoryApi.retrieveJob(job.getId());
+            tryCount++;
+            pollCtr--;
+        }
+
+        return job;
+    }
+
   /**
    * Fetch the job result and de-serialize it to the specified result class. This method expects
    * that the job has already completed, either successfully or not.

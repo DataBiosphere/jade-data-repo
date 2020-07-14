@@ -4,11 +4,13 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
+import io.kubernetes.client.openapi.models.V1Deployment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import utils.DataRepoUtils;
 import utils.FileUtils;
+import utils.KubernetesClientUtils;
 
 public class KubeConfig extends runner.TestScript {
 
@@ -72,6 +74,9 @@ public class KubeConfig extends runner.TestScript {
     //  (There are 25 files in the directory, so if we need more we should do a reuse scheme like
     // the fileLoadTest)
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
+    // TODO - get namespace passed in
+    V1Deployment deployment =
+        KubernetesClientUtils.getApiDeployment("sh" /*config.server.namespace*/);
 
     String loadTag = FileUtils.randomizeName("longtest");
 
@@ -99,6 +104,20 @@ public class KubeConfig extends runner.TestScript {
 
     JobModel bulkLoadArrayJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
+
+    bulkLoadArrayJobResponse =
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
+    if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      System.out.println("Scaling pods to 1");
+      KubernetesClientUtils.changeReplicaSetSize(deployment, 1);
+    }
+    bulkLoadArrayJobResponse =
+        DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 20);
+    if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
+      System.out.println("Scaling pods to 4");
+      KubernetesClientUtils.changeReplicaSetSize(deployment, 3);
+    }
+
     bulkLoadArrayJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, bulkLoadArrayJobResponse);
     BulkLoadArrayResultModel result =

@@ -17,9 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          ref: develop
+        uses: actions/checkout@v1
       - name: 'Get Previous tag'
         id: previoustag
         uses: "WyriHaximus/github-action-get-previous-tag@master"
@@ -30,4 +28,4 @@ jobs:
         with:
           repository: 'broadinstitute/jade-data-repo-ui'
           token: ${{ secrets.HELM_REPO_TOKEN }}
-          path: datarepo-helm-definitions
+          path: jade-data-repo-ui

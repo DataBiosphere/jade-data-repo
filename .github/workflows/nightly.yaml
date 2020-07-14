@@ -1,0 +1,30 @@
+name: Alpha Nightly
+on:
+  schedule:
+    - cron: '0 2 * * *' # run at 2 AM UTC
+branches:
+  - develop
+
+jobs:
+  update_image:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: develop
+      - name:
+        run: |
+          git fetch --tags
+          # get latest tag that looks like a semver (with or without v)
+          tag=$(git for-each-ref --sort=-v:refname --count=1 --format '%(refname)' refs/tags/[0-9]*.[0-9]*.[0-9]* refs/tags/v[0-9]*.[0-9]*.[0-9]* | cut -d / -f 3-)
+          tag_commit=$(git rev-list -n 1 $tag)
+      - name: 'Checkout jade-data-repo-ui repo'
+        uses: actions/checkout@v2
+        with:
+          repository: 'broadinstitute/jade-data-repo-ui'
+          token: ${{ secrets.HELM_REPO_TOKEN }}
+          path: datarepo-helm-definitions

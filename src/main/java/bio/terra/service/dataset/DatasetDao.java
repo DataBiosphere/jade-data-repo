@@ -84,7 +84,21 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        //DataAccessException faultToInsert = getFaultToInsert();
+        int numRowsUpdated = 0;
+        try {
+            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            //if (faultToInsert != null) {
+            //  logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+            //  throw faultToInsert;
+            //}
+            numRowsUpdated = jdbcTemplate.update(sql, params);
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                throw new RetryQueryException("Retry", dataAccessException);
+            }
+            throw dataAccessException;
+        }
 
         // if no rows were updated, then throw an exception
         if (numRowsUpdated == 0) {
@@ -117,7 +131,21 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        //DataAccessException faultToInsert = getFaultToInsert();
+        int numRowsUpdated = 0;
+        try {
+            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            //if (faultToInsert != null) {
+            //  logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+            //  throw faultToInsert;
+            //}
+            numRowsUpdated = jdbcTemplate.update(sql, params);
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                throw new RetryQueryException("Retry", dataAccessException);
+            }
+            throw dataAccessException;
+        }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
         return (numRowsUpdated == 1);
     }
@@ -217,7 +245,21 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        int numRowsUpdated = jdbcTemplate.update(sql, params);
+        //DataAccessException faultToInsert = getFaultToInsert();
+        int numRowsUpdated = 0;
+        try {
+            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            //if (faultToInsert != null) {
+              //  logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+              //  throw faultToInsert;
+            //}
+            numRowsUpdated = jdbcTemplate.update(sql, params);
+        } catch (DataAccessException dataAccessException) {
+            if (retryQuery(dataAccessException)) {
+                throw new RetryQueryException("Retry", dataAccessException);
+            }
+            throw dataAccessException;
+        }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
         return (numRowsUpdated == 1);
     }

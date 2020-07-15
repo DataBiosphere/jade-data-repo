@@ -1,5 +1,6 @@
 package bio.terra.service.dataset.flight;
 
+import bio.terra.common.exception.RetryQueryException;
 import bio.terra.service.dataset.DatasetDao;
 import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.stairway.FlightContext;
@@ -44,13 +45,16 @@ public class UnlockDatasetStep implements Step {
         }
 
         boolean rowUpdated;
-        if (sharedLock) {
-            rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
-        } else {
-            rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+        try {
+            if (sharedLock) {
+                rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
+            } else {
+                rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+            }
+            logger.debug("rowUpdated on unlock = " + rowUpdated);
+        } catch (RetryQueryException retryQueryException) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }
-        logger.debug("rowUpdated on unlock = " + rowUpdated);
-
         return StepResult.getStepResultSuccess();
     }
 

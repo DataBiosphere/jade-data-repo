@@ -39,6 +39,8 @@ public class DatasetDataDeleteFlight extends Flight {
 
         RetryRuleRandomBackoff lockDatasetRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
+        RetryRuleRandomBackoff unlockDatasetRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         addStep(new VerifyAuthorizationStep(
             iamClient,
@@ -57,7 +59,8 @@ public class DatasetDataDeleteFlight extends Flight {
         addStep(new DataDeletionStep(bigQueryPdao, datasetService, configService));
 
         // unlock
-        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true));
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true),
+            unlockDatasetRetry);
 
         // cleanup
         addStep(new DropExternalTablesStep(bigQueryPdao, datasetService));

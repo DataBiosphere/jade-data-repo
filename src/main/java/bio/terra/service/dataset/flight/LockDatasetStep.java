@@ -53,7 +53,6 @@ public class LockDatasetStep implements Step {
             }
             return StepResult.getStepResultSuccess();
         } catch (RetryQueryException retryQueryException) {
-            // fault inserted during lockShared
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         } catch (DatasetLockException ex) {
             logger.debug("Issue locking this Dataset", ex);

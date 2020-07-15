@@ -63,7 +63,7 @@ class TestRunner {
     // update any Kubernetes properties specified by the test configuration
     if (!config.server.skipKubernetes) {
       KubernetesClientUtils.buildKubernetesClientObject(config.server);
-      modifyKubernetesPostDeployment();
+      KubernetesClientUtils.modifyKubernetesPostDeployment(config.kubernetes.numberOfInitialPods);
     }
 
     // get an instance of the API client per test user
@@ -432,29 +432,6 @@ class TestRunner {
         String.valueOf(config.application.loadHistoryWaitSeconds));
 
     return modifiedEnvVars;
-  }
-
-  void modifyKubernetesPostDeployment() throws Exception {
-    // set the initial number of pods in the API deployment replica set
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
-    if (apiDeployment == null) {
-      throw new RuntimeException("API deployment not found.");
-    }
-    System.out.println(
-        "pod count before set initial replica set size: "
-            + KubernetesClientUtils.listPods(config.server.namespace).size());
-    apiDeployment =
-        KubernetesClientUtils.changeReplicaSetSize(
-            apiDeployment, config.kubernetes.numberOfInitialPods);
-    KubernetesClientUtils.waitForReplicaSetSizeChange(
-        apiDeployment, config.kubernetes.numberOfInitialPods);
-
-    // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPods(config.server.namespace);
-    System.out.println("initial number of pods: " + pods.size());
-    for (V1Pod pod : pods) {
-      System.out.println("  pod: " + pod.getMetadata().getName());
-    }
   }
 
   void deleteDeployment() {

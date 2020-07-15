@@ -78,43 +78,30 @@ public class KubeConfig extends runner.TestScript {
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
     /*---------------------------------------------*/
-    /* Manipulating kubernetes pods while scaling */
-    bulkLoadArrayJobResponse =
+    /* Manipulating kubernetes pods during file ingest */
+
+      // initial poll as file ingest begins
+      bulkLoadArrayJobResponse =
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       System.out.println("Scaling pods down to 1");
-      modifyKubernetesPostDeployment("sh", 1);
+      KubernetesClientUtils.modifyKubernetesPostDeployment(1);
+
+      // allow job to run on scaled down pods for interval
       bulkLoadArrayJobResponse =
           DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
+
+      // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
         System.out.println("Scaling pods back up to 4");
-        modifyKubernetesPostDeployment("sh", 3);
+          KubernetesClientUtils.modifyKubernetesPostDeployment(4);
       }
     }
     /*---------------------------------------------*/
 
     // wait for the job to complete and print out results
     getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);
-  }
-
-  void modifyKubernetesPostDeployment(String namespace, int podCount) throws Exception {
-    // set the initial number of pods in the API deployment replica set
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
-    if (apiDeployment == null) {
-      throw new RuntimeException("API deployment not found.");
-    }
-    System.out.println(
-        "pod count before set initial replica set size: "
-            + KubernetesClientUtils.listPodsForNamespace().size());
-    apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
-    KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
-
-    // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPodsForNamespace();
-    System.out.println("initial number of pods: " + pods.size());
-    for (V1Pod pod : pods) {
-      System.out.println("  pod: " + pod.getMetadata().getName());
-    }
   }
 
   // This should run about 5 minutes on 2 DRmanager instances. The speed of loads is when

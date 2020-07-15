@@ -288,4 +288,24 @@ public final class KubernetesClientUtils {
               + ")");
     }
   }
+
+    public static void modifyKubernetesPostDeployment(int podCount) throws Exception {
+        // set the initial number of pods in the API deployment replica set
+        V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
+        if (apiDeployment == null) {
+            throw new RuntimeException("API deployment not found.");
+        }
+        System.out.println(
+            "pod count before set initial replica set size: "
+                + KubernetesClientUtils.listPodsForNamespace().size());
+        apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
+        KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
+
+        // print out the current pods
+        List<V1Pod> pods = KubernetesClientUtils.listPodsForNamespace();
+        System.out.println("initial number of pods: " + pods.size());
+        for (V1Pod pod : pods) {
+            System.out.println("  pod: " + pod.getMetadata().getName());
+        }
+    }
 }

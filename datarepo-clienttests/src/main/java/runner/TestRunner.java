@@ -48,7 +48,14 @@ class TestRunner {
     try {
       executeTestConfigurationNoGuaranteedCleanup();
     } catch (Exception originalEx) {
+      System.out.println();
+      System.out.println("=========================================================");
+      System.out.println("Cleanup After Failure:");
+
       // cleanup deployment (i.e. run teardown method)
+      System.out.println();
+      System.out.println(
+          "Deployment: Calling " + deploymentScript.getClass().getName() + ".deploy()");
       try {
         if (!config.server.skipDeployment) {
           deploymentScript.teardown();
@@ -59,6 +66,8 @@ class TestRunner {
       }
 
       // cleanup test scripts (i.e. run cleanup methods)
+      System.out.println();
+      System.out.println("Test Scripts: Calling the cleanup methods");
       try {
         callTestScriptCleanups();
       } catch (Exception testScriptCleanupEx) {
@@ -79,6 +88,10 @@ class TestRunner {
   }
 
   void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Deployment: " + (config.server.skipDeployment ? "skipping" : ""));
+
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
       // get an instance of the deployment script class
@@ -95,15 +108,32 @@ class TestRunner {
       deploymentScript.setParameters(config.server.deploymentScript.parameters);
 
       // call the deploy and waitForDeployToFinish methods to do the deployment
+      System.out.println();
+      System.out.println(
+          "Deployment: Calling " + deploymentScript.getClass().getName() + ".deploy()");
       deploymentScript.deploy(config.server, config.application);
+
+      System.out.println();
+      System.out.println(
+          "Deployment: Calling "
+              + deploymentScript.getClass().getName()
+              + ".waitForDeployToFinish()");
       deploymentScript.waitForDeployToFinish();
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Kubernetes: " + (config.server.skipKubernetes ? "skipping" : ""));
 
     // update any Kubernetes properties specified by the test configuration
     if (!config.server.skipKubernetes) {
       KubernetesClientUtils.buildKubernetesClientObject(config.server);
       modifyKubernetesPostDeployment();
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Test Users: Fetching credentials and building ApiClient objects");
 
     // get an instance of the API client per test user
     for (TestUserSpecification testUser : config.testUsers) {
@@ -115,6 +145,10 @@ class TestRunner {
 
       apiClientsForUsers.put(testUser.name, apiClient);
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Test Scripts: Fetching instances of each class");
 
     // get an instance of each test script class
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
@@ -137,12 +171,16 @@ class TestRunner {
     }
 
     // call the setup method of each test script
+    System.out.println();
+    System.out.println("Test Scripts: Calling the setup methods");
     Exception setupExceptionThrown = callTestScriptSetups();
     if (setupExceptionThrown != null) {
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
     // for each test script
+    System.out.println();
+    System.out.println("Test Scripts: Creating the thread pools and kicking off the user journeys");
     List<ApiClient> apiClientList = new ArrayList<>(apiClientsForUsers.values());
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
       TestScript testScript = scripts.get(tsCtr);
@@ -175,6 +213,8 @@ class TestRunner {
     }
 
     // wait until all threads either finish or time out
+    System.out.println();
+    System.out.println("Test Scripts: Waiting until all threads either finish or time out");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
@@ -201,6 +241,8 @@ class TestRunner {
     }
 
     // compile the results from all thread pools
+    System.out.println();
+    System.out.println("Test Scripts: Compiling the results from all thread pools");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
@@ -229,11 +271,18 @@ class TestRunner {
     }
 
     // call the cleanup method of each test script
+    System.out.println();
+    System.out.println("Test Scripts: Calling the cleanup methods");
     Exception cleanupExceptionThrown = callTestScriptCleanups();
     if (cleanupExceptionThrown != null) {
       throw new RuntimeException(
           "Error calling test script cleanup methods.", cleanupExceptionThrown);
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println(
+        "Deployment: " + (config.server.skipDeployment ? "skipping" : "Calling teardown method"));
 
     // TODO: also restore any Kubernetes settings? they are always set again at the beginning of a
     // test run, which is more important from a reproducibility standpoint. might be useful to leave
@@ -370,6 +419,9 @@ class TestRunner {
       return;
     }
 
+    System.out.println();
+    System.out.println("=========================================================");
+
     // read in configuration, validate it, and print to stdout
     TestConfiguration testConfiguration = TestConfiguration.fromJSONFile(args[0]);
     testConfiguration.validate();
@@ -383,6 +435,10 @@ class TestRunner {
     } catch (Exception ex) {
       runnerEx = ex; // save exception to display after printing the results
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("User Journey Results");
 
     // print the results to stdout
     for (UserJourneyResult result : runner.userJourneyResults) {

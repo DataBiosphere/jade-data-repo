@@ -30,9 +30,9 @@ public class KubeConfig extends runner.TestScript {
       throw new IllegalArgumentException(
           "Must provide a number of files to load between 1 and 25 in the parameters list");
     } else {
-        // filesToLoad should be between 1 and 25. Default to 25.
-        int filesToLoadParam = Integer.parseInt(parameters.get(0));
-        filesToLoad = filesToLoadParam <= 25 && filesToLoadParam > 0 ? filesToLoadParam : 25;
+      // filesToLoad should be between 1 and 25. Default to 25.
+      int filesToLoadParam = Integer.parseInt(parameters.get(0));
+      filesToLoad = filesToLoadParam <= 25 && filesToLoadParam > 0 ? filesToLoadParam : 25;
     }
   }
 
@@ -70,8 +70,7 @@ public class KubeConfig extends runner.TestScript {
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     // TODO - get namespace passed in
-    V1Deployment deployment =
-        KubernetesClientUtils.getApiDeployment("sh" /*config.server.namespace*/);
+    V1Deployment deployment = KubernetesClientUtils.getApiDeployment();
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad = buildBulkLoadFileRequest();
@@ -100,18 +99,18 @@ public class KubeConfig extends runner.TestScript {
 
   void modifyKubernetesPostDeployment(String namespace, int podCount) throws Exception {
     // set the initial number of pods in the API deployment replica set
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment(namespace);
+    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
     System.out.println(
         "pod count before set initial replica set size: "
-            + KubernetesClientUtils.listPods(namespace).size());
+            + KubernetesClientUtils.listPodsForNamespace().size());
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPods(namespace);
+    List<V1Pod> pods = KubernetesClientUtils.listPodsForNamespace();
     System.out.println("initial number of pods: " + pods.size());
     for (V1Pod pod : pods) {
       System.out.println("  pod: " + pod.getMetadata().getName());

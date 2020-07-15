@@ -436,7 +436,7 @@ class TestRunner {
 
   void modifyKubernetesPostDeployment() throws Exception {
     // set the initial number of pods in the API deployment replica set
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment(config.server.namespace);
+    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }

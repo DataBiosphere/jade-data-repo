@@ -35,6 +35,8 @@ public final class KubernetesClientUtils {
   public static final String componentLabel = "app.kubernetes.io/component";
   public static final String apiComponentLabel = "api";
 
+  private static String namespace;
+
   private static CoreV1Api kubernetesClientCoreObject;
   private static AppsV1Api kubernetesClientAppsObject;
 
@@ -62,6 +64,8 @@ public final class KubernetesClientUtils {
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);
     ProcessUtils.executeCommand("sh", scriptArgs);
+
+    namespace = server.namespace;
 
     // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
     String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
@@ -153,6 +157,18 @@ public final class KubernetesClientUtils {
   }
 
   /**
+   * List all the pods in the current namespace
+   *
+   * @return list of Kubernetes pods
+   */
+  public static List<V1Pod> listPodsForNamespace() throws ApiException {
+    V1PodList list =
+        kubernetesClientCoreObject.listNamespacedPod(
+            namespace, null, null, null, null, null, null, null, null, null);
+    return list.getItems();
+  }
+
+  /**
    * List all the deployments in the given namespace, or in the whole cluster if the namespace is
    * not specified (i.e. null or empty string).
    *
@@ -178,10 +194,9 @@ public final class KubernetesClientUtils {
    * specified (i.e. null or empty string). This method expects that there is a single API
    * deployment in the namespace.
    *
-   * @param namespace to get the API deployment from
    * @return the API deployment, null if not found
    */
-  public static V1Deployment getApiDeployment(String namespace) throws ApiException {
+  public static V1Deployment getApiDeployment() throws ApiException {
     // loop through the deployments in the namespace
     // find the one that matches the api component label
     return listDeployments(namespace).stream()
@@ -201,7 +216,7 @@ public final class KubernetesClientUtils {
    */
   public static V1Deployment changeReplicaSetSize(V1Deployment deployment, int numberOfReplicas)
       throws ApiException {
-    V1Deployment deploy = null;
+    V1Deployment deploy;
     try {
       V1DeploymentSpec existingSpec = deployment.getSpec();
       deployment.setSpec(existingSpec.replicas(numberOfReplicas));

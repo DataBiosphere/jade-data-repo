@@ -118,7 +118,8 @@ public class ModularHelmChart extends DeploymentScript {
       listCmdArgs.add("ls");
       listCmdArgs.add("--namespace");
       listCmdArgs.add(serverSpecification.namespace);
-      List<String> cmdOutputLines = ProcessUtils.executeCommand("helm", listCmdArgs);
+      Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
+      List<String> cmdOutputLines = ProcessUtils.readStdout(helmListProc);
 
       for (String cmdOutputLine : cmdOutputLines) {
         if (cmdOutputLine.startsWith(serverSpecification.namespace + "-jade-datarepo-api")) {

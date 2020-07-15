@@ -32,4 +32,12 @@ public class DeploymentScript {
     throw new UnsupportedOperationException(
         "waitForDeployToFinish must be overridden by sub-classes");
   }
+
+  /**
+   * The deployment script teardown method deletes or resets the deployment. Sub-classes may leave
+   * this blank to leave the deployment as is at the end of a test run. This may be helpful for
+   * debugging. From a reproducibility standpoint, re-deploying at the beginning of a new test run
+   * is more important.
+   */
+  public void teardown() throws Exception {}
 }

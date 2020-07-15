@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0
       - name: 'Get Previous tag'
         id: apiprevioustag
-        uses: "WyriHaximus/github-action-get-previous-tag@master"
+        uses: "broadinstitute/github-action-get-previous-tag@master"
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
       - name: 'Checkout tag for DataBiosphere/jade-data-repo'

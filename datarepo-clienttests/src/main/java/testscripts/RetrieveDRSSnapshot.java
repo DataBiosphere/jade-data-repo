@@ -159,7 +159,6 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
             + tableModel.getName();
 
     QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryForFileRefs).build();
-    TimeUnit.SECONDS.sleep(60);
     TableResult result = bigQuery.query(queryConfig);
 
     ArrayList<String> fileRefs = new ArrayList<>();
@@ -169,12 +168,13 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     String fileId = fileModelFileId.split("_")[2];
     String dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + fileId;
     DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
-    System.out.println(dirObjectId);
 
     System.out.println(
         "successfully retrieved drs object: "
             + object.getName()
-            + ", data project: "
+            + " with id: "
+            + dirObjectId
+            +", data project: "
             + snapshotModel.getDataProject());
   }
 

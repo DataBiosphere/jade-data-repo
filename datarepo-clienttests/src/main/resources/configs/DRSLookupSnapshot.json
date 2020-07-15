@@ -9,7 +9,13 @@
   "testScripts": [
     {
       "name": "RetrieveDRSSnapshot",
-      "parameters": ["gs://jade-testdata/fileloadprofiletest/10KBfile.txt"],
+      "totalNumberToRun": 1,
+      "numberToRunInParallel": 3,
+      "expectedTimeForEach": 20,
+      "expectedTimeForEachUnit": "SECONDS"
+    },
+    {
+      "name": "RetrieveDRSSnapshot",
       "totalNumberToRun": 15,
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,

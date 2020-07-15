@@ -35,7 +35,7 @@ jobs:
           token: ${{ secrets.HELM_REPO_TOKEN }}
           path: jade-data-repo-ui
           ref: develop
-      - name: 'Get previous jade-data-repo-ui image tag and tag with alpha'
+      - name: 'Create alpha release images'
         id: uiprevioustag
         uses: broadinstitute/datarepo-actions@ms-alpha-release
         with:

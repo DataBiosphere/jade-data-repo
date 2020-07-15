@@ -15,6 +15,7 @@ import bio.terra.model.ErrorModel;
 import bio.terra.model.FileLoadModel;
 import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
+import bio.terra.model.RelationshipModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestContentsModel;
 import bio.terra.model.SnapshotRequestModel;
@@ -197,6 +198,14 @@ public class SnapshotConnectedTest {
         long snapshotSamples = queryForCount(summaryModel.getName(), "sample", bigQueryProject);
         assertThat("dataset samples loaded properly", snapshotSamples, equalTo(2L));
         assertThat("sample row count matches expectation", sampleTable.get().getRowCount(), equalTo(2));
+        List<RelationshipModel> relationships = snapshotModel.getRelationships();
+        assertThat("a relationship comes back", relationships.size(), equalTo(1));
+        RelationshipModel relationshipModel = relationships.get(0);
+        assertThat("relationship name is right", relationshipModel.getName(), equalTo("participant_sample"));
+        assertThat("from table is right", relationshipModel.getFrom().getTable(), equalTo("participant"));
+        assertThat("from column is right", relationshipModel.getFrom().getColumn(), equalTo("id"));
+        assertThat("to table is right", relationshipModel.getTo().getTable(), equalTo("sample"));
+        assertThat("to column is right", relationshipModel.getTo().getColumn(), equalTo("participant_id"));
     }
 
     @Test

@@ -3,11 +3,14 @@ package bio.terra.service.snapshot;
 import bio.terra.app.controller.exception.ValidationException;
 import bio.terra.common.Column;
 import bio.terra.common.MetadataEnumeration;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.grammar.Query;
 import bio.terra.model.ColumnModel;
 import bio.terra.model.DatasetSummaryModel;
 import bio.terra.model.EnumerateSnapshotModel;
+import bio.terra.model.RelationshipModel;
+import bio.terra.model.RelationshipTermModel;
 import bio.terra.model.SnapshotModel;
 import bio.terra.model.SnapshotRequestAssetModel;
 import bio.terra.model.SnapshotRequestContentsModel;
@@ -39,6 +42,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -254,7 +258,8 @@ public class SnapshotService {
         return snapshot.name(snapshotRequestModel.getName())
             .description(snapshotRequestModel.getDescription())
             .snapshotSources(Collections.singletonList(snapshotSource))
-            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()));
+            .profileId(UUID.fromString(snapshotRequestModel.getProfileId()))
+            .relationships(createSnapshotRelationships(dataset.getRelationships(), snapshotSource));
     }
 
     public List<UUID> getSourceDatasetIdsFromSnapshotRequest(SnapshotRequestModel snapshotRequestModel) {
@@ -324,6 +329,53 @@ public class SnapshotService {
         snapshot.snapshotTables(tableList);
     }
 
+    /**
+     * Map from a list of source relationships (from a dataset or asset) into snapshot relationships.
+     *
+     * @param sourceRelationships relationships from a dataset or asset
+     * @param snapshotSource source with mapping between dataset tables and columns -> snapshot tables and columns
+     * @return a list of relationships tied to the snapshot tables
+     */
+    public List<Relationship> createSnapshotRelationships(List<Relationship> sourceRelationships,
+                                                          SnapshotSource snapshotSource) {
+        // We'll copy the asset relationships into the snapshot.
+        List<Relationship> snapshotRelationships = new ArrayList<>();
+
+        // Create lookups from dataset table and column ids -> snapshot tables and columns, respectively
+        Map<UUID, Table> tableLookup = new HashMap<>();
+        Map<UUID, Column> columnLookup = new HashMap<>();
+
+        for (SnapshotMapTable mapTable : snapshotSource.getSnapshotMapTables()) {
+            tableLookup.put(mapTable.getFromTable().getId(),  mapTable.getToTable());
+
+            for (SnapshotMapColumn mapColumn : mapTable.getSnapshotMapColumns()) {
+                columnLookup.put(mapColumn.getFromColumn().getId(), mapColumn.getToColumn());
+            }
+        }
+
+        for (Relationship sourceRelationship : sourceRelationships) {
+            UUID fromTableId = sourceRelationship.getFromTable().getId();
+            UUID fromColumnId = sourceRelationship.getFromColumn().getId();
+            UUID toTableId = sourceRelationship.getToTable().getId();
+            UUID toColumnId = sourceRelationship.getToColumn().getId();
+
+            if (tableLookup.containsKey(fromTableId) && tableLookup.containsKey(toTableId) &&
+                    columnLookup.containsKey(fromColumnId) && columnLookup.containsKey(toColumnId)) {
+                Table fromTable = tableLookup.get(fromTableId);
+                Column fromColumn = columnLookup.get(fromColumnId);
+                Table toTable = tableLookup.get(toTableId);
+                Column toColumn = columnLookup.get(toColumnId);
+                snapshotRelationships.add(new Relationship()
+                    .name(sourceRelationship.getName())
+                    .fromTable(fromTable)
+                    .fromColumn(fromColumn)
+                    .toTable(toTable)
+                    .toColumn(toColumn));
+            }
+        }
+        return snapshotRelationships;
+    }
+
     private void conjureSnapshotTablesFromRowIds(SnapshotRequestRowIdModel requestRowIdModel,
                                                 Snapshot snapshot,
                                                 SnapshotSource snapshotSource) {
@@ -371,19 +423,15 @@ public class SnapshotService {
         }
     }
 
-
     private void conjureSnapshotTablesFromDatasetTables(Snapshot snapshot,
                                                  SnapshotSource snapshotSource) {
         // TODO this will need to be changed when we have more than one dataset per snapshot (>1 contentsModel)
-
         // for each dataset table specified in the request, create a table in the snapshot with the same name
         Dataset dataset = snapshotSource.getDataset();
         List<SnapshotTable> tableList = new ArrayList<>();
         List<SnapshotMapTable> mapTableList = new ArrayList<>();
 
         for (DatasetTable datasetTable : dataset.getTables()) {
-
-
             List<Column> columnList = new ArrayList<>();
             List<SnapshotMapColumn> mapColumnList = new ArrayList<>();
 
@@ -437,7 +485,24 @@ public class SnapshotService {
                 .tables(snapshot.getTables()
                         .stream()
                         .map(this::makeTableModelFromTable)
+                        .collect(Collectors.toList()))
+                .relationships(snapshot.getRelationships()
+                        .stream()
+                        .map(this::makeRelationshipModelFromRelationship)
                         .collect(Collectors.toList()));
+    }
+
+    private RelationshipModel makeRelationshipModelFromRelationship(Relationship relationship) {
+        RelationshipTermModel fromModel = new RelationshipTermModel()
+            .table(relationship.getFromTable().getName())
+            .column(relationship.getFromColumn().getName());
+        RelationshipTermModel toModel = new RelationshipTermModel()
+            .table(relationship.getToTable().getName())
+            .column(relationship.getToColumn().getName());
+        return new RelationshipModel()
+            .name(relationship.getName())
+            .from(fromModel)
+            .to(toModel);
     }
 
     private SnapshotSourceModel makeSourceModelFromSource(SnapshotSource source) {

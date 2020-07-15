@@ -1,10 +1,12 @@
 package bio.terra.service.dataset;
 
+import bio.terra.common.Relationship;
+
 import java.util.UUID;
 
 public class AssetRelationship {
     private UUID id;
-    private DatasetRelationship datasetRelationship;
+    private Relationship datasetRelationship;
 
     public UUID getId() {
         return id;
@@ -15,11 +17,11 @@ public class AssetRelationship {
         return this;
     }
 
-    public DatasetRelationship getDatasetRelationship() {
+    public Relationship getDatasetRelationship() {
         return datasetRelationship;
     }
 
-    public AssetRelationship datasetRelationship(DatasetRelationship datasetRelationship) {
+    public AssetRelationship datasetRelationship(Relationship datasetRelationship) {
         this.datasetRelationship = datasetRelationship;
         return this;
     }

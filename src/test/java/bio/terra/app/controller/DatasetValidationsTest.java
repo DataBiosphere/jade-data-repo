@@ -27,6 +27,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -207,6 +208,39 @@ public class DatasetValidationsTest {
         ErrorModel errorModel = expectBadDatasetCreateRequest(req);
         checkValidationErrorModel(errorModel,
             new String[]{"InvalidAssetTableColumn", "InvalidRootColumn"});
+    }
+
+    @Test
+    public void testArrayAssetRootColumn() throws Exception {
+        ColumnModel arrayColumn = new ColumnModel()
+            .name("array_data")
+            .arrayOf(true)
+            .datatype("string");
+
+        DatasetRequestModel req = buildDatasetRequest();
+        req.getSchema().getTables().stream()
+            .filter(table -> table.getName().equals("sample"))
+            .findFirst()
+            .ifPresent(sampleTable -> {
+                ArrayList<ColumnModel> columns = new ArrayList<>(sampleTable.getColumns());
+                columns.add(arrayColumn);
+                sampleTable.setColumns(columns);
+            });
+
+        AssetTableModel assetTable = new AssetTableModel()
+            .name("sample")
+            .columns(Collections.emptyList());
+
+        AssetModel asset = new AssetModel()
+            .name("bad_root")
+            .rootTable("sample")
+            .rootColumn(arrayColumn.getName())
+            .tables(Collections.singletonList(assetTable))
+            .follow(Collections.singletonList("participant_sample"));
+
+        req.getSchema().setAssets(Collections.singletonList(asset));
+        ErrorModel errorModel = expectBadDatasetCreateRequest(req);
+        checkValidationErrorModel(errorModel, new String[]{"InvalidArrayRootColumn"});
     }
 
     @Test

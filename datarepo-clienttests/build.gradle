@@ -69,6 +69,7 @@ dependencies {
     compile 'com.google.api-client:google-api-client:1.23.0'
     compile 'com.google.oauth-client:google-oauth-client-jetty:1.23.0'
     compile 'com.google.apis:google-api-services-people:v1-rev277-1.23.0'
+    compile 'com.google.cloud:google-cloud-bigquery:1.108.1'
     compile 'com.google.cloud:google-cloud-storage:1.108.0'
     compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.20.0'
 }

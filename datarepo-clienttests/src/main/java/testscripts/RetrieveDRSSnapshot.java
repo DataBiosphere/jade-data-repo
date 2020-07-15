@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
@@ -167,15 +166,13 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
     // fileRefs should only be 1 in size
     String fileModelFileId = fileRefs.get(0);
-    System.out.println("well hello there");
-    System.out.println(fileModelFileId); //
-
-    String dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + fileModelFileId;
+    String fileId = fileModelFileId.split("_")[2];
+    String dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + fileId;
     DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
     System.out.println(dirObjectId);
 
     System.out.println(
-        "successfully retrieved snaphot: "
+        "successfully retrieved drs object: "
             + object.getName()
             + ", data project: "
             + snapshotModel.getDataProject());

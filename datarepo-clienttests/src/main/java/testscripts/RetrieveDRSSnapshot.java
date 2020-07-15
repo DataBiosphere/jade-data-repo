@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 
@@ -174,7 +173,7 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
             + object.getName()
             + " with id: "
             + dirObjectId
-            +", data project: "
+            + ", data project: "
             + snapshotModel.getDataProject());
   }
 

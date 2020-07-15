@@ -34,7 +34,7 @@ public class ModularHelmChart extends DeploymentScript {
   private ServerSpecification serverSpecification;
   private ApplicationSpecification applicationSpecification;
 
-  private static int maximumSecondsToWaitForDeploy = 500;
+  private static int maximumSecondsToWaitForDeploy = 1000;
   private static int secondsIntervalToPollForDeploy = 15;
 
   /** Public constructor so that this class can be instantiated via reflection. */
@@ -42,6 +42,12 @@ public class ModularHelmChart extends DeploymentScript {
     super();
   }
 
+  /**
+   * Expects a single parameter: a URL to the Helm datarepo-api definition YAML. The URL may point
+   * to a local (i.e. file://) or remote (e.g. https://) file.
+   *
+   * @param parameters list of string parameters supplied by the test configuration
+   */
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 1) {
       throw new IllegalArgumentException(
@@ -52,6 +58,16 @@ public class ModularHelmChart extends DeploymentScript {
     }
   }
 
+  /**
+   * 1. Copy the specified Helm datarepo-api definition YAML file to the current working directory.
+   * 2. Modify the copied original YAML file to include the environment variables specified in the
+   * application configuration. 3. Delete the existing API deployment using Helm. 4. Re-install the
+   * API deployment using the modified datarepo-api definition YAML file. 5. Delete the two
+   * temporary files created in the current working directory.
+   *
+   * @param server the server configuration supplied by the test configuration
+   * @param app the application configuration supplied by the test configuration
+   */
   public void deploy(ServerSpecification server, ApplicationSpecification app) throws Exception {
     // store these on the instance to avoid passing them around to all the helper methods
     serverSpecification = server;
@@ -59,7 +75,7 @@ public class ModularHelmChart extends DeploymentScript {
 
     // get file handle to original/template API deployment Helm YAML file
     File originalApiYamlFile =
-        FileUtils.createFileFromURL(new URL(helmApiFilePath), "datarepo-api_ORIGINAL.yaml");
+        FileUtils.createCopyOfFileFromURL(new URL(helmApiFilePath), "datarepo-api_ORIGINAL.yaml");
 
     // modify the original/template YAML file and write the output to a new file
     File modifiedApiYamlFile = FileUtils.createNewFile("datarepo-api_MODIFIED.yaml");
@@ -73,7 +89,11 @@ public class ModularHelmChart extends DeploymentScript {
     deleteCmdArgs.add(serverSpecification.namespace + "-jade-datarepo-api");
     deleteCmdArgs.add("--namespace");
     deleteCmdArgs.add(serverSpecification.namespace);
-    ProcessUtils.executeCommand("helm", deleteCmdArgs);
+    Process helmDeleteProc = ProcessUtils.executeCommand("helm", deleteCmdArgs);
+    List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmDeleteProc);
+    for (String cmdOutputLine : cmdOutputLines) {
+      System.out.println(cmdOutputLine);
+    }
 
     // list the available deployments (for debugging)
     // e.g. helm ls --namespace mm
@@ -81,7 +101,11 @@ public class ModularHelmChart extends DeploymentScript {
     listCmdArgs.add("ls");
     listCmdArgs.add("--namespace");
     listCmdArgs.add(serverSpecification.namespace);
-    ProcessUtils.executeCommand("helm", listCmdArgs);
+    Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
+    cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
+    for (String cmdOutputLine : cmdOutputLines) {
+      System.out.println(cmdOutputLine);
+    }
 
     // install/upgrade the API deployment using the modified YAML file we just generated
     // e.g. helm namespace upgrade mm-jade-datarepo-api datarepo-helm/datarepo-api --install
@@ -96,15 +120,36 @@ public class ModularHelmChart extends DeploymentScript {
     installCmdArgs.add(serverSpecification.namespace);
     installCmdArgs.add("-f");
     installCmdArgs.add(modifiedApiYamlFile.getAbsolutePath());
-    ProcessUtils.executeCommand("helm", installCmdArgs);
+    Process helmUpgradeProc = ProcessUtils.executeCommand("helm", installCmdArgs);
+    cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmUpgradeProc);
+    for (String cmdOutputLine : cmdOutputLines) {
+      System.out.println(cmdOutputLine);
+    }
 
+    // delete the two temp YAML files created above
+    boolean originalYamlFileDeleted = originalApiYamlFile.delete();
+    if (!originalYamlFileDeleted) {
+      throw new RuntimeException(
+          "Error deleting the _ORIGINAL YAML file: " + originalApiYamlFile.getAbsolutePath());
+    }
     boolean modifiedYamlFileDeleted = modifiedApiYamlFile.delete();
     if (!modifiedYamlFileDeleted) {
       throw new RuntimeException(
-          "Error deleting the modified YAML file: " + modifiedApiYamlFile.getAbsolutePath());
+          "Error deleting the _MODIFIED YAML file: " + modifiedApiYamlFile.getAbsolutePath());
     }
   }
 
+  /**
+   * 1. Poll the deployment status with Helm until it reports that the datarepo-api is "deployed".
+   * 2. Poll the unauthenticated status endpoint until it returns success.
+   *
+   * <p>Waiting for the deployment to be ready to respond to API requests, often takes a long time
+   * (~5-15 minutes) because we deleted the deployment before re-installing it. This restarts the
+   * oidc-proxy which is what's holding things up. If we skip the delete deployment and just
+   * re-install, then this method usually returns much quicker (~1-5 minutes). We need to do the
+   * delete in order for the databases (Stairway and Data Repo) to be wiped because of how they
+   * decide which pod will do the database migration.
+   */
   public void waitForDeployToFinish() throws Exception {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForDeploy, secondsIntervalToPollForDeploy);
 
@@ -119,7 +164,10 @@ public class ModularHelmChart extends DeploymentScript {
       listCmdArgs.add("--namespace");
       listCmdArgs.add(serverSpecification.namespace);
       Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
-      List<String> cmdOutputLines = ProcessUtils.readStdout(helmListProc);
+      List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
+      for (String cmdOutputLine : cmdOutputLines) {
+        System.out.println(cmdOutputLine);
+      }
 
       for (String cmdOutputLine : cmdOutputLines) {
         if (cmdOutputLine.startsWith(serverSpecification.namespace + "-jade-datarepo-api")) {
@@ -161,6 +209,13 @@ public class ModularHelmChart extends DeploymentScript {
     }
   }
 
+  /**
+   * Loop through the original datarepo-api YAML file and modify or add environment variables. Write
+   * the result to the specified output file.
+   *
+   * @param inputFile the original datarepo-api YAML file
+   * @param outputFile the modified datarepo-api YAML file
+   */
   private void parseAndModifyApiYamlFile(File inputFile, File outputFile) throws IOException {
     // the file line-by-line parsing below can be brittle because the YAML format is strictly
     // enforced
@@ -243,6 +298,13 @@ public class ModularHelmChart extends DeploymentScript {
           "DB_STAIRWAY_URI",
           "SPRING_PROFILES_ACTIVE");
 
+  /**
+   * Modify the map of environment variables read from the original datarepo-api YAML file to
+   * include the values specified by the application configuration or required by the test runner.
+   *
+   * @param envVars the original map
+   * @return the modified map
+   */
   private Map<String, String> processEnvVars(Map<String, String> envVars) {
     Map<String, String> modifiedEnvVars = new HashMap<>();
     for (String var : environmentSpecificVariables) {

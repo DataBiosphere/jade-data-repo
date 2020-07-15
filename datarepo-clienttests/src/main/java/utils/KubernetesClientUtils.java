@@ -69,7 +69,11 @@ public final class KubernetesClientUtils {
     scriptArgs.add(server.clusterShortName);
     scriptArgs.add(server.region);
     scriptArgs.add(server.project);
-    ProcessUtils.executeCommand("sh", scriptArgs);
+    Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
+    List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
+    for (String cmdOutputLine : cmdOutputLines) {
+      System.out.println(cmdOutputLine);
+    }
 
     // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
     String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";

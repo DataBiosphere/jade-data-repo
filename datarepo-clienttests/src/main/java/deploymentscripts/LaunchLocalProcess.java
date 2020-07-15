@@ -33,6 +33,12 @@ public class LaunchLocalProcess extends DeploymentScript {
     super();
   }
 
+  /**
+   * Expects a single parameter: a local URL (i.e. file://) that points to the top-level directory
+   * where jade-data-repo code is checked out.
+   *
+   * @param parameters list of string parameters supplied by the test configuration
+   */
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() < 1) {
       throw new IllegalArgumentException(
@@ -43,6 +49,14 @@ public class LaunchLocalProcess extends DeploymentScript {
     }
   }
 
+  /**
+   * 1. Check that there is no server already running locally. 2. Check that the pointer to the
+   * local codebase is valid. 3. Launch the server from the codebase directory with the gradle
+   * bootRun task.
+   *
+   * @param server the server configuration supplied by the test configuration
+   * @param app the application configuration supplied by the test configuration
+   */
   public void deploy(ServerSpecification server, ApplicationSpecification app) throws Exception {
     // store these on the instance to avoid passing them around to all the helper methods
     serverSpecification = server;
@@ -85,6 +99,7 @@ public class LaunchLocalProcess extends DeploymentScript {
         ProcessUtils.executeCommand("./gradlew", gradleCmdArgs, jadedatarepoDirectory, envVars);
   }
 
+  /** 1. Poll the unauthenticated status endpoint until it returns success. */
   public void waitForDeployToFinish() throws Exception {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForProcess, secondsIntervalToPollForProcess);
 
@@ -120,6 +135,10 @@ public class LaunchLocalProcess extends DeploymentScript {
     }
   }
 
+  /**
+   * 1. Kill the process and wait for it to terminate, up to a timeout. 2. Check that the
+   * unauthenticated status endpoint does NOT respond successfully.
+   */
   public void teardown() throws Exception {
     boolean processKilled =
         ProcessUtils.killProcessAndWaitForTermination(
@@ -143,6 +162,12 @@ public class LaunchLocalProcess extends DeploymentScript {
     System.out.println("Status request returned OK: " + statusRequestOK);
   }
 
+  /**
+   * Build a map of environment variables specified by the application configuration or required by
+   * the test runner.
+   *
+   * @return the map
+   */
   private Map<String, String> buildEnvVarsMap() {
     Map<String, String> envVars = new HashMap<>();
 

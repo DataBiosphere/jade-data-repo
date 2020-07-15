@@ -67,7 +67,7 @@ public final class FileUtils {
    * @param localFileName the name of the copy to create
    * @return the new file
    */
-  public static File createFileFromURL(URL url, String localFileName) throws IOException {
+  public static File createCopyOfFileFromURL(URL url, String localFileName) throws IOException {
     File localFile = createNewFile(localFileName);
 
     ReadableByteChannel readChannel = Channels.newChannel(url.openStream());

@@ -58,34 +58,35 @@ public final class ProcessUtils {
   }
 
   /**
-   * Reads in all lines that the given process writes to stdout.
+   * Reads in all lines that the given process writes to stdout. Blocks until the process
+   * terminates.
    *
    * @param proc the process handle
    * @return the list of lines written to stdout
    */
-  public static List<String> readStdout(Process proc) throws IOException {
+  public static List<String> waitForTerminateAndReadStdout(Process proc) throws IOException {
     return readStdout(proc, -1);
   }
 
   /**
    * Reads in all lines that the given process writes to stdout, up to the given maximum number of
-   * lines.
+   * lines. Blocks until the given number of lines are written to stdout.
    *
    * @param proc the process handle
-   * @param maxNumLines the maximum number of lines to read. any negative number to read until the
-   *     process ends.
+   * @param numLines the maximum number of lines to read. any negative number means to read until
+   *     the process terminates
    * @return the list of lines written to stdout
    */
-  public static List<String> readStdout(Process proc, long maxNumLines) throws IOException {
+  public static List<String> readStdout(Process proc, long numLines) throws IOException {
     // read in all lines written to stdout
     BufferedReader bufferedReader =
         new BufferedReader(new InputStreamReader(proc.getInputStream(), Charset.defaultCharset()));
     String outputLine;
     List<String> outputLines = new ArrayList<>();
 
-    while ((outputLine = bufferedReader.readLine()) != null && maxNumLines != 0) {
+    while ((outputLine = bufferedReader.readLine()) != null && numLines != 0) {
       outputLines.add(outputLine);
-      maxNumLines--;
+      numLines--;
     }
     bufferedReader.close();
 

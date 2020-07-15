@@ -39,8 +39,8 @@ jobs:
         id: uiprevioustag
         uses: broadinstitute/datarepo-actions@ms-alpha-release
         with:
-          actions_subcommand: alpharelease
+          actions_subcommand: 'alpharelease'
           role_id: ${{ secrets.ROLE_ID }}
           secret_id: ${{ secrets.SECRET_ID }}
           alpharelease: ${{ steps.apiprevioustag.outputs.tag }}
-          gcr_google_project: broad-jade-dev
+          gcr_google_project: 'broad-jade-dev'

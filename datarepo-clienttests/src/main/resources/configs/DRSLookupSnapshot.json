@@ -14,14 +14,6 @@
       "numberToRunInParallel": 3,
       "expectedTimeForEach": 20,
       "expectedTimeForEachUnit": "SECONDS"
-    },
-    {
-      "name": "RetrieveDRSSnapshot",
-      "parameters": ["gs://jade-testdata/fileloadprofiletest/10KBfile.txt"],
-      "totalNumberToRun": 15,
-      "numberToRunInParallel": 3,
-      "expectedTimeForEach": 20,
-      "expectedTimeForEachUnit": "SECONDS"
     }
   ],
   "testUserFiles": ["dumbledore.json", "voldemort.json"]

@@ -5,17 +5,18 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
+import com.google.cloud.bigquery.*;
 import com.google.cloud.storage.*;
-import org.apache.commons.lang3.StringUtils;
-import utils.DataRepoUtils;
-import utils.FileUtils;
-
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import utils.DataRepoUtils;
+import utils.FileUtils;
 
 public class RetrieveDRSSnapshot extends runner.TestScript {
 
@@ -140,11 +141,38 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
     DataRepositoryServiceApi dataRepositoryServiceApi = new DataRepositoryServiceApi(apiClient);
 
     SnapshotModel snapshotModel = repositoryApi.retrieveSnapshot(snapshotSummaryModel.getId());
-    snapshotModel.getTables().get(0).getColumns();
+    TableModel tableModel = snapshotModel.getTables().get(0);
+    BigQuery bigQuery =
+        BigQueryOptions.newBuilder()
+            .setProjectId(snapshotModel.getDataProject())
+            .build()
+            .getService();
+    // System.out.println(snapshotModel.getDataProject()); // broad-jade-mm-data
+    // System.out.println(source.get(0).getDataset().getName()); //
+    // DatasetSimple13213724609325394569
+    // System.out.println(tableModel.getName()); // vcf_file
+    String queryForFileRefs =
+        "SELECT * FROM "
+            + snapshotModel.getDataProject()
+            + "."
+            + snapshotModel.getName()
+            + "."
+            + tableModel.getName();
 
-      String dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + fileModel.getFileId();
-    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);// TODO do I need to set a filter?
+    QueryJobConfiguration queryConfig = QueryJobConfiguration.newBuilder(queryForFileRefs).build();
+    TimeUnit.SECONDS.sleep(60);
+    TableResult result = bigQuery.query(queryConfig);
 
+    ArrayList<String> fileRefs = new ArrayList<>();
+    result.iterateAll().forEach(r -> fileRefs.add(r.get("VCF_File_Ref").getStringValue()));
+    // fileRefs should only be 1 in size
+    String fileModelFileId = fileRefs.get(0);
+    System.out.println("well hello there");
+    System.out.println(fileModelFileId); //
+
+    String dirObjectId = "v1_" + snapshotSummaryModel.getId() + "_" + fileModelFileId;
+    DRSObject object = dataRepositoryServiceApi.getObject(dirObjectId, false);
+    System.out.println(dirObjectId);
 
     System.out.println(
         "successfully retrieved snaphot: "

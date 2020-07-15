@@ -5,15 +5,14 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
 import com.google.cloud.storage.*;
-import utils.DataRepoUtils;
-import utils.FileUtils;
-
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import utils.DataRepoUtils;
+import utils.FileUtils;
 
 public class RetrieveSnapshot extends runner.TestScript {
 

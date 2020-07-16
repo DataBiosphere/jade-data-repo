@@ -184,7 +184,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        DataAccessException faultToInsert = getFaultToInsert();
+        DataAccessException faultToInsert = getSharedLockFaultToInsert();
         int numRowsUpdated = 0;
         try {
             // used for test DatasetConnectedTest > testRetryAcquireSharedLock
@@ -214,7 +214,7 @@ public class DatasetDao {
         }
     }
 
-    private DataAccessException getFaultToInsert() {
+    private DataAccessException getSharedLockFaultToInsert() {
         if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT)) {
             logger.info("LockDatasetStep - insert RETRY fault to throw during lockShared()");
             return new OptimisticLockingFailureException(
@@ -245,14 +245,14 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        //DataAccessException faultToInsert = getFaultToInsert();
+        DataAccessException faultToInsert = getSharedUnlockFaultToInsert();
         int numRowsUpdated = 0;
         try {
-            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
-            //if (faultToInsert != null) {
-              //  logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
-              //  throw faultToInsert;
-            //}
+            // used for test DatasetConnectedTest > testRetryAcquireSharedUnlock
+            if (faultToInsert != null) {
+                logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+                throw faultToInsert;
+            }
             numRowsUpdated = jdbcTemplate.update(sql, params);
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {
@@ -262,6 +262,19 @@ public class DatasetDao {
         }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
         return (numRowsUpdated == 1);
+    }
+
+    private DataAccessException getSharedUnlockFaultToInsert() {
+        if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT)) {
+            logger.info("UnlockDatasetStep - insert RETRY fault to throw during lockShared()");
+            return new OptimisticLockingFailureException(
+                "TEST RETRY SHARED UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing shared lock exception");
+        } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT)) {
+            logger.info("UnlockDatasetStep - insert FATAL fault to throw during lockShared()");
+            return new DataIntegrityViolationException(
+                "TEST RETRY SHARED UNLOCK - FATAL EXCEPTION - insert fault, throwing shared lock exception");
+        }
+        return null;
     }
 
     /**

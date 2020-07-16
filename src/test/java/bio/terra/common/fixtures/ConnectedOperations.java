@@ -470,14 +470,11 @@ public class ConnectedOperations {
 
     public void retryAcquireLockIngestFileSuccess(
         boolean attemptRetry,
+        ConfigEnum faultToInsert,
         String datasetId,
         FileLoadModel fileLoadModel,
         ConfigurationService configService,
         DatasetDao datasetDao) throws Exception {
-        // Insert fault into shared lock
-        ConfigEnum faultToInsert = attemptRetry ?
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT :
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
         configService.setFault(faultToInsert.name(), true);
 
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);

@@ -2656,6 +2656,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/TableModel'
+      relationships:
+        type: array
+        items:
+          $ref: '#/definitions/RelationshipModel'
       profileId:
         $ref: '#/definitions/UniqueIdProperty'
         description: The profile id of this snapshot

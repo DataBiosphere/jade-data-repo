@@ -41,7 +41,7 @@ public class DatasetDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final Connection connection;
     private final DatasetTableDao tableDao;
-    private final RelationshipDao relationshipDao;
+    private final DatasetRelationshipDao relationshipDao;
     private final AssetDao assetDao;
 
     private static Logger logger = LoggerFactory.getLogger(DatasetDao.class);
@@ -52,7 +52,7 @@ public class DatasetDao {
     @Autowired
     public DatasetDao(DataRepoJdbcConfiguration jdbcConfiguration,
                     DatasetTableDao tableDao,
-                    RelationshipDao relationshipDao,
+                    DatasetRelationshipDao relationshipDao,
                     AssetDao assetDao) throws SQLException {
         jdbcTemplate = new NamedParameterJdbcTemplate(jdbcConfiguration.getDataSource());
         connection = jdbcConfiguration.getDataSource().getConnection();

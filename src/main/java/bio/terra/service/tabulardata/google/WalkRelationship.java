@@ -2,7 +2,7 @@ package bio.terra.service.tabulardata.google;
 
 import bio.terra.service.dataset.AssetRelationship;
 import bio.terra.service.dataset.AssetSpecification;
-import bio.terra.service.dataset.DatasetRelationship;
+import bio.terra.common.Relationship;
 import bio.terra.common.Table;
 import bio.terra.common.Column;
 
@@ -33,7 +33,7 @@ public class WalkRelationship {
     }
 
     public static WalkRelationship ofAssetRelationship(AssetRelationship assetRelationship) {
-        DatasetRelationship datasetRelationship = assetRelationship.getDatasetRelationship();
+        Relationship datasetRelationship = assetRelationship.getDatasetRelationship();
         return new WalkRelationship()
                 .fromColumn(datasetRelationship.getFromColumn())
                 .fromTable(datasetRelationship.getFromTable())

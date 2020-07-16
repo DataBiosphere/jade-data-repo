@@ -3,8 +3,6 @@ package runner;
 import bio.terra.datarepo.client.ApiClient;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1Pod;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;

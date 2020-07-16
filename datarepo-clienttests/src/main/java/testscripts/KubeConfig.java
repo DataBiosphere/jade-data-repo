@@ -5,7 +5,6 @@ import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
 import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -30,9 +29,7 @@ public class KubeConfig extends runner.TestScript {
       throw new IllegalArgumentException(
           "Must provide a number of files to load between 1 and 25 in the parameters list");
     } else {
-      // filesToLoad should be between 1 and 25. Default to 25.
-      int filesToLoadParam = Integer.parseInt(parameters.get(0));
-      filesToLoad = filesToLoadParam <= 25 && filesToLoadParam > 0 ? filesToLoadParam : 25;
+      filesToLoad = Integer.parseInt(parameters.get(0));
     }
   }
 
@@ -80,8 +77,8 @@ public class KubeConfig extends runner.TestScript {
     /*---------------------------------------------*/
     /* Manipulating kubernetes pods during file ingest */
 
-      // initial poll as file ingest begins
-      bulkLoadArrayJobResponse =
+    // initial poll as file ingest begins
+    bulkLoadArrayJobResponse =
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
@@ -95,7 +92,7 @@ public class KubeConfig extends runner.TestScript {
       // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
         System.out.println("Scaling pods back up to 4");
-          KubernetesClientUtils.modifyKubernetesPostDeployment(4);
+        KubernetesClientUtils.modifyKubernetesPostDeployment(4);
       }
     }
     /*---------------------------------------------*/
@@ -107,10 +104,7 @@ public class KubeConfig extends runner.TestScript {
   // This should run about 5 minutes on 2 DRmanager instances. The speed of loads is when
   // they are not local is about 2.5GB/minutes. With a fixed size of 1GB, each instance should do
   // 2.5 files per minute, so two instances should do 5 files per minute. To run 5 minutes we should
-  // run
-  // 25 files. (There are 25 files in the directory, so if we need more we should do a reuse scheme
-  // like the
-  // fileLoadTest)
+  // run 25 files.
   private BulkLoadArrayRequestModel buildBulkLoadFileRequest() {
     String loadTag = FileUtils.randomizeName("longtest");
 
@@ -126,10 +120,16 @@ public class KubeConfig extends runner.TestScript {
             + " files into dataset id "
             + datasetSummaryModel.getId());
 
+    // There are currently 26 source files, so if ingesting more files: continue to loop through the
+    // source files,
+    // but point to new target files file paths
+    int numberOfSourceFiles = 26;
     for (int i = 0; i < filesToLoad; i++) {
-      String tailPath = String.format("/fileloadscaletest/file1GB-%02d.txt", i);
-      String sourcePath = "gs://jade-testdata-uswestregion" + tailPath;
-      String targetPath = "/" + loadTag + tailPath;
+      String fileBasePath = "/fileloadscaletest/file1GB-%02d.txt";
+      String sourcePath =
+          "gs://jade-testdata-uswestregion" + String.format(fileBasePath, i % numberOfSourceFiles);
+      String targetPath = "/" + loadTag + String.format(fileBasePath, i);
+      System.out.println("Source Path: " + sourcePath + "; Target Path: " + targetPath);
 
       BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
       model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);

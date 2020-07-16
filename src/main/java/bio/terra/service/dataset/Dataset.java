@@ -1,6 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.Column;
+import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
 import org.apache.commons.lang3.StringUtils;
 
@@ -16,7 +17,7 @@ public class Dataset implements FSContainerInterface {
 
     private final DatasetSummary datasetSummary;
     private List<DatasetTable> tables = Collections.emptyList();
-    private List<DatasetRelationship> relationships = Collections.emptyList();
+    private List<Relationship> relationships = Collections.emptyList();
     private List<AssetSpecification> assetSpecifications = Collections.emptyList();
 
     public Dataset() {
@@ -36,11 +37,11 @@ public class Dataset implements FSContainerInterface {
         return this;
     }
 
-    public List<DatasetRelationship> getRelationships() {
+    public List<Relationship> getRelationships() {
         return Collections.unmodifiableList(relationships);
     }
 
-    public Dataset relationships(List<DatasetRelationship> relationships) {
+    public Dataset relationships(List<Relationship> relationships) {
         this.relationships = Collections.unmodifiableList(relationships);
         return this;
     }
@@ -84,8 +85,8 @@ public class Dataset implements FSContainerInterface {
         return tables;
     }
 
-    public Map<UUID, DatasetRelationship> getRelationshipsById() {
-        Map<UUID, DatasetRelationship> relationships = new HashMap<>();
+    public Map<UUID, Relationship> getRelationshipsById() {
+        Map<UUID, Relationship> relationships = new HashMap<>();
         getRelationships().forEach(relationship -> relationships.put(relationship.getId(), relationship));
         return relationships;
     }

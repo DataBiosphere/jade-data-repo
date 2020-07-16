@@ -8,6 +8,19 @@
         "columns": [
           {"name": "thecolumn", "datatype": "string"}
         ]
+      },
+      {
+        "name":    "anothertable",
+        "columns": [
+          {"name": "anothercolumn", "datatype": "string"}
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "therelationship",
+        "from": {"table": "thetable", "column": "thecolumn"},
+        "to":   {"table": "anothertable", "column": "anothercolumn"}
       }
     ],
     "assets":        [
@@ -16,8 +29,10 @@
         "rootTable": "thetable",
         "rootColumn": "thecolumn",
         "tables": [
-          {"name": "thetable", "columns": []}
-        ]
+          {"name": "thetable", "columns": []},
+          {"name": "anothertable", "columns": []}
+        ],
+        "follow": ["therelationship"]
       }
     ]
   }

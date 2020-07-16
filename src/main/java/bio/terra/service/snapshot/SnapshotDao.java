@@ -41,16 +41,19 @@ public class SnapshotDao {
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final SnapshotTableDao snapshotTableDao;
     private final SnapshotMapTableDao snapshotMapTableDao;
+    private final SnapshotRelationshipDao snapshotRelationshipDao;
     private final DatasetDao datasetDao;
 
     @Autowired
     public SnapshotDao(NamedParameterJdbcTemplate jdbcTemplate,
                       SnapshotTableDao snapshotTableDao,
                       SnapshotMapTableDao snapshotMapTableDao,
+                      SnapshotRelationshipDao snapshotRelationshipDao,
                       DatasetDao datasetDao) {
         this.jdbcTemplate = jdbcTemplate;
         this.snapshotTableDao = snapshotTableDao;
         this.snapshotMapTableDao = snapshotMapTableDao;
+        this.snapshotRelationshipDao = snapshotRelationshipDao;
         this.datasetDao = datasetDao;
     }
 
@@ -185,6 +188,7 @@ public class SnapshotDao {
         UUID id = keyHolder.getId();
         snapshotSource.id(id);
         snapshotMapTableDao.createTables(id, snapshotSource.getSnapshotMapTables());
+        snapshotRelationshipDao.createSnapshotRelationships(snapshotSource.getSnapshot());
     }
 
     public boolean delete(UUID id) {
@@ -263,8 +267,9 @@ public class SnapshotDao {
                     .profileId(rs.getObject("profile_id", UUID.class)));
             // needed for findbugs. but really can't be null
             if (snapshot != null) {
-                // retrieve the snapshot tables
+                // retrieve the snapshot tables and relationships
                 snapshot.snapshotTables(snapshotTableDao.retrieveTables(snapshot.getId()));
+                snapshotRelationshipDao.retrieve(snapshot);
 
                 // Must be done after we we make the snapshot tables so we can resolve the table and column references
                 snapshot.snapshotSources(retrieveSnapshotSources(snapshot));

@@ -15,9 +15,15 @@ public final class FileUtils {
 
   private static SecureRandom randomGenerator = new SecureRandom();
 
+  /**
+   * Append a random integer to the provided string.
+   *
+   * @param baseName the string to append to
+   * @return the new string
+   */
   public static String randomizeName(String baseName) {
     long suffix = randomGenerator.nextLong();
-    return baseName + (suffix <= 0 ? -suffix : suffix);
+    return baseName + Long.toUnsignedString(suffix);
   }
 
   /**

@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import runner.config.ServerSpecification;
 
 // TODO: add try/catch for refresh token around all utils methods
@@ -241,7 +242,7 @@ public final class KubernetesClientUtils {
             .count();
 
     while (numPods != numberOfReplicas && pollCtr >= 0) {
-      Thread.sleep(secondsIntervalToPollReplicaSetSizeChange * 1000);
+      TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
       numPods =
           listPods(namespace).stream()
               .filter(

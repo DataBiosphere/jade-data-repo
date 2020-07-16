@@ -1,13 +1,8 @@
 package bio.terra.app.logging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
-
-@Component
 
 /**
  * This class implements DISABLED performance logging. It is used when the "perftest" profile is NOT active.
@@ -16,15 +11,13 @@ import java.time.Duration;
  * methods in a production environment, but it is low because there is no actual work being done here. It's just
  * the overhead of calling a Java method and returning.
  */
+@Component
 public class PerformanceLoggerOFF implements PerformanceLogger {
 
-    public static final boolean isPerformanceLoggingEnabled = false;
+    public PerformanceLoggerOFF() { }
 
-    private static Logger logger = LoggerFactory.getLogger(PerformanceLoggerOFF.class);
-
-    @Autowired
-    public PerformanceLoggerOFF() {
-        logger.info("Performance logging OFF");
+    public boolean isEnabled() {
+        return false;
     }
 
     public void log(String jobId, String className, String operationName,

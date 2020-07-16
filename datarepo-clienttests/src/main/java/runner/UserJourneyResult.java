@@ -1,14 +1,15 @@
 package runner;
 
 public class UserJourneyResult {
-  public String testScriptName;
+  public String userJourneyDescription;
   public String threadName;
 
-  public Exception exceptionThrown;
   public boolean completed;
+  public long elapsedTime;
+  public Exception exceptionThrown;
 
-  public UserJourneyResult(String testScriptName, String threadName) {
-    this.testScriptName = testScriptName;
+  public UserJourneyResult(String userJourneyDescription, String threadName) {
+    this.userJourneyDescription = userJourneyDescription;
     this.threadName = threadName;
 
     this.exceptionThrown = null;
@@ -16,9 +17,10 @@ public class UserJourneyResult {
   }
 
   public void display() {
-    System.out.println("User Journey Result: " + testScriptName);
+    System.out.println("User Journey Result: " + userJourneyDescription);
     System.out.println("  threadName: " + threadName);
     System.out.println("  completed: " + completed);
+    System.out.println("  elapsedTime (sec): " + (double) elapsedTime / (1e9));
     System.out.println(
         "  exceptionThrown: " + (exceptionThrown == null ? "" : exceptionThrown.getMessage()));
   }

@@ -75,6 +75,23 @@
           "participant_children",
           "participant_files"
         ]
+      },
+      {
+        "name":   "sample_by_collection_date",
+        "rootTable": "sample",
+        "rootColumn": "date_collected",
+        "tables": [
+          {"name": "sample", "columns": []},
+          {"name": "participant", "columns": []},
+          {"name": "file", "columns": []}
+        ],
+        "follow": [
+          "sample_derived_from",
+          "participant_samples",
+          "sample_participants",
+          "participant_children",
+          "participant_files"
+        ]
       }
     ]
   }

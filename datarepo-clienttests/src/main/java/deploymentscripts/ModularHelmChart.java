@@ -3,25 +3,18 @@ package deploymentscripts;
 import bio.terra.datarepo.api.UnauthenticatedApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLMapper;
 import com.google.api.client.http.HttpStatusCodes;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.URL;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import runner.DeploymentScript;
 import runner.config.ApplicationSpecification;
 import runner.config.ServerSpecification;
@@ -210,139 +203,70 @@ public class ModularHelmChart extends DeploymentScript {
   }
 
   /**
-   * Loop through the original datarepo-api YAML file and modify or add environment variables. Write
-   * the result to the specified output file.
+   * Parse the original datarepo-api YAML file and modify or add environment variables. Write the
+   * result to the specified output file.
    *
    * @param inputFile the original datarepo-api YAML file
    * @param outputFile the modified datarepo-api YAML file
    */
   private void parseAndModifyApiYamlFile(File inputFile, File outputFile) throws IOException {
-    // the file line-by-line parsing below can be brittle because the YAML format is strictly
-    // enforced
-    BufferedReader reader =
-        new BufferedReader(
-            new InputStreamReader(new FileInputStream(inputFile), Charset.defaultCharset()));
-    BufferedWriter writer =
-        new BufferedWriter(
-            new OutputStreamWriter(new FileOutputStream(outputFile), Charset.defaultCharset()));
-
-    // loop through the file looking for the "env" label
-    // echo each line out verbatim to the output file
-    String line;
-    while ((line = reader.readLine()) != null) {
-      // echo the line to the output file
-      writer.write(line);
-      writer.newLine();
-
-      if (line.startsWith("env:")) {
-        break;
-      }
+    ObjectMapper objectMapper = new YAMLMapper();
+    JsonNode inputTree = objectMapper.readTree(inputFile);
+    ObjectNode envSubTree = (ObjectNode) inputTree.get("env");
+    if (envSubTree == null) {
+      throw new IllegalArgumentException("Error parsing datarepo-api YAML file");
     }
 
-    // at this point, we're in the env section
-    // read in all values under this section, without echoing them back out immediately
-    // build a map and pass it to a helper method to process and fill in
-    Map<String, String> envVars = new HashMap<>();
-    Pattern envVarPattern = Pattern.compile("^\\s+(.*?):\\s(.*)");
-    while ((line = reader.readLine()) != null) {
-      // check if we've reached the end of the env section
-      if (!line.startsWith("  ")) {
-        // update the environment variable map
-        envVars = processEnvVars(envVars);
-
-        // write the updated map to the output file
-        for (Map.Entry<String, String> envVarEntry : envVars.entrySet()) {
-          writer.write("  " + envVarEntry.getKey() + ": " + envVarEntry.getValue());
-          writer.newLine();
-        }
-
-        writer.write(line);
-        writer.newLine();
-        break;
-      }
-
-      // parse this environment variable definition line into the map
-      Matcher lineMatcher = envVarPattern.matcher(line);
-      if (!lineMatcher.find()) {
-        reader.close();
-        writer.close();
-        throw new RuntimeException(
-            "Error parsing the datarepo-api/env section of the Helm YAML file: " + line);
-      }
-
-      // store the env var name -> value in the map
-      envVars.put(lineMatcher.group(1), lineMatcher.group(2));
-    }
-
-    // at this point we're out of the env section
-    // loop through the remaining lines, echoing each one out verbatim to the output file
-    while ((line = reader.readLine()) != null) {
-      writer.write(line);
-      writer.newLine();
-    }
-
-    // flush and close the streams
-    reader.close();
-    writer.flush();
-    writer.close();
-  }
-
-  // these environment variables are environment-specific and must be defined in the YAML already
-  private static final List<String> environmentSpecificVariables =
-      Arrays.asList(
-          "GOOGLE_PROJECTID",
-          "GOOGLE_SINGLEDATAPROJECTID",
-          "DB_DATAREPO_USERNAME",
-          "DB_STAIRWAY_USERNAME",
-          "DB_DATAREPO_URI",
-          "DB_STAIRWAY_URI",
-          "SPRING_PROFILES_ACTIVE");
-
-  /**
-   * Modify the map of environment variables read from the original datarepo-api YAML file to
-   * include the values specified by the application configuration or required by the test runner.
-   *
-   * @param envVars the original map
-   * @return the modified map
-   */
-  private Map<String, String> processEnvVars(Map<String, String> envVars) {
-    Map<String, String> modifiedEnvVars = new HashMap<>();
+    // confirm that the expected environment variables are set
+    final List<String> environmentSpecificVariables =
+        Arrays.asList(
+            "GOOGLE_PROJECTID",
+            "GOOGLE_SINGLEDATAPROJECTID",
+            "DB_DATAREPO_USERNAME",
+            "DB_STAIRWAY_USERNAME",
+            "DB_DATAREPO_URI",
+            "DB_STAIRWAY_URI",
+            "SPRING_PROFILES_ACTIVE");
     for (String var : environmentSpecificVariables) {
-      String varValue = envVars.get(var);
+      JsonNode varValue = envSubTree.get(var);
       if (varValue == null) {
         throw new IllegalArgumentException("Expected environment variable not found: " + var);
       }
-      modifiedEnvVars.put(var, varValue);
     }
 
     // add the perftest profile to the SPRING_PROFILES_ACTIVE if it isn't already included
-    String activeSpringProfiles = modifiedEnvVars.get("SPRING_PROFILES_ACTIVE");
+    String activeSpringProfiles = envSubTree.get("SPRING_PROFILES_ACTIVE").asText();
     if (!activeSpringProfiles.contains("perftest")) {
-      modifiedEnvVars.put("SPRING_PROFILES_ACTIVE", activeSpringProfiles + ",perftest");
+      envSubTree.put("SPRING_PROFILES_ACTIVE", activeSpringProfiles + ",perftest");
     }
 
     // always set the following testing-related environment variables
-    modifiedEnvVars.put("DB_STAIRWAY_FORCECLEAN", "true");
-    modifiedEnvVars.put("DB_MIGRATE_DROPALLONSTART", "true");
-    modifiedEnvVars.put("DATAREPO_GCS_ALLOWREUSEEXISTINGBUCKETS", "true");
+    envSubTree.put("DB_STAIRWAY_FORCECLEAN", "true");
+    envSubTree.put("DB_MIGRATE_DROPALLONSTART", "true");
+    envSubTree.put("DATAREPO_GCS_ALLOWREUSEEXISTINGBUCKETS", "true");
 
     // set the following environment variables from the application specification object
-    modifiedEnvVars.put(
-        "DATAREPO_MAXSTAIRWAYTHREADS", "\"" + applicationSpecification.maxStairwayThreads + "\"");
-    modifiedEnvVars.put(
-        "DATAREPO_MAXBULKFILELOAD", "\"" + applicationSpecification.maxBulkFileLoad + "\"");
-    modifiedEnvVars.put(
-        "DATAREPO_LOADCONCURRENTFILES", "\"" + applicationSpecification.loadConcurrentFiles + "\"");
-    modifiedEnvVars.put(
+    // make sure the values are Strings so that they will be quoted in the Helm chart
+    // otherwise, Helm may convert numbers to scientific notation, which breaks Spring's ability to
+    // read them in as application properties
+    envSubTree.put(
+        "DATAREPO_MAXSTAIRWAYTHREADS", String.valueOf(applicationSpecification.maxStairwayThreads));
+    envSubTree.put(
+        "DATAREPO_MAXBULKFILELOAD", String.valueOf(applicationSpecification.maxBulkFileLoad));
+    envSubTree.put(
+        "DATAREPO_LOADCONCURRENTFILES",
+        String.valueOf(applicationSpecification.loadConcurrentFiles));
+    envSubTree.put(
         "DATAREPO_LOADCONCURRENTINGESTS",
-        "\"" + applicationSpecification.loadConcurrentIngests + "\"");
-    modifiedEnvVars.put(
+        String.valueOf(applicationSpecification.loadConcurrentIngests));
+    envSubTree.put(
         "DATAREPO_LOADHISTORYCOPYCHUNKSIZE",
-        "\"" + applicationSpecification.loadHistoryCopyChunkSize + "\"");
-    modifiedEnvVars.put(
+        String.valueOf(applicationSpecification.loadHistoryCopyChunkSize));
+    envSubTree.put(
         "DATAREPO_LOADHISTORYWAITSECONDS",
-        "\"" + applicationSpecification.loadHistoryWaitSeconds + "\"");
+        String.valueOf(applicationSpecification.loadHistoryWaitSeconds));
 
-    return modifiedEnvVars;
+    // write the modified tree out to disk
+    objectMapper.writeValue(outputFile, inputTree);
   }
 }

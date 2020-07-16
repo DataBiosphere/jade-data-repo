@@ -4,7 +4,7 @@ import java.util.List;
 import runner.config.ApplicationSpecification;
 import runner.config.ServerSpecification;
 
-public class DeploymentScript {
+public abstract class DeploymentScript {
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public DeploymentScript() {}

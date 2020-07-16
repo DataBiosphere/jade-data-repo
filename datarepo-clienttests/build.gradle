@@ -27,6 +27,7 @@ dependencies {
     compile 'com.google.oauth-client:google-oauth-client-jetty:1.23.0'
     compile 'com.google.apis:google-api-services-people:v1-rev277-1.23.0'
     compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.20.0'
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.0"
 }
 
 group 'bio.terra'

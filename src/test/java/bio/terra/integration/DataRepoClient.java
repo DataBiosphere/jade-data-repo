@@ -20,6 +20,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
@@ -126,6 +129,7 @@ public class DataRepoClient {
                                                                HttpStatus notStatus) throws Exception {
         final int initialSeconds = 1;
         final int maxSeconds = 16;
+        Instant overTime = Instant.now().plus(Duration.of(1, ChronoUnit.HOURS));
 
         try {
             int count = 0;
@@ -141,6 +145,10 @@ public class DataRepoClient {
                     + " location: " + jobModelResponse.getLocationHeader().orElse("not present"));
                 if (jobModelResponse.getStatusCode() != notStatus) {
                     return jobModelResponse;
+                }
+
+                if (Instant.now().isAfter(overTime)) {
+                    throw new IllegalStateException("we have waited too long for a response");
                 }
             }
         } catch (InterruptedException ex) {

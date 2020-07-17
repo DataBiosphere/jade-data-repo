@@ -367,7 +367,7 @@ class TestRunner {
         "Set the initial number of pods ("
             + config.kubernetes.numberOfInitialPods
             + ") in the API deployment replica set");
-    KubernetesClientUtils.scaleKubernetesPodsAndWait(config.kubernetes.numberOfInitialPods);
+    KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
   void cleanupDataProject() {

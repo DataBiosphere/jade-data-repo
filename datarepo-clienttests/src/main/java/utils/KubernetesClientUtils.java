@@ -285,7 +285,7 @@ public final class KubernetesClientUtils {
    *
    * @param podCount count of pods to scale the kubernetes deployment to
    */
-  public static void scaleKubernetesPodsAndWait(int podCount) throws Exception {
+  public static void changeReplicaSetSizeAndWait(int podCount) throws Exception {
     V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");

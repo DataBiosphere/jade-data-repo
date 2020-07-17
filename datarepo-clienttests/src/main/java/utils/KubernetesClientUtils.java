@@ -275,21 +275,26 @@ public final class KubernetesClientUtils {
     }
   }
 
-  public static void modifyKubernetesPostDeployment(int podCount) throws Exception {
-    // set the initial number of pods in the API deployment replica set
+    /**
+     * Utilizing the other util functions to (1) fresh fetch of the api deployment,
+     * (2) scale the replica count, (3) wait for replica count to update, and (4) print the results
+     *
+     * @param podCount count of pods to scale the kubernetes deployment to
+     */
+  public static void scaleKubernetesPodsAndWait(int podCount) throws Exception {
     V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
     System.out.println(
-        "pod count before set initial replica set size: "
+        "Pod count before scaling kubernetes pods: "
             + KubernetesClientUtils.listPods().size());
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
     List<V1Pod> pods = KubernetesClientUtils.listPods();
-    System.out.println("initial number of pods: " + pods.size());
+    System.out.println("Pod count after scaling kubernetes pods: " + pods.size());
     for (V1Pod pod : pods) {
       System.out.println("  pod: " + pod.getMetadata().getName());
     }

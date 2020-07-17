@@ -61,7 +61,7 @@ class TestRunner {
     // update any Kubernetes properties specified by the test configuration
     if (!config.server.skipKubernetes) {
       KubernetesClientUtils.buildKubernetesClientObject(config.server);
-      KubernetesClientUtils.modifyKubernetesPostDeployment(config.kubernetes.numberOfInitialPods);
+      modifyKubernetesPostDeployment();
     }
 
     // get an instance of the API client per test user
@@ -430,6 +430,12 @@ class TestRunner {
         String.valueOf(config.application.loadHistoryWaitSeconds));
 
     return modifiedEnvVars;
+  }
+
+  void modifyKubernetesPostDeployment() throws Exception {
+      System.out.println("Set the initial number of pods (" + config.kubernetes.numberOfInitialPods +
+              ") in the API deployment replica set");
+      KubernetesClientUtils.scaleKubernetesPodsAndWait(config.kubernetes.numberOfInitialPods);
   }
 
   void deleteDeployment() {

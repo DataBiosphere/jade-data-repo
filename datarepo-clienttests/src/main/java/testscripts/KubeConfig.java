@@ -81,7 +81,7 @@ public class KubeConfig extends runner.TestScript {
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       System.out.println("Scaling pods down to 1");
-      KubernetesClientUtils.modifyKubernetesPostDeployment(1);
+      KubernetesClientUtils.scaleKubernetesPodsAndWait(1);
 
       // allow job to run on scaled down pods for interval
       bulkLoadArrayJobResponse =
@@ -90,7 +90,7 @@ public class KubeConfig extends runner.TestScript {
       // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
         System.out.println("Scaling pods back up to 4");
-        KubernetesClientUtils.modifyKubernetesPostDeployment(4);
+        KubernetesClientUtils.scaleKubernetesPodsAndWait(4);
       }
     }
     // =========================================================================

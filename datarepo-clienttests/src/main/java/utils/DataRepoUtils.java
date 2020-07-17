@@ -65,7 +65,7 @@ public final class DataRepoUtils {
     int tryCount = 1;
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      System.out.println("Sleeping. try #" + tryCount + "For Job: " + job.getDescription());
+      System.out.println("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
       TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
       job = repositoryApi.retrieveJob(job.getId());
       tryCount++;

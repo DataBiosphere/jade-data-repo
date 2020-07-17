@@ -52,6 +52,10 @@ import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_LOCK
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT;
+import static bio.terra.service.configuration.ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT;
 import static bio.terra.service.configuration.ConfigEnum.LOAD_HISTORY_WAIT_SECONDS;
 
 
@@ -239,6 +243,10 @@ public class ConfigurationService {
         addFaultSimple(FILE_INGEST_SHARED_LOCK_RETRY_FAULT);
         addFaultSimple(FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT);
         addFaultSimple(FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT);
+        addFaultSimple(FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT);
+        addFaultSimple(FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT);
+        addFaultSimple(FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT);
+        addFaultSimple(FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT);
 
         // File delete lock faults. These are used by DatasetConnectedTest > testSharedLockFileDelete
         addFaultCounted(FILE_DELETE_LOCK_CONFLICT_STOP_FAULT, 0, 2, 100,

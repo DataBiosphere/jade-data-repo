@@ -901,4 +901,23 @@ public class DatasetConnectedTest {
 
         return softDeleteRequest;
     }
+
+    @Test
+    public void testExclusiveLocks() throws Exception {
+        // check that the dataset metadata row has a shared lock
+        // note: asserts are below outside the hang block
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        // String[] sharedLocks1 = datasetDao.getSharedLocks(datasetId);
+        assertNull("dataset row has no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), true);
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
+        TimeUnit.SECONDS.sleep(20);
+        // assertNotNull("dataset row has no exclusive lock", exclusiveLock2);
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+        connectedOperations.checkDeleteResponse(response);
+    }
 }

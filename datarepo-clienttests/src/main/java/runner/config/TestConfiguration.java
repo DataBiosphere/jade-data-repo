@@ -21,7 +21,7 @@ public class TestConfiguration implements SpecificationInterface {
 
   public static final String resourceDirectory = "configs";
 
-  public TestConfiguration() {}
+  TestConfiguration() {}
 
   public static TestConfiguration fromJSONFile(String resourceFileName) throws Exception {
     // use Jackson to map the stream contents to a TestConfiguration object

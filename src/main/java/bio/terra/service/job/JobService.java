@@ -4,7 +4,6 @@ import bio.terra.app.configuration.ApplicationConfiguration;
 import bio.terra.app.configuration.StairwayJdbcConfiguration;
 import bio.terra.app.logging.PerformanceLogger;
 import bio.terra.model.JobModel;
-import bio.terra.service.filedata.google.firestore.FireStoreDao;
 import bio.terra.service.iam.AuthenticatedUserRequest;
 import bio.terra.service.iam.IamAction;
 import bio.terra.service.iam.IamResourceType;
@@ -32,6 +31,7 @@ import bio.terra.stairway.Stairway;
 import bio.terra.stairway.exception.DatabaseOperationException;
 import bio.terra.stairway.exception.FlightNotFoundException;
 import bio.terra.stairway.exception.StairwayException;
+import bio.terra.stairway.exception.StairwayExecutionException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -74,9 +74,8 @@ public class JobService {
                       KubeService kubeService,
                       JobShutdownState jobShutdownState,
                       Migrate migrate,
-                      FireStoreDao fireStoreDao,
                       ObjectMapper objectMapper,
-                      PerformanceLogger performanceLogger) {
+                      PerformanceLogger performanceLogger) throws StairwayExecutionException {
         this.samService = samService;
         this.appConfig = appConfig;
         this.kubeService = kubeService;
@@ -92,17 +91,16 @@ public class JobService {
             " in project: " + projectId);
         ExceptionSerializer serializer = new StairwayExceptionSerializer(objectMapper);
         stairway = Stairway.newBuilder()
+            // for debugging stairway flights, set this true and the flight logs will be retained
+            .keepFlightLog(true)
             .maxParallelFlights(appConfig.getMaxStairwayThreads())
             .exceptionSerializer(serializer)
             .applicationContext(applicationContext)
             .stairwayName(appConfig.getPodName())
             .stairwayHook(new StairwayLoggingHooks(performanceLogger))
             .stairwayClusterName(stairwayClusterName)
-            .projectId(projectId)
+            .workQueueProjectId(projectId)
             .enableWorkQueue(appConfig.isInKubernetes())
-            // TODO: the FireStoreDao class reliably returns the Spring class loader that seems to work for all TDR
-            //  classes, whereas the JobService class does not. It is a mystery worth solving at some point.
-            .classLoader(fireStoreDao.getClass().getClassLoader())
             .build();
     }
 

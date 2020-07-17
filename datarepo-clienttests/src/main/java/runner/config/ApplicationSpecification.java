@@ -5,11 +5,10 @@ public class ApplicationSpecification implements SpecificationInterface {
   public int maxBulkFileLoad = 1000000;
   public int loadConcurrentFiles = 4;
   public int loadConcurrentIngests = 2;
-  public boolean inKubernetes = false;
   public long loadHistoryCopyChunkSize = 1000;
   public long loadHistoryWaitSeconds = 2;
 
-  public ApplicationSpecification() {}
+  ApplicationSpecification() {}
 
   /** Validate the application specification read in from the JSON file. */
   public void validate() {
@@ -36,7 +35,6 @@ public class ApplicationSpecification implements SpecificationInterface {
     System.out.println("  maxBulkFileLoad: " + maxBulkFileLoad);
     System.out.println("  loadConcurrentFiles: " + loadConcurrentFiles);
     System.out.println("  loadConcurrentIngests: " + loadConcurrentIngests);
-    System.out.println("  inKubernetes: " + inKubernetes);
     System.out.println("  loadHistoryCopyChunkSize: " + loadHistoryCopyChunkSize);
     System.out.println("  loadHistoryWaitSeconds: " + loadHistoryWaitSeconds);
   }

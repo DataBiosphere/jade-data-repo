@@ -1,7 +1,8 @@
-package bio.terra.service.dataset;
+package bio.terra.service.snapshot;
 
-import bio.terra.common.DaoKeyHolder;
 import bio.terra.common.Column;
+import bio.terra.common.DaoKeyHolder;
+import bio.terra.common.Relationship;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -12,56 +13,59 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+/**
+ * Similar to DatasetRelationshipDao, might benefit from refactoring into an interface or abstract class eventually
+ */
 @Repository
-public class RelationshipDao {
+public class SnapshotRelationshipDao {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
 
     @Autowired
-    public RelationshipDao(NamedParameterJdbcTemplate jdbcTemplate) {
+    public SnapshotRelationshipDao(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
-    // part of a transaction propagated from DatasetDao
-    public void createDatasetRelationships(Dataset dataset) {
-        for (DatasetRelationship rel : dataset.getRelationships()) {
+    // part of a transaction propagated from SnapshotDao
+    public void createSnapshotRelationships(Snapshot snapshot) {
+        for (Relationship rel : snapshot.getRelationships()) {
             create(rel);
         }
     }
 
-    protected void create(DatasetRelationship datasetRelationship) {
-        String sql = "INSERT INTO dataset_relationship " +
+    protected void create(Relationship relationship) {
+        String sql = "INSERT INTO snapshot_relationship " +
                 "(name, from_table, from_column, to_table, to_column) VALUES " +
                 "(:name, :from_table, :from_column, :to_table, :to_column)";
         MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("name", datasetRelationship.getName())
-                .addValue("from_table", datasetRelationship.getFromTable().getId())
-                .addValue("from_column", datasetRelationship.getFromColumn().getId())
-                .addValue("to_table", datasetRelationship.getToTable().getId())
-                .addValue("to_column", datasetRelationship.getToColumn().getId());
+                .addValue("name", relationship.getName())
+                .addValue("from_table", relationship.getFromTable().getId())
+                .addValue("from_column", relationship.getFromColumn().getId())
+                .addValue("to_table", relationship.getToTable().getId())
+                .addValue("to_column", relationship.getToColumn().getId());
         DaoKeyHolder keyHolder = new DaoKeyHolder();
         jdbcTemplate.update(sql, params, keyHolder);
         UUID relationshipId = keyHolder.getId();
-        datasetRelationship.id(relationshipId);
+        relationship.id(relationshipId);
     }
 
-    public void retrieve(Dataset dataset) {
+    public void retrieve(Snapshot snapshot) {
         List<UUID> columnIds = new ArrayList<>();
-        dataset.getTables().forEach(table ->
+        snapshot.getTables().forEach(table ->
                 table.getColumns().forEach(column -> columnIds.add(column.getId())));
-        dataset.relationships(
-            retrieveDatasetRelationships(columnIds, dataset.getTablesById(), dataset.getAllColumnsById()));
+        snapshot.relationships(
+            retrieveSnapshotRelationships(columnIds, snapshot.getTablesById(), snapshot.getAllColumnsById()));
     }
 
-    private List<DatasetRelationship> retrieveDatasetRelationships(
+    private List<Relationship> retrieveSnapshotRelationships(
             List<UUID> columnIds,
-            Map<UUID, DatasetTable> tables,
+            Map<UUID, SnapshotTable> tables,
             Map<UUID, Column> columns) {
         String sql = "SELECT id, name, from_table, from_column, to_table, to_column "
-                + "FROM dataset_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
+                + "FROM snapshot_relationship WHERE from_column IN (:columns) OR to_column IN (:columns)";
         MapSqlParameterSource params = new MapSqlParameterSource().addValue("columns", columnIds);
         return jdbcTemplate.query(sql, params, (rs, rowNum) ->
-                new DatasetRelationship()
+                new Relationship()
                         .id(rs.getObject("id", UUID.class))
                         .name(rs.getString("name"))
                         .fromTable(tables.get(rs.getObject("from_table", UUID.class)))

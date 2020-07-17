@@ -135,15 +135,25 @@ public class SnapshotTest extends UsersBase {
         DatasetModel dataset = dataRepoFixtures.getDataset(steward(), datasetId);
         String datasetProject = dataset.getDataProject();
         String bqDatasetName = PdaoConstant.PDAO_PREFIX + dataset.getName();
-        String datasetTable = "participant";
+        String participantTable = "participant";
+        String sampleTable = "sample";
         BigQuery bigQuery = BigQueryFixtures.getBigQuery(dataset.getDataProject(), stewardToken);
         String sql = String.format("SELECT %s FROM `%s.%s.%s`",
             PdaoConstant.PDAO_ROW_ID_COLUMN,
             datasetProject,
             bqDatasetName,
-            datasetTable);
-        TableResult ids = BigQueryFixtures.query(sql, bigQuery);
-        List<String> idList = StreamSupport.stream(ids.getValues().spliterator(), false)
+            participantTable);
+        TableResult participantIds = BigQueryFixtures.query(sql, bigQuery);
+        List<String> participantIdList = StreamSupport.stream(participantIds.getValues().spliterator(), false)
+            .map(v -> v.get(0).getStringValue())
+            .collect(Collectors.toList());
+        sql = String.format("SELECT %s FROM `%s.%s.%s`",
+            PdaoConstant.PDAO_ROW_ID_COLUMN,
+            datasetProject,
+            bqDatasetName,
+            sampleTable);
+        TableResult sampleIds = BigQueryFixtures.query(sql, bigQuery);
+        List<String> sampleIdList = StreamSupport.stream(sampleIds.getValues().spliterator(), false)
             .map(v -> v.get(0).getStringValue())
             .collect(Collectors.toList());
 
@@ -154,7 +164,12 @@ public class SnapshotTest extends UsersBase {
             .getContents().get(0)
             .getRowIdSpec()
             .getTables().get(0)
-            .setRowIds(idList);
+            .setRowIds(participantIdList);
+        requestModel
+            .getContents().get(0)
+            .getRowIdSpec()
+            .getTables().get(1)
+            .setRowIds(sampleIdList);
 
         SnapshotSummaryModel snapshotSummary =
             dataRepoFixtures.createSnapshotWithRequest(steward(),
@@ -168,6 +183,10 @@ public class SnapshotTest extends UsersBase {
             requestModel.getContents().get(0).getRowIdSpec().getTables().size(),
             snapshot.getTables().size());
         // TODO: get the snapshot and make sure the number of rows matches with the row ids input
+        assertThat("one relationship comes through", snapshot.getRelationships().size(), equalTo(1));
+        assertThat("the right relationship comes through",
+            snapshot.getRelationships().get(0).getName(),
+            equalTo("sample_participants"));
     }
 
     @Test
@@ -207,5 +226,6 @@ public class SnapshotTest extends UsersBase {
         createdSnapshotIds.add(snapshotSummary.getId());
         SnapshotModel snapshot = dataRepoFixtures.getSnapshot(steward(), snapshotSummary.getId());
         assertEquals("new snapshot has been created", snapshot.getName(), requestModel.getName());
+        assertEquals("all 5 relationships come through", snapshot.getRelationships().size(), 5);
     }
 }

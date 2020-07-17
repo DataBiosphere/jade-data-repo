@@ -1,12 +1,18 @@
 package bio.terra.service.snapshot;
 
+import bio.terra.common.Column;
+import bio.terra.common.Relationship;
 import bio.terra.service.filedata.FSContainerInterface;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Snapshot implements FSContainerInterface {
     private UUID id;
@@ -16,6 +22,7 @@ public class Snapshot implements FSContainerInterface {
     private List<SnapshotTable> tables = Collections.emptyList();
     private List<SnapshotSource> snapshotSources = Collections.emptyList();
     private UUID profileId;
+    private List<Relationship> relationships = Collections.emptyList();
 
     public UUID getId() {
         return id;
@@ -87,5 +94,26 @@ public class Snapshot implements FSContainerInterface {
     public Snapshot profileId(UUID profileId) {
         this.profileId = profileId;
         return this;
+    }
+
+    public List<Relationship> getRelationships() {
+        return relationships;
+    }
+
+    public Snapshot relationships(List<Relationship> relationships) {
+        this.relationships = relationships;
+        return this;
+    }
+
+    public Map<UUID, SnapshotTable> getTablesById() {
+        return getTables()
+            .stream()
+            .collect(Collectors.toMap(SnapshotTable::getId, Function.identity()));
+    }
+
+    public Map<UUID, Column> getAllColumnsById() {
+        Map<UUID, Column> result = new HashMap<>();
+        getTables().forEach(t -> t.getColumns().forEach(c -> result.put(c.getId(), c)));
+        return result;
     }
 }

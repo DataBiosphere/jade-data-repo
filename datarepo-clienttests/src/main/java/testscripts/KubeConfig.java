@@ -72,7 +72,7 @@ public class KubeConfig extends runner.TestScript {
     JobModel bulkLoadArrayJobResponse =
         repositoryApi.bulkFileLoadArray(datasetSummaryModel.getId(), arrayLoad);
 
-    /*---------------------------------------------*/
+    // =========================================================================
     /* Manipulating kubernetes pods during file ingest */
 
     // initial poll as file ingest begins
@@ -93,7 +93,7 @@ public class KubeConfig extends runner.TestScript {
         KubernetesClientUtils.modifyKubernetesPostDeployment(4);
       }
     }
-    /*---------------------------------------------*/
+    // =========================================================================
 
     // wait for the job to complete and print out results
     getAndDisplayResults(repositoryApi, bulkLoadArrayJobResponse);

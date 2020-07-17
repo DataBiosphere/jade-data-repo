@@ -136,13 +136,12 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * List all the pods in the given namespace, or in the whole cluster if the namespace is not
-   * specified (i.e. null or empty string).
+   * List all the pods in namespace defined in buildKubernetesClientObject by the server specification,
+   * or in the whole cluster if the namespace is not specified (i.e. null or empty string).
    *
-   * @param namespace to list the pods in
    * @return list of Kubernetes pods
    */
-  public static List<V1Pod> listPods(String namespace) throws ApiException {
+  public static List<V1Pod> listPods() throws ApiException {
     V1PodList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
@@ -157,25 +156,12 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * List all the pods in the current namespace
+   * List all the deployments in namespace defined in buildKubernetesClientObject by the server specification,
+   * or in the whole cluster if the namespace is not specified (i.e. null or empty string).
    *
-   * @return list of Kubernetes pods
-   */
-  public static List<V1Pod> listPodsForNamespace() throws ApiException {
-    V1PodList list =
-        kubernetesClientCoreObject.listNamespacedPod(
-            namespace, null, null, null, null, null, null, null, null, null);
-    return list.getItems();
-  }
-
-  /**
-   * List all the deployments in the given namespace, or in the whole cluster if the namespace is
-   * not specified (i.e. null or empty string).
-   *
-   * @param namespace to list the deployments in
    * @return list of Kubernetes deployments
    */
-  public static List<V1Deployment> listDeployments(String namespace) throws ApiException {
+  public static List<V1Deployment> listDeployments() throws ApiException {
     V1DeploymentList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
@@ -190,16 +176,16 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * Get the API deployment in the given namespace, or in the whole cluster if the namespace is not
-   * specified (i.e. null or empty string). This method expects that there is a single API
-   * deployment in the namespace.
+   * Get the API deployment in the in the namespace defined in buildKubernetesClientObject by the server specification,
+   * or in the whole cluster if the namespace is not specified (i.e. null or empty string).
+   * This method expects that there is a single API deployment in the namespace.
    *
    * @return the API deployment, null if not found
    */
   public static V1Deployment getApiDeployment() throws ApiException {
     // loop through the deployments in the namespace
     // find the one that matches the api component label
-    return listDeployments(namespace).stream()
+    return listDeployments().stream()
         .filter(
             deployment ->
                 deployment.getMetadata().getLabels().get(componentLabel).equals(apiComponentLabel))
@@ -260,7 +246,7 @@ public final class KubernetesClientUtils {
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
     long numPods =
-        listPods(namespace).stream()
+        listPods().stream()
             .filter(
                 pod ->
                     deploymentComponentLabel.equals(
@@ -270,7 +256,7 @@ public final class KubernetesClientUtils {
     while (numPods != numberOfReplicas && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
       numPods =
-          listPods(namespace).stream()
+          listPods().stream()
               .filter(
                   pod ->
                       deploymentComponentLabel.equals(
@@ -297,12 +283,12 @@ public final class KubernetesClientUtils {
     }
     System.out.println(
         "pod count before set initial replica set size: "
-            + KubernetesClientUtils.listPodsForNamespace().size());
+            + KubernetesClientUtils.listPods().size());
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPodsForNamespace();
+    List<V1Pod> pods = KubernetesClientUtils.listPods();
     System.out.println("initial number of pods: " + pods.size());
     for (V1Pod pod : pods) {
       System.out.println("  pod: " + pod.getMetadata().getName());

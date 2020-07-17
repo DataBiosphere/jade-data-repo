@@ -56,7 +56,7 @@ public final class DataRepoUtils {
    *
    * @param repositoryApi the api object to use
    * @param job the job model to poll
-   * @param pollTime time for the job to poll before returning
+   * @param pollTime time in seconds for the job to poll before returning
    */
   public static JobModel pollForRunningJob(RepositoryApi repositoryApi, JobModel job, int pollTime)
       throws Exception {

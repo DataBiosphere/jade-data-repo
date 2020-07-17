@@ -66,8 +66,6 @@ public class KubeConfig extends runner.TestScript {
   // while we delete pods and have them recover.
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
-    // TODO - get namespace passed in
-    V1Deployment deployment = KubernetesClientUtils.getApiDeployment();
 
     // set up and start bulk load job
     BulkLoadArrayRequestModel arrayLoad = buildBulkLoadFileRequest();

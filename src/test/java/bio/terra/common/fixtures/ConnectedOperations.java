@@ -470,11 +470,15 @@ public class ConnectedOperations {
 
     public void retryAcquireLockIngestFileSuccess(
         boolean attemptRetry,
+        boolean faultLock,
+        boolean faultUnlock,
         ConfigEnum faultToInsert,
         String datasetId,
         FileLoadModel fileLoadModel,
         ConfigurationService configService,
         DatasetDao datasetDao) throws Exception {
+
+        //setting the fault
         configService.setFault(faultToInsert.name(), true);
 
         String jsonRequest = TestUtils.mapToJson(fileLoadModel);
@@ -487,20 +491,35 @@ public class ConnectedOperations {
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
         datasetDaoUtils = new DatasetDaoUtils();
         String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+        if (faultLock) {
+            assertEquals("no shared locks after first call", 0, sharedLocks.length);
+        } else {
+            assertEquals("Acquire shared locks after first call", 1, sharedLocks.length);
+        }
 
         // Remove insertion of shared lock fault
         configService.setFault(faultToInsert.name(), false);
 
-        assertEquals("no shared locks after first call", 0, sharedLocks.length);
-
+        // get result
         MockHttpServletResponse response = validateJobModelAndWait(result);
+
         if (attemptRetry) {
+            // make sure successful unlock
+            TimeUnit.SECONDS.sleep(5);
+            String[] sharedLocks3 = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
+            assertEquals("successful unlock", 0, sharedLocks3.length);
+
             // Check if the flight successfully completed
             // Assume that if it successfully completed, then it was able to retry and acquire the shared lock
             FileModel fileModel = handleSuccessCase(response, FileModel.class);
             checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
         } else {
+            if (faultUnlock) {
+                // to do - figure out how to force unlocking
+                // datasetDao.unlockShared(datasetId, createFlightId);
+            }
             handleFailureCase(response);
+
         }
     }
 

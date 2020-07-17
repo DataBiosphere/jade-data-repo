@@ -6,7 +6,10 @@
   "kubernetes": {
     "numberOfInitialPods" : 2
   },
-  "application": {},
+  "application": {
+    "maxStairwayThreads": 22,
+    "maxBulkFileLoad": 10000011
+  },
   "testScripts": [
     {
       "name": "RetrieveDataset",

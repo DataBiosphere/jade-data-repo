@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.Charset;
+import io.kubernetes.client.openapi.models.V1Deployment;
+import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,8 +24,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
 import runner.config.TestUserSpecification;
@@ -35,6 +35,7 @@ class TestRunner {
 
   TestConfiguration config;
   List<TestScript> scripts;
+  DeploymentScript deploymentScript;
   List<ThreadPoolExecutor> threadPools;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
   List<UserJourneyResult> userJourneyResults;
@@ -53,16 +54,95 @@ class TestRunner {
   }
 
   void executeTestConfiguration() throws Exception {
+    try {
+      executeTestConfigurationNoGuaranteedCleanup();
+    } catch (Exception originalEx) {
+      System.out.println();
+      System.out.println("=========================================================");
+      System.out.println("Cleanup After Failure:");
+
+      // cleanup deployment (i.e. run teardown method)
+      System.out.println();
+      System.out.println(
+          "Deployment: Calling " + deploymentScript.getClass().getName() + ".deploy()");
+      try {
+        if (!config.server.skipDeployment) {
+          deploymentScript.teardown();
+        }
+      } catch (Exception deploymentTeardownEx) {
+        System.out.println("Exception during forced deployment teardown");
+        // deploymentTeardownEx.printStackTrace();
+      }
+
+      // cleanup test scripts (i.e. run cleanup methods)
+      System.out.println();
+      System.out.println("Test Scripts: Calling the cleanup methods");
+      try {
+        callTestScriptCleanups();
+      } catch (Exception testScriptCleanupEx) {
+        System.out.println("Exception during forced test script cleanups");
+        // testScriptCleanupEx.printStackTrace();
+      }
+
+      // cleanup data project (i.e. run cloud cleanup scripts)
+      try {
+        cleanupDataProject();
+      } catch (Exception leftoverTestDataEx) {
+        System.out.println("Exception during forced data project cleanup");
+        // leftoverTestDataEx.printStackTrace();
+      }
+
+      throw originalEx;
+    }
+  }
+
+  void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Deployment: " + (config.server.skipDeployment ? "skipping" : ""));
+
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
-      // modifyHelmValuesAndDeploy();
+      // get an instance of the deployment script class
+      try {
+        deploymentScript = config.server.deploymentScript.scriptClass.newInstance();
+      } catch (IllegalAccessException | InstantiationException niEx) {
+        throw new IllegalArgumentException(
+            "Error calling constructor of DeploymentScript class: "
+                + config.server.deploymentScript.scriptClass.getName(),
+            niEx);
+      }
+
+      // set any parameters specified by the configuration
+      deploymentScript.setParameters(config.server.deploymentScript.parameters);
+
+      // call the deploy and waitForDeployToFinish methods to do the deployment
+      System.out.println();
+      System.out.println(
+          "Deployment: Calling " + deploymentScript.getClass().getName() + ".deploy()");
+      deploymentScript.deploy(config.server, config.application);
+
+      System.out.println();
+      System.out.println(
+          "Deployment: Calling "
+              + deploymentScript.getClass().getName()
+              + ".waitForDeployToFinish()");
+      deploymentScript.waitForDeployToFinish();
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Kubernetes: " + (config.server.skipKubernetes ? "skipping" : ""));
 
     // update any Kubernetes properties specified by the test configuration
     if (!config.server.skipKubernetes) {
       KubernetesClientUtils.buildKubernetesClientObject(config.server);
       modifyKubernetesPostDeployment();
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Test Users: Fetching credentials and building ApiClient objects");
 
     // get an instance of the API client per test user
     for (TestUserSpecification testUser : config.testUsers) {
@@ -74,6 +154,10 @@ class TestRunner {
 
       apiClientsForUsers.put(testUser.name, apiClient);
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("Test Scripts: Fetching instances of each class");
 
     // get an instance of each test script class
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
@@ -96,13 +180,16 @@ class TestRunner {
     }
 
     // call the setup method of each test script
+    System.out.println();
+    System.out.println("Test Scripts: Calling the setup methods");
     Exception setupExceptionThrown = callTestScriptSetups();
     if (setupExceptionThrown != null) {
-      callTestScriptCleanups(); // ignore any exceptions thrown by cleanup methods
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
     // for each test script
+    System.out.println();
+    System.out.println("Test Scripts: Creating the thread pools and kicking off the user journeys");
     List<ApiClient> apiClientList = new ArrayList<>(apiClientsForUsers.values());
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
       TestScript testScript = scripts.get(tsCtr);
@@ -135,6 +222,8 @@ class TestRunner {
     }
 
     // wait until all threads either finish or time out
+    System.out.println();
+    System.out.println("Test Scripts: Waiting until all threads either finish or time out");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
@@ -161,6 +250,8 @@ class TestRunner {
     }
 
     // compile the results from all thread pools
+    System.out.println();
+    System.out.println("Test Scripts: Compiling the results from all thread pools");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
@@ -189,22 +280,28 @@ class TestRunner {
     }
 
     // call the cleanup method of each test script
+    System.out.println();
+    System.out.println("Test Scripts: Calling the cleanup methods");
     Exception cleanupExceptionThrown = callTestScriptCleanups();
     if (cleanupExceptionThrown != null) {
       throw new RuntimeException(
           "Error calling test script cleanup methods.", cleanupExceptionThrown);
     }
 
-    // delete the deployment and restore any Kubernetes settings
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println(
+        "Deployment: " + (config.server.skipDeployment ? "skipping" : "Calling teardown method"));
+
+    // TODO: also restore any Kubernetes settings? they are always set again at the beginning of a
+    // test run, which is more important from a reproducibility standpoint. might be useful to leave
+    // the deployment as is, for debugging after a test run
     if (!config.server.skipDeployment) {
-      deleteDeployment();
-    }
-    if (!config.server.skipKubernetes) {
-      restoreKubernetesSettings();
+      deploymentScript.teardown();
     }
 
     // cleanup data project
-    cleanupLeftoverTestData();
+    cleanupDataProject();
   }
 
   /**
@@ -276,162 +373,6 @@ class TestRunner {
     }
   }
 
-  void modifyHelmValuesAndDeploy() throws IOException {
-    // get INPUT file handle to API deployment Helm YAML file
-    File inputFile = new File(config.server.helmApiDeploymentFilePath);
-    if (!inputFile.exists()) {
-      throw new RuntimeException(
-          "API deployment Helm YAML input file does not exist: " + inputFile.getAbsolutePath());
-    }
-
-    // get OUTPUT file handle to modified API deployment Helm YAML file
-    String outputFilename = inputFile.getName().replaceAll("(?i)\\.yaml", "_TESTRUNNER.yaml");
-    File outputFile = new File(inputFile.getParent() + "/" + outputFilename);
-    if (outputFile.exists()) {
-      boolean deleteSucceeded = outputFile.delete();
-      if (!deleteSucceeded) {
-        throw new RuntimeException(
-            "API deployment Helm YAML existing output file delete failed: "
-                + outputFile.getAbsolutePath());
-      }
-    }
-    boolean createSucceeded = outputFile.createNewFile();
-    if (!createSucceeded || !outputFile.exists()) {
-      throw new RuntimeException(
-          "API deployment Helm YAML output file was not created successfully: "
-              + outputFile.getAbsolutePath());
-    }
-
-    // the file line-by-line parsing below can be brittle because the YAML format is strictly
-    // enforced
-    BufferedReader reader =
-        new BufferedReader(
-            new InputStreamReader(new FileInputStream(inputFile), Charset.defaultCharset()));
-    BufferedWriter writer =
-        new BufferedWriter(
-            new OutputStreamWriter(new FileOutputStream(outputFile), Charset.defaultCharset()));
-
-    // loop through the file looking for the "datarepo-api" label, followed by the "env" sub-label
-    // echo each line out verbatim to the output file
-    boolean lookingForNextEnvSection = false; // true once we've found the "datarepo-api" section
-    String line;
-    while ((line = reader.readLine()) != null) {
-      // echo the line to the output file
-      writer.write(line);
-      writer.newLine();
-
-      if (!lookingForNextEnvSection) {
-        // if we have not already found the "datarepo-api" label, then check the current line
-        lookingForNextEnvSection = line.equals("datarepo-api:");
-        continue;
-      } else if (line.equals("  " + "env:")) {
-        // if we have already found the "datarepo-api" lavel, then check the current line for the
-        // "env" sub-label
-        break;
-      }
-    }
-
-    // at this point, we're in the env section
-    // read in all values under this section, without echoing them back out immediately
-    // build a map and pass it to a helper method to process and fill in
-    Map<String, String> envVars = new HashMap<>();
-    Pattern envVarPattern = Pattern.compile("^\\s+(.*?):\\s(.*)");
-    while ((line = reader.readLine()) != null) {
-      if (!line.startsWith("    ")) {
-        // end of env section
-        envVars = processEnvVars(envVars);
-
-        // write the updated map to the output file
-        for (Map.Entry<String, String> envVarEntry : envVars.entrySet()) {
-          writer.write("    " + envVarEntry.getKey() + ": " + envVarEntry.getValue());
-          writer.newLine();
-        }
-
-        writer.write(line);
-        writer.newLine();
-        break;
-      }
-
-      Matcher lineMatcher = envVarPattern.matcher(line);
-      if (!lineMatcher.find()) {
-        reader.close();
-        writer.close();
-        throw new RuntimeException(
-            "Error parsing the datarepo-api/env section of the Helm YAML file: " + line);
-      }
-
-      // store the env var name -> value (e.g. GOOGLE_PROJECTID -> broad-jade-dev) in the map
-      envVars.put(lineMatcher.group(1), lineMatcher.group(2));
-    }
-
-    // at this point we're out of the env section
-    // loop through the remaining lines, echoing each one out verbatim to the output file
-    while ((line = reader.readLine()) != null) {
-      writer.write(line);
-      writer.newLine();
-    }
-
-    // flush and close the streams
-    reader.close();
-    writer.flush();
-    writer.close();
-
-    // TODO: call out to helm in a separate process to do the umbrella chart upgrade
-    // helm namespace upgrade mm-jade datarepo-helm/datarepo --version=0.1.12 --install --namespace
-    // mm -f mmDeployment.yaml
-  }
-
-  Map<String, String> processEnvVars(Map<String, String> envVars) {
-    // these environment variables are environment-specific and must be defined in the YAML already
-    List<String> varsThatMustBeDefined = new ArrayList<String>();
-    varsThatMustBeDefined.add("GOOGLE_PROJECTID");
-    varsThatMustBeDefined.add("GOOGLE_SINGLEDATAPROJECTID");
-    varsThatMustBeDefined.add("DB_DATAREPO_USERNAME");
-    varsThatMustBeDefined.add("DB_STAIRWAY_USERNAME");
-    varsThatMustBeDefined.add("DB_DATAREPO_URI");
-    varsThatMustBeDefined.add("DB_STAIRWAY_URI");
-    varsThatMustBeDefined.add("SPRING_PROFILES_ACTIVE");
-
-    Map<String, String> modifiedEnvVars = new HashMap<>();
-    for (String var : varsThatMustBeDefined) {
-      String varValue = envVars.get(var);
-      if (varValue == null) {
-        throw new RuntimeException("Expected environment variable not found: " + var);
-      }
-      modifiedEnvVars.put(var, varValue);
-    }
-
-    // add the perftest profile to the SPRING_PROFILES_ACTIVE if it isn't already included
-    String activeSpringProfiles = modifiedEnvVars.get("SPRING_PROFILES_ACTIVE");
-    if (!activeSpringProfiles.contains("perftest")) {
-      modifiedEnvVars.put("SPRING_PROFILES_ACTIVE", activeSpringProfiles + ",perftest");
-    }
-
-    // always set the following testing-related environment variables
-    modifiedEnvVars.put("DB_STAIRWAY_FORCECLEAN", "true");
-    modifiedEnvVars.put("DB_MIGRATE_DROPALLONSTART", "true");
-    modifiedEnvVars.put("DATAREPO_GCS_ALLOWREUSEEXISTINGBUCKETS", "true");
-
-    // set the following environment variables from the config.application specification object
-    modifiedEnvVars.put(
-        "DATAREPO_MAXSTAIRWAYTHREADS", String.valueOf(config.application.maxStairwayThreads));
-    modifiedEnvVars.put(
-        "DATAREPO_MAXBULKFILELOAD", String.valueOf(config.application.maxBulkFileLoad));
-    modifiedEnvVars.put(
-        "DATAREPO_LOADCONCURRENTFILES", String.valueOf(config.application.loadConcurrentFiles));
-    modifiedEnvVars.put(
-        "DATAREPO_LOADCONCURRENTINGESTS", String.valueOf(config.application.loadConcurrentIngests));
-    modifiedEnvVars.put("DATAREPO_INKUBERNETES", String.valueOf(config.application.inKubernetes));
-    modifiedEnvVars.put(
-        "DATAREPO_LOADHISTORYCOPYCHUNKSIZE",
-        String.valueOf(config.application.loadHistoryCopyChunkSize));
-    modifiedEnvVars.put(
-        "DATAREPO_LOADHISTORYWAITSECONDS",
-        String.valueOf(config.application.loadHistoryWaitSeconds));
-
-    return modifiedEnvVars;
-  }
-
   void modifyKubernetesPostDeployment() throws Exception {
     System.out.println(
         "Set the initial number of pods ("
@@ -440,16 +381,7 @@ class TestRunner {
     KubernetesClientUtils.scaleKubernetesPodsAndWait(config.kubernetes.numberOfInitialPods);
   }
 
-  void deleteDeployment() {
-    // TODO: delete DR Manager deployment
-  }
-
-  void restoreKubernetesSettings() {
-    // TODO: restore Kubernetes settings (where to get the default values -- save from before, or
-    // some other place?)
-  }
-
-  void cleanupLeftoverTestData() {
+  void cleanupDataProject() {
     // TODO: cleanup any cloud resources/permissions generated by the test
     // no need to cleanup any DR Manager metadata because each test run re-deploys with a clean
     // database, but reporting that it was left hanging around would be helpful
@@ -481,6 +413,9 @@ class TestRunner {
       return;
     }
 
+    System.out.println();
+    System.out.println("=========================================================");
+
     // read in configuration, validate it, and print to stdout
     TestConfiguration testConfiguration = TestConfiguration.fromJSONFile(args[0]);
     testConfiguration.validate();
@@ -494,6 +429,10 @@ class TestRunner {
     } catch (Exception ex) {
       runnerEx = ex; // save exception to display after printing the results
     }
+
+    System.out.println();
+    System.out.println("=========================================================");
+    System.out.println("User Journey Results");
 
     // print the results to stdout
     for (UserJourneyResult result : runner.userJourneyResults) {

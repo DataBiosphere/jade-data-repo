@@ -47,10 +47,13 @@ public class DatasetDeleteFlight extends Flight {
             JobMapKeys.DATASET_ID.getKeyName(), String.class));
         AuthenticatedUserRequest userReq = inputParameters.get(
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
+        RetryRuleRandomBackoff lockDatasetRetry =
+            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
         RetryRuleRandomBackoff unlockDatasetRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
-        addStep(new LockDatasetStep(datasetDao, datasetId, false, true));
+        addStep(new LockDatasetStep(datasetDao, datasetId, false, true),
+            lockDatasetRetry);
         addStep(new DeleteDatasetValidateStep(snapshotDao, dependencyDao, datasetService, datasetId));
         addStep(new DeleteDatasetPrimaryDataStep(
             bigQueryPdao,

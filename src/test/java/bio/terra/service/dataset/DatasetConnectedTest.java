@@ -915,7 +915,7 @@ public class DatasetConnectedTest {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
         String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
         configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
-        TimeUnit.SECONDS.sleep(20);
+        TimeUnit.SECONDS.sleep(5);
         // assertNotNull("dataset row has no exclusive lock", exclusiveLock2);
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
         connectedOperations.checkDeleteResponse(response);

@@ -287,7 +287,7 @@ public class FileOperationTest {
     }
 
     // have to figure out how to force it to unlock after the fatal error
-    // b/c the dataset still needs to be deleted 
+    // b/c the dataset still needs to be deleted
     @Ignore
     @Test
     public void retryAndFailAcquireSharedUnlock() throws Exception {

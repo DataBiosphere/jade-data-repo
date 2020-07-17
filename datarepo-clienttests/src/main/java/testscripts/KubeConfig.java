@@ -27,7 +27,7 @@ public class KubeConfig extends runner.TestScript {
   public void setParameters(List<String> parameters) throws Exception {
     if (parameters == null || parameters.size() == 0) {
       throw new IllegalArgumentException(
-          "Must provide a number of files to load between 1 and 25 in the parameters list");
+          "Must provide a number of files to load in the parameters list");
     } else {
       filesToLoad = Integer.parseInt(parameters.get(0));
     }

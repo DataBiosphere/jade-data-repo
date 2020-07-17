@@ -45,7 +45,7 @@ public class DeleteSnapshotMetadataStep implements Step {
         // This step is not undoable. We only get here when the
         // do method has a dismal failure.
         return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL,
-                new IllegalStateException("Attempt to undo permanent delete"));
+                new IllegalStateException("Snapshot Metadata: Attempt to undo permanent delete"));
     }
 }
 

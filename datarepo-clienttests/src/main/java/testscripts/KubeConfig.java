@@ -4,7 +4,6 @@ import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.model.*;
-import io.kubernetes.client.openapi.models.V1Deployment;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -127,7 +126,6 @@ public class KubeConfig extends runner.TestScript {
       String sourcePath =
           "gs://jade-testdata-uswestregion" + String.format(fileBasePath, i % numberOfSourceFiles);
       String targetPath = "/" + loadTag + String.format(fileBasePath, i);
-      System.out.println("Source Path: " + sourcePath + "; Target Path: " + targetPath);
 
       BulkLoadFileModel model = new BulkLoadFileModel().mimeType("application/binary");
       model.description("bulk load file " + i).sourcePath(sourcePath).targetPath(targetPath);

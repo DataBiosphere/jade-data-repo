@@ -433,9 +433,11 @@ class TestRunner {
   }
 
   void modifyKubernetesPostDeployment() throws Exception {
-      System.out.println("Set the initial number of pods (" + config.kubernetes.numberOfInitialPods +
-              ") in the API deployment replica set");
-      KubernetesClientUtils.scaleKubernetesPodsAndWait(config.kubernetes.numberOfInitialPods);
+    System.out.println(
+        "Set the initial number of pods ("
+            + config.kubernetes.numberOfInitialPods
+            + ") in the API deployment replica set");
+    KubernetesClientUtils.scaleKubernetesPodsAndWait(config.kubernetes.numberOfInitialPods);
   }
 
   void deleteDeployment() {

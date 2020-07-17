@@ -136,8 +136,9 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * List all the pods in namespace defined in buildKubernetesClientObject by the server specification,
-   * or in the whole cluster if the namespace is not specified (i.e. null or empty string).
+   * List all the pods in namespace defined in buildKubernetesClientObject by the server
+   * specification, or in the whole cluster if the namespace is not specified (i.e. null or empty
+   * string).
    *
    * @return list of Kubernetes pods
    */
@@ -156,8 +157,9 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * List all the deployments in namespace defined in buildKubernetesClientObject by the server specification,
-   * or in the whole cluster if the namespace is not specified (i.e. null or empty string).
+   * List all the deployments in namespace defined in buildKubernetesClientObject by the server
+   * specification, or in the whole cluster if the namespace is not specified (i.e. null or empty
+   * string).
    *
    * @return list of Kubernetes deployments
    */
@@ -176,9 +178,9 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * Get the API deployment in the in the namespace defined in buildKubernetesClientObject by the server specification,
-   * or in the whole cluster if the namespace is not specified (i.e. null or empty string).
-   * This method expects that there is a single API deployment in the namespace.
+   * Get the API deployment in the in the namespace defined in buildKubernetesClientObject by the
+   * server specification, or in the whole cluster if the namespace is not specified (i.e. null or
+   * empty string). This method expects that there is a single API deployment in the namespace.
    *
    * @return the API deployment, null if not found
    */
@@ -241,7 +243,6 @@ public final class KubernetesClientUtils {
     // get the component label from the deployment object
     // this will be "api" for most cases, since that's what we're interested in scaling.
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
-    String namespace = deployment.getMetadata().getNamespace();
 
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
@@ -275,20 +276,19 @@ public final class KubernetesClientUtils {
     }
   }
 
-    /**
-     * Utilizing the other util functions to (1) fresh fetch of the api deployment,
-     * (2) scale the replica count, (3) wait for replica count to update, and (4) print the results
-     *
-     * @param podCount count of pods to scale the kubernetes deployment to
-     */
+  /**
+   * Utilizing the other util functions to (1) fresh fetch of the api deployment, (2) scale the
+   * replica count, (3) wait for replica count to update, and (4) print the results
+   *
+   * @param podCount count of pods to scale the kubernetes deployment to
+   */
   public static void scaleKubernetesPodsAndWait(int podCount) throws Exception {
     V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
     System.out.println(
-        "Pod count before scaling kubernetes pods: "
-            + KubernetesClientUtils.listPods().size());
+        "Pod count before scaling kubernetes pods: " + KubernetesClientUtils.listPods().size());
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 

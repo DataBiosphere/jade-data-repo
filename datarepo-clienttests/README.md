@@ -33,7 +33,9 @@ A test configuration describes how to set up the test environment, which test sc
 script(s), and how to add stress into the system.
 
 The environment specification includes settings for:
-  * Deployment (e.g. developer’s dev namespace, performance testing Kubernetes cluster)
+  * Deployment (e.g. developer’s dev namespace, performance testing Kubernetes cluster, how to deploy there)
+  * Kubernetes (e.g. initial size of replica set)
+  * Application (e.g. Stairway thread pool size, maximum number of bulk file loads)
 
 The scripts to run specification includes the:
   * Set of different User Journeys to run (e.g. bulk file load & DRS lookup, just DRS lookups) and any parameters they 
@@ -83,13 +85,13 @@ resources/configs directory. Below are the required fields:
   tests
     * numberOfInitialPods: (optional) Initial number of pods, defaults to 1
   * application: Application-related settings that will be set before deploying the application and executing any tests
-    * maxStairwayThreads: (optional) defaults to 20 [implementation pending]
-    * maxBulkFileLoad: (optional) defaults to 1000000 [implementation pending]
-    * loadConcurrentFiles: (optional) defaults to 4 [implementation pending]
-    * loadConcurrentIngests: (optional) defaults to 2 [implementation pending]
-    * inKubernetes: (optional) defaults to false [implementation pending]
-    * loadHistoryCopyChunkSize: (optional) defaults to 1000 [implementation pending]
-    * loadHistoryWaitSeconds: (optional) defaults to 2 [implementation pending]
+    * maxStairwayThreads: (optional) defaults to 20
+    * maxBulkFileLoad: (optional) defaults to 1000000
+    * loadConcurrentFiles: (optional) defaults to 4
+    * loadConcurrentIngests: (optional) defaults to 2
+    * inKubernetes: (optional) defaults to false
+    * loadHistoryCopyChunkSize: (optional) defaults to 1000
+    * loadHistoryWaitSeconds: (optional) defaults to 2
   * testScripts: List of test script specifications (i.e. instance of the TestScriptSpecification POJO class, serialized
   into JSON). Each specification should include the below required fields:
     * name: Name of the test script class to run
@@ -116,6 +118,13 @@ resources/servers directory. Below are the required fields:
   * region: Region where the cluster is running
   * project: Google project under which the cluster is running
   * namespace: (optional) Name of the Kubernetes namespace where the Data Repo instance is deployed
+  * deploymentScript: Name of the deployment script class to run. Only required if skipDeployment is false
+  * skipDeployment: (optional) true to skip the deployment script, default is false
+  * skipKubernetes: (optional) true to skip the post-deployment Kubernetes modifications, default is false
+
+#### Add a new deployment script
+A deployment script is a sub-class of the DeploymentScript base class. It specifies the deploy, waitForDeployToFinish,
+and optional teardown methods that are run once at the beginning and end of a test run, respectively.
 
 #### Add a new test user specification
 A test user specification is an instance of the TestUserSpecification POJO class, serialized into JSON and saved in the
@@ -146,15 +155,15 @@ the main datarepo project. Jade stores these files in Vault and uses the script 
 against.
 
 * Check that your IP address is included on the IP whitelist for the cluster you're testing against. The easiest way to
-do this is to connect to the Broad VPN, because the VPN IP addresses are already included on the IP whitelist for the 
-Jade dev cluster.
+do this is to connect to the Non-Split Broad VPN, because the VPN IP addresses are already included on the IP whitelist 
+for the Jade dev cluster.
 
 * Check that you are calling the correct version of Gradle (6.1.1 or higher). Use the Gradle wrapper in the sub-project
 (`.gradlew`), not the one in the parent directory (`../.gradlew`).
 
 #### Debug a test configuration or script
 * The Gradle run task just calls the main method of the TestRunner class, with the test configuration file passed in as
-the first argument. To debug, add a Run Configuration in IntelliJ that calls the same method with the appropriate
+the first argument. To debug, add a Run/Debug Configuration in IntelliJ that calls the same method with the appropriate
 argument.
 
 * To debug a test script without the test runner, for example to make sure the API calls are coded correctly, add a main

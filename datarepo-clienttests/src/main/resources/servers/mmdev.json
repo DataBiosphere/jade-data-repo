@@ -1,11 +1,16 @@
 {
   "name": "mmdev",
-  "description": "Developer namespace (mm) in Jade dev cluster.",
+  "description": "Developer namespace (mm) in Jade dev cluster. Supports deploying the server with a modular Helm chart and modifying Kubernetes post-deployment.",
   "uri": "https://jade-mm.datarepo-dev.broadinstitute.org",
   "clusterName": "gke_broad-jade-dev_us-central1_dev-master",
   "clusterShortName": "dev-master",
   "region": "us-central1",
   "project": "broad-jade-dev",
   "namespace": "mm",
-  "helmApiDeploymentFilePath": "datarepo-helm-definitions/dev/mm/mmDeployment.YAML"
+  "deploymentScript": {
+    "name": "ModularHelmChart",
+    "parameters": ["https://raw.githubusercontent.com/broadinstitute/datarepo-helm-definitions/master/dev/mm/datarepo-api.yaml"]
+  },
+  "skipDeployment": true,
+  "skipKubernetes": false
 }

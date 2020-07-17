@@ -1,7 +1,11 @@
 {
   "name": "localhost",
-  "description": "Server running locally. Helm deployment and any modifications to Kubernetes are disabled.",
+  "description": "Server running locally. Supports launching the server in a separate process. Does not support modifying Kubernetes post-deployment.",
   "uri": "http://localhost:8080/",
-  "skipDeployment": "true",
-  "skipKubernetes": "true"
+  "deploymentScript": {
+    "name": "LaunchLocalProcess",
+    "parameters": ["file:///Users/marikomedlock/Workspaces/jade-data-repo/"]
+  },
+  "skipDeployment": false,
+  "skipKubernetes": true
 }

@@ -3,7 +3,7 @@ package runner.config;
 public class KubernetesSpecification implements SpecificationInterface {
   public int numberOfInitialPods = 1;
 
-  public KubernetesSpecification() {}
+  KubernetesSpecification() {}
 
   /** Validate the Kubernetes specification read in from the JSON file. */
   public void validate() {

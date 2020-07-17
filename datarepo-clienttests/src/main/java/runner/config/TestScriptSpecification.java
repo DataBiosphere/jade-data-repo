@@ -20,8 +20,8 @@ public class TestScriptSpecification implements SpecificationInterface {
   TestScriptSpecification() {}
 
   /**
-   * Validate the server specification read in from the JSON file. The timeout string is parsed into
-   * a Duration; the name is converted into a Java class reference.
+   * Validate the test script specification read in from the JSON file. The time unit string is
+   * parsed into a TimeUnit; the name is converted into a Java class reference.
    */
   public void validate() {
     if (totalNumberToRun <= 0) {

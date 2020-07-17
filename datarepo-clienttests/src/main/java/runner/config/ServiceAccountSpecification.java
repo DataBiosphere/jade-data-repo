@@ -13,7 +13,7 @@ public class ServiceAccountSpecification implements SpecificationInterface {
 
   public static final String resourceDirectory = "serviceaccounts";
 
-  public ServiceAccountSpecification() {}
+  ServiceAccountSpecification() {}
 
   /**
    * Validate the service account specification read in from the JSON file. None of the properties

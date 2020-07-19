@@ -633,10 +633,14 @@ public class BigQueryPdao implements PrimaryDataAccess {
     public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
         BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
         String projectId = bigQueryProject.getProjectId();
-        String datasetName = snapshot.getSnapshotSources().get(0).getDataset().getName();
-        String datasetBqDatasetName = prefixName(datasetName);
-
-        deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
+        List<SnapshotSource> sources = snapshot.getSnapshotSources();
+        if (sources.size() > 0) {
+            String datasetName = sources.get(0).getDataset().getName();
+            String datasetBqDatasetName = prefixName(datasetName);
+            deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
+        } else {
+            logger.warn("Snapshot is missing sources: " + snapshot.getName());
+        }
         return bigQueryProject.deleteDataset(snapshot.getName());
     }
 

@@ -294,6 +294,7 @@ public class BigQueryPdaoTest {
     @Test
     public void nonStringAssetRootTest() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
+        connectedOperations.addDataset(dataset.getId().toString());
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -350,10 +351,6 @@ public class BigQueryPdaoTest {
             Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
-            bigQueryPdao.deleteDataset(dataset);
-            // Need to manually clean up the DAO because `readDataset` bypasses the
-            // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-            datasetDao.delete(dataset.getId());
         }
     }
 
@@ -476,6 +473,7 @@ public class BigQueryPdaoTest {
     @Test
     public void testGetFullViews() throws Exception {
         Dataset dataset = readDataset("ingest-test-dataset.json");
+        connectedOperations.addDataset(dataset.getId().toString());
 
         // Stage tabular data for ingest.
         String targetPath = "scratch/file" + UUID.randomUUID().toString() + "/";
@@ -532,10 +530,6 @@ public class BigQueryPdaoTest {
             Assert.assertThat(fileIds, is(equalTo(Collections.singletonList("file1"))));
         } finally {
             storage.delete(participantBlob.getBlobId(), sampleBlob.getBlobId(), fileBlob.getBlobId());
-            bigQueryPdao.deleteDataset(dataset);
-            // Need to manually clean up the DAO because `readDataset` bypasses the
-            // `connectedOperations` object, so we can't rely on its auto-teardown logic.
-            datasetDao.delete(dataset.getId());
         }
     }
 

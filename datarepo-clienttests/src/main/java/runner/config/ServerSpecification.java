@@ -37,7 +37,6 @@ public class ServerSpecification implements SpecificationInterface {
     ObjectMapper objectMapper = new ObjectMapper();
 
     // read in the server file
-    LOG.info("Parsing the server specification file as JSON");
     InputStream inputStream =
         FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
     return objectMapper.readValue(inputStream, ServerSpecification.class);

@@ -364,16 +364,17 @@ class TestRunner {
   }
 
   void calculateResultStatistics() {
-    // TODO: calculate mean/median response time for all completed user journey threads, group by
-    // userjourney description
+    // TODO: calculate statistics for each group of user journey results with the same user journey description
+      // min, mean, median, max elapsed time
+      // number completed (out of total)
+      // number of exceptions thrown (out of total)
   }
 
-  void displayResults() {
+  String displayResults() {
     try {
       // use Jackson to map the UserJourneyResults to a JSON-formatted text block
       ObjectMapper objectMapper = new ObjectMapper();
-      LOG.info(
-          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(userJourneyResults));
+      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(userJourneyResults);
     } catch (JsonProcessingException jpEx) {
       throw new RuntimeException("Error converting UserJourneyResults to a JSON-formatted string");
     }
@@ -408,25 +409,26 @@ class TestRunner {
       return;
     }
 
-    LOG.info("TEST SUITE =========================================================");
+    LOG.info("==== READING IN TEST SUITE/CONFIGURATION(S) ====");
     // read in test suite and validate it
     TestSuite testSuite;
     boolean isSuite = args[0].startsWith(TestSuite.resourceDirectory + "/");
     if (isSuite) {
-      LOG.info("Found a test suite");
       testSuite = TestSuite.fromJSONFile(args[0].split(TestSuite.resourceDirectory + "/")[1]);
+      LOG.info("Found a test suite: {}", testSuite.name);
     } else {
-      LOG.info("Found a single test configuration, not a test suite");
       TestConfiguration testConfiguration =
           TestConfiguration.fromJSONFile(
               args[0].split(TestConfiguration.resourceDirectory + "/")[1]);
       testSuite = TestSuite.fromSingleTestConfiguration(testConfiguration);
+      LOG.info("Found a single test configuration: {}", testConfiguration.name);
     }
     testSuite.validate();
 
-    for (TestConfiguration testConfiguration : testSuite.testConfigurations) {
-      LOG.info("TEST RUN EXECUTION =========================================================");
-      testConfiguration.display();
+    for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
+      TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
+      LOG.info("==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
+      LOG.debug(testConfiguration.display());
 
       // get an instance of a runner and tell it to execute the configuration
       TestRunner runner = new TestRunner(testConfiguration);
@@ -437,10 +439,10 @@ class TestRunner {
         runnerEx = ex; // save exception to display after printing the results
       }
 
-      LOG.info("TEST RUN RESULTS =========================================================");
+      LOG.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
       // calculate any relevant statistics about the user journeys and print them out
       runner.calculateResultStatistics();
-      runner.displayResults();
+      LOG.debug(runner.displayResults());
 
       if (runnerEx != null) {
         LOG.error("Test Runner threw an exception", runnerEx);

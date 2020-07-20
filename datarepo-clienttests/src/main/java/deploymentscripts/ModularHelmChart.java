@@ -151,7 +151,7 @@ public class ModularHelmChart extends DeploymentScript {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForDeploy, secondsIntervalToPollForDeploy);
 
     // first wait for the datarepo-api deployment to report "deployed" by helm ls
-    LOG.info("Waiting for Helm to report datarepo-api as deployed");
+    LOG.debug("Waiting for Helm to report datarepo-api as deployed");
     boolean foundHelmStatusDeployed = false;
     while (pollCtr >= 0) {
       // list the available deployments
@@ -184,7 +184,7 @@ public class ModularHelmChart extends DeploymentScript {
     }
 
     // then wait for the datarepo-api deployment to respond successfully to a status request
-    LOG.info("Waiting for the datarepo-api to respond successfully to a status request");
+    LOG.debug("Waiting for the datarepo-api to respond successfully to a status request");
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);

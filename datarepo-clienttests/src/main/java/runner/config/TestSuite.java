@@ -35,7 +35,7 @@ public class TestSuite implements SpecificationInterface {
     ObjectMapper objectMapper = new ObjectMapper();
 
     // read in the test suite file
-    LOG.info("Test Suite: Parsing the test suite file as JSON");
+    LOG.info("Parsing the test suite file as JSON");
     InputStream inputStream =
         FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
     TestSuite testSuite = objectMapper.readValue(inputStream, TestSuite.class);
@@ -45,7 +45,7 @@ public class TestSuite implements SpecificationInterface {
 
     // read in the test config files
     for (String testConfigurationFile : testSuite.testConfigurationFiles) {
-      LOG.info("Test Suite: Parsing the test configuration file as JSON");
+      LOG.info("Parsing the test configuration file as JSON");
       TestConfiguration testConfig = TestConfiguration.fromJSONFile(testConfigurationFile);
 
       // override the server specification defined in each test configuration with the one defined
@@ -75,11 +75,7 @@ public class TestSuite implements SpecificationInterface {
    * of the objects, for example by parsing the string values in the JSON object.
    */
   public void validate() {
-    LOG.info(
-        "Test Suite: Validating the server specification that overrides the one for each test configuration");
-    server.validate();
-
-    LOG.info("Test Suite: Validating the test configurations");
+    LOG.info("Validating the test configurations");
     for (TestConfiguration testConfig : testConfigurations) {
       testConfig.validate();
     }

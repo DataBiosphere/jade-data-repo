@@ -69,7 +69,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     // confirm that the local server process does NOT respond successfully to a status request
     // if it does, that means there's already a local server running that we can't control
     // so error out here
-    LOG.info(
+    LOG.debug(
         "Checking service status endpoint to confirm that there is no local server already running");
     boolean statusRequestOK;
     ApiClient apiClient = new ApiClient();
@@ -97,7 +97,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     }
 
     // launch the server locally with the gradle bootRun task
-    LOG.info("Launching the server locally with the gradle bootRun task");
+    LOG.debug("Launching the server locally with the gradle bootRun task");
     ArrayList<String> gradleCmdArgs = new ArrayList<>();
     gradleCmdArgs.add(":bootRun");
     Map<String, String> envVars = buildEnvVarsMap();
@@ -110,7 +110,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForProcess, secondsIntervalToPollForProcess);
 
     // wait for the local server process to respond successfully to a status request
-    LOG.info("Waiting for the local server process to respond successfully to a status request");
+    LOG.debug("Waiting for the local server process to respond successfully to a status request");
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
@@ -145,14 +145,14 @@ public class LaunchLocalProcess extends DeploymentScript {
    * unauthenticated status endpoint does NOT respond successfully.
    */
   public void teardown() throws Exception {
-    LOG.info("Killing the local process");
+    LOG.debug("Killing the local process");
     boolean processKilled =
         ProcessUtils.killProcessAndWaitForTermination(
             serverProcess, maximumSecondsToWaitForProcess);
     LOG.debug("Server process killed: {}", processKilled);
 
     // confirm that the local server process does NOT respond successfully to a status request
-    LOG.info("Checking service status endpoint to confirm the local server is shut down");
+    LOG.debug("Checking service status endpoint to confirm the local server is shut down");
     boolean statusRequestOK;
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);

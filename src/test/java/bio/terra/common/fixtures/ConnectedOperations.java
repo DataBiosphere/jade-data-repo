@@ -490,6 +490,19 @@ public class ConnectedOperations {
         unlock
     }
 
+    /*
+    * Retry shared lock/unlock tests in FileOperationTest
+    * Adjustable method to test acquiring locks during a file ingest while inserting different cases of exceptions:
+    * Attempt to retry or fatal errors
+    * Lock and unlock shared locks
+    * Params:
+    * retryType: Lock or unlock. If we're inserting an exception during the lock, then there won't be a shared lock.
+    *            however, if we're inserting an exception during unlock, then we should have successfully acquired the
+    *            shared lock
+    * attemptRetry: If we don't attempt to retry after exception, then we expect the method to fail
+    * removeFault: For retryable exceptions - if we never remove the fault, then we expect the method to fail
+    * faultToInsert: the exception that we are inserting during the file ingest
+     */
     public void retryAcquireLockIngestFileSuccess(
         RetryType retryType,
         boolean attemptRetry,

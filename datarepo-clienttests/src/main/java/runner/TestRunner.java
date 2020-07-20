@@ -3,8 +3,6 @@ package runner;
 import bio.terra.datarepo.client.ApiClient;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -365,26 +363,11 @@ class TestRunner {
   }
 
   void modifyKubernetesPostDeployment() throws Exception {
-    // set the initial number of pods in the API deployment replica set
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment(config.server.namespace);
-    if (apiDeployment == null) {
-      throw new RuntimeException("API deployment not found.");
-    }
     System.out.println(
-        "pod count before set initial replica set size: "
-            + KubernetesClientUtils.listPods(config.server.namespace).size());
-    apiDeployment =
-        KubernetesClientUtils.changeReplicaSetSize(
-            apiDeployment, config.kubernetes.numberOfInitialPods);
-    KubernetesClientUtils.waitForReplicaSetSizeChange(
-        apiDeployment, config.kubernetes.numberOfInitialPods);
-
-    // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPods(config.server.namespace);
-    System.out.println("initial number of pods: " + pods.size());
-    for (V1Pod pod : pods) {
-      System.out.println("  pod: " + pod.getMetadata().getName());
-    }
+        "Set the initial number of pods ("
+            + config.kubernetes.numberOfInitialPods
+            + ") in the API deployment replica set");
+    KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
   void cleanupDataProject() {

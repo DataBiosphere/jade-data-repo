@@ -108,7 +108,7 @@ public class FileService {
         String loadTag = loadArray.getLoadTag();
         loadArray.setLoadTag(loadTag);
         String description = "Bulk ingest from array of " + loadArray.getLoadArray().size() +
-            "files. LoadTag: " + loadTag;
+            " files. LoadTag: " + loadTag;
 
         int filesMax = configService.getParameterValue(ConfigEnum.LOAD_BULK_ARRAY_FILES_MAX);
         int inArraySize = loadArray.getLoadArray().size();

@@ -322,6 +322,39 @@ public class SnapshotConnectedTest {
     }
 
     @Test
+    public void testDeleteRecreateSnapshot() throws Exception {
+        // create a dataset and load some tabular data
+        DatasetSummaryModel datasetSummary = createTestDataset("snapshot-test-dataset.json");
+        loadCsvData(datasetSummary.getId(), "thetable", "snapshot-test-dataset-data.csv");
+
+        // create a snapshot
+        SnapshotRequestModel snapshotRequest = makeSnapshotTestRequest(datasetSummary, "snapshot-test-snapshot.json");
+        MockHttpServletResponse response = performCreateSnapshot(snapshotRequest, "_dup_");
+        SnapshotSummaryModel summaryModel = validateSnapshotCreated(snapshotRequest, response);
+
+        // fetch the snapshot and confirm the metadata matches the request
+        SnapshotModel snapshotModel = getTestSnapshot(summaryModel.getId(), snapshotRequest, datasetSummary);
+        assertNotNull("fetched snapshot successfully after creation", snapshotModel);
+
+        // check that the snapshot metadata row is unlocked
+        String exclusiveLock = snapshotDao.getExclusiveLockState(UUID.fromString(snapshotModel.getId()));
+        assertNull("snapshot row is unlocked", exclusiveLock);
+
+        // delete and confirm deleted
+        connectedOperations.deleteTestSnapshot(snapshotModel.getId());
+        connectedOperations.getSnapshotExpectError(snapshotModel.getId(), HttpStatus.NOT_FOUND);
+
+        // now after deleting the snapshot, make sure you can create it again and the delete worked!
+        snapshotRequest.setName(snapshotModel.getName());
+        response = performCreateSnapshot(snapshotRequest, null);
+        SnapshotSummaryModel summaryModelSequel = validateSnapshotCreated(snapshotRequest, response);
+
+        // then delete it a final time for cleanup
+        connectedOperations.deleteTestSnapshot(summaryModelSequel.getId());
+        connectedOperations.getSnapshotExpectError(summaryModelSequel.getId(), HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     public void testOverlappingDeletes() throws Exception {
         // create a snapshot
         SnapshotSummaryModel summaryModel = connectedOperations.createSnapshot(datasetSummary,

@@ -146,6 +146,13 @@ public class FileOperationTest {
     @After
     public void teardown() throws Exception {
         logger.info("TEAR DOWN");
+
+        // make sure all faults are set back to false
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT.toString(), false);
+
         configService.reset();
         connectedOperations.teardown();
     }

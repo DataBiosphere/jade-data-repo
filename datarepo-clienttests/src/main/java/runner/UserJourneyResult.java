@@ -1,6 +1,11 @@
 package runner;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class UserJourneyResult {
+  private static final Logger LOG = LoggerFactory.getLogger(UserJourneyResult.class);
+
   public String userJourneyDescription;
   public String threadName;
 
@@ -17,11 +22,10 @@ public class UserJourneyResult {
   }
 
   public void display() {
-    System.out.println("User Journey Result: " + userJourneyDescription);
-    System.out.println("  threadName: " + threadName);
-    System.out.println("  completed: " + completed);
-    System.out.println("  elapsedTime (sec): " + (double) elapsedTime / (1e9));
-    System.out.println(
-        "  exceptionThrown: " + (exceptionThrown == null ? "" : exceptionThrown.getMessage()));
+    LOG.info("User Journey Result: {}", userJourneyDescription);
+    LOG.info("  threadName: {}", threadName);
+    LOG.info("  completed: {}", completed);
+    LOG.info("  elapsedTime (sec): {}", elapsedTime / (1e9));
+    LOG.info("  exceptionThrown: {}", exceptionThrown == null, exceptionThrown);
   }
 }

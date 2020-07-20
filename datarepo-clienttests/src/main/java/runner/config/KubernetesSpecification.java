@@ -1,6 +1,11 @@
 package runner.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class KubernetesSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(KubernetesSpecification.class);
+
   public int numberOfInitialPods = 1;
 
   KubernetesSpecification() {}
@@ -13,7 +18,7 @@ public class KubernetesSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Kubernetes: ");
-    System.out.println("  numberOfInitialPods: " + numberOfInitialPods);
+    LOG.info("Kubernetes: ");
+    LOG.info("  numberOfInitialPods: {}", numberOfInitialPods);
   }
 }

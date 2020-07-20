@@ -10,8 +10,12 @@ import bio.terra.datarepo.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DataRepoUtils {
+
+  private static final Logger LOG = LoggerFactory.getLogger(DataRepoUtils.class);
 
   private DataRepoUtils() {}
 
@@ -31,6 +35,7 @@ public final class DataRepoUtils {
    */
   public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
       throws Exception {
+    LOG.debug("Waiting for Data Repo job to finish");
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForJob, secondsIntervalToPollJob);
     job = repositoryApi.retrieveJob(job.getId());
 
@@ -59,6 +64,7 @@ public final class DataRepoUtils {
    */
   public static <T> T getJobResult(RepositoryApi repositoryApi, JobModel job, Class<T> resultClass)
       throws Exception {
+    LOG.debug("Fetching Data Repo job result");
     Object jobResult = repositoryApi.retrieveJobResult(job.getId());
 
     ObjectMapper objectMapper = new ObjectMapper();
@@ -107,6 +113,7 @@ public final class DataRepoUtils {
       String apipayloadFilename,
       boolean randomizeName)
       throws Exception {
+    LOG.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream datasetRequestFile =
@@ -137,6 +144,7 @@ public final class DataRepoUtils {
   public static BillingProfileModel createProfile(
       ResourcesApi resourcesApi, String billingAccount, String profileName, boolean randomizeName)
       throws Exception {
+    LOG.debug("Creating a billing profile");
 
     if (randomizeName) {
       profileName = FileUtils.randomizeName(profileName);

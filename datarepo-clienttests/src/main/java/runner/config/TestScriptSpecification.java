@@ -2,9 +2,13 @@ package runner.config;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(TestScriptSpecification.class);
+
   public String name;
   public int totalNumberToRun;
   public int numberToRunInParallel;
@@ -45,13 +49,13 @@ public class TestScriptSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Test Script: " + name);
-    System.out.println("  totalNumberToRun: " + totalNumberToRun);
-    System.out.println("  numberToRunInParallel: " + numberToRunInParallel);
-    System.out.println("  expectedTimeForEach: " + expectedTimeForEach);
-    System.out.println("  expectedTimeForEachUnit: " + expectedTimeForEachUnitObj);
+    LOG.info("Test Script: " + name);
+    LOG.info("  totalNumberToRun: {}", totalNumberToRun);
+    LOG.info("  numberToRunInParallel: {}", numberToRunInParallel);
+    LOG.info("  expectedTimeForEach: {}", expectedTimeForEach);
+    LOG.info("  expectedTimeForEachUnit: {}", expectedTimeForEachUnitObj);
 
     String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    System.out.println("  parameters: " + parametersStr);
+    LOG.info("  parameters: {}", parametersStr);
   }
 }

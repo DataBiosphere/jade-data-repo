@@ -1,8 +1,12 @@
 package runner.config;
 
 import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(ServiceAccountSpecification.class);
+
   public String name;
   public String serviceAccountEmail;
   public String jsonKeyFilePath;
@@ -40,9 +44,9 @@ public class ServiceAccountSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Service Account: " + name);
-    System.out.println("  serviceAccountEmail: " + serviceAccountEmail);
-    System.out.println("  jsonKeyFilePath: " + jsonKeyFilePath);
-    System.out.println("  pemFilePath: " + pemFilePath);
+    LOG.info("Service Account: {}", name);
+    LOG.info("  serviceAccountEmail: {}", serviceAccountEmail);
+    LOG.info("  jsonKeyFilePath: {}", jsonKeyFilePath);
+    LOG.info("  pemFilePath: {}", pemFilePath);
   }
 }

@@ -1,6 +1,11 @@
 package runner.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ApplicationSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(ApplicationSpecification.class);
+
   public int maxStairwayThreads = 20;
   public int maxBulkFileLoad = 1000000;
   public int loadConcurrentFiles = 4;
@@ -30,12 +35,12 @@ public class ApplicationSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Application: ");
-    System.out.println("  maxStairwayThreads: " + maxStairwayThreads);
-    System.out.println("  maxBulkFileLoad: " + maxBulkFileLoad);
-    System.out.println("  loadConcurrentFiles: " + loadConcurrentFiles);
-    System.out.println("  loadConcurrentIngests: " + loadConcurrentIngests);
-    System.out.println("  loadHistoryCopyChunkSize: " + loadHistoryCopyChunkSize);
-    System.out.println("  loadHistoryWaitSeconds: " + loadHistoryWaitSeconds);
+    LOG.info("Application: ");
+    LOG.info("  maxStairwayThreads: {}", maxStairwayThreads);
+    LOG.info("  maxBulkFileLoad: {}", maxBulkFileLoad);
+    LOG.info("  loadConcurrentFiles: {}", loadConcurrentFiles);
+    LOG.info("  loadConcurrentIngests: {}", loadConcurrentIngests);
+    LOG.info("  loadHistoryCopyChunkSize: {}", loadHistoryCopyChunkSize);
+    LOG.info("  loadHistoryWaitSeconds: {}", loadHistoryWaitSeconds);
   }
 }

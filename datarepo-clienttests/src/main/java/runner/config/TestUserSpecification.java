@@ -1,6 +1,11 @@
 package runner.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class TestUserSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(TestUserSpecification.class);
+
   public String name;
   public String userEmail;
   public String delegatorServiceAccountFile;
@@ -26,11 +31,10 @@ public class TestUserSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Test User: " + name);
-    System.out.println("  userEmail: " + userEmail);
-    System.out.println("  delegatorServiceAccountFile: " + delegatorServiceAccountFile);
+    LOG.info("Test User: {}", name);
+    LOG.info("  userEmail: {}", userEmail);
+    LOG.info("  delegatorServiceAccountFile: {}", delegatorServiceAccountFile);
 
-    System.out.println();
     delegatorServiceAccount.display();
   }
 }

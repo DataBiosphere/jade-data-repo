@@ -11,12 +11,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import runner.DeploymentScript;
 import runner.config.ApplicationSpecification;
 import runner.config.ServerSpecification;
 import utils.ProcessUtils;
 
 public class LaunchLocalProcess extends DeploymentScript {
+  private static final Logger LOG = LoggerFactory.getLogger(LaunchLocalProcess.class);
+
   private String jadedatarepoFilePath;
 
   private ServerSpecification serverSpecification;
@@ -45,7 +49,7 @@ public class LaunchLocalProcess extends DeploymentScript {
           "Must provide a file path for the jade-data-repo code directory in the parameters list");
     } else {
       jadedatarepoFilePath = parameters.get(0);
-      System.out.println("jade-data-repo code directory: " + jadedatarepoFilePath);
+      LOG.debug("jade-data-repo code directory: {}", jadedatarepoFilePath);
     }
   }
 
@@ -65,7 +69,8 @@ public class LaunchLocalProcess extends DeploymentScript {
     // confirm that the local server process does NOT respond successfully to a status request
     // if it does, that means there's already a local server running that we can't control
     // so error out here
-    System.out.println("Checking service status endpoint");
+    LOG.info(
+        "Checking service status endpoint to confirm that there is no local server already running");
     boolean statusRequestOK;
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);
@@ -92,6 +97,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     }
 
     // launch the server locally with the gradle bootRun task
+    LOG.info("Launching the server locally with the gradle bootRun task");
     ArrayList<String> gradleCmdArgs = new ArrayList<>();
     gradleCmdArgs.add(":bootRun");
     Map<String, String> envVars = buildEnvVarsMap();
@@ -104,7 +110,7 @@ public class LaunchLocalProcess extends DeploymentScript {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForProcess, secondsIntervalToPollForProcess);
 
     // wait for the local server process to respond successfully to a status request
-    System.out.println("Checking service status endpoint");
+    LOG.info("Waiting for the local server process to respond successfully to a status request");
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
@@ -113,12 +119,12 @@ public class LaunchLocalProcess extends DeploymentScript {
       try {
         unauthenticatedApi.serviceStatus();
         int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
-        System.out.println("Service status: " + httpStatus);
+        LOG.debug("Service status: {}", httpStatus);
         if (HttpStatusCodes.isSuccess(httpStatus)) {
           break;
         }
       } catch (Exception ex) {
-        System.out.println("Exception caught while checking service status: " + ex.getMessage());
+        LOG.debug("Exception caught while checking service status", ex);
       }
 
       TimeUnit.SECONDS.sleep(secondsIntervalToPollForProcess);
@@ -126,11 +132,10 @@ public class LaunchLocalProcess extends DeploymentScript {
     }
 
     // print out the active profiles (for debugging)
-    System.out.println("stdout from server process: ");
     List<String> cmdOutputLines = ProcessUtils.readStdout(serverProcess, 25);
     for (String cmdOutputLine : cmdOutputLines) {
       if (cmdOutputLine.contains("bio.terra.Main: The following profiles are active")) {
-        System.out.println(cmdOutputLine);
+        LOG.debug(cmdOutputLine);
       }
     }
   }
@@ -140,13 +145,14 @@ public class LaunchLocalProcess extends DeploymentScript {
    * unauthenticated status endpoint does NOT respond successfully.
    */
   public void teardown() throws Exception {
+    LOG.info("Killing the local process");
     boolean processKilled =
         ProcessUtils.killProcessAndWaitForTermination(
             serverProcess, maximumSecondsToWaitForProcess);
-    System.out.println("Server process killed: " + processKilled);
+    LOG.debug("Server process killed: {}", processKilled);
 
     // confirm that the local server process does NOT respond successfully to a status request
-    System.out.println("Checking service status endpoint");
+    LOG.info("Checking service status endpoint to confirm the local server is shut down");
     boolean statusRequestOK;
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);
@@ -159,7 +165,13 @@ public class LaunchLocalProcess extends DeploymentScript {
     } catch (Exception ex) {
       statusRequestOK = false;
     }
-    System.out.println("Status request returned OK: " + statusRequestOK);
+
+    if (statusRequestOK) {
+      LOG.error(
+          "Local server shutdown failed; it is still responding successfully to status requests");
+    } else {
+      LOG.debug("Status request failed, as expected");
+    }
   }
 
   /**

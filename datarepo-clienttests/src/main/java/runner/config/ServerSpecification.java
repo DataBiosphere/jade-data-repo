@@ -1,6 +1,11 @@
 package runner.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ServerSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(ServerSpecification.class);
+
   public String name;
   public String description = "";
   public String uri;
@@ -46,19 +51,18 @@ public class ServerSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Server: " + name);
-    System.out.println("  description: " + description);
-    System.out.println("  uri: " + uri);
-    System.out.println("  clusterName: " + clusterName);
-    System.out.println("  clusterShortName: " + clusterShortName);
-    System.out.println("  region: " + region);
-    System.out.println("  project: " + project);
-    System.out.println("  namespace: " + namespace);
-    System.out.println("  skipKubernetes: " + skipKubernetes);
-    System.out.println("  skipDeployment: " + skipDeployment);
+    LOG.info("Server: {}", name);
+    LOG.info("  description: {}", description);
+    LOG.info("  uri: {}", uri);
+    LOG.info("  clusterName: {}", clusterName);
+    LOG.info("  clusterShortName: {}", clusterShortName);
+    LOG.info("  region: {}", region);
+    LOG.info("  project: {}", project);
+    LOG.info("  namespace: {}", namespace);
+    LOG.info("  skipKubernetes: {}", skipKubernetes);
+    LOG.info("  skipDeployment: {}", skipDeployment);
 
     if (!skipDeployment) {
-      System.out.println();
       deploymentScript.display();
     }
   }

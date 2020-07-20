@@ -2,9 +2,13 @@ package runner.config;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import runner.DeploymentScript;
 
 public class DeploymentScriptSpecification implements SpecificationInterface {
+  private static final Logger LOG = LoggerFactory.getLogger(DeploymentScriptSpecification.class);
+
   public String name = "";
   public List<String> parameters = new ArrayList<>();
 
@@ -28,10 +32,10 @@ public class DeploymentScriptSpecification implements SpecificationInterface {
   }
 
   public void display() {
-    System.out.println("Deployment Script: " + name);
-    System.out.println("  name: " + name);
+    LOG.info("Deployment Script: {}", name);
+    LOG.info("  name: {}", name);
 
     String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    System.out.println("  parameters: " + parametersStr);
+    LOG.info("  parameters: {}", parametersStr);
   }
 }

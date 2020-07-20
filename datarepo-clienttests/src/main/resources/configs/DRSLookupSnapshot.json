@@ -1,5 +1,6 @@
 {
   "name": "DRSLookupSnapshot",
+  "description": "Run DRS lookups on the file refs in two different snapshots.",
   "serverSpecificationFile": "mmdev.json",
   "billingAccount": "00708C-45D19D-27AAFA",
   "kubernetes": {

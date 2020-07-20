@@ -145,10 +145,6 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
             .setProjectId(snapshotModel.getDataProject())
             .build()
             .getService();
-    // System.out.println(snapshotModel.getDataProject()); // broad-jade-mm-data
-    // System.out.println(source.get(0).getDataset().getName()); //
-    // DatasetSimple13213724609325394569
-    // System.out.println(tableModel.getName()); // vcf_file
     String queryForFileRefs =
         "SELECT * FROM "
             + snapshotModel.getDataProject()
@@ -189,15 +185,14 @@ public class RetrieveDRSSnapshot extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteSnapshotJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteSnapshotJobResponse, DeleteResponseModel.class);
+      System.out.println("successfully deleted snapshot: " + snapshotSummaryModel.getName());
 
-    // make the delete request and wait for the job to finish
+      // make the delete request and wait for the job to finish
     JobModel deleteDatasetJobResponse = repositoryApi.deleteDataset(datasetSummaryModel.getId());
     deleteDatasetJobResponse =
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-
-    System.out.println("successfully deleted snapshot: " + snapshotSummaryModel.getName());
     System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
 
     // delete scratch files -- This should be pulled into the test runner?

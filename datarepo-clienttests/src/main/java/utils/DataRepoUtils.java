@@ -2,7 +2,13 @@ package utils;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
-import bio.terra.datarepo.model.*;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.BillingProfileRequestModel;
+import bio.terra.datarepo.model.DatasetRequestModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.ErrorModel;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.SnapshotRequestModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
@@ -162,7 +168,7 @@ public final class DataRepoUtils {
       String apipayloadFilename,
       boolean randomizeName)
       throws Exception {
-    // use Jackson to map the stream contents to a SnapshotRequestLiveViewModel object
+    // use Jackson to map the stream contents to a SnapshotRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream snapshotRequestFile =
         FileUtils.getJSONFileHandle("apipayloads/" + apipayloadFilename);

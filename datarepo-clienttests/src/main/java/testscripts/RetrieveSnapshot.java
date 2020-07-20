@@ -3,16 +3,31 @@ package testscripts;
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.api.ResourcesApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.*;
-import com.google.cloud.storage.*;
+import bio.terra.datarepo.model.BillingProfileModel;
+import bio.terra.datarepo.model.DatasetSummaryModel;
+import bio.terra.datarepo.model.DeleteResponseModel;
+import bio.terra.datarepo.model.FileLoadModel;
+import bio.terra.datarepo.model.FileModel;
+import bio.terra.datarepo.model.IngestRequestModel;
+import bio.terra.datarepo.model.IngestResponseModel;
+import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.SnapshotModel;
+import bio.terra.datarepo.model.SnapshotSummaryModel;
+import com.google.cloud.storage.Storage;
+import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
+import com.google.cloud.storage.BlobInfo;
+import com.google.cloud.storage.StorageOptions;
+
+import utils.DataRepoUtils;
+import utils.FileUtils;
+
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import utils.DataRepoUtils;
-import utils.FileUtils;
 
 public class RetrieveSnapshot extends runner.TestScript {
 
@@ -35,7 +50,7 @@ public class RetrieveSnapshot extends runner.TestScript {
     List<String> apiClientList = new ArrayList<>(apiClients.keySet());
     datasetCreator = apiClientList.get(0);
 
-    // get the ApiClient for the dataset creator --- and the snapshot creator?
+    // get the ApiClient for the dataset and the snapshot creator
     ApiClient datasetCreatorClient = apiClients.get(datasetCreator);
     ResourcesApi resourcesApi = new ResourcesApi(datasetCreatorClient);
     RepositoryApi repositoryApi = new RepositoryApi(datasetCreatorClient);
@@ -67,7 +82,6 @@ public class RetrieveSnapshot extends runner.TestScript {
 
     // ingest a file
     URI sourceUri = new URI("gs://jade-testdata/fileloadprofiletest/1KBfile.txt");
-    // todo generate a 1 byte file to load
 
     String targetPath = "/testrunner/IngestFile/" + FileUtils.randomizeName("") + ".txt";
 

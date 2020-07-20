@@ -168,7 +168,7 @@ public class DatasetDao {
         if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT)) {
             logger.info("ExclusiveUnlockDatasetStep - insert RETRY fault to throw during unlockExclusive()");
             return new OptimisticLockingFailureException(
-                "TEST RETRY EXCLUSIVE UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing exclusive unlock exception");
+                "TEST RETRY EXCLUSIVE UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing exception");
         } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT)) {
             logger.info("UnlockDatasetStep - insert FATAL fault to throw during unlockShared()");
             return new DataIntegrityViolationException(

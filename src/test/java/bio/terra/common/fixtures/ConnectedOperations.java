@@ -753,7 +753,9 @@ public class ConnectedOperations {
         createdDatasetIds.add(id);
     }
 
-    public void removeDatasetFromTracking(String id) { createdDatasetIds.remove(id); }
+    public void removeDatasetFromTracking(String id) {
+        createdDatasetIds.remove(id);
+    }
 
     public void addSnapshot(String id) {
         createdSnapshotIds.add(id);

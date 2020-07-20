@@ -1,0 +1,11 @@
+{
+  "name": "localhost",
+  "description": "Server running locally. Supports launching the server in a separate process. Does not support modifying Kubernetes post-deployment.",
+  "uri": "http://localhost:8080/",
+  "deploymentScript": {
+    "name": "LaunchLocalProcess",
+    "parameters": ["file:///Users/sholden/the-broad/jade-data-repo/"]
+  },
+  "skipDeployment": false,
+  "skipKubernetes": true
+}

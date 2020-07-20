@@ -20,12 +20,4 @@ public class UserJourneyResult {
     this.exceptionThrown = null;
     this.completed = false;
   }
-
-  public void display() {
-    LOG.info("User Journey Result: {}", userJourneyDescription);
-    LOG.info("  threadName: {}", threadName);
-    LOG.info("  completed: {}", completed);
-    LOG.info("  elapsedTime (sec): {}", elapsedTime / (1e9));
-    LOG.info("  exceptionThrown: {}", exceptionThrown == null, exceptionThrown);
-  }
 }

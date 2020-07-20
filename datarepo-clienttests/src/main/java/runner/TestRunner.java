@@ -1,6 +1,8 @@
 package runner;
 
 import bio.terra.datarepo.client.ApiClient;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
 import io.kubernetes.client.openapi.models.V1Deployment;
@@ -19,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestConfiguration;
 import runner.config.TestScriptSpecification;
+import runner.config.TestSuite;
 import runner.config.TestUserSpecification;
 import utils.AuthenticationUtils;
 import utils.FileUtils;
@@ -52,10 +55,9 @@ class TestRunner {
     try {
       executeTestConfigurationNoGuaranteedCleanup();
     } catch (Exception originalEx) {
-      LOG.info("Cleanup After Failure =========================================================");
-
       // cleanup deployment (i.e. run teardown method)
-      LOG.info("Deployment: Calling {}.teardown()", deploymentScript.getClass().getName());
+      LOG.info(
+          "Deployment: Calling {}.teardown() after failure", deploymentScript.getClass().getName());
       try {
         if (!config.server.skipDeployment) {
           deploymentScript.teardown();
@@ -65,7 +67,7 @@ class TestRunner {
       }
 
       // cleanup test scripts (i.e. run cleanup methods)
-      LOG.info("Test Scripts: Calling the cleanup methods");
+      LOG.info("Test Scripts: Calling the cleanup methods after failure");
       try {
         callTestScriptCleanups();
       } catch (Exception testScriptCleanupEx) {
@@ -74,7 +76,7 @@ class TestRunner {
       }
 
       // cleanup data project (i.e. run cloud cleanup scripts)
-      LOG.info("Data Project: Cleaning up the data project");
+      LOG.info("Data Project: Cleaning up the data project after failure");
       try {
         cleanupDataProject();
       } catch (Exception leftoverTestDataEx) {
@@ -86,8 +88,6 @@ class TestRunner {
   }
 
   void executeTestConfigurationNoGuaranteedCleanup() throws Exception {
-    LOG.info("Deployment =========================================================");
-
     // specify any value overrides in the Helm chart, then deploy
     if (!config.server.skipDeployment) {
       // get an instance of the deployment script class
@@ -118,8 +118,6 @@ class TestRunner {
       LOG.info("Deployment: Skipping deployment");
     }
 
-    LOG.info("Kubernetes =========================================================");
-
     // update any Kubernetes properties specified by the test configuration
     if (!config.server.skipKubernetes) {
       KubernetesClientUtils.buildKubernetesClientObject(config.server);
@@ -127,8 +125,6 @@ class TestRunner {
     } else {
       LOG.info("Kubernetes: Skipping Kubernetes configuration post-deployment");
     }
-
-    LOG.info("Test Users =========================================================");
 
     // get an instance of the API client per test user
     LOG.info("Test Users: Fetching credentials and building ApiClient objects");
@@ -141,8 +137,6 @@ class TestRunner {
 
       apiClientsForUsers.put(testUser.name, apiClient);
     }
-
-    LOG.info("Test Scripts =========================================================");
 
     // get an instance of each test script class
     LOG.info(
@@ -275,8 +269,6 @@ class TestRunner {
           "Error calling test script cleanup methods.", cleanupExceptionThrown);
     }
 
-    LOG.info("Deployment =========================================================");
-
     // TODO: also restore any Kubernetes settings? they are always set again at the beginning of a
     // test run, which is more important from a reproducibility standpoint. might be useful to leave
     // the deployment as is, for debugging after a test run
@@ -286,10 +278,8 @@ class TestRunner {
       LOG.info("Deployment: Skipping deployment teardown");
     }
 
-    LOG.info("Data Project =========================================================");
-
     // cleanup data project
-    LOG.info("Cleaning up data project");
+    LOG.info("Data Project: Cleaning up data project");
     cleanupDataProject();
   }
 
@@ -397,16 +387,36 @@ class TestRunner {
     // userjourney description
   }
 
+  void displayResults() {
+    try {
+      // use Jackson to map the UserJourneyResults to a JSON-formatted text block
+      ObjectMapper objectMapper = new ObjectMapper();
+      LOG.info(
+          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(userJourneyResults));
+    } catch (JsonProcessingException jpEx) {
+      throw new RuntimeException("Error converting UserJourneyResults to a JSON-formatted string");
+    }
+  }
+
   static void printHelp() {
     LOG.info("Specify test configuration file as first argument.");
-    LOG.info("  e.g. ./gradlew :run --args=\"BasicUnauthenticated.json\"");
-    LOG.info("The following test configuration files were found:");
+    LOG.info("  e.g. ./gradlew :run --args=\"configs/BasicUnauthenticated.json\"");
+    LOG.info("  e.g. ./gradlew :run --args=\"suites/BasicSmoke.json\"");
 
-    // print out the available test configuration found in the resources directory
+    // print out the available test configurations found in the resources directory
+    LOG.info("The following test configuration files were found:");
     List<String> availableTestConfigs =
         FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory + "/");
     for (String testConfigFileName : availableTestConfigs) {
-      LOG.info("  {}", testConfigFileName);
+      LOG.info("  {}/{}", TestConfiguration.resourceDirectory, testConfigFileName);
+    }
+
+    // print out the available test suites found in the resources directory
+    LOG.info("The following test suite files were found:");
+    List<String> availableTestSuites =
+        FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory + "/");
+    for (String testSuiteFileName : availableTestSuites) {
+      LOG.info(" {}/{}", TestSuite.resourceDirectory, testSuiteFileName);
     }
   }
 
@@ -417,35 +427,43 @@ class TestRunner {
       return;
     }
 
-    LOG.info("TEST CONFIGURATION =========================================================");
-
-    // read in configuration, validate it, and print to stdout
-    TestConfiguration testConfiguration = TestConfiguration.fromJSONFile(args[0]);
-    testConfiguration.validate();
-    testConfiguration.display();
-
-    LOG.info("TEST RUN =========================================================");
-
-    // get an instance of a runner and tell it to execute the configuration
-    TestRunner runner = new TestRunner(testConfiguration);
-    Exception runnerEx = null;
-    try {
-      runner.executeTestConfiguration();
-    } catch (Exception ex) {
-      runnerEx = ex; // save exception to display after printing the results
+    LOG.info("TEST SUITE =========================================================");
+    // read in test suite and validate it
+    TestSuite testSuite;
+    boolean isSuite = args[0].startsWith(TestSuite.resourceDirectory + "/");
+    if (isSuite) {
+      LOG.info("Found a test suite");
+      testSuite = TestSuite.fromJSONFile(args[0].split(TestSuite.resourceDirectory + "/")[1]);
+    } else {
+      LOG.info("Found a single test configuration, not a test suite");
+      TestConfiguration testConfiguration =
+          TestConfiguration.fromJSONFile(
+              args[0].split(TestConfiguration.resourceDirectory + "/")[1]);
+      testSuite = TestSuite.fromSingleTestConfiguration(testConfiguration);
     }
+    testSuite.validate();
 
-    LOG.info("USER JOURNEY RESULTS =========================================================");
+    for (TestConfiguration testConfiguration : testSuite.testConfigurations) {
+      LOG.info("TEST RUN EXECUTION =========================================================");
+      testConfiguration.display();
 
-    // print the results to stdout
-    for (UserJourneyResult result : runner.userJourneyResults) {
-      result.display();
-    }
-    if (runnerEx != null) {
+      // get an instance of a runner and tell it to execute the configuration
+      TestRunner runner = new TestRunner(testConfiguration);
+      Exception runnerEx = null;
+      try {
+        runner.executeTestConfiguration();
+      } catch (Exception ex) {
+        runnerEx = ex; // save exception to display after printing the results
+      }
+
+      LOG.info("TEST RUN RESULTS =========================================================");
+      // calculate any relevant statistics about the user journeys and print them out
+      runner.calculateResultStatistics();
+      runner.displayResults();
+
+      if (runnerEx != null) {
         LOG.error("Test Runner threw an exception", runnerEx);
+      }
     }
-
-    // calculate any relevant statistics about the user journeys and print them out
-    runner.calculateResultStatistics();
   }
 }

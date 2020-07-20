@@ -57,7 +57,7 @@ public class RetrieveDataset extends runner.TestScript {
   public void userJourney(ApiClient apiClient) throws Exception {
     RepositoryApi repositoryApi = new RepositoryApi(apiClient);
     DatasetModel datasetModel = repositoryApi.retrieveDataset(datasetSummaryModel.getId());
-    LOG.info(
+    LOG.debug(
         "Successfully retrieved dataset: name = {}, data project = {}",
         datasetModel.getName(),
         datasetModel.getDataProject());

@@ -20,7 +20,7 @@ public class EnumerateProfiles extends runner.TestScript {
     EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
 
     int httpStatus = resourcesApi.getApiClient().getStatusCode();
-    LOG.info(
+    LOG.debug(
         "Enumerate profiles: HTTP status {}, number of profiles found = {}",
         httpStatus,
         profiles.getTotal());

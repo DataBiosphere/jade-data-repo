@@ -19,6 +19,6 @@ public class ServiceStatus extends runner.TestScript {
     unauthenticatedApi.serviceStatus();
 
     int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
-    LOG.info("Service status: {}", httpStatus);
+    LOG.debug("Service status: {}", httpStatus);
   }
 }

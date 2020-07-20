@@ -30,12 +30,4 @@ public class DeploymentScriptSpecification implements SpecificationInterface {
       throw new IllegalArgumentException("Deployment script class not found: " + name, classEx);
     }
   }
-
-  public void display() {
-    LOG.info("Deployment Script: {}", name);
-    LOG.info("  name: {}", name);
-
-    String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    LOG.info("  parameters: {}", parametersStr);
-  }
 }

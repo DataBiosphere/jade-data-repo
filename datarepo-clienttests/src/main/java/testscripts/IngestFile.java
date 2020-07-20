@@ -89,7 +89,7 @@ public class IngestFile extends runner.TestScript {
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     FileModel fileModel =
         DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
-    LOG.info(
+    LOG.debug(
         "Successfully ingested file: path = {}, id = {}, size = {}",
         fileModel.getPath(),
         fileModel.getFileId(),

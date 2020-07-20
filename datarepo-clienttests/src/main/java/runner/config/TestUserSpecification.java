@@ -1,7 +1,10 @@
 package runner.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.InputStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import utils.FileUtils;
 
 public class TestUserSpecification implements SpecificationInterface {
   private static final Logger LOG = LoggerFactory.getLogger(TestUserSpecification.class);
@@ -17,6 +20,28 @@ public class TestUserSpecification implements SpecificationInterface {
   TestUserSpecification() {}
 
   /**
+   * Read an instance of this class in from a JSON-formatted file. This method expects that the file
+   * name exists in the directory specified by {@link #resourceDirectory}
+   *
+   * @param resourceFileName file name
+   * @return an instance of this class
+   */
+  public static TestUserSpecification fromJSONFile(String resourceFileName) throws Exception {
+    // use Jackson to map the stream contents to a TestConfiguration object
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    InputStream inputStream =
+        FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
+    TestUserSpecification testUser =
+        objectMapper.readValue(inputStream, TestUserSpecification.class);
+
+    testUser.delegatorServiceAccount =
+        ServiceAccountSpecification.fromJSONFile(testUser.delegatorServiceAccountFile);
+
+    return testUser;
+  }
+
+  /**
    * Validate the test user specification read in from the JSON file. None of the properties should
    * be null.
    */
@@ -28,13 +53,5 @@ public class TestUserSpecification implements SpecificationInterface {
     }
 
     delegatorServiceAccount.validate();
-  }
-
-  public void display() {
-    LOG.info("Test User: {}", name);
-    LOG.info("  userEmail: {}", userEmail);
-    LOG.info("  delegatorServiceAccountFile: {}", delegatorServiceAccountFile);
-
-    delegatorServiceAccount.display();
   }
 }

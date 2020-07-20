@@ -47,15 +47,4 @@ public class TestScriptSpecification implements SpecificationInterface {
       throw new IllegalArgumentException("Test script class not found: " + name, classEx);
     }
   }
-
-  public void display() {
-    LOG.info("Test Script: " + name);
-    LOG.info("  totalNumberToRun: {}", totalNumberToRun);
-    LOG.info("  numberToRunInParallel: {}", numberToRunInParallel);
-    LOG.info("  expectedTimeForEach: {}", expectedTimeForEach);
-    LOG.info("  expectedTimeForEachUnit: {}", expectedTimeForEachUnitObj);
-
-    String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    LOG.info("  parameters: {}", parametersStr);
-  }
 }

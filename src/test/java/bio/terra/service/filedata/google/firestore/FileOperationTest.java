@@ -297,10 +297,7 @@ public class FileOperationTest {
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
-
-    // have to figure out how to force it to unlock after the fatal error
-    // b/c the dataset still needs to be deleted
-    // @Ignore
+    
     @Test
     public void retryAndFailAcquireSharedUnlock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());

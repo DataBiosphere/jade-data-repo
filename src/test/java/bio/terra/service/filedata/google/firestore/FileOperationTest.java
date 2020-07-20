@@ -297,7 +297,7 @@ public class FileOperationTest {
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
-    
+
     @Test
     public void retryAndFailAcquireSharedUnlock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());

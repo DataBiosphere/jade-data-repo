@@ -36,7 +36,6 @@ public class UnlockDatasetStep implements Step {
     @Override
     public StepResult doStep(FlightContext context) {
         // In the create case, we won't have the dataset id at step creation. We'll expect it to be in the working map.
-        logger.info("Unlocking dataset.");
         if (datasetId == null) {
             datasetId = context.getWorkingMap().get(DatasetWorkingMapKeys.DATASET_ID, UUID.class);
             if (datasetId == null) {
@@ -48,10 +47,8 @@ public class UnlockDatasetStep implements Step {
         boolean rowUpdated;
         try {
             if (sharedLock) {
-                logger.info("Unlocking shared dataset.");
                 rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
             } else {
-                logger.info("Unlocking exclusive dataset.");
                 rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
             }
             logger.debug("rowUpdated on unlock = " + rowUpdated);

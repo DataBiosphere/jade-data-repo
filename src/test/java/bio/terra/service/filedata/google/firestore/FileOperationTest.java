@@ -258,7 +258,7 @@ public class FileOperationTest {
     }
 
     // ------ Retry shared lock/unlock tests ---------------
-    
+
     // TODO BEFORE MERGING - remove ignore
     // Remove this after stairway fix has been added.
     @Ignore

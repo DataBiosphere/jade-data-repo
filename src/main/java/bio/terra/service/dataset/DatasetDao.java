@@ -87,9 +87,9 @@ public class DatasetDao {
         DataAccessException faultToInsert = getExclusiveFaultToInsert();
         int numRowsUpdated = 0;
         try {
-            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            // used for test DatasetConnectedTest > retryAndAcquireExclusiveLock & retryAndFailAcquireExclusiveLock
             if (faultToInsert != null) {
-                logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
+                logger.info("TEST RETRY EXCLUSIVE LOCK - insert fault, throwing exclusive lock exception");
                 throw faultToInsert;
             }
             numRowsUpdated = jdbcTemplate.update(sql, params);
@@ -116,11 +116,11 @@ public class DatasetDao {
 
     private DataAccessException getExclusiveFaultToInsert() {
         if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT)) {
-            logger.info("ExclusiveLockDatasetStep - insert RETRY fault to throw during lockShared()");
+            logger.info("ExclusiveLockDatasetStep - insert RETRY fault to throw during lockExclusive()");
             return new OptimisticLockingFailureException(
-                "TEST RETRY EXCLUSIVE LOCK - RETRIABLE EXCEPTION - insert fault, throwing exclusive lock exception");
+                "TEST RETRY EXCLUSIVE LOCK - RETRYABLE EXCEPTION - insert fault, throwing exclusive lock exception");
         } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT)) {
-            logger.info("LockDatasetStep - insert FATAL fault to throw during lockShared()");
+            logger.info("LockDatasetStep - insert FATAL fault to throw during lockExclusive()");
             return new DataIntegrityViolationException(
                 "TEST RETRY EXCLUSIVE LOCK - FATAL EXCEPTION - insert fault, throwing exclusive lock exception");
         }
@@ -148,7 +148,7 @@ public class DatasetDao {
         DataAccessException faultToInsert = getExclusiveUnlockFaultToInsert();
         int numRowsUpdated = 0;
         try {
-            // used for test DatasetConnectedTest > testExclusiveUnlockRetry
+            // used for test DatasetConnectedTest > retryAndAcquireExclusiveUnlock & retryAndFailAcquireExclusiveUnlock
             if (faultToInsert != null) {
                 logger.info("TEST RETRY EXCLUSIVE UNLOCK - insert fault, throwing exclusive unlock exception");
                 throw faultToInsert;
@@ -170,9 +170,9 @@ public class DatasetDao {
             return new OptimisticLockingFailureException(
                 "TEST RETRY EXCLUSIVE UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing exception");
         } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT)) {
-            logger.info("UnlockDatasetStep - insert FATAL fault to throw during unlockShared()");
+            logger.info("UnlockDatasetStep - insert FATAL fault to throw during unlockExclusive()");
             return new DataIntegrityViolationException(
-                "TEST RETRY EXCLUSIVE UNLOCK - FATAL EXCEPTION - insert fault, throwing exclusive lock exception");
+                "TEST RETRY EXCLUSIVE UNLOCK - FATAL EXCEPTION - insert fault, throwing exclusive unlock exception");
         }
         return null;
     }
@@ -214,7 +214,7 @@ public class DatasetDao {
         DataAccessException faultToInsert = getSharedLockFaultToInsert();
         int numRowsUpdated = 0;
         try {
-            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
+            // used for test FileOperationTest > retryAndAcquireSharedLock & retryAndFailAcquireSharedLock
             if (faultToInsert != null) {
                 logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
                 throw faultToInsert;
@@ -276,7 +276,7 @@ public class DatasetDao {
         DataAccessException faultToInsert = getSharedUnlockFaultToInsert();
         int numRowsUpdated = 0;
         try {
-            // used for test DatasetConnectedTest > testRetryAcquireSharedUnlock
+            // used for test FileOperationTest > retryAndAcquireSharedUnlock & retryAndFailAcquireSharedUnlock
             if (faultToInsert != null) {
                 logger.info("TEST RETRY SHARED UNLOCK - insert fault, throwing shared unlock exception");
                 throw faultToInsert;
@@ -296,11 +296,11 @@ public class DatasetDao {
         if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT)) {
             logger.info("UnlockDatasetStep - insert RETRY fault to throw during unlockShared()");
             return new OptimisticLockingFailureException(
-                "TEST RETRY SHARED UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing shared lock exception");
+                "TEST RETRY SHARED UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing shared unlock exception");
         } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT)) {
             logger.info("UnlockDatasetStep - insert FATAL fault to throw during unlockShared()");
             return new DataIntegrityViolationException(
-                "TEST RETRY SHARED UNLOCK - FATAL EXCEPTION - insert fault, throwing shared lock exception");
+                "TEST RETRY SHARED UNLOCK - FATAL EXCEPTION - insert fault, throwing shared unlock exception");
         }
         return null;
     }

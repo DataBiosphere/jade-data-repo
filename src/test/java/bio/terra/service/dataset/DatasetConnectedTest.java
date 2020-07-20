@@ -913,8 +913,10 @@ public class DatasetConnectedTest {
         return softDeleteRequest;
     }
 
+    // ------ Retry exclusive lock/unlock tests ---------------
+
     @Test
-    public void testExclusiveLockRetry() throws Exception {
+    public void retryAndAcquireExclusiveLock() throws Exception {
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
@@ -942,7 +944,7 @@ public class DatasetConnectedTest {
     }
 
     @Test
-    public void testExclusiveFatalLockException() throws Exception {
+    public void retryAndFailAcquireExclusiveLock() throws Exception {
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
@@ -961,7 +963,7 @@ public class DatasetConnectedTest {
     }
 
     @Test
-    public void testExclusiveUnlockRetry() throws Exception {
+    public void retryAndAcquireExclusiveUnlock() throws Exception {
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
@@ -987,7 +989,7 @@ public class DatasetConnectedTest {
     }
 
     @Test
-    public void testExclusiveUnlockFatalException() throws Exception {
+    public void retryAndFailAcquireExclusiveUnlock() throws Exception {
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);

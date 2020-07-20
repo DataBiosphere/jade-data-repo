@@ -414,15 +414,18 @@ class TestRunner {
     // read in test suite and validate it
     TestSuite testSuite;
     boolean isSuite = args[0].startsWith(TestSuite.resourceDirectory + "/");
+    boolean isSingleConfig = args[0].startsWith(TestConfiguration.resourceDirectory + "/");
     if (isSuite) {
       testSuite = TestSuite.fromJSONFile(args[0].split(TestSuite.resourceDirectory + "/")[1]);
       LOG.info("Found a test suite: {}", testSuite.name);
-    } else {
+    } else if (isSingleConfig) {
       TestConfiguration testConfiguration =
           TestConfiguration.fromJSONFile(
               args[0].split(TestConfiguration.resourceDirectory + "/")[1]);
       testSuite = TestSuite.fromSingleTestConfiguration(testConfiguration);
       LOG.info("Found a single test configuration: {}", testConfiguration.name);
+    } else {
+      throw new RuntimeException("Invalid file reference to test suite or configuration.");
     }
     testSuite.validate();
 

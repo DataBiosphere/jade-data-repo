@@ -8,7 +8,11 @@ public class TestScriptResult {
   public List<UserJourneyResult> userJourneyResults;
   public TestScriptResultSummary summary;
 
-  
+  /**
+   * Summary statistics are pulled out into a separate inner class for easier summary reporting.
+   * This class does not include a reference to the full TestScriptSpecification or the list of
+   * UserJourneyResults.
+   */
   public static class TestScriptResultSummary {
     public String testScriptDescription;
 
@@ -40,6 +44,7 @@ public class TestScriptResult {
     return summary;
   }
 
+  /** Loop through the UserJourneyResults calculating reporting statistics of interest. */
   private void calculateStatistics() {
     for (int ctr = 0; ctr < userJourneyResults.size(); ctr++) {
       UserJourneyResult result = userJourneyResults.get(ctr);

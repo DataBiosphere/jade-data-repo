@@ -485,10 +485,14 @@ public class ConnectedOperations {
         return fileModel;
     }
 
+    public enum RetryType {
+        lock,
+        unlock
+    }
+
     public void retryAcquireLockIngestFileSuccess(
+        RetryType retryType,
         boolean attemptRetry,
-        boolean faultLock,
-        boolean faultUnlock,
         boolean removeFault,
         ConfigEnum faultToInsert,
         String datasetId,
@@ -509,7 +513,7 @@ public class ConnectedOperations {
         TimeUnit.SECONDS.sleep(5); // give the flight time to fail a couple of times
         datasetDaoUtils = new DatasetDaoUtils();
         String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetId));
-        if (faultLock) {
+        if (retryType.equals(RetryType.lock)) {
             assertEquals("no shared locks after first call", 0, sharedLocks.length);
         } else {
             assertEquals("Acquire shared locks after first call", 1, sharedLocks.length);

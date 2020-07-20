@@ -258,14 +258,14 @@ public class FileOperationTest {
     }
 
     // TODO BEFORE MERGING - remove ignore
-    // Remove this after stairway fix has been added. 
+    // Remove this after stairway fix has been added.
     @Ignore
     @Test
     public void retryAndEventuallyFailToAcquireSharedLock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            false, true, false, false,
+            ConnectedOperations.RetryType.lock, false,false,
             ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
         configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT.toString(), false);
@@ -276,7 +276,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            true, true, false, true,
+            ConnectedOperations.RetryType.lock, true,true,
             ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
@@ -286,7 +286,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            false, true, false, true,
+            ConnectedOperations.RetryType.lock, true,true,
             ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
@@ -296,7 +296,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            true, false, true, true,
+            ConnectedOperations.RetryType.unlock, true,true,
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
@@ -306,7 +306,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            false, false, true, true,
+            ConnectedOperations.RetryType.unlock, false,true,
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }

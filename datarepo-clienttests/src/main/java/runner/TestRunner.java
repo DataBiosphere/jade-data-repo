@@ -15,6 +15,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import runner.config.TestConfiguration;
@@ -34,7 +35,7 @@ class TestRunner {
   DeploymentScript deploymentScript;
   List<ThreadPoolExecutor> threadPools;
   List<List<Future<UserJourneyResult>>> userJourneyFutureLists;
-  List<UserJourneyResult> userJourneyResults;
+  List<TestScriptResult> testScriptResults;
   Map<String, ApiClient> apiClientsForUsers; // testUser -> apiClient
   // TODO: have ApiClients share an HTTP client, or one per each is ok?
 
@@ -45,7 +46,7 @@ class TestRunner {
     this.scripts = new ArrayList<>();
     this.threadPools = new ArrayList<>();
     this.userJourneyFutureLists = new ArrayList<>();
-    this.userJourneyResults = new ArrayList<>();
+    this.testScriptResults = new ArrayList<>();
     this.apiClientsForUsers = new HashMap<>();
   }
 
@@ -176,12 +177,6 @@ class TestRunner {
       TestScript testScript = scripts.get(tsCtr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(tsCtr);
 
-      // add a description to the user journey threads/results that includes any parameters
-      String userJourneyDescription = testScriptSpecification.name;
-      if (testScriptSpecification.parameters != null) {
-        userJourneyDescription += ": " + String.join(",", testScriptSpecification.parameters);
-      }
-
       // create a thread pool for running its user journeys
       ThreadPoolExecutor threadPool =
           (ThreadPoolExecutor)
@@ -192,8 +187,10 @@ class TestRunner {
       List<UserJourneyThread> userJourneyThreads = new ArrayList<>();
       for (int ujCtr = 0; ujCtr < testScriptSpecification.totalNumberToRun; ujCtr++) {
         ApiClient apiClient = apiClientList.get(ujCtr % apiClientList.size());
+        // add a description to the user journey threads/results that includes any test script
+        // parameters
         userJourneyThreads.add(
-            new UserJourneyThread(testScript, userJourneyDescription, apiClient));
+            new UserJourneyThread(testScript, testScriptSpecification.description, apiClient));
       }
 
       // TODO: support different patterns of kicking off user journeys. here they're all queued at
@@ -221,11 +218,8 @@ class TestRunner {
       }
       if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
         LOG.error(
-            "Test Scripts: Thread pool for test script {} with parameters {} failed to terminate",
-            testScriptSpecification.name,
-            testScriptSpecification.parameters == null
-                ? ""
-                : String.join(",", testScriptSpecification.parameters));
+            "Test Scripts: Thread pool for test script failed to terminate: {}",
+            testScriptSpecification.description);
       }
     }
 
@@ -235,6 +229,7 @@ class TestRunner {
       List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
 
+      List<UserJourneyResult> userJourneyResults = new ArrayList<>();
       for (Future<UserJourneyResult> userJourneyFuture : userJourneyFutureList) {
         UserJourneyResult result = null;
         if (userJourneyFuture.isDone())
@@ -256,6 +251,7 @@ class TestRunner {
         }
         userJourneyResults.add(result);
       }
+      testScriptResults.add(new TestScriptResult(testScriptSpecification, userJourneyResults));
     }
 
     // call the cleanup method of each test script
@@ -344,7 +340,7 @@ class TestRunner {
       } catch (Exception ex) {
         result.exceptionThrown = ex;
       }
-      result.elapsedTime = System.nanoTime() - startTime;
+      result.elapsedTimeNS = System.nanoTime() - startTime;
 
       return result;
     }
@@ -363,20 +359,25 @@ class TestRunner {
     // database, but reporting that it was left hanging around would be helpful
   }
 
-  void calculateResultStatistics() {
-    // TODO: calculate statistics for each group of user journey results with the same user journey description
-      // min, mean, median, max elapsed time
-      // number completed (out of total)
-      // number of exceptions thrown (out of total)
-  }
-
-  String displayResults() {
+  void printResults() {
     try {
-      // use Jackson to map the UserJourneyResults to a JSON-formatted text block
+      // use Jackson to map the object to a JSON-formatted text block
       ObjectMapper objectMapper = new ObjectMapper();
-      return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(userJourneyResults);
+
+      // print the full set of user journey results to debug
+      LOG.debug(
+          objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(testScriptResults));
+
+      // print the summaries to info
+      List<TestScriptResult.TestScriptResultSummary> testScriptResultSummaries =
+          testScriptResults.stream().map(TestScriptResult::getSummary).collect(Collectors.toList());
+      LOG.info(
+          objectMapper
+              .writerWithDefaultPrettyPrinter()
+              .writeValueAsString(testScriptResultSummaries));
+
     } catch (JsonProcessingException jpEx) {
-      throw new RuntimeException("Error converting UserJourneyResults to a JSON-formatted string");
+      throw new RuntimeException("Error converting object to a JSON-formatted string");
     }
   }
 
@@ -440,9 +441,7 @@ class TestRunner {
       }
 
       LOG.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
-      // calculate any relevant statistics about the user journeys and print them out
-      runner.calculateResultStatistics();
-      LOG.debug(runner.displayResults());
+      runner.printResults();
 
       if (runnerEx != null) {
         LOG.error("Test Runner threw an exception", runnerEx);

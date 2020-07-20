@@ -18,6 +18,7 @@ public class TestScriptSpecification implements SpecificationInterface {
 
   public Class<? extends TestScript> scriptClass;
   public TimeUnit expectedTimeForEachUnitObj;
+  public String description;
 
   public static final String scriptsPackage = "testscripts";
 
@@ -45,6 +46,12 @@ public class TestScriptSpecification implements SpecificationInterface {
       scriptClass = (Class<? extends TestScript>) scriptClassGeneric;
     } catch (ClassNotFoundException | ClassCastException classEx) {
       throw new IllegalArgumentException("Test script class not found: " + name, classEx);
+    }
+
+    // generate a separate description property that also includes any test script parameters
+    description = name;
+    if (parameters != null) {
+      description += ": " + String.join(",", parameters);
     }
   }
 }

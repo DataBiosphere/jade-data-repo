@@ -10,7 +10,7 @@ public class UserJourneyResult {
   public String threadName;
 
   public boolean completed;
-  public long elapsedTime;
+  public long elapsedTimeNS;
   public Exception exceptionThrown;
 
   public UserJourneyResult(String userJourneyDescription, String threadName) {

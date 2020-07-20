@@ -36,18 +36,35 @@ public final class DataRepoUtils {
   public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
       throws Exception {
     LOG.debug("Waiting for Data Repo job to finish");
-    int pollCtr = Math.floorDiv(maximumSecondsToWaitForJob, secondsIntervalToPollJob);
-    job = repositoryApi.retrieveJob(job.getId());
-
-    while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
-      job = repositoryApi.retrieveJob(job.getId());
-      pollCtr--;
-    }
+    job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
       throw new RuntimeException(
           "Timed out waiting for job to finish. (jobid=" + job.getId() + ")");
+    }
+
+    return job;
+  }
+
+  /**
+   * Poll for running job. Polls for designated time.
+   *
+   * @param repositoryApi the api object to use
+   * @param job the job model to poll
+   * @param pollTime time in seconds for the job to poll before returning
+   */
+  public static JobModel pollForRunningJob(RepositoryApi repositoryApi, JobModel job, int pollTime)
+      throws Exception {
+    int pollCtr = Math.floorDiv(pollTime, secondsIntervalToPollJob);
+    job = repositoryApi.retrieveJob(job.getId());
+    int tryCount = 1;
+
+    while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
+      LOG.debug("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
+      TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
+      job = repositoryApi.retrieveJob(job.getId());
+      tryCount++;
+      pollCtr--;
     }
 
     return job;

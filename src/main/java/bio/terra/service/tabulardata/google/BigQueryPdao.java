@@ -360,15 +360,15 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     public void snapshotViewCreation(
         String datasetBqDatasetName,
-        String snapshotName,
         Snapshot snapshot,
         String projectId,
         BigQuery bigQuery,
         BigQueryProject bigQueryProject) {
         // create the views
-        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery);
+        List<String> bqTableNames = createViews(datasetBqDatasetName, snapshot, projectId, bigQuery);
 
         // set authorization on views
+        String snapshotName = snapshot.getName();
         List<Acl> acls = convertToViewAcls(projectId, snapshotName, bqTableNames);
         bigQueryProject.addDatasetAcls(datasetBqDatasetName, acls);
     }
@@ -439,7 +439,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
         List<WalkRelationship> walkRelationships = WalkRelationship.ofAssetSpecification(asset);
         walkRelationships(datasetBqDatasetName, snapshotName, walkRelationships, rootTableId, projectId, bigQuery);
 
-        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
     private static final String insertAllLiveViewDataTemplate =
@@ -526,7 +526,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             throw new PdaoException("This snapshot is empty");
         }
 
-        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
 
@@ -586,7 +586,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             }
         }
 
-        snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+        snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
     }
 
     @Override
@@ -631,7 +631,17 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     @Override
     public boolean deleteSnapshot(Snapshot snapshot) throws InterruptedException {
-        return bigQueryProjectForSnapshot(snapshot).deleteDataset(snapshot.getName());
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        String projectId = bigQueryProject.getProjectId();
+        List<SnapshotSource> sources = snapshot.getSnapshotSources();
+        if (sources.size() > 0) {
+            String datasetName = sources.get(0).getDataset().getName();
+            String datasetBqDatasetName = prefixName(datasetName);
+            deleteViewAcls(datasetBqDatasetName, snapshot, projectId);
+        } else {
+            logger.warn("Snapshot is missing sources: " + snapshot.getName());
+        }
+        return bigQueryProject.deleteDataset(snapshot.getName());
     }
 
     private List<Acl> convertToViewAcls(String projectId, String datasetName, List<String> tableNames) {
@@ -1124,7 +1134,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             // populate root row ids. Must happen before the relationship walk.
             // NOTE: when we have multiple sources, we can put this into a loop
-            snapshotViewCreation(datasetBqDatasetName, snapshotName, snapshot, projectId, bigQuery, bigQueryProject);
+            snapshotViewCreation(datasetBqDatasetName, snapshot, projectId, bigQuery, bigQueryProject);
 
         } catch (PdaoException ex) {
             // TODO What if the select list doesn't match the temp table schema?
@@ -1232,7 +1242,6 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
     private List<String> createViews(
         String datasetBqDatasetName,
-        String snapshotName,
         Snapshot snapshot,
         String projectId,
         BigQuery bigQuery) {
@@ -1240,6 +1249,7 @@ public class BigQueryPdao implements PrimaryDataAccess {
             // Build the FROM clause from the source
             // NOTE: we can put this in a loop when we do multiple sources
             SnapshotSource source = snapshot.getSnapshotSources().get(0);
+            String snapshotName = snapshot.getName();
 
             // Find the table map for the table. If there is none, we skip it.
             // NOTE: for now, we know that there will be one, because we generate it directly.
@@ -1272,6 +1282,34 @@ public class BigQueryPdao implements PrimaryDataAccess {
 
             return tableName;
         }).collect(Collectors.toList());
+    }
+
+    private void deleteViewAcls(
+        String datasetBqDatasetName,
+        Snapshot snapshot,
+        String projectId) throws InterruptedException {
+        BigQueryProject bigQueryProject = bigQueryProjectForSnapshot(snapshot);
+        List<String> viewsToDelete = snapshot.getTables().stream().map(table -> {
+            // Build the FROM clause from the source
+            // NOTE: we can put this in a loop when we do multiple sources
+            SnapshotSource source = snapshot.getSnapshotSources().get(0);
+
+            // Find the table map for the table. If there is none, we skip it.
+            // NOTE: for now, we know that there will be one, because we generate it directly.
+            // In the future when we have more than one, we can just return.
+            SnapshotMapTable mapTable = lookupMapTable(table, source);
+            if (mapTable == null) {
+                throw new PdaoException("No matching map table for snapshot table " + table.getName());
+            }
+            // get the list of table names
+            return table.getName();
+        }).collect(Collectors.toList());
+
+        // delete the view Acls
+        String snapshotName = snapshot.getName();
+        viewsToDelete.forEach(tableName -> logger.info("Deleting ACLs for view " + snapshotName + "." + tableName));
+        List<Acl> acls = convertToViewAcls(projectId, snapshotName, viewsToDelete);
+        bigQueryProject.removeDatasetAcls(datasetBqDatasetName, acls);
     }
 
     private String sourceSelectSql(String snapshotId, Column targetColumn, SnapshotMapTable mapTable) {

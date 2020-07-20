@@ -38,6 +38,8 @@ public final class KubernetesClientUtils {
   public static final String componentLabel = "app.kubernetes.io/component";
   public static final String apiComponentLabel = "api";
 
+  private static String namespace;
+
   private static CoreV1Api kubernetesClientCoreObject;
   private static AppsV1Api kubernetesClientAppsObject;
 
@@ -79,6 +81,8 @@ public final class KubernetesClientUtils {
     for (String cmdOutputLine : cmdOutputLines) {
       LOG.debug(cmdOutputLine);
     }
+
+    namespace = server.namespace;
 
     // path to kubeconfig file, that was just created/updated by gcloud get-credentials above
     String kubeConfigPath = System.getProperty("user.home") + "/.kube/config";
@@ -151,13 +155,13 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * List all the pods in the given namespace, or in the whole cluster if the namespace is not
-   * specified (i.e. null or empty string).
+   * List all the pods in namespace defined in buildKubernetesClientObject by the server
+   * specification, or in the whole cluster if the namespace is not specified (i.e. null or empty
+   * string).
    *
-   * @param namespace to list the pods in
    * @return list of Kubernetes pods
    */
-  public static List<V1Pod> listPods(String namespace) throws ApiException {
+  public static List<V1Pod> listPods() throws ApiException {
     V1PodList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
@@ -172,13 +176,13 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * List all the deployments in the given namespace, or in the whole cluster if the namespace is
-   * not specified (i.e. null or empty string).
+   * List all the deployments in namespace defined in buildKubernetesClientObject by the server
+   * specification, or in the whole cluster if the namespace is not specified (i.e. null or empty
+   * string).
    *
-   * @param namespace to list the deployments in
    * @return list of Kubernetes deployments
    */
-  public static List<V1Deployment> listDeployments(String namespace) throws ApiException {
+  public static List<V1Deployment> listDeployments() throws ApiException {
     V1DeploymentList list;
     if (namespace == null || namespace.isEmpty()) {
       list =
@@ -194,17 +198,16 @@ public final class KubernetesClientUtils {
   }
 
   /**
-   * Get the API deployment in the given namespace, or in the whole cluster if the namespace is not
-   * specified (i.e. null or empty string). This method expects that there is a single API
-   * deployment in the namespace.
+   * Get the API deployment in the in the namespace defined in buildKubernetesClientObject by the
+   * server specification, or in the whole cluster if the namespace is not specified (i.e. null or
+   * empty string). This method expects that there is a single API deployment in the namespace.
    *
-   * @param namespace to get the API deployment from
    * @return the API deployment, null if not found
    */
-  public static V1Deployment getApiDeployment(String namespace) throws ApiException {
+  public static V1Deployment getApiDeployment() throws ApiException {
     // loop through the deployments in the namespace
     // find the one that matches the api component label
-    return listDeployments(namespace).stream()
+    return listDeployments().stream()
         .filter(
             deployment ->
                 deployment.getMetadata().getLabels().get(componentLabel).equals(apiComponentLabel))
@@ -250,12 +253,11 @@ public final class KubernetesClientUtils {
     // get the component label from the deployment object
     // this will be "api" for most cases, since that's what we're interested in scaling.
     String deploymentComponentLabel = deployment.getMetadata().getLabels().get(componentLabel);
-    String namespace = deployment.getMetadata().getNamespace();
 
     // loop through the pods in the namespace
     // find the ones that match the deployment component label (e.g. find all the API pods)
     long numPods =
-        listPods(namespace).stream()
+        listPods().stream()
             .filter(
                 pod ->
                     deploymentComponentLabel.equals(
@@ -265,7 +267,7 @@ public final class KubernetesClientUtils {
     while (numPods != numberOfReplicas && pollCtr >= 0) {
       TimeUnit.SECONDS.sleep(secondsIntervalToPollReplicaSetSizeChange);
       numPods =
-          listPods(namespace).stream()
+          listPods().stream()
               .filter(
                   pod ->
                       deploymentComponentLabel.equals(
@@ -281,6 +283,30 @@ public final class KubernetesClientUtils {
               + ", numberOfReplicas="
               + numberOfReplicas
               + ")");
+    }
+  }
+
+  /**
+   * Utilizing the other util functions to (1) fresh fetch of the api deployment, (2) scale the
+   * replica count, (3) wait for replica count to update, and (4) print the results
+   *
+   * @param podCount count of pods to scale the kubernetes deployment to
+   */
+  public static void changeReplicaSetSizeAndWait(int podCount) throws Exception {
+    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment();
+    if (apiDeployment == null) {
+      throw new RuntimeException("API deployment not found.");
+    }
+    LOG.debug(
+        "Pod count before scaling kubernetes pods: {}", KubernetesClientUtils.listPods().size());
+    apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
+    KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
+
+    // print out the current pods
+    List<V1Pod> pods = KubernetesClientUtils.listPods();
+    LOG.debug("Pod count after scaling kubernetes pods: {}", pods.size());
+    for (V1Pod pod : pods) {
+      LOG.debug("  pod: {}", pod.getMetadata().getName());
     }
   }
 }

@@ -5,8 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.auth.oauth2.AccessToken;
 import com.google.auth.oauth2.GoogleCredentials;
-import io.kubernetes.client.openapi.models.V1Deployment;
-import io.kubernetes.client.openapi.models.V1Pod;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -353,27 +351,10 @@ class TestRunner {
   }
 
   void modifyKubernetesPostDeployment() throws Exception {
-    // set the initial number of pods in the API deployment replica set
-    V1Deployment apiDeployment = KubernetesClientUtils.getApiDeployment(config.server.namespace);
-    if (apiDeployment == null) {
-      LOG.error("Kubernetes: API deployment not found");
-      throw new RuntimeException("API deployment not found.");
-    }
     LOG.info(
-        "Kubernetes: Pod count before set initial replica set size: {}",
-        KubernetesClientUtils.listPods(config.server.namespace).size());
-    apiDeployment =
-        KubernetesClientUtils.changeReplicaSetSize(
-            apiDeployment, config.kubernetes.numberOfInitialPods);
-    KubernetesClientUtils.waitForReplicaSetSizeChange(
-        apiDeployment, config.kubernetes.numberOfInitialPods);
-
-    // print out the current pods
-    List<V1Pod> pods = KubernetesClientUtils.listPods(config.server.namespace);
-    LOG.info("Kubernetes: Initial number of pods: {}", pods.size());
-    for (V1Pod pod : pods) {
-      LOG.debug("  pod: {}", pod.getMetadata().getName());
-    }
+        "Kubernetes: Setting the initial number of pods in the API deployment replica set to {}",
+        config.kubernetes.numberOfInitialPods);
+    KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
   }
 
   void cleanupDataProject() {

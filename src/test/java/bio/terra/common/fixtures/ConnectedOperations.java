@@ -418,6 +418,23 @@ public class ConnectedOperations {
         }
     }
 
+    public void checkDeleteDatasetResponse(MockHttpServletResponse response, String datasetIdDeleted) throws Exception {
+        HttpStatus status = HttpStatus.valueOf(response.getStatus());
+        if (status.is2xxSuccessful()) {
+            DeleteResponseModel responseModel =
+                TestUtils.mapFromJson(response.getContentAsString(), DeleteResponseModel.class);
+            assertTrue("Valid delete response object state enumeration",
+                (responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.DELETED ||
+                    responseModel.getObjectState() == DeleteResponseModel.ObjectStateEnum.NOT_FOUND));
+
+            // we already successfully removed the dataset, so we do not need to delete again.
+            removeDatasetFromTracking(datasetIdDeleted);
+        } else {
+            ErrorModel errorModel = handleFailureCase(response, HttpStatus.NOT_FOUND);
+            assertNotNull("error model returned", errorModel);
+        }
+    }
+
     public MvcResult ingestTableRaw(String datasetId, IngestRequestModel ingestRequestModel) throws Exception {
         String jsonRequest = TestUtils.mapToJson(ingestRequestModel);
         String url = "/api/repository/v1/datasets/" + datasetId + "/ingest";
@@ -732,6 +749,8 @@ public class ConnectedOperations {
     public void addDataset(String id) {
         createdDatasetIds.add(id);
     }
+
+    public void removeDatasetFromTracking(String id) { createdDatasetIds.remove(id); }
 
     public void addSnapshot(String id) {
         createdSnapshotIds.add(id);

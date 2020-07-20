@@ -111,6 +111,7 @@ public class DatasetDao {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to lock the dataset");
         }
+        logger.debug("Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
 
     private DataAccessException getExclusiveFaultToInsert() {
@@ -225,6 +226,7 @@ public class DatasetDao {
             logger.debug("numRowsUpdated=" + numRowsUpdated);
             throw new DatasetLockException("Failed to take a shared lock on the dataset");
         }
+        logger.debug("Shared lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
 
     private DataAccessException getSharedLockFaultToInsert() {

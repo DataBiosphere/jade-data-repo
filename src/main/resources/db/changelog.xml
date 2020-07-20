@@ -29,4 +29,5 @@
     <include file="changesets/20200525_snapshottablerowcounts.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200529_datasetuniqueasset.yaml" relativeToChangelogFile="true" />
     <include file="changesets/20200712_snapshotrelationships.yaml" relativeToChangelogFile="true" />
+    <include file="changesets/20200717_allowlongsnapshotrelnames.yaml" relativeToChangelogFile="true" />
 </databaseChangeLog>

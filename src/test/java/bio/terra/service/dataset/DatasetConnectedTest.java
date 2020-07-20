@@ -111,6 +111,7 @@ public class DatasetConnectedTest {
 
     @After
     public void tearDown() throws Exception {
+        logger.info("TEAR DOWN");
         connectedOperations.teardown();
         configService.reset();
     }
@@ -907,29 +908,76 @@ public class DatasetConnectedTest {
 
     @Test
     public void testExclusiveLockRetry() throws Exception {
-        // check that the dataset metadata row has a shared lock
-        // note: asserts are below outside the hang block
         UUID datasetId = UUID.fromString(summaryModel.getId());
         String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
         assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
 
         configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), true);
+
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
-        logger.info("sleeping for 2 seconds");
+        logger.info("Sleeping for 2 seconds during delete dataset flight. It should fail to acquire exclusive lock.");
         TimeUnit.SECONDS.sleep(2);
         String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
-        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
-        logger.info("sleeping for 5 seconds");
-        TimeUnit.SECONDS.sleep(5);
+        assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
 
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
+        logger.info("Fault removed - delete dataset flight should now succeed.");
         MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
 
-        assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
 
         // if successful, remove dataset id from tracking methods
         // so that cleanup does not try to remove the dataset again
         HttpStatus status = HttpStatus.valueOf(response.getStatus());
-        assertTrue("Dataset delete should have successfully completed after acquiring exclusie lock", status.is2xxSuccessful());
+        assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
+            status.is2xxSuccessful());
         connectedOperations.checkDeleteDatasetResponse(response, datasetId.toString());
+        logger.info("Dataset successfully deleted after acquiring exclusive lock.");
+    }
+
+    @Test
+    public void testExclusiveFatalLockException() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        logger.info("Sleeping for 5 seconds while delete dataset attempts to delete. It should fail.");
+        TimeUnit.SECONDS.sleep(5);
+        String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("Exclusive lock should be null while fault is set", exclusiveLock2);
+
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+        connectedOperations.handleFailureCase(response);
+    }
+
+    @Test
+    public void testExclusiveUnlockRetry() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        logger.info("Sleeping for 10 seconds during delete dataset flight. It should acquire exclusive lock.");
+        TimeUnit.SECONDS.sleep(10);
+        // String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
+        // assertNotNull("Exclusive lock should be acquired but not released", exclusiveLock2);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), false);
+        logger.info("Fault removed - delete dataset flight should now succeed.");
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+
+        // if successful, remove dataset id from tracking methods
+        // so that cleanup does not try to remove the dataset again
+        HttpStatus status = HttpStatus.valueOf(response.getStatus());
+        assertTrue("Dataset delete should have successfully completed after acquiring exclusive lock",
+            status.is2xxSuccessful());
+        connectedOperations.checkDeleteDatasetResponse(response, datasetId.toString());
+        logger.info("Dataset successfully deleted after acquiring exclusive lock.");
     }
 }

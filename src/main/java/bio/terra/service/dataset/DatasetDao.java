@@ -145,14 +145,14 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-        //DataAccessException faultToInsert = getFaultToInsert();
+        DataAccessException faultToInsert = getExclusiveUnlockFaultToInsert();
         int numRowsUpdated = 0;
         try {
-            // used for test DatasetConnectedTest > testRetryAcquireSharedLock
-            //if (faultToInsert != null) {
-            //  logger.info("TEST RETRY SHARED LOCK - insert fault, throwing shared lock exception");
-            //  throw faultToInsert;
-            //}
+            // used for test DatasetConnectedTest > testExclusiveUnlockRetry
+            if (faultToInsert != null) {
+                logger.info("TEST RETRY EXCLUSIVE UNLOCK - insert fault, throwing exclusive unlock exception");
+                throw faultToInsert;
+            }
             numRowsUpdated = jdbcTemplate.update(sql, params);
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {
@@ -162,6 +162,19 @@ public class DatasetDao {
         }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
         return (numRowsUpdated == 1);
+    }
+
+    private DataAccessException getExclusiveUnlockFaultToInsert() {
+        if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT)) {
+            logger.info("ExclusiveUnlockDatasetStep - insert RETRY fault to throw during unlockExclusive()");
+            return new OptimisticLockingFailureException(
+                "TEST RETRY EXCLUSIVE UNLOCK - RETRYABLE EXCEPTION - insert fault, throwing exclusive unlock exception");
+        } else if (configurationService.testInsertFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT)) {
+            logger.info("UnlockDatasetStep - insert FATAL fault to throw during unlockShared()");
+            return new DataIntegrityViolationException(
+                "TEST RETRY EXCLUSIVE UNLOCK - FATAL EXCEPTION - insert fault, throwing exclusive lock exception");
+        }
+        return null;
     }
 
     /**

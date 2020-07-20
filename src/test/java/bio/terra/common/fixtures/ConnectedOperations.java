@@ -534,10 +534,6 @@ public class ConnectedOperations {
             FileModel fileModel = handleSuccessCase(response, FileModel.class);
             checkSuccessfulFileLoad(fileLoadModel, fileModel, datasetId);
         } else {
-            if (faultUnlock) {
-                // to do - figure out how to force unlocking
-                // datasetDao.unlockShared(datasetId, createFlightId);
-            }
             handleFailureCase(response);
             if (removeFault) {
                 // Remove insertion of shared lock fault

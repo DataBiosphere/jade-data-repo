@@ -145,6 +145,7 @@ public class FileOperationTest {
 
     @After
     public void teardown() throws Exception {
+        logger.info("TEAR DOWN");
         configService.reset();
         connectedOperations.teardown();
     }
@@ -299,7 +300,7 @@ public class FileOperationTest {
 
     // have to figure out how to force it to unlock after the fatal error
     // b/c the dataset still needs to be deleted
-    @Ignore
+    // @Ignore
     @Test
     public void retryAndFailAcquireSharedUnlock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());

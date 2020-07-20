@@ -489,6 +489,7 @@ public class ConnectedOperations {
         boolean attemptRetry,
         boolean faultLock,
         boolean faultUnlock,
+        boolean removeFault,
         ConfigEnum faultToInsert,
         String datasetId,
         FileLoadModel fileLoadModel,
@@ -514,8 +515,10 @@ public class ConnectedOperations {
             assertEquals("Acquire shared locks after first call", 1, sharedLocks.length);
         }
 
-        // Remove insertion of shared lock fault
-        configService.setFault(faultToInsert.name(), false);
+        if (removeFault) {
+            // Remove insertion of shared lock fault
+            configService.setFault(faultToInsert.name(), false);
+        }
 
         // get result
         MockHttpServletResponse response = validateJobModelAndWait(result);
@@ -536,6 +539,10 @@ public class ConnectedOperations {
                 // datasetDao.unlockShared(datasetId, createFlightId);
             }
             handleFailureCase(response);
+            if (removeFault) {
+                // Remove insertion of shared lock fault
+                configService.setFault(faultToInsert.name(), false);
+            }
 
         }
     }

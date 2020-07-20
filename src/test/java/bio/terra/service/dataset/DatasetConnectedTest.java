@@ -22,6 +22,7 @@ import bio.terra.model.FileModel;
 import bio.terra.model.IngestRequestModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
+import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.service.iam.IamProviderInterface;
 import bio.terra.service.resourcemanagement.DataLocationService;
 import bio.terra.service.resourcemanagement.google.GoogleResourceConfiguration;
@@ -112,6 +113,13 @@ public class DatasetConnectedTest {
     @After
     public void tearDown() throws Exception {
         logger.info("TEAR DOWN");
+
+        // make sure all faults are set back to false
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_RETRY_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT.toString(), false);
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), false);
+
         connectedOperations.teardown();
         configService.reset();
     }
@@ -964,8 +972,6 @@ public class DatasetConnectedTest {
         MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
         logger.info("Sleeping for 10 seconds during delete dataset flight. It should acquire exclusive lock.");
         TimeUnit.SECONDS.sleep(10);
-        // String exclusiveLock2 = datasetDao.getExclusiveLock(datasetId);
-        // assertNotNull("Exclusive lock should be acquired but not released", exclusiveLock2);
 
         configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_RETRY_FAULT.toString(), false);
         logger.info("Fault removed - delete dataset flight should now succeed.");
@@ -979,5 +985,43 @@ public class DatasetConnectedTest {
             status.is2xxSuccessful());
         connectedOperations.checkDeleteDatasetResponse(response, datasetId.toString());
         logger.info("Dataset successfully deleted after acquiring exclusive lock.");
+    }
+
+    @Test
+    public void testExclusiveUnlockFatalException() throws Exception {
+        UUID datasetId = UUID.fromString(summaryModel.getId());
+        String exclusiveLock1 = datasetDao.getExclusiveLock(datasetId);
+        assertNull("At beginning of test, dataset should have no exclusive lock", exclusiveLock1);
+
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT.toString(), true);
+
+        MvcResult result = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+
+        logger.info("Fatal fault. Dataset delete task should not succeed.");
+        MockHttpServletResponse response = connectedOperations.validateJobModelAndWait(result);
+
+
+        connectedOperations.handleFailureCase(response);
+        logger.info("Dataset successfully deleted, but failed to release lock, so task fails.");
+
+        // Let's handle the dataset cleanup here.
+        // (if test fails before this, it's ok - regular teardown should handle it)
+
+        // Dataset delete technically succeeds before the unlock fails, even though the task fails
+        // so it will error in teardown if we try to remove the dataset.
+        // In case something went wrong, let's try to delete the dataset again
+
+        configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_UNLOCK_FATAL_FAULT.toString(), false);
+        MvcResult cleanupResult = mvc.perform(delete("/api/repository/v1/datasets/" + datasetId)).andReturn();
+        MockHttpServletResponse cleanupResponse = connectedOperations.validateJobModelAndWait(cleanupResult);
+        HttpStatus status = HttpStatus.valueOf(cleanupResponse.getStatus());
+
+        // worst case: Test fails, but dataset is still cleaned up
+        assertFalse("If everything went as expected, delete should have already happened.",
+            status.is2xxSuccessful());
+
+        // since we just deleted the dataset, remove it from the cleanup tasks
+        connectedOperations.removeDatasetFromTracking(datasetId.toString());
+
     }
 }

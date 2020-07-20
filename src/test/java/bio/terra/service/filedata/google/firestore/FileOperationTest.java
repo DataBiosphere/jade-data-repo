@@ -257,11 +257,22 @@ public class FileOperationTest {
     }
 
     @Test
+    public void retryAndEventuallyFailToAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            false, true, false, false,
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+        configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT.toString(), false);
+    }
+
+    @Test
     public void retryAndAcquireSharedLock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            true, true, false,
+            true, true, false, true,
             ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
@@ -271,7 +282,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            false, true, false,
+            false, true, false, true,
             ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
@@ -281,7 +292,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            true, false, true,
+            true, false, true, true,
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
@@ -294,7 +305,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            false, false, true,
+            false, false, true, true,
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }

@@ -88,19 +88,8 @@ public class DatasetDao {
         // fault insert for tests DatasetConnectedTest > retryAndAcquireExclusiveLock
         // & retryAndFailAcquireExclusiveLock
         DataAccessException faultToInsert = getExclusiveFaultToInsert();
-        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert);
+        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert, true, datasetId);
 
-        // if no rows were updated, then throw an exception
-        if (numRowsUpdated == 0) {
-            // this method checks if the dataset exists
-            // if it does not exist, then the method throws a DatasetNotFoundException
-            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
-            retrieveSummaryById(datasetId);
-
-            // otherwise, throw a lock exception
-            logger.debug("numRowsUpdated=" + numRowsUpdated);
-            throw new DatasetLockException("Failed to lock the dataset");
-        }
         logger.debug("Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
 
@@ -139,9 +128,12 @@ public class DatasetDao {
         // fault insert for tests DatasetConnectedTest > retryAndAcquireExclusiveUnlock
         // & retryAndFailAcquireExclusiveUnlock
         DataAccessException faultToInsert = getExclusiveUnlockFaultToInsert();
-        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert);
+        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert, false, null);
 
-        return (numRowsUpdated == 1);
+        boolean unlockSucceeded = (numRowsUpdated == 1);
+        // TODO before merge - demote this log to debug
+        logger.info("Unlock exclusive succeeded? {}", unlockSucceeded);
+        return unlockSucceeded;
     }
 
     private DataAccessException getExclusiveUnlockFaultToInsert() {
@@ -194,20 +186,11 @@ public class DatasetDao {
 
         DataAccessException faultToInsert = getSharedLockFaultToInsert();
         // fault insert for tests FileOperationTest > retryAndAcquireSharedLock & retryAndFailAcquireSharedLock
-        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert);
+        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert, true, datasetId);
 
-        // if no rows were updated, then throw an exception
-        if (numRowsUpdated == 0) {
-            // this method checks if the dataset exists
-            // if it does not exist, then the method throws a DatasetNotFoundException
-            // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
-            retrieveSummaryById(datasetId);
-
-            // otherwise, throw a lock exception
-            logger.debug("numRowsUpdated=" + numRowsUpdated);
-            throw new DatasetLockException("Failed to take a shared lock on the dataset");
-        }
-        logger.debug("Shared lock acquired for dataset {}, flight {}", datasetId, flightId);
+        // TODO before merge - demote this log to debug
+        logger.info("Shared lock acquired for dataset {}, flight {}, with {} rows updated",
+            datasetId, flightId, numRowsUpdated);
     }
 
     private DataAccessException getSharedLockFaultToInsert() {
@@ -244,9 +227,12 @@ public class DatasetDao {
 
         // fault inserted for test FileOperationTest > retryAndAcquireSharedUnlock & retryAndFailAcquireSharedUnlock
         DataAccessException faultToInsert = getSharedUnlockFaultToInsert();
-        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert);
+        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert, false, null);
 
-        return (numRowsUpdated == 1);
+        boolean unlockSucceeded = (numRowsUpdated == 1);
+        // TODO before merge - demote this log to debug
+        logger.info("Unlock shared succeeded? {}", unlockSucceeded);
+        return unlockSucceeded;
     }
 
     private DataAccessException getSharedUnlockFaultToInsert() {
@@ -262,13 +248,29 @@ public class DatasetDao {
         return null;
     }
 
-    private int runUpdateAndInsertFault(String sql, MapSqlParameterSource params, DataAccessException faultToInsert) {
+    private int runUpdateAndInsertFault(String sql,
+                                        MapSqlParameterSource params,
+                                        DataAccessException faultToInsert,
+                                        boolean isLock,
+                                        UUID datasetId) {
         int numRowsUpdated = 0;
         try {
             if (faultToInsert != null) {
                 throw faultToInsert;
             }
             numRowsUpdated = jdbcTemplate.update(sql, params);
+            if (isLock && numRowsUpdated == 0) {
+                logger.info("DATASET LOCK FAILED - either throw DatasetNotFoundException or retryable exception.");
+                // this method checks if the dataset exists
+                // if it does not exist, then the method throws a DatasetNotFoundException
+                // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
+                retrieveSummaryById(datasetId);
+
+                // otherwise, throw a retryable lock exception
+                logger.debug("numRowsUpdated=" + numRowsUpdated);
+                throw new RetryQueryException("Retry",
+                    new DatasetLockException("Failed to take a lock on the dataset"));
+            }
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {
                 throw new RetryQueryException("Retry", dataAccessException);

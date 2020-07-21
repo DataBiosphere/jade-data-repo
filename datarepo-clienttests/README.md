@@ -55,30 +55,36 @@ A test run is a single execution of a test configuration.
 
 #### Test Runner
 The test runner executes test configurations. The steps involved in each test run are:
+  * Re-deploy the API (i.e. Helm delete then upgrade) with the application properties specified by the configuration.
+  * Modify the Kubernetes environment, as specified by the configuration. 
   * Run the Setup for each test script.
   * Create a client thread pool for each test script specification.
   * Kick off some number of threads, each running one User Journey, as specified by the configuration.
   * Wait until all threads either finish or time out.
   * Run the Cleanup for each test script.
+  * Teardown the API deployment, if applicable.
 
 The implementation of the test runner is where the bulk of the testing infrastructure code lives.
 
-**This section will be updated as more pieces of the test runner are implemented.** See the
-[Performance Testing Infrastructure Proposal](https://docs.google.com/document/d/11PZIXZwOyd394BFOlBsDjOGjZdC-jwTr_n92nTJvFxw) 
-for more details on the desired end goal.
+#### Test Suite
+A test suite is a collection of test configurations that have some similar purpose. For example, a smoke test suite to 
+detect major performance problems quickly or a very long running suite to detect possible memory leaks. The test
+configurations are run serially.
 
 ## Execute a test run
 Find a test configuration to execute. Each configuration is a JSON file in the resources/configs directory.
 
-Call the Gradle run task and pass it the name of the test configuration to execute.
+Call the Gradle run task and pass it the name of the test configuration or suite to execute.
 
-`./gradlew :run --args="BasicUnauthenticated.json"`
+`./gradlew :run --args="configs/BasicUnauthenticated.json"`
+`./gradlew :run --args="suites/BasicSmoke.json"`
 
 ## Write a new test
 #### Add a new test configuration
 A test configuration is an instance of the TestConfiguration POJO class, serialized into JSON and saved in the
-resources/configs directory. Below are the required fields:
+resources/configs directory. Below are the available fields:
   * name: Name of the configuration
+  * description: (optional) Description of the configuration
   * serverSpecificationFile: Name of a file in the resources/servers directory that specifies the server to test against
   * billingAccount: Google billing account to use
   * kubernetes: Kubernetes-related settings that will be set after deploying the application and before executing any 
@@ -110,8 +116,9 @@ in multiple threads in parallel, as specified by the test configuration.
 
 #### Add a new server specification
 A server specification is an instance of the ServerSpecification POJO class, serialized into JSON and saved in the
-resources/servers directory. Below are the required fields:
+resources/servers directory. Below are the available fields:
   * name: Name of the server
+  * description: (optional) Description of the server
   * uri: URI of the Data Repo instance
   * clusterName: Name of the Kubernetes cluster where the Data Repo instance is deployed
   * clusterShortName: Name of the cluster, stripped of the region and project qualifiers
@@ -149,6 +156,18 @@ saved in the resources/serviceaccounts directory. Below are the required fields:
 
 The JSON key file and PEM files for the jade-k8-sa service account match the paths used by the render-configs script in
 the main datarepo project. Jade stores these files in Vault and uses the script to fetch them locally for each test run.
+
+#### Add a new test suite
+A test suite is an instance of the TestSuite POJO class, serialized into JSON and saved in the resources/suites
+directory. Below are the available fields:
+  * name: Name of the test suite
+  * description: (optional) Description of the test suite
+  * serverSpecificationFile: Name of a file in the resources/servers directory that specifies the server to test against
+  * testConfigurationFiles: List of names of files in the resources/configs directory that specify the test
+  configurations to include in this suite
+
+The server specification file for the test suite overrides the server specification file for all test configurations
+contained in the suite.
 
 ## Troubleshooting
 * Check that the server specification file property of the test configuration points to the correct URL you want to test

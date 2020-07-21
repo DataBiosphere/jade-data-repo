@@ -26,12 +26,4 @@ public class DeploymentScriptSpecification implements SpecificationInterface {
       throw new IllegalArgumentException("Deployment script class not found: " + name, classEx);
     }
   }
-
-  public void display() {
-    System.out.println("Deployment Script: " + name);
-    System.out.println("  name: " + name);
-
-    String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    System.out.println("  parameters: " + parametersStr);
-  }
 }

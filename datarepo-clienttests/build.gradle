@@ -28,6 +28,11 @@ dependencies {
     compile 'com.google.apis:google-api-services-people:v1-rev277-1.23.0'
     compile group: 'com.google.auth', name: 'google-auth-library-oauth2-http', version: '0.20.0'
     compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.0"
+
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+
+    compileOnly 'com.google.code.findbugs:annotations:3.0.1'
 }
 
 group 'bio.terra'

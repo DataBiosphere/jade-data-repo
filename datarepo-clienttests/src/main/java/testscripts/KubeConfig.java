@@ -7,11 +7,14 @@ import bio.terra.datarepo.model.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.DataRepoUtils;
 import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
 public class KubeConfig extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(KubeConfig.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public KubeConfig() {
@@ -45,8 +48,7 @@ public class KubeConfig extends runner.TestScript {
     // create a new profile
     billingProfileModel =
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-
-    System.out.println("successfully created profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -57,8 +59,7 @@ public class KubeConfig extends runner.TestScript {
     datasetSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-
-    System.out.println("successfully created dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
   }
 
   // The purpose of this test is to have a long-running workload that completes successfully
@@ -79,7 +80,7 @@ public class KubeConfig extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      System.out.println("Scaling pods down to 1");
+      logger.debug("Scaling pods down to 1");
       KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
 
       // allow job to run on scaled down pods for interval
@@ -88,7 +89,7 @@ public class KubeConfig extends runner.TestScript {
 
       // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        System.out.println("Scaling pods back up to 4");
+        logger.debug("Scaling pods back up to 4");
         KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
       }
     }
@@ -111,11 +112,10 @@ public class KubeConfig extends runner.TestScript {
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
 
-    System.out.println(
-        "longFileLoadTest loading "
-            + filesToLoad
-            + " files into dataset id "
-            + datasetSummaryModel.getId());
+    logger.debug(
+        "longFileLoadTest loading {} files into dataset id {}",
+        filesToLoad,
+        datasetSummaryModel.getId());
 
     // There are currently 26 source files, so if ingesting more files: continue to loop through the
     // source files,
@@ -144,10 +144,10 @@ public class KubeConfig extends runner.TestScript {
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
 
     BulkLoadResultModel loadSummary = result.getLoadSummary();
-    System.out.println("Total files    : " + loadSummary.getTotalFiles());
-    System.out.println("Succeeded files: " + loadSummary.getSucceededFiles());
-    System.out.println("Failed files   : " + loadSummary.getFailedFiles());
-    System.out.println("Not Tried files: " + loadSummary.getNotTriedFiles());
+    logger.debug("Total files    : {}", loadSummary.getTotalFiles());
+    logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
+    logger.debug("Failed files   : {}", loadSummary.getFailedFiles());
+    logger.debug("Not Tried files: {}", loadSummary.getNotTriedFiles());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
@@ -162,12 +162,10 @@ public class KubeConfig extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-
-    System.out.println("successfully deleted dataset: " + datasetSummaryModel.getName());
+    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());
-
-    System.out.println("successfully deleted profile: " + billingProfileModel.getProfileName());
+    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

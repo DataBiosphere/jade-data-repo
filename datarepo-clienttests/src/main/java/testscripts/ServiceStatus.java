@@ -3,8 +3,11 @@ package testscripts;
 import bio.terra.datarepo.api.UnauthenticatedApi;
 import bio.terra.datarepo.client.ApiClient;
 import bio.terra.datarepo.client.ApiException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServiceStatus extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(ServiceStatus.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public ServiceStatus() {
@@ -16,6 +19,6 @@ public class ServiceStatus extends runner.TestScript {
     unauthenticatedApi.serviceStatus();
 
     int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
-    System.out.println("Service status: " + httpStatus);
+    logger.debug("Service status: {}", httpStatus);
   }
 }

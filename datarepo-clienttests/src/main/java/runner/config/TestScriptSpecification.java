@@ -2,13 +2,9 @@ package runner.config;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
-  private static final Logger logger = LoggerFactory.getLogger(TestScriptSpecification.class);
-
   public String name;
   public int totalNumberToRun;
   public int numberToRunInParallel;

@@ -1,11 +1,6 @@
 package runner.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class KubernetesSpecification implements SpecificationInterface {
-  private static final Logger logger = LoggerFactory.getLogger(KubernetesSpecification.class);
-
   public int numberOfInitialPods = 1;
 
   KubernetesSpecification() {}

@@ -1,12 +1,13 @@
 package runner;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(
+    value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+    justification = "This POJO class is used for easy serialization to JSON using Jackson.")
 public class UserJourneyResult {
-  private static final Logger logger = LoggerFactory.getLogger(UserJourneyResult.class);
-
   public String userJourneyDescription;
+
   public String threadName;
 
   public boolean completed;

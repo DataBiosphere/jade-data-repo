@@ -2,13 +2,9 @@ package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class TestUserSpecification implements SpecificationInterface {
-  private static final Logger logger = LoggerFactory.getLogger(TestUserSpecification.class);
-
   public String name;
   public String userEmail;
   public String delegatorServiceAccountFile;

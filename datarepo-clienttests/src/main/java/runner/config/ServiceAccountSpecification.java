@@ -3,13 +3,9 @@ package runner.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.File;
 import java.io.InputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
-  private static final Logger logger = LoggerFactory.getLogger(ServiceAccountSpecification.class);
-
   public String name;
   public String serviceAccountEmail;
   public String jsonKeyFilePath;

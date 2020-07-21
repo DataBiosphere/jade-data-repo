@@ -2,13 +2,9 @@ package runner.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class ServerSpecification implements SpecificationInterface {
-  private static final Logger logger = LoggerFactory.getLogger(ServerSpecification.class);
-
   public String name;
   public String description = "";
   public String uri;

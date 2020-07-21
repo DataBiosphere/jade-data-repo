@@ -2,16 +2,17 @@ package testscripts;
 
 import bio.terra.datarepo.api.RepositoryApi;
 import bio.terra.datarepo.client.ApiClient;
-import bio.terra.datarepo.model.BulkLoadArrayRequestModel;
-import bio.terra.datarepo.model.JobModel;
+import bio.terra.datarepo.model.*;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import utils.BulkLoadUtils;
 import utils.DataRepoUtils;
 import utils.KubernetesClientUtils;
 
-import java.util.List;
-import java.util.Map;
-
 public class KillKubePods extends runner.TestScript {
+  private static final Logger logger = LoggerFactory.getLogger(KillKubePods.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public KillKubePods() {
@@ -31,7 +32,8 @@ public class KillKubePods extends runner.TestScript {
   }
 
   public void setup(Map<String, ApiClient> apiClients) throws Exception {
-      bulkLoadUtils.bulkLoadSetup(apiClients, billingAccount);
+    bulkLoadUtils = new BulkLoadUtils();
+    bulkLoadUtils.bulkLoadSetup(apiClients, billingAccount);
   }
 
   // The purpose of this test is to have a long-running workload that completes successfully
@@ -52,8 +54,8 @@ public class KillKubePods extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      System.out.println("Scaling pods down to 1");
-      KubernetesClientUtils.changeReplicaSetSizeAndWait(0);
+      logger.debug("Scaling pods down to 1");
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
 
       // allow job to run on scaled down pods for interval
       bulkLoadArrayJobResponse =
@@ -61,7 +63,7 @@ public class KillKubePods extends runner.TestScript {
 
       // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        System.out.println("Scaling pods back up to 4");
+        logger.debug("Scaling pods back up to 4");
         KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
       }
     }

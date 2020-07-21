@@ -88,7 +88,7 @@ public class DatasetDao {
         // fault insert for tests DatasetConnectedTest > retryAndAcquireExclusiveLock
         // & retryAndFailAcquireExclusiveLock
         DataAccessException faultToInsert = getExclusiveFaultToInsert();
-        int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert, true, datasetId);
+        runUpdateAndInsertFault(sql, params, faultToInsert, true, datasetId);
 
         logger.debug("Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
@@ -263,7 +263,8 @@ public class DatasetDao {
                 logger.info("DATASET LOCK FAILED - either throw DatasetNotFoundException or retryable exception.");
                 // this method checks if the dataset exists
                 // if it does not exist, then the method throws a DatasetNotFoundException
-                // we don't need the result (dataset summary) here, just the existence check, so ignore the return value.
+                // we don't need the result (dataset summary) here, just the existence check,
+                // so ignore the return value.
                 retrieveSummaryById(datasetId);
 
                 // otherwise, throw a retryable lock exception

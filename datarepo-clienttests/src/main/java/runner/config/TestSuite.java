@@ -13,7 +13,8 @@ public class TestSuite implements SpecificationInterface {
 
   public String name;
   public String description = "";
-  public String serverSpecificationFile;
+  public String
+      serverSpecificationFile; // overrides the server specification for all test configurations
   public List<String> testConfigurationFiles;
 
   ServerSpecification server;

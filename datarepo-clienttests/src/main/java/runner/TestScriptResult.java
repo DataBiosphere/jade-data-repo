@@ -23,11 +23,11 @@ public class TestScriptResult {
     public long maxElapsedTimeMS;
     public double meanElapsedTimeMS;
 
-    public int totalRun;
-    public int numCompleted;
-    public int numExceptionsThrown;
+    public int totalRun; // total number of user journey threads submitted to the thread pool
+    public int numCompleted; // number of user journey threads that completed
+    public int numExceptionsThrown; // number of user journey threads that threw exceptions
 
-    public boolean isFailure;
+    public boolean isFailure; // numCompleted < totalRun
 
     private TestScriptResultSummary(String testScriptDescription) {
       this.testScriptDescription = testScriptDescription;

@@ -1,0 +1,6 @@
+{
+  "name": "BasicSmoke",
+  "description": "Two smoke tests. One requires authentication and one does not. Only queries, no data creation.",
+  "serverSpecificationFile": "localhost.json",
+  "testConfigurationFiles": ["BasicAuthenticated.json", "BasicUnauthenticated.json"]
+}

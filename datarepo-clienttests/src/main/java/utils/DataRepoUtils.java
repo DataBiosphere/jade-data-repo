@@ -10,8 +10,12 @@ import bio.terra.datarepo.model.JobModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public final class DataRepoUtils {
+
+  private static final Logger logger = LoggerFactory.getLogger(DataRepoUtils.class);
 
   private DataRepoUtils() {}
 
@@ -31,6 +35,7 @@ public final class DataRepoUtils {
    */
   public static JobModel waitForJobToFinish(RepositoryApi repositoryApi, JobModel job)
       throws Exception {
+    logger.debug("Waiting for Data Repo job to finish");
     job = pollForRunningJob(repositoryApi, job, maximumSecondsToWaitForJob);
 
     if (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
@@ -55,7 +60,7 @@ public final class DataRepoUtils {
     int tryCount = 1;
 
     while (job.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING) && pollCtr >= 0) {
-      System.out.println("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
+      logger.debug("Sleeping. try #" + tryCount + " For Job: " + job.getDescription());
       TimeUnit.SECONDS.sleep(secondsIntervalToPollJob);
       job = repositoryApi.retrieveJob(job.getId());
       tryCount++;
@@ -76,6 +81,7 @@ public final class DataRepoUtils {
    */
   public static <T> T getJobResult(RepositoryApi repositoryApi, JobModel job, Class<T> resultClass)
       throws Exception {
+    logger.debug("Fetching Data Repo job result");
     Object jobResult = repositoryApi.retrieveJobResult(job.getId());
 
     ObjectMapper objectMapper = new ObjectMapper();
@@ -124,6 +130,7 @@ public final class DataRepoUtils {
       String apipayloadFilename,
       boolean randomizeName)
       throws Exception {
+    logger.debug("Creating a dataset");
     // use Jackson to map the stream contents to a DatasetRequestModel object
     ObjectMapper objectMapper = new ObjectMapper();
     InputStream datasetRequestFile =
@@ -154,6 +161,7 @@ public final class DataRepoUtils {
   public static BillingProfileModel createProfile(
       ResourcesApi resourcesApi, String billingAccount, String profileName, boolean randomizeName)
       throws Exception {
+    logger.debug("Creating a billing profile");
 
     if (randomizeName) {
       profileName = FileUtils.randomizeName(profileName);

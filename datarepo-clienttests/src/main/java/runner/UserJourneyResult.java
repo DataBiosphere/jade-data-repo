@@ -1,11 +1,17 @@
 package runner;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(
+    value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",
+    justification = "This POJO class is used for easy serialization to JSON using Jackson.")
 public class UserJourneyResult {
   public String userJourneyDescription;
+
   public String threadName;
 
   public boolean completed;
-  public long elapsedTime;
+  public long elapsedTimeNS;
   public Exception exceptionThrown;
 
   public UserJourneyResult(String userJourneyDescription, String threadName) {
@@ -14,14 +20,5 @@ public class UserJourneyResult {
 
     this.exceptionThrown = null;
     this.completed = false;
-  }
-
-  public void display() {
-    System.out.println("User Journey Result: " + userJourneyDescription);
-    System.out.println("  threadName: " + threadName);
-    System.out.println("  completed: " + completed);
-    System.out.println("  elapsedTime (sec): " + (double) elapsedTime / (1e9));
-    System.out.println(
-        "  exceptionThrown: " + (exceptionThrown == null ? "" : exceptionThrown.getMessage()));
   }
 }

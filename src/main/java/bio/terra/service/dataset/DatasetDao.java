@@ -260,20 +260,6 @@ public class DatasetDao {
                 throw faultToInsert;
             }
             numRowsUpdated = jdbcTemplate.update(sql, params);
-            if (isLock && numRowsUpdated == 0) {
-                logger.info("DATASET LOCK FAILED");
-                // this method checks if the dataset exists
-                // if it does not exist, then the method throws a DatasetNotFoundException
-                // we don't need the result (dataset summary) here, just the existence check,
-                // so ignore the return value.
-                retrieveSummaryById(datasetId);
-
-                // otherwise, throw a retryable lock exception
-                logger.debug("numRowsUpdated=" + numRowsUpdated);
-                logger.info("Throwing retryable exception.");
-                throw new RetryQueryException("Retry",
-                    new DatasetLockException("Failed to take a lock on the dataset"));
-            }
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {
                 logger.info("Throwing retryable exception.");
@@ -281,6 +267,20 @@ public class DatasetDao {
             }
             logger.info("Throwing fatal exception.");
             throw dataAccessException;
+        }
+        if (isLock && numRowsUpdated == 0) {
+            logger.info("DATASET LOCK FAILED");
+            // this method checks if the dataset exists
+            // if it does not exist, then the method throws a DatasetNotFoundException
+            // we don't need the result (dataset summary) here, just the existence check,
+            // so ignore the return value.
+            retrieveSummaryById(datasetId);
+
+            // otherwise, throw a retryable lock exception
+            logger.debug("numRowsUpdated=" + numRowsUpdated);
+            logger.info("Throwing retryable exception.");
+            throw new RetryQueryException("Retry",
+                new DatasetLockException("Failed to take a lock on the dataset"));
         }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
         return numRowsUpdated;

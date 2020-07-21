@@ -2,7 +2,6 @@ package bio.terra.service.dataset;
 
 import bio.terra.common.category.Unit;
 import bio.terra.common.exception.RetryQueryException;
-import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;

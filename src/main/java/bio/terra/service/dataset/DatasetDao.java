@@ -78,6 +78,7 @@ public class DatasetDao {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
 
+        logger.info("Adding exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry and lock it by setting the flight id
         String sql = "UPDATE dataset SET flightid = :flightid " +
             "WHERE id = :datasetid AND (flightid IS NULL OR flightid = :flightid) AND CARDINALITY(sharedlock) = 0";
@@ -90,7 +91,7 @@ public class DatasetDao {
         DataAccessException faultToInsert = getExclusiveFaultToInsert();
         runUpdateAndInsertFault(sql, params, faultToInsert, true, datasetId);
 
-        logger.debug("Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
+        logger.info("Exclusive lock acquired for dataset {}, flight {}", datasetId, flightId);
     }
 
     private DataAccessException getExclusiveFaultToInsert() {
@@ -118,6 +119,7 @@ public class DatasetDao {
      */
     @Transactional(propagation =  Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public boolean unlockExclusive(UUID datasetId, String flightId) {
+        logger.info("Unlocking exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry to remove the flightid IF it is currently set to this flightid
         String sql = "UPDATE dataset SET flightid = NULL " +
             "WHERE id = :datasetid AND flightid = :flightid";
@@ -165,7 +167,7 @@ public class DatasetDao {
         if (flightId == null) {
             throw new DatasetLockException("Locking flight id cannot be null");
         }
-
+        logger.info("Adding shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // update the dataset entry and lock it by adding the flight id to the shared lock array column
         String sql = "UPDATE dataset SET sharedlock = " +
             // the SQL below appends flightid to an existing array
@@ -224,7 +226,7 @@ public class DatasetDao {
         MapSqlParameterSource params = new MapSqlParameterSource()
             .addValue("datasetid", datasetId)
             .addValue("flightid", flightId);
-
+        logger.info("Unlocking shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
         // fault inserted for test FileOperationTest > retryAndAcquireSharedUnlock & retryAndFailAcquireSharedUnlock
         DataAccessException faultToInsert = getSharedUnlockFaultToInsert();
         int numRowsUpdated = runUpdateAndInsertFault(sql, params, faultToInsert, false, null);
@@ -274,7 +276,8 @@ public class DatasetDao {
             // if it does not exist, then the method throws a DatasetNotFoundException
             // we don't need the result (dataset summary) here, just the existence check,
             // so ignore the return value.
-            retrieveSummaryById(datasetId);
+            DatasetSummary summary = retrieveSummaryById(datasetId);
+            logger.info("Dataset info: {}; {}", summary.getId(), summary.getName());
 
             // otherwise, throw a retryable lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);
@@ -297,7 +300,7 @@ public class DatasetDao {
      */
     @Transactional(propagation = Propagation.REQUIRED, isolation = Isolation.SERIALIZABLE)
     public UUID createAndLock(Dataset dataset, String flightId) throws IOException, SQLException {
-        logger.debug("createAndLock dataset " + dataset.getName());
+        logger.info("createAndLock datasetId: {} for flightId: {}", dataset.getId(), flightId);
         String sql = "INSERT INTO dataset " +
             "(name, default_profile_id, flightid, description, additional_profile_ids, sharedlock) " +
             "VALUES (:name, :default_profile_id, :flightid, :description, :additional_profile_ids, ARRAY[]::TEXT[]) ";
@@ -323,6 +326,7 @@ public class DatasetDao {
         relationshipDao.createDatasetRelationships(dataset);
         assetDao.createAssets(dataset);
 
+        logger.info("end of createAndLock datasetId: {} for flightId: {}", datasetId, flightId);
         return datasetId;
     }
 
@@ -447,7 +451,7 @@ public class DatasetDao {
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
-            logger.error("Dataset not found for id " + id.toString());
+            logger.info("Dataset not found for id " + id.toString());
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
         }
     }

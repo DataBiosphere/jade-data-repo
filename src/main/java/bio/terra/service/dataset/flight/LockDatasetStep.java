@@ -46,10 +46,10 @@ public class LockDatasetStep implements Step {
 
         try {
             if (sharedLock) {
-                logger.info("Attempt to acquire shared lock");
+                logger.info("Attempt to acquire shared lock for datasetId: {}", datasetId);
                 datasetDao.lockShared(datasetId, context.getFlightId());
             } else {
-                logger.info("Attempt to acquire exclusive lock");
+                logger.info("Attempt to acquire exclusive lock for datasetId: {}", datasetId);
                 datasetDao.lockExclusive(datasetId, context.getFlightId());
             }
             return StepResult.getStepResultSuccess();
@@ -70,12 +70,13 @@ public class LockDatasetStep implements Step {
         // try to unlock the flight if something went wrong above
         // note the unlock will only clear the flightid if it's set to this flightid
         boolean rowUpdated;
+        String flightId = context.getFlightId();
         if (sharedLock) {
-            logger.info("UNDO: Attempt to unlock shared lock");
-            rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
+            logger.info("UNDO: Attempt to unlock shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
+            rowUpdated = datasetDao.unlockShared(datasetId, flightId);
         } else {
-            logger.info("UNDO: Attempt to unlock exclusive lock");
-            rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
+            logger.info("UNDO: Attempt to unlock exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
+            rowUpdated = datasetDao.unlockExclusive(datasetId, flightId);
         }
         logger.info("UNDO: rowUpdated on unlock = " + rowUpdated);
 

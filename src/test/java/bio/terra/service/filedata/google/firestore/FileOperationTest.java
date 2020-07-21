@@ -24,6 +24,7 @@ import bio.terra.model.FileModel;
 import bio.terra.service.configuration.ConfigEnum;
 import bio.terra.service.configuration.ConfigurationService;
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.DatasetDaoUtils;
 import bio.terra.service.filedata.DrsIdService;
 import bio.terra.service.filedata.google.gcs.GcsChannelWriter;
 import bio.terra.service.iam.IamProviderInterface;
@@ -113,6 +114,7 @@ public class FileOperationTest {
     private String coreBillingAccountId;
     private BillingProfileModel profileModel;
     private DatasetSummaryModel datasetSummary;
+    private DatasetDaoUtils datasetDaoUtils;
 
     @Before
     public void setup() throws Exception {
@@ -145,6 +147,13 @@ public class FileOperationTest {
     @After
     public void teardown() throws Exception {
         logger.info("TEAR DOWN");
+
+        datasetDaoUtils = new DatasetDaoUtils();
+        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetSummary.getId()));
+        logger.info("Shared lock: {}, {}", sharedLocks.length);
+        String exclusiveLock = datasetDaoUtils.getExclusiveLock(datasetDao, UUID.fromString(datasetSummary.getId()));
+        logger.info("Exclusive lock: {}", exclusiveLock);
+
 
         // make sure all faults are set back to false
         configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT.toString(), false);

@@ -14,6 +14,7 @@ public class TestScriptSpecification implements SpecificationInterface {
 
   public Class<? extends TestScript> scriptClass;
   public TimeUnit expectedTimeForEachUnitObj;
+  public String description;
 
   public static final String scriptsPackage = "testscripts";
 
@@ -42,16 +43,11 @@ public class TestScriptSpecification implements SpecificationInterface {
     } catch (ClassNotFoundException | ClassCastException classEx) {
       throw new IllegalArgumentException("Test script class not found: " + name, classEx);
     }
-  }
 
-  public void display() {
-    System.out.println("Test Script: " + name);
-    System.out.println("  totalNumberToRun: " + totalNumberToRun);
-    System.out.println("  numberToRunInParallel: " + numberToRunInParallel);
-    System.out.println("  expectedTimeForEach: " + expectedTimeForEach);
-    System.out.println("  expectedTimeForEachUnit: " + expectedTimeForEachUnitObj);
-
-    String parametersStr = (parameters == null) ? "" : String.join(",", parameters);
-    System.out.println("  parameters: " + parametersStr);
+    // generate a separate description property that also includes any test script parameters
+    description = name;
+    if (parameters != null) {
+      description += ": " + String.join(",", parameters);
+    }
   }
 }

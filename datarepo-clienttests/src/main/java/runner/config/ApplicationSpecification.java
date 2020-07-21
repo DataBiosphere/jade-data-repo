@@ -28,14 +28,4 @@ public class ApplicationSpecification implements SpecificationInterface {
           "Application property loadHistoryWaitSeconds must be >= 0");
     }
   }
-
-  public void display() {
-    System.out.println("Application: ");
-    System.out.println("  maxStairwayThreads: " + maxStairwayThreads);
-    System.out.println("  maxBulkFileLoad: " + maxBulkFileLoad);
-    System.out.println("  loadConcurrentFiles: " + loadConcurrentFiles);
-    System.out.println("  loadConcurrentIngests: " + loadConcurrentIngests);
-    System.out.println("  loadHistoryCopyChunkSize: " + loadHistoryCopyChunkSize);
-    System.out.println("  loadHistoryWaitSeconds: " + loadHistoryWaitSeconds);
-  }
 }

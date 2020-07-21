@@ -165,6 +165,7 @@ public class ConnectedOperations {
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         DatasetSummaryModel datasetSummaryModel = handleSuccessCase(response, DatasetSummaryModel.class);
+        logger.info("adding dataset to tracker after createDataset. {}", datasetSummaryModel.getId());
         addDataset(datasetSummaryModel.getId());
         return datasetSummaryModel;
     }
@@ -387,7 +388,7 @@ public class ConnectedOperations {
         MvcResult result = mvc.perform(
             delete("/api/repository/v1/datasets/" + datasetId + "/files/" + fileId))
             .andReturn();
-        logger.info("deleting datasetId:{} objectId:{}", datasetId, fileId);
+        logger.info("deleting test file -  datasetId:{} objectId:{}", datasetId, fileId);
         MockHttpServletResponse response = validateJobModelAndWait(result);
         assertThat(response.getStatus(), equalTo(HttpStatus.OK.value()));
         checkDeleteResponse(response);
@@ -769,6 +770,7 @@ public class ConnectedOperations {
     // -- tracking methods --
 
     public void addDataset(String id) {
+        logger.info("addDataset to list to be removed. {}", id);
         createdDatasetIds.add(id);
     }
 
@@ -830,6 +832,7 @@ public class ConnectedOperations {
                 deleteTestFile(fileInfo[0], fileInfo[1]);
             }
 
+            logger.info("{} dataset to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
                 logger.info("deleting dataset: {}", datasetId);
                 deleteTestDataset(datasetId);

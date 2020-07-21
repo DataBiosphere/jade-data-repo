@@ -129,7 +129,7 @@ public class FileOperationTest {
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
 
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
-
+        logger.info("dataset created - {}", datasetSummary.getId());
         // Make sure we start from a known configuration
         configService.reset();
         // Set the configuration so it is constant for the load tests

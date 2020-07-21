@@ -24,7 +24,7 @@ import utils.FileUtils;
 import utils.ProcessUtils;
 
 public class ModularHelmChart extends DeploymentScript {
-  private static final Logger LOG = LoggerFactory.getLogger(ModularHelmChart.class);
+  private static final Logger logger = LoggerFactory.getLogger(ModularHelmChart.class);
 
   private String helmApiFilePath;
 
@@ -51,7 +51,7 @@ public class ModularHelmChart extends DeploymentScript {
           "Must provide a file path for the Helm API definition YAML in the parameters list");
     } else {
       helmApiFilePath = parameters.get(0);
-      LOG.debug("Helm API definition YAML: {}", helmApiFilePath);
+      logger.debug("Helm API definition YAML: {}", helmApiFilePath);
     }
   }
 
@@ -89,7 +89,7 @@ public class ModularHelmChart extends DeploymentScript {
     Process helmDeleteProc = ProcessUtils.executeCommand("helm", deleteCmdArgs);
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmDeleteProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      LOG.debug(cmdOutputLine);
+      logger.debug(cmdOutputLine);
     }
 
     // list the available deployments (for debugging)
@@ -101,7 +101,7 @@ public class ModularHelmChart extends DeploymentScript {
     Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
     cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      LOG.debug(cmdOutputLine);
+      logger.debug(cmdOutputLine);
     }
 
     // install/upgrade the API deployment using the modified YAML file we just generated
@@ -120,7 +120,7 @@ public class ModularHelmChart extends DeploymentScript {
     Process helmUpgradeProc = ProcessUtils.executeCommand("helm", installCmdArgs);
     cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmUpgradeProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      LOG.debug(cmdOutputLine);
+      logger.debug(cmdOutputLine);
     }
 
     // delete the two temp YAML files created above
@@ -151,7 +151,7 @@ public class ModularHelmChart extends DeploymentScript {
     int pollCtr = Math.floorDiv(maximumSecondsToWaitForDeploy, secondsIntervalToPollForDeploy);
 
     // first wait for the datarepo-api deployment to report "deployed" by helm ls
-    LOG.debug("Waiting for Helm to report datarepo-api as deployed");
+    logger.debug("Waiting for Helm to report datarepo-api as deployed");
     boolean foundHelmStatusDeployed = false;
     while (pollCtr >= 0) {
       // list the available deployments
@@ -163,7 +163,7 @@ public class ModularHelmChart extends DeploymentScript {
       Process helmListProc = ProcessUtils.executeCommand("helm", listCmdArgs);
       List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(helmListProc);
       for (String cmdOutputLine : cmdOutputLines) {
-        LOG.debug(cmdOutputLine);
+        logger.debug(cmdOutputLine);
       }
 
       for (String cmdOutputLine : cmdOutputLines) {
@@ -184,7 +184,7 @@ public class ModularHelmChart extends DeploymentScript {
     }
 
     // then wait for the datarepo-api deployment to respond successfully to a status request
-    LOG.debug("Waiting for the datarepo-api to respond successfully to a status request");
+    logger.debug("Waiting for the datarepo-api to respond successfully to a status request");
     ApiClient apiClient = new ApiClient();
     apiClient.setBasePath(serverSpecification.uri);
     UnauthenticatedApi unauthenticatedApi = new UnauthenticatedApi(apiClient);
@@ -193,12 +193,12 @@ public class ModularHelmChart extends DeploymentScript {
       try {
         unauthenticatedApi.serviceStatus();
         int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
-        LOG.debug("Service status: {}", httpStatus);
+        logger.debug("Service status: {}", httpStatus);
         if (HttpStatusCodes.isSuccess(httpStatus)) {
           break;
         }
       } catch (ApiException apiEx) {
-        LOG.debug("Exception caught while checking service status", apiEx);
+        logger.debug("Exception caught while checking service status", apiEx);
       }
 
       TimeUnit.SECONDS.sleep(secondsIntervalToPollForDeploy);

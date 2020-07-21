@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class TestUserSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(TestUserSpecification.class);
+  private static final Logger logger = LoggerFactory.getLogger(TestUserSpecification.class);
 
   public String name;
   public String userEmail;

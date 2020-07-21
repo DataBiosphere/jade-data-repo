@@ -1,11 +1,6 @@
 package runner.config;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 public class ApplicationSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(ApplicationSpecification.class);
-
   public int maxStairwayThreads = 20;
   public int maxBulkFileLoad = 1000000;
   public int loadConcurrentFiles = 4;

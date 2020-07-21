@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class TestSuite implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(TestSuite.class);
+  private static final Logger logger = LoggerFactory.getLogger(TestSuite.class);
 
   public String name;
   public String description = "";
@@ -36,7 +36,7 @@ public class TestSuite implements SpecificationInterface {
     ObjectMapper objectMapper = new ObjectMapper();
 
     // read in the test suite file
-    LOG.info("Parsing the test suite file as JSON");
+    logger.info("Parsing the test suite file as JSON");
     InputStream inputStream =
         FileUtils.getJSONFileHandle(resourceDirectory + "/" + resourceFileName);
     TestSuite testSuite = objectMapper.readValue(inputStream, TestSuite.class);
@@ -46,7 +46,7 @@ public class TestSuite implements SpecificationInterface {
 
     // read in the test config files
     for (String testConfigurationFile : testSuite.testConfigurationFiles) {
-      LOG.info("Parsing the test configuration file as JSON");
+      logger.info("Parsing the test configuration file as JSON");
       TestConfiguration testConfig = TestConfiguration.fromJSONFile(testConfigurationFile);
 
       // override the server specification defined in each test configuration with the one defined
@@ -76,7 +76,7 @@ public class TestSuite implements SpecificationInterface {
    * of the objects, for example by parsing the string values in the JSON object.
    */
   public void validate() {
-    LOG.info("Validating the test configurations");
+    logger.info("Validating the test configurations");
     for (TestConfiguration testConfig : testConfigurations) {
       testConfig.validate();
     }

@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import runner.DeploymentScript;
 
 public class DeploymentScriptSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(DeploymentScriptSpecification.class);
+  private static final Logger logger = LoggerFactory.getLogger(DeploymentScriptSpecification.class);
 
   public String name = "";
   public List<String> parameters = new ArrayList<>();

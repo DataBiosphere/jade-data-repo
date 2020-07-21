@@ -30,7 +30,7 @@ import runner.config.ServerSpecification;
 
 // TODO: add try/catch for refresh token around all utils methods
 public final class KubernetesClientUtils {
-  private static final Logger LOG = LoggerFactory.getLogger(KubernetesClientUtils.class);
+  private static final Logger logger = LoggerFactory.getLogger(KubernetesClientUtils.class);
 
   private static int maximumSecondsToWaitForReplicaSetSizeChange = 500;
   private static int secondsIntervalToPollReplicaSetSizeChange = 5;
@@ -69,7 +69,7 @@ public final class KubernetesClientUtils {
    */
   public static void buildKubernetesClientObject(ServerSpecification server) throws Exception {
     // call the fetchGKECredentials script that uses gcloud to generate the kubeconfig file
-    LOG.debug(
+    logger.debug(
         "Calling the fetchGKECredentials script that uses gcloud to generate the kubeconfig file");
     List<String> scriptArgs = new ArrayList<>();
     scriptArgs.add("tools/fetchGKECredentials.sh");
@@ -79,7 +79,7 @@ public final class KubernetesClientUtils {
     Process fetchCredentialsProc = ProcessUtils.executeCommand("sh", scriptArgs);
     List<String> cmdOutputLines = ProcessUtils.waitForTerminateAndReadStdout(fetchCredentialsProc);
     for (String cmdOutputLine : cmdOutputLines) {
-      LOG.debug(cmdOutputLine);
+      logger.debug(cmdOutputLine);
     }
 
     namespace = server.namespace;
@@ -93,7 +93,7 @@ public final class KubernetesClientUtils {
     KubeConfig kubeConfig = KubeConfig.loadKubeConfig(filereader);
 
     // get a refreshed SA access token and its expiration time
-    LOG.debug("Getting a refreshed service account access token and its expiration time");
+    logger.debug("Getting a refreshed service account access token and its expiration time");
     GoogleCredentials applicationDefaultCredentials =
         AuthenticationUtils.getApplicationDefaultCredential();
     AccessToken accessToken = AuthenticationUtils.getAccessToken(applicationDefaultCredentials);
@@ -143,7 +143,7 @@ public final class KubernetesClientUtils {
     kubeConfig.setContext(server.clusterName);
 
     // build the client object from the config
-    LOG.debug("Building the client objects from the config");
+    logger.debug("Building the client objects from the config");
     ApiClient client = ClientBuilder.kubeconfig(kubeConfig).build();
 
     // set the global default client to the one created above because the CoreV1Api and AppsV1Api
@@ -297,16 +297,16 @@ public final class KubernetesClientUtils {
     if (apiDeployment == null) {
       throw new RuntimeException("API deployment not found.");
     }
-    LOG.debug(
+    logger.debug(
         "Pod count before scaling kubernetes pods: {}", KubernetesClientUtils.listPods().size());
     apiDeployment = KubernetesClientUtils.changeReplicaSetSize(apiDeployment, podCount);
     KubernetesClientUtils.waitForReplicaSetSizeChange(apiDeployment, podCount);
 
     // print out the current pods
     List<V1Pod> pods = KubernetesClientUtils.listPods();
-    LOG.debug("Pod count after scaling kubernetes pods: {}", pods.size());
+    logger.debug("Pod count after scaling kubernetes pods: {}", pods.size());
     for (V1Pod pod : pods) {
-      LOG.debug("  pod: {}", pod.getMetadata().getName());
+      logger.debug("  pod: {}", pod.getMetadata().getName());
     }
   }
 }

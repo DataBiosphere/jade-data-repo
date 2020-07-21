@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KubernetesSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(KubernetesSpecification.class);
+  private static final Logger logger = LoggerFactory.getLogger(KubernetesSpecification.class);
 
   public int numberOfInitialPods = 1;
 

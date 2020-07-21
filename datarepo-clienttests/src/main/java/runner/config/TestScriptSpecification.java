@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import runner.TestScript;
 
 public class TestScriptSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(TestScriptSpecification.class);
+  private static final Logger logger = LoggerFactory.getLogger(TestScriptSpecification.class);
 
   public String name;
   public int totalNumberToRun;

@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UserJourneyResult {
-  private static final Logger LOG = LoggerFactory.getLogger(UserJourneyResult.class);
+  private static final Logger logger = LoggerFactory.getLogger(UserJourneyResult.class);
 
   public String userJourneyDescription;
   public String threadName;

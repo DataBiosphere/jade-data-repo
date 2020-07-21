@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ServiceStatus extends runner.TestScript {
-  private static final Logger LOG = LoggerFactory.getLogger(ServiceStatus.class);
+  private static final Logger logger = LoggerFactory.getLogger(ServiceStatus.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public ServiceStatus() {
@@ -19,6 +19,6 @@ public class ServiceStatus extends runner.TestScript {
     unauthenticatedApi.serviceStatus();
 
     int httpStatus = unauthenticatedApi.getApiClient().getStatusCode();
-    LOG.debug("Service status: {}", httpStatus);
+    logger.debug("Service status: {}", httpStatus);
   }
 }

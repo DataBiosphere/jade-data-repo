@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class EnumerateProfiles extends runner.TestScript {
 
-  private static final Logger LOG = LoggerFactory.getLogger(EnumerateProfiles.class);
+  private static final Logger logger = LoggerFactory.getLogger(EnumerateProfiles.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public EnumerateProfiles() {
@@ -20,7 +20,7 @@ public class EnumerateProfiles extends runner.TestScript {
     EnumerateBillingProfileModel profiles = resourcesApi.enumerateProfiles(0, 10);
 
     int httpStatus = resourcesApi.getApiClient().getStatusCode();
-    LOG.debug(
+    logger.debug(
         "Enumerate profiles: HTTP status {}, number of profiles found = {}",
         httpStatus,
         profiles.getTotal());

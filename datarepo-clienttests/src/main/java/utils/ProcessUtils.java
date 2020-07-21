@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public final class ProcessUtils {
-  private static final Logger LOG = LoggerFactory.getLogger(ProcessUtils.class);
+  private static final Logger logger = LoggerFactory.getLogger(ProcessUtils.class);
 
   private ProcessUtils() {}
 
@@ -44,7 +44,7 @@ public final class ProcessUtils {
       throws IOException {
     // build the full command string
     cmdArgs.add(0, cmd);
-    LOG.debug("Executing command: {}", String.join(" ", cmdArgs));
+    logger.debug("Executing command: {}", String.join(" ", cmdArgs));
 
     // build and run process from the specified working directory
     ProcessBuilder procBuilder = new ProcessBuilder(cmdArgs);

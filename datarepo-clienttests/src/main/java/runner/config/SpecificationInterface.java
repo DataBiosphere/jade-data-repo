@@ -2,8 +2,12 @@ package runner.config;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface SpecificationInterface {
+  Logger logger = LoggerFactory.getLogger(SpecificationInterface.class);
+
   void validate();
 
   default String display() {
@@ -12,8 +16,12 @@ public interface SpecificationInterface {
       ObjectMapper objectMapper = new ObjectMapper();
       return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(this);
     } catch (JsonProcessingException jpEx) {
+      logger.error(
+          "Error converting SpecificationInterface object to a JSON-formatted string: {}",
+          this.toString(),
+          jpEx);
       throw new RuntimeException(
-          "Error converting SpecificationInterface object to a JSON-formatted string");
+          "Error converting SpecificationInterface object to a JSON-formatted string", jpEx);
     }
   }
 }

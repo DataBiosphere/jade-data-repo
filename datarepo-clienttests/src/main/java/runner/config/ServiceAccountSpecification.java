@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class ServiceAccountSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(ServiceAccountSpecification.class);
+  private static final Logger logger = LoggerFactory.getLogger(ServiceAccountSpecification.class);
 
   public String name;
   public String serviceAccountEmail;

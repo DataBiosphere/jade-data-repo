@@ -20,7 +20,7 @@ import utils.DataRepoUtils;
 import utils.FileUtils;
 
 public class IngestFile extends runner.TestScript {
-  private static final Logger LOG = LoggerFactory.getLogger(IngestFile.class);
+  private static final Logger logger = LoggerFactory.getLogger(IngestFile.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public IngestFile() {
@@ -42,7 +42,7 @@ public class IngestFile extends runner.TestScript {
       } catch (URISyntaxException synEx) {
         throw new RuntimeException("Error parsing source file URI: " + parameters.get(0), synEx);
       }
-    LOG.debug("Source file URI: {}", sourceFileURI);
+    logger.debug("Source file URI: {}", sourceFileURI);
   }
 
   public void setup(Map<String, ApiClient> apiClients) throws Exception {
@@ -58,7 +58,7 @@ public class IngestFile extends runner.TestScript {
     // create a new profile
     billingProfileModel =
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-    LOG.info("Successfully created profile: {}", billingProfileModel.getProfileName());
+    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -69,7 +69,7 @@ public class IngestFile extends runner.TestScript {
     datasetSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-    LOG.info("Successfully created dataset: {}", datasetSummaryModel.getName());
+    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
   }
 
   public void userJourney(ApiClient apiClient) throws Exception {
@@ -89,7 +89,7 @@ public class IngestFile extends runner.TestScript {
     ingestFileJobResponse = DataRepoUtils.waitForJobToFinish(repositoryApi, ingestFileJobResponse);
     FileModel fileModel =
         DataRepoUtils.expectJobSuccess(repositoryApi, ingestFileJobResponse, FileModel.class);
-    LOG.debug(
+    logger.debug(
         "Successfully ingested file: path = {}, id = {}, size = {}",
         fileModel.getPath(),
         fileModel.getFileId(),
@@ -108,10 +108,10 @@ public class IngestFile extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-    LOG.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
+    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());
-    LOG.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
+    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class ServerSpecification implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(ServerSpecification.class);
+  private static final Logger logger = LoggerFactory.getLogger(ServerSpecification.class);
 
   public String name;
   public String description = "";

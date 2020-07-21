@@ -28,7 +28,7 @@ import utils.KubernetesClientUtils;
 
 class TestRunner {
 
-  private static final Logger LOG = LoggerFactory.getLogger(TestRunner.class);
+  private static final Logger logger = LoggerFactory.getLogger(TestRunner.class);
 
   TestConfiguration config;
   List<TestScript> scripts;
@@ -55,31 +55,33 @@ class TestRunner {
       executeTestConfigurationNoGuaranteedCleanup();
     } catch (Exception originalEx) {
       // cleanup deployment (i.e. run teardown method)
-      LOG.info(
+      logger.info(
           "Deployment: Calling {}.teardown() after failure", deploymentScript.getClass().getName());
       try {
         if (!config.server.skipDeployment) {
           deploymentScript.teardown();
         }
       } catch (Exception deploymentTeardownEx) {
-        LOG.error("Deployment: Exception during forced deployment teardown", deploymentTeardownEx);
+        logger.error(
+            "Deployment: Exception during forced deployment teardown", deploymentTeardownEx);
       }
 
       // cleanup test scripts (i.e. run cleanup methods)
-      LOG.info("Test Scripts: Calling the cleanup methods after failure");
+      logger.info("Test Scripts: Calling the cleanup methods after failure");
       try {
         callTestScriptCleanups();
       } catch (Exception testScriptCleanupEx) {
-        LOG.error(
+        logger.error(
             "Test Scripts: Exception during forced test script cleanups", testScriptCleanupEx);
       }
 
       // cleanup data project (i.e. run cloud cleanup scripts)
-      LOG.info("Data Project: Cleaning up the data project after failure");
+      logger.info("Data Project: Cleaning up the data project after failure");
       try {
         cleanupDataProject();
       } catch (Exception leftoverTestDataEx) {
-        LOG.error("Data Project: Exception during forced data project cleanup", leftoverTestDataEx);
+        logger.error(
+            "Data Project: Exception during forced data project cleanup", leftoverTestDataEx);
       }
 
       throw originalEx;
@@ -93,7 +95,7 @@ class TestRunner {
       try {
         deploymentScript = config.server.deploymentScript.scriptClass.newInstance();
       } catch (IllegalAccessException | InstantiationException niEx) {
-        LOG.error(
+        logger.error(
             "Deployment: Error calling constructor of DeploymentScript class: {}",
             config.server.deploymentScript.name,
             niEx);
@@ -107,14 +109,14 @@ class TestRunner {
       deploymentScript.setParameters(config.server.deploymentScript.parameters);
 
       // call the deploy and waitForDeployToFinish methods to do the deployment
-      LOG.info("Deployment: Calling {}.deploy()", deploymentScript.getClass().getName());
+      logger.info("Deployment: Calling {}.deploy()", deploymentScript.getClass().getName());
       deploymentScript.deploy(config.server, config.application);
 
-      LOG.info(
+      logger.info(
           "Deployment: Calling {}.waitForDeployToFinish()", deploymentScript.getClass().getName());
       deploymentScript.waitForDeployToFinish();
     } else {
-      LOG.info("Deployment: Skipping deployment");
+      logger.info("Deployment: Skipping deployment");
     }
 
     // update any Kubernetes properties specified by the test configuration
@@ -122,11 +124,11 @@ class TestRunner {
       KubernetesClientUtils.buildKubernetesClientObject(config.server);
       modifyKubernetesPostDeployment();
     } else {
-      LOG.info("Kubernetes: Skipping Kubernetes configuration post-deployment");
+      logger.info("Kubernetes: Skipping Kubernetes configuration post-deployment");
     }
 
     // get an instance of the API client per test user
-    LOG.info("Test Users: Fetching credentials and building ApiClient objects");
+    logger.info("Test Users: Fetching credentials and building ApiClient objects");
     for (TestUserSpecification testUser : config.testUsers) {
       ApiClient apiClient = new ApiClient();
       apiClient.setBasePath(config.server.uri);
@@ -138,7 +140,7 @@ class TestRunner {
     }
 
     // get an instance of each test script class
-    LOG.info(
+    logger.info(
         "Test Scripts: Fetching instance of each class, setting billing account and parameters");
     for (TestScriptSpecification testScriptSpecification : config.testScripts) {
       try {
@@ -152,7 +154,7 @@ class TestRunner {
 
         scripts.add(testScriptInstance);
       } catch (IllegalAccessException | InstantiationException niEx) {
-        LOG.error(
+        logger.error(
             "Test Scripts: Error calling constructor of TestScript class: {}",
             testScriptSpecification.name,
             niEx);
@@ -162,15 +164,15 @@ class TestRunner {
     }
 
     // call the setup method of each test script
-    LOG.info("Test Scripts: Calling the setup methods");
+    logger.info("Test Scripts: Calling the setup methods");
     Exception setupExceptionThrown = callTestScriptSetups();
     if (setupExceptionThrown != null) {
-      LOG.error("Test Scripts: Error calling test script setup methods", setupExceptionThrown);
+      logger.error("Test Scripts: Error calling test script setup methods", setupExceptionThrown);
       throw new RuntimeException("Error calling test script setup methods.", setupExceptionThrown);
     }
 
     // for each test script
-    LOG.info(
+    logger.info(
         "Test Scripts: Creating a thread pool for each TestScript and kicking off the user journeys");
     List<ApiClient> apiClientList = new ArrayList<>(apiClientsForUsers.values());
     for (int tsCtr = 0; tsCtr < scripts.size(); tsCtr++) {
@@ -200,7 +202,7 @@ class TestRunner {
     }
 
     // wait until all threads either finish or time out
-    LOG.info("Test Scripts: Waiting until all threads either finish or time out");
+    logger.info("Test Scripts: Waiting until all threads either finish or time out");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
       ThreadPoolExecutor threadPool = threadPools.get(ctr);
@@ -217,14 +219,14 @@ class TestRunner {
         threadPool.shutdownNow();
       }
       if (!threadPool.awaitTermination(secondsToWaitForPoolShutdown, TimeUnit.SECONDS)) {
-        LOG.error(
+        logger.error(
             "Test Scripts: Thread pool for test script failed to terminate: {}",
             testScriptSpecification.description);
       }
     }
 
     // compile the results from all thread pools
-    LOG.info("Test Scripts: Compiling the results from all thread pools");
+    logger.info("Test Scripts: Compiling the results from all thread pools");
     for (int ctr = 0; ctr < scripts.size(); ctr++) {
       List<Future<UserJourneyResult>> userJourneyFutureList = userJourneyFutureLists.get(ctr);
       TestScriptSpecification testScriptSpecification = config.testScripts.get(ctr);
@@ -255,10 +257,11 @@ class TestRunner {
     }
 
     // call the cleanup method of each test script
-    LOG.info("Test Scripts: Calling the cleanup methods");
+    logger.info("Test Scripts: Calling the cleanup methods");
     Exception cleanupExceptionThrown = callTestScriptCleanups();
     if (cleanupExceptionThrown != null) {
-      LOG.error("Test Scripts: Error calling test script cleanup methods", cleanupExceptionThrown);
+      logger.error(
+          "Test Scripts: Error calling test script cleanup methods", cleanupExceptionThrown);
       throw new RuntimeException(
           "Error calling test script cleanup methods.", cleanupExceptionThrown);
     }
@@ -269,11 +272,11 @@ class TestRunner {
     if (!config.server.skipDeployment) {
       deploymentScript.teardown();
     } else {
-      LOG.info("Deployment: Skipping deployment teardown");
+      logger.info("Deployment: Skipping deployment teardown");
     }
 
     // cleanup data project
-    LOG.info("Data Project: Cleaning up data project");
+    logger.info("Data Project: Cleaning up data project");
     cleanupDataProject();
   }
 
@@ -347,7 +350,7 @@ class TestRunner {
   }
 
   void modifyKubernetesPostDeployment() throws Exception {
-    LOG.info(
+    logger.info(
         "Kubernetes: Setting the initial number of pods in the API deployment replica set to {}",
         config.kubernetes.numberOfInitialPods);
     KubernetesClientUtils.changeReplicaSetSizeAndWait(config.kubernetes.numberOfInitialPods);
@@ -365,13 +368,13 @@ class TestRunner {
       ObjectMapper objectMapper = new ObjectMapper();
 
       // print the full set of user journey results to debug
-      LOG.debug(
+      logger.debug(
           objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(testScriptResults));
 
       // print the summaries to info
       List<TestScriptResult.TestScriptResultSummary> testScriptResultSummaries =
           testScriptResults.stream().map(TestScriptResult::getSummary).collect(Collectors.toList());
-      LOG.info(
+      logger.info(
           objectMapper
               .writerWithDefaultPrettyPrinter()
               .writeValueAsString(testScriptResultSummaries));
@@ -382,24 +385,24 @@ class TestRunner {
   }
 
   static void printHelp() {
-    LOG.info("Specify test configuration file as first argument.");
-    LOG.info("  e.g. ./gradlew :run --args=\"configs/BasicUnauthenticated.json\"");
-    LOG.info("  e.g. ./gradlew :run --args=\"suites/BasicSmoke.json\"");
+    logger.info("Specify test configuration file as first argument.");
+    logger.info("  e.g. ./gradlew :run --args=\"configs/BasicUnauthenticated.json\"");
+    logger.info("  e.g. ./gradlew :run --args=\"suites/BasicSmoke.json\"");
 
     // print out the available test configurations found in the resources directory
-    LOG.info("The following test configuration files were found:");
+    logger.info("The following test configuration files were found:");
     List<String> availableTestConfigs =
         FileUtils.getResourcesInDirectory(TestConfiguration.resourceDirectory + "/");
     for (String testConfigFileName : availableTestConfigs) {
-      LOG.info("  {}/{}", TestConfiguration.resourceDirectory, testConfigFileName);
+      logger.info("  {}/{}", TestConfiguration.resourceDirectory, testConfigFileName);
     }
 
     // print out the available test suites found in the resources directory
-    LOG.info("The following test suite files were found:");
+    logger.info("The following test suite files were found:");
     List<String> availableTestSuites =
         FileUtils.getResourcesInDirectory(TestSuite.resourceDirectory + "/");
     for (String testSuiteFileName : availableTestSuites) {
-      LOG.info(" {}/{}", TestSuite.resourceDirectory, testSuiteFileName);
+      logger.info(" {}/{}", TestSuite.resourceDirectory, testSuiteFileName);
     }
   }
 
@@ -410,20 +413,20 @@ class TestRunner {
       return;
     }
 
-    LOG.info("==== READING IN TEST SUITE/CONFIGURATION(S) ====");
+    logger.info("==== READING IN TEST SUITE/CONFIGURATION(S) ====");
     // read in test suite and validate it
     TestSuite testSuite;
     boolean isSuite = args[0].startsWith(TestSuite.resourceDirectory + "/");
     boolean isSingleConfig = args[0].startsWith(TestConfiguration.resourceDirectory + "/");
     if (isSuite) {
       testSuite = TestSuite.fromJSONFile(args[0].split(TestSuite.resourceDirectory + "/")[1]);
-      LOG.info("Found a test suite: {}", testSuite.name);
+      logger.info("Found a test suite: {}", testSuite.name);
     } else if (isSingleConfig) {
       TestConfiguration testConfiguration =
           TestConfiguration.fromJSONFile(
               args[0].split(TestConfiguration.resourceDirectory + "/")[1]);
       testSuite = TestSuite.fromSingleTestConfiguration(testConfiguration);
-      LOG.info("Found a single test configuration: {}", testConfiguration.name);
+      logger.info("Found a single test configuration: {}", testConfiguration.name);
     } else {
       throw new RuntimeException("Invalid file reference to test suite or configuration.");
     }
@@ -431,8 +434,9 @@ class TestRunner {
 
     for (int ctr = 0; ctr < testSuite.testConfigurations.size(); ctr++) {
       TestConfiguration testConfiguration = testSuite.testConfigurations.get(ctr);
-      LOG.info("==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
-      LOG.debug(testConfiguration.display());
+      logger.info(
+          "==== EXECUTING TEST CONFIGURATION ({}) {} ====", ctr + 1, testConfiguration.name);
+      logger.debug(testConfiguration.display());
 
       // get an instance of a runner and tell it to execute the configuration
       TestRunner runner = new TestRunner(testConfiguration);
@@ -443,11 +447,11 @@ class TestRunner {
         runnerEx = ex; // save exception to display after printing the results
       }
 
-      LOG.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
+      logger.info("==== TEST RUN RESULTS ({}) {} ====", ctr + 1, testConfiguration.name);
       runner.printResults();
 
       if (runnerEx != null) {
-        LOG.error("Test Runner threw an exception", runnerEx);
+        logger.error("Test Runner threw an exception", runnerEx);
       }
     }
   }

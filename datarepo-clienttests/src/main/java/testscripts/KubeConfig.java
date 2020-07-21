@@ -14,7 +14,7 @@ import utils.FileUtils;
 import utils.KubernetesClientUtils;
 
 public class KubeConfig extends runner.TestScript {
-  private static final Logger LOG = LoggerFactory.getLogger(KubeConfig.class);
+  private static final Logger logger = LoggerFactory.getLogger(KubeConfig.class);
 
   /** Public constructor so that this class can be instantiated via reflection. */
   public KubeConfig() {
@@ -48,7 +48,7 @@ public class KubeConfig extends runner.TestScript {
     // create a new profile
     billingProfileModel =
         DataRepoUtils.createProfile(resourcesApi, billingAccount, "profile-simple", true);
-    LOG.info("Successfully created profile: {}", billingProfileModel.getProfileName());
+    logger.info("Successfully created profile: {}", billingProfileModel.getProfileName());
 
     // make the create dataset request and wait for the job to finish
     JobModel createDatasetJobResponse =
@@ -59,7 +59,7 @@ public class KubeConfig extends runner.TestScript {
     datasetSummaryModel =
         DataRepoUtils.expectJobSuccess(
             repositoryApi, createDatasetJobResponse, DatasetSummaryModel.class);
-    LOG.info("Successfully created dataset: {}", datasetSummaryModel.getName());
+    logger.info("Successfully created dataset: {}", datasetSummaryModel.getName());
   }
 
   // The purpose of this test is to have a long-running workload that completes successfully
@@ -80,7 +80,7 @@ public class KubeConfig extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      LOG.debug("Scaling pods down to 1");
+      logger.debug("Scaling pods down to 1");
       KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
 
       // allow job to run on scaled down pods for interval
@@ -89,7 +89,7 @@ public class KubeConfig extends runner.TestScript {
 
       // if job still running, scale back up
       if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-        LOG.debug("Scaling pods back up to 4");
+        logger.debug("Scaling pods back up to 4");
         KubernetesClientUtils.changeReplicaSetSizeAndWait(4);
       }
     }
@@ -112,7 +112,7 @@ public class KubeConfig extends runner.TestScript {
             .loadTag(loadTag)
             .maxFailedFileLoads(filesToLoad); // do not stop if there is a failure.
 
-    LOG.debug(
+    logger.debug(
         "longFileLoadTest loading {} files into dataset id {}",
         filesToLoad,
         datasetSummaryModel.getId());
@@ -144,10 +144,10 @@ public class KubeConfig extends runner.TestScript {
             repositoryApi, bulkLoadArrayJobResponse, BulkLoadArrayResultModel.class);
 
     BulkLoadResultModel loadSummary = result.getLoadSummary();
-    LOG.debug("Total files    : {}", loadSummary.getTotalFiles());
-    LOG.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
-    LOG.debug("Failed files   : {}", loadSummary.getFailedFiles());
-    LOG.debug("Not Tried files: {}", loadSummary.getNotTriedFiles());
+    logger.debug("Total files    : {}", loadSummary.getTotalFiles());
+    logger.debug("Succeeded files: {}", loadSummary.getSucceededFiles());
+    logger.debug("Failed files   : {}", loadSummary.getFailedFiles());
+    logger.debug("Not Tried files: {}", loadSummary.getNotTriedFiles());
   }
 
   public void cleanup(Map<String, ApiClient> apiClients) throws Exception {
@@ -162,10 +162,10 @@ public class KubeConfig extends runner.TestScript {
         DataRepoUtils.waitForJobToFinish(repositoryApi, deleteDatasetJobResponse);
     DataRepoUtils.expectJobSuccess(
         repositoryApi, deleteDatasetJobResponse, DeleteResponseModel.class);
-    LOG.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
+    logger.info("Successfully deleted dataset: {}", datasetSummaryModel.getName());
 
     // delete the profile
     resourcesApi.deleteProfile(billingProfileModel.getId());
-    LOG.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
+    logger.info("Successfully deleted profile: {}", billingProfileModel.getProfileName());
   }
 }

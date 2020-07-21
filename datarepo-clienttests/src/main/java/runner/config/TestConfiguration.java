@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 import utils.FileUtils;
 
 public class TestConfiguration implements SpecificationInterface {
-  private static final Logger LOG = LoggerFactory.getLogger(TestConfiguration.class);
+  private static final Logger logger = LoggerFactory.getLogger(TestConfiguration.class);
 
   public String name;
   public String description = "";
@@ -54,11 +54,11 @@ public class TestConfiguration implements SpecificationInterface {
 
     // instantiate default kubernetes, application specification objects, if null
     if (testConfig.kubernetes == null) {
-      LOG.debug("Test Configuration: Using default Kubernetes specification");
+      logger.debug("Test Configuration: Using default Kubernetes specification");
       testConfig.kubernetes = new KubernetesSpecification();
     }
     if (testConfig.application == null) {
-      LOG.debug("Test Configuration: Using default application specification");
+      logger.debug("Test Configuration: Using default application specification");
       testConfig.application = new ApplicationSpecification();
     }
 
@@ -70,17 +70,17 @@ public class TestConfiguration implements SpecificationInterface {
    * of the objects, for example by parsing the string values in the JSON object.
    */
   public void validate() {
-    LOG.debug("Validating the server, Kubernetes and application specifications");
+    logger.debug("Validating the server, Kubernetes and application specifications");
     server.validate();
     kubernetes.validate();
     application.validate();
 
-    LOG.debug("Validating the test script specifications");
+    logger.debug("Validating the test script specifications");
     for (TestScriptSpecification testScript : testScripts) {
       testScript.validate();
     }
 
-    LOG.debug("Validating the test user specifications");
+    logger.debug("Validating the test user specifications");
     for (TestUserSpecification testUser : testUsers) {
       testUser.validate();
     }

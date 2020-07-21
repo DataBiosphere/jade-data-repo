@@ -54,8 +54,8 @@ public class KillKubePods extends runner.TestScript {
         DataRepoUtils.pollForRunningJob(repositoryApi, bulkLoadArrayJobResponse, 30);
 
     if (bulkLoadArrayJobResponse.getJobStatus().equals(JobModel.JobStatusEnum.RUNNING)) {
-      logger.debug("Scaling pods down to 1");
-      KubernetesClientUtils.changeReplicaSetSizeAndWait(1);
+      logger.debug("Scaling pods down to 0");
+      KubernetesClientUtils.changeReplicaSetSizeAndWait(0);
 
       // allow job to run on scaled down pods for interval
       bulkLoadArrayJobResponse =

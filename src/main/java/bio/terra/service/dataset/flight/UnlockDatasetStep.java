@@ -47,11 +47,13 @@ public class UnlockDatasetStep implements Step {
         boolean rowUpdated;
         try {
             if (sharedLock) {
+                logger.info("Attempt to unlock shared lock.");
                 rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
             } else {
+                logger.info("Attempt to unlock exclusive lock.");
                 rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
             }
-            logger.debug("rowUpdated on unlock = " + rowUpdated);
+            logger.info("rowUpdated on unlock = " + rowUpdated);
         } catch (RetryQueryException retryQueryException) {
             logger.info("Unlock: STEP_RESULT_FAILURE_RETRY");
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);

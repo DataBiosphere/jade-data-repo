@@ -47,16 +47,13 @@ public class LockDatasetStep implements Step {
 
         try {
             if (sharedLock) {
+                logger.info("Attempt to acquire shared lock");
                 datasetDao.lockShared(datasetId, context.getFlightId());
             } else {
+                logger.info("Attempt to acquire exclusive lock");
                 datasetDao.lockExclusive(datasetId, context.getFlightId());
             }
             return StepResult.getStepResultSuccess();
-        } catch (RetryQueryException retryQueryException) {
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
-        } catch (DatasetLockException ex) {
-            logger.debug("Issue locking this Dataset", ex);
-            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
         } catch (DatasetNotFoundException notFoundEx) {
             if (suppressNotFoundException) {
                 logger.debug("Suppressing DatasetNotFoundException");
@@ -64,6 +61,8 @@ public class LockDatasetStep implements Step {
             } else {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
             }
+        } catch (RetryQueryException retryQueryException) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }
     }
 
@@ -73,11 +72,13 @@ public class LockDatasetStep implements Step {
         // note the unlock will only clear the flightid if it's set to this flightid
         boolean rowUpdated;
         if (sharedLock) {
+            logger.info("UNDO: Attempt to unlock shared lock");
             rowUpdated = datasetDao.unlockShared(datasetId, context.getFlightId());
         } else {
+            logger.info("UNDO: Attempt to unlock exclusive lock");
             rowUpdated = datasetDao.unlockExclusive(datasetId, context.getFlightId());
         }
-        logger.debug("rowUpdated on unlock = " + rowUpdated);
+        logger.info("UNDO: rowUpdated on unlock = " + rowUpdated);
 
         return StepResult.getStepResultSuccess();
     }

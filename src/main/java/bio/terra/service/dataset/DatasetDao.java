@@ -256,11 +256,12 @@ public class DatasetDao {
         int numRowsUpdated = 0;
         try {
             if (faultToInsert != null) {
+                logger.info("Inserting fault to lock/unlock operation.");
                 throw faultToInsert;
             }
             numRowsUpdated = jdbcTemplate.update(sql, params);
             if (isLock && numRowsUpdated == 0) {
-                logger.info("DATASET LOCK FAILED - either throw DatasetNotFoundException or retryable exception.");
+                logger.info("DATASET LOCK FAILED");
                 // this method checks if the dataset exists
                 // if it does not exist, then the method throws a DatasetNotFoundException
                 // we don't need the result (dataset summary) here, just the existence check,
@@ -269,13 +270,16 @@ public class DatasetDao {
 
                 // otherwise, throw a retryable lock exception
                 logger.debug("numRowsUpdated=" + numRowsUpdated);
+                logger.info("Throwing retryable exception.");
                 throw new RetryQueryException("Retry",
                     new DatasetLockException("Failed to take a lock on the dataset"));
             }
         } catch (DataAccessException dataAccessException) {
             if (retryQuery(dataAccessException)) {
+                logger.info("Throwing retryable exception.");
                 throw new RetryQueryException("Retry", dataAccessException);
             }
+            logger.info("Throwing fatal exception.");
             throw dataAccessException;
         }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
@@ -443,6 +447,7 @@ public class DatasetDao {
             MapSqlParameterSource params = new MapSqlParameterSource().addValue("id", id);
             return jdbcTemplate.queryForObject(sql, params, new DatasetSummaryMapper());
         } catch (EmptyResultDataAccessException ex) {
+            logger.error("Dataset not found for id " + id.toString());
             throw new DatasetNotFoundException("Dataset not found for id " + id.toString());
         }
     }

@@ -315,6 +315,8 @@ public class FileOperationTest {
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 
+    // I think this is causing the rest of the tests to fail
+    // @Ignore
     @Test
     public void retryAndFailAcquireSharedUnlock() throws Exception {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());

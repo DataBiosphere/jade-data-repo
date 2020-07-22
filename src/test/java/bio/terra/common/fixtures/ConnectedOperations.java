@@ -821,33 +821,70 @@ public class ConnectedOperations {
         // call the reset configuration endpoint to disable all faults
         resetConfiguration();
 
+        // Adding try catch around each attempt because we don't want one failure to prevent us from
+        // cleaning up the rest of the items
+        // What was happening: one dataset delete would fail to delete and throw an exception.
+        // We never got to the point where we were clearing out the list of items to be cleaned up
+        // Then every test that ran after it in the suite would then fail because
+        // they also couldn't delete the dataset.
+        // TODO: Maybe add a delinquent list to retry to delete at the end of the suit of tests?
         if (deleteOnTeardown) {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets
             for (String snapshotId : createdSnapshotIds) {
-                deleteTestSnapshot(snapshotId);
+                try {
+                    deleteTestSnapshot(snapshotId);
+                } catch (Exception ex) {
+                    createdSnapshotIds.remove(snapshotId);
+                    logger.error("CLEANUP ERROR! Unable to clean up snapshot {}", snapshotId);
+                }
             }
 
             for (String[] fileInfo : createdFileIds) {
-                deleteTestFile(fileInfo[0], fileInfo[1]);
+                try {
+                    deleteTestFile(fileInfo[0], fileInfo[1]);
+                } catch (Exception ex) {
+                    createdFileIds.remove(fileInfo);
+                    logger.error("CLEANUP ERROR! Unable to clean up File {}", fileInfo[0]);
+                }
             }
 
             logger.info("{} dataset to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
                 logger.info("deleting dataset: {}", datasetId);
-                deleteTestDataset(datasetId);
+                try {
+                    deleteTestDataset(datasetId);
+                } catch (Exception ex) {
+                    removeDatasetFromTracking(datasetId);
+                    logger.info("CLEANUP ERROR! Unable to clean up dataset {}", datasetId);
+                }
             }
 
             for (String profileId : createdProfileIds) {
-                deleteTestProfile(profileId);
+                try {
+                    deleteTestProfile(profileId);
+                } catch (Exception ex) {
+                    createdProfileIds.remove(profileId);
+                    logger.error("CLEANUP ERROR! Unable to cleanup profile {}", profileId);
+                }
             }
 
             for (String bucketName : createdBuckets) {
-                deleteTestBucket(bucketName);
+                try {
+                    deleteTestBucket(bucketName);
+                } catch (Exception ex) {
+                    createdBuckets.remove(bucketName);
+                    logger.error("CLEANUP ERROR! Unable to cleanup bucket {}", bucketName);
+                }
             }
 
             for (String path : createdScratchFiles) {
-                deleteTestScratchFile(path);
+                try {
+                    deleteTestScratchFile(path);
+                } catch (Exception ex) {
+                    createdScratchFiles.remove(path);
+                    logger.error("CLEANUP ERROR! Unable to clean up scratch file {}", path);
+                }
             }
         }
 

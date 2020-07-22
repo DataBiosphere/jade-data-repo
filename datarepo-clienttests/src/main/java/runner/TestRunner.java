@@ -386,8 +386,8 @@ class TestRunner {
 
   static void printHelp() {
     logger.info("Specify test configuration file as first argument.");
-    logger.info("  e.g. ./gradlew :run --args=\"configs/BasicUnauthenticated.json\"");
-    logger.info("  e.g. ./gradlew :run --args=\"suites/BasicSmoke.json\"");
+    logger.info("  e.g. ./gradlew run --args=\"configs/BasicUnauthenticated.json\"");
+    logger.info("  e.g. ./gradlew run --args=\"suites/BasicSmoke.json\"");
 
     // print out the available test configurations found in the resources directory
     logger.info("The following test configuration files were found:");

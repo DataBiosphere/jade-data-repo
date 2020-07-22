@@ -76,8 +76,38 @@ Find a test configuration to execute. Each configuration is a JSON file in the r
 
 Call the Gradle run task and pass it the name of the test configuration or suite to execute.
 
-`./gradlew :run --args="configs/BasicUnauthenticated.json"`
-`./gradlew :run --args="suites/BasicSmoke.json"`
+`./gradlew run --args="configs/BasicUnauthenticated.json"`
+
+`./gradlew run --args="suites/BasicSmoke.json"`
+
+#### Run against a local server
+There is a localhost.json server specification file in the resources/server directory. This file contains a filepath to
+the top-level directory of the jade-data-repo Git repository. Executing a test against this configuration, with the path
+modified for your own machine, will start a local Data Repo server by executing the Gradle bootRun task from that
+directory.
+
+This is useful for debugging or testing local server code changes.
+
+#### Use a local Data Repo client JAR file
+The version of the Data Repo client JAR file is specified in the build.gradle file in this sub-project. This JAR file is
+fetched from the Broad Institute Maven repository. You can override this to use a local version of the Data Repo client
+JAR file by specifying a Gradle project property, either with a command line argument 
+
+`./gradlew -Pdatarepoclientjar=/Users/marikomedlock/Workspaces/jade-data-repo/datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar run --args="configs/BasicUnauthenticated.json`
+
+or an environment variable.
+
+`export ORG_GRADLE_PROJECT_datarepoclientjar../datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar`
+`./gradlew run --args="configs/BasicUnauthenticated.json`
+
+This is useful for debugging or testing local server code changes that affect the generated client library (e.g. new API
+endpoint). You can generate the Data Repo client library with the Gradle assemble task of the datarepo-client sub-project.
+
+`cd /Users/marikomedlock/Workspaces/jade-data-repo/datarepo-client`
+
+`../gradlew clean assemble`
+
+`ls -la ./build/libs/*jar`
 
 ## Write a new test
 #### Add a new test configuration

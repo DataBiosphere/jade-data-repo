@@ -1,7 +1,7 @@
 plugins {
     id 'java'
-    id "com.google.cloud.tools.jib" version "1.6.1"
     id 'application'
+    id "com.google.cloud.tools.jib" version "1.6.1"
     id 'com.diffplug.gradle.spotless' version '3.27.2'
     id 'com.github.spotbugs' version '4.0.0'
 }
@@ -50,10 +50,7 @@ dependencies {
     compile "com.google.apis:google-api-services-people:${googlePeople}"
     compile "com.google.auth:google-auth-library-oauth2-http:${googleOauth2}"
 
-
-    // Allow using a local Data Repo Client JAR file, instead of the one from the repository
-    // e.g. ./gradlew -Pdatarepoclientjar=/Users/marikomedlock/Workspaces/jade-data-repo/datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar run --args="configs/BasicUnauthenticated.json"
-    // e.g. ORG_GRADLE_PROJECT_datarepoclientjar=../datarepo-client/build/libs/datarepo-client-1.0.39-SNAPSHOT.jar ./gradlew run --args="configs/BasicUnauthenticated.json"
+    // Gradle project property "datarepoclientjar" overrides the fetch from Maven
     if (project.hasProperty("datarepoclientjar")) {
         implementation files(project.findProperty("datarepoclientjar"))
 
@@ -61,11 +58,6 @@ dependencies {
         compile "org.glassfish.jersey.core:jersey-client:${jersey}"
         compile "org.glassfish.jersey.media:jersey-media-json-jackson:${jersey}"
         compile "org.glassfish.jersey.media:jersey-media-multipart:${jersey}"
-
-//        compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: "${jackson}"
-//        compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: "${jackson}"
-//        compile group: 'io.swagger', name: 'swagger-annotations', version: "${swaggerAnnotations}"
-//        compile "org.glassfish.jersey.inject:jersey-hk2:${jersey}"
     } else {
         implementation "bio.terra:datarepo-client:${datarepoClient}"
     }

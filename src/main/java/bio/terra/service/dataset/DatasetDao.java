@@ -281,9 +281,8 @@ public class DatasetDao {
 
             // otherwise, throw a retryable lock exception
             logger.debug("numRowsUpdated=" + numRowsUpdated);
-            logger.info("Throwing retryable exception.");
-            throw new RetryQueryException("Retry",
-                new DatasetLockException("Failed to take a lock on the dataset"));
+            logger.info("Throw DatasetLockException Error. for datasetId: {}", datasetId);
+            throw new DatasetLockException("Failed to take a lock on the dataset");
         }
         logger.debug("numRowsUpdated=" + numRowsUpdated);
         return numRowsUpdated;

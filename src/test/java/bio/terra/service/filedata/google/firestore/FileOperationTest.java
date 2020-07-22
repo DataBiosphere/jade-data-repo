@@ -275,6 +275,29 @@ public class FileOperationTest {
 
     // ------ Retry shared lock/unlock tests ---------------
 
+    @Test
+    public void retryAndAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            ConnectedOperations.RetryType.lock, true, true,
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
+    @Test
+    public void retryAndAcquireSharedUnlock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            ConnectedOperations.RetryType.unlock, true,  true,
+            ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
+    // These tests can be used as one offs to see if fatal errors are working as expected
+    // But, as is, they shouldn't be run every time because it can leave tests in a bad state
+    // (leftover artifacts after tests)
     @Ignore
     @Test
     public void retryAndEventuallyFailToAcquireSharedLock() throws Exception {
@@ -287,38 +310,6 @@ public class FileOperationTest {
         configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT.toString(), false);
     }
 
-    @Test
-    public void retryAndAcquireSharedLock() throws Exception {
-        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
-
-        connectedOperations.retryAcquireLockIngestFileSuccess(
-            ConnectedOperations.RetryType.lock, true, true,
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_RETRY_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
-    }
-
-    @Test
-    public void retryAndFailAcquireSharedLock() throws Exception {
-        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
-
-        connectedOperations.retryAcquireLockIngestFileSuccess(
-            ConnectedOperations.RetryType.lock, false, true,
-            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
-    }
-
-    @Ignore
-    @Test
-    public void retryAndAcquireSharedUnlock() throws Exception {
-        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
-
-        connectedOperations.retryAcquireLockIngestFileSuccess(
-            ConnectedOperations.RetryType.unlock, true,  true,
-            ConfigEnum.FILE_INGEST_SHARED_UNLOCK_RETRY_FAULT,
-            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
-    }
-
-    // I think this is causing the rest of the tests to fail
     @Ignore
     @Test
     public void retryAndFailAcquireSharedUnlock() throws Exception {
@@ -327,6 +318,17 @@ public class FileOperationTest {
         connectedOperations.retryAcquireLockIngestFileSuccess(
             ConnectedOperations.RetryType.unlock, false, true,
             ConfigEnum.FILE_INGEST_SHARED_UNLOCK_FATAL_FAULT,
+            datasetSummary.getId(), fileLoadModel, configService, datasetDao);
+    }
+
+    @Ignore
+    @Test
+    public void retryAndFailAcquireSharedLock() throws Exception {
+        FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
+
+        connectedOperations.retryAcquireLockIngestFileSuccess(
+            ConnectedOperations.RetryType.lock, false, true,
+            ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }
 

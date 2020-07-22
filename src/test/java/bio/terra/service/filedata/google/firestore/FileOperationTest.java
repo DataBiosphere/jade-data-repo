@@ -302,7 +302,7 @@ public class FileOperationTest {
         FileLoadModel fileLoadModel = makeFileLoad(profileModel.getId());
 
         connectedOperations.retryAcquireLockIngestFileSuccess(
-            ConnectedOperations.RetryType.lock, true, true,
+            ConnectedOperations.RetryType.lock, false, true,
             ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT,
             datasetSummary.getId(), fileLoadModel, configService, datasetDao);
     }

@@ -130,7 +130,6 @@ public class FileOperationTest {
         profileModel = connectedOperations.createProfileForAccount(coreBillingAccountId);
 
         datasetSummary = connectedOperations.createDataset(profileModel, "snapshot-test-dataset.json");
-        logger.info("dataset created - {}", datasetSummary.getId());
         // Make sure we start from a known configuration
         configService.reset();
         // Set the configuration so it is constant for the load tests
@@ -147,14 +146,7 @@ public class FileOperationTest {
 
     @After
     public void teardown() throws Exception {
-        logger.info("TEAR DOWN");
-
-        datasetDaoUtils = new DatasetDaoUtils();
-        String[] sharedLocks = datasetDaoUtils.getSharedLocks(datasetDao, UUID.fromString(datasetSummary.getId()));
-        logger.info("Shared lock: {}, {}", sharedLocks.length);
-        String exclusiveLock = datasetDaoUtils.getExclusiveLock(datasetDao, UUID.fromString(datasetSummary.getId()));
-        logger.info("Exclusive lock: {}", exclusiveLock);
-
+        logger.info("--------start of tear down---------");
 
         // make sure all faults are set back to false
         configService.setFault(ConfigEnum.FILE_INGEST_SHARED_LOCK_FATAL_FAULT.toString(), false);

@@ -36,8 +36,6 @@ public class DatasetIngestFlight extends Flight {
 
         RetryRuleRandomBackoff lockDatasetRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff unlockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         addStep(new LockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
         addStep(new IngestSetupStep(datasetService, configService));
@@ -46,6 +44,6 @@ public class DatasetIngestFlight extends Flight {
         addStep(new IngestValidateRefsStep(datasetService, bigQueryPdao, fileDao));
         addStep(new IngestInsertIntoDatasetTableStep(datasetService, bigQueryPdao));
         addStep(new IngestCleanupStep(datasetService, bigQueryPdao));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, true), unlockDatasetRetry);
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, true), lockDatasetRetry);
     }
 }

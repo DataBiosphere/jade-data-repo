@@ -165,7 +165,6 @@ public class ConnectedOperations {
             .andReturn();
         MockHttpServletResponse response = validateJobModelAndWait(result);
         DatasetSummaryModel datasetSummaryModel = handleSuccessCase(response, DatasetSummaryModel.class);
-        logger.info("adding dataset to tracker after createDataset. {}", datasetSummaryModel.getId());
         addDataset(datasetSummaryModel.getId());
         return datasetSummaryModel;
     }
@@ -770,11 +769,12 @@ public class ConnectedOperations {
     // -- tracking methods --
 
     public void addDataset(String id) {
-        logger.info("addDataset to list to be removed. {}", id);
+        logger.info("Cleanup Tracking: Adding Dataset to list to be removed in cleanup. DatasetId: {}", id);
         createdDatasetIds.add(id);
     }
 
     public void removeDatasetFromTracking(String id) {
+        logger.info("Cleanup Tracking: Removing Dataset from tracking list. DatasetId: {}", id);
         createdDatasetIds.remove(id);
     }
 
@@ -823,11 +823,7 @@ public class ConnectedOperations {
 
         // Adding try catch around each attempt because we don't want one failure to prevent us from
         // cleaning up the rest of the items
-        // What was happening: one dataset delete would fail to delete and throw an exception.
-        // We never got to the point where we were clearing out the list of items to be cleaned up
-        // Then every test that ran after it in the suite would then fail because
-        // they also couldn't delete the dataset.
-        // TODO: Maybe add a delinquent list to retry to delete at the end of the suit of tests?
+        // We also don't want items that couldn't be deleted to interfere with other tests
         if (deleteOnTeardown) {
             // Order is important: delete all the snapshots first so we eliminate dependencies
             // Then delete the files before the datasets
@@ -836,7 +832,7 @@ public class ConnectedOperations {
                     deleteTestSnapshot(snapshotId);
                 } catch (Exception ex) {
                     createdSnapshotIds.remove(snapshotId);
-                    logger.error("CLEANUP ERROR! Unable to clean up snapshot {}", snapshotId);
+                    logger.info("CLEANUP ERROR! Unable to clean up snapshot {}", snapshotId);
                 }
             }
 
@@ -845,13 +841,12 @@ public class ConnectedOperations {
                     deleteTestFile(fileInfo[0], fileInfo[1]);
                 } catch (Exception ex) {
                     createdFileIds.remove(fileInfo);
-                    logger.error("CLEANUP ERROR! Unable to clean up File {}", fileInfo[0]);
+                    logger.info("CLEANUP ERROR! Unable to clean up File {}", fileInfo[0]);
                 }
             }
 
-            logger.info("{} dataset to be removed.", createdDatasetIds.size());
+            logger.info("{} datasets to be removed.", createdDatasetIds.size());
             for (String datasetId : createdDatasetIds) {
-                logger.info("deleting dataset: {}", datasetId);
                 try {
                     deleteTestDataset(datasetId);
                 } catch (Exception ex) {
@@ -865,7 +860,7 @@ public class ConnectedOperations {
                     deleteTestProfile(profileId);
                 } catch (Exception ex) {
                     createdProfileIds.remove(profileId);
-                    logger.error("CLEANUP ERROR! Unable to cleanup profile {}", profileId);
+                    logger.info("CLEANUP ERROR! Unable to cleanup profile {}", profileId);
                 }
             }
 
@@ -874,7 +869,7 @@ public class ConnectedOperations {
                     deleteTestBucket(bucketName);
                 } catch (Exception ex) {
                     createdBuckets.remove(bucketName);
-                    logger.error("CLEANUP ERROR! Unable to cleanup bucket {}", bucketName);
+                    logger.info("CLEANUP ERROR! Unable to cleanup bucket {}", bucketName);
                 }
             }
 
@@ -883,7 +878,7 @@ public class ConnectedOperations {
                     deleteTestScratchFile(path);
                 } catch (Exception ex) {
                     createdScratchFiles.remove(path);
-                    logger.error("CLEANUP ERROR! Unable to clean up scratch file {}", path);
+                    logger.info("CLEANUP ERROR! Unable to clean up scratch file {}", path);
                 }
             }
         }

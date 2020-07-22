@@ -48,8 +48,6 @@ public class FileDeleteFlight extends Flight {
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
         RetryRuleRandomBackoff lockDatasetRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff unlockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         // The flight plan:
         // 0. Take out a shared lock on the dataset. This is to make sure the dataset isn't deleted while this
@@ -68,7 +66,7 @@ public class FileDeleteFlight extends Flight {
         addStep(new DeleteFileMetadataStep(fileDao, fileId, dataset), fileSystemRetry);
         addStep(new DeleteFilePrimaryDataStep(dataset, fileId, gcsPdao, fileDao, locationService));
         addStep(new DeleteFileDirectoryStep(fileDao, fileId, dataset), fileSystemRetry);
-        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), unlockDatasetRetry);
+        addStep(new UnlockDatasetStep(datasetDao, UUID.fromString(datasetId), true), lockDatasetRetry);
     }
 
 }

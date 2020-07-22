@@ -111,7 +111,7 @@ public class DatasetConnectedTest {
 
     @After
     public void tearDown() throws Exception {
-        logger.info("TEAR DOWN");
+        logger.info("--------start of tear down---------");
 
         // make sure all faults are set back to false
         configService.setFault(ConfigEnum.FILE_INGEST_EXCLUSIVE_LOCK_FATAL_FAULT.toString(), false);

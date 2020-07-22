@@ -49,8 +49,6 @@ public class DatasetDeleteFlight extends Flight {
             JobMapKeys.AUTH_USER_INFO.getKeyName(), AuthenticatedUserRequest.class);
         RetryRuleRandomBackoff lockDatasetRetry =
             new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
-        RetryRuleRandomBackoff unlockDatasetRetry =
-            new RetryRuleRandomBackoff(500, appConfig.getMaxStairwayThreads(), 5);
 
         addStep(new LockDatasetStep(datasetDao, datasetId, false, true),
             lockDatasetRetry);
@@ -64,6 +62,6 @@ public class DatasetDeleteFlight extends Flight {
             configService));
         addStep(new DeleteDatasetMetadataStep(datasetDao, datasetId));
         addStep(new DeleteDatasetAuthzResource(iamClient, datasetId, userReq));
-        addStep(new UnlockDatasetStep(datasetDao, datasetId, false), unlockDatasetRetry);
+        addStep(new UnlockDatasetStep(datasetDao, datasetId, false), lockDatasetRetry);
     }
 }

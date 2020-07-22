@@ -1,6 +1,7 @@
 package bio.terra.service.dataset.flight;
 
 import bio.terra.service.dataset.DatasetDao;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.exception.RetryQueryException;
 import bio.terra.stairway.FlightContext;
@@ -46,10 +47,8 @@ public class LockDatasetStep implements Step {
 
         try {
             if (sharedLock) {
-                logger.info("Attempt to acquire shared lock for datasetId: {}", datasetId);
                 datasetDao.lockShared(datasetId, context.getFlightId());
             } else {
-                logger.info("Attempt to acquire exclusive lock for datasetId: {}", datasetId);
                 datasetDao.lockExclusive(datasetId, context.getFlightId());
             }
             return StepResult.getStepResultSuccess();
@@ -60,7 +59,9 @@ public class LockDatasetStep implements Step {
             } else {
                 return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, notFoundEx);
             }
-        } catch (RetryQueryException retryQueryException) {
+        } catch (DatasetLockException ex) {
+            return new StepResult(StepStatus.STEP_RESULT_FAILURE_FATAL, ex);
+        }  catch (RetryQueryException retryQueryException) {
             return new StepResult(StepStatus.STEP_RESULT_FAILURE_RETRY);
         }
     }
@@ -72,14 +73,11 @@ public class LockDatasetStep implements Step {
         boolean rowUpdated;
         String flightId = context.getFlightId();
         if (sharedLock) {
-            logger.info("UNDO: Attempt to unlock shared lock for datasetId: {}, flightId: {}", datasetId, flightId);
             rowUpdated = datasetDao.unlockShared(datasetId, flightId);
         } else {
-            logger.info("UNDO: Attempt to unlock exclusive lock for datasetId: {}, flightId: {}", datasetId, flightId);
             rowUpdated = datasetDao.unlockExclusive(datasetId, flightId);
         }
-        logger.info("UNDO: rowUpdated on unlock = " + rowUpdated);
-
+        logger.debug("rowUpdated on unlock = {}", rowUpdated);
         return StepResult.getStepResultSuccess();
     }
 }

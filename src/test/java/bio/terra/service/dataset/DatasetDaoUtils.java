@@ -8,8 +8,4 @@ public class DatasetDaoUtils {
     public String[] getSharedLocks(DatasetDao datasetDao, UUID datasetId) {
         return datasetDao.getSharedLocks(datasetId);
     }
-
-    public String getExclusiveLock(DatasetDao datasetDao, UUID datasetId) {
-        return datasetDao.getExclusiveLock(datasetId);
-    }
 }

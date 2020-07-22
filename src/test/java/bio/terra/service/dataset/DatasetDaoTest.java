@@ -1,7 +1,7 @@
 package bio.terra.service.dataset;
 
 import bio.terra.common.category.Unit;
-import bio.terra.common.exception.RetryQueryException;
+import bio.terra.service.dataset.exception.DatasetLockException;
 import bio.terra.service.dataset.exception.DatasetNotFoundException;
 import bio.terra.common.fixtures.JsonLoader;
 import bio.terra.common.fixtures.ProfileFixtures;
@@ -311,7 +311,7 @@ public class DatasetDaoTest {
             boolean threwLockException = false;
             try {
                 datasetDao.lockExclusive(datasetId, "flightid3");
-            } catch (RetryQueryException ex) {
+            } catch (DatasetLockException dlEx) {
                 threwLockException = true;
             }
             assertTrue("exclusive lock threw exception in step 3", threwLockException);
@@ -331,7 +331,7 @@ public class DatasetDaoTest {
             threwLockException = false;
             try {
                 datasetDao.lockExclusive(datasetId, "flightid4");
-            } catch (RetryQueryException ex) {
+            } catch (DatasetLockException dlEx) {
                 threwLockException = true;
             }
             assertTrue("exclusive lock threw exception in step 5", threwLockException);
@@ -386,7 +386,7 @@ public class DatasetDaoTest {
             threwLockException = false;
             try {
                 datasetDao.lockShared(datasetId, "flightid11");
-            } catch (RetryQueryException ex) {
+            } catch (DatasetLockException dlEx) {
                 threwLockException = true;
             }
             assertTrue("shared lock threw exception in step 9", threwLockException);
